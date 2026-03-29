@@ -1,5 +1,5 @@
 .
-sphinx<9
+sphinx<10
 sphinx-rtd-theme
 sphinx-multiversion
 sphinx-proof
