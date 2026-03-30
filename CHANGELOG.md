@@ -1,12 +1,5 @@
 # Changelog
 
-## [0.16.0](https://github.com/opthub-org/pytorch-bsf/compare/v0.15.1...v0.16.0) (2026-03-29)
-
-
-### Features
-
-* add pyproject.toml for uv support ([#213](https://github.com/opthub-org/pytorch-bsf/issues/213)) ([#274](https://github.com/opthub-org/pytorch-bsf/issues/274)) ([97bd22d](https://github.com/opthub-org/pytorch-bsf/commit/97bd22dc262c222c49a880bde26db1f6ea3c94e4))
-
 ## [0.15.1](https://github.com/opthub-org/pytorch-bsf/compare/v0.15.0...v0.15.1) (2026-03-27)
 
 
