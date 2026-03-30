@@ -196,7 +196,31 @@ class BezierSimplex(L.LightningModule):
     Parameters
     ----------
     control_points
-        The control points of the Bezier simplex.
+        The control points of the Bezier simplex.  Pass ``None`` only when
+        reconstructing a model from a Lightning checkpoint via
+        :meth:`load_from_checkpoint` — in that case all three shape
+        parameters (``_n_params``, ``_degree``, ``_n_values``) must be
+        provided so that a correctly-shaped placeholder can be built before
+        the saved state dict is loaded into it.
+    smoothness_weight
+        The weight of the smoothness penalty term added to the training loss.
+        When greater than zero, adjacent control points are encouraged to have
+        similar values.  Defaults to ``0.0`` (no penalty).
+    _n_params
+        *Checkpoint-reconstruction parameter — do not set manually.*
+        The number of parameters (source dimension + 1) used to build the
+        placeholder control points when ``control_points`` is ``None``.
+        Automatically saved to, and restored from, Lightning checkpoints.
+    _degree
+        *Checkpoint-reconstruction parameter — do not set manually.*
+        The degree of the Bezier simplex used to build the placeholder when
+        ``control_points`` is ``None``.
+        Automatically saved to, and restored from, Lightning checkpoints.
+    _n_values
+        *Checkpoint-reconstruction parameter — do not set manually.*
+        The number of values (target dimension) used to build the placeholder
+        when ``control_points`` is ``None``.
+        Automatically saved to, and restored from, Lightning checkpoints.
 
     Examples
     --------
@@ -235,17 +259,43 @@ class BezierSimplex(L.LightningModule):
 
     def __init__(
         self,
-        control_points: ControlPoints | ControlPointsData,
+        control_points: ControlPoints | ControlPointsData | None = None,
         smoothness_weight: float = 0.0,
+        _n_params: int | None = None,
+        _degree: int | None = None,
+        _n_values: int | None = None,
     ):
         # REQUIRED
         super().__init__()
+        if control_points is None:
+            # Called by load_from_checkpoint: reconstruct a placeholder from
+            # the saved dimensions so that the state dict can be loaded into it.
+            if _n_params is None or _degree is None or _n_values is None:
+                raise TypeError(
+                    "BezierSimplex.__init__() requires either 'control_points' "
+                    "or all of '_n_params', '_degree', and '_n_values' "
+                    "(e.g. when loading from a checkpoint)."
+                )
+            control_points = {
+                idx: [0.0 for _ in range(_n_values)]
+                for idx in simplex_indices(_n_params, _degree)
+            }
         self.control_points = (
             control_points
             if isinstance(control_points, ControlPoints)
             else ControlPoints(control_points)
         )
         self.smoothness_weight = smoothness_weight
+        # save_hyperparameters() captures local variable values at the point of
+        # the call.  Reassigning _n_params/_degree/_n_values from the actual
+        # model dimensions here ensures they are stored correctly in every
+        # checkpoint — both when called normally (where the caller passes None
+        # for these) and when called by load_from_checkpoint (where the caller
+        # passes the saved values).  Without this reassignment, a normal save
+        # would persist _n_params=None and checkpoint loading would fail.
+        _n_params = self.n_params
+        _degree = self.degree
+        _n_values = self.n_values
         # Exclude the submodule from hyperparameters; it is already saved as
         # part of the module state dict.
         self.save_hyperparameters(ignore=["control_points"])

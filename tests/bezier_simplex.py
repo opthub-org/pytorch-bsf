@@ -9,8 +9,16 @@ from torch.utils.data import DataLoader, TensorDataset
 
 import torch_bsf as tb
 import torch_bsf.bezier_simplex as tbbs
+from torch_bsf.bezier_simplex import (
+    BezierSimplexDataModule,
+    monomial,
+    polynom,
+)
 
 _DATA_DIR = Path(__file__).parent / "data"
+_REPO_ROOT = Path(__file__).parent.parent
+_PARAMS_CSV = _REPO_ROOT / "params.csv"
+_VALUES_CSV = _REPO_ROOT / "values.csv"
 
 @pytest.mark.parametrize(
     "n_params, n_values, degree",
@@ -472,3 +480,327 @@ def test_early_stopping_monitors_val_avg_mse():
     # Should complete without MisconfigurationException about missing monitor key
     trainer.fit(bs, train_dl, val_dl)
     assert "val_avg_mse" in trainer.callback_metrics
+
+
+# ---------------------------------------------------------------------------
+# BezierSimplex.__init__ — optional control_points / checkpoint-reconstruction
+# ---------------------------------------------------------------------------
+
+
+def test_init_no_args_raises():
+    """BezierSimplex() with no arguments must raise TypeError."""
+    with pytest.raises(TypeError):
+        tbbs.BezierSimplex()
+
+
+def test_init_partial_shape_params_raises():
+    """Passing control_points=None with only some shape params must raise TypeError."""
+    with pytest.raises(TypeError):
+        tbbs.BezierSimplex(control_points=None, _n_params=2)
+
+
+def test_init_with_all_shape_params_creates_placeholder():
+    """Passing control_points=None with all shape params creates a valid model."""
+    bs = tbbs.BezierSimplex(control_points=None, _n_params=2, _degree=2, _n_values=3)
+    assert bs.n_params == 2
+    assert bs.degree == 2
+    assert bs.n_values == 3
+
+
+# ---------------------------------------------------------------------------
+# Lightning checkpoint round-trip
+# ---------------------------------------------------------------------------
+
+
+def test_load_from_checkpoint_round_trip(tmp_path):
+    """BezierSimplex.load_from_checkpoint must restore a usable model."""
+    ts = torch.tensor([[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]])
+    xs = 1.0 - ts * ts
+    dl = DataLoader(TensorDataset(ts, xs), batch_size=3)
+
+    bs = tbbs.randn(n_params=2, n_values=2, degree=1)
+    ckpt_path = tmp_path / "model.ckpt"
+
+    trainer = L.Trainer(
+        max_epochs=1,
+        accelerator="cpu",
+        devices=1,
+        enable_progress_bar=False,
+        logger=False,
+        enable_checkpointing=False,
+    )
+    trainer.fit(bs, dl)
+    trainer.save_checkpoint(ckpt_path)
+
+    bs2 = tbbs.BezierSimplex.load_from_checkpoint(str(ckpt_path))
+    assert bs2.n_params == bs.n_params
+    assert bs2.degree == bs.degree
+    assert bs2.n_values == bs.n_values
+    # Predictions should match
+    with torch.no_grad():
+        out1 = bs(ts)
+        out2 = bs2(ts)
+    assert torch.allclose(out1, out2, atol=1e-5)
+
+
+# ---------------------------------------------------------------------------
+# polynom / monomial
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "degree, index, expected",
+    [
+        (3, (3,), 1.0),           # 3! / 3! = 1
+        (3, (2, 1), 3.0),         # 3! / (2! 1!) = 3
+        (3, (1, 1, 1), 6.0),      # 3! / (1! 1! 1!) = 6
+        (0, (0,), 1.0),           # 0! / 0! = 1
+    ],
+)
+def test_polynom(degree, index, expected):
+    assert polynom(degree, index) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    "variable, degree, expected",
+    [
+        ([2.0, 3.0], [1, 1], 6.0),   # 2^1 * 3^1 = 6
+        ([2.0, 3.0], [2, 0], 4.0),   # 2^2 * 3^0 = 4
+        ([0.5, 0.5], [1, 1], 0.25),  # 0.5 * 0.5 = 0.25
+        ([1.0], [0], 1.0),           # scalar identity
+    ],
+)
+def test_monomial(variable, degree, expected):
+    result = monomial(variable, degree)
+    # monomial() returns a per-sample tensor; squeeze for scalar comparison
+    assert float(result.squeeze()) == pytest.approx(expected)
+
+
+# ---------------------------------------------------------------------------
+# zeros / rand / randn negative-argument validation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("fn", [tbbs.zeros, tbbs.rand, tbbs.randn])
+def test_factory_negative_n_params_raises(fn):
+    with pytest.raises(ValueError, match="non-negative"):
+        fn(n_params=-1, n_values=2, degree=2)
+
+
+@pytest.mark.parametrize("fn", [tbbs.zeros, tbbs.rand, tbbs.randn])
+def test_factory_negative_n_values_raises(fn):
+    with pytest.raises(ValueError, match="non-negative"):
+        fn(n_params=2, n_values=-1, degree=2)
+
+
+@pytest.mark.parametrize("fn", [tbbs.zeros, tbbs.rand, tbbs.randn])
+def test_factory_negative_degree_raises(fn):
+    with pytest.raises(ValueError, match="non-negative"):
+        fn(n_params=2, n_values=2, degree=-1)
+
+
+# ---------------------------------------------------------------------------
+# save / load unknown extension
+# ---------------------------------------------------------------------------
+
+
+def test_save_unknown_extension_raises(tmp_path):
+    bs = tbbs.randn(n_params=2, n_values=2, degree=1)
+    with pytest.raises(ValueError, match="Unknown file type"):
+        tbbs.save(str(tmp_path / "model.xyz"), bs)
+
+
+def test_load_unknown_extension_raises(tmp_path):
+    f = tmp_path / "model.xyz"
+    f.write_text("dummy")
+    with pytest.raises(ValueError, match="Unknown file type"):
+        tbbs.load(str(f))
+
+
+# ---------------------------------------------------------------------------
+# fit — error paths and alternative init types
+# ---------------------------------------------------------------------------
+
+
+def test_fit_no_degree_no_init_raises():
+    ts = torch.tensor([[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]])
+    xs = ts * ts
+    with pytest.raises(ValueError, match="Either degree or init must be specified"):
+        tbbs.fit(params=ts, values=xs, max_epochs=1, enable_progress_bar=False, logger=False)
+
+
+def test_fit_both_degree_and_init_raises():
+    ts = torch.tensor([[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]])
+    xs = ts * ts
+    init = tbbs.rand(n_params=2, n_values=2, degree=1)
+    with pytest.raises(ValueError, match="Either degree or init must be specified"):
+        tbbs.fit(params=ts, values=xs, degree=1, init=init,
+                 max_epochs=1, enable_progress_bar=False, logger=False)
+
+
+def test_fit_with_dict_init():
+    """fit() accepts a plain dict of control points as init."""
+    ts = torch.tensor([[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]])
+    xs = ts * ts
+    from torch_bsf.control_points import simplex_indices
+
+    init = {idx: [0.5, 0.5] for idx in simplex_indices(2, 1)}
+    bs = tbbs.fit(params=ts, values=xs, init=init,
+                  max_epochs=1, enable_progress_bar=False, logger=False)
+    assert bs.n_params == 2
+    assert bs.n_values == 2
+
+
+# ---------------------------------------------------------------------------
+# fix_row / on_after_backward
+# ---------------------------------------------------------------------------
+
+
+def test_fix_row_zeros_gradient():
+    """fix_row() must zero out the gradient for the fixed control point after backward."""
+    ts = torch.tensor([[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]])
+    xs = ts * ts
+    bs = tbbs.randn(n_params=2, n_values=2, degree=1)
+
+    # Fix the first vertex
+    first_index = (1, 0)
+    bs.fix_row(first_index)
+
+    # Manual forward + backward
+    pred = bs(ts)
+    loss = torch.nn.functional.mse_loss(pred, xs)
+    loss.backward()
+    bs.on_after_backward()
+
+    # The gradient of the fixed row must be zero
+    grad = bs.control_points.matrix.grad
+    assert grad is not None
+    row = bs.control_points._index_to_row[first_index]
+    assert torch.all(grad[row] == 0.0)
+
+
+# ---------------------------------------------------------------------------
+# forward — constant simplex (n_params == 0)
+# ---------------------------------------------------------------------------
+
+
+def test_forward_constant_simplex_broadcasts():
+    """forward() for n_params == 0 must broadcast the single control point over batch."""
+    bs = tbbs.zeros(n_params=0, n_values=3, degree=0)
+    # Constant simplex: the single control-point value is [0, 0, 0]
+    # We feed an arbitrary batch tensor of shape (5, 0)
+    t = torch.zeros(5, 0)
+    out = bs(t)
+    assert out.shape == (5, 3)
+    assert torch.all(out == 0.0)
+
+
+# ---------------------------------------------------------------------------
+# meshgrid with n_params > 0
+# ---------------------------------------------------------------------------
+
+
+def test_meshgrid_returns_correct_shapes():
+    """meshgrid() must return paired (ts, xs) tensors with matching batch dimensions."""
+    bs = tbbs.randn(n_params=2, n_values=3, degree=2)
+    ts, xs = bs.meshgrid(num=5)
+    assert ts.ndim == 2
+    assert ts.shape[1] == 2
+    assert xs.ndim == 2
+    assert xs.shape[1] == 3
+    assert ts.shape[0] == xs.shape[0]
+
+
+# ---------------------------------------------------------------------------
+# test_step logs metrics
+# ---------------------------------------------------------------------------
+
+
+def test_test_step_logs_metrics():
+    """test_step() must log test_mse and test_mae."""
+    ts = torch.tensor([[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]])
+    xs = 1.0 - ts * ts
+    dl = DataLoader(TensorDataset(ts, xs), batch_size=3)
+
+    bs = tbbs.randn(n_params=2, n_values=2, degree=1)
+    trainer = L.Trainer(
+        max_epochs=1,
+        accelerator="cpu",
+        devices=1,
+        enable_progress_bar=False,
+        logger=False,
+        enable_checkpointing=False,
+    )
+    trainer.fit(bs, dl)
+    trainer.test(bs, dl, verbose=False)
+
+    assert "test_mse" in trainer.callback_metrics
+    assert "test_mae" in trainer.callback_metrics
+
+
+# ---------------------------------------------------------------------------
+# BezierSimplexDataModule
+# ---------------------------------------------------------------------------
+
+
+def test_data_module_basic():
+    """BezierSimplexDataModule must infer n_params and n_values from CSV headers."""
+    dm = BezierSimplexDataModule(params=_PARAMS_CSV, values=_VALUES_CSV)
+    assert dm.n_params == 2
+    assert dm.n_values == 2
+
+
+def test_data_module_train_dataloader():
+    """train_dataloader() must return batches of (params, values) tensors."""
+    dm = BezierSimplexDataModule(params=_PARAMS_CSV, values=_VALUES_CSV)
+    dl = dm.train_dataloader()
+    params_batch, values_batch = next(iter(dl))
+    assert params_batch.ndim == 2
+    assert params_batch.shape[1] == 2
+    assert values_batch.ndim == 2
+    assert values_batch.shape[1] == 2
+
+
+def test_data_module_val_and_test_dataloader():
+    """val_dataloader() and test_dataloader() must return valid loaders."""
+    dm = BezierSimplexDataModule(params=_PARAMS_CSV, values=_VALUES_CSV, split_ratio=0.8)
+    val_batch = next(iter(dm.val_dataloader()))
+    test_batch = next(iter(dm.test_dataloader()))
+    assert len(val_batch) == 2
+    assert len(test_batch) == 2
+
+
+def test_data_module_batch_size():
+    """Setting batch_size must limit the minibatch size."""
+    dm = BezierSimplexDataModule(params=_PARAMS_CSV, values=_VALUES_CSV, batch_size=2)
+    params_batch, _ = next(iter(dm.train_dataloader()))
+    assert params_batch.shape[0] <= 2
+
+
+@pytest.mark.parametrize("normalize", ["max", "std", "quantile", "none"])
+def test_data_module_normalize_modes(normalize):
+    """All normalize modes must produce valid float tensors."""
+    dm = BezierSimplexDataModule(params=_PARAMS_CSV, values=_VALUES_CSV, normalize=normalize)
+    _, values_batch = next(iter(dm.train_dataloader()))
+    assert values_batch.dtype in (torch.float32, torch.float64)
+
+
+def test_data_module_invalid_header_raises():
+    with pytest.raises(ValueError, match="non-negative"):
+        BezierSimplexDataModule(params=_PARAMS_CSV, values=_VALUES_CSV, header=-1)
+
+
+def test_data_module_invalid_batch_size_raises():
+    with pytest.raises(ValueError, match="positive"):
+        BezierSimplexDataModule(params=_PARAMS_CSV, values=_VALUES_CSV, batch_size=0)
+
+
+def test_data_module_invalid_split_ratio_raises():
+    with pytest.raises(ValueError, match="split_ratio"):
+        BezierSimplexDataModule(params=_PARAMS_CSV, values=_VALUES_CSV, split_ratio=0.0)
+
+
+def test_data_module_invalid_normalize_raises():
+    with pytest.raises(ValueError, match="normalize"):
+        BezierSimplexDataModule(params=_PARAMS_CSV, values=_VALUES_CSV, normalize="unknown")
+

@@ -122,3 +122,4 @@ lightning_logs/
 mlruns/
 *,meshgrid,*.csv
 pytest.xml
+checkpoints/
