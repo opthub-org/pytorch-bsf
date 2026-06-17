@@ -42,6 +42,7 @@ extensions = [
     "sphinx.ext.linkcode",
     "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
+    "sphinx_design",
     "sphinx_rtd_theme",
     "sphinx_multiversion",
     "sphinx_proof",
