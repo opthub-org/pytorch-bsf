@@ -10,6 +10,7 @@
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
@@ -17,6 +18,7 @@
       <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
       <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -100,9 +102,9 @@
 <p>In such Weber-type facility location problems, when evaluating trade-offs using squared Euclidean distances, the formulation becomes a simultaneous minimization of multiple objectives:</p>
 <div class="math notranslate nohighlight">
 \[f_k(x) = \|x - a_k\|^2, \quad k = 1, \dots, m\]</div>
-<p>Where <span class="math notranslate nohighlight">\(x\)</span> represents the facility location and <span class="math notranslate nohighlight">\(a_k\)</span> represents the fixed locations of the demand segments. The modulus-2 strong convexity of each distance objective, since the Hessian is identically <span class="math notranslate nohighlight">\(2I \succ 0\)</span>, translates directly into a simplicial Pareto set topology <span id="id1">[<a class="reference internal" href="../references.html#id16" title="Naoki Hamada, Kenta Hayano, Shunsuke Ichiki, Yutaro Kabata, and Hiroshi Teramoto. Topology of pareto sets of strongly convex problems. SIAM Journal on Optimization, 30(3):2659–2686, 2020. doi:10.1137/19M1264175.">HHI+20</a>]</span>. Since the objectives are all strongly convex, the Pareto set forms a continuous simplex in the decision space.</p>
-<p>Likewise, in engineering design optimizing for structural compliance or minimum energy, the objectives inherently manifest as positive-definite quadratic costs. The strong convexity ensures that descent methods, such as the multi-objective Newton method, achieve superlinear or even quadratic local convergence along the Pareto front <span id="id2">[<a class="reference internal" href="../references.html#id19" title="Jörg Fliege, L M Graña Drummond, and Benar Fux Svaiter. Newton's method for multiobjective optimization. SIAM Journal on Optimization, 20(2):602–626, 2009. doi:10.1137/08071692X.">FGranaDS09</a>]</span>.</p>
-<p>These properties are explicitly leveraged by Adaptive Weighted Sum (AWS) methods in structural multidisciplinary optimization, where successive boundary-constrained strongly-convex QPs smoothly and uniformly map the Pareto front <span id="id3">[<a class="reference internal" href="../references.html#id27" title="Olivier de Weck and Il Yong Kim. Adaptive weighted sum method for multiobjective optimization. Submitted to Structural and Multidisciplinary Optimization for Review.">dWK</a>]</span>. Even in complex biological systems, such as competitive Lotka-Volterra models, transformations of the quadratic interaction terms yield strongly convex models that exhibit identically stable simplicial Pareto behavior.</p>
+<p>Where <span class="math notranslate nohighlight">\(x\)</span> represents the facility location and <span class="math notranslate nohighlight">\(a_k\)</span> represents the fixed locations of the demand segments. The modulus-2 strong convexity of each distance objective, since the Hessian is identically <span class="math notranslate nohighlight">\(2I \succ 0\)</span>, translates directly into a simplicial Pareto set topology <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id16" title="Naoki Hamada, Kenta Hayano, Shunsuke Ichiki, Yutaro Kabata, and Hiroshi Teramoto. Topology of pareto sets of strongly convex problems. SIAM Journal on Optimization, 30(3):2659–2686, 2020. doi:10.1137/19M1264175.">HHI+20</a>]</span>. Since the objectives are all strongly convex, the Pareto set forms a continuous simplex in the decision space.</p>
+<p>Likewise, in engineering design optimizing for structural compliance or minimum energy, the objectives inherently manifest as positive-definite quadratic costs. The strong convexity ensures that descent methods, such as the multi-objective Newton method, achieve superlinear or even quadratic local convergence along the Pareto front <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id19" title="Jörg Fliege, L M Graña Drummond, and Benar Fux Svaiter. Newton's method for multiobjective optimization. SIAM Journal on Optimization, 20(2):602–626, 2009. doi:10.1137/08071692X.">FGranaDS09</a>]</span>.</p>
+<p>These properties are explicitly leveraged by Adaptive Weighted Sum (AWS) methods in structural multidisciplinary optimization, where successive boundary-constrained strongly-convex QPs smoothly and uniformly map the Pareto front <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../references.html#id27" title="Olivier de Weck and Il Yong Kim. Adaptive weighted sum method for multiobjective optimization. Submitted to Structural and Multidisciplinary Optimization for Review.">dWK</a>]</span>. Even in complex biological systems, such as competitive Lotka-Volterra models, transformations of the quadratic interaction terms yield strongly convex models that exhibit identically stable simplicial Pareto behavior.</p>
 <p>Approximating these Pareto fronts with a Bézier simplex yields a completely continuous, analytic structural location map. Planners and decision-makers are empowered to visually and analytically slide trade-off priorities—such as selectively favoring certain demand hubs—to determine the optimal coordinates seamlessly, without needing to re-solve the spatial optimization from scratch.</p>
 </section>
 
@@ -164,6 +166,7 @@
             <dd><a href="../../v0.16.0/applications/facility_location.html">v0.16.0</a></dd>
             <dd><a href="../../v0.16.1/applications/facility_location.html">v0.16.1</a></dd>
             <dd><a href="../../v0.17.0/applications/facility_location.html">v0.17.0</a></dd>
+            <dd><a href="../../v0.18.0/applications/facility_location.html">v0.18.0</a></dd>
             <dd><a href="../../v0.2.0/index.html">v0.2.0</a></dd>
             <dd><a href="../../v0.3.0/index.html">v0.3.0</a></dd>
             <dd><a href="../../v0.3.1/index.html">v0.3.1</a></dd>

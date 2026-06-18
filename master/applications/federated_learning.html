@@ -10,6 +10,7 @@
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
@@ -17,6 +18,7 @@
       <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
       <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -104,7 +106,7 @@
 f_2(\theta) &amp;= \mathcal{L}_2(\theta) + \lambda\|\theta\|^2 \\
             &amp;\vdots \\
 f_m(\theta) &amp;= \mathcal{L}_m(\theta) + \lambda\|\theta\|^2\end{split}\]</div>
-<p>The <span class="math notranslate nohighlight">\(L_2\)</span> regularization penalty <span class="math notranslate nohighlight">\(\lambda\|\theta\|^2\)</span> ensures that the Hessian incorporates a positive definite matrix <span class="math notranslate nohighlight">\(2\lambda I \succ 0\)</span>. This global penalty forcefully transforms the generic convex loss landscapes (common in logistic/ridge regressions or SVMs) into strictly strongly convex objectives. Under strong convexity, algorithms like the Stochastic Multi-Gradient (SMG) descent achieve dramatic convergence accelerations, improving from sub-linear to linear <span class="math notranslate nohighlight">\(O(1/n)\)</span> or <span class="math notranslate nohighlight">\(O(\exp(-\mu T))\)</span> convergence rates <span id="id1">[<a class="reference internal" href="../references.html#id17" title="Suyun Liu and Luís N Vicente. The stochastic multi-gradient algorithm for multi-objective optimization and its application to supervised machine learning. Annals of Operations Research, 339(3):1119–1148, 2024. doi:10.1007/s10479-021-04033-z.">LV24</a>]</span>.</p>
+<p>The <span class="math notranslate nohighlight">\(L_2\)</span> regularization penalty <span class="math notranslate nohighlight">\(\lambda\|\theta\|^2\)</span> ensures that the Hessian incorporates a positive definite matrix <span class="math notranslate nohighlight">\(2\lambda I \succ 0\)</span>. This global penalty forcefully transforms the generic convex loss landscapes (common in logistic/ridge regressions or SVMs) into strictly strongly convex objectives. Under strong convexity, algorithms like the Stochastic Multi-Gradient (SMG) descent achieve dramatic convergence accelerations, improving from sub-linear to linear <span class="math notranslate nohighlight">\(O(1/n)\)</span> or <span class="math notranslate nohighlight">\(O(\exp(-\mu T))\)</span> convergence rates <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id17" title="Suyun Liu and Luís N Vicente. The stochastic multi-gradient algorithm for multi-objective optimization and its application to supervised machine learning. Annals of Operations Research, 339(3):1119–1148, 2024. doi:10.1007/s10479-021-04033-z.">LV24</a>]</span>.</p>
 <p>Rather than computing single compromised aggregations, the global model’s Pareto front is modeled as a continuous Bézier simplex. This facilitates a “train once, customize anywhere” paradigm. A global Bézier simplex allows individual edge devices or network nodes to download the analytic continuous trade-off surface, enabling them to instantly select an optimal model variant tailored precisely to their local power limits, fairness constraints, or inference needs, simply by navigating the simplex variables—representing a drastic improvement over constant network-wide retraining.</p>
 </section>
 
@@ -166,6 +168,7 @@ f_m(\theta) &amp;= \mathcal{L}_m(\theta) + \lambda\|\theta\|^2\end{split}\]</div
             <dd><a href="../../v0.16.0/applications/federated_learning.html">v0.16.0</a></dd>
             <dd><a href="../../v0.16.1/applications/federated_learning.html">v0.16.1</a></dd>
             <dd><a href="../../v0.17.0/applications/federated_learning.html">v0.17.0</a></dd>
+            <dd><a href="../../v0.18.0/applications/federated_learning.html">v0.18.0</a></dd>
             <dd><a href="../../v0.2.0/index.html">v0.2.0</a></dd>
             <dd><a href="../../v0.3.0/index.html">v0.3.0</a></dd>
             <dd><a href="../../v0.3.1/index.html">v0.3.1</a></dd>

@@ -10,6 +10,7 @@
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
@@ -17,6 +18,7 @@
       <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
       <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -97,11 +99,11 @@
   <section id="medical-imaging-and-radiation-therapy">
 <h1>Medical Imaging and Radiation Therapy<a class="headerlink" href="#medical-imaging-and-radiation-therapy" title="Link to this heading"></a></h1>
 <p>Optimizing diagnostic clarity and therapeutic safety simultaneously is paramount in medical fields, making multi-objective optimization frameworks indispensable.</p>
-<p>For instance, Computed Tomography (CT) image reconstruction represents an ill-posed multi-objective inverse problem where doctors must minimize a data fidelity term (noise residual) against a regularization term safeguarding spatial continuity. Utilizing the L-Curve method <span id="id1">[<a class="reference internal" href="../references.html#id25" title="Per Christian Hansen and Dianne Prost O'Leary. The use of the l-curve in the regularization of discrete ill-posed problems. SIAM Journal on Scientific Computing, 14(6):1487–1503, 1993. doi:10.1137/0914086.">HOLeary93</a>]</span>, this is routinely formulated mathematically as balancing:</p>
+<p>For instance, Computed Tomography (CT) image reconstruction represents an ill-posed multi-objective inverse problem where doctors must minimize a data fidelity term (noise residual) against a regularization term safeguarding spatial continuity. Utilizing the L-Curve method <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id25" title="Per Christian Hansen and Dianne Prost O'Leary. The use of the l-curve in the regularization of discrete ill-posed problems. SIAM Journal on Scientific Computing, 14(6):1487–1503, 1993. doi:10.1137/0914086.">HOLeary93</a>]</span>, this is routinely formulated mathematically as balancing:</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}f_1(x) &amp;= \|Kx - y\|_2^2 \quad \text{(Fidelity)} \\
 f_2(x) &amp;= \|Lx\|_2^2     \quad \text{(Regularization)}\end{split}\]</div>
-<p>Similarly, Intensity-Modulated Radiation Therapy (IMRT) requires treating patients via highly constrained inverse planning <span id="id2">[<a class="reference internal" href="../references.html#id24" title="S Breedveld, P Storchi, M Keijzer, A Heemink, and B Heijmen. A novel approach to multi-criteria inverse planning for imrt. Physics in Medicine and Biology, 2007.">BSK+07</a>]</span>. Planners must aggressively deliver prescriptive radiation doses to tumors while strictly repressing the doses affecting adjacent healthy Organs At Risk (OAR). The optimization minimizes heavily competing quadratic objectives:</p>
+<p>Similarly, Intensity-Modulated Radiation Therapy (IMRT) requires treating patients via highly constrained inverse planning <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id24" title="S Breedveld, P Storchi, M Keijzer, A Heemink, and B Heijmen. A novel approach to multi-criteria inverse planning for imrt. Physics in Medicine and Biology, 2007.">BSK+07</a>]</span>. Planners must aggressively deliver prescriptive radiation doses to tumors while strictly repressing the doses affecting adjacent healthy Organs At Risk (OAR). The optimization minimizes heavily competing quadratic objectives:</p>
 <div class="math notranslate nohighlight">
 \[s(f) = \sum_{v \in V} \xi_v (Hf - d_v^p)^T \tilde{\eta}_v (Hf - d_v^p) + \kappa (Mf)^T (Mf)\]</div>
 <p>where the first component penalizes dose errors via beamlet fluence <span class="math notranslate nohighlight">\(f\)</span>, and the second component applies spatial smoothing.</p>
@@ -167,6 +169,7 @@ f_2(x) &amp;= \|Lx\|_2^2     \quad \text{(Regularization)}\end{split}\]</div>
             <dd><a href="../../v0.16.0/applications/medical_imaging.html">v0.16.0</a></dd>
             <dd><a href="../../v0.16.1/applications/medical_imaging.html">v0.16.1</a></dd>
             <dd><a href="../../v0.17.0/applications/medical_imaging.html">v0.17.0</a></dd>
+            <dd><a href="../../v0.18.0/applications/medical_imaging.html">v0.18.0</a></dd>
             <dd><a href="../../v0.2.0/index.html">v0.2.0</a></dd>
             <dd><a href="../../v0.3.0/index.html">v0.3.0</a></dd>
             <dd><a href="../../v0.3.1/index.html">v0.3.1</a></dd>
