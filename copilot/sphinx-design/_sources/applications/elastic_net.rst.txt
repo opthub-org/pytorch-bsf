@@ -137,7 +137,7 @@ Empirical Evaluation
 
 The effectiveness of PyTorch-BSF for Elastic Net is demonstrated using the **Wine** dataset from the UCI Machine Learning Repository. Experiments show that even with a limited number of training points (e.g., 51 points for a degree-6 simplex), the Bézier simplex accurately approximates the entire solution map, maintaining low Mean Squared Error (MSE) across the continuous hyperparameter space.
 
-The following tables compare the results obtained through an exhaustive grid search (ground truth) and the Bézier simplex approximation. The high similarity between the performance surfaces confirms the fidelity of the surrogate model.
+The following figures compare the results obtained through an exhaustive grid search (ground truth) and the Bézier simplex approximation. The high similarity between the performance surfaces confirms the fidelity of the surrogate model.
 
 Ground truth results from exhaustive grid search (102x102 grid):
 
