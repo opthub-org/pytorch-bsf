@@ -28,8 +28,9 @@ class BezierSimplexRegressor(BaseEstimator, RegressorMixin):
 
     Parameters
     ----------
-    degree : int, default=3
-        The degree of the Bézier simplex.
+    degree : int | None, default=None
+        The degree of the Bézier simplex. Either ``degree`` or ``init`` must
+        be provided.
     smoothness_weight : float, default=0.0
         The weight of smoothness penalty.
     init : BezierSimplex | ControlPointsData | None, default=None
@@ -38,7 +39,7 @@ class BezierSimplexRegressor(BaseEstimator, RegressorMixin):
         Indices of control points to freeze during training.
     batch_size : int | None, default=None
         Size of minibatches.
-    max_epochs : int, default=1000
+    max_epochs : int, default=3
         Maximum number of epochs to train.
     accelerator : str, default="auto"
         Hardware accelerator to use ("cpu", "gpu", "auto", etc.).
@@ -52,12 +53,12 @@ class BezierSimplexRegressor(BaseEstimator, RegressorMixin):
 
     def __init__(
         self,
-        degree: int = 3,
+        degree: int | None = None,
         smoothness_weight: float = 0.0,
         init: BezierSimplex | ControlPointsData | None = None,
         freeze: Iterable[Index] | None = None,
         batch_size: int | None = None,
-        max_epochs: int = 1000,
+        max_epochs: int = 3,
         accelerator: str = "auto",
         devices: int | str = "auto",
         precision: str = "32-true",
