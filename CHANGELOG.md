@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.18.1](https://github.com/opthub-org/pytorch-bsf/compare/v0.18.0...v0.18.1) (2026-06-18)
+
+
+### Documentation
+
+* Adopt sphinx-design grids for Elastic Net figure layouts ([#331](https://github.com/opthub-org/pytorch-bsf/issues/331)) ([d5b75e5](https://github.com/opthub-org/pytorch-bsf/commit/d5b75e570e720060c59b8ad9cf03627081107be8))
+
 ## [0.18.0](https://github.com/opthub-org/pytorch-bsf/compare/v0.17.0...v0.18.0) (2026-04-04)
 
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pytorch-bsf"
-version = "0.18.0"
+version = "0.18.1"
 description = "PyTorch implementation of Bézier simplex fitting"
 readme = {file = "README.md", content-type = "text/markdown"}
 license = {file = "LICENSE"}
