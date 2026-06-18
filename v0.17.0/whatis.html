@@ -10,6 +10,7 @@
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
@@ -17,6 +18,7 @@
       <script src="_static/documentation_options.js?v=ba2e7b09"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
       <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -136,7 +138,7 @@ We define the <em>index set</em> by</p>
 </section>
 <section id="approximation-theorem">
 <h2>Approximation Theorem<a class="headerlink" href="#approximation-theorem" title="Link to this heading"></a></h2>
-<p>Any continuous map from a simplex to a Euclidean space can be approximated by a Bézier simplex. More precisely, the following theorem holds <span id="id1">[<a class="reference internal" href="references.html#id2" title="Ken Kobayashi, Naoki Hamada, Akiyoshi Sannai, Aiko Tanaka, Kenichi Bannai, and Masashi Sugiyama. Bézier simplex fitting: describing pareto fronts of simplicial problems with small samples in multi-objective optimization. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 33, 2304–2313. 2019. URL: https://doi.org/10.1609/aaai.v33i01.33012304.">KHS+19</a>]</span>:</p>
+<p>Any continuous map from a simplex to a Euclidean space can be approximated by a Bézier simplex. More precisely, the following theorem holds <span class="bibtex-citation" id="id1">[<a class="reference internal" href="references.html#id2" title="Ken Kobayashi, Naoki Hamada, Akiyoshi Sannai, Aiko Tanaka, Kenichi Bannai, and Masashi Sugiyama. Bézier simplex fitting: describing pareto fronts of simplicial problems with small samples in multi-objective optimization. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 33, 2304–2313. 2019. URL: https://doi.org/10.1609/aaai.v33i01.33012304.">KHS+19</a>]</span>:</p>
 <div class="proof theorem admonition" id="theorem-0">
 <p class="admonition-title"><span class="caption-number">Theorem 1 </span> (Universal Approximation Theorem)</p>
 <section class="theorem-content" id="proof-content">
@@ -173,7 +175,7 @@ We define the <em>index set</em> by</p>
 <h3>Weakly Simplicial Problems<a class="headerlink" href="#weakly-simplicial-problems" title="Link to this heading"></a></h3>
 <p>In many real-world multi-objective optimization problems, the Pareto set and Pareto front exhibit a highly structured, continuous shape. Specifically, they often mirror the topological structure of a standard simplex (e.g., a curve for a two-objective problem, a curved triangle for a three-objective problem, and so on). The concept of a <em>weakly simplicial problem</em> formally captures this property, ensuring that the optimal trade-off surfaces are well-behaved and can be elegantly approximated by Bézier simplices.</p>
 <div class="proof definition admonition" id="definition-3">
-<p class="admonition-title"><span class="caption-number">Definition 3 </span> (Weakly Simplicial Problem <span id="id2">[<a class="reference internal" href="references.html#id4" title="Yuto Mizota, Naoki Hamada, and Shunsuke Ichiki. All unconstrained strongly convex problems are weakly simplicial. 2021. URL: https://arxiv.org/abs/2106.12704, arXiv:2106.12704.">MHI21</a>]</span>)</p>
+<p class="admonition-title"><span class="caption-number">Definition 3 </span> (Weakly Simplicial Problem <span class="bibtex-citation" id="id2">[<a class="reference internal" href="references.html#id4" title="Yuto Mizota, Naoki Hamada, and Shunsuke Ichiki. All unconstrained strongly convex problems are weakly simplicial. 2021. URL: https://arxiv.org/abs/2106.12704, arXiv:2106.12704.">MHI21</a>]</span>)</p>
 <section class="definition-content" id="proof-content">
 <p>Let <span class="math notranslate nohighlight">\(f:X\to\mathbb R^M\)</span> be a mapping, where <span class="math notranslate nohighlight">\(X\)</span> is a subset of <span class="math notranslate nohighlight">\(\mathbb R^N\)</span>. The problem of minimizing <span class="math notranslate nohighlight">\(f\)</span> is <span class="math notranslate nohighlight">\(C^r\)</span><em>-simplicial</em> if there exists a <span class="math notranslate nohighlight">\(C^r\)</span>-mapping <span class="math notranslate nohighlight">\(\Phi:\Delta^{M-1} \to X^\star(f)\)</span> such that both the mappings <span class="math notranslate nohighlight">\(\Phi|_{\Delta_I}:\Delta_I\to X^\star(f_I)\)</span> and <span class="math notranslate nohighlight">\(f|_{X^\star(f_I)}:X^\star(f_I)\to f(X^\star(f_I))\)</span> are <span class="math notranslate nohighlight">\(C^r\)</span>-diffeomorphisms for any nonempty subset <span class="math notranslate nohighlight">\(I\)</span> of <span class="math notranslate nohighlight">\(\{1,\ldots,M\}\)</span>, where <span class="math notranslate nohighlight">\(0\le r\le\infty\)</span>. The problem of minimizing <span class="math notranslate nohighlight">\(f\)</span> is <span class="math notranslate nohighlight">\(C^r\)</span><em>-weakly simplicial</em> if there exists a <span class="math notranslate nohighlight">\(C^r\)</span>-mapping <span class="math notranslate nohighlight">\(\phi:\Delta^{M-1}\to X^\star(f)\)</span> such that <span class="math notranslate nohighlight">\(\phi(\Delta_I)=X^\star(f_I)\)</span> for any nonempty subset <span class="math notranslate nohighlight">\(I\)</span> of <span class="math notranslate nohighlight">\(\{1,\ldots,M\}\)</span>, where <span class="math notranslate nohighlight">\(0\le r\le\infty\)</span>.</p>
 </section>
@@ -196,7 +198,7 @@ We define the <em>index set</em> by</p>
 <section id="strongly-convex-problems">
 <h3>Strongly Convex Problems<a class="headerlink" href="#strongly-convex-problems" title="Link to this heading"></a></h3>
 <p>While the concept of weakly simplicial problems provides a powerful framework, verifying this property for an arbitrary problem can be challenging. Fortunately, a broad and highly practical class of optimization problems—strongly convex problems—are mathematically guaranteed to be weakly simplicial. This means that if an optimization problem is strongly convex, its Pareto front inherently possesses a simplex-like structure, making it an ideal candidate for Bézier simplex fitting.
-As outlined by <span id="id3">Hamada <em>et al.</em> [<a class="reference internal" href="references.html#id16" title="Naoki Hamada, Kenta Hayano, Shunsuke Ichiki, Yutaro Kabata, and Hiroshi Teramoto. Topology of pareto sets of strongly convex problems. SIAM Journal on Optimization, 30(3):2659–2686, 2020. doi:10.1137/19M1264175.">HHI+20</a>]</span>, this simplicial topology of the Pareto set is a fundamental, rigorous mathematical property of strongly convex multi-objective problems.</p>
+As outlined by <span class="bibtex-citation" id="id3">Hamada <em>et al.</em> [<a class="reference internal" href="references.html#id16" title="Naoki Hamada, Kenta Hayano, Shunsuke Ichiki, Yutaro Kabata, and Hiroshi Teramoto. Topology of pareto sets of strongly convex problems. SIAM Journal on Optimization, 30(3):2659–2686, 2020. doi:10.1137/19M1264175.">HHI+20</a>]</span>, this simplicial topology of the Pareto set is a fundamental, rigorous mathematical property of strongly convex multi-objective problems.</p>
 <p>Strong convexity commonly arises in practice through four natural structural mechanisms:
 <strong>(1) L2 regularization</strong>, such as ridge penalties; <strong>(2) Positive-definite quadratic forms</strong>, like risk covariances or LQR stage costs; <strong>(3) Squared Euclidean distances</strong>, prevalent in facility location; and <strong>(4) Composite structures</strong>, where a strongly convex smooth term is paired with a convex nonsmooth penalty.</p>
 <div class="proof definition admonition" id="definition-4">
@@ -209,13 +211,13 @@ Formally, a function <span class="math notranslate nohighlight">\(f_m\)</span> i
 </section>
 </div><p>The formal mathematical foundation for this connection is given by the following theorems, which prove that strongly convex problems are inherently weakly simplicial and that their optimal solutions can be continuously parameterized by a standard simplex.</p>
 <div class="proof theorem admonition" id="theorem-5">
-<p class="admonition-title"><span class="caption-number">Theorem 2 </span> (Theorems 1 and 2 in <span id="id4">[<a class="reference internal" href="references.html#id4" title="Yuto Mizota, Naoki Hamada, and Shunsuke Ichiki. All unconstrained strongly convex problems are weakly simplicial. 2021. URL: https://arxiv.org/abs/2106.12704, arXiv:2106.12704.">MHI21</a>]</span>)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 2 </span> (Theorems 1 and 2 in <span class="bibtex-citation" id="id4">[<a class="reference internal" href="references.html#id4" title="Yuto Mizota, Naoki Hamada, and Shunsuke Ichiki. All unconstrained strongly convex problems are weakly simplicial. 2021. URL: https://arxiv.org/abs/2106.12704, arXiv:2106.12704.">MHI21</a>]</span>)</p>
 <section class="theorem-content" id="proof-content">
 <p>Let <span class="math notranslate nohighlight">\(f: \mathbb{R}^n \to \mathbb{R}^m\)</span> be a <span class="math notranslate nohighlight">\(C^r\)</span>-strongly convex mapping (<span class="math notranslate nohighlight">\(0 \le r \le \infty\)</span>).
 Then, the problem of minimizing <span class="math notranslate nohighlight">\(f\)</span> is <span class="math notranslate nohighlight">\(C^{r-1}\)</span>-weakly simplicial for <span class="math notranslate nohighlight">\(r &gt; 0\)</span> and <span class="math notranslate nohighlight">\(C^0\)</span>-weakly simplicial for <span class="math notranslate nohighlight">\(r = 0\)</span>.</p>
 </section>
 </div><div class="proof theorem admonition" id="theorem-6">
-<p class="admonition-title"><span class="caption-number">Theorem 3 </span> (Proposition 1 of <span id="id5">[<a class="reference internal" href="references.html#id4" title="Yuto Mizota, Naoki Hamada, and Shunsuke Ichiki. All unconstrained strongly convex problems are weakly simplicial. 2021. URL: https://arxiv.org/abs/2106.12704, arXiv:2106.12704.">MHI21</a>]</span>)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 3 </span> (Proposition 1 of <span class="bibtex-citation" id="id5">[<a class="reference internal" href="references.html#id4" title="Yuto Mizota, Naoki Hamada, and Shunsuke Ichiki. All unconstrained strongly convex problems are weakly simplicial. 2021. URL: https://arxiv.org/abs/2106.12704, arXiv:2106.12704.">MHI21</a>]</span>)</p>
 <section class="theorem-content" id="proof-content">
 <p>Let <span class="math notranslate nohighlight">\(f: \mathbb{R}^n \to \mathbb{R}^m\)</span> be a strongly convex mapping.
 Then, the mapping <span class="math notranslate nohighlight">\(x^*: \Delta^{m-1} \to X^*(f)\)</span> defined by</p>
@@ -231,7 +233,7 @@ Then, the mapping <span class="math notranslate nohighlight">\(x^*: \Delta^{m-1}
 <p>When the underlying problem class is not analytically known in advance (e.g., in complex real-world designs using simulations), it is not immediately clear whether the Pareto set admits a simplex structure. In such cases, data-driven statistical tests based on persistent homology can determine whether this assumption is warranted before committing to a Bézier simplex model.</p>
 <p>Earlier work introduced the formal concept of a <em>simple problem</em>:</p>
 <div class="proof definition admonition" id="definition-7">
-<p class="admonition-title"><span class="caption-number">Definition 5 </span> (Simple Problem <span id="id6">[<a class="reference internal" href="references.html#id5" title="Naoki Hamada and Keisuke Goto. Data-driven analysis of pareto set topology. In Proceedings of the Genetic and Evolutionary Computation Conference, 657–664. 2018. URL: https://doi.org/10.1145/3205455.3205613.">HG18</a>]</span>)</p>
+<p class="admonition-title"><span class="caption-number">Definition 5 </span> (Simple Problem <span class="bibtex-citation" id="id6">[<a class="reference internal" href="references.html#id5" title="Naoki Hamada and Keisuke Goto. Data-driven analysis of pareto set topology. In Proceedings of the Genetic and Evolutionary Computation Conference, 657–664. 2018. URL: https://doi.org/10.1145/3205455.3205613.">HG18</a>]</span>)</p>
 <section class="definition-content" id="proof-content">
 <p>A problem is <em>simple</em> if it satisfies two conditions:</p>
 <div class="line-block">
@@ -247,9 +249,9 @@ Then, the mapping <span class="math notranslate nohighlight">\(x^*: \Delta^{m-1}
 </div><p>Furthermore, it is conjectured that “simple” and “simplicial” are equivalent even without this extra condition. Therefore, testing whether a problem is simple serves as a practical test for whether a problem is simplicial. Notably, the non-intersection condition itself can also be tested statistically.</p>
 <p>To strictly determine whether a problem is simple, two complementary statistical tests are required. In standard statistical testing, failing to reject a null hypothesis does not allow one to affirmatively adopt it. Therefore, we need both a test to reject simplicity and a test to affirmatively confirm it.</p>
 <p><strong>1. Testing that a problem is not simple</strong></p>
-<p><span id="id7">Hamada and Goto [<a class="reference internal" href="references.html#id5" title="Naoki Hamada and Keisuke Goto. Data-driven analysis of pareto set topology. In Proceedings of the Genetic and Evolutionary Computation Conference, 657–664. 2018. URL: https://doi.org/10.1145/3205455.3205613.">HG18</a>]</span> introduced a data-driven method using persistent homology and its confidence sets to test for violations of the simplicity conditions. Specifically, we can reject the simplicity hypothesis if the estimated Betti numbers do not match those of a topological simplex:</p>
+<p><span class="bibtex-citation" id="id7">Hamada and Goto [<a class="reference internal" href="references.html#id5" title="Naoki Hamada and Keisuke Goto. Data-driven analysis of pareto set topology. In Proceedings of the Genetic and Evolutionary Computation Conference, 657–664. 2018. URL: https://doi.org/10.1145/3205455.3205613.">HG18</a>]</span> introduced a data-driven method using persistent homology and its confidence sets to test for violations of the simplicity conditions. Specifically, we can reject the simplicity hypothesis if the estimated Betti numbers do not match those of a topological simplex:</p>
 <div class="proof theorem admonition" id="theorem-9">
-<p class="admonition-title"><span class="caption-number">Theorem 5 </span> (Theorem 3.1 in <span id="id8">[<a class="reference internal" href="references.html#id5" title="Naoki Hamada and Keisuke Goto. Data-driven analysis of pareto set topology. In Proceedings of the Genetic and Evolutionary Computation Conference, 657–664. 2018. URL: https://doi.org/10.1145/3205455.3205613.">HG18</a>]</span> : Test for (S1) violation)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 5 </span> (Theorem 3.1 in <span class="bibtex-citation" id="id8">[<a class="reference internal" href="references.html#id5" title="Naoki Hamada and Keisuke Goto. Data-driven analysis of pareto set topology. In Proceedings of the Genetic and Evolutionary Computation Conference, 657–664. 2018. URL: https://doi.org/10.1145/3205455.3205613.">HG18</a>]</span> : Test for (S1) violation)</p>
 <section class="theorem-content" id="proof-content">
 <p>Let <span class="math notranslate nohighlight">\(K(\mathcal{F})\)</span> be a simplicial complex representing the approximated Pareto set. Assuming its geometric realization is homotopy equivalent to the true Pareto set, if one of the following homological conditions is satisfied:</p>
 <ul class="simple">
@@ -259,10 +261,10 @@ Then, the mapping <span class="math notranslate nohighlight">\(x^*: \Delta^{m-1}
 <p>then the problem does not satisfy the simplicity condition (S1).</p>
 </section>
 </div><p><strong>2. Testing that a problem is simple</strong></p>
-<p>Building upon this, <span id="id9">Hamada [<a class="reference internal" href="references.html#id28" title="Naoki Hamada. 多目的最適化の解集合のトポロジーの検定法 (statistical test for the topology of solution sets in multi-objective optimization). In 日本応用数理学会2020年度年会講演予稿集 (Proceedings of the JSIAM Annual Meeting 2020). 2020.">Ham20</a>]</span> demonstrated that this homology-based approach can also be used to affirmatively test whether a problem <em>is</em> simple. By leveraging the h-cobordism theorem from algebraic topology, they established a mathematical characterization showing that if the Pareto set (modeled as a compact smooth manifold) and its boundary are simply connected, and its estimated homology matches that of a standard simplex, then the Pareto set is guaranteed to be homeomorphic to a simplex.
+<p>Building upon this, <span class="bibtex-citation" id="id9">Hamada [<a class="reference internal" href="references.html#id28" title="Naoki Hamada. 多目的最適化の解集合のトポロジーの検定法 (statistical test for the topology of solution sets in multi-objective optimization). In 日本応用数理学会2020年度年会講演予稿集 (Proceedings of the JSIAM Annual Meeting 2020). 2020.">Ham20</a>]</span> demonstrated that this homology-based approach can also be used to affirmatively test whether a problem <em>is</em> simple. By leveraging the h-cobordism theorem from algebraic topology, they established a mathematical characterization showing that if the Pareto set (modeled as a compact smooth manifold) and its boundary are simply connected, and its estimated homology matches that of a standard simplex, then the Pareto set is guaranteed to be homeomorphic to a simplex.
 This affirmative test complements the non-simpliciality test, allowing practitioners to strictly verify the simpliciality of a multi-objective optimization problem from sampled Pareto solutions before applying Bézier simplex fitting.</p>
 <div class="proof theorem admonition" id="theorem-10">
-<p class="admonition-title"><span class="caption-number">Theorem 6 </span> (Theorem 3 in <span id="id10">[<a class="reference internal" href="references.html#id28" title="Naoki Hamada. 多目的最適化の解集合のトポロジーの検定法 (statistical test for the topology of solution sets in multi-objective optimization). In 日本応用数理学会2020年度年会講演予稿集 (Proceedings of the JSIAM Annual Meeting 2020). 2020.">Ham20</a>]</span>)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 6 </span> (Theorem 3 in <span class="bibtex-citation" id="id10">[<a class="reference internal" href="references.html#id28" title="Naoki Hamada. 多目的最適化の解集合のトポロジーの検定法 (statistical test for the topology of solution sets in multi-objective optimization). In 日本応用数理学会2020年度年会講演予稿集 (Proceedings of the JSIAM Annual Meeting 2020). 2020.">Ham20</a>]</span>)</p>
 <section class="theorem-content" id="proof-content">
 <p>Let <span class="math notranslate nohighlight">\(M\)</span> be an <span class="math notranslate nohighlight">\(n\)</span>-dimensional compact <span class="math notranslate nohighlight">\(C^\infty\)</span> manifold. If both <span class="math notranslate nohighlight">\(M\)</span> and its boundary <span class="math notranslate nohighlight">\(\partial M\)</span> are simply connected, and its homology groups satisfy:</p>
 <div class="math notranslate nohighlight">
@@ -344,7 +346,7 @@ This affirmative test complements the non-simpliciality test, allowing practitio
         </dl>
         <dl>
             <dt>Branches</dt>
-            <dd><a href="../docs-and-examples/whatis.html">docs-and-examples</a></dd>
+            <dd><a href="../copilot/sphinx-design/whatis.html">copilot/sphinx-design</a></dd>
         </dl>
     </div>
 </div><script>

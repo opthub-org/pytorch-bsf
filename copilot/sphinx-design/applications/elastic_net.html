@@ -1,0 +1,435 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Elastic Net Model Selection &mdash; PyTorch-BSF 0.18.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Robust Portfolio Management" href="portfolio.html" />
+    <link rel="prev" title="Applications" href="../applications.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../advanced.html">Advanced Topics</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../applications.html">Applications</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Elastic Net Model Selection</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#unified-framework-for-sparse-modeling">Unified Framework for Sparse Modeling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#elastic-net-formulation">Elastic Net Formulation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model-selection-on-the-regularization-map">Model Selection on the Regularization Map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#interactive-exploration-and-insights">Interactive Exploration and Insights</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#empirical-evaluation">Empirical Evaluation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="portfolio.html">Robust Portfolio Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="smart_grids.html">Distributed Smart Grids and Energy Operations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="federated_learning.html">Multi-Task and Federated Learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="communications.html">Communication Systems and Routing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supply_chain.html">Supply Chain and Logistics Optimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="medical_imaging.html">Medical Imaging and Radiation Therapy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="facility_location.html">Facility Location and Continuous Approximations</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">torch_bsf</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../applications.html">Applications</a></li>
+      <li class="breadcrumb-item active">Elastic Net Model Selection</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/applications/elastic_net.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="elastic-net-model-selection">
+<h1>Elastic Net Model Selection<a class="headerlink" href="#elastic-net-model-selection" title="Link to this heading"></a></h1>
+<p>A canonical and highly practical application of this theory is hyperparameter optimization for the <strong>Elastic Net</strong>. In machine learning and statistics, selecting the correct regularization parameters is critical to balancing data fidelity, model sparsity, and numerical stability.</p>
+<p>Traditional approaches rely on exhaustive grid searches or cross-validation over a discrete set of hyperparameter combinations <span class="math notranslate nohighlight">\((\alpha, \lambda)\)</span>. This process is computationally expensive. By formulating the hyperparameter tuning as a multi-objective optimization problem over a <strong>regularization map</strong> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id18" title="Henri Bonnel and Corinne Schneider. Post-pareto analysis and a new algorithm for the optimal parameter tuning of the elastic net. Journal of Optimization Theory and Applications, 183(3):993–1027, 2019. doi:10.1007/s10957-019-01592-x.">BS19</a>]</span>, PyTorch-BSF allows for a continuous exploration of the model space, often reducing the computational cost by orders of magnitude (e.g., achieving speeds up to 2,000 times faster than exhaustive search for a 3-objective problem).</p>
+<section id="unified-framework-for-sparse-modeling">
+<h2>Unified Framework for Sparse Modeling<a class="headerlink" href="#unified-framework-for-sparse-modeling" title="Link to this heading"></a></h2>
+<p>The Elastic Net example is part of a broader framework for <strong>generalized sparse modeling</strong>. Any optimization problem expressed as a convex combination of several strongly convex functions can be analyzed using this approach:</p>
+<div class="math notranslate nohighlight">
+\[\min_{\beta \in \mathbb{R}^N} f_w(\beta) = \sum_{m=1}^M w_m f_m(\beta), \quad w \in \Delta^{M-1}\]</div>
+<p>where <span class="math notranslate nohighlight">\(f_m\)</span> represent different aspects of the model, such as data fidelity (loss functions) or structural priors (regularization terms). By ensuring each <span class="math notranslate nohighlight">\(f_m\)</span> is strongly convex (e.g., by adding a small <span class="math notranslate nohighlight">\(L_2\)</span> penalty <span class="math notranslate nohighlight">\(\frac{\epsilon}{2} \|\beta\|_2^2\)</span>), the resulting solution map <span class="math notranslate nohighlight">\(x^*(w)\)</span> is guaranteed to be weakly simplicial <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id4" title="Yuto Mizota, Naoki Hamada, and Shunsuke Ichiki. All unconstrained strongly convex problems are weakly simplicial. 2021. URL: https://arxiv.org/abs/2106.12704, arXiv:2106.12704.">MHI21</a>]</span>, allowing for high-quality approximation via Bézier simplices.</p>
+<p>This unified framework extends far beyond the standard Elastic Net:</p>
+<ul class="simple">
+<li><p><strong>Generalized Linear Models (GLMs)</strong>: The loss term can be any negative log-likelihood with a canonical link function (e.g., Logistic, Poisson, or Gamma regression).</p></li>
+<li><p><strong>Structural Regularization</strong>: Practitioners can incorporate structural priors like <strong>Group Lasso</strong> <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../references.html#id29" title="Ming Yuan and Yi Lin. Model selection and estimation in regression with grouped variables. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 68(1):49–67, 2006.">YL06</a>]</span>, <strong>Fused Lasso</strong> <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../references.html#id30" title="Robert Tibshirani, Michael Saunders, Saharon Rosset, Ji Zhu, and Keith Knight. Sparsity and smoothness via the fused lasso. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 67(1):91–108, 2005.">TSR+05</a>]</span>, or <strong>Smoothed Lasso</strong> to encode spatial or group relationships between features.</p></li>
+<li><p><strong>Transfer Learning and Covariate Shift</strong>: By using importance-weighted empirical risk as the loss function, the framework can handle scenarios where the training and test data distributions differ (covariate shift).</p></li>
+<li><p><strong>Robust Estimation</strong>: Replacing the standard squared error with robust loss functions like the <strong>Huber loss</strong> allows for model selection that is resilient to outliers.</p></li>
+</ul>
+</section>
+<section id="elastic-net-formulation">
+<h2>Elastic Net Formulation<a class="headerlink" href="#elastic-net-formulation" title="Link to this heading"></a></h2>
+<p>The standard Elastic Net regression problem is formulated as:</p>
+<div class="math notranslate nohighlight">
+\[\min_{\beta \in \mathbb{R}^N} \frac{1}{2n}\|y - X\beta\|_2^2
++ \lambda \Bigl(\alpha \|\beta\|_1 + \frac{1-\alpha}{2}\|\beta\|_2^2\Bigr)\]</div>
+<p>where <span class="math notranslate nohighlight">\(\lambda \ge 0\)</span> is the overall regularization strength and <span class="math notranslate nohighlight">\(\alpha \in [0, 1]\)</span> controls the L1/L2 mixing ratio. Setting <span class="math notranslate nohighlight">\(\alpha = 1\)</span> recovers the Lasso, and <span class="math notranslate nohighlight">\(\alpha = 0\)</span> gives Ridge regression.</p>
+<p>To cast this into the multi-objective framework required by PyTorch-BSF, we identify three objectives over the model weights <span class="math notranslate nohighlight">\(\beta \in \mathbb{R}^N\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}f_{\text{data}}(\beta) &amp;= \frac{1}{2n}\|y - X\beta\|_2^2 + \frac{\epsilon}{2}\|\beta\|_2^2 \\
+f_{\text{sparse}}(\beta) &amp;= \|\beta\|_1 + \frac{\epsilon}{2}\|\beta\|_2^2 \\
+f_{\text{smooth}}(\beta) &amp;= \frac{1 + \epsilon}{2}\|\beta\|_2^2\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(n\)</span> is the number of observations and <span class="math notranslate nohighlight">\(\epsilon &gt; 0\)</span> is a small constant.
+These definitions introduce an <span class="math notranslate nohighlight">\(\epsilon\)</span>-regularized (strongly convex) surrogate of the
+classical Elastic Net objective: the additional <span class="math notranslate nohighlight">\(\frac{\epsilon}{2}\|\beta\|_2^2\)</span> terms in
+<span class="math notranslate nohighlight">\(f_{\text{data}}\)</span> and <span class="math notranslate nohighlight">\(f_{\text{sparse}}\)</span> (and the corresponding adjustment in
+<span class="math notranslate nohighlight">\(f_{\text{smooth}}\)</span>) ensure that all three objectives are strongly convex, which is required
+for the solution map to be weakly simplicial <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../references.html#id4" title="Yuto Mizota, Naoki Hamada, and Shunsuke Ichiki. All unconstrained strongly convex problems are weakly simplicial. 2021. URL: https://arxiv.org/abs/2106.12704, arXiv:2106.12704.">MHI21</a>]</span>.
+This <span class="math notranslate nohighlight">\(\epsilon\)</span>-perturbation slightly changes the minimizer for fixed <span class="math notranslate nohighlight">\((\alpha, \lambda)\)</span>,
+but the classical Elastic Net formulation is recovered in the limit as <span class="math notranslate nohighlight">\(\epsilon \to 0\)</span>.
+We can then express this <span class="math notranslate nohighlight">\(\epsilon\)</span>-regularized objective as a convex combination of these
+three functions:</p>
+<div class="math notranslate nohighlight">
+\[\min_{\beta \in \mathbb{R}^N} \; w_1 \, f_{\text{data}}(\beta)
++ w_2 \, f_{\text{sparse}}(\beta)
++ w_3 \, f_{\text{smooth}}(\beta),
+\quad (w_1, w_2, w_3) \in \Delta^2.\]</div>
+<p>The conventional elastic-net parameters <span class="math notranslate nohighlight">\(\lambda\)</span> and <span class="math notranslate nohighlight">\(\alpha\)</span> relate to the
+simplex weight vector <span class="math notranslate nohighlight">\(w = (w_1, w_2, w_3)\)</span> by:</p>
+<div class="math notranslate nohighlight">
+\[w_1 = \frac{1}{1 + \lambda}, \qquad
+w_2 = \frac{\lambda\,\alpha}{1 + \lambda}, \qquad
+w_3 = \frac{\lambda\,(1-\alpha)}{1 + \lambda}.\]</div>
+<p>With these weights the convex-combination objective equals the <span class="math notranslate nohighlight">\(\epsilon\)</span>-regularized
+elastic net objective divided by the positive constant <span class="math notranslate nohighlight">\((1 + \lambda)\)</span>.
+Because this scale factor does not depend on <span class="math notranslate nohighlight">\(\beta\)</span>, both formulations share the
+same minimizer.</p>
+<p>This maps the semi-infinite rectangle <span class="math notranslate nohighlight">\([0, \infty) \times [0, 1]\)</span> in
+<span class="math notranslate nohighlight">\((\lambda, \alpha)\)</span> onto the 2-simplex <span class="math notranslate nohighlight">\(\Delta^2\)</span>. When
+<span class="math notranslate nohighlight">\(\lambda = 0\)</span> the entire edge <span class="math notranslate nohighlight">\(\{0\} \times [0, 1]\)</span> collapses to
+the single vertex <span class="math notranslate nohighlight">\((1, 0, 0)\)</span> (all regularization vanishes), so the
+mapping is not injective at <span class="math notranslate nohighlight">\(\lambda = 0\)</span>. For <span class="math notranslate nohighlight">\(\lambda &gt; 0\)</span>,
+different <span class="math notranslate nohighlight">\((\lambda, \alpha)\)</span> pairs map to distinct interior points,
+enabling a single Bézier simplex to represent the entire elastic-net
+regularization path.</p>
+<p>By training the model on a sparse subset of weight vectors <span class="math notranslate nohighlight">\(w\)</span> and fitting a Bézier simplex, we obtain a continuous <strong>solution map</strong> <span class="math notranslate nohighlight">\((x^*, f \circ x^*): \Delta^{M-1} \to G^*(f)\)</span> that maps any weight <span class="math notranslate nohighlight">\(w\)</span> to the optimal weights <span class="math notranslate nohighlight">\(\beta\)</span> and the corresponding objective values.</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
+<div class="sd-row sd-row-cols-3 sd-row-cols-xs-3 sd-row-cols-sm-3 sd-row-cols-md-3 sd-row-cols-lg-3 sd-g-2 sd-g-xs-2 sd-g-sm-2 sd-g-md-2 sd-g-lg-2 docutils">
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<figure class="align-default" id="id6">
+<a class="reference internal image-reference" href="../_images/wine,weight_102_102_1_1000,W.png"><img alt="../_images/wine%2Cweight_102_102_1_1000%2CW.png" src="../_images/wine%2Cweight_102_102_1_1000%2CW.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 12 </span><span class="caption-text">Weight space <span class="math notranslate nohighlight">\(\Delta^{2}\)</span></span><a class="headerlink" href="#id6" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<figure class="align-default" id="id7">
+<a class="reference internal image-reference" href="../_images/wine,weight_102_102_1_1000,X123.png"><img alt="../_images/wine%2Cweight_102_102_1_1000%2CX123.png" src="../_images/wine%2Cweight_102_102_1_1000%2CX123.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 13 </span><span class="caption-text">Parameter space <span class="math notranslate nohighlight">\(\Theta^*(f)\)</span></span><a class="headerlink" href="#id7" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<figure class="align-default" id="id8">
+<a class="reference internal image-reference" href="../_images/wine,weight_102_102_1_1000,F.png"><img alt="../_images/wine%2Cweight_102_102_1_1000%2CF.png" src="../_images/wine%2Cweight_102_102_1_1000%2CF.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 14 </span><span class="caption-text">Objective space <span class="math notranslate nohighlight">\(f(\Theta^*(f))\)</span></span><a class="headerlink" href="#id8" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="model-selection-on-the-regularization-map">
+<h2>Model Selection on the Regularization Map<a class="headerlink" href="#model-selection-on-the-regularization-map" title="Link to this heading"></a></h2>
+<p>The resulting Bézier simplex provides a continuous surrogate of the performance surface, enabling users to apply various statistical model selection criteria analytically:</p>
+<ol class="arabic simple">
+<li><p><strong>Minimum Cross-Validation Error (min profile rule)</strong>: Locates the model <span class="math notranslate nohighlight">\(w\)</span> that minimizes the mean cross-validation error across folds, prioritizing predictive accuracy.</p></li>
+<li><p><strong>One Standard Error Rule (1se profile rule)</strong>: Selects the most parsimonious (sparsest) model whose mean error is within one standard error of the minimum. This heuristic is widely used in tools like <cite>glmnet</cite> to gain stability and interpretability.</p></li>
+<li><p><strong>AICc Profile Rule</strong>: Balances goodness-of-fit and model complexity using the <strong>Akaike Information Criterion with Finite Sample Correction</strong>. This allows for selecting models with a theoretically grounded trade-off without the noise of fold-wise cross-validation variability.</p></li>
+</ol>
+</section>
+<section id="interactive-exploration-and-insights">
+<h2>Interactive Exploration and Insights<a class="headerlink" href="#interactive-exploration-and-insights" title="Link to this heading"></a></h2>
+<p>The Bézier simplex approximation of the regularization map provides more than just a tool for optimization. It offers a <strong>face structure</strong> that naturally reflects the combinations of subsets of loss and regularization terms. By observing the solutions on each face of the simplex, users can:</p>
+<ul class="simple">
+<li><p><strong>Obtain Insights</strong>: Gain a deep understanding of the trade-offs between different modeling assumptions, such as <span class="math notranslate nohighlight">\(L_1\)</span> vs <span class="math notranslate nohighlight">\(L_2\)</span> regularization.</p></li>
+<li><p><strong>Perform Exploratory Analysis</strong>: Test how sensitive the optimal model is to changes in hyperparameters without the trial-and-error of retraining.</p></li>
+<li><p><strong>Support Model Selection</strong>: Make better decisions <em>a posteriori</em> by seeing the entire landscape of potential models, rather than relying on a single fixed structure chosen <em>a priori</em>.</p></li>
+</ul>
+</section>
+<section id="empirical-evaluation">
+<h2>Empirical Evaluation<a class="headerlink" href="#empirical-evaluation" title="Link to this heading"></a></h2>
+<p>The effectiveness of PyTorch-BSF for Elastic Net is demonstrated using the <strong>Wine</strong> dataset from the UCI Machine Learning Repository. Experiments show that even with a limited number of training points (e.g., 51 points for a degree-6 simplex), the Bézier simplex accurately approximates the entire solution map, maintaining low Mean Squared Error (MSE) across the continuous hyperparameter space.</p>
+<p>The following tables compare the results obtained through an exhaustive grid search (ground truth) and the Bézier simplex approximation. The high similarity between the performance surfaces confirms the fidelity of the surrogate model.</p>
+<p>Ground truth results from exhaustive grid search (102x102 grid):</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
+<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 sd-g-2 sd-g-xs-2 sd-g-sm-2 sd-g-md-2 sd-g-lg-2 docutils">
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<figure class="align-default" id="id9">
+<a class="reference internal image-reference" href="../_images/wine,weight_102_102_1_1000,mean,F.png"><img alt="../_images/wine%2Cweight_102_102_1_1000%2Cmean%2CF.png" src="../_images/wine%2Cweight_102_102_1_1000%2Cmean%2CF.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 15 </span><span class="caption-text">Mean CV error</span><a class="headerlink" href="#id9" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<figure class="align-default" id="id10">
+<a class="reference internal image-reference" href="../_images/wine,weight_102_102_1_1000,std,F.png"><img alt="../_images/wine%2Cweight_102_102_1_1000%2Cstd%2CF.png" src="../_images/wine%2Cweight_102_102_1_1000%2Cstd%2CF.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 16 </span><span class="caption-text">Std dev of CV error</span><a class="headerlink" href="#id10" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<figure class="align-default" id="id11">
+<a class="reference internal image-reference" href="../_images/wine,weight_102_102_1_1000,aicc,F.png"><img alt="../_images/wine%2Cweight_102_102_1_1000%2Caicc%2CF.png" src="../_images/wine%2Cweight_102_102_1_1000%2Caicc%2CF.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 17 </span><span class="caption-text">AICc</span><a class="headerlink" href="#id11" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<figure class="align-default" id="id12">
+<a class="reference internal image-reference" href="../_images/wine,weight_102_102_1_1000,nonzero,F.png"><img alt="../_images/wine%2Cweight_102_102_1_1000%2Cnonzero%2CF.png" src="../_images/wine%2Cweight_102_102_1_1000%2Cnonzero%2CF.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 18 </span><span class="caption-text">Number of nonzero coefficients</span><a class="headerlink" href="#id12" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div>
+<p>Approximation results for the Wine dataset with a Bézier simplex of degree <span class="math notranslate nohighlight">\(d = 6\)</span>:</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
+<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 sd-g-2 sd-g-xs-2 sd-g-sm-2 sd-g-md-2 sd-g-lg-2 docutils">
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<figure class="align-default" id="id13">
+<a class="reference internal image-reference" href="../_images/wine,weight_7_7_1_1000,meshgrid,d_6,f,mean,std,nonzero,aicc,x1-6.tsv,mean,F.png"><img alt="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Cmean%2CF.png" src="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Cmean%2CF.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 19 </span><span class="caption-text">Mean CV error</span><a class="headerlink" href="#id13" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<figure class="align-default" id="id14">
+<a class="reference internal image-reference" href="../_images/wine,weight_7_7_1_1000,meshgrid,d_6,f,mean,std,nonzero,aicc,x1-6.tsv,std,F.png"><img alt="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Cstd%2CF.png" src="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Cstd%2CF.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 20 </span><span class="caption-text">Std dev of CV error</span><a class="headerlink" href="#id14" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<figure class="align-default" id="id15">
+<a class="reference internal image-reference" href="../_images/wine,weight_7_7_1_1000,meshgrid,d_6,f,mean,std,nonzero,aicc,x1-6.tsv,aicc,F.png"><img alt="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Caicc%2CF.png" src="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Caicc%2CF.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 21 </span><span class="caption-text">AICc</span><a class="headerlink" href="#id15" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<figure class="align-default" id="id16">
+<a class="reference internal image-reference" href="../_images/wine,weight_7_7_1_1000,meshgrid,d_6,f,mean,std,nonzero,aicc,x1-6.tsv,nonzero,F.png"><img alt="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Cnonzero%2CF.png" src="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Cnonzero%2CF.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 22 </span><span class="caption-text">Nonzero coefficients</span><a class="headerlink" href="#id16" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../applications.html" class="btn btn-neutral float-left" title="Applications" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="portfolio.html" class="btn btn-neutral float-right" title="Robust Portfolio Management" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: copilot/sphinx-design
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/applications/elastic_net.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/applications/elastic_net.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/applications/elastic_net.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/applications/elastic_net.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/applications/elastic_net.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/applications/elastic_net.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/applications/elastic_net.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/applications/elastic_net.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="elastic_net.html">copilot/sphinx-design</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,360 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>torch_bsf &mdash; PyTorch-BSF 0.18.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=ba2e7b09"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="torch_bsf package" href="torch_bsf.html" />
+    <link rel="prev" title="References" href="references.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PyTorch-BSF
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">torch_bsf</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html">torch_bsf package</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">torch_bsf</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/modules.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="torch-bsf">
+<h1>torch_bsf<a class="headerlink" href="#torch-bsf" title="Link to this heading"></a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="torch_bsf.html">torch_bsf package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.active_learning">torch_bsf.active_learning module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.active_learning.suggest_next_points"><code class="docutils literal notranslate"><span class="pre">suggest_next_points()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.bezier_simplex">torch_bsf.bezier_simplex module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplex"><code class="docutils literal notranslate"><span class="pre">BezierSimplex</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplex.configure_optimizers"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.configure_optimizers()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplex.degree"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.degree</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplex.forward"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplex.freeze_row"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.freeze_row()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplex.meshgrid"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.meshgrid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplex.n_params"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.n_params</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplex.n_values"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.n_values</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplex.on_after_backward"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.on_after_backward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplex.smoothness_penalty"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.smoothness_penalty()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplex.test_step"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.test_step()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplex.training_step"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.training_step()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplex.validation_step"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.validation_step()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplexDataModule"><code class="docutils literal notranslate"><span class="pre">BezierSimplexDataModule</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplexDataModule.fit_transform"><code class="docutils literal notranslate"><span class="pre">BezierSimplexDataModule.fit_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplexDataModule.inverse_transform"><code class="docutils literal notranslate"><span class="pre">BezierSimplexDataModule.inverse_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplexDataModule.load_data"><code class="docutils literal notranslate"><span class="pre">BezierSimplexDataModule.load_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplexDataModule.load_params"><code class="docutils literal notranslate"><span class="pre">BezierSimplexDataModule.load_params()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplexDataModule.load_values"><code class="docutils literal notranslate"><span class="pre">BezierSimplexDataModule.load_values()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplexDataModule.setup"><code class="docutils literal notranslate"><span class="pre">BezierSimplexDataModule.setup()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplexDataModule.test_dataloader"><code class="docutils literal notranslate"><span class="pre">BezierSimplexDataModule.test_dataloader()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplexDataModule.train_dataloader"><code class="docutils literal notranslate"><span class="pre">BezierSimplexDataModule.train_dataloader()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplexDataModule.val_dataloader"><code class="docutils literal notranslate"><span class="pre">BezierSimplexDataModule.val_dataloader()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.fit"><code class="docutils literal notranslate"><span class="pre">fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.fit_kfold"><code class="docutils literal notranslate"><span class="pre">fit_kfold()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.load"><code class="docutils literal notranslate"><span class="pre">load()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.monomial"><code class="docutils literal notranslate"><span class="pre">monomial()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.polynom"><code class="docutils literal notranslate"><span class="pre">polynom()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.rand"><code class="docutils literal notranslate"><span class="pre">rand()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.randn"><code class="docutils literal notranslate"><span class="pre">randn()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.save"><code class="docutils literal notranslate"><span class="pre">save()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.validate_control_points"><code class="docutils literal notranslate"><span class="pre">validate_control_points()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.bezier_simplex.zeros"><code class="docutils literal notranslate"><span class="pre">zeros()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.control_points">torch_bsf.control_points module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.control_points.ControlPoints"><code class="docutils literal notranslate"><span class="pre">ControlPoints</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.control_points.ControlPoints.matrix"><code class="docutils literal notranslate"><span class="pre">ControlPoints.matrix</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.control_points.ControlPoints.degree"><code class="docutils literal notranslate"><span class="pre">ControlPoints.degree</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.control_points.ControlPoints.n_params"><code class="docutils literal notranslate"><span class="pre">ControlPoints.n_params</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.control_points.ControlPoints.n_values"><code class="docutils literal notranslate"><span class="pre">ControlPoints.n_values</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.control_points.ControlPoints.extra_repr"><code class="docutils literal notranslate"><span class="pre">ControlPoints.extra_repr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.control_points.ControlPoints.indices"><code class="docutils literal notranslate"><span class="pre">ControlPoints.indices()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.control_points.ControlPoints.items"><code class="docutils literal notranslate"><span class="pre">ControlPoints.items()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.control_points.ControlPoints.keys"><code class="docutils literal notranslate"><span class="pre">ControlPoints.keys()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.control_points.ControlPointsData"><code class="docutils literal notranslate"><span class="pre">ControlPointsData</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.control_points.Index"><code class="docutils literal notranslate"><span class="pre">Index</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.control_points.Value"><code class="docutils literal notranslate"><span class="pre">Value</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.control_points.simplex_indices"><code class="docutils literal notranslate"><span class="pre">simplex_indices()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.control_points.to_parameterdict"><code class="docutils literal notranslate"><span class="pre">to_parameterdict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.control_points.to_parameterdict_key"><code class="docutils literal notranslate"><span class="pre">to_parameterdict_key()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.control_points.to_parameterdict_value"><code class="docutils literal notranslate"><span class="pre">to_parameterdict_value()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.plotting">torch_bsf.plotting module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.plotting.plot_bezier_simplex"><code class="docutils literal notranslate"><span class="pre">plot_bezier_simplex()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.preprocessing">torch_bsf.preprocessing module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler.mins"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler.mins</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler.scales"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler.scales</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler.fit"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler.fit_transform"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler.fit_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler.inverse_transform"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler.inverse_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#id0"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler.mins</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#id1"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler.scales</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.NoneScaler"><code class="docutils literal notranslate"><span class="pre">NoneScaler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.NoneScaler.fit"><code class="docutils literal notranslate"><span class="pre">NoneScaler.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.NoneScaler.fit_transform"><code class="docutils literal notranslate"><span class="pre">NoneScaler.fit_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.NoneScaler.inverse_transform"><code class="docutils literal notranslate"><span class="pre">NoneScaler.inverse_transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.QuantileScaler"><code class="docutils literal notranslate"><span class="pre">QuantileScaler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.QuantileScaler.q"><code class="docutils literal notranslate"><span class="pre">QuantileScaler.q</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.QuantileScaler.mins"><code class="docutils literal notranslate"><span class="pre">QuantileScaler.mins</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.QuantileScaler.scales"><code class="docutils literal notranslate"><span class="pre">QuantileScaler.scales</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.QuantileScaler.fit"><code class="docutils literal notranslate"><span class="pre">QuantileScaler.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.QuantileScaler.fit_transform"><code class="docutils literal notranslate"><span class="pre">QuantileScaler.fit_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.QuantileScaler.inverse_transform"><code class="docutils literal notranslate"><span class="pre">QuantileScaler.inverse_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#id2"><code class="docutils literal notranslate"><span class="pre">QuantileScaler.mins</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#id3"><code class="docutils literal notranslate"><span class="pre">QuantileScaler.q</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#id4"><code class="docutils literal notranslate"><span class="pre">QuantileScaler.scales</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.Scaler"><code class="docutils literal notranslate"><span class="pre">Scaler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.Scaler.fit"><code class="docutils literal notranslate"><span class="pre">Scaler.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.Scaler.fit_transform"><code class="docutils literal notranslate"><span class="pre">Scaler.fit_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.Scaler.inverse_transform"><code class="docutils literal notranslate"><span class="pre">Scaler.inverse_transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.StdScaler"><code class="docutils literal notranslate"><span class="pre">StdScaler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.StdScaler.means"><code class="docutils literal notranslate"><span class="pre">StdScaler.means</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.StdScaler.stds"><code class="docutils literal notranslate"><span class="pre">StdScaler.stds</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.StdScaler.fit"><code class="docutils literal notranslate"><span class="pre">StdScaler.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.StdScaler.fit_transform"><code class="docutils literal notranslate"><span class="pre">StdScaler.fit_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.StdScaler.inverse_transform"><code class="docutils literal notranslate"><span class="pre">StdScaler.inverse_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#id5"><code class="docutils literal notranslate"><span class="pre">StdScaler.means</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#id6"><code class="docutils literal notranslate"><span class="pre">StdScaler.stds</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.sampling">torch_bsf.sampling module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.sampling.simplex_grid"><code class="docutils literal notranslate"><span class="pre">simplex_grid()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.sampling.simplex_random"><code class="docutils literal notranslate"><span class="pre">simplex_random()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.sampling.simplex_sobol"><code class="docutils literal notranslate"><span class="pre">simplex_sobol()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.sklearn">torch_bsf.sklearn module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.sklearn.BezierSimplexRegressor"><code class="docutils literal notranslate"><span class="pre">BezierSimplexRegressor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.sklearn.BezierSimplexRegressor.fit"><code class="docutils literal notranslate"><span class="pre">BezierSimplexRegressor.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.sklearn.BezierSimplexRegressor.predict"><code class="docutils literal notranslate"><span class="pre">BezierSimplexRegressor.predict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.sklearn.BezierSimplexRegressor.score"><code class="docutils literal notranslate"><span class="pre">BezierSimplexRegressor.score()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.sklearn.BezierSimplexRegressor.set_score_request"><code class="docutils literal notranslate"><span class="pre">BezierSimplexRegressor.set_score_request()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.validator">torch_bsf.validator module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.validator.index_list"><code class="docutils literal notranslate"><span class="pre">index_list()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.validator.indices_schema"><code class="docutils literal notranslate"><span class="pre">indices_schema()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.validator.int_or_str"><code class="docutils literal notranslate"><span class="pre">int_or_str()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.validator.validate_simplex_indices"><code class="docutils literal notranslate"><span class="pre">validate_simplex_indices()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplex"><code class="docutils literal notranslate"><span class="pre">BezierSimplex</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplex.configure_optimizers"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.configure_optimizers()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplex.degree"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.degree</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplex.forward"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplex.freeze_row"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.freeze_row()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplex.meshgrid"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.meshgrid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplex.n_params"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.n_params</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplex.n_values"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.n_values</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplex.on_after_backward"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.on_after_backward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplex.smoothness_penalty"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.smoothness_penalty()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplex.test_step"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.test_step()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplex.training_step"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.training_step()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplex.validation_step"><code class="docutils literal notranslate"><span class="pre">BezierSimplex.validation_step()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplexDataModule"><code class="docutils literal notranslate"><span class="pre">BezierSimplexDataModule</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplexDataModule.fit_transform"><code class="docutils literal notranslate"><span class="pre">BezierSimplexDataModule.fit_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplexDataModule.inverse_transform"><code class="docutils literal notranslate"><span class="pre">BezierSimplexDataModule.inverse_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplexDataModule.load_data"><code class="docutils literal notranslate"><span class="pre">BezierSimplexDataModule.load_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplexDataModule.load_params"><code class="docutils literal notranslate"><span class="pre">BezierSimplexDataModule.load_params()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplexDataModule.load_values"><code class="docutils literal notranslate"><span class="pre">BezierSimplexDataModule.load_values()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplexDataModule.setup"><code class="docutils literal notranslate"><span class="pre">BezierSimplexDataModule.setup()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplexDataModule.test_dataloader"><code class="docutils literal notranslate"><span class="pre">BezierSimplexDataModule.test_dataloader()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplexDataModule.train_dataloader"><code class="docutils literal notranslate"><span class="pre">BezierSimplexDataModule.train_dataloader()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.BezierSimplexDataModule.val_dataloader"><code class="docutils literal notranslate"><span class="pre">BezierSimplexDataModule.val_dataloader()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.fit"><code class="docutils literal notranslate"><span class="pre">fit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.fit_kfold"><code class="docutils literal notranslate"><span class="pre">fit_kfold()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.longest_edge_criterion"><code class="docutils literal notranslate"><span class="pre">longest_edge_criterion()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.max_error_criterion"><code class="docutils literal notranslate"><span class="pre">max_error_criterion()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.reparametrize"><code class="docutils literal notranslate"><span class="pre">reparametrize()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.split"><code class="docutils literal notranslate"><span class="pre">split()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.split_by_criterion"><code class="docutils literal notranslate"><span class="pre">split_by_criterion()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.validate_control_points"><code class="docutils literal notranslate"><span class="pre">validate_control_points()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="references.html" class="btn btn-neutral float-left" title="References" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="torch_bsf.html" class="btn btn-neutral float-right" title="torch_bsf package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: copilot/sphinx-design
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../v0.0.1/modules.html">v0.0.1</a></dd>
+            <dd><a href="../../v0.0.2/modules.html">v0.0.2</a></dd>
+            <dd><a href="../../v0.1.0/modules.html">v0.1.0</a></dd>
+            <dd><a href="../../v0.10.0/modules.html">v0.10.0</a></dd>
+            <dd><a href="../../v0.11.0/modules.html">v0.11.0</a></dd>
+            <dd><a href="../../v0.11.1/modules.html">v0.11.1</a></dd>
+            <dd><a href="../../v0.11.2/modules.html">v0.11.2</a></dd>
+            <dd><a href="../../v0.11.3/modules.html">v0.11.3</a></dd>
+            <dd><a href="../../v0.12.0/modules.html">v0.12.0</a></dd>
+            <dd><a href="../../v0.12.1/modules.html">v0.12.1</a></dd>
+            <dd><a href="../../v0.13.0/modules.html">v0.13.0</a></dd>
+            <dd><a href="../../v0.13.1/modules.html">v0.13.1</a></dd>
+            <dd><a href="../../v0.13.2/modules.html">v0.13.2</a></dd>
+            <dd><a href="../../v0.13.3/modules.html">v0.13.3</a></dd>
+            <dd><a href="../../v0.13.4/modules.html">v0.13.4</a></dd>
+            <dd><a href="../../v0.14.0/modules.html">v0.14.0</a></dd>
+            <dd><a href="../../v0.14.1/modules.html">v0.14.1</a></dd>
+            <dd><a href="../../v0.14.2/modules.html">v0.14.2</a></dd>
+            <dd><a href="../../v0.14.3/modules.html">v0.14.3</a></dd>
+            <dd><a href="../../v0.15.0/modules.html">v0.15.0</a></dd>
+            <dd><a href="../../v0.15.1/modules.html">v0.15.1</a></dd>
+            <dd><a href="../../v0.16.0/modules.html">v0.16.0</a></dd>
+            <dd><a href="../../v0.16.1/modules.html">v0.16.1</a></dd>
+            <dd><a href="../../v0.17.0/modules.html">v0.17.0</a></dd>
+            <dd><a href="../../v0.18.0/modules.html">v0.18.0</a></dd>
+            <dd><a href="../../v0.2.0/modules.html">v0.2.0</a></dd>
+            <dd><a href="../../v0.3.0/modules.html">v0.3.0</a></dd>
+            <dd><a href="../../v0.3.1/modules.html">v0.3.1</a></dd>
+            <dd><a href="../../v0.4.0/modules.html">v0.4.0</a></dd>
+            <dd><a href="../../v0.5.0/modules.html">v0.5.0</a></dd>
+            <dd><a href="../../v0.5.1/modules.html">v0.5.1</a></dd>
+            <dd><a href="../../v0.6.0/modules.html">v0.6.0</a></dd>
+            <dd><a href="../../v0.7.0/modules.html">v0.7.0</a></dd>
+            <dd><a href="../../v0.8.0/modules.html">v0.8.0</a></dd>
+            <dd><a href="../../v0.9.0/modules.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="modules.html">copilot/sphinx-design</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,248 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smoothness Regularization &mdash; PyTorch-BSF 0.18.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Elastic Net Grid Sampling" href="grid_sampling.html" />
+    <link rel="prev" title="Initial Control Points" href="initialization.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="normalization.html">Data Normalization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="initialization.html">Initial Control Points</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Smoothness Regularization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#the-smoothness-penalty">The Smoothness Penalty</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#how-to-use">How to Use</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cli-mlflow">CLI / MLflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#choosing-the-weight">Choosing the Weight</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#benefits">Benefits</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="grid_sampling.html">Elastic Net Grid Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Automatic Degree Selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="partial.html">Partial Training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="acceleration.html">Hardware Acceleration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualization.html">Bézier Simplex Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sampling.html">Advanced Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="active_learning.html">Active Learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="splitting.html">Bézier Simplex Splitting</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">torch_bsf</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Smoothness Regularization</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/regularization.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="smoothness-regularization">
+<h1>Smoothness Regularization<a class="headerlink" href="#smoothness-regularization" title="Link to this heading"></a></h1>
+<p>Fitting a Bézier simplex to a noisy dataset can sometimes result in an “oscillation” or “unstable” surface. To produce a smooth, visually appealing manifold that truly represents the underlying structure, PyTorch-BSF provides <strong>Smoothness Regularization</strong>.</p>
+<p>This technique adds a penalty term to the loss function based on the distance between adjacent control points in the simplex.</p>
+<section id="the-smoothness-penalty">
+<h2>The Smoothness Penalty<a class="headerlink" href="#the-smoothness-penalty" title="Link to this heading"></a></h2>
+<p>The smoothness penalty <span class="math notranslate nohighlight">\(\mathcal L_{smooth}\)</span> is defined as:</p>
+<div class="math notranslate nohighlight">
+\[\mathcal L_{smooth} = \sum_{\text{adjacent } i, j} \|\mathbf x_i - \mathbf x_j\|^2\]</div>
+<p>where <span class="math notranslate nohighlight">\(\mathbf x_i\)</span> and <span class="math notranslate nohighlight">\(\mathbf x_j\)</span> are adjacent control points in the Bézier simplex. Two control points are considered adjacent if their multi-indices differ by 1 in two components and are identical in others.</p>
+</section>
+<section id="how-to-use">
+<h2>How to Use<a class="headerlink" href="#how-to-use" title="Link to this heading"></a></h2>
+<p>You can enable smoothness regularization by passing the <code class="docutils literal notranslate"><span class="pre">smoothness_weight</span></code> argument to the <code class="docutils literal notranslate"><span class="pre">fit()</span></code> function.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch_bsf</span>
+
+<span class="c1"># Fit with a smoothness weight (e.g., 0.1)</span>
+<span class="n">bs</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+    <span class="n">params</span><span class="o">=</span><span class="n">ts</span><span class="p">,</span>
+    <span class="n">values</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span>
+    <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">smoothness_weight</span><span class="o">=</span><span class="mf">0.1</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="cli-mlflow">
+<h2>CLI / MLflow<a class="headerlink" href="#cli-mlflow" title="Link to this heading"></a></h2>
+<p>You can also specify the smoothness weight via the command-line interface or MLflow using the <code class="docutils literal notranslate"><span class="pre">--smoothness_weight</span></code> flag.</p>
+<p><strong>CLI Example:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>torch_bsf<span class="w"> </span>--params<span class="w"> </span>params.csv<span class="w"> </span>--values<span class="w"> </span>values.csv<span class="w"> </span>--degree<span class="w"> </span><span class="m">3</span><span class="w"> </span>--smoothness_weight<span class="w"> </span><span class="m">0</span>.1
+</pre></div>
+</div>
+<p><strong>MLflow Example:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mlflow<span class="w"> </span>run<span class="w"> </span>https://github.com/opthub-org/pytorch-bsf<span class="w"> </span>-P<span class="w"> </span><span class="nv">params</span><span class="o">=</span>params.csv<span class="w"> </span>-P<span class="w"> </span><span class="nv">values</span><span class="o">=</span>values.csv<span class="w"> </span>-P<span class="w"> </span><span class="nv">degree</span><span class="o">=</span><span class="m">3</span><span class="w"> </span>-P<span class="w"> </span><span class="nv">smoothness_weight</span><span class="o">=</span><span class="m">0</span>.1
+</pre></div>
+</div>
+</section>
+<section id="choosing-the-weight">
+<h2>Choosing the Weight<a class="headerlink" href="#choosing-the-weight" title="Link to this heading"></a></h2>
+<p>The optimal value for <code class="docutils literal notranslate"><span class="pre">smoothness_weight</span></code> depends on the noise level of your data:</p>
+<ul class="simple">
+<li><p><strong>0.0 (Default)</strong>: No regularization. Best for noise-free data.</p></li>
+<li><p><strong>0.01 - 0.1</strong>: Light regularization to smooth out minor jitter.</p></li>
+<li><p><strong>1.0 or more</strong>: Strong regularization. Use this if your data is very noisy or you want a very “flat” manifold.</p></li>
+</ul>
+</section>
+<section id="benefits">
+<h2>Benefits<a class="headerlink" href="#benefits" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p><strong>Noise Reduction</strong>: Effectively filters out high-frequency noise in the training set.</p></li>
+<li><p><strong>Manifold Stability</strong>: Prevents the Bézier simplex from “overfitting” to individual scattered observations.</p></li>
+<li><p><strong>Visual Quality</strong>: Produces smoother surfaces that are better for visualization and Pareto front approximation.</p></li>
+</ol>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="initialization.html" class="btn btn-neutral float-left" title="Initial Control Points" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="grid_sampling.html" class="btn btn-neutral float-right" title="Elastic Net Grid Sampling" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: copilot/sphinx-design
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/advanced/regularization.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/advanced/regularization.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/advanced/regularization.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/advanced/regularization.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/advanced/regularization.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/advanced/regularization.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="regularization.html">copilot/sphinx-design</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

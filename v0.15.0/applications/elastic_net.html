@@ -10,6 +10,7 @@
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
@@ -17,6 +18,7 @@
       <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
       <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -104,17 +106,17 @@
   <section id="elastic-net-model-selection">
 <h1>Elastic net model selection<a class="headerlink" href="#elastic-net-model-selection" title="Link to this heading"></a></h1>
 <p>A canonical and highly practical application of this theory is hyperparameter optimization for the <strong>Elastic Net</strong>. In machine learning and statistics, selecting the correct regularization parameters is critical to balancing data fidelity, model sparsity, and numerical stability.</p>
-<p>Traditional approaches rely on exhaustive grid searches or cross-validation over a discrete set of hyperparameter combinations <span class="math notranslate nohighlight">\((\alpha, \lambda)\)</span>. This process is computationally expensive. By formulating the hyperparameter tuning as a multi-objective optimization problem over a <strong>regularization map</strong> <span id="id1">[<a class="reference internal" href="../references.html#id18" title="Henri Bonnel and Corinne Schneider. Post-pareto analysis and a new algorithm for the optimal parameter tuning of the elastic net. Journal of Optimization Theory and Applications, 183(3):993–1027, 2019. doi:10.1007/s10957-019-01592-x.">BS19</a>]</span>, PyTorch-BSF allows for a continuous exploration of the model space, often reducing the computational cost by orders of magnitude (e.g., achieving speeds up to 2,000 times faster than exhaustive search for a 3-objective problem).</p>
+<p>Traditional approaches rely on exhaustive grid searches or cross-validation over a discrete set of hyperparameter combinations <span class="math notranslate nohighlight">\((\alpha, \lambda)\)</span>. This process is computationally expensive. By formulating the hyperparameter tuning as a multi-objective optimization problem over a <strong>regularization map</strong> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id18" title="Henri Bonnel and Corinne Schneider. Post-pareto analysis and a new algorithm for the optimal parameter tuning of the elastic net. Journal of Optimization Theory and Applications, 183(3):993–1027, 2019. doi:10.1007/s10957-019-01592-x.">BS19</a>]</span>, PyTorch-BSF allows for a continuous exploration of the model space, often reducing the computational cost by orders of magnitude (e.g., achieving speeds up to 2,000 times faster than exhaustive search for a 3-objective problem).</p>
 <section id="unified-framework-for-sparse-modeling">
 <h2>Unified Framework for Sparse Modeling<a class="headerlink" href="#unified-framework-for-sparse-modeling" title="Link to this heading"></a></h2>
 <p>The Elastic Net example is part of a broader framework for <strong>generalized sparse modeling</strong>. Any optimization problem expressed as a convex combination of several strongly convex functions can be analyzed using this approach:</p>
 <div class="math notranslate nohighlight">
 \[\min_{\beta \in \mathbb{R}^N} f_w(\beta) = \sum_{m=1}^M w_m f_m(\beta), \quad w \in \Delta^{M-1}\]</div>
-<p>where <span class="math notranslate nohighlight">\(f_m\)</span> represent different aspects of the model, such as data fidelity (loss functions) or structural priors (regularization terms). By ensuring each <span class="math notranslate nohighlight">\(f_m\)</span> is strongly convex (e.g., by adding a small <span class="math notranslate nohighlight">\(L_2\)</span> penalty <span class="math notranslate nohighlight">\(\frac{\epsilon}{2} \|\beta\|_2^2\)</span>), the resulting solution map <span class="math notranslate nohighlight">\(x^*(w)\)</span> is guaranteed to be weakly simplicial <span id="id2">[<a class="reference internal" href="../references.html#id4" title="Yuto Mizota, Naoki Hamada, and Shunsuke Ichiki. All unconstrained strongly convex problems are weakly simplicial. 2021. URL: https://arxiv.org/abs/2106.12704, arXiv:2106.12704.">MHI21</a>]</span>, allowing for high-quality approximation via Bézier simplices.</p>
+<p>where <span class="math notranslate nohighlight">\(f_m\)</span> represent different aspects of the model, such as data fidelity (loss functions) or structural priors (regularization terms). By ensuring each <span class="math notranslate nohighlight">\(f_m\)</span> is strongly convex (e.g., by adding a small <span class="math notranslate nohighlight">\(L_2\)</span> penalty <span class="math notranslate nohighlight">\(\frac{\epsilon}{2} \|\beta\|_2^2\)</span>), the resulting solution map <span class="math notranslate nohighlight">\(x^*(w)\)</span> is guaranteed to be weakly simplicial <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id4" title="Yuto Mizota, Naoki Hamada, and Shunsuke Ichiki. All unconstrained strongly convex problems are weakly simplicial. 2021. URL: https://arxiv.org/abs/2106.12704, arXiv:2106.12704.">MHI21</a>]</span>, allowing for high-quality approximation via Bézier simplices.</p>
 <p>This unified framework extends far beyond the standard Elastic Net:</p>
 <ul class="simple">
 <li><p><strong>Generalized Linear Models (GLMs)</strong>: The loss term can be any negative log-likelihood with a canonical link function (e.g., Logistic, Poisson, or Gamma regression).</p></li>
-<li><p><strong>Structural Regularization</strong>: Practitioners can incorporate structural priors like <strong>Group Lasso</strong> <span id="id3">[<a class="reference internal" href="../references.html#id29" title="Ming Yuan and Yi Lin. Model selection and estimation in regression with grouped variables. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 68(1):49–67, 2006.">YL06</a>]</span>, <strong>Fused Lasso</strong> <span id="id4">[<a class="reference internal" href="../references.html#id30" title="Robert Tibshirani, Michael Saunders, Saharon Rosset, Ji Zhu, and Keith Knight. Sparsity and smoothness via the fused lasso. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 67(1):91–108, 2005.">TSR+05</a>]</span>, or <strong>Smoothed Lasso</strong> to encode spatial or group relationships between features.</p></li>
+<li><p><strong>Structural Regularization</strong>: Practitioners can incorporate structural priors like <strong>Group Lasso</strong> <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../references.html#id29" title="Ming Yuan and Yi Lin. Model selection and estimation in regression with grouped variables. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 68(1):49–67, 2006.">YL06</a>]</span>, <strong>Fused Lasso</strong> <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../references.html#id30" title="Robert Tibshirani, Michael Saunders, Saharon Rosset, Ji Zhu, and Keith Knight. Sparsity and smoothness via the fused lasso. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 67(1):91–108, 2005.">TSR+05</a>]</span>, or <strong>Smoothed Lasso</strong> to encode spatial or group relationships between features.</p></li>
 <li><p><strong>Transfer Learning and Covariate Shift</strong>: By using importance-weighted empirical risk as the loss function, the framework can handle scenarios where the training and test data distributions differ (covariate shift).</p></li>
 <li><p><strong>Robust Estimation</strong>: Replacing the standard squared error with robust loss functions like the <strong>Huber loss</strong> allows for model selection that is resilient to outliers.</p></li>
 </ul>
@@ -351,7 +353,7 @@ w_3 &amp;= \frac{\lambda (1-\alpha)}{1 + \lambda}\end{split}\]</div>
         </dl>
         <dl>
             <dt>Branches</dt>
-            <dd><a href="../../docs-and-examples/applications/elastic_net.html">docs-and-examples</a></dd>
+            <dd><a href="../../copilot/sphinx-design/applications/elastic_net.html">copilot/sphinx-design</a></dd>
         </dl>
     </div>
 </div><script>

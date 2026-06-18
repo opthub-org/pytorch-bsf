@@ -1,0 +1,251 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to PyTorch-BSF! &mdash; PyTorch-BSF 0.18.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=ba2e7b09"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="What is Bézier simplex fitting?" href="whatis.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            PyTorch-BSF
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">torch_bsf</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Welcome to PyTorch-BSF!</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="welcome-to-pytorch-bsf">
+<h1>Welcome to PyTorch-BSF!<a class="headerlink" href="#welcome-to-pytorch-bsf" title="Link to this heading"></a></h1>
+<p><strong>Fit smooth, high-dimensional manifolds to your data — from a single GPU to a multi-node cluster.</strong></p>
+<p>PyTorch-BSF brings <a class="reference external" href="whatis.html">Bézier simplex fitting</a> to PyTorch.
+A Bézier simplex is a high-dimensional generalization of the Bézier curve: it can model an arbitrarily complex point cloud as a smooth parametric hyper-surface in any number of dimensions.
+This makes it a natural tool for representing <strong>Pareto fronts</strong> in multi-objective optimization, interpolating scattered observations, and fitting geometric structures in high-dimensional spaces.</p>
+<p>The project is on <a class="reference external" href="https://github.com/opthub-org/pytorch-bsf">GitHub</a>.</p>
+<a class="reference internal image-reference" href="_images/bezier-simplex.png"><img alt="A Bézier simplex and its control points" src="_images/bezier-simplex.png" style="width: 49%;" />
+</a>
+<a class="reference internal image-reference" href="_images/bezier-simplex-fitting.png"><img alt="A Bézier simplex that fits to a dataset" src="_images/bezier-simplex-fitting.png" style="width: 49%;" />
+</a>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="whatis.html#bezier-simplex">Bézier Simplex</a></li>
+<li class="toctree-l2"><a class="reference internal" href="whatis.html#bezier-simplex-fitting">Bézier Simplex Fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="whatis.html#approximation-theorem">Approximation Theorem</a></li>
+<li class="toctree-l2"><a class="reference internal" href="whatis.html#relation-to-multi-objective-optimization">Relation to Multi-Objective Optimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="whatis.html#statistical-test-for-simplicial-topology">Statistical Test for Simplicial Topology</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#run-as-a-docker-container">Run as a Docker Container</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#run-as-an-mlflow-project">Run as an MLflow Project</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#run-as-a-python-package">Run as a Python Package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#run-as-python-code">Run as Python Code</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="advanced/normalization.html">Data Normalization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/initialization.html">Initial Control Points</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/regularization.html">Smoothness Regularization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/grid_sampling.html">Elastic Net Grid Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/auto_degree.html">Automatic Degree Selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/partial.html">Partial Training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/acceleration.html">Hardware Acceleration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/visualization.html">Bézier Simplex Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/sampling.html">Advanced Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/sklearn.html">Scikit-learn Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/active_learning.html">Active Learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/splitting.html">Bézier Simplex Splitting</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="applications/elastic_net.html">Elastic Net Model Selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="applications/portfolio.html">Robust Portfolio Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="applications/smart_grids.html">Distributed Smart Grids and Energy Operations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="applications/federated_learning.html">Multi-Task and Federated Learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="applications/model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="applications/communications.html">Communication Systems and Routing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="applications/supply_chain.html">Supply Chain and Logistics Optimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="applications/medical_imaging.html">Medical Imaging and Radiation Therapy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="applications/facility_location.html">Facility Location and Continuous Approximations</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="faq.html#general-information">General Information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faq.html#mathematical-foundations">Mathematical Foundations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faq.html#practical-usage">Practical Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faq.html#troubleshooting">Troubleshooting</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">torch_bsf</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html">torch_bsf package</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="whatis.html" class="btn btn-neutral float-right" title="What is Bézier simplex fitting?" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: copilot/sphinx-design
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="index.html">copilot/sphinx-design</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

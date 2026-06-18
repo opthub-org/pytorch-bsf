@@ -1,0 +1,288 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data Normalization &mdash; PyTorch-BSF 0.18.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Initial Control Points" href="initialization.html" />
+    <link rel="prev" title="Advanced Topics" href="../advanced.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Data Normalization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#parameter-normalization">Parameter Normalization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#value-normalization">Value Normalization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#advanced-considerations">Advanced Considerations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#parameter-space-uniformization">Parameter Space Uniformization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#preserving-physical-scales-in-values">Preserving Physical Scales in Values</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="initialization.html">Initial Control Points</a></li>
+<li class="toctree-l2"><a class="reference internal" href="regularization.html">Smoothness Regularization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_sampling.html">Elastic Net Grid Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Automatic Degree Selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="partial.html">Partial Training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="acceleration.html">Hardware Acceleration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualization.html">Bézier Simplex Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sampling.html">Advanced Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="active_learning.html">Active Learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="splitting.html">Bézier Simplex Splitting</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">torch_bsf</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Data Normalization</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/normalization.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="data-normalization">
+<h1>Data Normalization<a class="headerlink" href="#data-normalization" title="Link to this heading"></a></h1>
+<p>Proper normalization of your data is crucial for stable and accurate Bézier simplex fitting, as both the input parameters and the output values should ideally be within a well-defined range.</p>
+<section id="parameter-normalization">
+<h2>Parameter Normalization<a class="headerlink" href="#parameter-normalization" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">fit()</span></code> function expects each row of the <code class="docutils literal notranslate"><span class="pre">params</span></code> tensor to lie on the standard simplex <span class="math notranslate nohighlight">\(\Delta^{M-1}\)</span> (i.e., the elements must be non-negative and sum to 1). If your raw parameters do not satisfy this condition, you must normalize them manually before fitting.</p>
+<p>A common approach is <strong>L1 Normalization</strong>: divide each parameter vector by its <span class="math notranslate nohighlight">\(\ell_1\)</span> norm. For parameters <span class="math notranslate nohighlight">\(a, b \ge 0\)</span>, you can compute the simplex coordinates as <span class="math notranslate nohighlight">\(t_1 = a / (a + b)\)</span> and <span class="math notranslate nohighlight">\(t_2 = b / (a + b)\)</span>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Manual L1 normalization for parameter tensors</span>
+<span class="n">ts</span> <span class="o">=</span> <span class="n">ts</span> <span class="o">/</span> <span class="n">ts</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>While the best normalization method depends on your specific problem, the L1 approach is a solid default. If your parameter space does not naturally have a simplex structure and no intuitive normalization seems appropriate, it is possible that the problem is not well-suited for Bézier simplex fitting.</p>
+</section>
+<section id="value-normalization">
+<h2>Value Normalization<a class="headerlink" href="#value-normalization" title="Link to this heading"></a></h2>
+<p>Normalizing the output <code class="docutils literal notranslate"><span class="pre">values</span></code> (the targets) can help the optimizer converge faster by ensuring that different objectives are on a similar scale. In the CLI or MLflow interface, you can use the <code class="docutils literal notranslate"><span class="pre">--normalize</span></code> argument.</p>
+<p>Available options include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">max</span></code>: Scales values to the range <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code> based on the observed maximum. This is suitable when the training data covers the full expected range (upper and lower bounds) for all axes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">std</span></code>: Standardizes values to have zero mean and unit variance. This is the most common choice for general datasets.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">quantile</span></code>: Transforms values based on quantiles. This is robust to outliers and is recommended when the training data contains significant extremes that might otherwise skew the scaling.</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">StdScaler</span>
+
+<span class="c1"># Normalize values using the internal StdScaler</span>
+<span class="n">scaler</span> <span class="o">=</span> <span class="n">StdScaler</span><span class="p">()</span>
+<span class="n">xs_normalized</span> <span class="o">=</span> <span class="n">scaler</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+
+<span class="c1"># Fit the model (remember to use normalized values)</span>
+<span class="n">bs</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">ts</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="n">xs_normalized</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
+<span class="c1"># To predict and get results in the original scale</span>
+<span class="n">t_new</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]]</span>
+<span class="n">x_normalized</span> <span class="o">=</span> <span class="n">bs</span><span class="p">(</span><span class="n">t_new</span><span class="p">)</span>
+<span class="n">x_original</span> <span class="o">=</span> <span class="n">scaler</span><span class="o">.</span><span class="n">inverse_transform</span><span class="p">(</span><span class="n">x_normalized</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>While normalization can often improve prediction accuracy and training stability, it is not a guarantee. You should select the method that best aligns with your data distribution to achieve the best results.</p>
+</section>
+<section id="advanced-considerations">
+<h2>Advanced Considerations<a class="headerlink" href="#advanced-considerations" title="Link to this heading"></a></h2>
+<p>Numerical stability and fitting accuracy also depend on how your data points are distributed within their ranges.</p>
+<section id="parameter-space-uniformization">
+<h3>Parameter Space Uniformization<a class="headerlink" href="#parameter-space-uniformization" title="Link to this heading"></a></h3>
+<p>Bézier simplex fitting performs most effectively when the training data is <strong>uniformly distributed</strong> across the entire simplex. If your samples are clustered in certain regions (skewed), the model may struggle to accurately represent the surface in sparse areas, even if the total number of samples is large.</p>
+<p>If your data is naturally biased, consider applying a transformation to “uniformize” the distribution before fitting. For example, when exploring hyperparameters such as those generated by <code class="docutils literal notranslate"><span class="pre">torch_bsf.model_selection.elastic_net_grid</span></code> (which often uses log-spaced <span class="math notranslate nohighlight">\(\lambda\)</span>), the data is heavily concentrated at one end of the simplex. In such cases, fitting on the “raw” biased parameters can lead to significantly higher errors than fitting on uniform data.</p>
+<figure class="align-center" id="id1">
+<a class="reference internal image-reference" href="../_images/elastic_net_grid_comparison.png"><img alt="Comparison of elastic_net_grid with different base values." src="../_images/elastic_net_grid_comparison.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 5 </span><span class="caption-text">Distribution of points generated by <code class="docutils literal notranslate"><span class="pre">elastic_net_grid</span></code> for different <code class="docutils literal notranslate"><span class="pre">base</span></code> values.
+As the <code class="docutils literal notranslate"><span class="pre">base</span></code> increases, the points are more heavily concentrated towards a corner of the simplex.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>In practice, when using such skewed grids, it is often more effective to perform the Bézier simplex fitting using the <strong>grid indices</strong> (which are uniformly spaced) and then map the results back to the original parameter space.</p>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-number">Table 1 </span><span class="caption-text">Impact of Parameter Distribution (3rd Degree Simplex)</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 57.1%" />
+<col style="width: 42.9%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter Sampling Strategy</p></th>
+<th class="head"><p>Test MSE</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Uniform Triangular Grid</p></td>
+<td><p>1.92e-04</p></td>
+</tr>
+<tr class="row-odd"><td><p>Skewed (Log-grid style, base 1000)</p></td>
+<td><p>4.28e-03</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="preserving-physical-scales-in-values">
+<h3>Preserving Physical Scales in Values<a class="headerlink" href="#preserving-physical-scales-in-values" title="Link to this heading"></a></h3>
+<p>The objective function in PyTorch-BSF (Mean Squared Error) is calculated in the <strong>normalized value space</strong> whenever normalization is applied.</p>
+<ul class="simple">
+<li><p><strong>Automatic Balancing:</strong> Scaling all axes to [0, 1] ensures that each objective contributes roughly equally to the training process, regardless of its original unit or magnitude.</p></li>
+<li><p><strong>Physical Significance:</strong> However, if the absolute magnitude of an axis has physical meaning or represents its relative importance, you may choose <strong>not to scale</strong>. For instance, if one objective ranges from 0 to 1 and another from 0 to 1000, and you want the optimizer to prioritize absolute precision on the larger objective, leaving the data unscaled will naturally cause the larger values to dominate the loss function.</p></li>
+</ul>
+<p>Carefully consider whether you want all objectives to be weighted “fairly” according to their variance, or weighted “physically” according to their raw magnitudes.</p>
+</section>
+</section>
+<section id="see-also">
+<h2>See Also<a class="headerlink" href="#see-also" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/main/examples/normalization_comparison.py">examples/normalization_comparison.py</a>: A complete script demonstrating the impact of parameter distribution and value scaling described above.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../advanced.html" class="btn btn-neutral float-left" title="Advanced Topics" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="initialization.html" class="btn btn-neutral float-right" title="Initial Control Points" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: copilot/sphinx-design
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/advanced/normalization.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/advanced/normalization.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/advanced/normalization.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/advanced/normalization.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/advanced/normalization.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/advanced/normalization.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/advanced/normalization.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="normalization.html">copilot/sphinx-design</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

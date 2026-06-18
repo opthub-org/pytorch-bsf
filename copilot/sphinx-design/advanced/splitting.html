@@ -1,0 +1,522 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bézier Simplex Splitting &mdash; PyTorch-BSF 0.18.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Applications" href="../applications.html" />
+    <link rel="prev" title="Active Learning" href="active_learning.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="normalization.html">Data Normalization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="initialization.html">Initial Control Points</a></li>
+<li class="toctree-l2"><a class="reference internal" href="regularization.html">Smoothness Regularization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_sampling.html">Elastic Net Grid Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Automatic Degree Selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="partial.html">Partial Training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="acceleration.html">Hardware Acceleration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualization.html">Bézier Simplex Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sampling.html">Advanced Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="active_learning.html">Active Learning</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Bézier Simplex Splitting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#how-splitting-works">How Splitting Works</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#splitting-a-specific-edge">Splitting a Specific Edge</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#re-parameterizing-data-points">Re-parameterizing Data Points</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#choosing-a-split-automatically">Choosing a Split Automatically</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#longest-edge-criterion">Longest-Edge Criterion</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#maximum-error-criterion">Maximum-Error Criterion</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#custom-criteria">Custom Criteria</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#iterative-refinement">Iterative Refinement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">torch_bsf</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Bézier Simplex Splitting</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/splitting.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="bezier-simplex-splitting">
+<h1>Bézier Simplex Splitting<a class="headerlink" href="#bezier-simplex-splitting" title="Link to this heading"></a></h1>
+<p>The <code class="docutils literal notranslate"><span class="pre">torch_bsf.splitting</span></code> module provides functions to subdivide a fitted
+Bézier simplex into two sub-simplices that together cover the entire original
+parameter domain.  Splitting is useful whenever a single global Bézier simplex
+does not capture all the local features of a manifold — by recursively splitting
+the problematic region you can achieve higher accuracy without increasing the
+polynomial degree.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch_bsf</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.splitting</span><span class="w"> </span><span class="kn">import</span> <span class="n">split</span><span class="p">,</span> <span class="n">split_by_criterion</span><span class="p">,</span> <span class="n">longest_edge_criterion</span>
+
+<span class="c1"># Fit an initial model</span>
+<span class="n">params</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]])</span>
+<span class="n">values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]])</span>
+<span class="n">bs</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+    <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span>
+    <span class="n">values</span><span class="o">=</span><span class="n">values</span><span class="p">,</span>
+    <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">max_epochs</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+    <span class="n">enable_progress_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">logger</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">enable_checkpointing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># Split along the longest edge in value space</span>
+<span class="n">bs_A</span><span class="p">,</span> <span class="n">bs_B</span> <span class="o">=</span> <span class="n">split_by_criterion</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="n">longest_edge_criterion</span><span class="p">)</span>
+</pre></div>
+</div>
+<section id="how-splitting-works">
+<h2>How Splitting Works<a class="headerlink" href="#how-splitting-works" title="Link to this heading"></a></h2>
+<p>Given a Bézier simplex <span class="math notranslate nohighlight">\(B\)</span> of degree <span class="math notranslate nohighlight">\(n\)</span> over a simplex parameter
+domain with vertices <span class="math notranslate nohighlight">\(v_0, \ldots, v_{m-1}\)</span>, splitting along edge
+<span class="math notranslate nohighlight">\((i, j)\)</span> at position <span class="math notranslate nohighlight">\(s \in (0, 1)\)</span> inserts a new vertex</p>
+<div class="math notranslate nohighlight">
+\[v_\mathrm{new} = (1-s)\,v_i + s\,v_j\]</div>
+<p>and produces two sub-simplices:</p>
+<ul class="simple">
+<li><p><strong>bs_A</strong> — replaces vertex <span class="math notranslate nohighlight">\(j\)</span> with <span class="math notranslate nohighlight">\(v_\mathrm{new}\)</span>.  It covers the
+sub-domain <span class="math notranslate nohighlight">\(\{t : t_j \le s\,(t_i + t_j)\}\)</span>.</p></li>
+<li><p><strong>bs_B</strong> — replaces vertex <span class="math notranslate nohighlight">\(i\)</span> with <span class="math notranslate nohighlight">\(v_\mathrm{new}\)</span>.  It covers the
+sub-domain <span class="math notranslate nohighlight">\(\{t : t_j \ge s\,(t_i + t_j)\}\)</span>.</p></li>
+</ul>
+<p>Both sub-simplices have the <strong>same degree and number of parameters</strong> as the
+original and together reproduce it exactly: for any point <span class="math notranslate nohighlight">\(t\)</span> in the
+original domain, evaluating the appropriate sub-simplex at its local
+coordinates gives the same value as evaluating the original.</p>
+<figure class="align-default" id="id1">
+<a class="reference internal image-reference" href="../_images/splitting_before_after.png"><img alt="../_images/splitting_before_after.png" src="../_images/splitting_before_after.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 8 </span><span class="caption-text"><strong>Left</strong> – A degree-3 Bézier curve (n_params=2) with its four control
+points (circles) and control polygon (dashed).  <strong>Right</strong> – After splitting
+at <span class="math notranslate nohighlight">\(s=0.5\)</span>: sub-simplex <span class="math notranslate nohighlight">\(B_A\)</span> (red) covers the first half and
+sub-simplex <span class="math notranslate nohighlight">\(B_B\)</span> (green) covers the second half.  Diamond markers
+highlight the control points that are newly computed by the de Casteljau
+algorithm; the star marks the shared split point <span class="math notranslate nohighlight">\(v_\mathrm{new}\)</span>.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>The control points of the two sub-simplices are computed using the <strong>de
+Casteljau algorithm</strong> applied along the chosen edge direction.  At each step
+<span class="math notranslate nohighlight">\(r = 1, \ldots, n\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}c^{(r)}_\alpha =
+\begin{cases}
+    s \cdot c^{(r-1)}_\alpha
+        + (1-s) \cdot c^{(r-1)}_{\alpha + e_i - e_j}
+    &amp; \text{if } \alpha_j \ge 1, \\
+    c^{(r-1)}_\alpha &amp; \text{otherwise.}
+\end{cases}\end{split}\]</div>
+<p>Rows with <span class="math notranslate nohighlight">\(\alpha_j = r\)</span> are saved as control points of <strong>bs_A</strong>.  An
+analogous recursion with the roles of <span class="math notranslate nohighlight">\(i\)</span> and <span class="math notranslate nohighlight">\(j\)</span> swapped gives
+the control points of <strong>bs_B</strong>.</p>
+<figure class="align-default" id="id2">
+<a class="reference internal image-reference" href="../_images/splitting_triangle_before_after.png"><img alt="../_images/splitting_triangle_before_after.png" src="../_images/splitting_triangle_before_after.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 9 </span><span class="caption-text"><strong>Left</strong> – A degree-2 Bézier triangle (n_params=3) with its six control
+points (circles) and control net.  <strong>Right</strong> – After splitting edge
+<span class="math notranslate nohighlight">\((0,1)\)</span> at <span class="math notranslate nohighlight">\(s=0.5\)</span>: sub-simplex <span class="math notranslate nohighlight">\(B_A\)</span> (orange, replaces
+<span class="math notranslate nohighlight">\(v_1\)</span> with <span class="math notranslate nohighlight">\(v_\mathrm{new}\)</span>) and <span class="math notranslate nohighlight">\(B_B\)</span> (green, replaces
+<span class="math notranslate nohighlight">\(v_0\)</span> with <span class="math notranslate nohighlight">\(v_\mathrm{new}\)</span>).  Diamond markers highlight control
+points that are newly computed by the de Casteljau algorithm; the star marks
+the shared split point <span class="math notranslate nohighlight">\(v_\mathrm{new}\)</span>.</span><a class="headerlink" href="#id2" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</section>
+<section id="splitting-a-specific-edge">
+<h2>Splitting a Specific Edge<a class="headerlink" href="#splitting-a-specific-edge" title="Link to this heading"></a></h2>
+<p>Use <code class="xref py py-func docutils literal notranslate"><span class="pre">split()</span></code> when you know which edge to split and
+where:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.splitting</span><span class="w"> </span><span class="kn">import</span> <span class="n">split</span>
+
+<span class="c1"># Split edge (0, 1) of a Bézier curve at the midpoint</span>
+<span class="n">bs_A</span><span class="p">,</span> <span class="n">bs_B</span> <span class="o">=</span> <span class="n">split</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+
+<span class="c1"># Evaluate each sub-simplex on a fine grid in its local coordinates</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.sampling</span><span class="w"> </span><span class="kn">import</span> <span class="n">simplex_grid</span>
+<span class="n">u_fine</span> <span class="o">=</span> <span class="n">simplex_grid</span><span class="p">(</span><span class="n">n_params</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+<span class="n">pred_A</span> <span class="o">=</span> <span class="n">bs_A</span><span class="p">(</span><span class="n">u_fine</span><span class="p">)</span>
+<span class="n">pred_B</span> <span class="o">=</span> <span class="n">bs_B</span><span class="p">(</span><span class="n">u_fine</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">s</span></code> parameter controls where the new vertex is placed on the edge:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">s</span> <span class="pre">=</span> <span class="pre">0.5</span></code> (default) — midpoint split.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">s</span> <span class="pre">&lt;</span> <span class="pre">0.5</span></code> — the new vertex is closer to <span class="math notranslate nohighlight">\(v_i\)</span>; <strong>bs_A</strong> covers a
+smaller sub-domain.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">s</span> <span class="pre">&gt;</span> <span class="pre">0.5</span></code> — the new vertex is closer to <span class="math notranslate nohighlight">\(v_j\)</span>; <strong>bs_B</strong> covers a
+smaller sub-domain.</p></li>
+</ul>
+</section>
+<section id="re-parameterizing-data-points">
+<h2>Re-parameterizing Data Points<a class="headerlink" href="#re-parameterizing-data-points" title="Link to this heading"></a></h2>
+<p>After splitting, existing data points need to be mapped to the local
+barycentric coordinates of the sub-simplex they belong to.
+<code class="xref py py-func docutils literal notranslate"><span class="pre">reparametrize()</span></code> performs this conversion:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.splitting</span><span class="w"> </span><span class="kn">import</span> <span class="n">reparametrize</span>
+
+<span class="c1"># Original parameter vectors, shape (N, n_params)</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">params</span>  <span class="c1"># e.g. from your training dataset</span>
+
+<span class="c1"># Map to sub-simplex A</span>
+<span class="n">u_A</span><span class="p">,</span> <span class="n">mask_A</span> <span class="o">=</span> <span class="n">reparametrize</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">subsimplex</span><span class="o">=</span><span class="s2">&quot;A&quot;</span><span class="p">)</span>
+<span class="c1"># u_A[mask_A] are the local coordinates of the points in sub-simplex A</span>
+
+<span class="c1"># Map to sub-simplex B</span>
+<span class="n">u_B</span><span class="p">,</span> <span class="n">mask_B</span> <span class="o">=</span> <span class="n">reparametrize</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">subsimplex</span><span class="o">=</span><span class="s2">&quot;B&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The returned <code class="docutils literal notranslate"><span class="pre">mask</span></code> is a boolean tensor indicating which input points belong
+to the requested sub-simplex.  Points where <span class="math notranslate nohighlight">\(t_i = t_j = 0\)</span> lie on a
+shared boundary and appear in both masks.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The local barycentric coordinates <code class="docutils literal notranslate"><span class="pre">u</span></code> returned by
+<code class="xref py py-func docutils literal notranslate"><span class="pre">reparametrize()</span></code> sum to 1 by construction, so
+they can be passed directly to <code class="xref py py-meth docutils literal notranslate"><span class="pre">__call__()</span></code>.</p>
+</div>
+</section>
+<section id="choosing-a-split-automatically">
+<h2>Choosing a Split Automatically<a class="headerlink" href="#choosing-a-split-automatically" title="Link to this heading"></a></h2>
+<p>Rather than specifying <code class="docutils literal notranslate"><span class="pre">(i,</span> <span class="pre">j,</span> <span class="pre">s)</span></code> by hand, you can pass a
+<code class="xref py py-data docutils literal notranslate"><span class="pre">SplitCriterion</span></code> to
+<code class="xref py py-func docutils literal notranslate"><span class="pre">split_by_criterion()</span></code>.  The criterion inspects the
+fitted model (and optionally the data) and returns the best <code class="docutils literal notranslate"><span class="pre">(i,</span> <span class="pre">j,</span> <span class="pre">s)</span></code>
+triple.</p>
+<p>Two built-in criteria are provided.</p>
+<section id="longest-edge-criterion">
+<h3>Longest-Edge Criterion<a class="headerlink" href="#longest-edge-criterion" title="Link to this heading"></a></h3>
+<p><code class="xref py py-func docutils literal notranslate"><span class="pre">longest_edge_criterion()</span></code> selects the edge with the
+greatest distance in <strong>value space</strong> and splits at the given parameter <code class="docutils literal notranslate"><span class="pre">s</span></code>
+(default <code class="docutils literal notranslate"><span class="pre">s</span> <span class="pre">=</span> <span class="pre">0.5</span></code>, the midpoint).  When used directly as a
+<code class="xref py py-data docutils literal notranslate"><span class="pre">SplitCriterion</span></code> it applies the default midpoint
+split; to use a different <code class="docutils literal notranslate"><span class="pre">s</span></code> value, wrap it with
+<a class="reference external" href="https://docs.python.org/3/library/functools.html#functools.partial" title="(in Python v3.14)"><code class="xref py py-func docutils literal notranslate"><span class="pre">functools.partial()</span></code></a>:</p>
+<div class="math notranslate nohighlight">
+\[\ell_{ij} = \|B(e_i) - B(e_j)\|_2\]</div>
+<p>This criterion requires <strong>only the fitted model</strong> and is very fast.  It works
+well when the manifold is elongated along a single direction.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.splitting</span><span class="w"> </span><span class="kn">import</span> <span class="n">longest_edge_criterion</span><span class="p">,</span> <span class="n">split_by_criterion</span>
+
+<span class="c1"># Default: split the longest edge at its midpoint (s=0.5)</span>
+<span class="n">bs_A</span><span class="p">,</span> <span class="n">bs_B</span> <span class="o">=</span> <span class="n">split_by_criterion</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="n">longest_edge_criterion</span><span class="p">)</span>
+
+<span class="c1"># Custom split position: split the longest edge at the one-third mark</span>
+<span class="n">criterion_third</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">longest_edge_criterion</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">/</span> <span class="mf">3.0</span><span class="p">)</span>
+<span class="n">bs_A</span><span class="p">,</span> <span class="n">bs_B</span> <span class="o">=</span> <span class="n">split_by_criterion</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="n">criterion_third</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>You can also call the criterion directly to inspect which edge it selects:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="n">longest_edge_criterion</span><span class="p">(</span><span class="n">bs</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Splitting edge (</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">j</span><span class="si">}</span><span class="s2">) at s=</span><span class="si">{</span><span class="n">s</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="maximum-error-criterion">
+<h3>Maximum-Error Criterion<a class="headerlink" href="#maximum-error-criterion" title="Link to this heading"></a></h3>
+<p><code class="xref py py-func docutils literal notranslate"><span class="pre">max_error_criterion()</span></code> finds the edge and split
+position that minimize the combined mean-squared error over the training data:</p>
+<div class="math notranslate nohighlight">
+\[E(i, j, s) = \mathrm{MSE}_A + \mathrm{MSE}_B\]</div>
+<p>A grid search over candidate split positions in <span class="math notranslate nohighlight">\((0, 1)\)</span> is performed
+for every edge.  This criterion is <strong>data-driven</strong> and typically produces a
+better split than the longest-edge criterion, at the cost of additional
+computation.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.splitting</span><span class="w"> </span><span class="kn">import</span> <span class="n">max_error_criterion</span><span class="p">,</span> <span class="n">split_by_criterion</span>
+
+<span class="c1"># Build the criterion (binds the training data)</span>
+<span class="n">criterion</span> <span class="o">=</span> <span class="n">max_error_criterion</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">grid_size</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+<span class="c1"># Split the model using the data-driven criterion</span>
+<span class="n">bs_A</span><span class="p">,</span> <span class="n">bs_B</span> <span class="o">=</span> <span class="n">split_by_criterion</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="n">criterion</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">grid_size</span></code> parameter controls how many candidate <code class="docutils literal notranslate"><span class="pre">s</span></code> values are
+evaluated per edge.  Larger values give a finer search at the cost of more
+forward passes through the model.</p>
+<figure class="align-default" id="id3">
+<a class="reference internal image-reference" href="../_images/splitting_criteria.png"><img alt="../_images/splitting_criteria.png" src="../_images/splitting_criteria.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 10 </span><span class="caption-text">Comparison of the two built-in split criteria on the same degree-2 Bézier
+curve (dotted) fitted to training data (grey dots).  <strong>Left</strong> –
+<code class="docutils literal notranslate"><span class="pre">longest_edge_criterion</span></code> splits at the geometric midpoint of the longest
+value-space edge (<span class="math notranslate nohighlight">\(s=0.5\)</span>), ignoring the data distribution.
+<strong>Right</strong> – <code class="docutils literal notranslate"><span class="pre">max_error_criterion</span></code> finds the edge and position that
+minimize the combined MSE on the training data, here choosing a split
+position closer to where the fitted curve deviates most from the data.</span><a class="headerlink" href="#id3" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id4">
+<a class="reference internal image-reference" href="../_images/splitting_triangle_criteria.png"><img alt="../_images/splitting_triangle_criteria.png" src="../_images/splitting_triangle_criteria.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 11 </span><span class="caption-text">Comparison of the two built-in split criteria on a degree-2 Bézier
+<strong>triangle</strong> (<span class="math notranslate nohighlight">\(n_\mathrm{params}=3\)</span>) with training data (purple dots).
+<strong>Left</strong> – <code class="docutils literal notranslate"><span class="pre">longest_edge_criterion</span></code> selects the longest value-space edge
+and splits at <span class="math notranslate nohighlight">\(s=0.5\)</span>.  <strong>Right</strong> – <code class="docutils literal notranslate"><span class="pre">max_error_criterion</span></code> selects
+the edge and split position that minimize the combined MSE on the training
+data; the chosen edge and <span class="math notranslate nohighlight">\(s\)</span> value may differ from the geometric
+midpoint.  The dashed line shows the split and the star marks
+<span class="math notranslate nohighlight">\(v_\mathrm{new}\)</span> in both panels.</span><a class="headerlink" href="#id4" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</section>
+<section id="custom-criteria">
+<h3>Custom Criteria<a class="headerlink" href="#custom-criteria" title="Link to this heading"></a></h3>
+<p>A <code class="xref py py-data docutils literal notranslate"><span class="pre">SplitCriterion</span></code> is any callable with the
+signature <code class="docutils literal notranslate"><span class="pre">(bs:</span> <span class="pre">BezierSimplex)</span> <span class="pre">-&gt;</span> <span class="pre">tuple[int,</span> <span class="pre">int,</span> <span class="pre">float]</span></code>.  You can write
+your own criterion and pass it to <code class="xref py py-func docutils literal notranslate"><span class="pre">split_by_criterion()</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSimplex</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.splitting</span><span class="w"> </span><span class="kn">import</span> <span class="n">split_by_criterion</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">my_criterion</span><span class="p">(</span><span class="n">bs</span><span class="p">:</span> <span class="n">BezierSimplex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+    <span class="c1"># Always split the first edge at the one-third point</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="mf">3.0</span>
+
+<span class="n">bs_A</span><span class="p">,</span> <span class="n">bs_B</span> <span class="o">=</span> <span class="n">split_by_criterion</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="n">my_criterion</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="iterative-refinement">
+<h2>Iterative Refinement<a class="headerlink" href="#iterative-refinement" title="Link to this heading"></a></h2>
+<p>A common workflow is to fit an initial model and then refine it by repeatedly
+splitting the sub-simplex with the largest approximation error.  The example
+below demonstrates one round of such refinement:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch_bsf</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.splitting</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">max_error_criterion</span><span class="p">,</span>
+    <span class="n">reparametrize</span><span class="p">,</span>
+    <span class="n">split</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># ── 1. Initial data and fit ────────────────────────────────────────────────</span>
+<span class="n">params</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span>
+    <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>
+<span class="p">])</span>
+<span class="n">values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>  <span class="c1"># nonlinear target</span>
+
+<span class="n">bs</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+    <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span>
+    <span class="n">values</span><span class="o">=</span><span class="n">values</span><span class="p">,</span>
+    <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">max_epochs</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+    <span class="n">enable_progress_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">logger</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">enable_checkpointing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># ── 2. Split using the data-driven criterion ───────────────────────────────</span>
+<span class="n">criterion</span> <span class="o">=</span> <span class="n">max_error_criterion</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">grid_size</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="n">criterion</span><span class="p">(</span><span class="n">bs</span><span class="p">)</span>  <span class="c1"># retrieve the chosen (i, j, s) once</span>
+<span class="n">bs_A</span><span class="p">,</span> <span class="n">bs_B</span> <span class="o">=</span> <span class="n">split</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+
+<span class="c1"># ── 3. Reparametrize the data and re-fit each sub-simplex ─────────────────</span>
+<span class="n">u_A</span><span class="p">,</span> <span class="n">mask_A</span> <span class="o">=</span> <span class="n">reparametrize</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">subsimplex</span><span class="o">=</span><span class="s2">&quot;A&quot;</span><span class="p">)</span>
+<span class="n">u_B</span><span class="p">,</span> <span class="n">mask_B</span> <span class="o">=</span> <span class="n">reparametrize</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">subsimplex</span><span class="o">=</span><span class="s2">&quot;B&quot;</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">mask_A</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+    <span class="n">bs_A_refined</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+        <span class="n">params</span><span class="o">=</span><span class="n">u_A</span><span class="p">[</span><span class="n">mask_A</span><span class="p">],</span>
+        <span class="n">values</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="n">mask_A</span><span class="p">],</span>
+        <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">max_epochs</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+        <span class="n">enable_progress_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">logger</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">enable_checkpointing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="k">if</span> <span class="n">mask_B</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+    <span class="n">bs_B_refined</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+        <span class="n">params</span><span class="o">=</span><span class="n">u_B</span><span class="p">[</span><span class="n">mask_B</span><span class="p">],</span>
+        <span class="n">values</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="n">mask_B</span><span class="p">],</span>
+        <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">max_epochs</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+        <span class="n">enable_progress_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">logger</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">enable_checkpointing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading"></a></h2>
+<p>See the following public <cite>torch_bsf</cite> entries in the <a class="reference external" href="../modules.html">API Documentation</a>
+for the full parameter reference:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="../torch_bsf.html#torch_bsf.split" title="torch_bsf.split"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.split()</span></code></a></p></li>
+<li><p><a class="reference internal" href="../torch_bsf.html#torch_bsf.reparametrize" title="torch_bsf.reparametrize"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.reparametrize()</span></code></a></p></li>
+<li><p><a class="reference internal" href="../torch_bsf.html#torch_bsf.longest_edge_criterion" title="torch_bsf.longest_edge_criterion"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.longest_edge_criterion()</span></code></a></p></li>
+<li><p><a class="reference internal" href="../torch_bsf.html#torch_bsf.max_error_criterion" title="torch_bsf.max_error_criterion"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.max_error_criterion()</span></code></a></p></li>
+<li><p><a class="reference internal" href="../torch_bsf.html#torch_bsf.split_by_criterion" title="torch_bsf.split_by_criterion"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.split_by_criterion()</span></code></a></p></li>
+<li><p><code class="xref py py-data docutils literal notranslate"><span class="pre">torch_bsf.SplitCriterion</span></code></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="active_learning.html" class="btn btn-neutral float-left" title="Active Learning" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../applications.html" class="btn btn-neutral float-right" title="Applications" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: copilot/sphinx-design
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/advanced/splitting.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="splitting.html">copilot/sphinx-design</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

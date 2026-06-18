@@ -1,0 +1,414 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Elastic Net Grid Sampling &mdash; PyTorch-BSF 0.18.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Automatic Degree Selection" href="auto_degree.html" />
+    <link rel="prev" title="Smoothness Regularization" href="regularization.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="normalization.html">Data Normalization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="initialization.html">Initial Control Points</a></li>
+<li class="toctree-l2"><a class="reference internal" href="regularization.html">Smoothness Regularization</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Elastic Net Grid Sampling</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#the-hyperparameter-space">The Hyperparameter Space</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#grid-structure">Grid Structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#usage">Usage</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#as-a-python-function">As a Python Function</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#as-a-python-module-cli">As a Python Module (CLI)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#via-mlproject">Via MLproject</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Automatic Degree Selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="partial.html">Partial Training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="acceleration.html">Hardware Acceleration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualization.html">Bézier Simplex Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sampling.html">Advanced Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="active_learning.html">Active Learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="splitting.html">Bézier Simplex Splitting</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">torch_bsf</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Elastic Net Grid Sampling</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/grid_sampling.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="elastic-net-grid-sampling">
+<h1>Elastic Net Grid Sampling<a class="headerlink" href="#elastic-net-grid-sampling" title="Link to this heading"></a></h1>
+<p>When fitting a Bézier simplex to the elastic-net regularization map you first need to
+choose a set of weight vectors on the standard 2-simplex <span class="math notranslate nohighlight">\(\Delta^2\)</span> at which to
+evaluate the model.
+The <code class="xref py py-func docutils literal notranslate"><span class="pre">elastic_net_grid()</span></code> function
+generates a purpose-built grid that respects the intrinsic geometry of the elastic-net
+hyperparameter space.</p>
+<section id="the-hyperparameter-space">
+<h2>The Hyperparameter Space<a class="headerlink" href="#the-hyperparameter-space" title="Link to this heading"></a></h2>
+<p>The standard Elastic Net regression problem is formulated as:</p>
+<div class="math notranslate nohighlight">
+\[\min_{\beta \in \mathbb{R}^N} \frac{1}{2n}\|y - X\beta\|_2^2
++ \lambda \Bigl(\alpha \|\beta\|_1 + \frac{1-\alpha}{2}\|\beta\|_2^2\Bigr)\]</div>
+<p>where <span class="math notranslate nohighlight">\(\lambda \ge 0\)</span> is the overall regularization strength and
+<span class="math notranslate nohighlight">\(\alpha \in [0, 1]\)</span> controls the L1/L2 mixing ratio
+(setting <span class="math notranslate nohighlight">\(\alpha = 1\)</span> recovers the Lasso; <span class="math notranslate nohighlight">\(\alpha = 0\)</span> gives Ridge regression).</p>
+<p>To cast this into the multi-objective framework, we identify three objectives over
+<span class="math notranslate nohighlight">\(\beta \in \mathbb{R}^N\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}f_{\text{data}}(\beta) &amp;= \frac{1}{2n}\|y - X\beta\|_2^2 + \frac{\epsilon}{2}\|\beta\|_2^2 \\
+f_{\text{sparse}}(\beta) &amp;= \|\beta\|_1 + \frac{\epsilon}{2}\|\beta\|_2^2 \\
+f_{\text{smooth}}(\beta) &amp;= \frac{1 + \epsilon}{2}\|\beta\|_2^2\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(n\)</span> is the number of observations and <span class="math notranslate nohighlight">\(\epsilon &gt; 0\)</span> is a small constant.
+It appears as <span class="math notranslate nohighlight">\(\frac{\epsilon}{2}\|\beta\|_2^2\)</span> in <span class="math notranslate nohighlight">\(f_{\text{data}}\)</span> and
+<span class="math notranslate nohighlight">\(f_{\text{sparse}}\)</span> to make those terms strongly convex, and it is absorbed into
+<span class="math notranslate nohighlight">\(f_{\text{smooth}}\)</span> via the coefficient <span class="math notranslate nohighlight">\(\frac{1+\epsilon}{2}\)</span>.
+This ensures all three objectives are strongly convex, which is required for the solution
+map to be weakly simplicial; see <span class="xref std std-doc">advanced/elastic_net</span> for a detailed discussion.</p>
+<p>Equivalently, elastic-net optimization can be written as a convex combination of the
+same three objectives:</p>
+<div class="math notranslate nohighlight">
+\[\min_{\beta} \; w_1 \, f_{\text{data}}(\beta)
+            + w_2 \, f_{\text{sparse}}(\beta)
+            + w_3 \, f_{\text{smooth}}(\beta),
+\qquad (w_1, w_2, w_3) \in \Delta^2.\]</div>
+<p>The conventional elastic-net parameters <span class="math notranslate nohighlight">\(\lambda \ge 0\)</span> (overall
+regularization strength) and <span class="math notranslate nohighlight">\(\alpha \in [0, 1]\)</span> (L1 mixing ratio) relate to the
+simplex weight vector by:</p>
+<div class="math notranslate nohighlight">
+\[w_1 = \frac{1}{1+\lambda}, \qquad
+w_2 = \frac{\lambda\,\alpha}{1+\lambda}, \qquad
+w_3 = \frac{\lambda\,(1-\alpha)}{1+\lambda}.\]</div>
+<p>With these weights the convex-combination objective equals the <span class="math notranslate nohighlight">\(\epsilon\)</span>-regularized
+elastic net objective divided by the positive constant <span class="math notranslate nohighlight">\((1 + \lambda)\)</span>.
+Because this scale factor does not depend on <span class="math notranslate nohighlight">\(\beta\)</span>, both formulations share the
+same minimizer.</p>
+<p>The <span class="math notranslate nohighlight">\((\lambda, \alpha)\)</span> parameter space is a semi-infinite rectangle
+<span class="math notranslate nohighlight">\([0,\infty) \times [0,1]\)</span>.
+When <span class="math notranslate nohighlight">\(\lambda = 0\)</span> the regularization terms vanish and the solution depends only
+on the data, <em>regardless of</em> <span class="math notranslate nohighlight">\(\alpha\)</span>.
+Therefore the entire edge <span class="math notranslate nohighlight">\(\{\lambda = 0\} \times [0, 1]\)</span> maps to the single
+vertex <span class="math notranslate nohighlight">\((w_1, w_2, w_3) = (1, 0, 0)\)</span> of the simplex.
+Identifying this edge with a single point transforms the rectangle into a triangle – the 2-simplex <span class="math notranslate nohighlight">\(\Delta^2\)</span>.</p>
+<p>Conversely, as <span class="math notranslate nohighlight">\(\lambda \to \infty\)</span> the regularization overwhelms the data term
+and drives all model coefficients to zero, regardless of <span class="math notranslate nohighlight">\(\alpha\)</span>.
+In the elastic net this limit is called the <strong>null model</strong> (all <span class="math notranslate nohighlight">\(\beta_i = 0\)</span>).
+All weight vectors on the opposite edge of the simplex
+<span class="math notranslate nohighlight">\(\{(w_1, w_2, w_3) : w_1 = 0\}\)</span> — the <em>base edge</em> connecting
+<span class="math notranslate nohighlight">\((0, 1, 0)\)</span> and <span class="math notranslate nohighlight">\((0, 0, 1)\)</span> — therefore correspond to the same solution.
+Since the Bézier simplex (and the underlying solution map) must assign a single output
+to each input weight, all of these base-edge weights are identified with a single
+null-model point <span class="math notranslate nohighlight">\(P^*\)</span> in the solution space. The
+<code class="xref py py-func docutils literal notranslate"><span class="pre">elastic_net_grid()</span></code> function still
+returns multiple distinct base-edge weights (<span class="math notranslate nohighlight">\(w_1 = 0\)</span> with varying <span class="math notranslate nohighlight">\(w_2\)</span>,
+<span class="math notranslate nohighlight">\(w_3\)</span>), but they all evaluate to this same null-model solution. The resulting
+quotient space is a <strong>leaf/eye-shaped CW complex</strong>: two 0-cells (<span class="math notranslate nohighlight">\(A\)</span> and
+<span class="math notranslate nohighlight">\(P^*\)</span>), two 1-cells (the former edges <span class="math notranslate nohighlight">\(AB\)</span> and <span class="math notranslate nohighlight">\(AC\)</span>, now connecting
+<span class="math notranslate nohighlight">\(A\)</span> to <span class="math notranslate nohighlight">\(P^*\)</span> as curves), and one 2-cell (the interior).</p>
+<p>This identification gives the interior a <strong>leaf (foliation) structure</strong>: for each fixed
+value of <span class="math notranslate nohighlight">\(w_1 \in (0, 1]\)</span>, the set of corresponding weight vectors
+<span class="math notranslate nohighlight">\(\{(w_1, w_2, w_3) : w_2 + w_3 = 1 - w_1,\; w_2, w_3 \ge 0\}\)</span>
+is a line segment (a <em>leaf</em>) parametrized by <span class="math notranslate nohighlight">\(\alpha\)</span>.
+As <span class="math notranslate nohighlight">\(w_1 \to 0\)</span> (i.e. <span class="math notranslate nohighlight">\(\lambda \to \infty\)</span>), the images of these leaves
+under the solution map shrink to the single null-model point <span class="math notranslate nohighlight">\(P^*\)</span>.</p>
+<figure class="align-default" id="id1">
+<a class="reference internal image-reference" href="../_images/elastic_net_leaf_space.png"><img alt="../_images/elastic_net_leaf_space.png" src="../_images/elastic_net_leaf_space.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 6 </span><span class="caption-text">All points are colored by <span class="math notranslate nohighlight">\((w_1, w_2, w_3) \mapsto (R, G, B)\)</span>,
+so the same weight vector has the same color in every panel.
+<strong>Left</strong> – The <span class="math notranslate nohighlight">\((\lambda, \alpha)\)</span> hyperparameter space (x: regularization
+strength, y: L1 mixing ratio).
+The red line at <span class="math notranslate nohighlight">\(\lambda = 0\)</span> is the identified edge; all points on it
+share the color <span class="math notranslate nohighlight">\((1, 0, 0)\)</span> = red because <span class="math notranslate nohighlight">\(w = (1, 0, 0)\)</span> there.
+<strong>Center</strong> – The 2-simplex with vertices <span class="math notranslate nohighlight">\((1,0,0)\)</span> at the bottom-left (red),
+<span class="math notranslate nohighlight">\((0,1,0)\)</span> at the top (green), and <span class="math notranslate nohighlight">\((0,0,1)\)</span> at the
+bottom-right (blue).
+The gradient right edge (green→blue) is the null-model base edge to be identified.
+<strong>Right</strong> – The quotient space rotated 90° counterclockwise: vertex <span class="math notranslate nohighlight">\(A\)</span> =
+<span class="math notranslate nohighlight">\((1,0,0)\)</span> (red) at the left, and the null-model point <span class="math notranslate nohighlight">\(P^*\)</span> at the
+right shown as a large green dot <span class="math notranslate nohighlight">\((0,1,0)\)</span> behind a smaller blue dot
+<span class="math notranslate nohighlight">\((0,0,1)\)</span>, reflecting that both endpoints of the base edge are identified
+to <span class="math notranslate nohighlight">\(P^*\)</span>.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</section>
+<section id="grid-structure">
+<h2>Grid Structure<a class="headerlink" href="#grid-structure" title="Link to this heading"></a></h2>
+<p>A uniform grid in <span class="math notranslate nohighlight">\((\lambda, \alpha)\)</span> is sub-optimal because solutions change
+rapidly near <span class="math notranslate nohighlight">\(\lambda = 0\)</span> and slowly for large <span class="math notranslate nohighlight">\(\lambda\)</span>.
+<code class="xref py py-func docutils literal notranslate"><span class="pre">elastic_net_grid()</span></code> therefore uses:</p>
+<ul class="simple">
+<li><p><strong>Log-scale spacing in the data-fidelity weight coordinate</strong> <span class="math notranslate nohighlight">\(w_1\)</span> – the
+<code class="xref py py-func docutils literal notranslate"><span class="pre">reverse_logspace()</span></code> routine
+generates <code class="docutils literal notranslate"><span class="pre">n_lambdas</span> <span class="pre">-</span> <span class="pre">1</span></code> values of <span class="math notranslate nohighlight">\(w_1 \in [0, 1)\)</span> that serve as
+<span class="math notranslate nohighlight">\(w_1\)</span>-levels for iso-<span class="math notranslate nohighlight">\(w_1\)</span> leaves, including <span class="math notranslate nohighlight">\(w_1 = 0\)</span> (which
+lies on the null-model base edge and corresponds to <span class="math notranslate nohighlight">\(\lambda = \infty\)</span>) and
+excluding the data-fidelity vertex at <span class="math notranslate nohighlight">\(w_1 = 1\)</span>.
+The vertex at <span class="math notranslate nohighlight">\(w_1 = 1\)</span> (i.e. <span class="math notranslate nohighlight">\(\lambda = 0\)</span>) is appended separately.
+As <span class="math notranslate nohighlight">\(w_1\)</span> increases from 0 towards 1, these levels move from the base edge
+into the simplex interior towards the data-fidelity vertex.  Since
+<span class="math notranslate nohighlight">\(\lambda = (1 - w_1) / w_1\)</span> is finite only for <span class="math notranslate nohighlight">\(w_1 &gt; 0\)</span>, all finite
+values of <span class="math notranslate nohighlight">\(\lambda\)</span> arise from <span class="math notranslate nohighlight">\(0 &lt; w_1 &lt; 1\)</span>.
+The log spacing in <span class="math notranslate nohighlight">\(w_1\)</span> produces more <span class="math notranslate nohighlight">\(w_1\)</span> levels close to the
+data-fidelity vertex and therefore near <span class="math notranslate nohighlight">\(\lambda = 0\)</span>.
+The steepness of this clustering is controlled by the <code class="docutils literal notranslate"><span class="pre">base</span></code> parameter:
+<code class="docutils literal notranslate"><span class="pre">base=1</span></code> gives uniform spacing in <span class="math notranslate nohighlight">\(w_1\)</span>, while larger values concentrate
+points further towards <span class="math notranslate nohighlight">\(w_1 = 1\)</span> (i.e. towards smaller <span class="math notranslate nohighlight">\(\lambda\)</span>).</p></li>
+<li><p><strong>Uniform spacing along</strong> <span class="math notranslate nohighlight">\(\alpha\)</span> – for each <span class="math notranslate nohighlight">\(w_1\)</span> level, the
+<code class="docutils literal notranslate"><span class="pre">n_alphas</span></code> values of <span class="math notranslate nohighlight">\(\alpha\)</span> are placed uniformly in <span class="math notranslate nohighlight">\([0, 1]\)</span> to
+span the corresponding iso-<span class="math notranslate nohighlight">\(w_1\)</span> leaf.</p></li>
+</ul>
+<p>The <code class="docutils literal notranslate"><span class="pre">n_vertex_copies</span></code> parameter adds extra copies of each simplex vertex.
+This is useful when the grid is passed to k-fold cross-validation
+(see <a class="reference internal" href="auto_degree.html"><span class="doc">Automatic Degree Selection</span></a>): set <code class="docutils literal notranslate"><span class="pre">n_vertex_copies</span> <span class="pre">&gt;=</span> <span class="pre">k</span></code> for k-fold CV so that,
+when the fold-splitting procedure distributes rows approximately evenly, each fold
+will contain every vertex at least once.  Using fewer copies than folds can inflate
+cross-validation variance.</p>
+<figure class="align-default" id="id2">
+<a class="reference internal image-reference" href="../_images/elastic_net_grid_comparison.png"><img alt="../_images/elastic_net_grid_comparison.png" src="../_images/elastic_net_grid_comparison.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 7 </span><span class="caption-text">Grid points on the 2-simplex for different values of the <code class="docutils literal notranslate"><span class="pre">base</span></code> parameter
+(<code class="docutils literal notranslate"><span class="pre">n_lambdas=20</span></code>, <code class="docutils literal notranslate"><span class="pre">n_alphas=10</span></code>).  Larger bases push more points towards the
+data-fidelity vertex <span class="math notranslate nohighlight">\((1, 0, 0)\)</span> (bottom-left corner in the figure),
+which is appropriate when you expect the optimal model to have small
+<span class="math notranslate nohighlight">\(\lambda\)</span>.</span><a class="headerlink" href="#id2" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</section>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading"></a></h2>
+<section id="as-a-python-function">
+<h3>As a Python Function<a class="headerlink" href="#as-a-python-function" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.model_selection.elastic_net_grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">elastic_net_grid</span>
+
+<span class="c1"># Generate a grid with 102 lambda levels, 12 alpha levels, and 10 vertex</span>
+<span class="c1"># copies (useful for 10-fold cross-validation).</span>
+<span class="n">grid</span> <span class="o">=</span> <span class="n">elastic_net_grid</span><span class="p">(</span>
+    <span class="n">n_lambdas</span><span class="o">=</span><span class="mi">102</span><span class="p">,</span>
+    <span class="n">n_alphas</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+    <span class="n">n_vertex_copies</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">base</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="c1"># grid.shape == (1240, 3)</span>
+<span class="c1"># Each row is a weight vector (w1, w2, w3) on the 2-simplex.</span>
+
+<span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="s2">&quot;weights.csv&quot;</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%.17e</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The returned array can be saved to a CSV file and then either (a) loaded back into an
+array or tensor and passed as the <code class="docutils literal notranslate"><span class="pre">params</span></code> argument to <a class="reference internal" href="../torch_bsf.html#torch_bsf.fit" title="torch_bsf.fit"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit()</span></code></a>, or
+(b) passed as a file path to the <code class="docutils literal notranslate"><span class="pre">--params</span></code> CLI option, to train a Bézier simplex
+over the elastic-net regularization map.</p>
+</section>
+<section id="as-a-python-module-cli">
+<h3>As a Python Module (CLI)<a class="headerlink" href="#as-a-python-module-cli" title="Link to this heading"></a></h3>
+<p>Run the module directly to print the grid as a CSV file to <em>stdout</em>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>torch_bsf.model_selection.elastic_net_grid<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--n_lambdas<span class="o">=</span><span class="m">102</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--n_alphas<span class="o">=</span><span class="m">12</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--n_vertex_copies<span class="o">=</span><span class="m">10</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--base<span class="o">=</span><span class="m">10</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>&gt;<span class="w"> </span>weights.csv
+</pre></div>
+</div>
+<p>All four parameters are optional and fall back to their defaults
+(<code class="docutils literal notranslate"><span class="pre">n_lambdas=102</span></code>, <code class="docutils literal notranslate"><span class="pre">n_alphas=12</span></code>, <code class="docutils literal notranslate"><span class="pre">n_vertex_copies=1</span></code>, <code class="docutils literal notranslate"><span class="pre">base=10</span></code>).</p>
+</section>
+<section id="via-mlproject">
+<h3>Via MLproject<a class="headerlink" href="#via-mlproject" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">elastic_net_grid</span></code> entry point in <code class="docutils literal notranslate"><span class="pre">MLproject</span></code> calls the same module and
+redirects the output to a CSV file named
+<code class="docutils literal notranslate"><span class="pre">weight_{n_lambdas}_{n_alphas}_{n_vertex_copies}_{base}.csv</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mlflow<span class="w"> </span>run<span class="w"> </span>https://github.com/opthub-org/pytorch-bsf<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-e<span class="w"> </span>elastic_net_grid<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-P<span class="w"> </span><span class="nv">n_lambdas</span><span class="o">=</span><span class="m">102</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-P<span class="w"> </span><span class="nv">n_alphas</span><span class="o">=</span><span class="m">12</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-P<span class="w"> </span><span class="nv">n_vertex_copies</span><span class="o">=</span><span class="m">10</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-P<span class="w"> </span><span class="nv">base</span><span class="o">=</span><span class="m">10</span>
+</pre></div>
+</div>
+<p>After the run completes, the grid is saved in the current working directory as
+<code class="docutils literal notranslate"><span class="pre">weight_102_12_10_10.csv</span></code>.  You can then pass it as the <code class="docutils literal notranslate"><span class="pre">params</span></code> argument to a
+subsequent training run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mlflow<span class="w"> </span>run<span class="w"> </span>https://github.com/opthub-org/pytorch-bsf<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-P<span class="w"> </span><span class="nv">params</span><span class="o">=</span>weight_102_12_10_10.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-P<span class="w"> </span><span class="nv">values</span><span class="o">=</span>values.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-P<span class="w"> </span><span class="nv">degree</span><span class="o">=</span><span class="m">6</span>
+</pre></div>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<ul class="simple">
+<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.model_selection.elastic_net_grid.elastic_net_grid()</span></code> – API
+reference with parameter descriptions and examples.</p></li>
+<li><p><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.model_selection.elastic_net_grid.reverse_logspace()</span></code> – helper that
+generates log-spaced samples for the first weight component <span class="math notranslate nohighlight">\(w_1\)</span>, from
+which the <span class="math notranslate nohighlight">\(\lambda = (1 - w_1) / w_1\)</span> values are derived.</p></li>
+<li><p><a class="reference internal" href="auto_degree.html"><span class="doc">Automatic Degree Selection</span></a> – automatic degree selection via k-fold cross-validation.</p></li>
+<li><p><a class="reference internal" href="../applications/elastic_net.html"><span class="doc">Elastic Net Model Selection</span></a> – end-to-end example of elastic-net model
+selection using PyTorch-BSF.</p></li>
+</ul>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="regularization.html" class="btn btn-neutral float-left" title="Smoothness Regularization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="auto_degree.html" class="btn btn-neutral float-right" title="Automatic Degree Selection" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: copilot/sphinx-design
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/advanced/grid_sampling.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/advanced/grid_sampling.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/advanced/grid_sampling.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="grid_sampling.html">copilot/sphinx-design</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

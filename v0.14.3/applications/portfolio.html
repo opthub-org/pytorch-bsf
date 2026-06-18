@@ -10,6 +10,7 @@
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
@@ -17,6 +18,7 @@
       <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
       <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -98,16 +100,16 @@
              
   <section id="robust-portfolio-management">
 <h1>Robust portfolio management<a class="headerlink" href="#robust-portfolio-management" title="Link to this heading"></a></h1>
-<p>In financial engineering and asset management, the most classical real-world application is Markowitz’s mean-variance portfolio optimization <span id="id1">[<a class="reference internal" href="../whatis.html#id33" title="Harry Markowitz. Portfolio selection. The Journal of Finance, 7(1):77–91, 1952. doi:10.2307/2975974.">Mar52</a>]</span>. Investors and fund managers seek to simultaneously maximize expected returns and minimize risk (often modeled as the variance of returns). This framework is widely utilized by institutional pension funds (e.g., GPIF), treasury departments, and risk management teams to quantify trade-offs and build consensus on asset allocation decisions.</p>
-<p>However, in practice, estimating the covariance matrix from limited observations or highly collinear assets often leads to numerical instability. To resolve this, it is common to introduce a strongly convex regularization term, such as an <span class="math notranslate nohighlight">\(L_2\)</span> norm penalty on the asset allocation weights or a turnover penalty to suppress excessive trading compared to a previous portfolio <span class="math notranslate nohighlight">\(x^{\text{prev}}\)</span> <span id="id2">[<a class="reference internal" href="../whatis.html#id16" title="Houduo Qi. Optimal portfolio selections via l1,2-norm regularization. URL: https://eprints.soton.ac.uk/451606/1/mvpl12_for_PURE.pdf.">Qi</a>]</span>.</p>
+<p>In financial engineering and asset management, the most classical real-world application is Markowitz’s mean-variance portfolio optimization <span class="bibtex-citation" id="id1">[<a class="reference internal" href="#id27" title="Harry Markowitz. Portfolio selection. The Journal of Finance, 7(1):77–91, 1952. doi:10.2307/2975974.">Mar52</a>]</span>. Investors and fund managers seek to simultaneously maximize expected returns and minimize risk (often modeled as the variance of returns). This framework is widely utilized by institutional pension funds (e.g., GPIF), treasury departments, and risk management teams to quantify trade-offs and build consensus on asset allocation decisions.</p>
+<p>However, in practice, estimating the covariance matrix from limited observations or highly collinear assets often leads to numerical instability. To resolve this, it is common to introduce a strongly convex regularization term, such as an <span class="math notranslate nohighlight">\(L_2\)</span> norm penalty on the asset allocation weights or a turnover penalty to suppress excessive trading compared to a previous portfolio <span class="math notranslate nohighlight">\(x^{\text{prev}}\)</span> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="#id10" title="Houduo Qi. Optimal portfolio selections via l1,2-norm regularization. URL: https://eprints.soton.ac.uk/451606/1/mvpl12_for_PURE.pdf.">Qi</a>]</span>.</p>
 <p>This formulation effectively creates a three-objective optimization problem over the allocation weights <span class="math notranslate nohighlight">\(x \in \mathbb{R}^n\)</span>:</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}\text{Expected Return: } &amp; f_1(x) = -\mu^T x \\
 \text{Risk (Variance): } &amp; f_2(x) = x^T \Sigma x \\
 \text{Stability (Turnover): } &amp; f_3(x) = \lambda \|x - x^{\text{prev}}\|_2^2\end{split}\]</div>
 <p>Subject to classical constraints such as the budget constraint <span class="math notranslate nohighlight">\(\mathbf{1}^T x = 1\)</span> and long-only constraints <span class="math notranslate nohighlight">\(x \ge 0\)</span>.</p>
-<p>Because the regularization term is strongly convex, the resulting scalarized objective function becomes strictly strongly convex. Even if the covariance matrix <span class="math notranslate nohighlight">\(\Sigma\)</span> is only positive semi-definite, the addition of the turnover penalty guarantees that the Hessian <span class="math notranslate nohighlight">\(\nabla^2 f(x) \succeq 2\lambda I\)</span> is strictly positive definite. According to the theorems in <span id="id3">[<a class="reference internal" href="../whatis.html#id14" title="Yuto Mizota, Naoki Hamada, and Shunsuke Ichiki. All unconstrained strongly convex problems are weakly simplicial. 2021. URL: https://arxiv.org/abs/2106.12704, arXiv:2106.12704.">MHI21</a>]</span>, this strongly convex problem is guaranteed to be weakly simplicial.</p>
-<p>Fitting a Bézier simplex to this problem allows practitioners to continuously map the entire robust Pareto front—namely, the continuous efficient frontier—guaranteeing unique solutions. Instead of computing disconnected discrete point clouds using weighted sums, analysts obtain a functionally continuous mapping of allocations versus risk. Utilizing sensitivity-based Newton path-following, the full Pareto front can be computed with an extremely efficient iteration complexity of <span class="math notranslate nohighlight">\(O(p \log(1/\varepsilon))\)</span> <span id="id4">[<a class="reference internal" href="../whatis.html#id32" title="El Houcine Bergou, Youssef Diouane, and Vyacheslav Kungurtsev. Complexity iteration analysis for strongly convex multi-objective optimization using a newton path-following procedure. Optimization Letters, 15:1215–1227, 2021. doi:10.1007/s11590-020-01623-x.">BDK21</a>]</span>.
+<p>Because the regularization term is strongly convex, the resulting scalarized objective function becomes strictly strongly convex. Even if the covariance matrix <span class="math notranslate nohighlight">\(\Sigma\)</span> is only positive semi-definite, the addition of the turnover penalty guarantees that the Hessian <span class="math notranslate nohighlight">\(\nabla^2 f(x) \succeq 2\lambda I\)</span> is strictly positive definite. According to the theorems in <span class="bibtex-citation" id="id3">[<a class="reference internal" href="#id8" title="Yuto Mizota, Naoki Hamada, and Shunsuke Ichiki. All unconstrained strongly convex problems are weakly simplicial. 2021. URL: https://arxiv.org/abs/2106.12704, arXiv:2106.12704.">MHI21</a>]</span>, this strongly convex problem is guaranteed to be weakly simplicial.</p>
+<p>Fitting a Bézier simplex to this problem allows practitioners to continuously map the entire robust Pareto front—namely, the continuous efficient frontier—guaranteeing unique solutions. Instead of computing disconnected discrete point clouds using weighted sums, analysts obtain a functionally continuous mapping of allocations versus risk. Utilizing sensitivity-based Newton path-following, the full Pareto front can be computed with an extremely efficient iteration complexity of <span class="math notranslate nohighlight">\(O(p \log(1/\varepsilon))\)</span> <span class="bibtex-citation" id="id4">[<a class="reference internal" href="#id26" title="El Houcine Bergou, Youssef Diouane, and Vyacheslav Kungurtsev. Complexity iteration analysis for strongly convex multi-objective optimization using a newton path-following procedure. Optimization Letters, 15:1215–1227, 2021. doi:10.1007/s11590-020-01623-x.">BDK21</a>]</span>.
 Solvers like MOSEK, Gurobi, and OSQP are widely used to efficiently compute these strongly convex QP subproblems. Modern extensions also include CVaR (Conditional Value-at-Risk) portfolio optimization and robust multi-objective portfolio frameworks under data uncertainty.</p>
 <section id="references">
 <h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
@@ -258,7 +260,7 @@ Solvers like MOSEK, Gurobi, and OSQP are widely used to efficiently compute thes
         </dl>
         <dl>
             <dt>Branches</dt>
-            <dd><a href="../../docs-and-examples/applications/portfolio.html">docs-and-examples</a></dd>
+            <dd><a href="../../copilot/sphinx-design/applications/portfolio.html">copilot/sphinx-design</a></dd>
         </dl>
     </div>
 </div><script>

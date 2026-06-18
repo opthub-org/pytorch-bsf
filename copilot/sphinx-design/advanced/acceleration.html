@@ -1,0 +1,319 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hardware Acceleration &mdash; PyTorch-BSF 0.18.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Bézier Simplex Visualization" href="visualization.html" />
+    <link rel="prev" title="Partial Training" href="partial.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="normalization.html">Data Normalization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="initialization.html">Initial Control Points</a></li>
+<li class="toctree-l2"><a class="reference internal" href="regularization.html">Smoothness Regularization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_sampling.html">Elastic Net Grid Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Automatic Degree Selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="partial.html">Partial Training</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Hardware Acceleration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#cli-mlflow">CLI / MLflow</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#accelerator-and-devices">Accelerator and Devices</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#precision">Precision</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#multi-node-training">Multi-Node Training</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#python-api">Python API</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#manual-device-management">Manual Device Management</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#passing-trainer-arguments">Passing Trainer Arguments</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#detailed-use-cases">Detailed Use Cases</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#large-scale-pareto-front-approximation">Large-Scale Pareto Front Approximation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#distributed-training-on-clusters">Distributed Training on Clusters</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#see-also">See Also</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="visualization.html">Bézier Simplex Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sampling.html">Advanced Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="active_learning.html">Active Learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="splitting.html">Bézier Simplex Splitting</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">torch_bsf</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Hardware Acceleration</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/acceleration.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="hardware-acceleration">
+<h1>Hardware Acceleration<a class="headerlink" href="#hardware-acceleration" title="Link to this heading"></a></h1>
+<p>PyTorch-BSF is built on top of <a class="reference external" href="https://lightning.ai/docs/pytorch/stable/">PyTorch Lightning</a>, which means it provides seamless support for hardware acceleration (GPUs, TPUs, etc.) and distributed training (multi-GPU, multi-node) out of the box.</p>
+<p>This page explains how to leverage these features to speed up your Bézier simplex fitting tasks.</p>
+<section id="cli-mlflow">
+<h2>CLI / MLflow<a class="headerlink" href="#cli-mlflow" title="Link to this heading"></a></h2>
+<p>When using the command-line interface or MLflow, you can control hardware usage via several flags. These flags are passed directly to the underlying PyTorch Lightning Trainer.</p>
+<section id="accelerator-and-devices">
+<h3>Accelerator and Devices<a class="headerlink" href="#accelerator-and-devices" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">--accelerator</span></code> and <code class="docutils literal notranslate"><span class="pre">--devices</span></code> flags are the primary way to specify your hardware.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--accelerator</span></code>: Choose the hardware backend. Supported values include <code class="docutils literal notranslate"><span class="pre">cpu</span></code>, <code class="docutils literal notranslate"><span class="pre">gpu</span></code>, <code class="docutils literal notranslate"><span class="pre">tpu</span></code>, <code class="docutils literal notranslate"><span class="pre">hpu</span></code>, <code class="docutils literal notranslate"><span class="pre">mps</span></code> (for Apple Silicon), or <code class="docutils literal notranslate"><span class="pre">auto</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--devices</span></code>: Specify which devices to use. You can provide an integer for the number of devices (e.g., <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">2</span></code>), a list of device IDs (e.g., <code class="docutils literal notranslate"><span class="pre">0,1</span></code>), or <code class="docutils literal notranslate"><span class="pre">-1</span></code> / <code class="docutils literal notranslate"><span class="pre">auto</span></code> to use all available devices.</p></li>
+</ul>
+<p>Example: Use all available GPUs
+.. code-block:: bash</p>
+<blockquote>
+<div><p>python -m torch_bsf –params data.csv –values results.csv –accelerator gpu –devices -1</p>
+</div></blockquote>
+</section>
+<section id="precision">
+<h3>Precision<a class="headerlink" href="#precision" title="Link to this heading"></a></h3>
+<p>You can reduce memory usage and increase training speed by using lower-precision floating-point arithmetic. This is particularly effective on modern GPUs (e.g., NVIDIA A100, RTX 30/40 series).</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--precision</span></code>: Supports <code class="docutils literal notranslate"><span class="pre">16-mixed</span></code>, <code class="docutils literal notranslate"><span class="pre">bf16-mixed</span></code>, <code class="docutils literal notranslate"><span class="pre">32-true</span></code> (default), or <code class="docutils literal notranslate"><span class="pre">64-true</span></code>.</p></li>
+</ul>
+<p>Example: Mixed precision training
+.. code-block:: bash</p>
+<blockquote>
+<div><p>python -m torch_bsf –params data.csv –values results.csv –accelerator gpu –precision 16-mixed</p>
+</div></blockquote>
+</section>
+<section id="multi-node-training">
+<h3>Multi-Node Training<a class="headerlink" href="#multi-node-training" title="Link to this heading"></a></h3>
+<p>To scale training across multiple machines, use the <code class="docutils literal notranslate"><span class="pre">--num_nodes</span></code> flag.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--num_nodes</span></code>: The number of machines (nodes) to use.</p></li>
+</ul>
+<p>Example: Training on 4 nodes with 4 GPUs each
+.. code-block:: bash</p>
+<blockquote>
+<div><p># Run this on each node (usually handled by a cluster manager like SLURM)
+python -m torch_bsf –params data.csv –values results.csv –accelerator gpu –devices 4 –num_nodes 4</p>
+</div></blockquote>
+</section>
+</section>
+<section id="python-api">
+<h2>Python API<a class="headerlink" href="#python-api" title="Link to this heading"></a></h2>
+<p>The Python API provides two ways to handle hardware acceleration: by moving data to the device manually or by passing trainer configuration to <code class="docutils literal notranslate"><span class="pre">fit()</span></code>.</p>
+<section id="manual-device-management">
+<h3>Manual Device Management<a class="headerlink" href="#manual-device-management" title="Link to this heading"></a></h3>
+<p>If you move your training tensors to a specific device before calling <code class="docutils literal notranslate"><span class="pre">fit()</span></code>, PyTorch-BSF will attempt to run on that device.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch_bsf</span>
+
+<span class="c1"># Assume ts and xs are your parameter and value tensors</span>
+<span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+
+<span class="c1"># Move tensors to GPU</span>
+<span class="n">ts</span> <span class="o">=</span> <span class="n">ts</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+<span class="n">xs</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+<span class="c1"># Fit the model (it will detect the device from the tensors)</span>
+<span class="n">bs</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">ts</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="passing-trainer-arguments">
+<h3>Passing Trainer Arguments<a class="headerlink" href="#passing-trainer-arguments" title="Link to this heading"></a></h3>
+<p>For more granular control, you can pass any PyTorch Lightning <a class="reference external" href="https://lightning.ai/docs/pytorch/stable/common/trainer.html#trainer-flags">Trainer arguments</a> directly as keyword arguments to the <code class="docutils literal notranslate"><span class="pre">fit()</span></code> function.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch_bsf</span>
+
+<span class="c1"># Use multi-GPU and mixed precision via API</span>
+<span class="n">bs</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
+    <span class="n">params</span><span class="o">=</span><span class="n">ts</span><span class="p">,</span>
+    <span class="n">values</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span>
+    <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">accelerator</span><span class="o">=</span><span class="s2">&quot;gpu&quot;</span><span class="p">,</span>
+    <span class="n">devices</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">precision</span><span class="o">=</span><span class="s2">&quot;16-mixed&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="detailed-use-cases">
+<h2>Detailed Use Cases<a class="headerlink" href="#detailed-use-cases" title="Link to this heading"></a></h2>
+<section id="large-scale-pareto-front-approximation">
+<h3>Large-Scale Pareto Front Approximation<a class="headerlink" href="#large-scale-pareto-front-approximation" title="Link to this heading"></a></h3>
+<p>When dealing with thousands of Pareto optimal points and high-degree Bézier simplices (e.g., degree 10+), the number of control points increases significantly. In such cases:</p>
+<ol class="arabic simple">
+<li><p><strong>Use GPUs</strong>: Fitting is highly parallelizable.</p></li>
+<li><p><strong>Vectorized Forward</strong>: PyTorch-BSF uses a highly efficient, fully vectorized <cite>forward</cite> pass. This means that instead of looping through each control point, it uses matrix operations, which significantly speeds up computation on GPUs.</p></li>
+<li><p><strong>Use Mixed Precision</strong>: Set <code class="docutils literal notranslate"><span class="pre">precision=&quot;16-mixed&quot;</span></code> to fit larger models into GPU memory.</p></li>
+<li><p><strong>Increase Batch Size</strong>: Use <code class="docutils literal notranslate"><span class="pre">--batch_size</span></code> to optimize GPU throughput.</p></li>
+</ol>
+</section>
+<section id="distributed-training-on-clusters">
+<h3>Distributed Training on Clusters<a class="headerlink" href="#distributed-training-on-clusters" title="Link to this heading"></a></h3>
+<p>If your dataset is massive or you are performing an extensive search over hyperparameters, you can use multi-node training. PyTorch-BSF supports all distributed strategies provided by Lightning (DDP, FSDP, etc.).</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>For most cases, <code class="docutils literal notranslate"><span class="pre">strategy=&quot;auto&quot;</span></code> is sufficient. If you encounter issues on specialized clusters, you might need to specify <code class="docutils literal notranslate"><span class="pre">strategy=&quot;ddp&quot;</span></code>.</p>
+</div>
+</section>
+</section>
+<section id="see-also">
+<h2>See Also<a class="headerlink" href="#see-also" title="Link to this heading"></a></h2>
+<p>For more advanced configuration details, please refer to the official documentation:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://lightning.ai/docs/pytorch/stable/accelerators/gpu.html">PyTorch Lightning Accelerator Documentation</a></p></li>
+<li><p><a class="reference external" href="https://lightning.ai/docs/pytorch/stable/accelerators/gpu_intermediate.html">PyTorch Lightning Multi-GPU Training</a></p></li>
+<li><p><a class="reference external" href="https://lightning.ai/docs/pytorch/stable/common/precision_basic.html">Mixed Precision Training in Lightning</a></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="partial.html" class="btn btn-neutral float-left" title="Partial Training" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="visualization.html" class="btn btn-neutral float-right" title="Bézier Simplex Visualization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: copilot/sphinx-design
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/advanced/acceleration.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/advanced/acceleration.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/advanced/acceleration.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/advanced/acceleration.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/advanced/acceleration.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/advanced/acceleration.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/advanced/acceleration.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="acceleration.html">copilot/sphinx-design</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

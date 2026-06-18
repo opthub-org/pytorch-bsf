@@ -1,0 +1,330 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advanced Sampling &mdash; PyTorch-BSF 0.18.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Scikit-learn Integration" href="sklearn.html" />
+    <link rel="prev" title="Bézier Simplex Visualization" href="visualization.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="normalization.html">Data Normalization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="initialization.html">Initial Control Points</a></li>
+<li class="toctree-l2"><a class="reference internal" href="regularization.html">Smoothness Regularization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_sampling.html">Elastic Net Grid Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Automatic Degree Selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="partial.html">Partial Training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="acceleration.html">Hardware Acceleration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualization.html">Bézier Simplex Visualization</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Advanced Sampling</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#the-torch-bsf-sampling-module">The <code class="docutils literal notranslate"><span class="pre">torch_bsf.sampling</span></code> Module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#when-to-use-each-method">When to Use Each Method</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sobol-sequence-usage-conditions">Sobol Sequence: Usage Conditions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sobol-sequence-precision-characteristics">Sobol Sequence: Precision Characteristics</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="active_learning.html">Active Learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="splitting.html">Bézier Simplex Splitting</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">torch_bsf</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Advanced Sampling</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/sampling.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="advanced-sampling">
+<h1>Advanced Sampling<a class="headerlink" href="#advanced-sampling" title="Link to this heading"></a></h1>
+<p>PyTorch-BSF provides utilities for generating parameter points on a simplex beyond the default uniform grid.</p>
+<section id="the-torch-bsf-sampling-module">
+<h2>The <code class="docutils literal notranslate"><span class="pre">torch_bsf.sampling</span></code> Module<a class="headerlink" href="#the-torch-bsf-sampling-module" title="Link to this heading"></a></h2>
+<p>Three functions are available:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">simplex_grid(n_params,</span> <span class="pre">degree)</span></code></dt><dd><p>Generates a uniform grid on the simplex using the stars-and-bars method.
+This is the default sampling used by <code class="docutils literal notranslate"><span class="pre">fit()</span></code> and the CLI.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">simplex_random(n_params,</span> <span class="pre">n_samples)</span></code></dt><dd><p>Generates random points uniformly distributed over the simplex via the Dirichlet distribution.
+Useful when you want stochastic coverage or a large number of samples.</p>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.sampling</span><span class="w"> </span><span class="kn">import</span> <span class="n">simplex_random</span>
+
+<span class="n">pts</span> <span class="o">=</span> <span class="n">simplex_random</span><span class="p">(</span><span class="n">n_params</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">simplex_sobol(n_params,</span> <span class="pre">n_samples)</span></code></dt><dd><p>Generates quasi-random points using a scrambled Sobol sequence projected onto the simplex.
+Sobol sequences provide better coverage than purely random sampling, reducing clustering and gaps.
+Requires <code class="docutils literal notranslate"><span class="pre">scipy</span></code> (<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">scipy</span></code> or <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">pytorch-bsf[sampling]</span></code>).</p>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.sampling</span><span class="w"> </span><span class="kn">import</span> <span class="n">simplex_sobol</span>
+
+<span class="n">pts</span> <span class="o">=</span> <span class="n">simplex_sobol</span><span class="p">(</span><span class="n">n_params</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">128</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="when-to-use-each-method">
+<h2>When to Use Each Method<a class="headerlink" href="#when-to-use-each-method" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Method</p></th>
+<th class="head"><p>Recommended use</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">simplex_grid</span></code></p></td>
+<td><p>Small, structured datasets; default CLI behavior.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">simplex_random</span></code></p></td>
+<td><p>Large-scale or stochastic sampling experiments.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">simplex_sobol</span></code></p></td>
+<td><p>When uniform coverage is critical (e.g., active learning
+initialization, quasi-Monte Carlo integration).</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="sobol-sequence-usage-conditions">
+<h2>Sobol Sequence: Usage Conditions<a class="headerlink" href="#sobol-sequence-usage-conditions" title="Link to this heading"></a></h2>
+<p>The following requirements and best-practice recommendations apply when using <code class="docutils literal notranslate"><span class="pre">simplex_sobol</span></code>.</p>
+<p><strong>scipy is required (optional dependency)</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">simplex_sobol</span></code> is built on top of <code class="xref py py-class docutils literal notranslate"><span class="pre">scipy.stats.qmc.Sobol</span></code>.
+<code class="docutils literal notranslate"><span class="pre">scipy</span></code> is an <em>optional</em> dependency of PyTorch-BSF and is not installed by default.</p>
+<p>Install it with one of:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>scipy
+<span class="c1"># or, to install the sampling extras:</span>
+pip<span class="w"> </span>install<span class="w"> </span>pytorch-bsf<span class="o">[</span>sampling<span class="o">]</span>
+</pre></div>
+</div>
+<p>If <code class="docutils literal notranslate"><span class="pre">scipy</span></code> is not available, an <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ImportError" title="(in Python v3.14)"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ImportError</span></code></a> is raised at call time with a clear message.</p>
+<p><strong>n_params must be at least 2</strong></p>
+<p>The Sobol sequence is generated in <code class="docutils literal notranslate"><span class="pre">n_params</span> <span class="pre">-</span> <span class="pre">1</span></code> dimensions and then projected
+onto the <code class="docutils literal notranslate"><span class="pre">n_params</span></code>-dimensional simplex.  With only 1 parameter the simplex is
+a single point {1}, so no sampling is needed; <code class="docutils literal notranslate"><span class="pre">simplex_grid(1,</span> <span class="pre">degree)</span></code> returns
+that point directly.</p>
+<p><strong>Use power-of-2 sample sizes for best results</strong></p>
+<p>Sobol sequences are constructed in base 2.  Their low-discrepancy guarantee is
+sharpest when <code class="docutils literal notranslate"><span class="pre">n_samples</span></code> is an exact power of 2: 2, 4, 8, 16, 32, 64, 128, 256, …</p>
+<p>When a non-power-of-2 value is requested, <code class="xref py py-func docutils literal notranslate"><span class="pre">simplex_sobol()</span></code> still returns the
+requested number of samples, but a <code class="docutils literal notranslate"><span class="pre">UserWarning</span></code> is emitted:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.sampling</span><span class="w"> </span><span class="kn">import</span> <span class="n">simplex_sobol</span>
+
+<span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">(</span><span class="n">record</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">w</span><span class="p">:</span>
+    <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;always&quot;</span><span class="p">)</span>
+    <span class="n">pts</span> <span class="o">=</span> <span class="n">simplex_sobol</span><span class="p">(</span><span class="n">n_params</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>  <span class="c1"># 200 is not a power of 2</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">w</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">message</span><span class="p">))</span>
+<span class="c1"># UserWarning: simplex_sobol: n_samples=200 is not a power of 2. ...</span>
+</pre></div>
+</div>
+<p>To suppress the warning intentionally, round up to the next power of 2 and slice:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pts</span> <span class="o">=</span> <span class="n">simplex_sobol</span><span class="p">(</span><span class="n">n_params</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">256</span><span class="p">)[:</span><span class="mi">200</span><span class="p">]</span>
+</pre></div>
+</div>
+</section>
+<section id="sobol-sequence-precision-characteristics">
+<h2>Sobol Sequence: Precision Characteristics<a class="headerlink" href="#sobol-sequence-precision-characteristics" title="Link to this heading"></a></h2>
+<p><strong>Low-discrepancy sequences</strong></p>
+<p>A sequence is <em>low-discrepancy</em> if its points are distributed more evenly than
+independent pseudo-random draws.  The <em>discrepancy</em> of a point set measures how
+far the empirical distribution of points deviates from the uniform distribution
+over a region.</p>
+<p>Sobol sequences are among the most widely used low-discrepancy sequences in
+quasi-Monte Carlo (QMC) methods.</p>
+<p><strong>Convergence rate</strong></p>
+<p>For an integrand with bounded variation, QMC integration using a Sobol sequence
+of <em>N</em> points in <em>d</em> dimensions converges at roughly</p>
+<div class="math notranslate nohighlight">
+\[\text{error} = O\!\left(\frac{(\log N)^{d-1}}{N}\right)\]</div>
+<p>compared with the Monte Carlo rate of <span class="math notranslate nohighlight">\(O(1/\sqrt{N})\)</span>.</p>
+<p>In practice this means:</p>
+<ul class="simple">
+<li><p>For <strong>small dimensions</strong> (<code class="docutils literal notranslate"><span class="pre">n_params</span></code> up to ~10) and <strong>moderate sample sizes</strong>
+(say N = 64–1024), a Sobol sequence typically gives noticeably more uniform
+coverage than an equal number of Dirichlet random samples.</p></li>
+<li><p>For <strong>large dimensions</strong> (<code class="docutils literal notranslate"><span class="pre">n_params</span></code> &gt;&gt; 10), the <span class="math notranslate nohighlight">\((\log N)^{d-1}\)</span> factor
+grows quickly and the QMC advantage diminishes unless N is very large.
+Consider <code class="docutils literal notranslate"><span class="pre">simplex_random</span></code> for high-dimensional simplices.</p></li>
+</ul>
+<p><strong>Scrambled Sobol</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">simplex_sobol</span></code> always uses <code class="docutils literal notranslate"><span class="pre">scramble=True</span></code> when constructing
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Sobol</span></code>.  Scrambling applies a random digital shift
+to the sequence so that:</p>
+<ol class="arabic simple">
+<li><p>The resulting points are <em>still</em> low-discrepancy (coverage is preserved).</p></li>
+<li><p>Each call produces a different realisation, enabling variance estimation by
+averaging results from multiple scrambled sequences.</p></li>
+</ol>
+<p><strong>Projection onto the simplex</strong></p>
+<p>The raw Sobol points live in the unit hypercube <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]^(n_params</span> <span class="pre">-</span> <span class="pre">1)</span></code>.
+<code class="docutils literal notranslate"><span class="pre">simplex_sobol</span></code> maps them to the simplex using the <em>sorted-differences</em> (also
+called <em>order-statistics</em>) mapping:</p>
+<ol class="arabic simple">
+<li><p>Sort each <code class="docutils literal notranslate"><span class="pre">(n_params</span> <span class="pre">-</span> <span class="pre">1)</span></code>-dimensional point in ascending order.</p></li>
+<li><p>Prepend 0 and append 1 to obtain <code class="docutils literal notranslate"><span class="pre">n_params</span> <span class="pre">+</span> <span class="pre">1</span></code> boundary values.</p></li>
+<li><p>Take consecutive differences to get <code class="docutils literal notranslate"><span class="pre">n_params</span></code> non-negative values
+that sum to 1.</p></li>
+</ol>
+<p>This mapping is measure-preserving for the uniform distribution on the hypercube,
+so the resulting simplex points are also (approximately) uniformly distributed
+over the simplex and inherit the low-discrepancy properties of the Sobol sequence.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="visualization.html" class="btn btn-neutral float-left" title="Bézier Simplex Visualization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sklearn.html" class="btn btn-neutral float-right" title="Scikit-learn Integration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: copilot/sphinx-design
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/advanced/sampling.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/advanced/sampling.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/advanced/sampling.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="sampling.html">copilot/sphinx-design</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

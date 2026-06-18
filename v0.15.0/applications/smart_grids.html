@@ -10,6 +10,7 @@
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
@@ -17,6 +18,7 @@
       <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
       <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -100,7 +102,7 @@
 <p>For traditional generators, the expected fuel and operating cost across an interconnected network is naturally modeled as a strongly convex quadratic function of power output <span class="math notranslate nohighlight">\(P_i\)</span>:</p>
 <div class="math notranslate nohighlight">
 \[C_i(P_i) = a_i P_i^2 + b_i P_i + c_i \quad (a_i &gt; 0)\]</div>
-<p>Equally, in multi-agent microgrids integrating photovoltaic systems (PV), energy storage batteries, and Electric Vehicle (EV) charging stations, researchers utilize game-theoretic models to continuously distribute power allocations. To stabilize the energy demand across multiple EV chargers, the network actively minimizes the demand mismatch penalty against a target demand <span class="math notranslate nohighlight">\(p_k^*\)</span> <span id="id1">[<a class="reference internal" href="../references.html#id26" title="Dongxiang Yan, He Yin, Tao Li, and Chengbin Ma. A two-stage scheme for both power allocation and ev charging coordination in a grid tied pv-battery charging station. IEEE Transactions on Industrial Informatics, 2021. doi:10.1109/TII.2021.3054417.">YYLM21</a>]</span>. Evaluated as an independent utility function for each node <span class="math notranslate nohighlight">\(l\)</span>, this forms:</p>
+<p>Equally, in multi-agent microgrids integrating photovoltaic systems (PV), energy storage batteries, and Electric Vehicle (EV) charging stations, researchers utilize game-theoretic models to continuously distribute power allocations. To stabilize the energy demand across multiple EV chargers, the network actively minimizes the demand mismatch penalty against a target demand <span class="math notranslate nohighlight">\(p_k^*\)</span> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id26" title="Dongxiang Yan, He Yin, Tao Li, and Chengbin Ma. A two-stage scheme for both power allocation and ev charging coordination in a grid tied pv-battery charging station. IEEE Transactions on Industrial Informatics, 2021. doi:10.1109/TII.2021.3054417.">YYLM21</a>]</span>. Evaluated as an independent utility function for each node <span class="math notranslate nohighlight">\(l\)</span>, this forms:</p>
 <div class="math notranslate nohighlight">
 \[u_l = -\frac{1}{2}(p_l - p_l^*)^2\]</div>
 <p>From a mathematical perspective, modifying the power allocations to maximize the utility <span class="math notranslate nohighlight">\(u_l\)</span> is mathematically identical to minimizing the positive-definite squared deviation between allocated and requested charge. Because the error metrics natively employ bounded quadratic structures (with the positive coefficient <span class="math notranslate nohighlight">\(a_i &gt; 0\)</span>), the resulting system cost matrix is structurally strongly convex across the sub-groups.</p>
@@ -180,7 +182,7 @@
         </dl>
         <dl>
             <dt>Branches</dt>
-            <dd><a href="../../docs-and-examples/applications/smart_grids.html">docs-and-examples</a></dd>
+            <dd><a href="../../copilot/sphinx-design/applications/smart_grids.html">copilot/sphinx-design</a></dd>
         </dl>
     </div>
 </div><script>
