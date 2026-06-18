@@ -134,12 +134,13 @@ def main() -> None:
             inputs=Schema([TensorSpec(np.dtype("float64"), (-1, bs.n_params))]),
             outputs=Schema([TensorSpec(np.dtype("float64"), (-1, bs.n_values))]),
         )
+        model_log_kwargs = {"signature": signature, "serialization_format": "pickle"}
         last_run = mlflow.last_active_run()
         if mlflow.active_run() is not None or last_run is None:
-            mlflow.pytorch.log_model(bs, "model", signature=signature)
+            mlflow.pytorch.log_model(bs, "model", **model_log_kwargs)
         else:
             with mlflow.start_run(run_id=last_run.info.run_id):
-                mlflow.pytorch.log_model(bs, "model", signature=signature)
+                mlflow.pytorch.log_model(bs, "model", **model_log_kwargs)
 
     # search for filename
     fn = f"{args.params.name},{args.values.name},meshgrid,d_{bs.degree},r_{args.split_ratio}.csv"
