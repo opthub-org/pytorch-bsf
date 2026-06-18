@@ -86,6 +86,8 @@ regularization path.
 
 By training the model on a sparse subset of weight vectors :math:`w` and fitting a Bézier simplex, we obtain a continuous **solution map** :math:`(x^*, f \circ x^*): \Delta^{M-1} \to G^*(f)` that maps any weight :math:`w` to the optimal weights :math:`\beta` and the corresponding objective values.
 
+Regularization map of the elastic net:
+
 .. grid:: 3
    :gutter: 2
 
