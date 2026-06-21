@@ -40,7 +40,7 @@ dependencies = [
   "protobuf>=6,<7",
   "mlflow>=3,<4",
   # hotfix for mlflow's starlette 1.0.0 issue
-  "starlette<1",
+  "starlette>=1,<2",
   "jsonschema>=4,<5",
   "PyYAML>=6,<7",
 ]
