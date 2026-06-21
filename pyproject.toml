@@ -37,7 +37,7 @@ dependencies = [
   "torch>=2,<3",
   "lightning>=2,<3",
   "pl-crossvalidate>=0.1,<1",
-  "protobuf>=6,<7",
+  "protobuf>=6,<8",
   "mlflow>=3,<4",
   # hotfix for mlflow's starlette 1.0.0 issue
   "starlette<1",
