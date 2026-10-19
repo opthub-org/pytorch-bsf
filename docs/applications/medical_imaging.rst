@@ -40,13 +40,26 @@ We illustrate Bézier simplex fitting on a small CT reconstruction problem, trac
    f_1(x) &= \|Kx - y\|^2 + 0.01\|x\|^2 \quad \text{(fidelity)} \\
    f_2(x) &= \|Lx\|^2 + 0.01\|x\|^2 \quad \text{(smoothness)}
 
+**Parametrization of the trade-off:**
+
+The weighted-sum solution :math:`x^*(w)` depends only on the regularization parameter :math:`\lambda = w_2 / w_1`.
+Because :math:`K^\top K` and :math:`L^\top L` have nearly complementary spectra (smooth images are barely penalized by :math:`L` but strongly seen by :math:`K`, and vice versa),
+:math:`x^*(w)` has poles just outside the weight simplex: with uniformly spaced weights, almost all of the L-curve is squeezed into a tiny neighborhood of :math:`w = (1, 0)`, where no low-degree polynomial can follow it.
+As in the classical L-curve analysis, we therefore sweep :math:`\lambda` on a logarithmic scale and fit the Bézier simplex on the parameter :math:`(1 - t, t)` of the 1-simplex:
+
+.. math::
+
+   \lambda(t) = 10^{-2 + 3t}, \qquad w(t) = \left(\frac{1}{1 + \lambda(t)}, \frac{\lambda(t)}{1 + \lambda(t)}\right), \qquad t \in [0, 1].
+
 **Experiment Procedure:**
 
-1. Sample 200 weight vectors :math:`w = (w_1, w_2)` on the 1-simplex from :math:`(1,0)` to :math:`(0,1)`.
-2. For each :math:`w`, solve :math:`x^*(w) = \arg\min_x [w_1 f_1(x) + w_2 f_2(x)]` using L-BFGS-B.
-3. Collect the Pareto front points :math:`(f_1(x^*(w)), f_2(x^*(w)))`.
-4. Fit a degree-100 Bézier simplex to the weight–objective pairs.
-5. Visualize the fitted Bézier curve against the L-curve sampled by optimization.
+1. Sample 41 equally spaced parameters :math:`t \in [0, 1]`, i.e., :math:`\lambda` from :math:`10^{-2}` to :math:`10^{1}`.
+2. For each :math:`t`, solve :math:`x^*(t) = \arg\min_x [w_1(t) f_1(x) + w_2(t) f_2(x)]` using L-BFGS-B with the analytic gradient.
+3. Collect the Pareto front points :math:`(f_1(x^*(t)), f_2(x^*(t)))` and the reconstructions :math:`x^*(t)`.
+4. Fit degree-10 Bézier simplices to the Pareto front and to the Pareto set (the 256 pixels) by exact linear least squares (:func:`~torch_bsf.simploidal.fit_simploid` with type :math:`(1)`).
+5. Evaluate the fitted Bézier curves on 20 held-out parameters between the training ones.
+
+On the held-out parameters, the maximum error is about :math:`10^{-3}` on the Pareto front (whose :math:`f_1` ranges over :math:`[0.4, 31]`) and below :math:`10^{-4}` per pixel on the Pareto set.
 
 .. list-table::
    :widths: 50 50
@@ -58,7 +71,14 @@ We illustrate Bézier simplex fitting on a small CT reconstruction problem, trac
      - .. image:: ../_static/medical_imaging_pareto.png
          :alt: Bézier simplex fitting to CT reconstruction L-curve
          :width: 100%
-   * - Pareto set.
+   * - Pareto set (two background pixels).
      - Pareto front.
+
+.. figure:: ../_static/medical_imaging_pareto_samples.png
+   :alt: Reconstructions predicted by the fitted Bézier simplex
+   :width: 100%
+   :align: center
+
+   Reconstructions predicted by the Bézier simplex fitted to the Pareto set, from weak (left) to strong (right) smoothing.
 
 The complete example script is available at :file:`examples/generate_medical_imaging_pareto.py`.

@@ -5,8 +5,9 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
+import torch
 from scipy.optimize import minimize
-from torch_bsf.sklearn import BezierSimplexRegressor
+from torch_bsf.simploidal import fit_simploid
 
 # CT reconstruction: fidelity vs. regularization (L-curve experiment)
 # 2D image: 16x16 pixels for realistic 2D reconstruction
@@ -81,58 +82,90 @@ def f(x, w):
     return w[0] * f1(x) + w[1] * f2(x)
 
 
-# Sample weights on the 1-simplex from w=(1,0) to w=(0,1)
-n_samples = 200
-weights = np.linspace(0.0, 1.0, n_samples)
-optimals = []
-for idx, t in enumerate(weights):
-    print(f"Computing Pareto front... {idx}/{n_samples} weights optimized", end="\r", flush=True)
-    w = np.array([1.0 - t, t])
+def grad_f(x, w):
+    # Analytic gradient of f, which lets L-BFGS-B converge to high accuracy
+    grad_f1 = 2 * K.T @ (K @ x - y_obs) + 0.02 * x
+    grad_f2 = 2 * L.T @ (L @ x) + 0.02 * x
+    return w[0] * grad_f1 + w[1] * grad_f2
+
+
+# The trade-off between fidelity and smoothness is governed by the regularization
+# parameter lam = w2 / w1. As in the classical L-curve analysis, we sweep lam on a
+# logarithmic scale, lam(t) = 10^(-2 + 3t) for t in [0, 1], and use (1 - t, t) as the
+# parameter on the 1-simplex. Sampling the weights uniformly instead would crowd all the
+# interesting reconstructions into a tiny neighborhood of w = (1, 0), where the Pareto set
+# changes too abruptly for a low-degree Bézier simplex.
+def weights_of(t):
+    lam = 10.0 ** (-2.0 + 3.0 * t)
+    return np.array([1.0, lam]) / (1.0 + lam)
+
+
+def solve(t):
+    w = weights_of(t)
     result = minimize(
         lambda x: f(x, w),
         x0=np.zeros(n_pixels),
+        jac=lambda x: grad_f(x, w),
         method="L-BFGS-B",
+        options={"maxiter": 10000, "ftol": 1e-14, "gtol": 1e-10},
     )
     x_opt = result.x
-    optimals.append((w, x_opt, f1(x_opt), f2(x_opt)))
-print(f"Computing Pareto front... {n_samples}/{n_samples} weights optimized", end="\r", flush=True)
+    return (t, x_opt, f1(x_opt), f2(x_opt))
 
-pareto_colors = [(w[0], w[1], 0) for w, _, _, _ in optimals]
+
+def fit_bezier_simplex(X, Y, degree):
+    """Fit a Bézier simplex by exact linear least squares and return its predictor.
+
+    A Bézier simplex on the 1-simplex is a Bézier simploid of type (1,). Its control
+    points enter the model linearly, so ``fit_simploid`` solves for them exactly, which
+    is more accurate than gradient-based training for the 256-dimensional Pareto set.
+    """
+    model = fit_simploid(torch.tensor(X), torch.tensor(Y), simploid_type=(1,), degree=degree)
+
+    def predict(X_new):
+        with torch.no_grad():
+            return model(torch.tensor(X_new)).numpy()
+
+    return predict
+
+
+n_samples = 41
+ts = np.linspace(0.0, 1.0, n_samples)
+optimals = []
+for idx, t in enumerate(ts):
+    print(f"Computing Pareto front... {idx}/{n_samples} weights optimized", end="\r", flush=True)
+    optimals.append(solve(t))
+print(f"Computing Pareto front... {n_samples}/{n_samples} weights optimized")
+
+pareto_colors = [(1 - t, t, 0) for t, _, _, _ in optimals]
 
 # Prepare training data for Bézier simplex fitting
-w1 = np.array([p[0][0] for p in optimals])
-w2 = np.array([p[0][1] for p in optimals])
-X = np.column_stack([w1, w2])
+X = np.column_stack([1.0 - ts, ts])
 y = np.column_stack([
     np.array([p[2] for p in optimals]),
     np.array([p[3] for p in optimals]),
 ])
 
-# Initialize control points along the line between the two extreme Pareto points
-degree = 100
-init = {
-    (i, degree - i): ((i / degree) * y[0] + (1 - i / degree) * y[-1]).tolist()
-    for i in range(degree + 1)
-}
-
-# Fit Bézier simplex to Pareto front (objective space)
-pf_bezier = BezierSimplexRegressor(
-    init=init,  # initialize control points along the line between the two extreme Pareto points
-    freeze=[[0, degree], [degree, 0]],  # freeze endpoints to match true extremes
-    smoothness_weight=1e-4  # small smoothness to stabilize fitting
-)
-pf_bezier.fit(X, y)
+# Fit a degree-10 Bézier simplex to the Pareto front (objective space)
+pf_bezier = fit_bezier_simplex(X, y, degree=10)
 
 # Generate smooth curve for visualization
 t_smooth = np.linspace(0.0, 1.0, 200)
 line_colors = [(1 - t, t, 0) for t in t_smooth[:-1]]
 X_smooth = np.column_stack([1.0 - t_smooth, t_smooth])
-y_smooth = pf_bezier.predict(X_smooth)
+y_smooth = pf_bezier(X_smooth)
 
 # Compute approximation error on training points
-pred_train = pf_bezier.predict(X)
+pred_train = pf_bezier(X)
 max_error = np.max(np.linalg.norm(pred_train - y, axis=1))
 print(f"Max training approximation error: {max_error:.4f}")
+
+# Compute approximation error on 20 test parameters lying between the training ones
+t_test = (ts[:-1] + ts[1:])[::2] / 2
+test_optimals = [solve(t) for t in t_test]
+X_test = np.column_stack([1.0 - t_test, t_test])
+y_test = np.array([[p[2], p[3]] for p in test_optimals])
+print(f"Max test approximation error: {np.max(np.linalg.norm(pf_bezier(X_test) - y_test, axis=1)):.4f}")
 
 fig, ax = plt.subplots(figsize=(8, 6))
 ax.scatter(y[:, 0], y[:, 1], color=pareto_colors, label="Optimization-derived Pareto points")
@@ -149,21 +182,12 @@ pathlib.Path("docs/_static").mkdir(parents=True, exist_ok=True)
 plt.savefig("docs/_static/medical_imaging_pareto.png", dpi=150, bbox_inches="tight")
 print("Pareto front plot saved.")
 
-# Fit Bézier simplex to Pareto set (reconstruction space, 2D images)
+# Fit a degree-10 Bézier simplex to Pareto set (reconstruction space, 2D images)
 z_targets = np.array([p[1] for p in optimals])
-degree = 128
-init = {
-    (i, degree - i): ((i / degree) * z_targets[0] + (1 - i / degree) * z_targets[-1]).tolist()
-    for i in range(degree + 1)
-}
-
-ps_bezier = BezierSimplexRegressor(
-    init=init,
-    freeze=[[0, degree], [degree, 0]],
-    smoothness_weight=1e-6
-)
-ps_bezier.fit(X, z_targets)
-z_smooth = ps_bezier.predict(X_smooth)
+ps_bezier = fit_bezier_simplex(X, z_targets, degree=10)
+z_test = np.array([p[1] for p in test_optimals])
+print(f"Max test approximation error (Pareto set): {np.max(np.abs(ps_bezier(X_test) - z_test)):.4f}")
+z_smooth = ps_bezier(X_smooth)
 
 fig, ax = plt.subplots(figsize=(6, 6))
 ax.scatter(z_targets[:, 0], z_targets[:, 1], color=pareto_colors,
@@ -191,7 +215,7 @@ selected_indices = [0, 49, 99, 149, 199]  # Select 5 points along the curve
 for idx, ax_idx in enumerate(selected_indices):
     img = z_smooth[ax_idx].reshape(height, width)
     axes[idx].imshow(img, cmap='gray', vmin=0, vmax=1)
-    axes[idx].set_title(f"w=({1 - t_smooth[ax_idx]:.2f}, {t_smooth[ax_idx]:.2f})")
+    axes[idx].set_title(f"λ={10.0 ** (-2.0 + 3.0 * t_smooth[ax_idx]):.3g}")
     axes[idx].axis('off')
 plt.tight_layout()
 plt.savefig("docs/_static/medical_imaging_pareto_samples.png", dpi=150, bbox_inches="tight")

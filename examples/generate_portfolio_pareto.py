@@ -15,7 +15,7 @@ sigma_diag = np.array([0.10, 0.15, 0.08])  # variances
 
 def f1(x):
     # Negative expected return + L2 regularization
-    return -mu @ x + 0.05 * np.sum(x ** 2)
+    return -mu @ x + 0.2 * np.sum(x ** 2)
 
 
 def f2(x):
@@ -27,11 +27,7 @@ def f(x, w):
     return w[0] * f1(x) + w[1] * f2(x)
 
 
-# Sample 10 weights on the 1-simplex from w=(1,0) to w=(0,1)
-n_samples = 10
-weights = np.linspace(0.0, 1.0, n_samples)
-optimals = []
-for t in weights:
+def solve(t):
     w = np.array([1.0 - t, t])
     result = minimize(
         lambda x: f(x, w),
@@ -39,7 +35,13 @@ for t in weights:
         method="L-BFGS-B",
     )
     x_opt = result.x
-    optimals.append((w, x_opt, f1(x_opt), f2(x_opt)))
+    return (w, x_opt, f1(x_opt), f2(x_opt))
+
+
+# Sample 10 weights on the 1-simplex from w=(1,0) to w=(0,1)
+n_samples = 10
+weights = np.linspace(0.0, 1.0, n_samples)
+optimals = [solve(t) for t in weights]
 
 # Prepare training data for Bézier simplex fitting
 w1 = np.array([p[0][0] for p in optimals])
@@ -63,6 +65,13 @@ y_smooth = regressor.predict(X_smooth)
 pred_train = regressor.predict(X)
 max_error = np.max(np.linalg.norm(pred_train - y, axis=1))
 print(f"Max training approximation error: {max_error:.4f}")
+
+# Compute approximation error on 101 test weights
+t_test = np.linspace(0.0, 1.0, 101)
+test_optimals = [solve(t) for t in t_test]
+y_test = np.array([[p[2], p[3]] for p in test_optimals])
+pred_test = regressor.predict(np.column_stack([1.0 - t_test, t_test]))
+print(f"Max test approximation error: {np.max(np.linalg.norm(pred_test - y_test, axis=1)):.4f}")
 
 fig, ax = plt.subplots(figsize=(8, 6))
 ax.scatter(y[:, 0], y[:, 1], color="blue", label="Optimization-derived Pareto points")

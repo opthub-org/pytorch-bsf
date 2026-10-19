@@ -7,10 +7,13 @@ import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 from torch_bsf.sklearn import BezierSimplexRegressor
 
-# 2-objective LQR: inventory state deviation vs. policy volatility
+# 2-objective LQR: inventory state deviation vs. ordering cost and volatility
 # U = [u0, u1, u2, u3, u4] in R^5 (ordering decisions over 5 periods)
-# x(0) = 0, target xt = 1, x(k+1) = x(k) + u(k)
+# Perishable inventory: x(k+1) = a x(k) + u(k) - d, where a fraction 1 - a of the stock
+# spoils each period and d is a constant demand. x(0) = 0, target xt = 1.
 H = 5
+a = 0.7
+d = 0.3
 x0 = 0.0
 xt = 1.0
 
@@ -20,7 +23,7 @@ def simulate(U):
     x = np.zeros(H + 1)
     x[0] = x0
     for k in range(H):
-        x[k + 1] = x[k] + U[k]
+        x[k + 1] = a * x[k] + U[k] - d
     return x
 
 
@@ -31,20 +34,15 @@ def f1(U):
 
 
 def f2(U):
-    # Policy volatility: sum_{k=1}^{H-1} (u(k) - u(k-1))^2 + eps*||U||^2
-    eps = 0.01
-    return np.sum(np.diff(U) ** 2) + eps * np.sum(U ** 2)
+    # Ordering cost + policy volatility: sum_k u(k)^2 + 0.5 * sum_k (u(k) - u(k-1))^2 with u(-1) = 0
+    return np.sum(U ** 2) + 0.5 * np.sum(np.diff(U, prepend=0.0) ** 2)
 
 
 def f(U, w):
     return w[0] * f1(U) + w[1] * f2(U)
 
 
-# Sample 10 weights on the 1-simplex from w=(1,0) to w=(0,1)
-n_samples = 10
-weights = np.linspace(0.0, 1.0, n_samples)
-optimals = []
-for t in weights:
+def solve(t):
     w = np.array([1.0 - t, t])
     result = minimize(
         lambda U: f(U, w),
@@ -52,7 +50,13 @@ for t in weights:
         method="L-BFGS-B",
     )
     U_opt = result.x
-    optimals.append((w, U_opt, f1(U_opt), f2(U_opt)))
+    return (w, U_opt, f1(U_opt), f2(U_opt))
+
+
+# Sample 15 weights on the 1-simplex from w=(1,0) to w=(0,1)
+n_samples = 15
+weights = np.linspace(0.0, 1.0, n_samples)
+optimals = [solve(t) for t in weights]
 
 # Prepare training data for Bézier simplex fitting
 w1 = np.array([p[0][0] for p in optimals])
@@ -63,8 +67,8 @@ y = np.column_stack([
     np.array([p[3] for p in optimals]),
 ])
 
-# Fit a degree-3 Bézier simplex to the Pareto front
-regressor = BezierSimplexRegressor(degree=3)
+# Fit a degree-8 Bézier simplex to the Pareto front
+regressor = BezierSimplexRegressor(degree=8)
 regressor.fit(X, y)
 
 # Generate smooth curve for visualization
@@ -77,11 +81,18 @@ pred_train = regressor.predict(X)
 max_error = np.max(np.linalg.norm(pred_train - y, axis=1))
 print(f"Max training approximation error: {max_error:.4f}")
 
+# Compute approximation error on 101 test weights
+t_test = np.linspace(0.0, 1.0, 101)
+test_optimals = [solve(t) for t in t_test]
+y_test = np.array([[p[2], p[3]] for p in test_optimals])
+pred_test = regressor.predict(np.column_stack([1.0 - t_test, t_test]))
+print(f"Max test approximation error: {np.max(np.linalg.norm(pred_test - y_test, axis=1)):.4f}")
+
 fig, ax = plt.subplots(figsize=(8, 6))
 ax.scatter(y[:, 0], y[:, 1], color="blue", label="Optimization-derived Pareto points")
 ax.plot(y_smooth[:, 0], y_smooth[:, 1], color="red", label="Fitted Bézier simplex")
 ax.set_xlabel("Inventory State Deviation (f₁)")
-ax.set_ylabel("Policy Volatility (f₂)")
+ax.set_ylabel("Ordering Cost + Volatility (f₂)")
 ax.set_title("Supply Chain LQR Pareto Front: Optimization vs Bézier Simplex")
 ax.legend()
 ax.grid(alpha=0.3)
@@ -92,7 +103,7 @@ print("Pareto front plot saved.")
 
 # Fit Bézier simplex to Pareto set (ordering decision space, showing first two periods)
 U_targets = np.array([p[1] for p in optimals])
-regressor_set = BezierSimplexRegressor(degree=3)
+regressor_set = BezierSimplexRegressor(degree=8)
 regressor_set.fit(X, U_targets)
 U_smooth = regressor_set.predict(X_smooth)
 

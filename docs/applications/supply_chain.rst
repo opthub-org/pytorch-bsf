@@ -24,26 +24,32 @@ When corporate managers visualize these strategic relationships statically, they
 Numerical Experiments
 ---------------------
 
-We demonstrate Bézier simplex fitting on a two-objective inventory LQR problem balancing state deviation against policy volatility over a horizon of :math:`H = 5` periods.
+We demonstrate Bézier simplex fitting on a two-objective inventory LQR problem balancing state deviation against ordering cost and policy volatility over a horizon of :math:`H = 5` periods.
 
 **Problem Setup:**
 
 - Ordering decisions: :math:`U = [u_0, u_1, u_2, u_3, u_4] \in \mathbb{R}^5`
-- Inventory dynamics: :math:`x(k+1) = x(k) + u(k)`, :math:`x(0) = 0`, target :math:`x^* = 1`
-- Competing objectives:
+- Perishable inventory dynamics: :math:`x(k+1) = 0.7\,x(k) + u_k - 0.3`, where 30% of the stock spoils each period and the demand is :math:`0.3` per period
+- Initial inventory :math:`x(0) = 0`, target :math:`x^* = 1`
+- Competing objectives (with :math:`u_{-1} = 0`):
 
 .. math::
 
    f_1(U) &= \sum_{k=0}^{4} (x(k+1) - x^*)^2 \quad \text{(state deviation)} \\
-   f_2(U) &= \sum_{k=1}^{4} (u_k - u_{k-1})^2 + 0.01\|U\|^2 \quad \text{(policy volatility)}
+   f_2(U) &= \sum_{k=0}^{4} u_k^2 + 0.5 \sum_{k=0}^{4} (u_k - u_{k-1})^2 \quad \text{(ordering cost and policy volatility)}
+
+Both objectives are strongly convex quadratics with comparable curvature, so the weighted-sum solution :math:`U^*(w)` is a smooth rational function of :math:`w` without poles near the weight simplex.
+A volatility-only objective :math:`\sum_k (u_k - u_{k-1})^2` would not be strongly convex (it vanishes on constant orders), and the Pareto set would then change abruptly near :math:`w = (0, 1)`.
 
 **Experiment Procedure:**
 
-1. Sample 10 weight vectors :math:`w = (w_1, w_2)` on the 1-simplex from :math:`(1,0)` to :math:`(0,1)`.
+1. Sample 15 weight vectors :math:`w = (w_1, w_2)` on the 1-simplex from :math:`(1,0)` to :math:`(0,1)`.
 2. For each :math:`w`, solve :math:`U^*(w) = \arg\min_U [w_1 f_1(U) + w_2 f_2(U)]` using L-BFGS-B.
 3. Collect the Pareto front points :math:`(f_1(U^*(w)), f_2(U^*(w)))`.
-4. Fit a degree-3 Bézier simplex to the weight–objective pairs.
-5. Visualize the fitted Bézier curve against the optimization-derived Pareto front.
+4. Fit a degree-8 Bézier simplex to the weight–objective pairs and another to the weight–decision pairs.
+5. Evaluate the fitted Bézier curve on 101 test weights.
+
+The maximum error on the test weights is about :math:`0.03`, i.e., 0.2% of the range of :math:`f_1`.
 
 .. list-table::
    :widths: 50 50

@@ -7,37 +7,48 @@ import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 from torch_bsf.sklearn import BezierSimplexRegressor
 
-# 2-generator 2-objective: generation cost vs. emissions
-# P = [P1, P2] in R^2 (power outputs)
+# 3-generator economic-emission dispatch: generation cost vs. emissions
+# P = [P1, P2, P3] in R^3 (power outputs), subject to the demand balance P1 + P2 + P3 = D
+# Generator 1 is cheap but dirty, generator 3 is expensive but clean.
+demand = 5.0
+cost_a = np.array([0.10, 0.12, 0.15])  # quadratic cost coefficients
+cost_b = np.array([0.20, 0.30, 0.40])  # linear cost coefficients
+emis_a = np.array([0.20, 0.10, 0.05])  # quadratic emission coefficients
+emis_b = np.array([0.30, 0.20, 0.10])  # linear emission coefficients
 
 
 def f1(P):
     # Generation cost (strongly convex)
-    return 0.5 * P[0] ** 2 + 0.3 * P[1] ** 2 + 0.05 * (P[0] + P[1]) ** 2
+    return cost_a @ P ** 2 + cost_b @ P
 
 
 def f2(P):
     # Emissions (strongly convex)
-    return 0.2 * P[0] ** 2 + 0.6 * P[1] ** 2 + 0.05 * (P[0] + P[1]) ** 2
+    return emis_a @ P ** 2 + emis_b @ P
 
 
 def f(P, w):
     return w[0] * f1(P) + w[1] * f2(P)
 
 
-# Sample 10 weights on the 1-simplex from w=(1,0) to w=(0,1)
-n_samples = 10
-weights = np.linspace(0.0, 1.0, n_samples)
-optimals = []
-for t in weights:
+def solve(t):
     w = np.array([1.0 - t, t])
     result = minimize(
         lambda P: f(P, w),
-        x0=np.ones(2),
-        method="L-BFGS-B",
+        x0=np.full(3, demand / 3),
+        method="SLSQP",
+        bounds=[(0.0, None)] * 3,
+        constraints=[{"type": "eq", "fun": lambda P: np.sum(P) - demand}],
+        options={"ftol": 1e-12},
     )
     P_opt = result.x
-    optimals.append((w, P_opt, f1(P_opt), f2(P_opt)))
+    return (w, P_opt, f1(P_opt), f2(P_opt))
+
+
+# Sample 10 weights on the 1-simplex from w=(1,0) to w=(0,1)
+n_samples = 10
+weights = np.linspace(0.0, 1.0, n_samples)
+optimals = [solve(t) for t in weights]
 
 # Prepare training data for Bézier simplex fitting
 w1 = np.array([p[0][0] for p in optimals])
@@ -48,8 +59,8 @@ y = np.column_stack([
     np.array([p[3] for p in optimals]),
 ])
 
-# Fit a degree-3 Bézier simplex to the Pareto front
-regressor = BezierSimplexRegressor(degree=3)
+# Fit a degree-4 Bézier simplex to the Pareto front
+regressor = BezierSimplexRegressor(degree=4)
 regressor.fit(X, y)
 
 # Generate smooth curve for visualization
@@ -61,6 +72,13 @@ y_smooth = regressor.predict(X_smooth)
 pred_train = regressor.predict(X)
 max_error = np.max(np.linalg.norm(pred_train - y, axis=1))
 print(f"Max training approximation error: {max_error:.4f}")
+
+# Compute approximation error on 101 test weights
+t_test = np.linspace(0.0, 1.0, 101)
+test_optimals = [solve(t) for t in t_test]
+y_test = np.array([[p[2], p[3]] for p in test_optimals])
+pred_test = regressor.predict(np.column_stack([1.0 - t_test, t_test]))
+print(f"Max test approximation error: {np.max(np.linalg.norm(pred_test - y_test, axis=1)):.4f}")
 
 fig, ax = plt.subplots(figsize=(8, 6))
 ax.scatter(y[:, 0], y[:, 1], color="blue", label="Optimization-derived Pareto points")
@@ -75,9 +93,9 @@ pathlib.Path("docs/_static").mkdir(parents=True, exist_ok=True)
 plt.savefig("docs/_static/smart_grids_pareto.png", dpi=150, bbox_inches="tight")
 print("Pareto front plot saved.")
 
-# Fit Bézier simplex to Pareto set (power output space)
+# Fit Bézier simplex to Pareto set (power output space, showing P1 and P2; P3 = D - P1 - P2)
 P_targets = np.array([p[1] for p in optimals])
-regressor_set = BezierSimplexRegressor(degree=3)
+regressor_set = BezierSimplexRegressor(degree=4)
 regressor_set.fit(X, P_targets)
 P_smooth = regressor_set.predict(X_smooth)
 

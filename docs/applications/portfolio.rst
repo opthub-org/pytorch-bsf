@@ -34,7 +34,7 @@ To illustrate Bézier simplex fitting on a portfolio Pareto front, we conducted 
 
 .. math::
 
-   f_1(x) &= -\mu^T x + 0.05\|x\|^2 \quad \text{(negative return + L2)} \\
+   f_1(x) &= -\mu^T x + 0.2\|x\|^2 \quad \text{(negative return + L2)} \\
    f_2(x) &= x^T \mathrm{diag}(\Sigma) x + 0.05\|x\|^2 \quad \text{(variance + L2)}
 
 **Experiment Procedure:**
@@ -43,7 +43,10 @@ To illustrate Bézier simplex fitting on a portfolio Pareto front, we conducted 
 2. For each :math:`w`, solve :math:`x^*(w) = \arg\min_x [w_1 f_1(x) + w_2 f_2(x)]` using L-BFGS-B.
 3. Collect the Pareto front points :math:`(f_1(x^*(w)), f_2(x^*(w)))`.
 4. Fit a degree-3 Bézier simplex to the weight–objective pairs.
-5. Visualize the fitted Bézier curve against the optimization-derived Pareto front.
+5. Evaluate the fitted Bézier curve on 101 test weights.
+
+The maximum error on the test weights is about :math:`10^{-4}`, i.e., below 0.5% of the range of each objective.
+The regularization weight of :math:`f_1` matters: the weighted-sum solution :math:`x^*(w)` is a rational function of :math:`w`, and with a weaker regularization (e.g., :math:`0.05\|x\|^2`) its poles come close to the weight simplex and a cubic Bézier curve visibly deviates from the Pareto front.
 
 .. list-table::
    :widths: 50 50
