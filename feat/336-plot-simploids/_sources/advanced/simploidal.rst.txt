@@ -448,14 +448,29 @@ shared faces.
 .. code-block:: python
 
    import matplotlib.pyplot as plt
+   import torch
    from torch_bsf.plotting import plot_bezier_simploid, plot_simploidal_bezier_space
+   from torch_bsf.simploidal import BezierSimploid, SimploidalBezierSpace, SimploidalSet
+
+   # A random Bézier simploid of type (2, 1) (a prism) with 3 values
+   prism = BezierSimploid.randn((2, 1), degree=2, n_values=3)
+
+   # A random space on a triangle and a square sharing an edge, with 3 values
+   S = SimploidalSet()
+   tri, sq = S.add_simplex(2), S.add_simploid((1, 1))
+   S.identify(tri.face(0, 2), sq.face(1, 1))
+   space = SimploidalBezierSpace(S, degree=3, n_values=3)
+   torch.nn.init.normal_(space.proper_control_points)
 
    fig = plt.figure(figsize=(10, 5))
    ax = fig.add_subplot(1, 2, 1, projection="3d")
-   plot_bezier_simploid(prism, ax=ax)          # a BezierSimploid of type (2, 1)
+   plot_bezier_simploid(prism, ax=ax)
    ax = fig.add_subplot(1, 2, 2, projection="3d")
-   plot_simploidal_bezier_space(space, ax=ax)  # a triangle and a square sharing an edge
+   plot_simploidal_bezier_space(space, ax=ax)
    plt.show()
+
+``examples/generate_simploidal_plot.py`` produces the figure below from fitted
+models in the same way.
 
 .. figure:: ../_static/simploidal_bezier_space.png
    :width: 100%
