@@ -84,6 +84,10 @@ These operators satisfy the commutation relations of Definition 1 in the
 paper.  Degeneracies make it possible to represent, e.g., a square-based
 pyramid as a cube whose top face is collapsed into a vertex.
 
+As simplicial sets are presheaves on the simplex category, simploidal sets
+are presheaves on a *simploid category*, and they form a topos; see
+:doc:`simploidal_category` for the definitions and proofs.
+
 :class:`~torch_bsf.simploidal.SimploidalSet` stores only the non-degenerate
 simploids; degenerate ones are kept in a canonical form (a base simploid plus
 a degeneracy map), so that equal degenerate simploids are the same Python
