@@ -17,7 +17,7 @@ This document is a guide for contributing to pytorch-bsf.
 
 ## Development Policy
 
-pytorch-bsf is a Python library for Bézier Simplex Fitting. Development follows these principles:
+pytorch-bsf is a Python library for Bézier Simploid Fitting (formerly Bézier Simplex Fitting). Development follows these principles:
 
 - **Simple API**: Keep the API minimal so users can get started with a single call to `torch_bsf.fit()`.
 - **Backward compatibility**: Do not break existing public APIs in minor releases. Reserve breaking changes for major version bumps.

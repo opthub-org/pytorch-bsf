@@ -1,5 +1,8 @@
-"""torch_bsf: PyTorch implementation of Bézier simplex fitting.
+"""torch_bsf: PyTorch implementation of Bézier simploid fitting.
 
+BSF stands for Bézier Simploid Fitting (formerly Bézier Simplex Fitting).
+It fits Bézier simplices and, more generally, Bézier simploids, i.e., tensor
+products of Bézier simplices, and simploidal sets glued from them.
 """
 
 from importlib.metadata import PackageNotFoundError, version
