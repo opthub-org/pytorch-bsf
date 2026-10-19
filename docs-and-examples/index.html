@@ -10,13 +10,16 @@
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
 
   
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="_static/documentation_options.js?v=ba2e7b09"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -33,6 +36,7 @@
           
           <a href="#" class="icon icon-home">
             PyTorch-BSF
+              <img src="_static/logo-compact-white.svg" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -83,10 +87,15 @@
   <section id="welcome-to-pytorch-bsf">
 <h1>Welcome to PyTorch-BSF!<a class="headerlink" href="#welcome-to-pytorch-bsf" title="Link to this heading"></a></h1>
 <p><strong>Fit smooth, high-dimensional manifolds to your data — from a single GPU to a multi-node cluster.</strong></p>
-<p>PyTorch-BSF brings <a class="reference external" href="whatis.html">Bézier simplex fitting</a> to PyTorch.
-A Bézier simplex is a high-dimensional generalization of the Bézier curve: it can model an arbitrarily complex point cloud as a smooth parametric hyper-surface in any number of dimensions.
-This makes it a natural tool for representing <strong>Pareto fronts</strong> in multi-objective optimization, interpolating scattered observations, and fitting geometric structures in high-dimensional spaces.</p>
+<p>PyTorch-BSF brings <strong>B</strong>ézier <strong>S</strong>imploid <strong>F</strong>itting (BSF) to PyTorch.
+A Bézier simplex is a high-dimensional generalization of the Bézier curve: it can model an arbitrarily complex point cloud as a smooth parametric hyper-surface in any number of dimensions (see <a class="reference external" href="whatis.html">Bézier simplex fitting</a>).
+<a class="reference external" href="advanced/simploidal.html">Bézier simploids</a> go further: they are tensor products of Bézier simplices defined on products of simplices such as prisms and cubes, and simploidal sets glue such cells along common faces.
+This makes them a natural tool for representing <strong>Pareto fronts</strong> in multi-objective optimization, interpolating scattered observations, and fitting geometric structures in high-dimensional spaces.</p>
 <p>The project is on <a class="reference external" href="https://github.com/opthub-org/pytorch-bsf">GitHub</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>BSF formerly stood for <em>Bézier Simplex Fitting</em>, which remains the special case where the parameter domain is a single simplex.</p>
+</div>
 <a class="reference internal image-reference" href="_images/bezier-simplex.png"><img alt="A Bézier simplex and its control points" src="_images/bezier-simplex.png" style="width: 49%;" />
 </a>
 <a class="reference internal image-reference" href="_images/bezier-simplex-fitting.png"><img alt="A Bézier simplex that fits to a dataset" src="_images/bezier-simplex-fitting.png" style="width: 49%;" />
@@ -122,6 +131,8 @@ This makes it a natural tool for representing <strong>Pareto fronts</strong> in 
 <li class="toctree-l2"><a class="reference internal" href="advanced/sampling.html">Advanced Sampling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="advanced/acceleration.html">Hardware Acceleration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="advanced/active_learning.html">Active Learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/simploidal.html">Simploidal Sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/simploidal_category.html">The Category of Simploidal Sets</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a><ul>

@@ -10,13 +10,16 @@
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
 
   
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
       <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -35,6 +38,7 @@
           
           <a href="../index.html" class="icon icon-home">
             PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -112,24 +116,28 @@ f_3(U) &amp;= \sum_{k=0}^{H-1} \|\Delta U_k\|_S^2 \quad \text{(Policy change ins
 <p>When corporate managers visualize these strategic relationships statically, they often suffer from disjointed discrete scenario planning. Implementing a Bézier simplex surrogate that models the multi-objective continuous terrain flawlessly allows disparate corporate departments—ranging from financial officers to warehouse managers—to visually navigate through a single, continuous interactive Pareto topology in boardroom meetings, instantly resolving the optimal, stable path for navigating market supply shocks without requiring live, intensive QP solver re-computations.</p>
 <section id="numerical-experiments">
 <h2>Numerical Experiments<a class="headerlink" href="#numerical-experiments" title="Link to this heading"></a></h2>
-<p>We demonstrate Bézier simplex fitting on a two-objective inventory LQR problem balancing state deviation against policy volatility over a horizon of <span class="math notranslate nohighlight">\(H = 5\)</span> periods.</p>
+<p>We demonstrate Bézier simplex fitting on a two-objective inventory LQR problem balancing state deviation against ordering cost and policy volatility over a horizon of <span class="math notranslate nohighlight">\(H = 5\)</span> periods.</p>
 <p><strong>Problem Setup:</strong></p>
 <ul class="simple">
 <li><p>Ordering decisions: <span class="math notranslate nohighlight">\(U = [u_0, u_1, u_2, u_3, u_4] \in \mathbb{R}^5\)</span></p></li>
-<li><p>Inventory dynamics: <span class="math notranslate nohighlight">\(x(k+1) = x(k) + u(k)\)</span>, <span class="math notranslate nohighlight">\(x(0) = 0\)</span>, target <span class="math notranslate nohighlight">\(x^* = 1\)</span></p></li>
-<li><p>Competing objectives:</p></li>
+<li><p>Perishable inventory dynamics: <span class="math notranslate nohighlight">\(x(k+1) = 0.7\,x(k) + u_k - 0.3\)</span>, where 30% of the stock spoils each period and the demand is <span class="math notranslate nohighlight">\(0.3\)</span> per period</p></li>
+<li><p>Initial inventory <span class="math notranslate nohighlight">\(x(0) = 0\)</span>, target <span class="math notranslate nohighlight">\(x^* = 1\)</span></p></li>
+<li><p>Competing objectives (with <span class="math notranslate nohighlight">\(u_{-1} = 0\)</span>):</p></li>
 </ul>
 <div class="math notranslate nohighlight">
 \[\begin{split}f_1(U) &amp;= \sum_{k=0}^{4} (x(k+1) - x^*)^2 \quad \text{(state deviation)} \\
-f_2(U) &amp;= \sum_{k=1}^{4} (u_k - u_{k-1})^2 + 0.01\|U\|^2 \quad \text{(policy volatility)}\end{split}\]</div>
+f_2(U) &amp;= \sum_{k=0}^{4} u_k^2 + 0.5 \sum_{k=0}^{4} (u_k - u_{k-1})^2 \quad \text{(ordering cost and policy volatility)}\end{split}\]</div>
+<p>Both objectives are strongly convex quadratics with comparable curvature, so the weighted-sum solution <span class="math notranslate nohighlight">\(U^*(w)\)</span> is a smooth rational function of <span class="math notranslate nohighlight">\(w\)</span> without poles near the weight simplex.
+A volatility-only objective <span class="math notranslate nohighlight">\(\sum_k (u_k - u_{k-1})^2\)</span> would not be strongly convex (it vanishes on constant orders), and the Pareto set would then change abruptly near <span class="math notranslate nohighlight">\(w = (0, 1)\)</span>.</p>
 <p><strong>Experiment Procedure:</strong></p>
 <ol class="arabic simple">
-<li><p>Sample 10 weight vectors <span class="math notranslate nohighlight">\(w = (w_1, w_2)\)</span> on the 1-simplex from <span class="math notranslate nohighlight">\((1,0)\)</span> to <span class="math notranslate nohighlight">\((0,1)\)</span>.</p></li>
+<li><p>Sample 15 weight vectors <span class="math notranslate nohighlight">\(w = (w_1, w_2)\)</span> on the 1-simplex from <span class="math notranslate nohighlight">\((1,0)\)</span> to <span class="math notranslate nohighlight">\((0,1)\)</span>.</p></li>
 <li><p>For each <span class="math notranslate nohighlight">\(w\)</span>, solve <span class="math notranslate nohighlight">\(U^*(w) = \arg\min_U [w_1 f_1(U) + w_2 f_2(U)]\)</span> using L-BFGS-B.</p></li>
 <li><p>Collect the Pareto front points <span class="math notranslate nohighlight">\((f_1(U^*(w)), f_2(U^*(w)))\)</span>.</p></li>
-<li><p>Fit a degree-3 Bézier simplex to the weight–objective pairs.</p></li>
-<li><p>Visualize the fitted Bézier curve against the optimization-derived Pareto front.</p></li>
+<li><p>Fit a degree-8 Bézier simplex to the weight–objective pairs and another to the weight–decision pairs.</p></li>
+<li><p>Evaluate the fitted Bézier curve on 101 test weights.</p></li>
 </ol>
+<p>The maximum error on the test weights is about <span class="math notranslate nohighlight">\(0.03\)</span>, i.e., 0.2% of the range of <span class="math notranslate nohighlight">\(f_1\)</span>.</p>
 <table class="docutils align-center">
 <colgroup>
 <col style="width: 50.0%" />

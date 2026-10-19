@@ -10,13 +10,16 @@
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
 
   
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
       <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -35,6 +38,7 @@
           
           <a href="../index.html" class="icon icon-home">
             PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -124,14 +128,22 @@ f_2(x) &amp;= \|Lx\|_2^2     \quad \text{(Regularization)}\end{split}\]</div>
 <div class="math notranslate nohighlight">
 \[\begin{split}f_1(x) &amp;= \|Kx - y\|^2 + 0.01\|x\|^2 \quad \text{(fidelity)} \\
 f_2(x) &amp;= \|Lx\|^2 + 0.01\|x\|^2 \quad \text{(smoothness)}\end{split}\]</div>
+<p><strong>Parametrization of the trade-off:</strong></p>
+<p>The weighted-sum solution <span class="math notranslate nohighlight">\(x^*(w)\)</span> depends only on the regularization parameter <span class="math notranslate nohighlight">\(\lambda = w_2 / w_1\)</span>.
+Because <span class="math notranslate nohighlight">\(K^\top K\)</span> and <span class="math notranslate nohighlight">\(L^\top L\)</span> have nearly complementary spectra (smooth images are barely penalized by <span class="math notranslate nohighlight">\(L\)</span> but strongly seen by <span class="math notranslate nohighlight">\(K\)</span>, and vice versa),
+<span class="math notranslate nohighlight">\(x^*(w)\)</span> has poles just outside the weight simplex: with uniformly spaced weights, almost all of the L-curve is squeezed into a tiny neighborhood of <span class="math notranslate nohighlight">\(w = (1, 0)\)</span>, where no low-degree polynomial can follow it.
+As in the classical L-curve analysis, we therefore sweep <span class="math notranslate nohighlight">\(\lambda\)</span> on a logarithmic scale and fit the Bézier simplex on the parameter <span class="math notranslate nohighlight">\((1 - t, t)\)</span> of the 1-simplex:</p>
+<div class="math notranslate nohighlight">
+\[\lambda(t) = 10^{-2 + 3t}, \qquad w(t) = \left(\frac{1}{1 + \lambda(t)}, \frac{\lambda(t)}{1 + \lambda(t)}\right), \qquad t \in [0, 1].\]</div>
 <p><strong>Experiment Procedure:</strong></p>
 <ol class="arabic simple">
-<li><p>Sample 200 weight vectors <span class="math notranslate nohighlight">\(w = (w_1, w_2)\)</span> on the 1-simplex from <span class="math notranslate nohighlight">\((1,0)\)</span> to <span class="math notranslate nohighlight">\((0,1)\)</span>.</p></li>
-<li><p>For each <span class="math notranslate nohighlight">\(w\)</span>, solve <span class="math notranslate nohighlight">\(x^*(w) = \arg\min_x [w_1 f_1(x) + w_2 f_2(x)]\)</span> using L-BFGS-B.</p></li>
-<li><p>Collect the Pareto front points <span class="math notranslate nohighlight">\((f_1(x^*(w)), f_2(x^*(w)))\)</span>.</p></li>
-<li><p>Fit a degree-100 Bézier simplex to the weight–objective pairs.</p></li>
-<li><p>Visualize the fitted Bézier curve against the L-curve sampled by optimization.</p></li>
+<li><p>Sample 41 equally spaced parameters <span class="math notranslate nohighlight">\(t \in [0, 1]\)</span>, i.e., <span class="math notranslate nohighlight">\(\lambda\)</span> from <span class="math notranslate nohighlight">\(10^{-2}\)</span> to <span class="math notranslate nohighlight">\(10^{1}\)</span>.</p></li>
+<li><p>For each <span class="math notranslate nohighlight">\(t\)</span>, solve <span class="math notranslate nohighlight">\(x^*(t) = \arg\min_x [w_1(t) f_1(x) + w_2(t) f_2(x)]\)</span> using L-BFGS-B with the analytic gradient.</p></li>
+<li><p>Collect the Pareto front points <span class="math notranslate nohighlight">\((f_1(x^*(t)), f_2(x^*(t)))\)</span> and the reconstructions <span class="math notranslate nohighlight">\(x^*(t)\)</span>.</p></li>
+<li><p>Fit degree-10 Bézier simplices to the Pareto front and to the Pareto set (the 256 pixels) by exact linear least squares (<a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.fit_simploid" title="torch_bsf.simploidal.fit_simploid"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_simploid()</span></code></a> with type <span class="math notranslate nohighlight">\((1)\)</span>).</p></li>
+<li><p>Evaluate the fitted Bézier curves on 20 held-out parameters between the training ones.</p></li>
 </ol>
+<p>On the held-out parameters, the maximum error is about <span class="math notranslate nohighlight">\(10^{-3}\)</span> on the Pareto front (whose <span class="math notranslate nohighlight">\(f_1\)</span> ranges over <span class="math notranslate nohighlight">\([0.4, 31]\)</span>) and below <span class="math notranslate nohighlight">\(10^{-4}\)</span> per pixel on the Pareto set.</p>
 <table class="docutils align-center">
 <colgroup>
 <col style="width: 50.0%" />
@@ -145,11 +157,18 @@ f_2(x) &amp;= \|Lx\|^2 + 0.01\|x\|^2 \quad \text{(smoothness)}\end{split}\]</div
 </a>
 </td>
 </tr>
-<tr class="row-even"><td><p>Pareto set.</p></td>
+<tr class="row-even"><td><p>Pareto set (two background pixels).</p></td>
 <td><p>Pareto front.</p></td>
 </tr>
 </tbody>
 </table>
+<figure class="align-center" id="id3">
+<a class="reference internal image-reference" href="../_images/medical_imaging_pareto_samples.png"><img alt="Reconstructions predicted by the fitted Bézier simplex" src="../_images/medical_imaging_pareto_samples.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 25 </span><span class="caption-text">Reconstructions predicted by the Bézier simplex fitted to the Pareto set, from weak (left) to strong (right) smoothing.</span><a class="headerlink" href="#id3" title="Link to this image"></a></p>
+</figcaption>
+</figure>
 <p>The complete example script is available at <code class="file docutils literal notranslate"><span class="pre">examples/generate_medical_imaging_pareto.py</span></code>.</p>
 </section>
 </section>
