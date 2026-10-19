@@ -1,6 +1,6 @@
 ---
 name: work-on-issue
-description: Implement a GitHub issue of NaokiHamada/pytorch-bsf end to end - read the issue, branch, implement, test, commit, and open a PR that closes it. Use when the user says "Issue #N をやって", "work on #N", "fix #N", or similar. Args - issue number.
+description: Implement a GitHub issue of opthub-org/pytorch-bsf end to end - read the issue, branch, implement, test, commit, and open a PR that closes it. Use when the user says "Issue #N をやって", "work on #N", "fix #N", or similar. Args - issue number.
 ---
 
 # work-on-issue
@@ -12,8 +12,8 @@ Follow CONTRIBUTING.md throughout (commit rules, coding conventions, tests, "Bez
 ## 1. Read the issue
 
 ```bash
-gh issue view <N> -R NaokiHamada/pytorch-bsf --json number,title,body,labels,state,comments
-gh pr list -R NaokiHamada/pytorch-bsf -s all --search "<N> in:body" --json number,title,state,headRefName
+gh issue view <N> -R opthub-org/pytorch-bsf --json number,title,body,labels,state,comments
+gh pr list -R opthub-org/pytorch-bsf -s all --search "<N> in:body" --json number,title,state,headRefName
 ```
 
 - If the issue is closed, or an open PR already addresses it, stop and ask the user.
@@ -101,7 +101,7 @@ If master moved, resolve conflicts and re-run step 5.
 
 ```bash
 git push -u origin <branch>
-gh pr create -R NaokiHamada/pytorch-bsf --base master --head <branch> \
+gh pr create -R opthub-org/pytorch-bsf --base master --head <branch> \
   --title "<type>(<scope>): <subject>" --body-file <scratchpad>/pr-body.md
 ```
 

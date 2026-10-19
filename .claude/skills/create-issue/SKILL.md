@@ -1,11 +1,11 @@
 ---
 name: create-issue
-description: Create a GitHub issue on NaokiHamada/pytorch-bsf with gh. Use when the user asks to file / 起票 / 作成 an issue, report a bug, or record a feature or docs idea as an issue. Args - free-form description of the issue.
+description: Create a GitHub issue on opthub-org/pytorch-bsf with gh. Use when the user asks to file / 起票 / 作成 an issue, report a bug, or record a feature or docs idea as an issue. Args - free-form description of the issue.
 ---
 
 # create-issue
 
-Turn the user's request (`$ARGUMENTS` or the conversation) into a GitHub issue on `NaokiHamada/pytorch-bsf`.
+Turn the user's request (`$ARGUMENTS` or the conversation) into a GitHub issue on `opthub-org/pytorch-bsf`.
 
 ## 1. Gather context
 
@@ -15,7 +15,7 @@ Turn the user's request (`$ARGUMENTS` or the conversation) into a GitHub issue o
 ## 2. Check for duplicates
 
 ```bash
-gh issue list -R NaokiHamada/pytorch-bsf -s all -L 20 --search "<keywords>"
+gh issue list -R opthub-org/pytorch-bsf -s all -L 20 --search "<keywords>"
 ```
 
 If a likely duplicate exists, show it to the user and ask whether to proceed, comment there instead, or stop.
@@ -57,7 +57,7 @@ Creating an issue is outward-facing. Show the user the title, labels, and body, 
 Write the body to a file in the scratchpad directory to avoid shell-quoting problems, then:
 
 ```bash
-gh issue create -R NaokiHamada/pytorch-bsf \
+gh issue create -R opthub-org/pytorch-bsf \
   --title "<title>" \
   --label "<label>" \
   --body-file "<scratchpad>/issue-body.md"
