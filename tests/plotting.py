@@ -533,6 +533,19 @@ def test_plot_simploid_kwargs(require_matplotlib):
     plt.close(ax.figure)
 
 
+def test_plot_simploid_2d_surface_kwargs_override_defaults(require_matplotlib):
+    """PolyCollection options such as facecolor / edgecolor can be passed through **kwargs."""
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import to_rgba
+
+    model = BezierSimploid.randn((1, 1), 2, 2)
+    ax = plot_bezier_simploid(model, num=4, facecolor="y", edgecolor="k", show_control_points=False)
+    (poly,) = _collections(ax, "PolyCollection")
+    assert tuple(poly.get_facecolor()[0][:3]) == to_rgba("y")[:3]
+    assert tuple(poly.get_edgecolor()[0][:3]) == to_rgba("k")[:3]
+    plt.close(ax.figure)
+
+
 @pytest.mark.parametrize("n_values", [0, 1, 4])
 def test_plot_simploid_invalid_n_values(n_values):
     with pytest.raises(ValueError, match="n_values of 2 or 3"):

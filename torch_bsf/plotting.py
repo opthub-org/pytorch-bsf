@@ -527,7 +527,8 @@ def _draw_cell(ax, xs: np.ndarray, coords: np.ndarray, num: int, is_triangle: bo
     else:
         from matplotlib.collections import PolyCollection
 
-        ax.add_collection(PolyCollection(xs[triangles], facecolor=color, edgecolor="none", **surface_kwargs))
+        poly_kwargs = {"facecolor": color, "edgecolor": "none", **surface_kwargs}
+        ax.add_collection(PolyCollection(xs[triangles], **poly_kwargs))
     _add_segments(ax, xs, _boundary_edges(triangles), colors=[color], linewidths=1.0)
 
 
