@@ -400,6 +400,190 @@ def test_simploid_repr():
 
 
 # ---------------------------------------------------------------------------
+# Homology
+# ---------------------------------------------------------------------------
+
+
+def _circle() -> SimploidalSet:
+    S = SimploidalSet()
+    edge = S.add_simplex(1)
+    S.identify(edge.face(0, 0), edge.face(0, 1))
+    return S
+
+
+def _torus() -> SimploidalSet:
+    S = SimploidalSet()
+    square = S.add_simploid((1, 1))
+    S.identify(square.face(0, 0), square.face(0, 1))
+    S.identify(square.face(1, 0), square.face(1, 1))
+    return S
+
+
+def _figure_1c() -> SimploidalSet:
+    S = SimploidalSet()
+    tetra = S.add_simplex(3)
+    prism = S.add_simploid((2, 1))
+    cube = S.add_simploid((1, 1, 1))
+    S.identify(tetra.face(0, 0), prism.face(1, 0))
+    S.identify(prism.face(0, 0), cube.face(0, 0))
+    return S
+
+
+def _coned_torus() -> SimploidalSet:
+    S = _torus()
+    S.cone()
+    return S
+
+
+def _pyramid() -> SimploidalSet:
+    S = SimploidalSet()
+    square = S.add_simploid((1, 1))
+    S.cone([square])
+    return S
+
+
+def _degenerate_square() -> SimploidalSet:
+    S = SimploidalSet()
+    square = S.add_simploid((1, 1))
+    edge = square.face(0, 0)
+    S.degenerate(edge, edge.face(0, 0), 0, -1)
+    return S
+
+
+def _degenerate_sphere() -> SimploidalSet:
+    """A square whose two edges face(1, *) are collapsed into vertices and whose two other edges are identified."""
+    S = SimploidalSet()
+    square = S.add_simploid((1, 1))
+    for j in range(2):
+        edge = square.face(1, j)
+        S.degenerate(edge, edge.face(0, 0), 0, -1)
+    S.identify(square.face(0, 0), square.face(0, 1))
+    return S
+
+
+def _two_triangles(pairs) -> SimploidalSet:
+    """Two triangles whose edges ``(triangle, j)`` are identified in pairs."""
+    S = SimploidalSet()
+    triangles = [S.add_simplex(2), S.add_simplex(2)]
+    for (t, j), (u, k) in pairs:
+        S.identify(triangles[t].face(0, j), triangles[u].face(0, k))
+    return S
+
+
+def _product(A: SimploidalSet, B: SimploidalSet) -> SimploidalSet:
+    return A.product(B)[0]
+
+
+def _single(simploid_type) -> SimploidalSet:
+    S = SimploidalSet()
+    S.add_simploid(simploid_type)
+    return S
+
+
+def _two_edges() -> SimploidalSet:
+    S = SimploidalSet()
+    S.add_simplex(1)
+    S.add_simplex(1)
+    return S
+
+
+# (name, builder, Betti numbers over Q, Betti numbers over Z/2)
+HOMOLOGY_CASES = [
+    ("empty", SimploidalSet, [], []),
+    ("vertex", lambda: _single(()), [1], [1]),
+    ("two edges", _two_edges, [2, 0], [2, 0]),
+    ("edge", lambda: _single((1,)), [1, 0], [1, 0]),
+    ("tetrahedron", lambda: _single((3,)), [1, 0, 0, 0], [1, 0, 0, 0]),
+    ("prism", lambda: _single((2, 1)), [1, 0, 0, 0], [1, 0, 0, 0]),
+    ("cube", lambda: _single((1, 1, 1)), [1, 0, 0, 0], [1, 0, 0, 0]),
+    ("simploid (2, 2)", lambda: _single((2, 2)), [1, 0, 0, 0, 0], [1, 0, 0, 0, 0]),
+    ("circle", _circle, [1, 1], [1, 1]),
+    ("torus", _torus, [1, 2, 1], [1, 2, 1]),
+    ("product torus", lambda: _product(_circle(), _circle()), [1, 2, 1], [1, 2, 1]),
+    ("solid torus", lambda: _product(_circle(), _single((2,))), [1, 1, 0, 0], [1, 1, 0, 0]),
+    ("3-torus", lambda: _product(_torus(), _circle()), [1, 3, 3, 1], [1, 3, 3, 1]),
+    ("figure 1(c)", _figure_1c, [1, 0, 0, 0], [1, 0, 0, 0]),
+    ("pyramid", _pyramid, [1, 0, 0, 0], [1, 0, 0, 0]),
+    ("cone over torus", _coned_torus, [1, 0, 0, 0], [1, 0, 0, 0]),
+    ("degenerate square", _degenerate_square, [1, 0, 0], [1, 0, 0]),
+    ("degenerate sphere", _degenerate_sphere, [1, 0, 1], [1, 0, 1]),
+    ("sphere", lambda: _two_triangles([((0, 0), (1, 0)), ((0, 1), (1, 1)), ((0, 2), (1, 2))]), [1, 0, 1], [1, 0, 1]),
+    ("projective plane", lambda: _two_triangles([((0, 0), (1, 0)), ((0, 1), (1, 2)), ((0, 2), (1, 1))]), [1, 0, 0], [1, 1, 1]),
+    ("Klein bottle", lambda: _two_triangles([((0, 0), (1, 2)), ((0, 1), (1, 0)), ((0, 2), (1, 1))]), [1, 1, 0], [1, 2, 1]),
+]
+
+
+@pytest.mark.parametrize("name, build, betti_q, betti_z2", HOMOLOGY_CASES, ids=[c[0] for c in HOMOLOGY_CASES])
+def test_boundary_of_boundary_is_zero(name, build, betti_q, betti_z2):
+    S = build()
+    S.check()
+    for k in range(S.dim + 2):
+        d = S.boundary_matrix(k)
+        assert d.dtype == torch.long
+        assert d.shape == (len(S.simploids(k - 1)), len(S.simploids(k)))
+        if k >= 1:
+            assert (S.boundary_matrix(k - 1) @ d == 0).all()
+
+
+@pytest.mark.parametrize("name, build, betti_q, betti_z2", HOMOLOGY_CASES, ids=[c[0] for c in HOMOLOGY_CASES])
+def test_betti_numbers(name, build, betti_q, betti_z2):
+    S = build()
+    assert S.betti_numbers() == betti_q
+    assert S.betti_numbers("Q") == betti_q
+    assert S.betti_numbers("Z2") == betti_z2
+    # The Euler characteristic does not depend on the coefficients.
+    chi = sum((-1) ** k * len(S.simploids(k)) for k in range(S.dim + 1))
+    assert sum((-1) ** k * b for k, b in enumerate(betti_q)) == chi
+
+
+def test_boundary_matrix_signs():
+    S = SimploidalSet()
+    tri = S.add_simplex(2)
+    d = S.boundary_matrix(2)
+    rows = S.simploids(1)
+    assert d[:, 0].tolist() == [{tri.face(0, j): (-1) ** j for j in range(3)}[e] for e in rows]
+    # Koszul sign: faces of the second factor of a prism get the sign (-1)^(a_1 + j).
+    S = SimploidalSet()
+    prism = S.add_simploid((2, 1))
+    d = S.boundary_matrix(3)
+    rows = S.simploids(2)
+    expected = {prism.face(0, j): (-1) ** j for j in range(3)}
+    expected.update({prism.face(1, j): (-1) ** (2 + j) for j in range(2)})
+    assert d[:, 0].tolist() == [expected[f] for f in rows]
+
+
+def test_boundary_matrix_drops_degenerate_faces():
+    S = _pyramid()
+    pyramid = S.simploids(3)[0]
+    apex_face = pyramid.face(2, 0)
+    assert apex_face.is_degenerate
+    d = S.boundary_matrix(3)
+    assert int(d.abs().sum()) == 4 + 1  # four side faces and the base; the apex face is dropped
+
+
+def test_homology_errors():
+    S = _torus()
+    with pytest.raises(ValueError):
+        S.boundary_matrix(-1)
+    with pytest.raises(ValueError):
+        S.betti_numbers("Z")  # type: ignore[arg-type]
+    edge = S.simploids(1)[0]
+    edge._faces[(0, 0)] = Simploid(())  # a face outside the set
+    with pytest.raises(ValueError):
+        S.boundary_matrix(1)
+
+
+def test_rank_is_exact():
+    from torch_bsf.simploidal import _rank
+
+    m = torch.tensor([[2, 4, 6], [1, 2, 3], [0, 0, 0], [3, 1, 2]])
+    assert _rank(m, None) == 2
+    assert _rank(m, 2) == 2
+    assert _rank(torch.tensor([[2, 0], [0, 2]]), 2) == 0
+    assert _rank(torch.zeros(0, 3, dtype=torch.long), None) == 0
+
+
+# ---------------------------------------------------------------------------
 # SimploidalBezierSpace
 # ---------------------------------------------------------------------------
 

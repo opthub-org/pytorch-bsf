@@ -152,6 +152,69 @@ and a cube connected by a prism, and adds a pyramid on top of the cube:
    [(3,), (2, 1), (1, 1, 1), (1, 1, 1)]
    True True
 
+Homology
+--------
+
+The topology of a simploidal set can be checked after it is built by
+computing its homology (Section 4.4 of :cite:t:`peltier2018simploidal`).  The
+chain group :math:`C_k` is spanned by the **non-degenerate** simploids of
+dimension :math:`k`, and the boundary of a simploid :math:`\sigma` of type
+:math:`(a_1, \ldots, a_n)` follows the sign rule of a product of simplices:
+
+.. math::
+
+   \partial \sigma = \sum_{i=1}^n \sum_{j=0}^{a_i} (-1)^{a_1 + \cdots + a_{i-1} + j} d^i_j \sigma,
+
+where the terms whose face :math:`d^i_j \sigma` is degenerate are dropped.
+
+* :meth:`~torch_bsf.simploidal.SimploidalSet.boundary_matrix` returns the
+  integer matrix of :math:`\partial_k`, with rows ``simploids(k - 1)`` and
+  columns ``simploids(k)``; it satisfies
+  ``boundary_matrix(k) @ boundary_matrix(k + 1) == 0``.
+* :meth:`~torch_bsf.simploidal.SimploidalSet.betti_numbers` returns the Betti
+  numbers :math:`\beta_0, \ldots, \beta_{\dim}`, the ranks of the homology
+  groups.  The ranks are computed exactly by integer elimination, over the
+  rationals (``field="Q"``, default) or over :math:`\mathbb Z / 2`
+  (``field="Z2"``); the two differ only for spaces whose integral homology has
+  torsion, such as non-orientable surfaces.
+
+.. testcode::
+   :pyversion: >= 3.10, < 3.15
+
+   from torch_bsf.simploidal import SimploidalSet
+
+   # A torus: a square whose opposite edges are identified
+   torus = SimploidalSet()
+   square = torus.add_simploid((1, 1))
+   torus.identify(square.face(0, 0), square.face(0, 1))
+   torus.identify(square.face(1, 0), square.face(1, 1))
+   print(torus.betti_numbers())
+
+   # A sphere: a square whose two edges face(1, *) are collapsed into
+   # vertices and whose two other edges are identified
+   sphere = SimploidalSet()
+   square = sphere.add_simploid((1, 1))
+   for j in range(2):
+       edge = square.face(1, j)
+       sphere.degenerate(edge, edge.face(0, 0), 0, -1)
+   sphere.identify(square.face(0, 0), square.face(0, 1))
+   print(sphere.betti_numbers())
+
+   # A projective plane: two triangles glued along their edges
+   rp2 = SimploidalSet()
+   t1, t2 = rp2.add_simplex(2), rp2.add_simplex(2)
+   rp2.identify(t1.face(0, 0), t2.face(0, 0))
+   rp2.identify(t1.face(0, 1), t2.face(0, 2))
+   rp2.identify(t1.face(0, 2), t2.face(0, 1))
+   print(rp2.betti_numbers(), rp2.betti_numbers(field="Z2"))
+
+.. testoutput::
+   :pyversion: >= 3.10, < 3.15
+
+   [1, 2, 1]
+   [1, 0, 1]
+   [1, 0, 0] [1, 1, 1]
+
 Simploidal Bézier spaces
 ------------------------
 

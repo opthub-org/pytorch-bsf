@@ -58,6 +58,7 @@ Glue a triangle and a square along an edge and fit the resulting space:
 from functools import lru_cache
 from itertools import combinations
 from itertools import product as iproduct
+from math import gcd
 from typing import Any, Iterator, Literal, Mapping, Sequence, TypeAlias, cast
 
 import lightning.pytorch as L
@@ -853,6 +854,139 @@ class SimploidalSet:
                 if f._type != _face_type(s._type, i):
                     raise ValueError(f"Face ({i}, {j}) of {s!r} has a wrong type {f._type}.")
             _check_commutation(s)
+
+    def boundary_matrix(self, dim: int) -> torch.Tensor:
+        r"""The matrix of the boundary operator :math:`\partial_{\mathrm{dim}}` of the normalized chain complex.
+
+        Following Section 4.4 of :cite:t:`peltier2018simploidal`, the chain
+        group :math:`C_k` is spanned by the non-degenerate simploids of
+        dimension :math:`k`, and the boundary of a simploid :math:`\sigma` of
+        type :math:`(a_1, \ldots, a_n)` is
+
+        .. math::
+
+           \partial \sigma = \sum_{i=1}^n \sum_{j=0}^{a_i} (-1)^{a_1 + \cdots + a_{i-1} + j} d^i_j \sigma,
+
+        the Koszul sign rule for the product :math:`\Delta^{a_1} \times \cdots \times \Delta^{a_n}`,
+        where the terms whose face :math:`d^i_j \sigma` is degenerate are dropped.
+
+        Parameters
+        ----------
+        dim
+            The dimension :math:`k \ge 0` of the simploids whose boundary is taken.
+
+        Returns
+        -------
+        An integer (``torch.long``) matrix of shape ``(len(simploids(dim - 1)), len(simploids(dim)))``:
+        column ``c`` holds the boundary of ``simploids(dim)[c]`` in the basis ``simploids(dim - 1)``.
+        ``boundary_matrix(0)`` has no rows.
+
+        Raises
+        ------
+        ValueError
+            If ``dim`` is negative or a face does not belong to this set.
+
+        Examples
+        --------
+        >>> from torch_bsf.simploidal import SimploidalSet
+        >>> S = SimploidalSet()
+        >>> square = S.add_simploid((1, 1))
+        >>> [[key for key, f in square.faces() if f is e] for e in S.simploids(1)]
+        [[(0, 1)], [(0, 0)], [(1, 1)], [(1, 0)]]
+        >>> S.boundary_matrix(2)
+        tensor([[-1],
+                [ 1],
+                [ 1],
+                [-1]])
+        >>> bool((S.boundary_matrix(1) @ S.boundary_matrix(2) == 0).all())
+        True
+        """
+        if dim < 0:
+            raise ValueError(f"dim must be non-negative, but {dim} is given.")
+        rows = {s: r for r, s in enumerate(self.simploids(dim - 1))}
+        columns = self.simploids(dim)
+        matrix = torch.zeros(len(rows), len(columns), dtype=torch.long)
+        for c, s in enumerate(columns):
+            for (i, j), f in s.faces():
+                if f.is_degenerate:
+                    continue
+                if f not in rows:
+                    raise ValueError(f"Face ({i}, {j}) of {s!r} does not belong to this simploidal set.")
+                matrix[rows[f], c] += (-1) ** (sum(s.simploid_type[:i]) + j)
+        return matrix
+
+    def betti_numbers(self, field: Literal["Q", "Z2"] = "Q") -> list[int]:
+        r"""The Betti numbers :math:`\beta_0, \ldots, \beta_{\mathrm{dim}}` of the simploidal set.
+
+        They are the dimensions of the homology groups of the normalized chain
+        complex (see :meth:`boundary_matrix`),
+        :math:`\beta_k = \dim C_k - \operatorname{rank} \partial_k - \operatorname{rank} \partial_{k+1}`.
+        The ranks are computed exactly by integer Gaussian elimination, so the
+        result does not depend on a floating-point tolerance.
+
+        Parameters
+        ----------
+        field
+            The coefficient field: ``"Q"`` (rational numbers) or ``"Z2"``
+            (integers modulo 2).  They differ only when the integral homology has
+            torsion, e.g., for non-orientable spaces.
+
+        Returns
+        -------
+        The Betti numbers, one per dimension from ``0`` to :attr:`dim` (empty if the set is empty).
+
+        Raises
+        ------
+        ValueError
+            If ``field`` is neither ``"Q"`` nor ``"Z2"``.
+
+        Examples
+        --------
+        A torus, a square whose opposite edges are identified:
+
+        >>> from torch_bsf.simploidal import SimploidalSet
+        >>> S = SimploidalSet()
+        >>> square = S.add_simploid((1, 1))
+        >>> _ = S.identify(square.face(0, 0), square.face(0, 1))
+        >>> _ = S.identify(square.face(1, 0), square.face(1, 1))
+        >>> S.betti_numbers()
+        [1, 2, 1]
+        """
+        if field not in ("Q", "Z2"):
+            raise ValueError(f'field must be "Q" or "Z2", but {field!r} is given.')
+        modulus = 2 if field == "Z2" else None
+        ranks = [_rank(self.boundary_matrix(k), modulus) for k in range(self.dim + 2)]
+        return [len(self.simploids(k)) - ranks[k] - ranks[k + 1] for k in range(self.dim + 1)]
+
+
+def _rank(matrix: torch.Tensor, modulus: int | None) -> int:
+    """The exact rank of an integer matrix over the rationals (``modulus=None``) or over the integers modulo a prime."""
+    rows = [_reduce(r, modulus) for r in cast(list[list[int]], matrix.tolist())]
+    rows = [r for r in rows if any(r)]
+    rank = 0
+    while rows:
+        pivot = rows.pop()
+        c = next(k for k, x in enumerate(pivot) if x)
+        rows = [_eliminate(r, pivot, c, modulus) for r in rows]
+        rows = [r for r in rows if any(r)]
+        rank += 1
+    return rank
+
+
+def _eliminate(row: list[int], pivot: list[int], c: int, modulus: int | None) -> list[int]:
+    """Cancels the entry of ``row`` in column ``c`` with ``pivot``, whose entry there is nonzero."""
+    if not row[c]:
+        return row
+    p, q = pivot[c], row[c]
+    return _reduce([p * x - q * y for x, y in zip(row, pivot)], modulus)
+
+
+def _reduce(row: list[int], modulus: int | None) -> list[int]:
+    """Reduces a row modulo ``modulus``, or divides it by the gcd of its entries if ``modulus`` is ``None``."""
+    if modulus is not None:
+        return [x % modulus for x in row]
+    g = gcd(*row)
+    return [x // g for x in row] if g > 1 else row
 
 
 def _resolve(x: Simploid, final: dict[Simploid, Simploid]) -> Simploid:
