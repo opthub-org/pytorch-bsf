@@ -67,6 +67,90 @@ multiplied with another one (the Minkowski sum of the control points):
    pyramid_like = bs.degenerate(1, -1)  # insert a degenerate edge: type (2, 1, 1)
    product = bs.product(other)     # type (2, 1) + type of other
 
+Saving, loading and the command line
+------------------------------------
+
+:func:`~torch_bsf.simploidal.save` writes the control points of a Bézier
+simploid to a ``.csv``, ``.tsv``, ``.json``, ``.yml``/``.yaml`` or ``.pt``
+file, and :func:`~torch_bsf.simploidal.load` reads them back:
+
+.. testcode::
+   :pyversion: >= 3.10, < 3.15
+
+   import tempfile
+   from pathlib import Path
+
+   from torch_bsf.simploidal import load, save
+
+   with tempfile.TemporaryDirectory() as d:
+       save(Path(d) / "prism.csv", bs)
+       loaded = load(Path(d) / "prism.csv")
+   print(loaded.simploid_type, loaded.degree)
+   print(torch.allclose(loaded(t), bs(t), atol=1e-5))
+
+.. testoutput::
+   :pyversion: >= 3.10, < 3.15
+
+   (2, 1) (2, 2)
+   True
+
+As for Bézier simplices (see :doc:`initialization`), the text formats map each
+index to its control point, but an index is now a tuple of multi-indices
+:math:`(\boldsymbol\alpha^1, \ldots, \boldsymbol\alpha^n)`, one per factor:
+
+.. code-block::
+
+   "((2, 0, 0), (2, 0))",0.0,0.1
+   "((2, 0, 0), (1, 1))",1.0,1.1
+   ...
+
+The simploid type :math:`(a_1, \ldots, a_n)` and the degree are not stored
+separately; :func:`~torch_bsf.simploidal.load` infers them from the lengths
+and the sums of the multi-indices, and checks that every control point is
+present exactly once.  A ``.pt`` file holds a dictionary of the type, the
+degree and the control point tensor (and keeps its dtype), which is loaded
+with ``torch.load(..., weights_only=True)``.
+
+The command line interface fits a Bézier simploid instead of a Bézier simplex
+when ``--simploid-type`` is given.  The parameters file must then have
+:math:`\sum_i (a_i + 1)` columns, the barycentric coordinates of the factors
+side by side:
+
+.. code-block:: bash
+
+   python -m torch_bsf \
+     --params=params.csv \
+     --values=values.csv \
+     --simploid-type=2,1 \
+     --degree=2
+
+This calls :func:`~torch_bsf.simploidal.fit_simploid`, saves the control points
+to ``params.csv,values.csv,control_points,t_2-1,d_2.csv`` (choose another path
+and format with ``--save=model.json``) and the predictions on ``--meshgrid``
+(default: the parameters) to ``params.csv,values.csv,meshgrid,t_2-1,d_2.csv``.
+The simploid-specific options are:
+
+* ``--simploid-type=A1,...,An`` — the type; ``--degree`` applies to every factor;
+* ``--solver={lstsq,trainer}`` — solve the least-squares problem exactly
+  (default) or train with the Lightning trainer options (``--max_epochs``,
+  ``--batch_size``, ``--accelerator``, ...);
+* ``--ridge=W`` — the ridge penalty of the ``lstsq`` solver (default: 0);
+* ``--save=FILE`` — where to save the control points.
+
+``--normalize`` is applied during fitting and undone on the saved control
+points, so the saved model predicts values in the original scale.  ``--init``,
+``--freeze``, ``--smoothness_weight`` and ``--split_ratio`` apply to Bézier
+simplices only.  The same is available as the ``simploid`` entry point of the
+MLflow project:
+
+.. code-block:: bash
+
+   mlflow run https://github.com/opthub-org/pytorch-bsf -e simploid \
+     -P params=params.csv \
+     -P values=values.csv \
+     -P simploid_type=2,1 \
+     -P degree=2
+
 Simploidal sets
 ---------------
 
