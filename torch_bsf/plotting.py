@@ -536,7 +536,13 @@ def _draw_cell(ax, xs: np.ndarray, coords: np.ndarray, num: int, is_triangle: bo
     triangles = _cell_triangles(coords, num, is_triangle)
     surface_kwargs = {"alpha": 0.4, **kwargs}
     if xs.shape[1] == 3:
-        ax.plot_trisurf(xs[:, 0], xs[:, 1], xs[:, 2], triangles=triangles, color=color, **surface_kwargs)
+        # plot_trisurf passes its ``color`` to Poly3DCollection as ``facecolors``,
+        # so a face color given under any alias becomes ``color`` instead.
+        surface_color = color
+        for alias in ("facecolor", "facecolors", "fc"):
+            if alias in surface_kwargs:
+                surface_color = surface_kwargs.pop(alias)
+        ax.plot_trisurf(xs[:, 0], xs[:, 1], xs[:, 2], triangles=triangles, color=surface_color, **surface_kwargs)
     else:
         from matplotlib.collections import PolyCollection
 
