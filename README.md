@@ -1,8 +1,8 @@
 # PyTorch-BSF
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/_static/logo-dark.svg">
-  <img src="docs/_static/logo.svg" width="448" alt="PyTorch-BSF — Bézier Simploid Fitting">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/opthub-org/pytorch-bsf/master/docs/_static/logo-dark.svg">
+  <img src="https://raw.githubusercontent.com/opthub-org/pytorch-bsf/master/docs/_static/logo.svg" width="448" alt="PyTorch-BSF — Bézier Simploid Fitting">
 </picture>
 
 [![CodeQL](https://github.com/opthub-org/pytorch-bsf/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/opthub-org/pytorch-bsf/actions/workflows/codeql-analysis.yml)
