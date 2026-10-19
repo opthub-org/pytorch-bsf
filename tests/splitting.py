@@ -487,12 +487,18 @@ def test_split_by_criterion_max_error():
     assert bs_B.degree == bs.degree
 
 
-def test_splitting_module_public_api():
-    import torch_bsf.splitting as splitting
+# ---------------------------------------------------------------------------
+# Public exports
+# ---------------------------------------------------------------------------
 
-    assert hasattr(splitting, "split")
-    assert hasattr(splitting, "reparametrize")
-    assert hasattr(splitting, "SplitCriterion")
-    assert hasattr(splitting, "longest_edge_criterion")
-    assert hasattr(splitting, "max_error_criterion")
-    assert hasattr(splitting, "split_by_criterion")
+
+def test_public_api_accessible_from_top_level():
+    """Splitting symbols are accessible from the torch_bsf package."""
+    import torch_bsf
+
+    assert hasattr(torch_bsf, "split")
+    assert hasattr(torch_bsf, "reparametrize")
+    assert hasattr(torch_bsf, "longest_edge_criterion")
+    assert hasattr(torch_bsf, "max_error_criterion")
+    assert hasattr(torch_bsf, "split_by_criterion")
+    assert hasattr(torch_bsf, "SplitCriterion")

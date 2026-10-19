@@ -42,6 +42,7 @@ extensions = [
     "sphinx.ext.linkcode",
     "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
+    "sphinx_design",
     "sphinx_rtd_theme",
     "sphinx_multiversion",
     "sphinx_proof",
@@ -114,6 +115,10 @@ html_theme = "sphinx_rtd_theme"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+
+# The RTD sidebar has a colored background; use the reversed compact wordmark.
+html_logo = "_static/logo-compact-white.svg"
+html_favicon = "_static/favicon.ico"
 
 
 # -- Options for sphinx-multiversion -----------------------------------------

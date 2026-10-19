@@ -1,5 +1,10 @@
 # PyTorch-BSF
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/opthub-org/pytorch-bsf/master/docs/_static/logo-dark.svg">
+  <img src="https://raw.githubusercontent.com/opthub-org/pytorch-bsf/master/docs/_static/logo.svg" width="448" alt="PyTorch-BSF — Bézier Simploid Fitting">
+</picture>
+
 [![CodeQL](https://github.com/opthub-org/pytorch-bsf/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/opthub-org/pytorch-bsf/actions/workflows/codeql-analysis.yml)
 [![PyTest](https://github.com/opthub-org/pytorch-bsf/actions/workflows/python-package.yml/badge.svg)](https://github.com/opthub-org/pytorch-bsf/actions/workflows/python-package.yml)
 [![Release](https://github.com/opthub-org/pytorch-bsf/actions/workflows/release-please-action.yml/badge.svg)](https://github.com/opthub-org/pytorch-bsf/actions/workflows/release-please-action.yml)
@@ -10,7 +15,7 @@
 
 **Fit smooth, high-dimensional manifolds to your data — from a single GPU to a multi-node cluster.**
 
-`pytorch-bsf` brings Bézier simplex fitting to PyTorch. A Bézier simplex is a high-dimensional generalization of the Bézier curve: where a curve models a 1-D path, a Bézier simplex can model an arbitrarily complex point cloud as a smooth parametric hyper-surface in any number of dimensions. This makes it a natural tool for representing **Pareto fronts** in multi-objective optimization, interpolating scattered observations, and fitting geometric structures in high-dimensional spaces.
+`pytorch-bsf` brings **B**ézier **S**imploid **F**itting (BSF) to PyTorch. A Bézier simplex is a high-dimensional generalization of the Bézier curve: where a curve models a 1-D path, a Bézier simplex can model an arbitrarily complex point cloud as a smooth parametric hyper-surface in any number of dimensions. Bézier simploids go further: they are tensor products of Bézier simplices defined on products of simplices such as prisms and cubes, and simploidal sets glue such cells along common faces. This makes them a natural tool for representing **Pareto fronts** in multi-objective optimization, interpolating scattered observations, and fitting geometric structures in high-dimensional spaces.
 
 Key features:
 
@@ -18,9 +23,12 @@ Key features:
 - **Scalable Training** — fully vectorized `forward` pass backed by [PyTorch Lightning](https://www.pytorchlightning.ai/) for seamless scaling from a single CPU to multi-GPU, multi-node clusters.
 - **Robust & Automatic Fitting** — built-in smoothness regularization tames noisy data, and automatic degree selection via k-fold cross-validation removes guesswork.
 - **Rich ML Ecosystem** — scikit-learn-compatible `BezierSimplexRegressor` for use in `Pipeline` and `GridSearchCV`; [MLflow](https://mlflow.org/) experiment tracking; active learning; and advanced sampling strategies (Dirichlet, Sobol).
+- **Beyond Simplices** — `torch_bsf.simploidal` fits Bézier simploids and simploidal sets when a single simplex is not the right parameter domain.
 - **Ready to Run** — CLI entry points, a pre-built Docker image, and a Conda/MLflow project so you can run `pytorch-bsf` without installing it into your local environment.
 
 <img src="https://opthub-org.github.io/pytorch-bsf/master/_images/bezier-simplex.png" width="49%" alt="A Bézier simplex and its control points"><img src="https://opthub-org.github.io/pytorch-bsf/master/_images/bezier-simplex-fitting.png" width="49%" alt="A Bézier simplex that fits to a dataset">
+
+> BSF formerly stood for *Bézier Simplex Fitting*, which remains the special case where the parameter domain is a single simplex.
 
 See [Full Documentation](https://opthub-org.github.io/pytorch-bsf/) and the following papers for technical details.
 
@@ -124,6 +132,10 @@ python -m torch_bsf \
 | loglevel             | int $(0 \le x \le 2)$                                        | `2`          | What objects to be logged. `0`: nothing; `1`: metrics; `2`: metrics and models.                                                                                                                                                                                                                                                                                                                                                                   |
 | enable_checkpointing | flag                                                         | `False`      | With this flag, model files will be stored every epoch during training.                                                                                                                                                                                                                                                                                                                                                                           |
 | log_every_n_steps    | int $(x \ge 1)$                                              | `1`          | The interval of training steps when training loss is logged.                                                                                                                                                                                                                                                                                                                                                                                      |
+| simploid-type        | comma-separated ints $(a_i \ge 1)$                           | `None`       | Fit a Bézier simploid of type $(a_1, \ldots, a_n)$, i.e., a tensor product of Bézier simplices, instead of a Bézier simplex (e.g., `2,1` for a prism). The `params` file must have $\sum_i (a_i + 1)$ columns. `--degree` applies to every factor; `--init`, `--freeze`, `--smoothness_weight` and `--split_ratio` are not supported. MLflow: use the `simploid` entry point (`-e simploid -P simploid_type=2,1`). See [Simploidal Sets](https://opthub-org.github.io/pytorch-bsf/master/advanced/simploidal.html). |
+| solver               | `"lstsq"`, `"trainer"`                                       | `"lstsq"`    | How to fit a Bézier simploid: `"lstsq"` solves the least-squares problem exactly; `"trainer"` trains with the trainer options above. Requires `--simploid-type`.                                                                                                                                                                                                                                                                                  |
+| ridge                | float $(x \ge 0)$                                            | `0.0`        | The ridge penalty weight of the `"lstsq"` solver. Requires `--simploid-type`.                                                                                                                                                                                                                                                                                                                                                                    |
+| save                 | path                                                         | see desc.    | The file to save the control points of the fitted Bézier simploid to (`.csv`, `.tsv`, `.json`, `.yml`, `.yaml` or `.pt`). Defaults to `<params>,<values>,control_points,t_<a_1-...-a_n>,d_<degree>.csv`. Requires `--simploid-type`.                                                                                                                                                                                                         |
 
 </details>
 

@@ -15,6 +15,28 @@ entry_points:
       --meshgrid={meshgrid}
       --degree={degree}
       --smoothness_weight={smoothness_weight}
+  simploid:
+    parameters:
+      params: {type: path}
+      values: {type: path}
+      meshgrid: {type: path, default: "."}
+      simploid_type: {type: str}
+      degree: {type: int}
+      solver: {type: str, default: "lstsq"}
+      ridge: {type: float, default: 0.0}
+      normalize: {type: str, default: "none"}
+      max_epochs: {type: int, default: 2}
+    command: >-
+      python -m torch_bsf
+      --params={params}
+      --values={values}
+      --meshgrid={meshgrid}
+      --simploid-type={simploid_type}
+      --degree={degree}
+      --solver={solver}
+      --ridge={ridge}
+      --normalize={normalize}
+      --max_epochs={max_epochs}
   kfold:
     parameters:
       params: {type: path}

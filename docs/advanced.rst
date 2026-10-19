@@ -19,3 +19,5 @@ These features are useful for improving fitting accuracy through data normalizat
    advanced/sampling
    advanced/acceleration
    advanced/active_learning
+   advanced/simploidal
+   advanced/simploidal_category

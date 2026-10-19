@@ -1,0 +1,108 @@
+name: Feature / improvement
+description: New feature, API change, refactoring, tests, performance, CI or tooling
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Write this issue so that a developer (or an AI agent) can implement it and open a PR **without asking for more context**.
+        Project-wide checks (pytest, flake8, mypy, doctest, docs build) and doc/docstring updates for public API changes are always required; list only issue-specific items below.
+
+  - type: dropdown
+    id: change-type
+    attributes:
+      label: Change type
+      description: Used for the branch name (`<type>/<issue>-<desc>`) and the Conventional Commits type.
+      options:
+        - feat
+        - refactor
+        - perf
+        - test
+        - ci
+        - chore
+        - deps
+    validations:
+      required: true
+
+  - type: textarea
+    id: background
+    attributes:
+      label: Background / problem
+      description: Why this is needed. What is inconvenient, wrong or missing today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: What to build or change. Be concrete about behavior; an API sketch helps.
+      placeholder: |
+        Unify the signatures of `torch_bsf.fit()` and `torch_bsf.fit_kfold()`:
+
+        ```python
+        def fit_kfold(params, values, degree, *, n_splits=5, ...) -> EnsembleModel: ...
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Modules, files, APIs or docs pages expected to change, and what is explicitly **out of scope**.
+      placeholder: |
+        In scope:
+        - `torch_bsf/model_selection/kfold.py`
+        - `docs/advanced/...`
+
+        Out of scope:
+        - CLI options
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Verifiable conditions that mean this issue is done (behavior, tests, docs).
+      value: |
+        - [ ]
+        - [ ] Tests covering the new behavior are added under `tests/`
+    validations:
+      required: true
+
+  - type: dropdown
+    id: compatibility
+    attributes:
+      label: Backward compatibility
+      options:
+        - Must keep backward compatibility
+        - Breaking change allowed, with deprecation warning
+        - Breaking change allowed, no deprecation needed
+        - Not applicable (no public API change)
+      default: 0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: autonomy
+    attributes:
+      label: Undecided design points
+      description: How should the implementer handle design decisions not covered by this issue?
+      options:
+        - Decide and explain the choice in the PR description
+        - Ask in this issue before implementing
+      default: 0
+    validations:
+      required: true
+
+  - type: textarea
+    id: related
+    attributes:
+      label: Related issues / PRs
+      placeholder: "#123, #456"
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes for the implementer
+      description: References (papers, URLs), constraints, things not to touch, or open questions.

@@ -1,9 +1,9 @@
 """Tests for torch_bsf.__main__ (the CLI entry point)."""
 
+import os
 import subprocess
 import sys
 from pathlib import Path
-import os
 
 import pytest
 
@@ -22,6 +22,8 @@ def _run_cli(*args, cwd=None):
     # Remove any external MLflow credentials to keep tests hermetic
     for var in ("MLFLOW_TRACKING_USERNAME", "MLFLOW_TRACKING_PASSWORD", "MLFLOW_TRACKING_TOKEN"):
         env.pop(var, None)
+    # Test the torch_bsf of this checkout, as the in-process tests do, even when cwd is elsewhere
+    env["PYTHONPATH"] = os.pathsep.join(filter(None, [str(_REPO_ROOT), env.get("PYTHONPATH")]))
     return subprocess.run(
         [sys.executable, "-m", "torch_bsf"] + list(args),
         capture_output=True,
@@ -237,3 +239,261 @@ class TestMainInProcess:
         )
         main()
         assert any(tmp_path.iterdir()), "Expected at least one output file"
+
+
+# ---------------------------------------------------------------------------
+# Bezier simploid fitting (--simploid-type)
+# ---------------------------------------------------------------------------
+
+
+def _write_prism_data(directory: Path, n: int = 60) -> tuple[Path, Path]:
+    """Write samples of a degree-2 function on the prism (simploid type (2, 1)) to CSV files."""
+    import numpy as np
+
+    from torch_bsf.simploidal import sample_simploid
+
+    t = sample_simploid((2, 1), n, seed=0).double().numpy()
+    x = np.concatenate([t[:, :3] * t[:, 3:4], 3.0 + 10.0 * t[:, 4:] ** 2], axis=1)
+    params, values = directory / "prism_params.csv", directory / "prism_values.csv"
+    np.savetxt(params, t, delimiter=",")
+    np.savetxt(values, x, delimiter=",")
+    return params, values
+
+
+def _run_main(monkeypatch, tmp_path, *args):
+    """Run torch_bsf.__main__.main() in-process in ``tmp_path`` with the given arguments."""
+    import mlflow
+
+    from torch_bsf.__main__ import main
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", f"sqlite:///{tmp_path / 'mlflow.db'}")
+    for var in ("MLFLOW_TRACKING_USERNAME", "MLFLOW_TRACKING_PASSWORD", "MLFLOW_TRACKING_TOKEN"):
+        monkeypatch.delenv(var, raising=False)
+    monkeypatch.setattr("sys.argv", ["torch_bsf", *args])
+    try:
+        main()
+    finally:
+        mlflow.end_run()  # do not leak a run started on demand into other tests
+
+
+def test_cli_simploid_fits_and_saves_control_points(tmp_path):
+    """--simploid-type=2,1 --degree=2 should fit a Bezier simploid and save its control points and predictions."""
+    import numpy as np
+    import torch
+
+    import torch_bsf.simploidal as ts
+
+    params, values = _write_prism_data(tmp_path)
+    result = _run_cli(
+        f"--params={params}", f"--values={values}", "--simploid-type=2,1", "--degree=2", "--loglevel=0", cwd=tmp_path
+    )
+    assert result.returncode == 0, result.stderr
+
+    saved = tmp_path / "prism_params.csv,prism_values.csv,control_points,t_2-1,d_2.csv"
+    assert f"Control points saved: {saved.name}" in result.stdout
+    model = ts.load(saved)
+    assert model.simploid_type == (2, 1)
+    assert model.degree == (2, 2)
+    t = torch.from_numpy(np.loadtxt(params, delimiter=",", ndmin=2)).float()
+    x = torch.from_numpy(np.loadtxt(values, delimiter=",", ndmin=2)).float()
+    assert torch.allclose(model(t), x, atol=1e-4)
+
+    meshgrid = np.loadtxt(tmp_path / "prism_params.csv,prism_values.csv,meshgrid,t_2-1,d_2.csv", delimiter=",", ndmin=2)
+    assert np.allclose(meshgrid, model(t).detach().numpy(), atol=1e-5)
+
+
+@pytest.mark.parametrize("suffix", [".csv", ".tsv", ".json", ".yml", ".pt"])
+def test_main_simploid_save_option(tmp_path, monkeypatch, suffix):
+    """--save should choose the path and the format of the saved control points."""
+    import torch
+
+    import torch_bsf.simploidal as ts
+
+    params, values = _write_prism_data(tmp_path)
+    save = tmp_path / f"model{suffix}"
+    _run_main(
+        monkeypatch,
+        tmp_path,
+        f"--params={params}",
+        f"--values={values}",
+        "--simploid_type=(2, 1)",
+        "--degree=2",
+        f"--save={save}",
+        "--loglevel=0",
+    )
+    model = ts.load(save)
+    t = ts.sample_simploid((2, 1), 10, seed=1)
+    x = torch.cat([t[:, :3] * t[:, 3:4], 3.0 + 10.0 * t[:, 4:] ** 2], dim=1)
+    assert torch.allclose(model(t), x, atol=1e-4)
+
+
+@pytest.mark.parametrize("normalize", ["max", "std", "quantile"])
+def test_main_simploid_normalize_predicts_in_original_scale(tmp_path, monkeypatch, normalize):
+    """With --normalize, the saved control points and predictions should be in the original scale."""
+    import numpy as np
+
+    params, values = _write_prism_data(tmp_path)
+    _run_main(
+        monkeypatch,
+        tmp_path,
+        f"--params={params}",
+        f"--values={values}",
+        "--simploid-type=2,1",
+        "--degree=2",
+        f"--normalize={normalize}",
+        "--ridge=1e-9",
+        "--loglevel=0",
+    )
+    meshgrid = np.loadtxt(tmp_path / "prism_params.csv,prism_values.csv,meshgrid,t_2-1,d_2.csv", delimiter=",", ndmin=2)
+    assert np.allclose(meshgrid, np.loadtxt(values, delimiter=",", ndmin=2), atol=1e-3)
+
+
+def test_main_simploid_trainer_solver_with_logging(tmp_path, monkeypatch):
+    """--solver=trainer should train with the Lightning options, and loglevel 2 should log to MLflow."""
+    import torch_bsf.simploidal as ts
+
+    params, values = _write_prism_data(tmp_path)
+    _run_main(
+        monkeypatch,
+        tmp_path,
+        f"--params={params}",
+        f"--values={values}",
+        "--simploid-type=2,1",
+        "--degree=1",
+        "--solver=trainer",
+        "--max_epochs=1",
+        "--accelerator=cpu",
+        "--devices=1",
+        "--loglevel=2",
+    )
+    model = ts.load(tmp_path / "prism_params.csv,prism_values.csv,control_points,t_2-1,d_1.csv")
+    assert model.simploid_type == (2, 1)
+    assert model.degree == (1, 1)
+    assert (tmp_path / "prism_params.csv,prism_values.csv,meshgrid,t_2-1,d_1.csv").exists()
+
+
+def test_main_simploid_lstsq_logs_metrics(tmp_path, monkeypatch):
+    """The lstsq solver should log its parameters and training error to MLflow."""
+    import mlflow
+
+    params, values = _write_prism_data(tmp_path)
+    _run_main(
+        monkeypatch, tmp_path, f"--params={params}", f"--values={values}", "--simploid-type=2,1", "--degree=2", "--loglevel=1"
+    )
+    run = mlflow.last_active_run()
+    assert run is not None
+    assert run.data.params["simploid_type"] == "2,1"
+    assert run.data.params["solver"] == "lstsq"
+    assert run.data.metrics["train_mse"] < 1e-6
+
+
+def test_main_simploid_in_mlflow_project_run(tmp_path, monkeypatch):
+    """Inside an MLflow project run, the parameters the project already logged should be kept."""
+    import mlflow
+
+    params, values = _write_prism_data(tmp_path)
+    mlflow.set_tracking_uri(f"sqlite:///{tmp_path / 'mlflow.db'}")
+    try:
+        with mlflow.start_run() as run:  # what `mlflow run -e simploid -P ridge=0 ...` does
+            mlflow.log_params({"simploid_type": "2, 1", "degree": "2", "ridge": "0"})
+        monkeypatch.setenv("MLFLOW_RUN_ID", run.info.run_id)
+        _run_main(
+            monkeypatch,
+            tmp_path,
+            f"--params={params}",
+            f"--values={values}",
+            "--simploid-type=2, 1",
+            "--degree=2",
+            "--ridge=0",
+            "--loglevel=2",
+        )
+        logged = mlflow.get_run(run.info.run_id).data
+    finally:
+        mlflow.set_tracking_uri(None)
+    assert logged.params == {"simploid_type": "2, 1", "degree": "2", "ridge": "0", "solver": "lstsq"}
+    assert "train_mse" in logged.metrics
+
+
+def test_cli_simploid_help():
+    """--help should document the simploid options."""
+    result = _run_cli("--help")
+    assert result.returncode == 0
+    assert "--simploid-type A1,...,An" in result.stdout
+    assert "--solver {lstsq,trainer}" in result.stdout
+    assert "--ridge W" in result.stdout
+    assert "--save FILE" in result.stdout
+
+
+def test_cli_simploid_error_is_clean(tmp_path):
+    """A column mismatch should be a clean argparse error, not a traceback."""
+    params, values = _write_prism_data(tmp_path)
+    result = _run_cli(
+        f"--params={params}", f"--values={values}", "--simploid-type=1,1", "--degree=2", "--loglevel=0", cwd=tmp_path
+    )
+    assert result.returncode == 2
+    assert "--params has 5 columns, but --simploid-type=1,1 requires sum(Ai + 1) = 4 columns" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+@pytest.mark.parametrize(
+    "args, message",
+    [
+        (["--simploid-type=1,1", "--degree=2"], "--params has 5 columns, but --simploid-type=1,1 requires sum(Ai + 1) = 4"),
+        (["--simploid-type=2,0", "--degree=2"], "invalid simploid type '2,0'"),
+        (["--simploid-type=a", "--degree=2"], "invalid simploid type 'a'"),
+        (["--simploid-type=", "--degree=2"], "invalid simploid type ''"),
+        (["--degree=2", "--solver=lstsq"], "--solver requires --simploid-type"),
+        (["--degree=2", "--ridge=0.1", "--save=x.csv"], "--ridge, --save requires --simploid-type"),
+        (["--simploid-type=2,1", "--init=model.pt"], "--init is not supported with --simploid-type"),
+        (["--simploid-type=2,1", "--degree=2", "--freeze=[[2,0]]"], "--freeze is not supported with --simploid-type"),
+        (["--simploid-type=2,1", "--degree=2", "--smoothness_weight=0.1"], "--smoothness_weight is not supported"),
+        (["--simploid-type=2,1", "--degree=2", "--split_ratio=0.5"], "--split_ratio is not supported"),
+        (["--simploid-type=2,1", "--degree=-1"], "--degree must be non-negative"),
+        (["--simploid-type=2,1", "--degree=2", "--ridge=-1"], "--ridge must be non-negative"),
+        (["--simploid-type=2,1", "--degree=2", "--solver=trainer", "--ridge=0.1"], "--ridge is supported only with"),
+        (["--simploid-type=2,1", "--degree=2", "--meshgrid=MESH"], "--meshgrid has 2 columns, but --simploid-type=2,1"),
+        (["--simploid-type=2,1", "--degree=2", "--values=SHORT"], "--params has 60 rows, but --values has 3 rows"),
+    ],
+)
+def test_main_simploid_errors(tmp_path, monkeypatch, capsys, args, message):
+    """Invalid simploid options and data should exit with a clear argparse error."""
+    import numpy as np
+
+    params, values = _write_prism_data(tmp_path)
+    np.savetxt(tmp_path / "mesh.csv", np.ones((3, 2)), delimiter=",")
+    np.savetxt(tmp_path / "short.csv", np.ones((3, 4)), delimiter=",")
+    args = [a.replace("MESH", str(tmp_path / "mesh.csv")).replace("SHORT", str(tmp_path / "short.csv")) for a in args]
+    if not any(a.startswith("--values=") for a in args):
+        args.append(f"--values={values}")
+    with pytest.raises(SystemExit) as excinfo:
+        _run_main(monkeypatch, tmp_path, f"--params={params}", "--loglevel=0", *args)
+    assert excinfo.value.code == 2
+    assert message in capsys.readouterr().err
+
+
+def test_main_simploid_checks_rows_before_data_module(tmp_path, monkeypatch, capsys):
+    """A row-count mismatch should be reported before BezierSimplexDataModule pairs the rows.
+
+    Some PyTorch versions raise an ``AssertionError`` in ``TensorDataset`` for such data.
+    """
+    import numpy as np
+
+    def data_module(*args, **kwargs):
+        raise AssertionError("Size mismatch between tensors")
+
+    monkeypatch.setattr("torch_bsf.__main__.BezierSimplexDataModule", data_module)
+    params, _ = _write_prism_data(tmp_path)
+    np.savetxt(tmp_path / "short.csv", np.ones((3, 4)), delimiter=",")
+    with pytest.raises(SystemExit) as excinfo:
+        _run_main(
+            monkeypatch,
+            tmp_path,
+            f"--params={params}",
+            f"--values={tmp_path / 'short.csv'}",
+            "--simploid-type=2,1",
+            "--degree=2",
+            "--loglevel=0",
+        )
+    assert excinfo.value.code == 2
+    assert "--params has 60 rows, but --values has 3 rows" in capsys.readouterr().err
