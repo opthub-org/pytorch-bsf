@@ -10,6 +10,7 @@
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
@@ -17,6 +18,7 @@
       <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -168,7 +170,7 @@ python -m torch_bsf –params data.csv –values results.csv –accelerator gpu 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch_bsf</span>
 
 <span class="c1"># Assume ts and xs are your parameter and value tensors</span>
-<span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+<span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">"cuda"</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">"cpu"</span><span class="p">)</span>
 
 <span class="c1"># Move tensors to GPU</span>
 <span class="n">ts</span> <span class="o">=</span> <span class="n">ts</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
@@ -189,9 +191,9 @@ python -m torch_bsf –params data.csv –values results.csv –accelerator gpu 
     <span class="n">params</span><span class="o">=</span><span class="n">ts</span><span class="p">,</span>
     <span class="n">values</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span>
     <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-    <span class="n">accelerator</span><span class="o">=</span><span class="s2">&quot;gpu&quot;</span><span class="p">,</span>
+    <span class="n">accelerator</span><span class="o">=</span><span class="s2">"gpu"</span><span class="p">,</span>
     <span class="n">devices</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-    <span class="n">precision</span><span class="o">=</span><span class="s2">&quot;16-mixed&quot;</span>
+    <span class="n">precision</span><span class="o">=</span><span class="s2">"16-mixed"</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -301,7 +303,7 @@ python -m torch_bsf –params data.csv –values results.csv –accelerator gpu 
         </dl>
         <dl>
             <dt>Branches</dt>
-            <dd><a href="../../docs-and-examples/advanced/acceleration.html">docs-and-examples</a></dd>
+            <dd><a href="../../chore/ai-issue-workflow/advanced/acceleration.html">chore/ai-issue-workflow</a></dd>
         </dl>
     </div>
 </div><script>

@@ -10,6 +10,7 @@
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
@@ -17,6 +18,7 @@
       <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
       <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -266,7 +268,7 @@ which is appropriate when you expect the optimal model to have small
 <span class="c1"># grid.shape == (1240, 3)</span>
 <span class="c1"># Each row is a weight vector (w1, w2, w3) on the 2-simplex.</span>
 
-<span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="s2">&quot;weights.csv&quot;</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%.17e</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="s2">"weights.csv"</span><span class="p">,</span> <span class="n">grid</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">","</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s2">"</span><span class="si">%.17e</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The returned array can be saved to a CSV file and then either (a) loaded back into an
@@ -399,7 +401,7 @@ selection using PyTorch-BSF.</p></li>
         </dl>
         <dl>
             <dt>Branches</dt>
-            <dd><a href="../../docs-and-examples/advanced/grid_sampling.html">docs-and-examples</a></dd>
+            <dd><a href="../../chore/ai-issue-workflow/advanced/grid_sampling.html">chore/ai-issue-workflow</a></dd>
         </dl>
     </div>
 </div><script>

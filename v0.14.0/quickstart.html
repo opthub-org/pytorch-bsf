@@ -10,6 +10,7 @@
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
@@ -17,6 +18,7 @@
       <script src="_static/documentation_options.js?v=ba2e7b09"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -143,19 +145,19 @@ Note the <strong>Run ID</strong> automatically set to the command execution, as 
 <h3>Prediction<a class="headerlink" href="#prediction" title="Link to this heading"></a></h3>
 <p>To make predictions, MLflow may use <code class="docutils literal notranslate"><span class="pre">virtualenv</span></code> and <code class="docutils literal notranslate"><span class="pre">pyenv</span></code> to create an isolated environment for the model. Please ensure it’s available in your system.</p>
 <p>First, find the <strong>Run ID</strong> (e.g., <cite>47a7…</cite>) from the previous training step.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">LATEST_RUN_ID</span><span class="o">=</span><span class="k">$(</span>ls<span class="w"> </span>-td<span class="w"> </span>mlruns/0/*/<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s2">&quot;models&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-1<span class="w"> </span><span class="p">|</span><span class="w"> </span>xargs<span class="w"> </span>basename<span class="k">)</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Tested Run ID: </span><span class="si">${</span><span class="nv">LATEST_RUN_ID</span><span class="si">}</span><span class="s2">&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">LATEST_RUN_ID</span><span class="o">=</span><span class="k">$(</span>ls<span class="w"> </span>-td<span class="w"> </span>mlruns/0/*/<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s2">"models"</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-1<span class="w"> </span><span class="p">|</span><span class="w"> </span>xargs<span class="w"> </span>basename<span class="k">)</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">"Tested Run ID: </span><span class="si">${</span><span class="nv">LATEST_RUN_ID</span><span class="si">}</span><span class="s2">"</span>
 </pre></div>
 </div>
 <p>Next, you can predict with the model and output the results to a specified file (in this example, <cite>test_values.json</cite>).</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mlflow<span class="w"> </span>models<span class="w"> </span>predict<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--env-manager<span class="o">=</span>conda<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--model-uri<span class="w"> </span><span class="s2">&quot;runs:/</span><span class="si">${</span><span class="nv">LATEST_RUN_ID</span><span class="si">}</span><span class="s2">/model&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--model-uri<span class="w"> </span><span class="s2">"runs:/</span><span class="si">${</span><span class="nv">LATEST_RUN_ID</span><span class="si">}</span><span class="s2">/model"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--content-type<span class="w"> </span>csv<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--input-path<span class="w"> </span>params.csv<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--output-path<span class="w"> </span>test_values.json
 cat<span class="w"> </span>test_values.json
-<span class="c1"># result will be shown like {&quot;predictions&quot;: [{&quot;0&quot;: 0.05797366052865982, ...}</span>
+<span class="c1"># result will be shown like {"predictions": [{"0": 0.05797366052865982, ...}</span>
 </pre></div>
 </div>
 <p>See for details <a class="reference external" href="https://mlflow.org/docs/latest/api_reference/cli.html#mlflow-models-predict">https://mlflow.org/docs/latest/api_reference/cli.html#mlflow-models-predict</a></p>
@@ -164,28 +166,28 @@ cat<span class="w"> </span>test_values.json
 <h3>Serve prediction API<a class="headerlink" href="#serve-prediction-api" title="Link to this heading"></a></h3>
 <p>You can also serve a Web API for prediction.</p>
 <p>First, find the Run ID (e.g., <cite>a1b2c3…</cite>) set to the model training.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">LATEST_RUN_ID</span><span class="o">=</span><span class="k">$(</span>ls<span class="w"> </span>-td<span class="w"> </span>mlruns/0/*/<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s2">&quot;models&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-1<span class="w"> </span><span class="p">|</span><span class="w"> </span>xargs<span class="w"> </span>basename<span class="k">)</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Tested Run ID: </span><span class="si">${</span><span class="nv">LATEST_RUN_ID</span><span class="si">}</span><span class="s2">&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">LATEST_RUN_ID</span><span class="o">=</span><span class="k">$(</span>ls<span class="w"> </span>-td<span class="w"> </span>mlruns/0/*/<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s2">"models"</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-1<span class="w"> </span><span class="p">|</span><span class="w"> </span>xargs<span class="w"> </span>basename<span class="k">)</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">"Tested Run ID: </span><span class="si">${</span><span class="nv">LATEST_RUN_ID</span><span class="si">}</span><span class="s2">"</span>
 </pre></div>
 </div>
 <p>Then, start a prediction server using the Run ID.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mlflow<span class="w"> </span>models<span class="w"> </span>serve<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--env-manager<span class="o">=</span>conda<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--model-uri<span class="w"> </span><span class="s2">&quot;runs:/</span><span class="si">${</span><span class="nv">LATEST_RUN_ID</span><span class="si">}</span><span class="s2">/model&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--model-uri<span class="w"> </span><span class="s2">"runs:/</span><span class="si">${</span><span class="nv">LATEST_RUN_ID</span><span class="si">}</span><span class="s2">/model"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--host<span class="w"> </span>localhost<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--port<span class="w"> </span><span class="m">5001</span><span class="w"> </span><span class="p">&amp;</span>
 </pre></div>
 </div>
 <p>Now, you can request a prediction with HTTP POST method:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>http://localhost:5001/invocations<span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
-<span class="s1">  &quot;dataframe_split&quot;:{</span>
-<span class="s1">    &quot;columns&quot;: [&quot;t1&quot;, &quot;t2&quot;],</span>
-<span class="s1">    &quot;data&quot;: [</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>http://localhost:5001/invocations<span class="w"> </span>-H<span class="w"> </span><span class="s1">'Content-Type: application/json'</span><span class="w"> </span>-d<span class="w"> </span><span class="s1">'{</span>
+<span class="s1">  "dataframe_split":{</span>
+<span class="s1">    "columns": ["t1", "t2"],</span>
+<span class="s1">    "data": [</span>
 <span class="s1">       [0.2, 0.8],</span>
 <span class="s1">       [0.7, 0.3]</span>
 <span class="s1">    ]</span>
 <span class="s1">  }</span>
-<span class="s1">}&#39;</span>
+<span class="s1">}'</span>
 </pre></div>
 </div>
 <p>See for details <a class="reference external" href="https://mlflow.org/docs/latest/genai/serving/">https://mlflow.org/docs/latest/genai/serving/</a></p>
@@ -320,7 +322,7 @@ Then, install the package:</p>
         </dl>
         <dl>
             <dt>Branches</dt>
-            <dd><a href="../docs-and-examples/quickstart.html">docs-and-examples</a></dd>
+            <dd><a href="../chore/ai-issue-workflow/quickstart.html">chore/ai-issue-workflow</a></dd>
         </dl>
     </div>
 </div><script>

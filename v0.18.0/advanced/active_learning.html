@@ -10,6 +10,7 @@
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
@@ -17,6 +18,7 @@
       <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -154,7 +156,7 @@
 <span class="p">)</span>
 
 <span class="c1"># Suggest the 3 most uncertain points</span>
-<span class="n">suggestions</span> <span class="o">=</span> <span class="n">suggest_next_points</span><span class="p">(</span><span class="n">models</span><span class="p">,</span> <span class="n">n_suggestions</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;qbc&quot;</span><span class="p">)</span>
+<span class="n">suggestions</span> <span class="o">=</span> <span class="n">suggest_next_points</span><span class="p">(</span><span class="n">models</span><span class="p">,</span> <span class="n">n_suggestions</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">"qbc"</span><span class="p">)</span>
 <span class="c1"># suggestions: Tensor of shape (3, n_params)</span>
 </pre></div>
 </div>
@@ -202,7 +204,7 @@
 <span class="n">suggestions</span> <span class="o">=</span> <span class="n">suggest_next_points</span><span class="p">(</span>
     <span class="p">[</span><span class="n">model</span><span class="p">],</span>
     <span class="n">n_suggestions</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-    <span class="n">method</span><span class="o">=</span><span class="s2">&quot;density&quot;</span><span class="p">,</span>
+    <span class="n">method</span><span class="o">=</span><span class="s2">"density"</span><span class="p">,</span>
     <span class="n">params</span><span class="o">=</span><span class="n">existing_params</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="c1"># suggestions: Tensor of shape (2, n_params)</span>
@@ -244,7 +246,7 @@
 
 
 <span class="k">def</span><span class="w"> </span><span class="nf">expensive_simulation</span><span class="p">(</span><span class="n">params</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Placeholder for your real evaluation function.</span>
+<span class="w">    </span><span class="sd">"""Placeholder for your real evaluation function.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -255,7 +257,7 @@
 <span class="sd">    -------</span>
 <span class="sd">    Tensor of shape (n, n_values)</span>
 <span class="sd">        Simulated output values.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="c1"># Replace with your actual simulator / experiment</span>
     <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">params</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
@@ -289,7 +291,7 @@
         <span class="n">ensemble</span><span class="p">,</span>
         <span class="n">n_suggestions</span><span class="o">=</span><span class="n">N_SUGGESTIONS</span><span class="p">,</span>
         <span class="n">n_candidates</span><span class="o">=</span><span class="n">N_CANDIDATES</span><span class="p">,</span>
-        <span class="n">method</span><span class="o">=</span><span class="s2">&quot;qbc&quot;</span><span class="p">,</span>
+        <span class="n">method</span><span class="o">=</span><span class="s2">"qbc"</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="c1"># Evaluate the suggested points with the expensive function</span>
@@ -299,11 +301,11 @@
     <span class="n">params</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">params</span><span class="p">,</span> <span class="n">next_params</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="n">values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">values</span><span class="p">,</span> <span class="n">next_values</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Round </span><span class="si">{</span><span class="n">round_idx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">: dataset size = </span><span class="si">{</span><span class="n">params</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Round </span><span class="si">{</span><span class="n">round_idx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">: dataset size = </span><span class="si">{</span><span class="n">params</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
 <span class="c1"># ── 3. Final model ─────────────────────────────────────────────────────────</span>
 <span class="n">final_model</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="n">values</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">max_epochs</span><span class="o">=</span><span class="mi">500</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Final model trained on&quot;</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;points.&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Final model trained on"</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">"points."</span><span class="p">)</span>
 </pre></div>
 </div>
 <p><strong>Switching between methods mid-loop</strong></p>
@@ -322,7 +324,7 @@
             <span class="n">ensemble</span><span class="p">,</span>
             <span class="n">n_suggestions</span><span class="o">=</span><span class="n">N_SUGGESTIONS</span><span class="p">,</span>
             <span class="n">n_candidates</span><span class="o">=</span><span class="n">N_CANDIDATES</span><span class="p">,</span>
-            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;density&quot;</span><span class="p">,</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">"density"</span><span class="p">,</span>
             <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
@@ -330,7 +332,7 @@
             <span class="n">ensemble</span><span class="p">,</span>
             <span class="n">n_suggestions</span><span class="o">=</span><span class="n">N_SUGGESTIONS</span><span class="p">,</span>
             <span class="n">n_candidates</span><span class="o">=</span><span class="n">N_CANDIDATES</span><span class="p">,</span>
-            <span class="n">method</span><span class="o">=</span><span class="s2">&quot;qbc&quot;</span><span class="p">,</span>
+            <span class="n">method</span><span class="o">=</span><span class="s2">"qbc"</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="n">next_values</span> <span class="o">=</span> <span class="n">expensive_simulation</span><span class="p">(</span><span class="n">next_params</span><span class="p">)</span>
@@ -418,7 +420,7 @@
         </dl>
         <dl>
             <dt>Branches</dt>
-            <dd><a href="../../docs-and-examples/advanced/active_learning.html">docs-and-examples</a></dd>
+            <dd><a href="../../chore/ai-issue-workflow/advanced/active_learning.html">chore/ai-issue-workflow</a></dd>
         </dl>
     </div>
 </div><script>

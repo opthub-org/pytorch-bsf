@@ -10,6 +10,7 @@
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
@@ -17,6 +18,7 @@
       <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
       <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -233,11 +235,11 @@ barycentric coordinates of the sub-simplex they belong to.
 <span class="n">t</span> <span class="o">=</span> <span class="n">params</span>  <span class="c1"># e.g. from your training dataset</span>
 
 <span class="c1"># Map to sub-simplex A</span>
-<span class="n">u_A</span><span class="p">,</span> <span class="n">mask_A</span> <span class="o">=</span> <span class="n">reparametrize</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">subsimplex</span><span class="o">=</span><span class="s2">&quot;A&quot;</span><span class="p">)</span>
+<span class="n">u_A</span><span class="p">,</span> <span class="n">mask_A</span> <span class="o">=</span> <span class="n">reparametrize</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">subsimplex</span><span class="o">=</span><span class="s2">"A"</span><span class="p">)</span>
 <span class="c1"># u_A[mask_A] are the local coordinates of the points in sub-simplex A</span>
 
 <span class="c1"># Map to sub-simplex B</span>
-<span class="n">u_B</span><span class="p">,</span> <span class="n">mask_B</span> <span class="o">=</span> <span class="n">reparametrize</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">subsimplex</span><span class="o">=</span><span class="s2">&quot;B&quot;</span><span class="p">)</span>
+<span class="n">u_B</span><span class="p">,</span> <span class="n">mask_B</span> <span class="o">=</span> <span class="n">reparametrize</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">subsimplex</span><span class="o">=</span><span class="s2">"B"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The returned <code class="docutils literal notranslate"><span class="pre">mask</span></code> is a boolean tensor indicating which input points belong
@@ -265,7 +267,7 @@ greatest distance in <strong>value space</strong> and splits at the given parame
 (default <code class="docutils literal notranslate"><span class="pre">s</span> <span class="pre">=</span> <span class="pre">0.5</span></code>, the midpoint).  When used directly as a
 <code class="xref py py-data docutils literal notranslate"><span class="pre">SplitCriterion</span></code> it applies the default midpoint
 split; to use a different <code class="docutils literal notranslate"><span class="pre">s</span></code> value, wrap it with
-<a class="reference external" href="https://docs.python.org/3/library/functools.html#functools.partial" title="(in Python v3.14)"><code class="xref py py-func docutils literal notranslate"><span class="pre">functools.partial()</span></code></a>:</p>
+<a class="reference external" href="https://docs.python.org/3/library/functools.html#functools.partial" title="(in Python v3.15)"><code class="xref py py-func docutils literal notranslate"><span class="pre">functools.partial()</span></code></a>:</p>
 <div class="math notranslate nohighlight">
 \[\ell_{ij} = \|B(e_i) - B(e_j)\|_2\]</div>
 <p>This criterion requires <strong>only the fitted model</strong> and is very fast.  It works
@@ -283,7 +285,7 @@ well when the manifold is elongated along a single direction.</p>
 </div>
 <p>You can also call the criterion directly to inspect which edge it selects:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="n">longest_edge_criterion</span><span class="p">(</span><span class="n">bs</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Splitting edge (</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">j</span><span class="si">}</span><span class="s2">) at s=</span><span class="si">{</span><span class="n">s</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Splitting edge (</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">j</span><span class="si">}</span><span class="s2">) at s=</span><span class="si">{</span><span class="n">s</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
@@ -394,8 +396,8 @@ below demonstrates one round of such refinement:</p>
 <span class="n">bs_A</span><span class="p">,</span> <span class="n">bs_B</span> <span class="o">=</span> <span class="n">split</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
 
 <span class="c1"># ── 3. Reparametrize the data and re-fit each sub-simplex ─────────────────</span>
-<span class="n">u_A</span><span class="p">,</span> <span class="n">mask_A</span> <span class="o">=</span> <span class="n">reparametrize</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">subsimplex</span><span class="o">=</span><span class="s2">&quot;A&quot;</span><span class="p">)</span>
-<span class="n">u_B</span><span class="p">,</span> <span class="n">mask_B</span> <span class="o">=</span> <span class="n">reparametrize</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">subsimplex</span><span class="o">=</span><span class="s2">&quot;B&quot;</span><span class="p">)</span>
+<span class="n">u_A</span><span class="p">,</span> <span class="n">mask_A</span> <span class="o">=</span> <span class="n">reparametrize</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">subsimplex</span><span class="o">=</span><span class="s2">"A"</span><span class="p">)</span>
+<span class="n">u_B</span><span class="p">,</span> <span class="n">mask_B</span> <span class="o">=</span> <span class="n">reparametrize</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">subsimplex</span><span class="o">=</span><span class="s2">"B"</span><span class="p">)</span>
 
 <span class="k">if</span> <span class="n">mask_A</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
     <span class="n">bs_A_refined</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
@@ -507,7 +509,7 @@ for the full parameter reference:</p>
         </dl>
         <dl>
             <dt>Branches</dt>
-            <dd><a href="../../docs-and-examples/advanced/splitting.html">docs-and-examples</a></dd>
+            <dd><a href="../../chore/ai-issue-workflow/advanced/splitting.html">chore/ai-issue-workflow</a></dd>
         </dl>
     </div>
 </div><script>
