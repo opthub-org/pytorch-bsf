@@ -189,28 +189,28 @@ z_test = np.array([p[1] for p in test_optimals])
 print(f"Max test approximation error (Pareto set): {np.max(np.abs(ps_bezier(X_test) - z_test)):.4f}")
 z_smooth = ps_bezier(X_smooth)
 
-fig, ax = plt.subplots(figsize=(6, 6))
-ax.scatter(z_targets[:, 0], z_targets[:, 1], color=pareto_colors,
+fig2, ax2 = plt.subplots(figsize=(6, 6))
+ax2.scatter(z_targets[:, 0], z_targets[:, 1], color=pareto_colors,
             label="Optimal reconstructions (samples)", s=50)
 segments = np.array([z_smooth[:-1, 0:2], z_smooth[1:, 0:2]]).transpose(1, 0, 2)
 lc = LineCollection(segments, colors=line_colors, linewidth=2, label="Fitted Bézier simplex")
-ax.add_collection(lc)
-ax.axhline(x_true[1], color="gray", linestyle="--", alpha=0.5,
+ax2.add_collection(lc)
+ax2.axhline(x_true[1], color="gray", linestyle="--", alpha=0.5,
             label=f"True pixel 2 = {x_true[1]:.1f}")
-ax.axvline(x_true[0], color="gray", linestyle=":", alpha=0.5,
+ax2.axvline(x_true[0], color="gray", linestyle=":", alpha=0.5,
             label=f"True pixel 1 = {x_true[0]:.1f}")
-ax.set_xlabel("Pixel 1 (x₁)")
-ax.set_ylabel("Pixel 2 (x₂)")
-ax.set_title("CT Reconstruction Parameters with Bézier Approximation")
-ax.legend()
-ax.grid(alpha=0.3)
+ax2.set_xlabel("Pixel 1 (x₁)")
+ax2.set_ylabel("Pixel 2 (x₂)")
+ax2.set_title("CT Reconstruction Parameters with Bézier Approximation")
+ax2.legend()
+ax2.grid(alpha=0.3)
 plt.tight_layout()
 pathlib.Path("docs/_static").mkdir(parents=True, exist_ok=True)
 plt.savefig("docs/_static/medical_imaging_pareto_set.png", dpi=150, bbox_inches="tight")
 print("Pareto set plot saved.")
 
 # Plot selected 2D reconstructions along the Pareto set
-fig2, axes = plt.subplots(1, 5, figsize=(15, 3))
+fig3, axes = plt.subplots(1, 5, figsize=(15, 3))
 selected_indices = [0, 49, 99, 149, 199]  # Select 5 points along the curve
 for idx, ax_idx in enumerate(selected_indices):
     img = z_smooth[ax_idx].reshape(height, width)
@@ -219,4 +219,4 @@ for idx, ax_idx in enumerate(selected_indices):
     axes[idx].axis('off')
 plt.tight_layout()
 plt.savefig("docs/_static/medical_imaging_pareto_samples.png", dpi=150, bbox_inches="tight")
-print("Pareto set plot saved.")
+print("Pareto set samples plot saved.")
