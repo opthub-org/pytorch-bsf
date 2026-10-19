@@ -1117,3 +1117,103 @@ def test_fit_with_integer_values_and_shape_errors():
     assert torch.allclose(space.evaluate(edge, t), torch.tensor([[0.0], [1.0], [2.0]]), atol=1e-5)
     with pytest.raises(ValueError, match="values must have shape"):
         fit_simploid(t, torch.zeros(2, 1), (1,), 1)
+
+
+# ---------------------------------------------------------------------------
+# Saving and loading Bézier simploids
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("suffix", [".csv", ".tsv", ".json", ".yml", ".yaml", ".pt", ".CSV"])
+@pytest.mark.parametrize("simploid_type, degree", [((2, 1), 2), ((1, 2), (3, 1)), ((3,), 2), ((1, 1, 1), 1), ((), 0)])
+def test_save_load_roundtrip(tmp_path, suffix, simploid_type, degree):
+    """A saved Bézier simploid should load with the same type, degree, control points and predictions."""
+    torch.manual_seed(0)
+    bs = BezierSimploid.randn(simploid_type, degree, 3)
+    path = tmp_path / f"model{suffix}"
+    torch_bsf.simploidal.save(path, bs)
+    loaded = torch_bsf.simploidal.load(path)
+    assert loaded.simploid_type == bs.simploid_type
+    assert loaded.degree == bs.degree
+    assert loaded.indices() == bs.indices()
+    assert torch.allclose(loaded.control_points, bs.control_points)
+    t = sample_simploid(simploid_type, 20, seed=1)
+    assert torch.allclose(loaded(t), bs(t), atol=1e-6)
+
+
+def test_save_load_fitted_model_and_float64(tmp_path):
+    """A fitted model should predict the same after a round trip; .pt keeps the dtype."""
+    t = sample_simploid((2, 1), 50, seed=0).double()
+    bs = fit_simploid(t, t[:, :3] * t[:, 3:4], (2, 1), degree=(1, 2))
+    for suffix in (".csv", ".pt"):
+        loaded = torch_bsf.simploidal.load(_saved(tmp_path, bs, suffix))
+        assert torch.allclose(loaded(t).double(), bs(t), atol=1e-6)
+    assert torch_bsf.simploidal.load(tmp_path / "model.pt").control_points.dtype == torch.float64
+
+
+def _saved(tmp_path, bs, suffix):
+    path = tmp_path / f"model{suffix}"
+    torch_bsf.simploidal.save(path, bs)
+    return path
+
+
+def test_save_formats(tmp_path):
+    """The text formats use the index tuple as the key, in the order of simploid_indices."""
+    import json
+
+    import yaml
+
+    bs = BezierSimploid((1, 1), 1, torch.arange(8.0).reshape(4, 2))
+    keys = [str(index) for index in simploid_indices((1, 1), 1)]
+    assert keys[0] == "((1, 0), (1, 0))"
+    assert _saved(tmp_path, bs, ".tsv").read_text().splitlines()[1] == "((1, 0), (0, 1))\t2.0\t3.0"
+    assert json.loads(_saved(tmp_path, bs, ".json").read_text()) == {k: [2.0 * i, 2.0 * i + 1] for i, k in enumerate(keys)}
+    assert list(yaml.safe_load(_saved(tmp_path, bs, ".yml").read_text())) == keys
+    assert set(torch.load(_saved(tmp_path, bs, ".pt"), weights_only=True)) == {"simploid_type", "degree", "control_points"}
+
+
+@pytest.mark.parametrize(
+    "suffix, content, match",
+    [
+        (".csv", "", "No control points found"),
+        (".csv", '"(1, 0)",1.0\n"(0, 1)",2.0\n', "Invalid control point index '\\(1, 0\\)'"),
+        (".csv", '"((1, 0), (1, 0))",1.0\n"((1, 0), (0, 1))",2.0\n', "Control points are missing"),
+        (".csv", '"((1, 0),)",1.0\n"((0, 1),)",2.0\n"((1, 0), )",3.0\n', "Duplicate control point index"),
+        (".csv", '"((1, 0),)",1.0\n"((0, 0, 1),)",2.0\n', "does not match the simploid type \\(1,\\) and degree \\(1,\\)"),
+        (".csv", '"((1, 0),)",1.0\n"((0, 2),)",2.0\n', "does not match the simploid type"),
+        (".csv", '"((1, 0),)",1.0\n"((0, 1),)",2.0,3.0\n', "has 2 values, expected 1"),
+        (".csv", '"((1, -1),)",1.0\n', "Invalid control point index"),
+        (".csv", '"((1, 0.5),)",1.0\n', "Invalid control point index"),
+        (".csv", '"((1, 0)",1.0\n', "Invalid control point index"),
+        (".csv", '"((0,),)",1.0\n', "positive"),
+        (".json", "[1, 2]", "must contain a mapping"),
+        (".json", "{}", "No control points found"),
+        (".yml", "", "must contain a mapping"),
+        (".yml", "'((1, 0),)': [1.0]\n'((0, 1),)': [2.0]\n'((2, 0),)': [3.0]\n", "does not match"),
+        (".txt", "", "Unknown file type"),
+    ],
+)
+def test_load_errors(tmp_path, suffix, content, match):
+    """Invalid or incomplete control point files should raise a clear ValueError."""
+    path = tmp_path / f"model{suffix}"
+    path.write_text(content)
+    with pytest.raises(ValueError, match=match):
+        torch_bsf.simploidal.load(path)
+
+
+def test_load_rejects_bezier_simplex_files(tmp_path):
+    """Files of torch_bsf.bezier_simplex.save are not Bézier simploid files."""
+    bs = BezierSimplex({(1, 0): [0.0], (0, 1): [1.0]})
+    for suffix in (".csv", ".json", ".pt"):
+        path = tmp_path / f"simplex{suffix}"
+        torch_bsf.bezier_simplex.save(path, bs)
+        with pytest.raises(ValueError, match="Bezier simplex files"):
+            torch_bsf.simploidal.load(path)
+    torch.save({"control_points": torch.zeros(1, 1)}, tmp_path / "dict.pt")
+    with pytest.raises(ValueError, match="must contain a dictionary"):
+        torch_bsf.simploidal.load(tmp_path / "dict.pt")
+
+
+def test_save_unknown_file_type(tmp_path):
+    with pytest.raises(ValueError, match="Unknown file type"):
+        torch_bsf.simploidal.save(tmp_path / "model.txt", BezierSimploid.zeros((1,), 1, 1))
