@@ -115,6 +115,10 @@ html_theme = "sphinx_rtd_theme"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
+# The RTD sidebar has a colored background; use the reversed compact wordmark.
+html_logo = "_static/logo-compact-white.svg"
+html_favicon = "_static/favicon.ico"
+
 
 # -- Options for sphinx-multiversion -----------------------------------------
 
