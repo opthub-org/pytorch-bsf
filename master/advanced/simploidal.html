@@ -67,6 +67,7 @@
 <li class="toctree-l2"><a class="reference internal" href="splitting.html">Bézier Simplex Splitting</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Simploidal Sets</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#simploids-and-bezier-simploids">Simploids and Bézier simploids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#saving-loading-and-the-command-line">Saving, loading and the command line</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id2">Simploidal sets</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#homology">Homology</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#simploidal-bezier-spaces">Simploidal Bézier spaces</a><ul>
@@ -166,6 +167,78 @@ multiplied with another one (the Minkowski sum of the control points):</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">bottom</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>          <span class="c1"># the triangle at v = (1, 0)</span>
 <span class="n">pyramid_like</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">degenerate</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># insert a degenerate edge: type (2, 1, 1)</span>
 <span class="n">product</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>     <span class="c1"># type (2, 1) + type of other</span>
+</pre></div>
+</div>
+</section>
+<section id="saving-loading-and-the-command-line">
+<h2>Saving, loading and the command line<a class="headerlink" href="#saving-loading-and-the-command-line" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.save" title="torch_bsf.simploidal.save"><code class="xref py py-func docutils literal notranslate"><span class="pre">save()</span></code></a> writes the control points of a Bézier
+simploid to a <code class="docutils literal notranslate"><span class="pre">.csv</span></code>, <code class="docutils literal notranslate"><span class="pre">.tsv</span></code>, <code class="docutils literal notranslate"><span class="pre">.json</span></code>, <code class="docutils literal notranslate"><span class="pre">.yml</span></code>/<code class="docutils literal notranslate"><span class="pre">.yaml</span></code> or <code class="docutils literal notranslate"><span class="pre">.pt</span></code>
+file, and <a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.load" title="torch_bsf.simploidal.load"><code class="xref py py-func docutils literal notranslate"><span class="pre">load()</span></code></a> reads them back:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.simploidal</span><span class="w"> </span><span class="kn">import</span> <span class="n">load</span><span class="p">,</span> <span class="n">save</span>
+
+<span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">d</span><span class="p">:</span>
+    <span class="n">save</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="o">/</span> <span class="s2">"prism.csv"</span><span class="p">,</span> <span class="n">bs</span><span class="p">)</span>
+    <span class="n">loaded</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="o">/</span> <span class="s2">"prism.csv"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">loaded</span><span class="o">.</span><span class="n">simploid_type</span><span class="p">,</span> <span class="n">loaded</span><span class="o">.</span><span class="n">degree</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">loaded</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">bs</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(2, 1) (2, 2)
+True
+</pre></div>
+</div>
+<p>As for Bézier simplices (see <a class="reference internal" href="initialization.html"><span class="doc">Initial Control Points</span></a>), the text formats map each
+index to its control point, but an index is now a tuple of multi-indices
+<span class="math notranslate nohighlight">\((\boldsymbol\alpha^1, \ldots, \boldsymbol\alpha^n)\)</span>, one per factor:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">"((2, 0, 0), (2, 0))"</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.1</span>
+<span class="s2">"((2, 0, 0), (1, 1))"</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.1</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+<p>The simploid type <span class="math notranslate nohighlight">\((a_1, \ldots, a_n)\)</span> and the degree are not stored
+separately; <a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.load" title="torch_bsf.simploidal.load"><code class="xref py py-func docutils literal notranslate"><span class="pre">load()</span></code></a> infers them from the lengths
+and the sums of the multi-indices, and checks that every control point is
+present exactly once.  A <code class="docutils literal notranslate"><span class="pre">.pt</span></code> file holds a dictionary of the type, the
+degree and the control point tensor (and keeps its dtype), which is loaded
+with <code class="docutils literal notranslate"><span class="pre">torch.load(...,</span> <span class="pre">weights_only=True)</span></code>.</p>
+<p>The command line interface fits a Bézier simploid instead of a Bézier simplex
+when <code class="docutils literal notranslate"><span class="pre">--simploid-type</span></code> is given.  The parameters file must then have
+<span class="math notranslate nohighlight">\(\sum_i (a_i + 1)\)</span> columns, the barycentric coordinates of the factors
+side by side:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>torch_bsf<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--params<span class="o">=</span>params.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--values<span class="o">=</span>values.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--simploid-type<span class="o">=</span><span class="m">2</span>,1<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--degree<span class="o">=</span><span class="m">2</span>
+</pre></div>
+</div>
+<p>This calls <a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.fit_simploid" title="torch_bsf.simploidal.fit_simploid"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_simploid()</span></code></a>, saves the control points
+to <code class="docutils literal notranslate"><span class="pre">params.csv,values.csv,control_points,t_2-1,d_2.csv</span></code> (choose another path
+and format with <code class="docutils literal notranslate"><span class="pre">--save=model.json</span></code>) and the predictions on <code class="docutils literal notranslate"><span class="pre">--meshgrid</span></code>
+(default: the parameters) to <code class="docutils literal notranslate"><span class="pre">params.csv,values.csv,meshgrid,t_2-1,d_2.csv</span></code>.
+The simploid-specific options are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--simploid-type=A1,...,An</span></code> — the type; <code class="docutils literal notranslate"><span class="pre">--degree</span></code> applies to every factor;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--solver={lstsq,trainer}</span></code> — solve the least-squares problem exactly
+(default) or train with the Lightning trainer options (<code class="docutils literal notranslate"><span class="pre">--max_epochs</span></code>,
+<code class="docutils literal notranslate"><span class="pre">--batch_size</span></code>, <code class="docutils literal notranslate"><span class="pre">--accelerator</span></code>, …);</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--ridge=W</span></code> — the ridge penalty of the <code class="docutils literal notranslate"><span class="pre">lstsq</span></code> solver (default: 0);</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--save=FILE</span></code> — where to save the control points.</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">--normalize</span></code> is applied during fitting and undone on the saved control
+points, so the saved model predicts values in the original scale.  <code class="docutils literal notranslate"><span class="pre">--init</span></code>,
+<code class="docutils literal notranslate"><span class="pre">--freeze</span></code>, <code class="docutils literal notranslate"><span class="pre">--smoothness_weight</span></code> and <code class="docutils literal notranslate"><span class="pre">--split_ratio</span></code> apply to Bézier
+simplices only.  The same is available as the <code class="docutils literal notranslate"><span class="pre">simploid</span></code> entry point of the
+MLflow project:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mlflow<span class="w"> </span>run<span class="w"> </span>https://github.com/opthub-org/pytorch-bsf<span class="w"> </span>-e<span class="w"> </span>simploid<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-P<span class="w"> </span><span class="nv">params</span><span class="o">=</span>params.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-P<span class="w"> </span><span class="nv">values</span><span class="o">=</span>values.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-P<span class="w"> </span><span class="nv">simploid_type</span><span class="o">=</span><span class="m">2</span>,1<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-P<span class="w"> </span><span class="nv">degree</span><span class="o">=</span><span class="m">2</span>
 </pre></div>
 </div>
 </section>
