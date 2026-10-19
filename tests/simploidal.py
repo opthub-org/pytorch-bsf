@@ -507,6 +507,177 @@ def test_space_errors():
 
 
 # ---------------------------------------------------------------------------
+# SimploidalBezierSpace with per-factor degrees
+# ---------------------------------------------------------------------------
+
+
+def _mixed_degrees(mains: list[Simploid]) -> dict[Simploid, tuple[int, ...]]:
+    """Consistent per-factor degrees of the main simploids of :func:`_glued_set`."""
+    tetra, prism, cube, pyramid = mains
+    # cube factors 1, 2 = prism factors 0, 1; pyramid factors 0, 1 = cube factors 1, 2; tetra = prism factor 0.
+    return {prism: (2, 3), cube: (4, 2, 3), pyramid: (2, 3, 1)}
+
+
+def _random_mixed_space(S: SimploidalSet, degree, n_values: int = 2, seed: int = 0, **kwargs) -> SimploidalBezierSpace:
+    space = SimploidalBezierSpace(S, degree, n_values, **kwargs)
+    with torch.no_grad():
+        space.proper_control_points.copy_(
+            torch.randn(space.n_proper_control_points, n_values, generator=torch.Generator().manual_seed(seed))
+        )
+    return space
+
+
+def _all_simploids_and_faces(S: SimploidalSet) -> list[Simploid]:
+    out = list(S)
+    for s in S:
+        out.extend(f for _, f in s.faces())
+        out.extend(s.degeneracy(i, j) for i, a in enumerate(s.simploid_type) for j in range(-1, a + 1))
+        out.append(s.degeneracy(s.length, -1))
+    return out
+
+
+@pytest.mark.parametrize("degree", [1, 2, 3])
+def test_space_uniform_mapping_matches_integer_degree(degree):
+    """A uniform degree given as a mapping or a default builds the same space as an integer degree."""
+    S, mains = _glued_set()
+    reference = SimploidalBezierSpace(S, degree, 1)
+    for space in [
+        SimploidalBezierSpace(S, {s: degree for s in mains}, 1),
+        SimploidalBezierSpace(S, {}, 1, default_degree=degree),
+    ]:
+        assert space.degree == degree
+        assert space.n_proper_control_points == reference.n_proper_control_points
+        assert space.extra_repr() == reference.extra_repr()
+        for s in _all_simploids_and_faces(S):
+            assert space.simploid_degree(s) == (degree,) * s.length
+            assert space.control_point_rows(s) == reference.control_point_rows(s)
+
+
+def test_space_mixed_degrees_assignment():
+    S, mains = _glued_set()
+    tetra, prism, cube, pyramid = mains
+    space = SimploidalBezierSpace(S, _mixed_degrees(mains), 1)
+    assert space.simploid_degree(tetra) == (2,)
+    assert space.simploid_degree(prism.face(1, 0)) == (2,)  # triangle
+    assert space.simploid_degree(prism.face(0, 0)) == (2, 3)  # square shared with the cube
+    assert space.simploid_degree(cube.face(0, 1)) == (2, 3)  # base of the pyramid
+    # Degrees propagate from the prism to the cube and the pyramid; the rest comes from default_degree.
+    space = SimploidalBezierSpace(S, {prism: (2, 3)}, 1, default_degree=5)
+    assert space.simploid_degree(cube) == (5, 2, 3)
+    assert space.simploid_degree(pyramid) == (2, 3, 5)
+    assert space.degree == 5 and "max_degree=5" in space.extra_repr()
+    # Inserted edge factors of a degenerate simploid get the maximum degree.
+    assert space.simploid_degree(prism.degeneracy(1, -1)) == (2, 5, 3)
+    assert space.simploid_degree(prism.degeneracy(0, 1)) == (2, 3)
+    assert space.simploid_degree(pyramid.face(2, 0)) == (5, 5)
+
+
+def test_space_mixed_degrees_stores_each_control_point_once():
+    S, mains = _glued_set()
+    space = _random_mixed_space(S, _mixed_degrees(mains))
+    expected = sum(
+        1 if s.is_vertex else prod(comb(d - 1, a) for a, d in zip(s.simploid_type, space.simploid_degree(s))) for s in S
+    )
+    assert space.n_proper_control_points == expected
+    used = set()
+    for s in S.main_simploids():
+        rows = space.control_point_rows(s)
+        assert len(rows) == len(simploid_indices(s.simploid_type, space.simploid_degree(s)))
+        used.update(rows)
+    assert used == set(range(space.n_proper_control_points))
+
+
+def test_space_mixed_degrees_proper_count_by_hand():
+    """A prism of degrees (1, 3) glued to a cube of degrees (2, 1, 3) along a square face."""
+    S = SimploidalSet()
+    prism, cube = S.add_simploid((2, 1)), S.add_simploid((1, 1, 1))
+    S.identify(prism.face(0, 0), cube.face(0, 0))
+    space = SimploidalBezierSpace(S, {prism: (1, 3), cube: (2, 1, 3)}, 1)
+    # 10 vertices; 3 + 2 vertical edges of degree 3 (2 points each) and 4 cube edges of degree 2 (1 point each);
+    # 2 cube squares of degrees (2, 3) (2 points each); no proper point in the other cells.
+    assert space.n_proper_control_points == 10 + 5 * 2 + 4 * 1 + 2 * 2
+
+
+@pytest.mark.parametrize("seed", [0, 1])
+def test_space_mixed_degrees_face_and_degeneracy_consistency(seed):
+    """Property 2 holds with per-factor degrees, including degenerate faces of different degrees."""
+    S, mains = _glued_set()
+    space = _random_mixed_space(S, _mixed_degrees(mains), seed=seed)
+    for s in S:
+        cp = space.bezier_simploid(s)
+        assert cp.degree == space.simploid_degree(s)
+        for (i, j), f in s.faces():
+            u = sample_simploid(f.simploid_type, 5, seed=seed)
+            assert torch.allclose(cp.face(i, j)(u), space.evaluate(f, u), atol=1e-5)
+            if not f.is_degenerate:
+                assert torch.equal(cp.face(i, j).control_points, space.control_points(f).detach())
+        for i, a in enumerate(s.simploid_type):
+            for j in range(a + 1):
+                assert torch.equal(cp.degenerate(i, j).control_points, space.control_points(s.degeneracy(i, j)).detach())
+        for i in range(s.length + 1):
+            deg = cp.degenerate(i, -1, degree=space.degree)
+            assert torch.equal(deg.control_points, space.control_points(s.degeneracy(i, -1)).detach())
+
+
+def test_space_mixed_degrees_continuity_across_shared_faces():
+    S = SimploidalSet()
+    prism, cube = S.add_simploid((2, 1)), S.add_simploid((1, 1, 1))
+    S.identify(prism.face(0, 0), cube.face(0, 0))
+    space = _random_mixed_space(S, {prism: (1, 3), cube: (2, 1, 3)}, n_values=3)
+    w, v = sample_simploid((1,), 20, seed=0), sample_simploid((1,), 20, seed=1)
+    on_prism = torch.cat([torch.zeros(20, 1), w, v], dim=1)  # face(0, 0) of the prism
+    on_cube = torch.cat([torch.tensor([[0.0, 1.0]]).expand(20, 2), w, v], dim=1)  # face(0, 0) of the cube
+    assert torch.allclose(space.evaluate(prism, on_prism), space.evaluate(cube, on_cube), atol=1e-5)
+    # The pieces are not trivially polynomials of the lowest degree: the height direction is cubic.
+    t = sample_simploid((2, 1), 20, seed=2)
+    linear = fit_simploidal_set(S, [(prism, t, space.evaluate(prism, t).detach())], 1)
+    assert not torch.allclose(linear.evaluate(prism, t), space.evaluate(prism, t), atol=1e-3)
+
+
+def test_space_mixed_degrees_errors():
+    S, mains = _glued_set()
+    tetra, prism, cube, pyramid = mains
+    with pytest.raises(ValueError, match="Inconsistent"):
+        SimploidalBezierSpace(S, {prism: (2, 3), cube: (4, 3, 3)}, 1)
+    with pytest.raises(ValueError, match="Inconsistent"):
+        SimploidalBezierSpace(S, {prism: (2, 3), tetra: 3}, 1, default_degree=1)
+    with pytest.raises(ValueError, match="not determined"):
+        SimploidalBezierSpace(S, {prism: (2, 3)}, 1)
+    with pytest.raises(ValueError, match="not a non-degenerate simploid"):
+        SimploidalBezierSpace(S, {prism.degeneracy(0, 0): 2}, 1, default_degree=1)
+    with pytest.raises(ValueError, match="not a non-degenerate simploid"):
+        SimploidalBezierSpace(S, {SimploidalSet().add_simplex(1): 2}, 1, default_degree=1)
+    with pytest.raises(ValueError, match="components"):
+        SimploidalBezierSpace(S, {prism: (2, 3, 4)}, 1, default_degree=1)
+    with pytest.raises(ValueError, match="at least 1"):
+        SimploidalBezierSpace(S, {prism: (0, 3)}, 1, default_degree=1)
+    with pytest.raises(ValueError, match="at least 1"):
+        SimploidalBezierSpace(S, {prism: (2, 3)}, 1, default_degree=0)
+    with pytest.raises(ValueError, match="Inconsistent"):
+        fit_simploidal_set(S, [(prism, sample_simploid((2, 1), 5), torch.zeros(5, 1))], {prism: 2, cube: 3})
+
+
+def test_space_mixed_degrees_through_degenerate_face():
+    """A degenerate face constrains the degree of the factor of its base it comes from."""
+    S = SimploidalSet()
+    prism = S.add_simploid((2, 1))
+    edge = S.add_simplex(1)
+    S.identify(prism.face(1, 0), edge.degeneracy(0, 0))  # collapse a triangle of the prism onto the edge
+    S.check()
+    assert prism.face(1, 0).is_degenerate
+    edge = prism.face(1, 0).base
+    space = _random_mixed_space(S, {prism: (2, 3)}, n_values=2)
+    assert space.simploid_degree(edge) == (2,)
+    assert space.simploid_degree(prism.face(1, 0)) == (2,)
+    u = sample_simploid((2,), 10, seed=0)
+    on_prism = torch.cat([u, torch.tensor([[0.0, 1.0]]).expand(10, 2)], dim=1)
+    on_edge = torch.stack([u[:, 0] + u[:, 1], u[:, 2]], dim=1)  # vertex 0 of the edge is repeated
+    assert torch.allclose(space.evaluate(prism, on_prism), space.evaluate(edge, on_edge), atol=1e-5)
+    with pytest.raises(ValueError, match="Inconsistent"):
+        SimploidalBezierSpace(S, {prism: (2, 3), edge: 3}, 1)
+
+
+# ---------------------------------------------------------------------------
 # Fitting
 # ---------------------------------------------------------------------------
 
@@ -557,6 +728,25 @@ def test_fit_simploidal_set_recovers_space(degree):
     truth = _random_space(S, degree, n_values=3)
     fitted = fit_simploidal_set(S, _sample_space(truth, mains, 150), degree)
     assert torch.allclose(fitted.proper_control_points, truth.proper_control_points, atol=1e-3)
+
+
+@pytest.mark.parametrize("solver", ["lstsq", "trainer"])
+def test_fit_simploidal_set_recovers_mixed_degree_space(solver):
+    S, mains = _glued_set()
+    degree = _mixed_degrees(mains)
+    truth = _random_mixed_space(S, degree, n_values=3)
+    data = _sample_space(truth, mains, 200)
+    if solver == "lstsq":
+        fitted = fit_simploidal_set(S, data, degree)
+        assert torch.allclose(fitted.proper_control_points, truth.proper_control_points, atol=1e-3)
+    else:
+        fitted = fit_simploidal_set(S, data, degree, solver="trainer", seed=0, **TRAINER_KWARGS)
+        assert fitted.n_proper_control_points == truth.n_proper_control_points
+    for s in S:
+        assert fitted.simploid_degree(s) == truth.simploid_degree(s)
+    # Degrees propagated from a partial mapping with a default give the same space.
+    partial = fit_simploidal_set(S, data, {mains[1]: (2, 3), mains[2]: (4, 2, 3)}, default_degree=1)
+    assert torch.allclose(partial.proper_control_points, truth.proper_control_points, atol=1e-3)
 
 
 def test_fit_simploidal_set_is_continuous():

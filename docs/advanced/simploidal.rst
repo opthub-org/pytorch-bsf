@@ -156,11 +156,12 @@ Simploidal Bézier spaces
 ------------------------
 
 :class:`~torch_bsf.simploidal.SimploidalBezierSpace` associates a Bézier
-simploid of a common degree :math:`d \ge 1` with every simploid of a
-simploidal set.  Following Section 4.3 of the paper, every non-degenerate
-simploid stores only its **proper** control points — those whose multi-indices
-have no zero component, i.e. :math:`\prod_i \binom{d - 1}{a_i}` points, and one
-point for a vertex.  The control net of any simploid is rebuilt from its
+simploid with every simploid of a simploidal set; by default all factors have
+a common degree :math:`d \ge 1`, as in the paper.  Following Section 4.3 of the
+paper, every non-degenerate simploid stores only its **proper** control points
+— those whose multi-indices have no zero component, i.e.
+:math:`\prod_i \binom{d_i - 1}{a_i}` points for degrees :math:`(d_1, \ldots, d_n)`,
+and one point for a vertex.  The control net of any simploid is rebuilt from its
 proper points and the points of its faces (Property 2-1), and the control net
 of a degenerate simploid from the one of its base (Property 2-2).
 Consequently:
@@ -170,6 +171,55 @@ Consequently:
   is continuous across shared faces by construction;
 * a degenerate face (such as the apex face of a pyramid) has the shape of its
   base (the apex vertex).
+
+Per-factor degrees
+~~~~~~~~~~~~~~~~~~
+
+When the data varies very differently along different directions — say, a
+prism that is linear across its triangles but cubic along its height — raising
+every direction to the highest degree adds many control points and invites
+over-fitting.  Instead of an integer, ``degree`` can be a mapping from
+non-degenerate simploids to their degrees: an integer for all their factors, or
+one degree per factor.
+
+The degrees must be consistent so that shared faces keep a single control net:
+a factor of a simploid and the corresponding factor of each of its faces have
+the same degree.  Equivalently, each factor of a simploid has the degree of its
+edges in the direction of that factor.  The given degrees propagate through
+shared faces, the factors still undetermined get ``default_degree``, and an
+inconsistent mapping raises :class:`ValueError`.  Edge factors inserted by a
+degeneracy :math:`s^i_{-1}` impose no constraint, since a degenerate Bézier
+simploid is constant along them; ``simploid_degree`` reports them with the
+maximum degree of the space (its ``degree`` attribute).
+
+.. testcode::
+   :pyversion: >= 3.10, < 3.15
+
+   import torch
+   from torch_bsf.simploidal import SimploidalSet, SimploidalBezierSpace, sample_simploid
+
+   # A prism glued to a cube along a square face
+   S = SimploidalSet()
+   prism = S.add_simploid((2, 1))
+   cube = S.add_simploid((1, 1, 1))
+   S.identify(prism.face(0, 0), cube.face(0, 0))
+
+   # Linear across the triangles, cubic along the height; the cube inherits
+   # these degrees on the shared face and gets the default on its last factor.
+   space = SimploidalBezierSpace(S, {prism: (1, 3)}, n_values=1, default_degree=2)
+   print(space.simploid_degree(prism), space.simploid_degree(cube))
+
+   # Inconsistent degrees on the shared face are rejected
+   try:
+       SimploidalBezierSpace(S, {prism: (1, 3), cube: (2, 2, 3)}, n_values=1)
+   except ValueError:
+       print("inconsistent")
+
+.. testoutput::
+   :pyversion: >= 3.10, < 3.15
+
+   (1, 3) (2, 1, 3)
+   inconsistent
 
 Fitting
 -------
@@ -226,6 +276,7 @@ arguments to it; this is useful for very large data sets.
 Useful methods of a fitted space:
 
 * ``evaluate(simploid, t)`` — evaluate the Bézier simploid of any simploid;
+* ``simploid_degree(simploid)`` — the degree of each factor of any simploid;
 * ``forward(t, simploid_ids)`` — evaluate a batch mixing several simploids
   (parameters padded to a common width; ids from ``simploid_id``);
 * ``control_points(simploid)`` — the full control net of any simploid;
@@ -236,9 +287,11 @@ Useful methods of a fitted space:
 Limitations
 -----------
 
-* All generating simplices of a simploidal Bézier space share one degree, as
-  in the paper.  A standalone :class:`~torch_bsf.simploidal.BezierSimploid` may
-  have one degree per factor.
+* Per-factor degrees must agree exactly on shared faces.  Pieces of different
+  degrees on a shared face are not reconciled by degree elevation (which would
+  store the face at the lower degree and constrain the higher-degree piece to
+  its elevation); give the shared factors the higher degree instead.
+* Degrees are chosen by the user; they are not selected automatically.
 * A space captures the structure of its simploidal set when it is created;
   build the set completely before creating or fitting a space.
 * After :meth:`~torch_bsf.simploidal.SimploidalSet.identify`, references to
