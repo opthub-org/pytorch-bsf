@@ -52,6 +52,14 @@ torch\_bsf.sampling module
    :undoc-members:
    :show-inheritance:
 
+torch\_bsf.simploidal module
+-----------------------------
+
+.. automodule:: torch_bsf.simploidal
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 torch\_bsf.sklearn module
 ---------------------------
 
