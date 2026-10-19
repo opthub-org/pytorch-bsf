@@ -13,6 +13,7 @@
       <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
 
   
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
@@ -37,6 +38,7 @@
           
           <a href="../index.html" class="icon icon-home">
             PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
@@ -66,6 +68,7 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Simploidal Sets</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#simploids-and-bezier-simploids">Simploids and Bézier simploids</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id2">Simploidal sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#homology">Homology</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#simploidal-bezier-spaces">Simploidal Bézier spaces</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#per-factor-degrees">Per-factor degrees</a></li>
 </ul>
@@ -256,6 +259,62 @@ True True
 </pre></div>
 </div>
 </section>
+<section id="homology">
+<h2>Homology<a class="headerlink" href="#homology" title="Link to this heading"></a></h2>
+<p>The topology of a simploidal set can be checked after it is built by
+computing its homology (Section 4.4 of <span class="bibtex-citation" id="id3">Peltier and Lienhardt [<a class="reference internal" href="../references.html#id31" title="Samuel Peltier and Pascal Lienhardt. Simploidal sets: a data structure for handling simploidal bézier spaces. Computer Aided Geometric Design, 62:44–62, 2018. URL: https://doi.org/10.1016/j.cagd.2018.03.010.">PL18</a>]</span>).  The
+chain group <span class="math notranslate nohighlight">\(C_k\)</span> is spanned by the <strong>non-degenerate</strong> simploids of
+dimension <span class="math notranslate nohighlight">\(k\)</span>, and the boundary of a simploid <span class="math notranslate nohighlight">\(\sigma\)</span> of type
+<span class="math notranslate nohighlight">\((a_1, \ldots, a_n)\)</span> follows the sign rule of a product of simplices:</p>
+<div class="math notranslate nohighlight">
+\[\partial \sigma = \sum_{i=1}^n \sum_{j=0}^{a_i} (-1)^{a_1 + \cdots + a_{i-1} + j} d^i_j \sigma,\]</div>
+<p>where the terms whose face <span class="math notranslate nohighlight">\(d^i_j \sigma\)</span> is degenerate are dropped.</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.SimploidalSet.boundary_matrix" title="torch_bsf.simploidal.SimploidalSet.boundary_matrix"><code class="xref py py-meth docutils literal notranslate"><span class="pre">boundary_matrix()</span></code></a> returns the
+integer matrix of <span class="math notranslate nohighlight">\(\partial_k\)</span>, with rows <code class="docutils literal notranslate"><span class="pre">simploids(k</span> <span class="pre">-</span> <span class="pre">1)</span></code> and
+columns <code class="docutils literal notranslate"><span class="pre">simploids(k)</span></code>; it satisfies
+<code class="docutils literal notranslate"><span class="pre">boundary_matrix(k)</span> <span class="pre">&#64;</span> <span class="pre">boundary_matrix(k</span> <span class="pre">+</span> <span class="pre">1)</span> <span class="pre">==</span> <span class="pre">0</span></code>.</p></li>
+<li><p><a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.SimploidalSet.betti_numbers" title="torch_bsf.simploidal.SimploidalSet.betti_numbers"><code class="xref py py-meth docutils literal notranslate"><span class="pre">betti_numbers()</span></code></a> returns the Betti
+numbers <span class="math notranslate nohighlight">\(\beta_0, \ldots, \beta_{\dim}\)</span>, the ranks of the homology
+groups.  The ranks are computed exactly by integer elimination, over the
+rationals (<code class="docutils literal notranslate"><span class="pre">field=&quot;Q&quot;</span></code>, default) or over <span class="math notranslate nohighlight">\(\mathbb Z / 2\)</span>
+(<code class="docutils literal notranslate"><span class="pre">field=&quot;Z2&quot;</span></code>); the two differ only for spaces whose integral homology has
+torsion, such as non-orientable surfaces.</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.simploidal</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimploidalSet</span>
+
+<span class="c1"># A torus: a square whose opposite edges are identified</span>
+<span class="n">torus</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">square</span> <span class="o">=</span> <span class="n">torus</span><span class="o">.</span><span class="n">add_simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">torus</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">torus</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">torus</span><span class="o">.</span><span class="n">betti_numbers</span><span class="p">())</span>
+
+<span class="c1"># A sphere: a square whose two edges face(1, *) are collapsed into</span>
+<span class="c1"># vertices and whose two other edges are identified</span>
+<span class="n">sphere</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">square</span> <span class="o">=</span> <span class="n">sphere</span><span class="o">.</span><span class="n">add_simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+    <span class="n">edge</span> <span class="o">=</span> <span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+    <span class="n">sphere</span><span class="o">.</span><span class="n">degenerate</span><span class="p">(</span><span class="n">edge</span><span class="p">,</span> <span class="n">edge</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">sphere</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">sphere</span><span class="o">.</span><span class="n">betti_numbers</span><span class="p">())</span>
+
+<span class="c1"># A projective plane: two triangles glued along their edges</span>
+<span class="n">rp2</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">t1</span><span class="p">,</span> <span class="n">t2</span> <span class="o">=</span> <span class="n">rp2</span><span class="o">.</span><span class="n">add_simplex</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">rp2</span><span class="o">.</span><span class="n">add_simplex</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">rp2</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">t1</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">t2</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+<span class="n">rp2</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">t1</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">t2</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="n">rp2</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">t1</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">t2</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">rp2</span><span class="o">.</span><span class="n">betti_numbers</span><span class="p">(),</span> <span class="n">rp2</span><span class="o">.</span><span class="n">betti_numbers</span><span class="p">(</span><span class="n">field</span><span class="o">=</span><span class="s2">"Z2"</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[1, 2, 1]
+[1, 0, 1]
+[1, 0, 0] [1, 1, 1]
+</pre></div>
+</div>
+</section>
 <section id="simploidal-bezier-spaces">
 <h2>Simploidal Bézier spaces<a class="headerlink" href="#simploidal-bezier-spaces" title="Link to this heading"></a></h2>
 <p><a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.SimploidalBezierSpace" title="torch_bsf.simploidal.SimploidalBezierSpace"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimploidalBezierSpace</span></code></a> associates a Bézier
@@ -397,7 +456,7 @@ shared faces.</p>
 <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
-<figure class="align-default" id="id3">
+<figure class="align-default" id="id4">
 <a class="reference internal image-reference" href="../_images/simploidal_bezier_space.png"><img alt="../_images/simploidal_bezier_space.png" src="../_images/simploidal_bezier_space.png" style="width: 100%;" />
 </a>
 <figcaption>
@@ -406,7 +465,7 @@ shared faces.</p>
 triangles and three squares.
 <strong>Right</strong> – A simploidal Bézier space of degree 3 made of a triangle (blue)
 and a square (orange) sharing an edge, fitted to samples of a surface.
-Generated by <code class="docutils literal notranslate"><span class="pre">examples/generate_simploidal_plot.py</span></code>.</span><a class="headerlink" href="#id3" title="Link to this image"></a></p>
+Generated by <code class="docutils literal notranslate"><span class="pre">examples/generate_simploidal_plot.py</span></code>.</span><a class="headerlink" href="#id4" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </section>
