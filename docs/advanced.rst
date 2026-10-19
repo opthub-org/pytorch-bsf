@@ -20,3 +20,4 @@ These features are useful for improving fitting accuracy through data normalizat
    advanced/active_learning
    advanced/splitting
    advanced/simploidal
+   advanced/simploidal_category
