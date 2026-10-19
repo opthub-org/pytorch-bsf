@@ -109,10 +109,19 @@ mlflow run . --entry-point main \
 
 ### Filing issues
 
-- Use the **Bug report** template for bug reports.
-- Use the **Feature request** template for feature requests.
-- Clearly describe the reproduction steps, expected behavior, and actual behavior.
+Issues are written so that a developer or an AI agent can implement them and open a PR without asking for more context. Use one of the issue forms:
+
+| Form | Use for | Label |
+|------|---------|-------|
+| **Bug report** | Incorrect behavior | `bug` |
+| **Feature / improvement** | New features, API changes, refactoring, tests, performance, CI, tooling, dependencies | `enhancement` |
+| **Documentation** | Sphinx docs, README, docstrings, examples | `documentation` |
+
+- Fill in **Acceptance criteria** with concrete, checkable items; project-wide checks (tests, lint, type check, doctest, docs build) are implied.
+- Name the files, modules or APIs involved when you know them, and state what is out of scope.
+- Record decisions already made (backward compatibility, design choices) so the implementer does not have to guess.
 - Link related issues or PRs to keep discussions focused.
+- When filing from the command line (`gh issue create --body-file`), keep the same `### <Field>` headings as the form.
 
 ### Creating branches
 
@@ -359,8 +368,10 @@ pytorch-bsf/
 │   │   ├── codeql-analysis.yml       # Security scanning
 │   │   └── python-package-conda.yml  # End-to-end tests in a Conda environment
 │   ├── ISSUE_TEMPLATE/
-│   │   ├── bug_report.md             # Bug report template
-│   │   └── feature_request.md        # Feature request template
+│   │   ├── bug_report.yml            # Bug report form
+│   │   ├── feature_request.yml       # Feature / improvement form
+│   │   ├── documentation.yml         # Documentation form
+│   │   └── config.yml                # Disables blank issues
 │   ├── CODEOWNERS                    # Code ownership settings
 │   └── dependabot.yml                # Automated dependency updates
 ├── torch_bsf/                        # Main package

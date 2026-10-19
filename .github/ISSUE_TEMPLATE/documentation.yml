@@ -1,0 +1,57 @@
+name: Documentation
+description: Improve or add Sphinx docs, README, docstrings or examples
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Write this issue so that a developer (or an AI agent) can update the docs and open a PR **without asking for more context**.
+        The docs build and doctests must pass; list only issue-specific items below.
+
+  - type: textarea
+    id: target
+    attributes:
+      label: Target
+      description: Files or pages to change or create.
+      placeholder: |
+        - `docs/advanced/elastic_net.rst`
+        - `README.md`
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is missing, wrong or hard to understand today.
+    validations:
+      required: true
+
+  - type: textarea
+    id: desired
+    attributes:
+      label: Desired content
+      description: What the reader should learn, outline of sections, formulas, figures or examples to include.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      value: |
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: related
+    attributes:
+      label: Related issues / PRs
+      placeholder: "#123, #456"
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes for the implementer
+      description: References (papers, URLs), style constraints, or open questions.

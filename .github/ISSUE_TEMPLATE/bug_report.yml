@@ -1,0 +1,99 @@
+name: Bug report
+description: Something in torch_bsf behaves incorrectly
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Write this issue so that a developer (or an AI agent) can fix it and open a PR **without asking for more context**.
+        Project-wide checks (pytest, flake8, mypy, doctest, docs build) are always required; list only issue-specific items below.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What is wrong, in one or two sentences.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: A minimal, self-contained script or CLI command. Include input data or how to generate it.
+      placeholder: |
+        ```python
+        import torch
+        import torch_bsf
+
+        params = torch.tensor([[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]])
+        values = torch.tensor([[0.0], [1.0], [0.0]])
+        bs = torch_bsf.fit(params=params, values=values, degree=2)
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happens instead. Paste the full traceback or wrong output.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Output of `python -c "import sys, torch, torch_bsf; print(sys.version); print(torch.__version__, torch_bsf.__version__)"` and the OS.
+      render: text
+
+  - type: textarea
+    id: suspected-cause
+    attributes:
+      label: Suspected cause / location
+      description: Files, functions or commits you suspect (e.g. `torch_bsf/bezier_simplex.py` `BezierSimplex.forward`). Leave empty if unknown.
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Verifiable conditions that mean this issue is done.
+      value: |
+        - [ ] The reproduction above no longer fails and produces the expected behavior
+        - [ ] A regression test is added under `tests/`
+    validations:
+      required: true
+
+  - type: dropdown
+    id: compatibility
+    attributes:
+      label: Backward compatibility
+      description: May the fix change public API behavior?
+      options:
+        - Must keep backward compatibility
+        - Breaking change allowed (mark with BREAKING CHANGE)
+        - Not applicable (no public API change)
+      default: 0
+    validations:
+      required: true
+
+  - type: textarea
+    id: related
+    attributes:
+      label: Related issues / PRs
+      placeholder: "#123, #456"
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes for the implementer
+      description: Constraints, things not to touch, decisions already made, or open questions to resolve before coding.
