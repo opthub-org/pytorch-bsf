@@ -607,6 +607,31 @@ def test_fit_simploidal_set_errors():
         fit_simploidal_set(S, [(mains[1], t, t[:, :1])], 2)
 
 
+def test_space_accepts_integer_control_points():
+    S = SimploidalSet()
+    S.add_simplex(1)
+    space = SimploidalBezierSpace(S, 1, 2, torch.ones(2, 2, dtype=torch.long))
+    assert space.proper_control_points.is_floating_point()
+    assert torch.equal(space.proper_control_points, torch.ones(2, 2))
+
+
+@pytest.mark.parametrize("solver", ["lstsq", "trainer"])
+def test_fit_preserves_float64(solver):
+    """Fitting float64 data yields a float64 model (and the trainer does not hit a dtype mismatch)."""
+    kwargs = dict(TRAINER_KWARGS, max_epochs=1, accelerator="cpu") if solver == "trainer" else {}
+    t = sample_simploid((2,), 30, seed=0).double()
+    x = t[:, :1] * t[:, 1:2]
+    bs = fit_simploid(t, x, (2,), 2, solver=solver, **kwargs)
+    assert bs.control_points.dtype == torch.float64
+    assert bs(t).dtype == torch.float64
+    S = SimploidalSet()
+    tri = S.add_simplex(2)
+    space = fit_simploidal_set(S, [(tri, t, x)], 2, solver=solver, **kwargs)
+    assert space.proper_control_points.dtype == torch.float64
+    if solver == "lstsq":
+        assert torch.allclose(space.evaluate(tri, t), x, atol=1e-12)
+
+
 def test_public_exports():
     for name in ["BezierSimploid", "Simploid", "SimploidalSet", "SimploidalBezierSpace", "fit_simploid", "fit_simploidal_set"]:
         assert hasattr(torch_bsf, name)

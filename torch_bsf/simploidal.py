@@ -1240,7 +1240,10 @@ class SimploidalBezierSpace(_LeastSquaresModule):
                 f"proper_control_points must have shape ({offset}, {n_values}), "
                 f"but {tuple(proper_control_points.shape)} is given."
             )
-        self.proper_control_points = nn.Parameter(torch.as_tensor(proper_control_points).detach().clone())
+        matrix = torch.as_tensor(proper_control_points)
+        if not matrix.is_floating_point():
+            matrix = matrix.to(torch.get_default_dtype())
+        self.proper_control_points = nn.Parameter(matrix.detach().clone())
 
     def extra_repr(self) -> str:
         return f"n_simploids={len(self.simploids)}, degree={self.degree}, n_values={self.n_values}"
@@ -1382,6 +1385,17 @@ def _train(model: L.LightningModule, dataset: TensorDataset, batch_size: int | N
     L.Trainer(**kwargs).fit(model, dl)
 
 
+def _floating_dtype(tensors: Sequence[torch.Tensor]) -> torch.dtype:
+    """The promoted floating dtype of ``tensors``, or the default dtype if none is floating."""
+    dtypes = [t.dtype for t in tensors if t.is_floating_point()]
+    if not dtypes:
+        return torch.get_default_dtype()
+    dtype = dtypes[0]
+    for d in dtypes[1:]:
+        dtype = torch.promote_types(dtype, d)
+    return dtype
+
+
 def _check_values(params: torch.Tensor, values: torch.Tensor, n_params: int) -> None:
     if params.dim() != 2 or params.shape[1] != n_params:
         raise ValueError(f"params must have shape (n, {n_params}), but {tuple(params.shape)} is given.")
@@ -1456,8 +1470,9 @@ def fit_simploid(
         raise ValueError("ridge is supported only by the 'lstsq' solver.")
     if seed is not None:
         L.seed_everything(seed)
-    model = BezierSimploid.randn(st, ds, int(values.shape[1]))
-    _train(model, TensorDataset(params, values), batch_size, kwargs)
+    dtype = _floating_dtype([values])
+    model = BezierSimploid.randn(st, ds, int(values.shape[1])).to(dtype)
+    _train(model, TensorDataset(params.to(dtype), values.to(dtype)), batch_size, kwargs)
     return model
 
 
@@ -1543,6 +1558,8 @@ def fit_simploidal_set(
     n_values = int(torch.as_tensor(data[0][2]).shape[1])
     space = SimploidalBezierSpace(simploidal_set, degree, n_values)
     samples = _normalize_data(space, data)
+    dtype = _floating_dtype([v for _, _, v in samples])
+    space = space.to(dtype)
     if solver == "lstsq":
         blocks, targets = [], []
         for simploid, params, values in samples:
@@ -1564,7 +1581,7 @@ def fit_simploidal_set(
         L.seed_everything(seed)
     width = max(p.shape[1] for _, p, _ in samples)
     ids = torch.cat([torch.full((len(p),), space.simploid_id(s), dtype=torch.long) for s, p, _ in samples])
-    params = torch.cat([F.pad(p.to(torch.get_default_dtype()), (0, width - p.shape[1])) for _, p, _ in samples])
-    values = torch.cat([v.to(torch.get_default_dtype()) for _, _, v in samples])
+    params = torch.cat([F.pad(p.to(dtype), (0, width - p.shape[1])) for _, p, _ in samples])
+    values = torch.cat([v.to(dtype) for _, _, v in samples])
     _train(space, TensorDataset(ids, params, values), batch_size, kwargs)
     return space
