@@ -470,3 +470,30 @@ def test_main_simploid_errors(tmp_path, monkeypatch, capsys, args, message):
         _run_main(monkeypatch, tmp_path, f"--params={params}", "--loglevel=0", *args)
     assert excinfo.value.code == 2
     assert message in capsys.readouterr().err
+
+
+def test_main_simploid_checks_rows_before_data_module(tmp_path, monkeypatch, capsys):
+    """A row-count mismatch should be reported before BezierSimplexDataModule pairs the rows.
+
+    Some PyTorch versions raise an ``AssertionError`` in ``TensorDataset`` for such data.
+    """
+    import numpy as np
+
+    def data_module(*args, **kwargs):
+        raise AssertionError("Size mismatch between tensors")
+
+    monkeypatch.setattr("torch_bsf.__main__.BezierSimplexDataModule", data_module)
+    params, _ = _write_prism_data(tmp_path)
+    np.savetxt(tmp_path / "short.csv", np.ones((3, 4)), delimiter=",")
+    with pytest.raises(SystemExit) as excinfo:
+        _run_main(
+            monkeypatch,
+            tmp_path,
+            f"--params={params}",
+            f"--values={tmp_path / 'short.csv'}",
+            "--simploid-type=2,1",
+            "--degree=2",
+            "--loglevel=0",
+        )
+    assert excinfo.value.code == 2
+    assert "--params has 60 rows, but --values has 3 rows" in capsys.readouterr().err

@@ -220,7 +220,7 @@ def _run_simplex(args: Namespace, dm: BezierSimplexDataModule, meshgrid: Path) -
     print(f"Meshgrid saved: {fn}")
 
 
-def _check_columns(parser: ArgumentParser, option: str, data: torch.Tensor, args: Namespace) -> None:
+def _check_columns(parser: ArgumentParser, option: str, data: torch.Tensor | np.ndarray, args: Namespace) -> None:
     n_params = simploid_n_params(args.simploid_type)
     if data.shape[1] != n_params:
         type_str = ",".join(map(str, args.simploid_type))
@@ -229,12 +229,27 @@ def _check_columns(parser: ArgumentParser, option: str, data: torch.Tensor, args
         )
 
 
-def _fit_simploid(parser: ArgumentParser, args: Namespace, dm: BezierSimplexDataModule) -> BezierSimploid:
-    params = dm.load_params()
-    values = dm.fit_transform(dm.load_values())
+def _load_table(path: Path, header: int) -> np.ndarray:
+    """Reads a data file as :meth:`BezierSimplexDataModule.load_data` does."""
+    return np.loadtxt(path, delimiter="," if path.suffix == ".csv" else None, skiprows=header, ndmin=2)
+
+
+def _check_simploid_data(parser: ArgumentParser, args: Namespace) -> None:
+    """Checks the shapes of the data files before :class:`BezierSimplexDataModule` reads them.
+
+    The data module pairs the rows of both files on construction, which fails with an unhelpful error
+    (an ``AssertionError`` in some PyTorch versions) if their row counts differ.
+    """
+    params = _load_table(args.params, args.header)
+    values = _load_table(args.values, args.header)
     _check_columns(parser, "--params", params, args)
     if params.shape[0] != values.shape[0]:
         parser.error(f"--params has {params.shape[0]} rows, but --values has {values.shape[0]} rows")
+
+
+def _fit_simploid(args: Namespace, dm: BezierSimplexDataModule) -> BezierSimploid:
+    params = dm.load_params()
+    values = dm.fit_transform(dm.load_values())
     kwargs = _trainer_kwargs(args) if args.solver == "trainer" else {}
     model = fit_simploid(
         params,
@@ -275,7 +290,7 @@ def _log_simploid(args: Namespace, dm: BezierSimplexDataModule, model: BezierSim
 
 
 def _run_simploid(parser: ArgumentParser, args: Namespace, dm: BezierSimplexDataModule, meshgrid: Path) -> None:
-    model = _fit_simploid(parser, args, dm)
+    model = _fit_simploid(args, dm)
     ts = dm.load_data(meshgrid)
     _check_columns(parser, "--meshgrid", ts, args)
 
@@ -297,6 +312,8 @@ def main() -> None:
     parser = _build_parser()
     args = parser.parse_args()
     _check_simploid_args(parser, args)
+    if args.simploid_type is not None:
+        _check_simploid_data(parser, args)
 
     meshgrid: Path = args.params if (args.meshgrid is None or args.meshgrid.is_dir()) else args.meshgrid
 
