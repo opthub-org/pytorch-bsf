@@ -352,6 +352,24 @@ def _collections(ax, name):
     return [c for c in ax.collections if type(c).__name__ == name]
 
 
+@pytest.mark.parametrize("n_values", [2, 3])
+def test_plot_simploidal_bezier_space_mixed_degrees(require_matplotlib, n_values):
+    """A space whose pieces and factors have different degrees is drawn with the right control nets."""
+    import matplotlib.pyplot as plt
+
+    S = SimploidalSet()
+    tri = S.add_simplex(2)
+    sq = S.add_simploid((1, 1))
+    S.identify(tri.face(0, 2), sq.face(1, 1))
+    # Degree 3 along the shared edge (hence for the triangle), 2 across it.
+    space = SimploidalBezierSpace(S, {sq: (3, 2)}, n_values=n_values)
+    assert space.simploid_degree(tri) == (3,)
+    torch.nn.init.normal_(space.proper_control_points)
+    ax = plot_simploidal_bezier_space(space, num=4)
+    assert _n_control_points_drawn(ax) == 10 + 4 * 3
+    plt.close(ax.figure)
+
+
 def _n_control_points_drawn(ax):
     """The total number of red markers scattered on the axes."""
     from matplotlib.colors import to_rgba

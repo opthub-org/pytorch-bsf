@@ -725,7 +725,7 @@ def plot_simploidal_bezier_space(
             ax,
             s.simploid_type,
             lambda t, s=s: space.evaluate(s, t),
-            simploid_indices(s.simploid_type, space.degree),
+            simploid_indices(s.simploid_type, space.simploid_degree(s)),
             space.control_points(s),
             num,
             show_control_points,
