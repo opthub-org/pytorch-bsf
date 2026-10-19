@@ -635,3 +635,111 @@ def test_fit_preserves_float64(solver):
 def test_public_exports():
     for name in ["BezierSimploid", "Simploid", "SimploidalSet", "SimploidalBezierSpace", "fit_simploid", "fit_simploidal_set"]:
         assert hasattr(torch_bsf, name)
+
+
+# ---------------------------------------------------------------------------
+# Additional coverage: chained degeneracies, consistency check, Lightning steps
+# ---------------------------------------------------------------------------
+
+
+def test_chained_degeneration():
+    """Degenerating the base of a degenerate face composes the degeneracy maps."""
+    S = SimploidalSet()
+    cube = S.add_simploid((1, 1, 1))
+    square = cube.face(2, 0)
+    edge = square.face(1, 0)
+    flat = S.degenerate(square, edge, 1, -1)
+    assert cube.face(2, 0) is flat and flat.base.simploid_type == (1,)
+    edge = flat.base  # the two opposite edges of the square were merged; `edge` may be stale
+    point = S.degenerate(edge, edge.face(0, 0), 0, -1)
+    S.check()
+    assert point.base.is_vertex
+    face = cube.face(2, 0)
+    assert face.is_degenerate and face.base is point.base
+    assert face.simploid_type == (1, 1)
+    space = _random_space(S, 2)
+    t = sample_simploid((1, 1), 5, seed=0)
+    assert torch.allclose(space.evaluate(face, t), space.control_points(point.base).expand(5, -1))
+
+
+def test_cone_of_simploid_with_degenerate_face():
+    S = SimploidalSet()
+    square = S.add_simploid((1, 1))
+    edge = square.face(0, 0)
+    S.degenerate(edge, edge.face(0, 0), 0, -1)
+    v, cones = S.cone([square])
+    S.check()
+    c = cones[square]
+    assert c.face(0, 0).is_degenerate
+    assert c.face(0, 0).base is cones[square.face(0, 0).base]
+
+
+def test_check_detects_inconsistencies():
+    S = SimploidalSet()
+    tri = S.add_simplex(2)
+    edges = dict(tri._faces)
+    tri._faces[(0, 0)] = SimploidalSet().add_simplex(1)
+    with pytest.raises(ValueError, match="does not belong"):
+        S.check()
+    tri._faces[(0, 0)] = edges[(0, 0)].face(0, 0)
+    with pytest.raises(ValueError, match="wrong type"):
+        S.check()
+    tri._faces[(0, 0)] = edges[(0, 2)]
+    with pytest.raises(ValueError, match="!="):
+        S.check()
+
+    S = SimploidalSet()
+    square = S.add_simploid((1, 1))
+    square._faces[(1, 0)] = square._faces[(1, 1)]
+    with pytest.raises(ValueError, match="!="):
+        S.check()
+
+
+def test_lightning_validation_and_test_steps():
+    import lightning.pytorch as L
+    from torch.utils.data import DataLoader, TensorDataset
+
+    trainer = L.Trainer(accelerator="cpu", enable_progress_bar=False, logger=False, enable_model_summary=False)
+    t = sample_simploid((2, 1), 10, seed=0)
+    bsd = BezierSimploid.randn((2, 1), 1, n_values=1)
+    dl = DataLoader(TensorDataset(t, bsd(t).detach()))
+    assert trainer.validate(bsd, dl, verbose=False)[0]["val_mse"] < 1e-10
+    assert trainer.test(bsd, dl, verbose=False)[0]["test_mse"] < 1e-10
+
+    S = SimploidalSet()
+    tri = S.add_simplex(2)
+    space = _random_space(S, 1, n_values=1)
+    p = sample_simploid((2,), 10, seed=0)
+    ids = torch.full((10,), space.simploid_id(tri))
+    dl = DataLoader(TensorDataset(ids, p, space.evaluate(tri, p).detach()))
+    assert trainer.validate(space, dl, verbose=False)[0]["val_mae"] < 1e-5
+    assert trainer.test(space, dl, verbose=False)[0]["test_mae"] < 1e-5
+
+
+def test_least_squares_module_requires_predict_batch():
+    from torch_bsf.simploidal import _LeastSquaresModule
+
+    with pytest.raises(NotImplementedError):
+        _LeastSquaresModule()._predict_batch(None)
+
+
+def test_bezier_simploid_constructors_and_properties():
+    zeros = BezierSimploid.zeros((2, 1), 2, n_values=3)
+    assert torch.equal(zeros.control_points, torch.zeros(18, 3))
+    assert zeros.n_params == 5
+    assert "simploid_type=(2, 1)" in repr(zeros)
+    integer = BezierSimploid((1,), 1, torch.tensor([[1], [2]]))
+    assert integer.control_points.is_floating_point()
+    mapping = BezierSimploid((1,), 1, {((1, 0),): [0.0, 1.0], ((0, 1),): [2.0, 3.0]})
+    assert torch.equal(mapping[((0, 1),)].detach(), torch.tensor([2.0, 3.0]))
+
+
+def test_fit_with_integer_values_and_shape_errors():
+    S = SimploidalSet()
+    edge = S.add_simplex(1)
+    t = torch.tensor([[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]])
+    space = fit_simploidal_set(S, [(edge, t, torch.tensor([[0], [1], [2]]))], 1)
+    assert space.proper_control_points.dtype == torch.get_default_dtype()
+    assert torch.allclose(space.evaluate(edge, t), torch.tensor([[0.0], [1.0], [2.0]]), atol=1e-5)
+    with pytest.raises(ValueError, match="values must have shape"):
+        fit_simploid(t, torch.zeros(2, 1), (1,), 1)
