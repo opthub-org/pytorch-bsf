@@ -1546,12 +1546,12 @@ def fit_simploidal_set(
     if solver == "lstsq":
         blocks, targets = [], []
         for simploid, params, values in samples:
-            basis = bernstein_basis(simploid.simploid_type, degree, params).double()
+            basis = bernstein_basis(simploid.simploid_type, degree, params.cpu()).double()
             rows = torch.tensor(space.control_point_rows(simploid), dtype=torch.long)
             blocks.append(
                 torch.zeros(len(params), space.n_proper_control_points, dtype=torch.float64).index_add_(1, rows, basis)
             )
-            targets.append(values.double())
+            targets.append(values.cpu().double())
         solution = _solve_least_squares(torch.cat(blocks), torch.cat(targets), ridge)
         with torch.no_grad():
             space.proper_control_points.copy_(solution.to(space.proper_control_points.dtype))
