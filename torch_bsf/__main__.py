@@ -1,10 +1,10 @@
 from argparse import ArgumentParser
 from pathlib import Path
 
+import mlflow
 import numpy as np
 from lightning.pytorch import Trainer
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
-import mlflow
 from mlflow import autolog
 
 from torch_bsf import BezierSimplexDataModule
@@ -15,19 +15,25 @@ from torch_bsf.validator import index_list, validate_simplex_indices
 
 def main() -> None:
     """Entry point for ``python -m torch_bsf``."""
-    parser = ArgumentParser(
-        prog="python -m torch_bsf", description="Bezier simplex fitting"
-    )
+    parser = ArgumentParser(prog="python -m torch_bsf", description="Bezier simplex fitting")
     parser.add_argument(
-        "--params", type=Path, required=True, metavar="CSV",
+        "--params",
+        type=Path,
+        required=True,
+        metavar="CSV",
         help="Path to the input parameters CSV file",
     )
     parser.add_argument(
-        "--values", type=Path, required=True, metavar="CSV",
+        "--values",
+        type=Path,
+        required=True,
+        metavar="CSV",
         help="Path to the output values CSV file",
     )
     parser.add_argument(
-        "--meshgrid", type=Path, metavar="CSV|DIR",
+        "--meshgrid",
+        type=Path,
+        metavar="CSV|DIR",
         help=(
             "Path to the meshgrid CSV file used for prediction output; if omitted or if an "
             "existing directory path is given, the parameters CSV specified by --params is used instead"
@@ -35,15 +41,21 @@ def main() -> None:
     )
     mutual_group = parser.add_mutually_exclusive_group(required=True)
     mutual_group.add_argument(
-        "--degree", type=int, metavar="N",
+        "--degree",
+        type=int,
+        metavar="N",
         help="Degree of the Bezier simplex (required when --init is not given)",
     )
     mutual_group.add_argument(
-        "--init", type=Path, metavar="PT",
+        "--init",
+        type=Path,
+        metavar="PT",
         help="Path to a pretrained model file to initialize from (required when --degree is not given)",
     )
     parser.add_argument(
-        "--freeze", type=index_list, metavar="INDICES",
+        "--freeze",
+        type=index_list,
+        metavar="INDICES",
         help=(
             "JSON-style list-of-lists of simplex indices of control points to freeze during training; "
             "each simplex index list must have length n_params and its elements must sum to the Bezier "
@@ -52,11 +64,17 @@ def main() -> None:
         ),
     )
     parser.add_argument(
-        "--header", type=int, default=0, metavar="N",
+        "--header",
+        type=int,
+        default=0,
+        metavar="N",
         help="Number of header rows to skip in CSV files (default: 0)",
     )
     parser.add_argument(
-        "--normalize", type=str, choices=("none", "max", "std", "quantile"), default="none",
+        "--normalize",
+        type=str,
+        choices=("none", "max", "std", "quantile"),
+        default="none",
         metavar="{none,max,std,quantile}",
         help="Normalization applied to values before training (default: none)",
     )
@@ -124,9 +142,9 @@ def main() -> None:
     trainer.fit(bs, dm)
 
     if args.loglevel >= 2:
+        import mlflow.pytorch
         from mlflow.models import ModelSignature
         from mlflow.types import Schema, TensorSpec
-        import mlflow.pytorch
 
         # Use float64 in signature to match CSV/JSON input (float32/float16 models auto-convert
         # via torch.as_tensor in forward). Shape (-1, n) validates column count without dtype lock-in.

@@ -1,4 +1,5 @@
 """Tests for torch_bsf._cli_args."""
+
 from argparse import ArgumentParser
 
 from torch_bsf._cli_args import add_common_training_args
@@ -28,19 +29,21 @@ def test_add_common_training_args_overrides():
     parser = ArgumentParser()
     add_common_training_args(parser)
 
-    args = parser.parse_args([
-        "--split_ratio=0.8",
-        "--batch_size=32",
-        "--max_epochs=100",
-        "--smoothness_weight=0.5",
-        "--accelerator=cpu",
-        "--strategy=ddp",
-        "--devices=2",
-        "--num_nodes=2",
-        "--precision=16-mixed",
-        "--enable_checkpointing",
-        "--log_every_n_steps=10",
-    ])
+    args = parser.parse_args(
+        [
+            "--split_ratio=0.8",
+            "--batch_size=32",
+            "--max_epochs=100",
+            "--smoothness_weight=0.5",
+            "--accelerator=cpu",
+            "--strategy=ddp",
+            "--devices=2",
+            "--num_nodes=2",
+            "--precision=16-mixed",
+            "--enable_checkpointing",
+            "--log_every_n_steps=10",
+        ]
+    )
     assert args.split_ratio == 0.8
     assert args.batch_size == 32
     assert args.max_epochs == 100

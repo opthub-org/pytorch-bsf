@@ -1,9 +1,9 @@
 """Tests for torch_bsf.__main__ (the CLI entry point)."""
 
+import os
 import subprocess
 import sys
 from pathlib import Path
-import os
 
 import pytest
 
