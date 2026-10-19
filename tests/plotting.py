@@ -551,6 +551,41 @@ def test_plot_simploid_kwargs(require_matplotlib):
     plt.close(ax.figure)
 
 
+@pytest.mark.parametrize(
+    "kwargs", [{"facecolors": "y", "edgecolors": "k"}, {"fc": "y", "ec": "k"}, {"facecolor": "y", "edgecolor": "k"}]
+)
+def test_plot_simploid_2d_surface_color_aliases(require_matplotlib, kwargs):
+    """Every PolyCollection alias of facecolor / edgecolor overrides the defaults without TypeError."""
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import to_rgba
+
+    ax = plot_bezier_simploid(BezierSimploid.randn((2,), 2, 2), num=4, show_control_points=False, **kwargs)
+    (poly,) = _collections(ax, "PolyCollection")
+    assert tuple(poly.get_facecolor()[0][:3]) == to_rgba("y")[:3]
+    assert tuple(poly.get_edgecolor()[0][:3]) == to_rgba("k")[:3]
+    plt.close(ax.figure)
+
+
+def test_plot_simploid_curve_c_alias(require_matplotlib):
+    """``c`` (the Line2D alias of ``color``) sets the curve color without TypeError."""
+    import matplotlib.pyplot as plt
+
+    ax = plot_bezier_simploid(BezierSimploid.randn((1,), 2, 2), num=4, c="m", show_control_points=False)
+    assert ax.lines[0].get_color() == "m"
+    plt.close(ax.figure)
+    ax = plot_simploidal_bezier_space(_edge_space(), num=4, c="m", show_control_points=False)
+    assert [line.get_color() for line in ax.lines] == ["m"]
+    plt.close(ax.figure)
+
+
+def _edge_space():
+    S = SimploidalSet()
+    S.add_simplex(1)
+    space = SimploidalBezierSpace(S, degree=2, n_values=2)
+    torch.nn.init.normal_(space.proper_control_points)
+    return space
+
+
 def test_plot_simploid_2d_surface_kwargs_override_defaults(require_matplotlib):
     """PolyCollection options such as facecolor / edgecolor can be passed through **kwargs."""
     import matplotlib.pyplot as plt

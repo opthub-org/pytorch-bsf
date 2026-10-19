@@ -510,6 +510,19 @@ def _add_segments(ax, points: np.ndarray, edges: np.ndarray, **kwargs) -> None:
         ax.add_collection(LineCollection(segments, **kwargs))
 
 
+def _with_defaults(kwargs: dict, defaults: dict[tuple[str, ...], object]) -> dict:
+    """``kwargs`` plus the defaults whose keyword is given under none of its aliases.
+
+    Each key of ``defaults`` is a group of Matplotlib aliases, the first one
+    being the name used for the default; e.g. ``("color", "c")``.
+    """
+    result = dict(kwargs)
+    for aliases, value in defaults.items():
+        if not any(a in kwargs for a in aliases):
+            result[aliases[0]] = value
+    return result
+
+
 def _draw_cell(ax, xs: np.ndarray, coords: np.ndarray, num: int, is_triangle: bool, color, kwargs: dict) -> None:
     """Draws the image ``xs`` of a cell grid: a point, a curve or a surface."""
     dim = coords.shape[1]
@@ -518,7 +531,7 @@ def _draw_cell(ax, xs: np.ndarray, coords: np.ndarray, num: int, is_triangle: bo
         return
     if dim == 1:
         order = np.argsort(coords[:, 0])
-        ax.plot(*xs[order].T, color=color, **kwargs)
+        ax.plot(*xs[order].T, **_with_defaults(kwargs, {("color", "c"): color}))
         return
     triangles = _cell_triangles(coords, num, is_triangle)
     surface_kwargs = {"alpha": 0.4, **kwargs}
@@ -527,7 +540,10 @@ def _draw_cell(ax, xs: np.ndarray, coords: np.ndarray, num: int, is_triangle: bo
     else:
         from matplotlib.collections import PolyCollection
 
-        poly_kwargs = {"facecolor": color, "edgecolor": "none", **surface_kwargs}
+        poly_kwargs = _with_defaults(
+            surface_kwargs,
+            {("facecolor", "facecolors", "fc"): color, ("edgecolor", "edgecolors", "ec"): "none"},
+        )
         ax.add_collection(PolyCollection(xs[triangles], **poly_kwargs))
     _add_segments(ax, xs, _boundary_edges(triangles), colors=[color], linewidths=1.0)
 
