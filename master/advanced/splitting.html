@@ -167,7 +167,7 @@ coordinates gives the same value as evaluating the original.</p>
 <a class="reference internal image-reference" href="../_images/splitting_before_after.png"><img alt="../_images/splitting_before_after.png" src="../_images/splitting_before_after.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 8 </span><span class="caption-text"><strong>Left</strong> – A degree-3 Bézier curve (n_params=2) with its four control
+<p><span class="caption-number">Fig. 9 </span><span class="caption-text"><strong>Left</strong> – A degree-3 Bézier curve (n_params=2) with its four control
 points (circles) and control polygon (dashed).  <strong>Right</strong> – After splitting
 at <span class="math notranslate nohighlight">\(s=0.5\)</span>: sub-simplex <span class="math notranslate nohighlight">\(B_A\)</span> (red) covers the first half and
 sub-simplex <span class="math notranslate nohighlight">\(B_B\)</span> (green) covers the second half.  Diamond markers
@@ -193,7 +193,7 @@ the control points of <strong>bs_B</strong>.</p>
 <a class="reference internal image-reference" href="../_images/splitting_triangle_before_after.png"><img alt="../_images/splitting_triangle_before_after.png" src="../_images/splitting_triangle_before_after.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 9 </span><span class="caption-text"><strong>Left</strong> – A degree-2 Bézier triangle (n_params=3) with its six control
+<p><span class="caption-number">Fig. 10 </span><span class="caption-text"><strong>Left</strong> – A degree-2 Bézier triangle (n_params=3) with its six control
 points (circles) and control net.  <strong>Right</strong> – After splitting edge
 <span class="math notranslate nohighlight">\((0,1)\)</span> at <span class="math notranslate nohighlight">\(s=0.5\)</span>: sub-simplex <span class="math notranslate nohighlight">\(B_A\)</span> (orange, replaces
 <span class="math notranslate nohighlight">\(v_1\)</span> with <span class="math notranslate nohighlight">\(v_\mathrm{new}\)</span>) and <span class="math notranslate nohighlight">\(B_B\)</span> (green, replaces
@@ -319,7 +319,7 @@ forward passes through the model.</p>
 <a class="reference internal image-reference" href="../_images/splitting_criteria.png"><img alt="../_images/splitting_criteria.png" src="../_images/splitting_criteria.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 10 </span><span class="caption-text">Comparison of the two built-in split criteria on the same degree-2 Bézier
+<p><span class="caption-number">Fig. 11 </span><span class="caption-text">Comparison of the two built-in split criteria on the same degree-2 Bézier
 curve (dotted) fitted to training data (grey dots).  <strong>Left</strong> –
 <code class="docutils literal notranslate"><span class="pre">longest_edge_criterion</span></code> splits at the geometric midpoint of the longest
 value-space edge (<span class="math notranslate nohighlight">\(s=0.5\)</span>), ignoring the data distribution.
@@ -332,7 +332,7 @@ position closer to where the fitted curve deviates most from the data.</span><a 
 <a class="reference internal image-reference" href="../_images/splitting_triangle_criteria.png"><img alt="../_images/splitting_triangle_criteria.png" src="../_images/splitting_triangle_criteria.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 11 </span><span class="caption-text">Comparison of the two built-in split criteria on a degree-2 Bézier
+<p><span class="caption-number">Fig. 12 </span><span class="caption-text">Comparison of the two built-in split criteria on a degree-2 Bézier
 <strong>triangle</strong> (<span class="math notranslate nohighlight">\(n_\mathrm{params}=3\)</span>) with training data (purple dots).
 <strong>Left</strong> – <code class="docutils literal notranslate"><span class="pre">longest_edge_criterion</span></code> selects the longest value-space edge
 and splits at <span class="math notranslate nohighlight">\(s=0.5\)</span>.  <strong>Right</strong> – <code class="docutils literal notranslate"><span class="pre">max_error_criterion</span></code> selects

@@ -69,6 +69,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#customizing-the-plot">Customizing the Plot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#bezier-simploids-and-simploidal-bezier-spaces">Bézier Simploids and Simploidal Bézier Spaces</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#why-visualize">Why Visualize?</a></li>
 </ul>
 </li>
@@ -197,6 +198,75 @@ shape <code class="docutils literal notranslate"><span class="pre">(n_values,</s
 <span class="n">ax</span><span class="o">.</span><span class="n">view_init</span><span class="p">(</span><span class="n">elev</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">azim</span><span class="o">=</span><span class="mi">45</span><span class="p">)</span>
 </pre></div>
 </div>
+</section>
+<section id="bezier-simploids-and-simploidal-bezier-spaces">
+<h2>Bézier Simploids and Simploidal Bézier Spaces<a class="headerlink" href="#bezier-simploids-and-simploidal-bezier-spaces" title="Link to this heading"></a></h2>
+<p>Models of the <a class="reference internal" href="simploidal.html"><span class="doc">Simploidal Sets</span></a> module have their own plotting functions:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">plot_bezier_simploid(model,</span> <span class="pre">num=20,</span> <span class="pre">ax=None,</span> <span class="pre">show_control_points=True,</span> <span class="pre">**kwargs)</span></code>
+draws a <a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.BezierSimploid" title="torch_bsf.simploidal.BezierSimploid"><code class="xref py py-class docutils literal notranslate"><span class="pre">BezierSimploid</span></code></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">plot_simploidal_bezier_space(space,</span> <span class="pre">num=20,</span> <span class="pre">ax=None,</span> <span class="pre">show_control_points=True,</span> <span class="pre">**kwargs)</span></code>
+draws every main simploid of a <a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.SimploidalBezierSpace" title="torch_bsf.simploidal.SimploidalBezierSpace"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimploidalBezierSpace</span></code></a>
+on one axes, each piece in its own color of the Matplotlib color cycle
+(pass <code class="docutils literal notranslate"><span class="pre">color=...</span></code> to use one color for all pieces).</p></li>
+</ul>
+<p>Both support models with <code class="docutils literal notranslate"><span class="pre">n_values</span></code> of 2 (a 2D axes) or 3 (a 3D axes) and
+raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> otherwise.  <code class="docutils literal notranslate"><span class="pre">num</span></code> is the number of grid intervals along
+each edge of the parameter domain.  How a piece is drawn depends on the
+dimension of its simploid type:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Simploid</p></th>
+<th class="head"><p>Drawn as</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>vertex <code class="docutils literal notranslate"><span class="pre">()</span></code></p></td>
+<td><p>a point</p></td>
+</tr>
+<tr class="row-odd"><td><p>edge <code class="docutils literal notranslate"><span class="pre">(1,)</span></code></p></td>
+<td><p>a curve (<code class="docutils literal notranslate"><span class="pre">ax.plot</span></code>)</p></td>
+</tr>
+<tr class="row-even"><td><p>triangle <code class="docutils literal notranslate"><span class="pre">(2,)</span></code>, square <code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">1)</span></code></p></td>
+<td><p>a triangulated surface (<code class="docutils literal notranslate"><span class="pre">ax.plot_trisurf</span></code> in 3D, a <code class="docutils literal notranslate"><span class="pre">PolyCollection</span></code> in 2D) with its boundary curves</p></td>
+</tr>
+<tr class="row-odd"><td><p>dimension 3 or more, e.g. <code class="docutils literal notranslate"><span class="pre">(2,</span> <span class="pre">1)</span></code>, <code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">1,</span> <span class="pre">1)</span></code>, <code class="docutils literal notranslate"><span class="pre">(3,)</span></code></p></td>
+<td><p>the surfaces of all its 2-dimensional faces (the boundary of the solid)</p></td>
+</tr>
+</tbody>
+</table>
+<p>With <code class="docutils literal notranslate"><span class="pre">show_control_points=True</span></code> (the default) the control net is drawn as
+red points joined by dashed segments: two control points are joined when their
+indices differ by <span class="math notranslate nohighlight">\(e_k - e_l\)</span> in a single factor, which gives the
+triangular net of a simplex factor and the grid of a cube.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.plotting</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_simploidal_bezier_space</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.simploidal</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimploidalSet</span><span class="p">,</span> <span class="n">SimploidalBezierSpace</span>
+
+<span class="n">S</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">tri</span><span class="p">,</span> <span class="n">sq</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">add_simplex</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">S</span><span class="o">.</span><span class="n">add_simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">S</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">tri</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">sq</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>  <span class="c1"># glue the two along an edge</span>
+
+<span class="n">space</span> <span class="o">=</span> <span class="n">SimploidalBezierSpace</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_values</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="n">space</span><span class="o">.</span><span class="n">proper_control_points</span><span class="p">)</span>
+
+<span class="n">ax</span> <span class="o">=</span> <span class="n">plot_simploidal_bezier_space</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">"A triangle and a square sharing an edge"</span><span class="p">)</span>
+</pre></div>
+</div>
+<figure class="align-default" id="id1">
+<a class="reference internal image-reference" href="../_images/simploidal_bezier_space.png"><img alt="../_images/simploidal_bezier_space.png" src="../_images/simploidal_bezier_space.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 8 </span><span class="caption-text">Bézier simploids of types <span class="math notranslate nohighlight">\((1, 1)\)</span> and <span class="math notranslate nohighlight">\((2, 1)\)</span>, and a simploidal
+Bézier space made of a triangle and a square sharing an edge.
+Generated by <code class="docutils literal notranslate"><span class="pre">examples/generate_simploidal_plot.py</span></code>.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
+</figcaption>
+</figure>
 </section>
 <section id="why-visualize">
 <h2>Why Visualize?<a class="headerlink" href="#why-visualize" title="Link to this heading"></a></h2>

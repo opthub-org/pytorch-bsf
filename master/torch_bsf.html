@@ -93,6 +93,8 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#module-torch_bsf.plotting">torch_bsf.plotting module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.plotting.plot_bezier_simplex"><code class="docutils literal notranslate"><span class="pre">plot_bezier_simplex()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#torch_bsf.plotting.plot_bezier_simploid"><code class="docutils literal notranslate"><span class="pre">plot_bezier_simploid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#torch_bsf.plotting.plot_simploidal_bezier_space"><code class="docutils literal notranslate"><span class="pre">plot_simploidal_bezier_space()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#module-torch_bsf.preprocessing">torch_bsf.preprocessing module</a><ul>
@@ -1094,7 +1096,7 @@ control points in canonical simplex-index order.</p>
 <span id="torch-bsf-plotting-module"></span><h2>torch_bsf.plotting module<a class="headerlink" href="#module-torch_bsf.plotting" title="Link to this heading"></a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="torch_bsf.plotting.plot_bezier_simplex">
-<span class="sig-prename descclassname"><span class="pre">torch_bsf.plotting.</span></span><span class="sig-name descname"><span class="pre">plot_bezier_simplex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.bezier_simplex.BezierSimplex" title="torch_bsf.bezier_simplex.BezierSimplex"><span class="pre">BezierSimplex</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_control_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_control_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_pairwise_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2000</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/plotting.py#L18-L103"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.plotting.plot_bezier_simplex" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">torch_bsf.plotting.</span></span><span class="sig-name descname"><span class="pre">plot_bezier_simplex</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.bezier_simplex.BezierSimplex" title="torch_bsf.bezier_simplex.BezierSimplex"><span class="pre">BezierSimplex</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_control_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_control_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_pairwise_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2000</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/plotting.py#L20-L105"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.plotting.plot_bezier_simplex" title="Link to this definition"></a></dt>
 <dd><p>Plots the Bézier simplex.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1154,6 +1156,116 @@ For <code class="docutils literal notranslate"><span class="pre">model.n_params<
 </ul>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="torch_bsf.plotting.plot_bezier_simploid">
+<span class="sig-prename descclassname"><span class="pre">torch_bsf.plotting.</span></span><span class="sig-name descname"><span class="pre">plot_bezier_simploid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.simploidal.BezierSimploid" title="torch_bsf.simploidal.BezierSimploid"><span class="pre">BezierSimploid</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_control_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/plotting.py#L610-L680"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.plotting.plot_bezier_simploid" title="Link to this definition"></a></dt>
+<dd><p>Plots a Bézier simploid whose values are 2- or 3-dimensional.</p>
+<p>The image of a grid on the parameter simploid is drawn: a curve for a
+simploid of dimension 1 (type <code class="docutils literal notranslate"><span class="pre">(1,)</span></code>) and a triangulated surface, with
+its boundary curves, for a simploid of dimension 2 (a triangle <code class="docutils literal notranslate"><span class="pre">(2,)</span></code>
+or a square <code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">1)</span></code>).  A simploid of dimension 3 or more (e.g. a prism
+<code class="docutils literal notranslate"><span class="pre">(2,</span> <span class="pre">1)</span></code> or a cube <code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">1,</span> <span class="pre">1)</span></code>) is drawn through all its
+2-dimensional faces, i.e. as the boundary surface of the solid.  A vertex
+(type <code class="docutils literal notranslate"><span class="pre">()</span></code>) is drawn as a point.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<a class="reference internal" href="#torch_bsf.simploidal.BezierSimploid" title="torch_bsf.simploidal.BezierSimploid"><em>torch_bsf.simploidal.BezierSimploid</em></a>) – The Bézier simploid to plot.  <code class="docutils literal notranslate"><span class="pre">model.n_values</span></code> must be 2 or 3.</p></li>
+<li><p><strong>num</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a>) – The number of grid intervals along each edge of the parameter simploid.</p></li>
+<li><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em><em> or </em><em>None</em>) – The axes to plot on: a 2D axes when <code class="docutils literal notranslate"><span class="pre">model.n_values</span> <span class="pre">==</span> <span class="pre">2</span></code> and a 3D
+axes (<code class="docutils literal notranslate"><span class="pre">projection=&quot;3d&quot;</span></code>) when <code class="docutils literal notranslate"><span class="pre">model.n_values</span> <span class="pre">==</span> <span class="pre">3</span></code>.  If None, a
+new figure is created.</p></li>
+<li><p><strong>show_control_points</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><em>bool</em></a>) – Whether to show the control net: the control points, and dashed
+segments joining the control points whose indices differ by
+<span class="math notranslate nohighlight">\(e_k - e_l\)</span> in a single factor.</p></li>
+<li><p><strong>**kwargs</strong> – Additional keyword arguments forwarded to the drawing call of the
+curves (<code class="docutils literal notranslate"><span class="pre">ax.plot</span></code>) and surfaces (<code class="docutils literal notranslate"><span class="pre">ax.plot_trisurf</span></code> in 3D,
+<code class="xref py py-class docutils literal notranslate"><span class="pre">matplotlib.collections.PolyCollection</span></code> in 2D).  <code class="docutils literal notranslate"><span class="pre">color</span></code>
+sets the color of the model (default <code class="docutils literal notranslate"><span class="pre">&quot;C0&quot;</span></code>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The axes containing the plot.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>matplotlib.axes.Axes or mpl_toolkits.mplot3d.axes3d.Axes3D</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">model.n_values</span></code> is neither 2 nor 3, <code class="docutils literal notranslate"><span class="pre">num</span></code> is not a positive
+    integer, or <code class="docutils literal notranslate"><span class="pre">ax</span></code> is a 2D axes for 3 values or a 3D axes for 2 values.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ImportError" title="(in Python v3.15)"><strong>ImportError</strong></a> – If matplotlib is not installed.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>The plotting lines are skipped by doctest because matplotlib is optional.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.simploidal</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSimploid</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.plotting</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_bezier_simploid</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">patch</span> <span class="o">=</span> <span class="n">BezierSimploid</span><span class="o">.</span><span class="n">randn</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_values</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ax</span> <span class="o">=</span> <span class="n">plot_bezier_simploid</span><span class="p">(</span><span class="n">patch</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ax</span><span class="o">.</span><span class="n">name</span>
+<span class="go">'3d'</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="torch_bsf.plotting.plot_simploidal_bezier_space">
+<span class="sig-prename descclassname"><span class="pre">torch_bsf.plotting.</span></span><span class="sig-name descname"><span class="pre">plot_simploidal_bezier_space</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">space</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.simploidal.SimploidalBezierSpace" title="torch_bsf.simploidal.SimploidalBezierSpace"><span class="pre">SimploidalBezierSpace</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_control_points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/plotting.py#L683-L766"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.plotting.plot_simploidal_bezier_space" title="Link to this definition"></a></dt>
+<dd><p>Plots a simploidal Bézier space whose values are 2- or 3-dimensional.</p>
+<p>Every main simploid of the simploidal set (see
+<a class="reference internal" href="#torch_bsf.simploidal.SimploidalSet.main_simploids" title="torch_bsf.simploidal.SimploidalSet.main_simploids"><code class="xref py py-meth docutils literal notranslate"><span class="pre">main_simploids()</span></code></a>) is drawn on
+one axes as <a class="reference internal" href="#torch_bsf.plotting.plot_bezier_simploid" title="torch_bsf.plotting.plot_bezier_simploid"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_bezier_simploid()</span></code></a> draws a Bézier simploid, each in
+its own color from the Matplotlib color cycle.  The boundary curves of the
+pieces are drawn as solid lines, so that pieces sharing a face can be seen
+to meet along it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>space</strong> (<a class="reference internal" href="#torch_bsf.simploidal.SimploidalBezierSpace" title="torch_bsf.simploidal.SimploidalBezierSpace"><em>torch_bsf.simploidal.SimploidalBezierSpace</em></a>) – The simploidal Bézier space to plot.  <code class="docutils literal notranslate"><span class="pre">space.n_values</span></code> must be 2 or 3.</p></li>
+<li><p><strong>num</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a>) – The number of grid intervals along each edge of every piece.</p></li>
+<li><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em><em> or </em><em>None</em>) – The axes to plot on: a 2D axes when <code class="docutils literal notranslate"><span class="pre">space.n_values</span> <span class="pre">==</span> <span class="pre">2</span></code> and a 3D
+axes (<code class="docutils literal notranslate"><span class="pre">projection=&quot;3d&quot;</span></code>) when <code class="docutils literal notranslate"><span class="pre">space.n_values</span> <span class="pre">==</span> <span class="pre">3</span></code>.  If None, a
+new figure is created.</p></li>
+<li><p><strong>show_control_points</strong> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><em>bool</em></a>) – Whether to show the control net of every piece.  The control points
+of a shared face are drawn once per piece containing it.</p></li>
+<li><p><strong>**kwargs</strong> – Additional keyword arguments forwarded to the drawing call of every
+piece, as in <a class="reference internal" href="#torch_bsf.plotting.plot_bezier_simploid" title="torch_bsf.plotting.plot_bezier_simploid"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_bezier_simploid()</span></code></a>.  <code class="docutils literal notranslate"><span class="pre">color</span></code> sets one color
+for all pieces instead of the color cycle.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The axes containing the plot.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>matplotlib.axes.Axes or mpl_toolkits.mplot3d.axes3d.Axes3D</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">space.n_values</span></code> is neither 2 nor 3, <code class="docutils literal notranslate"><span class="pre">num</span></code> is not a positive
+    integer, or <code class="docutils literal notranslate"><span class="pre">ax</span></code> is a 2D axes for 3 values or a 3D axes for 2 values.</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ImportError" title="(in Python v3.15)"><strong>ImportError</strong></a> – If matplotlib is not installed.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<p>The plotting lines are skipped by doctest because matplotlib is optional.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.simploidal</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimploidalSet</span><span class="p">,</span> <span class="n">SimploidalBezierSpace</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.plotting</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_simploidal_bezier_space</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">S</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tri</span><span class="p">,</span> <span class="n">sq</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">add_simplex</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">S</span><span class="o">.</span><span class="n">add_simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">tri</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">sq</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">space</span> <span class="o">=</span> <span class="n">SimploidalBezierSpace</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_values</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="n">space</span><span class="o">.</span><span class="n">proper_control_points</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ax</span> <span class="o">=</span> <span class="n">plot_simploidal_bezier_space</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ax</span><span class="o">.</span><span class="n">name</span>
+<span class="go">'rectilinear'</span>
+</pre></div>
+</div>
 </dd></dl>
 
 </section>
