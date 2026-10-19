@@ -57,7 +57,10 @@
 <li class="toctree-l2"><a class="reference internal" href="elastic_net.html">Elastic Net Model Selection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="portfolio.html">Robust Portfolio Management</a></li>
 <li class="toctree-l2"><a class="reference internal" href="smart_grids.html">Distributed Smart Grids and Energy Operations</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Multi-Task and Federated Learning</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Multi-Task and Federated Learning</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#numerical-experiments">Numerical Experiments</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
 <li class="toctree-l2"><a class="reference internal" href="communications.html">Communication Systems and Routing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="supply_chain.html">Supply Chain and Logistics Optimization</a></li>
@@ -110,6 +113,46 @@ f_2(\theta) &amp;= \mathcal{L}_2(\theta) + \lambda\|\theta\|^2 \\
 f_m(\theta) &amp;= \mathcal{L}_m(\theta) + \lambda\|\theta\|^2\end{split}\]</div>
 <p>The <span class="math notranslate nohighlight">\(L_2\)</span> regularization penalty <span class="math notranslate nohighlight">\(\lambda\|\theta\|^2\)</span> ensures that the Hessian incorporates a positive definite matrix <span class="math notranslate nohighlight">\(2\lambda I \succ 0\)</span>. This global penalty forcefully transforms the generic convex loss landscapes (common in logistic/ridge regressions or SVMs) into strictly strongly convex objectives. Under strong convexity, algorithms like the Stochastic Multi-Gradient (SMG) descent achieve dramatic convergence accelerations, improving from sub-linear to linear <span class="math notranslate nohighlight">\(O(1/n)\)</span> or <span class="math notranslate nohighlight">\(O(\exp(-\mu T))\)</span> convergence rates <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id17" title="Suyun Liu and Luís N Vicente. The stochastic multi-gradient algorithm for multi-objective optimization and its application to supervised machine learning. Annals of Operations Research, 339(3):1119–1148, 2024. doi:10.1007/s10479-021-04033-z.">LV24</a>]</span>.</p>
 <p>Rather than computing single compromised aggregations, the global model’s Pareto front is modeled as a continuous Bézier simplex. This facilitates a “train once, customize anywhere” paradigm. A global Bézier simplex allows individual edge devices or network nodes to download the analytic continuous trade-off surface, enabling them to instantly select an optimal model variant tailored precisely to their local power limits, fairness constraints, or inference needs, simply by navigating the simplex variables—representing a drastic improvement over constant network-wide retraining.</p>
+<section id="numerical-experiments">
+<h2>Numerical Experiments<a class="headerlink" href="#numerical-experiments" title="Link to this heading"></a></h2>
+<p>We demonstrate Bézier simplex fitting on a two-task federated learning problem with quadratic losses and Tikhonov regularization.</p>
+<p><strong>Problem Setup:</strong></p>
+<ul class="simple">
+<li><p>Model parameters: <span class="math notranslate nohighlight">\(\theta \in \mathbb{R}^2\)</span></p></li>
+<li><p>Task targets: <span class="math notranslate nohighlight">\(\theta_1^* = [1.0, 0.5]\)</span>, <span class="math notranslate nohighlight">\(\theta_2^* = [-0.5, 1.0]\)</span></p></li>
+<li><p>Regularized task losses with <span class="math notranslate nohighlight">\(\lambda = 0.1\)</span>:</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\begin{split}f_1(\theta) &amp;= \|\theta - \theta_1^*\|^2 + 0.1\|\theta\|^2 \\
+f_2(\theta) &amp;= \|\theta - \theta_2^*\|^2 + 0.1\|\theta\|^2\end{split}\]</div>
+<p><strong>Experiment Procedure:</strong></p>
+<ol class="arabic simple">
+<li><p>Sample 10 weight vectors <span class="math notranslate nohighlight">\(w = (w_1, w_2)\)</span> on the 1-simplex from <span class="math notranslate nohighlight">\((1,0)\)</span> to <span class="math notranslate nohighlight">\((0,1)\)</span>.</p></li>
+<li><p>For each <span class="math notranslate nohighlight">\(w\)</span>, solve <span class="math notranslate nohighlight">\(\theta^*(w) = \arg\min_\theta [w_1 f_1(\theta) + w_2 f_2(\theta)]\)</span> using L-BFGS-B.</p></li>
+<li><p>Collect the Pareto front points <span class="math notranslate nohighlight">\((f_1(\theta^*(w)), f_2(\theta^*(w)))\)</span>.</p></li>
+<li><p>Fit a degree-3 Bézier simplex to the weight–loss pairs.</p></li>
+<li><p>Visualize the fitted Bézier curve against the optimization-derived Pareto front.</p></li>
+</ol>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><a class="reference internal image-reference" href="../_images/federated_learning_pareto_set.png"><img alt="Pareto set for two-task federated learning (model parameter space)" src="../_images/federated_learning_pareto_set.png" style="width: 100%;" />
+</a>
+</td>
+<td><a class="reference internal image-reference" href="../_images/federated_learning_pareto.png"><img alt="Bézier simplex fitting to two-task federated learning Pareto front" src="../_images/federated_learning_pareto.png" style="width: 100%;" />
+</a>
+</td>
+</tr>
+<tr class="row-even"><td><p>Pareto set.</p></td>
+<td><p>Pareto front.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The complete example script is available at <code class="file docutils literal notranslate"><span class="pre">examples/generate_federated_learning_pareto.py</span></code>.</p>
+</section>
 </section>
 
 

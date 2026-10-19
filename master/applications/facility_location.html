@@ -62,7 +62,10 @@
 <li class="toctree-l2"><a class="reference internal" href="communications.html">Communication Systems and Routing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="supply_chain.html">Supply Chain and Logistics Optimization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="medical_imaging.html">Medical Imaging and Radiation Therapy</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Facility Location and Continuous Approximations</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Facility Location and Continuous Approximations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#numerical-experiments">Numerical Experiments</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently Asked Questions</a></li>
@@ -108,6 +111,71 @@
 <p>Likewise, in engineering design optimizing for structural compliance or minimum energy, the objectives inherently manifest as positive-definite quadratic costs. The strong convexity ensures that descent methods, such as the multi-objective Newton method, achieve superlinear or even quadratic local convergence along the Pareto front <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id19" title="Jörg Fliege, L M Graña Drummond, and Benar Fux Svaiter. Newton's method for multiobjective optimization. SIAM Journal on Optimization, 20(2):602–626, 2009. doi:10.1137/08071692X.">FGranaDS09</a>]</span>.</p>
 <p>These properties are explicitly leveraged by Adaptive Weighted Sum (AWS) methods in structural multidisciplinary optimization, where successive boundary-constrained strongly-convex QPs smoothly and uniformly map the Pareto front <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../references.html#id27" title="Olivier de Weck and Il Yong Kim. Adaptive weighted sum method for multiobjective optimization. Submitted to Structural and Multidisciplinary Optimization for Review.">dWK</a>]</span>. Even in complex biological systems, such as competitive Lotka-Volterra models, transformations of the quadratic interaction terms yield strongly convex models that exhibit identically stable simplicial Pareto behavior.</p>
 <p>Approximating these Pareto fronts with a Bézier simplex yields a completely continuous, analytic structural location map. Planners and decision-makers are empowered to visually and analytically slide trade-off priorities—such as selectively favoring certain demand hubs—to determine the optimal coordinates seamlessly, without needing to re-solve the spatial optimization from scratch.</p>
+<section id="numerical-experiments">
+<h2>Numerical Experiments<a class="headerlink" href="#numerical-experiments" title="Link to this heading"></a></h2>
+<p>To demonstrate the scalability of Bézier simplex fitting across different numbers of objectives, we generate Pareto front samples for two, three, and four objectives by solving weighted sums of convex squared-distance objectives.</p>
+<p><strong>Two Objectives:</strong>
+We consider two demand centers at <span class="math notranslate nohighlight">\(a_1=(0,0)\)</span> and <span class="math notranslate nohighlight">\(a_2=(1,1)\)</span>, with objectives <span class="math notranslate nohighlight">\(f_1(x) = \lVert x - a_1\rVert^2\)</span> and <span class="math notranslate nohighlight">\(f_2(x) = \lVert x - a_2\rVert^2\)</span>. The weighted objective <span class="math notranslate nohighlight">\(f(x, w) = w_1 f_1(x) + w_2 f_2(x)\)</span> is strongly convex. We sample 10 weights and fit a degree-3 Bézier simplex.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><a class="reference internal image-reference" href="../_images/facility_location_pareto_set_2obj.png"><img alt="Pareto set for two-objective facility location" src="../_images/facility_location_pareto_set_2obj.png" style="width: 100%;" />
+</a>
+</td>
+<td><a class="reference internal image-reference" href="../_images/facility_location_pareto_2obj.png"><img alt="Bézier simplex fitting to two-objective facility location Pareto front" src="../_images/facility_location_pareto_2obj.png" style="width: 100%;" />
+</a>
+</td>
+</tr>
+<tr class="row-even"><td><p>Pareto set (2-obj).</p></td>
+<td><p>Pareto front (2-obj).</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Three Objectives:</strong>
+We consider three demand centers at <span class="math notranslate nohighlight">\(a_1=(0,0)\)</span>, <span class="math notranslate nohighlight">\(a_2=(1,0)\)</span>, and <span class="math notranslate nohighlight">\(a_3=(0.5,1)\)</span>, with <span class="math notranslate nohighlight">\(f_k(x) = \lVert x - a_k\rVert^2\)</span> for each <span class="math notranslate nohighlight">\(k\)</span>. The weighted objective is <span class="math notranslate nohighlight">\(f(x, w) = w_1 f_1(x) + w_2 f_2(x) + w_3 f_3(x)\)</span>. We sample 10 weight vectors on the 3-simplex and fit a degree-3 Bézier simplex.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><a class="reference internal image-reference" href="../_images/facility_location_pareto_set_3obj.png"><img alt="Pareto set for three-objective facility location" src="../_images/facility_location_pareto_set_3obj.png" style="width: 100%;" />
+</a>
+</td>
+<td><a class="reference internal image-reference" href="../_images/facility_location_pareto_3obj.png"><img alt="Bézier simplex fitting to three-objective facility location Pareto front" src="../_images/facility_location_pareto_3obj.png" style="width: 100%;" />
+</a>
+</td>
+</tr>
+<tr class="row-even"><td><p>Pareto set (3-obj).</p></td>
+<td><p>Pareto front (3-obj).</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Four Objectives:</strong>
+We add a fourth demand center at <span class="math notranslate nohighlight">\(a_4=(1,1)\)</span>, with <span class="math notranslate nohighlight">\(f_4(x) = \lVert x - a_4\rVert^2\)</span>. The weighted objective is <span class="math notranslate nohighlight">\(f(x, w) = w_1 f_1(x) + w_2 f_2(x) + w_3 f_3(x) + w_4 f_4(x)\)</span>. We sample 10 weight vectors on the 3-simplex and fit a degree-2 Bézier simplex. For visualization, we project to 3D by plotting <span class="math notranslate nohighlight">\(f_1, f_2, f_3\)</span>.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><a class="reference internal image-reference" href="../_images/facility_location_pareto_set_4obj.png"><img alt="Pareto set for four-objective facility location" src="../_images/facility_location_pareto_set_4obj.png" style="width: 100%;" />
+</a>
+</td>
+<td><a class="reference internal image-reference" href="../_images/facility_location_pareto_4obj.png"><img alt="Bézier simplex fitting to four-objective facility location Pareto front (projected)" src="../_images/facility_location_pareto_4obj.png" style="width: 100%;" />
+</a>
+</td>
+</tr>
+<tr class="row-even"><td><p>Pareto set (4-obj).</p></td>
+<td><p>Pareto front (4-obj).</p></td>
+</tr>
+</tbody>
+</table>
+<p>These examples confirm that Bézier simplex fitting accurately approximates multi-objective facility location trade-offs from actual optimization, scaling effectively to higher dimensions. The complete code for the two-, three-, and four-objective experiments is available in <code class="file docutils literal notranslate"><span class="pre">examples/generate_facility_location_pareto_2obj.py</span></code>, <code class="file docutils literal notranslate"><span class="pre">examples/generate_facility_location_pareto_3obj.py</span></code>, and <code class="file docutils literal notranslate"><span class="pre">examples/generate_facility_location_pareto_4obj.py</span></code>, respectively.</p>
+</section>
 </section>
 
 

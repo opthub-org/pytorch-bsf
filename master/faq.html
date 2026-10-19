@@ -72,6 +72,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#how-do-i-save-and-load-a-trained-model">How do I save and load a trained model?</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#how-can-i-perform-cross-validation-or-grid-search">How can I perform cross-validation or grid search?</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#when-should-i-use-the-freeze-argument">When should I use the <code class="docutils literal notranslate"><span class="pre">freeze</span></code> argument?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#what-is-bezier-simplex-splitting-subdivision">What is Bézier simplex splitting (subdivision)?</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a><ul>
@@ -204,6 +205,33 @@
 <li><p><strong>Incremental refinement:</strong> Fit a low-degree model first, then use its control points as initialization for a higher-degree model, freezing the well-estimated parts to stabilize training.</p></li>
 <li><p><strong>Encoding prior knowledge:</strong> If theoretical or physical constraints dictate the value at certain parameter combinations, you can pin those points to ensure the model respects them.</p></li>
 </ul>
+</section>
+<section id="what-is-bezier-simplex-splitting-subdivision">
+<h3>What is Bézier simplex splitting (subdivision)?<a class="headerlink" href="#what-is-bezier-simplex-splitting-subdivision" title="Link to this heading"></a></h3>
+<p>Bézier simplex <strong>splitting</strong> (or <strong>subdivision</strong>) is a technique for refining a fitted Bézier simplex model by recursively dividing the parameter domain (the simplex) into smaller sub-simplices.</p>
+<p><strong>How it works:</strong></p>
+<ol class="arabic simple">
+<li><p>A Bézier simplex maps a standard parameter simplex to a family of objective values.</p></li>
+<li><p>Splitting subdivides the parameter simplex by choosing an edge and inserting a new vertex on that edge (by default at the midpoint, <code class="docutils literal notranslate"><span class="pre">s=0.5</span></code>), which forms smaller sub-simplices.</p></li>
+<li><p>Each resulting sub-simplex inherits control points from the parent in a way that preserves continuity and smoothness across the subdivision.</p></li>
+<li><p>Repeating this process creates a hierarchical decomposition, where different regions can be approximated with different levels of detail.</p></li>
+</ol>
+<p><strong>Why use splitting?</strong></p>
+<ul class="simple">
+<li><p><strong>Local refinement:</strong> Focus computational effort on regions of interest without uniformly increasing the global degree.</p></li>
+<li><p><strong>Adaptive complexity:</strong> Automatically increase model complexity only where the surface is complex or “wiggly.”</p></li>
+<li><p><strong>Reduced overfitting:</strong> By keeping low degree in simple regions and increasing it only where needed, you avoid unnecessary parameters.</p></li>
+<li><p><strong>Efficient multi-resolution analysis:</strong> Create a coarse-to-fine hierarchy useful for progressive fitting or visualization.</p></li>
+</ul>
+<p><strong>Practical usage:</strong></p>
+<p>Splitting is particularly valuable when:</p>
+<ul class="simple">
+<li><p>The Pareto front has <strong>varying curvature</strong>—smooth in some regions, highly curved in others.</p></li>
+<li><p>Computational budget is limited and you want to allocate samples intelligently.</p></li>
+<li><p>You need a <strong>hierarchical representation</strong> for visualization or downstream analysis.</p></li>
+<li><p>High-degree fits suffer from oscillations or overfitting, but low-degree models miss important features.</p></li>
+</ul>
+<p>See the <a class="reference internal" href="advanced.html"><span class="doc">Advanced Topics</span></a> documentation for implementation details and examples.</p>
 </section>
 </section>
 <section id="troubleshooting">

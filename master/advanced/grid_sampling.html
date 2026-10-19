@@ -24,7 +24,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Automatic Degree Selection" href="auto_degree.html" />
+    <link rel="next" title="Partial Training" href="partial.html" />
     <link rel="prev" title="Smoothness Regularization" href="regularization.html" /> 
 </head>
 
@@ -54,7 +54,11 @@
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="normalization.html">Data Normalization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn Integration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="initialization.html">Initial Control Points</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualization.html">Bézier Simplex Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="splitting.html">Bézier Simplex Splitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Automatic Degree Selection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="regularization.html">Smoothness Regularization</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Elastic Net Grid Sampling</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#the-hyperparameter-space">The Hyperparameter Space</a></li>
@@ -67,14 +71,10 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Automatic Degree Selection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="partial.html">Partial Training</a></li>
-<li class="toctree-l2"><a class="reference internal" href="acceleration.html">Hardware Acceleration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="visualization.html">Bézier Simplex Visualization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sampling.html">Advanced Sampling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="acceleration.html">Hardware Acceleration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="active_learning.html">Active Learning</a></li>
-<li class="toctree-l2"><a class="reference internal" href="splitting.html">Bézier Simplex Splitting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="simploidal.html">Simploidal Sets</a></li>
 <li class="toctree-l2"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
 </ul>
@@ -141,7 +141,7 @@ It appears as <span class="math notranslate nohighlight">\(\frac{\epsilon}{2}\|\
 <span class="math notranslate nohighlight">\(f_{\text{sparse}}\)</span> to make those terms strongly convex, and it is absorbed into
 <span class="math notranslate nohighlight">\(f_{\text{smooth}}\)</span> via the coefficient <span class="math notranslate nohighlight">\(\frac{1+\epsilon}{2}\)</span>.
 This ensures all three objectives are strongly convex, which is required for the solution
-map to be weakly simplicial; see <span class="xref std std-doc">advanced/elastic_net</span> for a detailed discussion.</p>
+map to be weakly simplicial; see <a class="reference internal" href="../whatis.html"><span class="doc">What is Bézier simplex fitting?</span></a> for a detailed discussion.</p>
 <p>Equivalently, elastic-net optimization can be written as a convex combination of the
 same three objectives:</p>
 <div class="math notranslate nohighlight">
@@ -192,7 +192,7 @@ under the solution map shrink to the single null-model point <span class="math n
 <a class="reference internal image-reference" href="../_images/elastic_net_leaf_space.png"><img alt="../_images/elastic_net_leaf_space.png" src="../_images/elastic_net_leaf_space.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 6 </span><span class="caption-text">All points are colored by <span class="math notranslate nohighlight">\((w_1, w_2, w_3) \mapsto (R, G, B)\)</span>,
+<p><span class="caption-number">Fig. 11 </span><span class="caption-text">All points are colored by <span class="math notranslate nohighlight">\((w_1, w_2, w_3) \mapsto (R, G, B)\)</span>,
 so the same weight vector has the same color in every panel.
 <strong>Left</strong> – The <span class="math notranslate nohighlight">\((\lambda, \alpha)\)</span> hyperparameter space (x: regularization
 strength, y: L1 mixing ratio).
@@ -202,11 +202,10 @@ share the color <span class="math notranslate nohighlight">\((1, 0, 0)\)</span> 
 <span class="math notranslate nohighlight">\((0,1,0)\)</span> at the top (green), and <span class="math notranslate nohighlight">\((0,0,1)\)</span> at the
 bottom-right (blue).
 The gradient right edge (green→blue) is the null-model base edge to be identified.
-<strong>Right</strong> – The quotient space rotated 90° counterclockwise: vertex <span class="math notranslate nohighlight">\(A\)</span> =
-<span class="math notranslate nohighlight">\((1,0,0)\)</span> (red) at the left, and the null-model point <span class="math notranslate nohighlight">\(P^*\)</span> at the
-right shown as a large green dot <span class="math notranslate nohighlight">\((0,1,0)\)</span> behind a smaller blue dot
-<span class="math notranslate nohighlight">\((0,0,1)\)</span>, reflecting that both endpoints of the base edge are identified
-to <span class="math notranslate nohighlight">\(P^*\)</span>.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
+<strong>Right</strong> – The quotient space: vertex <span class="math notranslate nohighlight">\(A\)</span> = <span class="math notranslate nohighlight">\((1,0,0)\)</span> (red) at the
+left, and the null-model point <span class="math notranslate nohighlight">\(P^*\)</span> at the right shown as a large green dot
+<span class="math notranslate nohighlight">\((0,1,0)\)</span> behind a smaller blue dot <span class="math notranslate nohighlight">\((0,0,1)\)</span>, reflecting that both
+endpoints of the base edge are identified to <span class="math notranslate nohighlight">\(P^*\)</span>.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </section>
@@ -246,7 +245,7 @@ cross-validation variance.</p>
 <a class="reference internal image-reference" href="../_images/elastic_net_grid_comparison.png"><img alt="../_images/elastic_net_grid_comparison.png" src="../_images/elastic_net_grid_comparison.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 7 </span><span class="caption-text">Grid points on the 2-simplex for different values of the <code class="docutils literal notranslate"><span class="pre">base</span></code> parameter
+<p><span class="caption-number">Fig. 12 </span><span class="caption-text">Grid points on the 2-simplex for different values of the <code class="docutils literal notranslate"><span class="pre">base</span></code> parameter
 (<code class="docutils literal notranslate"><span class="pre">n_lambdas=20</span></code>, <code class="docutils literal notranslate"><span class="pre">n_alphas=10</span></code>).  Larger bases push more points towards the
 data-fidelity vertex <span class="math notranslate nohighlight">\((1, 0, 0)\)</span> (bottom-left corner in the figure),
 which is appropriate when you expect the optimal model to have small
@@ -338,7 +337,7 @@ selection using PyTorch-BSF.</p></li>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="regularization.html" class="btn btn-neutral float-left" title="Smoothness Regularization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="auto_degree.html" class="btn btn-neutral float-right" title="Automatic Degree Selection" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="partial.html" class="btn btn-neutral float-right" title="Partial Training" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

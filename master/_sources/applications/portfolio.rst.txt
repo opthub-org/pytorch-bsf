@@ -19,3 +19,46 @@ Because the regularization term is strongly convex, the resulting scalarized obj
 
 Fitting a Bézier simplex to this problem allows practitioners to continuously map the entire robust Pareto front—namely, the continuous efficient frontier—guaranteeing unique solutions. Instead of computing disconnected discrete point clouds using weighted sums, analysts obtain a functionally continuous mapping of allocations versus risk. Utilizing sensitivity-based Newton path-following, the full Pareto front can be computed with an extremely efficient iteration complexity of :math:`O(p \log(1/\varepsilon))` :cite:p:`bergou2021complexity`. 
 Solvers like MOSEK, Gurobi, and OSQP are widely used to efficiently compute these strongly convex QP subproblems. Modern extensions also include CVaR (Conditional Value-at-Risk) portfolio optimization and robust multi-objective portfolio frameworks under data uncertainty.
+
+Numerical Experiments
+---------------------
+
+To illustrate Bézier simplex fitting on a portfolio Pareto front, we conducted an experiment using a three-asset mean-variance problem with L2 regularization to ensure strong convexity.
+
+**Problem Setup:**
+
+- Decision variable: :math:`x \in \mathbb{R}^3` (portfolio weights, unconstrained)
+- Expected returns: :math:`\mu = [0.05, 0.12, 0.08]`
+- Asset variances: :math:`\text{diag}(\Sigma) = [0.10, 0.15, 0.08]`
+- Regularized objectives:
+
+.. math::
+
+   f_1(x) &= -\mu^T x + 0.2\|x\|^2 \quad \text{(negative return + L2)} \\
+   f_2(x) &= x^T \mathrm{diag}(\Sigma) x + 0.05\|x\|^2 \quad \text{(variance + L2)}
+
+**Experiment Procedure:**
+
+1. Sample 10 weight vectors :math:`w = (w_1, w_2)` uniformly on the 1-simplex from :math:`(1,0)` to :math:`(0,1)`.
+2. For each :math:`w`, solve :math:`x^*(w) = \arg\min_x [w_1 f_1(x) + w_2 f_2(x)]` using L-BFGS-B.
+3. Collect the Pareto front points :math:`(f_1(x^*(w)), f_2(x^*(w)))`.
+4. Fit a degree-3 Bézier simplex to the weight–objective pairs and another to the weight–decision pairs.
+5. Evaluate the fitted Bézier curve on 101 test weights.
+
+The maximum error on the test weights is about :math:`10^{-4}`, i.e., below 0.5% of the range of each objective.
+The regularization weight of :math:`f_1` matters: the weighted-sum solution :math:`x^*(w)` is a rational function of :math:`w`, and with a weaker regularization (e.g., :math:`0.05\|x\|^2`) its poles come close to the weight simplex and a cubic Bézier curve visibly deviates from the Pareto front.
+
+.. list-table::
+   :widths: 50 50
+   :align: center
+
+   * - .. image:: ../_static/portfolio_pareto_set.png
+         :alt: Pareto set for 3-asset portfolio (asset allocation space)
+         :width: 100%
+     - .. image:: ../_static/portfolio_pareto.png
+         :alt: Bézier simplex fitting to 3-asset portfolio Pareto front
+         :width: 100%
+   * - Pareto set.
+     - Pareto front.
+
+The complete example script is available at :file:`examples/generate_portfolio_pareto.py`.

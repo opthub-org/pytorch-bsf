@@ -59,7 +59,11 @@
 <li class="toctree-l2"><a class="reference internal" href="smart_grids.html">Distributed Smart Grids and Energy Operations</a></li>
 <li class="toctree-l2"><a class="reference internal" href="federated_learning.html">Multi-Task and Federated Learning</a></li>
 <li class="toctree-l2"><a class="reference internal" href="model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Communication Systems and Routing</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Communication Systems and Routing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#numerical-experiments">Numerical Experiments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#three-objective-extension">Three-Objective Extension</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="supply_chain.html">Supply Chain and Logistics Optimization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="medical_imaging.html">Medical Imaging and Radiation Therapy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="facility_location.html">Facility Location and Continuous Approximations</a></li>
@@ -108,6 +112,70 @@
 <p>Where <span class="math notranslate nohighlight">\(R(k)\)</span> is the routing allocation matrix at time step <span class="math notranslate nohighlight">\(k\)</span>, <span class="math notranslate nohighlight">\(\zeta(k)\)</span> represents the bandwidth excess above target capacity, and <span class="math notranslate nohighlight">\(\Delta R(k)\)</span> denotes the modifications applied to the traffic routing.</p>
 <p>Simultaneously minimizing both objectives heavily relies on strong convexity. Even if the network flow constraints are piece-wise linear or broadly just convex, the explicit <span class="math notranslate nohighlight">\(L_2\)</span> penalty on the route changes (<span class="math notranslate nohighlight">\(\|\Delta R(k)\|_2^2\)</span>) injects a mathematically strict positive-definite curvature into the optimization landscape. This uniformly bounds the Hessian away from zero, enforcing the strong convexity of the routing matrix modifications.</p>
 <p>For real-time network controllers, instantly reacting to traffic bursts while balancing these trade-offs using standard Quadratic Programming solvers at every microsecond is computationally prohibitive. By fitting a Bézier simplex to the Pareto front of the sub-games, operators unlock an instantaneous, purely arithmetic continuous mapping of the exact trade-offs between congestion and routing modifications. The network can then dynamically, and safely, slide along the Pareto front using continuous polynomial evaluations instead of repeatedly executing heavy optimization loops, ensuring uninterrupted low-latency services.</p>
+<section id="numerical-experiments">
+<h2>Numerical Experiments<a class="headerlink" href="#numerical-experiments" title="Link to this heading"></a></h2>
+<p>To demonstrate the effectiveness of Bézier simplex fitting for approximating Pareto fronts in communication systems, we conducted an experiment using actual optimization to generate the Pareto front samples.</p>
+<p><strong>Problem Setup:</strong>
+We define a simplified routing optimization problem with two objectives:
+- Congestion Excess: <span class="math notranslate nohighlight">\(f_1(x) = x_1^2 + x_2^2\)</span>
+- Route Volatility: <span class="math notranslate nohighlight">\(f_2(x) = (x_1 - 0.5)^2 + (x_2 - 0.5)^2\)</span></p>
+<p>where <span class="math notranslate nohighlight">\(x = (x_1, x_2)\)</span> represents routing allocations. The weighted objective function <span class="math notranslate nohighlight">\(f(x, w) = w_1 f_1(x) + w_2 f_2(x)\)</span> is strongly convex.</p>
+<p><strong>Experiment Procedure:</strong>
+1. Sample 10 weights <span class="math notranslate nohighlight">\(w\)</span> from <span class="math notranslate nohighlight">\((1,0)\)</span> to <span class="math notranslate nohighlight">\((0,1)\)</span>.
+2. For each <span class="math notranslate nohighlight">\(w\)</span>, solve <span class="math notranslate nohighlight">\(x^*(w) = \arg\min_x f(x, w)\)</span> using L-BFGS optimization.
+3. Collect the Pareto front points <span class="math notranslate nohighlight">\((f_1(x^*(w)), f_2(x^*(w)))\)</span>.
+4. Fit a degree-3 Bézier simplex to the weight-objective value pairs.
+5. Visualize the fitted Bézier approximation against the optimization-derived Pareto front.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><a class="reference internal image-reference" href="../_images/communication_pareto_set.png"><img alt="Pareto set for 2-objective routing (routing allocation space)" src="../_images/communication_pareto_set.png" style="width: 100%;" />
+</a>
+</td>
+<td><a class="reference internal image-reference" href="../_images/communication_fitting.png"><img alt="Bézier simplex fitting to optimization-derived Pareto front" src="../_images/communication_fitting.png" style="width: 100%;" />
+</a>
+</td>
+</tr>
+<tr class="row-even"><td><p>Pareto set.</p></td>
+<td><p>Pareto front.</p></td>
+</tr>
+</tbody>
+</table>
+<p>This experiment shows that Bézier simplex fitting can accurately approximate Pareto fronts derived from actual optimization, enabling real-time trade-off evaluation in communication network routing.</p>
+</section>
+<section id="three-objective-extension">
+<h2>Three-Objective Extension<a class="headerlink" href="#three-objective-extension" title="Link to this heading"></a></h2>
+<p>To demonstrate multi-objective scalability, we also consider a three-objective routing problem:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(f_1(x) = x_1^2 + x_2^2\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(f_2(x) = (x_1 - 0.5)^2 + (x_2 - 0.5)^2\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(f_3(x) = 0.8\left((x_1 - 1.0)^2 + (x_2 - 0.2)^2\right)\)</span></p></li>
+</ul>
+<p>The weighted objective <span class="math notranslate nohighlight">\(f(x, w) = w_1 f_1(x) + w_2 f_2(x) + w_3 f_3(x)\)</span> is strongly convex. We sampled 10 weight vectors on the 2-simplex, solved each weighted optimization with L-BFGS, and fitted a degree-3 Bézier simplex to the resulting objective triples.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><a class="reference internal image-reference" href="../_images/communication_pareto_set_3obj.png"><img alt="Pareto set for 3-objective routing (routing allocation space)" src="../_images/communication_pareto_set_3obj.png" style="width: 100%;" />
+</a>
+</td>
+<td><a class="reference internal image-reference" href="../_images/communication_pareto_3obj.png"><img alt="Bézier simplex fitting to three-objective Pareto front" src="../_images/communication_pareto_3obj.png" style="width: 100%;" />
+</a>
+</td>
+</tr>
+<tr class="row-even"><td><p>Pareto set.</p></td>
+<td><p>Pareto front.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The fit achieves nearly zero training error on the sampled Pareto points, demonstrating that Bézier simplex fitting can accurately approximate three-objective trade-offs from actual optimization.</p>
+<p>The complete code for the two-objective and three-objective experiments is available in <code class="file docutils literal notranslate"><span class="pre">examples/generate_communication_pareto.py</span></code> and <code class="file docutils literal notranslate"><span class="pre">examples/generate_communication_pareto_3obj.py</span></code>, respectively.</p>
+</section>
 </section>
 
 

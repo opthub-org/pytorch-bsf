@@ -135,6 +135,15 @@
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.sklearn.BezierSimplexRegressor"><code class="docutils literal notranslate"><span class="pre">BezierSimplexRegressor</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#module-torch_bsf.splitting">torch_bsf.splitting module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#torch_bsf.splitting.SplitCriterion"><code class="docutils literal notranslate"><span class="pre">SplitCriterion</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#torch_bsf.splitting.longest_edge_criterion"><code class="docutils literal notranslate"><span class="pre">longest_edge_criterion()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#torch_bsf.splitting.max_error_criterion"><code class="docutils literal notranslate"><span class="pre">max_error_criterion()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#torch_bsf.splitting.reparametrize"><code class="docutils literal notranslate"><span class="pre">reparametrize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#torch_bsf.splitting.split"><code class="docutils literal notranslate"><span class="pre">split()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#torch_bsf.splitting.split_by_criterion"><code class="docutils literal notranslate"><span class="pre">split_by_criterion()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#module-torch_bsf.validator">torch_bsf.validator module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.validator.index_list"><code class="docutils literal notranslate"><span class="pre">index_list()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.validator.indices_schema"><code class="docutils literal notranslate"><span class="pre">indices_schema()</span></code></a></li>
@@ -3049,6 +3058,279 @@ parameters and not others.</p>
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+</section>
+<section id="module-torch_bsf.splitting">
+<span id="torch-bsf-splitting-module"></span><h2>torch_bsf.splitting module<a class="headerlink" href="#module-torch_bsf.splitting" title="Link to this heading"></a></h2>
+<p>Bézier simplex splitting via the de Casteljau algorithm.</p>
+<p>This module provides functions to split a Bézier simplex along a single edge
+by inserting a new vertex and applying the de Casteljau algorithm to compute
+the control points of the two resulting sub-simplices.</p>
+<p>The split point can be chosen explicitly or determined automatically by
+optimising a <a class="reference internal" href="#torch_bsf.splitting.SplitCriterion" title="torch_bsf.splitting.SplitCriterion"><code class="xref py py-data docutils literal notranslate"><span class="pre">SplitCriterion</span></code></a>.</p>
+<p class="rubric">Examples</p>
+<p>Split a Bézier curve at its midpoint:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.bezier_simplex</span><span class="w"> </span><span class="kn">import</span> <span class="n">rand</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.splitting</span><span class="w"> </span><span class="kn">import</span> <span class="n">split</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bs</span> <span class="o">=</span> <span class="n">rand</span><span class="p">(</span><span class="n">n_params</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_values</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bs_A</span><span class="p">,</span> <span class="n">bs_B</span> <span class="o">=</span> <span class="n">split</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bs_A</span><span class="o">.</span><span class="n">n_params</span> <span class="o">==</span> <span class="n">bs</span><span class="o">.</span><span class="n">n_params</span> <span class="ow">and</span> <span class="n">bs_A</span><span class="o">.</span><span class="n">degree</span> <span class="o">==</span> <span class="n">bs</span><span class="o">.</span><span class="n">degree</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<p>Use the longest-edge criterion to choose the split automatically:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.splitting</span><span class="w"> </span><span class="kn">import</span> <span class="n">longest_edge_criterion</span><span class="p">,</span> <span class="n">split_by_criterion</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bs_A</span><span class="p">,</span> <span class="n">bs_B</span> <span class="o">=</span> <span class="n">split_by_criterion</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="n">longest_edge_criterion</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="torch_bsf.splitting.SplitCriterion">
+<span class="sig-prename descclassname"><span class="pre">torch_bsf.splitting.</span></span><span class="sig-name descname"><span class="pre">SplitCriterion</span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/splitting.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.splitting.SplitCriterion" title="Link to this definition"></a></dt>
+<dd><p>a callable that accepts a
+<a class="reference internal" href="#torch_bsf.bezier_simplex.BezierSimplex" title="torch_bsf.bezier_simplex.BezierSimplex"><code class="xref py py-class docutils literal notranslate"><span class="pre">BezierSimplex</span></code></a> and returns
+<code class="docutils literal notranslate"><span class="pre">(i,</span> <span class="pre">j,</span> <span class="pre">s)</span></code> — the edge vertex indices and the split parameter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Type of a split criterion</p>
+</dd>
+</dl>
+<p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">Callable</span></code>[[<a class="reference internal" href="#torch_bsf.bezier_simplex.BezierSimplex" title="torch_bsf.bezier_simplex.BezierSimplex"><code class="xref py py-class docutils literal notranslate"><span class="pre">BezierSimplex</span></code></a>], <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>]]</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="torch_bsf.splitting.longest_edge_criterion">
+<span class="sig-prename descclassname"><span class="pre">torch_bsf.splitting.</span></span><span class="sig-name descname"><span class="pre">longest_edge_criterion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.bezier_simplex.BezierSimplex" title="torch_bsf.bezier_simplex.BezierSimplex"><span class="pre">BezierSimplex</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/splitting.py#L408-L480"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.splitting.longest_edge_criterion" title="Link to this definition"></a></dt>
+<dd><p>Select the edge with the greatest value-space length and split it at <code class="docutils literal notranslate"><span class="pre">s</span></code>.</p>
+<p>The “length” of edge <span class="math notranslate nohighlight">\((i, j)\)</span> is the Euclidean distance between
+the Bézier simplex values at the two vertices of the parameter domain:</p>
+<div class="math notranslate nohighlight">
+\[\ell_{ij} = \|B(e_i) - B(e_j)\|_2
+          = \|b_{n \cdot e_i} - b_{n \cdot e_j}\|_2\]</div>
+<p>where <span class="math notranslate nohighlight">\(n\)</span> is the degree and <span class="math notranslate nohighlight">\(e_k\)</span> is the <span class="math notranslate nohighlight">\(k\)</span>-th unit
+vector.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bs</strong> – The Bézier simplex.</p></li>
+<li><p><strong>s</strong> – Split parameter included verbatim in the returned tuple
+(defaults to <code class="docutils literal notranslate"><span class="pre">0.5</span></code>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The edge <code class="docutils literal notranslate"><span class="pre">(i,</span> <span class="pre">j)</span></code> with the greatest value-space length, together
+with <code class="docutils literal notranslate"><span class="pre">s</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(i, j, s)</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.bezier_simplex</span><span class="w"> </span><span class="kn">import</span> <span class="n">rand</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.splitting</span><span class="w"> </span><span class="kn">import</span> <span class="n">longest_edge_criterion</span><span class="p">,</span> <span class="n">split_by_criterion</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bs</span> <span class="o">=</span> <span class="n">rand</span><span class="p">(</span><span class="n">n_params</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">n_values</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="n">longest_edge_criterion</span><span class="p">(</span><span class="n">bs</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="n">bs</span><span class="o">.</span><span class="n">n_params</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="torch_bsf.splitting.max_error_criterion">
+<span class="sig-prename descclassname"><span class="pre">torch_bsf.splitting.</span></span><span class="sig-name descname"><span class="pre">max_error_criterion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.14)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.14)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#torch_bsf.bezier_simplex.BezierSimplex" title="torch_bsf.bezier_simplex.BezierSimplex"><span class="pre">BezierSimplex</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/splitting.py#L483-L636"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.splitting.max_error_criterion" title="Link to this definition"></a></dt>
+<dd><p>Build a criterion that minimises the combined approximation error.</p>
+<p>For each candidate edge <code class="docutils literal notranslate"><span class="pre">(i,</span> <span class="pre">j)</span></code> and split parameter <code class="docutils literal notranslate"><span class="pre">s</span></code> drawn from a
+uniform grid over <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">1)</span></code>, the combined mean-squared error</p>
+<div class="math notranslate nohighlight">
+\[E(i, j, s) = \mathrm{MSE}_A + \mathrm{MSE}_B\]</div>
+<p>is computed, where <span class="math notranslate nohighlight">\(\mathrm{MSE}_A\)</span> and <span class="math notranslate nohighlight">\(\mathrm{MSE}_B\)</span>
+are evaluated on the portions of the data that fall within each
+sub-simplex.  The candidate <code class="docutils literal notranslate"><span class="pre">(i,</span> <span class="pre">j,</span> <span class="pre">s)</span></code> minimising <code class="docutils literal notranslate"><span class="pre">E</span></code> is returned.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> – Parameter vectors of shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">n_params)</span></code>.</p></li>
+<li><p><strong>values</strong> – Target value vectors of shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">n_values)</span></code>.</p></li>
+<li><p><strong>grid_size</strong> – Number of candidate <code class="docutils literal notranslate"><span class="pre">s</span></code> values in the grid search (default <code class="docutils literal notranslate"><span class="pre">10</span></code>).
+Larger values give a finer search at higher cost.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A callable <code class="docutils literal notranslate"><span class="pre">criterion(bs)</span> <span class="pre">-&gt;</span> <span class="pre">(i,</span> <span class="pre">j,</span> <span class="pre">s)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>SplitCriterion</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.bezier_simplex</span><span class="w"> </span><span class="kn">import</span> <span class="n">rand</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.splitting</span><span class="w"> </span><span class="kn">import</span> <span class="n">max_error_criterion</span><span class="p">,</span> <span class="n">split_by_criterion</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="go">&lt;torch._C.Generator object at 0x...&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">params</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bs</span> <span class="o">=</span> <span class="n">rand</span><span class="p">(</span><span class="n">n_params</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_values</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">criterion</span> <span class="o">=</span> <span class="n">max_error_criterion</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="n">criterion</span><span class="p">(</span><span class="n">bs</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">i</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">j</span> <span class="o">==</span> <span class="mi">1</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="torch_bsf.splitting.reparametrize">
+<span class="sig-prename descclassname"><span class="pre">torch_bsf.splitting.</span></span><span class="sig-name descname"><span class="pre">reparametrize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.14)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">j</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">subsimplex</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.14)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.14)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/splitting.py#L306-L405"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.splitting.reparametrize" title="Link to this definition"></a></dt>
+<dd><p>Re-parameterise points from the original simplex to a sub-simplex.</p>
+<p>After splitting edge <code class="docutils literal notranslate"><span class="pre">(i,</span> <span class="pre">j)</span></code> at <code class="docutils literal notranslate"><span class="pre">s</span></code>, each data point on the original
+simplex belongs to one of the two sub-simplices.  This function converts
+the original barycentric coordinates to the sub-simplex’s local
+barycentric coordinates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>t</strong> – Parameter vectors of shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">n_params)</span></code> on the original simplex
+(each row sums to 1).</p></li>
+<li><p><strong>i</strong> – Edge vertex indices used in <a class="reference internal" href="#torch_bsf.splitting.split" title="torch_bsf.splitting.split"><code class="xref py py-func docutils literal notranslate"><span class="pre">split()</span></code></a>.</p></li>
+<li><p><strong>j</strong> – Edge vertex indices used in <a class="reference internal" href="#torch_bsf.splitting.split" title="torch_bsf.splitting.split"><code class="xref py py-func docutils literal notranslate"><span class="pre">split()</span></code></a>.</p></li>
+<li><p><strong>s</strong> – Split parameter.</p></li>
+<li><p><strong>subsimplex</strong> – <code class="docutils literal notranslate"><span class="pre">&quot;A&quot;</span></code> for the sub-simplex covering
+<span class="math notranslate nohighlight">\(\{t : t_j / (t_i + t_j) \le s\}\)</span>,
+or <code class="docutils literal notranslate"><span class="pre">&quot;B&quot;</span></code> for the complementary region.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p><strong>(u, mask)</strong> –</p>
+<ul class="simple">
+<li><p><strong>u</strong> — local barycentric coordinates on the sub-simplex,
+shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">n_params)</span></code>.</p></li>
+<li><p><strong>mask</strong> — boolean tensor of shape <code class="docutils literal notranslate"><span class="pre">(N,)</span></code> indicating which input
+points belong to the requested sub-simplex.  Points where
+<span class="math notranslate nohighlight">\(t_i = t_j = 0\)</span> belong to both sub-simplices and are included
+in both masks.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)">tuple</a>[<a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.14)">torch.Tensor</a>, <a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.14)">torch.Tensor</a>]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Sub-simplex A transformation:</p>
+<div class="math notranslate nohighlight">
+\[u_j = \frac{t_j}{s}, \quad
+u_i = t_i - \frac{1-s}{s}\,t_j, \quad
+u_k = t_k \; (k \ne i, j).\]</div>
+<p>Sub-simplex B transformation:</p>
+<div class="math notranslate nohighlight">
+\[u_i = \frac{t_i}{1-s}, \quad
+u_j = t_j - \frac{s}{1-s}\,t_i, \quad
+u_k = t_k \; (k \ne i, j).\]</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="torch_bsf.splitting.split">
+<span class="sig-prename descclassname"><span class="pre">torch_bsf.splitting.</span></span><span class="sig-name descname"><span class="pre">split</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.bezier_simplex.BezierSimplex" title="torch_bsf.bezier_simplex.BezierSimplex"><span class="pre">BezierSimplex</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">j</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">s</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#torch_bsf.bezier_simplex.BezierSimplex" title="torch_bsf.bezier_simplex.BezierSimplex"><span class="pre">BezierSimplex</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#torch_bsf.bezier_simplex.BezierSimplex" title="torch_bsf.bezier_simplex.BezierSimplex"><span class="pre">BezierSimplex</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/splitting.py#L197-L303"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.splitting.split" title="Link to this definition"></a></dt>
+<dd><p>Split a Bézier simplex along edge <code class="docutils literal notranslate"><span class="pre">(i,</span> <span class="pre">j)</span></code> using the de Casteljau algorithm.</p>
+<p>A new vertex is inserted on the edge between vertex <code class="docutils literal notranslate"><span class="pre">i</span></code> and vertex <code class="docutils literal notranslate"><span class="pre">j</span></code>
+of the parameter domain at the relative position <code class="docutils literal notranslate"><span class="pre">s</span></code>.  The original
+simplex is thereby subdivided into two sub-simplices that together cover
+the entire original domain.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bs</strong> – The Bézier simplex to split.</p></li>
+<li><p><strong>i</strong> – Indices of the two vertices that define the split edge
+(0-indexed, <code class="docutils literal notranslate"><span class="pre">i</span> <span class="pre">≠</span> <span class="pre">j</span></code>).</p></li>
+<li><p><strong>j</strong> – Indices of the two vertices that define the split edge
+(0-indexed, <code class="docutils literal notranslate"><span class="pre">i</span> <span class="pre">≠</span> <span class="pre">j</span></code>).</p></li>
+<li><p><strong>s</strong> – Split parameter in the open interval <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">1)</span></code>.  <code class="docutils literal notranslate"><span class="pre">s</span> <span class="pre">=</span> <span class="pre">0.5</span></code>
+produces a midpoint split.  The new vertex is located at
+<span class="math notranslate nohighlight">\((1-s)\,v_i + s\,v_j\)</span> in the parameter domain.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p><strong>(bs_A, bs_B)</strong> –</p>
+<ul class="simple">
+<li><p><strong>bs_A</strong> — sub-simplex that replaces vertex <span class="math notranslate nohighlight">\(j\)</span> with the new
+vertex.  It covers the sub-domain
+<span class="math notranslate nohighlight">\(\{t : t_j / (t_i + t_j) \le s\}\)</span>.</p></li>
+<li><p><strong>bs_B</strong> — sub-simplex that replaces vertex <span class="math notranslate nohighlight">\(i\)</span> with the new
+vertex.  It covers the sub-domain
+<span class="math notranslate nohighlight">\(\{t : t_j / (t_i + t_j) \ge s\}\)</span>.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)">tuple</a>[<a class="reference internal" href="#torch_bsf.bezier_simplex.BezierSimplex" title="torch_bsf.bezier_simplex.BezierSimplex">BezierSimplex</a>, <a class="reference internal" href="#torch_bsf.bezier_simplex.BezierSimplex" title="torch_bsf.bezier_simplex.BezierSimplex">BezierSimplex</a>]</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The algorithm runs <span class="math notranslate nohighlight">\(n\)</span> de Casteljau steps along the chosen edge
+direction, where <span class="math notranslate nohighlight">\(n\)</span> is the degree of the Bézier simplex.</p>
+<p>At each step <span class="math notranslate nohighlight">\(r = 1, \ldots, n\)</span> the control-point matrix is updated
+as</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}c^{(r)}_\alpha =
+\begin{cases}
+    s \cdot c^{(r-1)}_\alpha
+        + (1-s) \cdot c^{(r-1)}_{\alpha + e_i - e_j}
+    &amp; \text{if } \alpha_j \ge 1 \\
+    c^{(r-1)}_\alpha &amp; \text{otherwise,}
+\end{cases}\end{split}\]</div>
+<p>and rows with <span class="math notranslate nohighlight">\(\alpha_j = r\)</span> are saved as control points of
+<strong>bs_A</strong>.  An analogous recursion with the roles of <span class="math notranslate nohighlight">\(i\)</span> and
+<span class="math notranslate nohighlight">\(j\)</span> swapped gives <strong>bs_B</strong>.</p>
+<p>The two sub-simplices share the split point — both evaluate to the
+same value at the new vertex.</p>
+<p class="rubric">Examples</p>
+<p>Split the identity Bézier curve at the midpoint:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.bezier_simplex</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSimplex</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.splitting</span><span class="w"> </span><span class="kn">import</span> <span class="n">split</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bs</span> <span class="o">=</span> <span class="n">BezierSimplex</span><span class="p">({(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">],</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bs_A</span><span class="p">,</span> <span class="n">bs_B</span> <span class="o">=</span> <span class="n">split</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">float</span><span class="p">(</span><span class="n">bs_A</span><span class="o">.</span><span class="n">control_points</span><span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>  <span class="c1"># split-point value</span>
+<span class="go">0.5</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">float</span><span class="p">(</span><span class="n">bs_B</span><span class="o">.</span><span class="n">control_points</span><span class="p">[(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)]</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>  <span class="c1"># same split point from other side</span>
+<span class="go">0.5</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="torch_bsf.splitting.split_by_criterion">
+<span class="sig-prename descclassname"><span class="pre">torch_bsf.splitting.</span></span><span class="sig-name descname"><span class="pre">split_by_criterion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.bezier_simplex.BezierSimplex" title="torch_bsf.bezier_simplex.BezierSimplex"><span class="pre">BezierSimplex</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">criterion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.15)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#torch_bsf.bezier_simplex.BezierSimplex" title="torch_bsf.bezier_simplex.BezierSimplex"><span class="pre">BezierSimplex</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#torch_bsf.bezier_simplex.BezierSimplex" title="torch_bsf.bezier_simplex.BezierSimplex"><span class="pre">BezierSimplex</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#torch_bsf.bezier_simplex.BezierSimplex" title="torch_bsf.bezier_simplex.BezierSimplex"><span class="pre">BezierSimplex</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/splitting.py#L639-L670"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.splitting.split_by_criterion" title="Link to this definition"></a></dt>
+<dd><p>Split a Bézier simplex using a split criterion.</p>
+<p>Convenience wrapper that calls <code class="docutils literal notranslate"><span class="pre">criterion(bs)</span></code> to obtain the edge
+indices and split parameter, then delegates to <a class="reference internal" href="#torch_bsf.splitting.split" title="torch_bsf.splitting.split"><code class="xref py py-func docutils literal notranslate"><span class="pre">split()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>bs</strong> – The Bézier simplex to split.</p></li>
+<li><p><strong>criterion</strong> – A <a class="reference internal" href="#torch_bsf.splitting.SplitCriterion" title="torch_bsf.splitting.SplitCriterion"><code class="xref py py-data docutils literal notranslate"><span class="pre">SplitCriterion</span></code></a> callable that returns <code class="docutils literal notranslate"><span class="pre">(i,</span> <span class="pre">j,</span> <span class="pre">s)</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>(bs_A, bs_B)</strong> – The two sub-Bézier-simplices; see <a class="reference internal" href="#torch_bsf.splitting.split" title="torch_bsf.splitting.split"><code class="xref py py-func docutils literal notranslate"><span class="pre">split()</span></code></a> for details.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)">tuple</a>[<a class="reference internal" href="#torch_bsf.bezier_simplex.BezierSimplex" title="torch_bsf.bezier_simplex.BezierSimplex">BezierSimplex</a>, <a class="reference internal" href="#torch_bsf.bezier_simplex.BezierSimplex" title="torch_bsf.bezier_simplex.BezierSimplex">BezierSimplex</a>]</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.bezier_simplex</span><span class="w"> </span><span class="kn">import</span> <span class="n">rand</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.splitting</span><span class="w"> </span><span class="kn">import</span> <span class="n">longest_edge_criterion</span><span class="p">,</span> <span class="n">split_by_criterion</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bs</span> <span class="o">=</span> <span class="n">rand</span><span class="p">(</span><span class="n">n_params</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_values</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bs_A</span><span class="p">,</span> <span class="n">bs_B</span> <span class="o">=</span> <span class="n">split_by_criterion</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="n">longest_edge_criterion</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bs_A</span><span class="o">.</span><span class="n">degree</span> <span class="o">==</span> <span class="n">bs</span><span class="o">.</span><span class="n">degree</span>
+<span class="go">True</span>
+</pre></div>
+</div>
 </dd></dl>
 
 </section>
