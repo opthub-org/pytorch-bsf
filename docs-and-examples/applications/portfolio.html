@@ -132,7 +132,7 @@ f_2(x) &amp;= x^T \mathrm{diag}(\Sigma) x + 0.05\|x\|^2 \quad \text{(variance + 
 <li><p>Sample 10 weight vectors <span class="math notranslate nohighlight">\(w = (w_1, w_2)\)</span> uniformly on the 1-simplex from <span class="math notranslate nohighlight">\((1,0)\)</span> to <span class="math notranslate nohighlight">\((0,1)\)</span>.</p></li>
 <li><p>For each <span class="math notranslate nohighlight">\(w\)</span>, solve <span class="math notranslate nohighlight">\(x^*(w) = \arg\min_x [w_1 f_1(x) + w_2 f_2(x)]\)</span> using L-BFGS-B.</p></li>
 <li><p>Collect the Pareto front points <span class="math notranslate nohighlight">\((f_1(x^*(w)), f_2(x^*(w)))\)</span>.</p></li>
-<li><p>Fit a degree-3 Bézier simplex to the weight–objective pairs.</p></li>
+<li><p>Fit a degree-3 Bézier simplex to the weight–objective pairs and another to the weight–decision pairs.</p></li>
 <li><p>Evaluate the fitted Bézier curve on 101 test weights.</p></li>
 </ol>
 <p>The maximum error on the test weights is about <span class="math notranslate nohighlight">\(10^{-4}\)</span>, i.e., below 0.5% of the range of each objective.

@@ -42,7 +42,7 @@ To illustrate Bézier simplex fitting on a portfolio Pareto front, we conducted 
 1. Sample 10 weight vectors :math:`w = (w_1, w_2)` uniformly on the 1-simplex from :math:`(1,0)` to :math:`(0,1)`.
 2. For each :math:`w`, solve :math:`x^*(w) = \arg\min_x [w_1 f_1(x) + w_2 f_2(x)]` using L-BFGS-B.
 3. Collect the Pareto front points :math:`(f_1(x^*(w)), f_2(x^*(w)))`.
-4. Fit a degree-3 Bézier simplex to the weight–objective pairs.
+4. Fit a degree-3 Bézier simplex to the weight–objective pairs and another to the weight–decision pairs.
 5. Evaluate the fitted Bézier curve on 101 test weights.
 
 The maximum error on the test weights is about :math:`10^{-4}`, i.e., below 0.5% of the range of each objective.
