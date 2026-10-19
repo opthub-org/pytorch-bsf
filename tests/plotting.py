@@ -581,6 +581,26 @@ def test_plot_simploid_3d_surface_face_color_aliases(require_matplotlib, alias):
     plt.close(ax.figure)
 
 
+@pytest.mark.parametrize("alias", ["facecolor", "facecolors", "fc"])
+def test_plot_simploid_3d_surface_per_triangle_face_colors(require_matplotlib, alias):
+    """A sequence of per-triangle face colors is applied to 3D surfaces without ValueError."""
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import to_rgba
+
+    num = 4
+    n_triangles = 2 * num * num  # a square cell grid split into triangles
+    colors = ["r", "b"] * (n_triangles // 2)
+    ax = plot_bezier_simploid(BezierSimploid.randn((1, 1), 2, 3), num=num, show_control_points=False, **{alias: colors})
+    (surface,) = _collections(ax, "Poly3DCollection")
+    face = surface.get_facecolor()
+    assert len(face) == n_triangles
+    # The faces are depth-sorted when drawn, so compare the multiset of colors.
+    reds = sum(1 for rgba in face if tuple(rgba[:3]) == to_rgba("r")[:3])
+    blues = sum(1 for rgba in face if tuple(rgba[:3]) == to_rgba("b")[:3])
+    assert reds == blues == n_triangles // 2
+    plt.close(ax.figure)
+
+
 def test_plot_simploid_curve_c_alias(require_matplotlib):
     """``c`` (the Line2D alias of ``color``) sets the curve color without TypeError."""
     import matplotlib.pyplot as plt
