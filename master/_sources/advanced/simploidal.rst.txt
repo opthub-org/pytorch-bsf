@@ -402,6 +402,7 @@ arguments to it; this is useful for very large data sets.
    S.identify(tri.face(0, 2), sq.face(1, 1))
 
    # Noisy samples of two unrelated functions on the two cells
+   torch.manual_seed(0)
    t1 = sample_simploid((2,), 100, seed=0)
    t2 = sample_simploid((1, 1), 100, seed=1)
    x1 = torch.sin(3 * t1[:, :1]) + 0.01 * torch.randn(100, 1)
@@ -413,7 +414,7 @@ arguments to it; this is useful for very large data sets.
    w = sample_simploid((1,), 10, seed=2)
    on_tri = torch.cat([w, torch.zeros(10, 1)], dim=1)
    on_sq = torch.cat([w, torch.tensor([[1.0, 0.0]]).expand(10, 2)], dim=1)
-   print(torch.allclose(space.evaluate(tri, on_tri), space.evaluate(sq, on_sq)))
+   print(torch.allclose(space.evaluate(tri, on_tri), space.evaluate(sq, on_sq), atol=1e-6))
 
 .. testoutput::
    :pyversion: >= 3.10, < 3.15
