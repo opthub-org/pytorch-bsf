@@ -282,6 +282,7 @@ class BezierSimplex(L.LightningModule):
     >>> trainer = L.Trainer(
     ...     callbacks=[EarlyStopping(monitor="train_mse")],
     ...     enable_progress_bar=False,
+    ...     enable_model_summary=False,
     ... )
     >>> trainer.fit(bs, dl)
     >>> ts, xs = bs.meshgrid()
