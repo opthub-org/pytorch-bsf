@@ -114,6 +114,8 @@ class _LightningWrapper(L.LightningModule):
 def _check_solver(solver: str, ridge: float, smoothness_weight: float) -> None:
     if solver not in ("lstsq", "trainer"):
         raise ValueError(f"Unknown solver {solver!r}.")
+    if ridge < 0:
+        raise ValueError(f"ridge must be non-negative, but {ridge} is given.")
     if ridge and solver != "lstsq":
         raise ValueError("ridge is supported only by the 'lstsq' solver.")
     if smoothness_weight < 0:

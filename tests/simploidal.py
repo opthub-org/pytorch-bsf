@@ -227,7 +227,9 @@ TRAINER_CONVERGENCE_KWARGS = dict(max_epochs=10, enable_progress_bar=False, logg
 
 
 def test_fit_simploid_trainer_converges_to_lstsq():
-    truth = BezierSimploid.randn((2, 1), 2, n_values=2)
+    n = len(simploid_indices((2, 1), 2))
+    # A fixed truth: L-BFGS in float32 stalls at an error of ~5e-4, so an unlucky random truth may exceed atol.
+    truth = BezierSimploid((2, 1), 2, torch.randn(n, 2, generator=torch.Generator().manual_seed(0)))
     t = sample_simploid((2, 1), 200, seed=0)
     x = truth(t).detach() + 0.01 * torch.randn(200, 2, generator=torch.Generator().manual_seed(0))
     exact = fit_simploid(t, x, (2, 1), 2)
@@ -1521,6 +1523,8 @@ def test_fit_simploid_smoothness_and_freeze_errors():
         fit_simploid(t, x, (2,), 2, init=init, freeze=[((3, 0, 0),)])
     with pytest.raises(ValueError, match="not a control point index"):
         fit_simploid(t, x, (2,), 2, init=init, freeze=[(2, 0, 0)])  # type: ignore[list-item]
+    with pytest.raises(ValueError, match="ridge must be non-negative"):  # even if no row is free
+        fit_simploid(t, x, (2,), 2, init=init, freeze=simploid_indices((2,), 2), ridge=-1.0)
     with pytest.raises(ValueError, match="degree"):
         fit_simploid(t, x, (2,), 3, init=init)
     with pytest.raises(ValueError, match="values"):
