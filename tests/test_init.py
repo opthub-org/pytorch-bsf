@@ -34,5 +34,12 @@ def test_public_api_exports():
 
     for name in ("BezierSimploid", "fit", "fit_kfold", "split", "SimploidalSet", "fit_simploidal_set"):
         assert hasattr(torch_bsf, name)
-    for name in ("BezierSimplex", "BezierSimplexDataModule", "validate_control_points", "fit_simploid"):
-        assert not hasattr(torch_bsf, name)
+    assert not hasattr(torch_bsf, "fit_simploid")
+
+
+@pytest.mark.parametrize("module", ["torch_bsf.bezier_simplex", "torch_bsf.control_points"])
+def test_legacy_modules_are_removed(module):
+    """The Bézier simplex is a Bézier simploid of one factor; the separate implementation is gone."""
+    import importlib.util
+
+    assert importlib.util.find_spec(module) is None

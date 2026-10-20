@@ -24,7 +24,7 @@ from torch_bsf.simploidal.sets import _identity_map
 
 #: Control points: a tensor whose rows follow :func:`~torch_bsf.simploidal.simploid_indices`,
 #: or a mapping from control point indices to values.
-ControlPointsLike: TypeAlias = torch.Tensor | Mapping[Any, Sequence[float] | torch.Tensor]
+ControlPointData: TypeAlias = torch.Tensor | Mapping[Any, Sequence[float] | torch.Tensor]
 
 
 class BezierSimploid(nn.Module):
@@ -67,7 +67,7 @@ class BezierSimploid(nn.Module):
         self,
         simploid_type: Sequence[int],
         degree: int | Sequence[int],
-        control_points: "ControlPointsLike | None" = None,
+        control_points: "ControlPointData | None" = None,
         *,
         n_values: int | None = None,
     ):

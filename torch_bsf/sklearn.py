@@ -13,7 +13,7 @@ except ImportError:
     _sklearn_available = False
 
 from torch_bsf.preprocessing import NormalizeType
-from torch_bsf.simploidal.bezier import BezierSimploid, ControlPointsLike
+from torch_bsf.simploidal.bezier import BezierSimploid, ControlPointData
 from torch_bsf.simploidal.combinatorics import SimploidIndex
 from torch_bsf.simploidal.fitting import fit
 
@@ -100,7 +100,7 @@ class BezierSimploidRegressor(RegressorMixin, BaseEstimator):
         solver: Literal["lstsq", "trainer"] = "lstsq",
         ridge: float = 0.0,
         smoothness_weight: float = 0.0,
-        init: BezierSimploid | ControlPointsLike | None = None,
+        init: BezierSimploid | ControlPointData | None = None,
         freeze: Iterable[SimploidIndex | Sequence[int]] | None = None,
         normalize: NormalizeType = "none",
         batch_size: int | None = None,

@@ -15,23 +15,33 @@ from torch_bsf.simploidal.combinatorics import SimploidIndex
 
 
 def _index_key(index: SimploidIndex) -> str:
-    """The string key of a control point index, e.g. ``"((2, 0, 0), (1, 0))"``."""
-    return str(tuple(tuple(int(v) for v in alpha) for alpha in index))
+    """The string key of a control point index.
+
+    The key of a Bézier simplex (a single factor) is flat, e.g. ``"(2, 0, 0)"``;
+    otherwise it is nested, e.g. ``"((2, 0, 0), (1, 0))"`` (or ``"()"`` for a vertex).
+    """
+    index = tuple(tuple(int(v) for v in alpha) for alpha in index)
+    return str(index[0] if len(index) == 1 else index)
+
+
+def _is_multi_index(value: object) -> bool:
+    return isinstance(value, tuple) and all(type(v) is int and v >= 0 for v in value)
 
 
 def _parse_index_key(key: object) -> SimploidIndex:
-    """Parses a key written by :func:`_index_key`."""
+    """Parses a key written by :func:`_index_key`: a flat key is the index of a single factor."""
     try:
         index = literal_eval(key) if isinstance(key, str) else None
     except (ValueError, SyntaxError):
         index = None
-    if not (
-        isinstance(index, tuple) and all(isinstance(a, tuple) and all(type(v) is int and v >= 0 for v in a) for a in index)
-    ):
-        raise ValueError(
-            f"Invalid control point index {key!r}: expected a tuple of multi-indices such as '((2, 0, 0), (1, 0))'."
-        )
-    return cast(SimploidIndex, index)
+    if isinstance(index, tuple) and all(_is_multi_index(alpha) for alpha in index):
+        return cast(SimploidIndex, index)
+    if index and _is_multi_index(index):
+        return cast(SimploidIndex, (index,))
+    raise ValueError(
+        f"Invalid control point index {key!r}: expected a multi-index such as '(2, 0, 0)' "
+        "or a tuple of multi-indices such as '((2, 0, 0), (1, 0))'."
+    )
 
 
 def _from_items(items: Iterable[tuple[object, Sequence[Any]]], path: Path) -> BezierSimploid:
@@ -70,7 +80,9 @@ def save(path: str | Path, data: BezierSimploid) -> None:
       ``"control_points"`` saved with :func:`torch.save`.
 
     An index key is the string representation of the index
-    :math:`(\boldsymbol\alpha^1, \ldots, \boldsymbol\alpha^n)`, e.g. ``"((2, 0, 0), (1, 0))"``.
+    :math:`(\boldsymbol\alpha^1, \ldots, \boldsymbol\alpha^n)`, e.g. ``"((2, 0, 0), (1, 0))"``,
+    except that the key of a Bézier simplex (a single factor) is its multi-index
+    :math:`\boldsymbol\alpha^1` alone, e.g. ``"(2, 0, 0)"``.
     Keys are written in the order of :func:`simploid_indices`.  The simploid type and the
     degree are not stored separately: :func:`load` recovers them from the keys.
 
@@ -100,6 +112,16 @@ def save(path: str | Path, data: BezierSimploid) -> None:
     "((1, 0), (0, 1))",2.0,3.0
     "((0, 1), (1, 0))",4.0,5.0
     "((0, 1), (0, 1))",6.0,7.0
+
+    The keys of a Bézier simplex are flat:
+
+    >>> simplex = BezierSimploid((2,), 1, torch.eye(3))
+    >>> with tempfile.TemporaryDirectory() as d:
+    ...     save(Path(d) / "simplex.csv", simplex)
+    ...     print((Path(d) / "simplex.csv").read_text(), end="")
+    "(1, 0, 0)",1.0,0.0,0.0
+    "(0, 1, 0)",0.0,1.0,0.0
+    "(0, 0, 1)",0.0,0.0,1.0
     """
     path = Path(path)
     suffix = path.suffix.lower()
@@ -141,6 +163,8 @@ def load(path: str | Path) -> BezierSimploid:
 
     The simploid type and the degree are inferred from the control point indices;
     every control point of that type and degree must be present exactly once.
+    A flat key such as ``"(2, 0, 0)"`` is the index of a Bézier simplex (a single factor),
+    and a nested key such as ``"((2, 0, 0), (1, 0))"`` is the index of any Bézier simploid.
 
     Parameters
     ----------

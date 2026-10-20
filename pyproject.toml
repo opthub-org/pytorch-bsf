@@ -36,12 +36,10 @@ classifiers = [
 dependencies = [
   "torch>=2,<3",
   "lightning>=2,<3",
-  "pl-crossvalidate>=0.1,<1",
   "protobuf>=6,<7",
   "mlflow>=3,<4",
   # hotfix for mlflow's starlette 1.0.0 issue
   "starlette<1",
-  "jsonschema>=4,<5",
   "PyYAML>=6,<7",
 ]
 
@@ -73,7 +71,6 @@ develop = [
   "pytest-randomly",
   "pytest-benchmark",
   "mypy",
-  "types-jsonschema",
   "types-PyYAML",
   "types-setuptools",
 ]
@@ -117,10 +114,6 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "sklearn.*"
-ignore_missing_imports = true
-
-[[tool.mypy.overrides]]
-module = "pl_crossvalidate.*"
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

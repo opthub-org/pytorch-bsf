@@ -60,7 +60,7 @@ body:
     id: suspected-cause
     attributes:
       label: Suspected cause / location
-      description: Files, functions or commits you suspect (e.g. `torch_bsf/bezier_simplex.py` `BezierSimplex.forward`). Leave empty if unknown.
+      description: Files, functions or commits you suspect (e.g. `torch_bsf/simploidal/bezier.py` `BezierSimploid.forward`). Leave empty if unknown.
 
   - type: textarea
     id: acceptance

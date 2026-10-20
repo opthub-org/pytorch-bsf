@@ -34,7 +34,7 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader, TensorDataset
 
 from torch_bsf.preprocessing import NormalizeType, make_scaler
-from torch_bsf.simploidal.bezier import BezierSimploid, ControlPointsLike
+from torch_bsf.simploidal.bezier import BezierSimploid, ControlPointData
 from torch_bsf.simploidal.combinatorics import SimploidIndex, SimploidType, _check_degree, _check_type, simploid_n_params
 from torch_bsf.simploidal.sets import Simploid, SimploidalSet
 from torch_bsf.simploidal.space import DegreeAssignment, SimploidalBezierSpace
@@ -258,7 +258,7 @@ def fit(
     degree: int | Sequence[int] | None = None,
     *,
     simploid_type: Sequence[int] | None = None,
-    init: BezierSimploid | ControlPointsLike | None = None,
+    init: BezierSimploid | ControlPointData | None = None,
     freeze: Iterable[SimploidIndex | Sequence[int]] | None = None,
     smoothness_weight: float = 0.0,
     normalize: NormalizeType = "none",
@@ -533,7 +533,7 @@ def _fit_folds(
 
 
 def _init_simploid(
-    init: BezierSimploid | ControlPointsLike,
+    init: BezierSimploid | ControlPointData,
     simploid_type: tuple[int, ...],
     degree: tuple[int, ...],
     n_values: int,

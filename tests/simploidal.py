@@ -1,11 +1,11 @@
-from math import comb, prod
+from math import comb, factorial, prod
+from pathlib import Path
 
 import pytest
 import torch
 
 import torch_bsf
 from torch_bsf import fit
-from torch_bsf.bezier_simplex import BezierSimplex
 from torch_bsf.simploidal import (
     BezierSimploid,
     Simploid,
@@ -98,13 +98,22 @@ def test_sample_simploid():
 # ---------------------------------------------------------------------------
 
 
+def _bezier_simplex(t: torch.Tensor, points: dict[tuple[int, ...], torch.Tensor], degree: int) -> torch.Tensor:
+    """The Bézier simplex of the given control points, by the textbook formula."""
+    out = 0
+    for alpha, point in points.items():
+        coeff = factorial(degree) / prod(factorial(a) for a in alpha)
+        out = out + coeff * prod((t[:, i : i + 1] ** a for i, a in enumerate(alpha)), start=torch.ones(len(t), 1)) * point
+    return out
+
+
 @pytest.mark.parametrize("dim", [1, 2, 3])
-@pytest.mark.parametrize("degree", [1, 2, 4])
-def test_bezier_simploid_matches_bezier_simplex(dim, degree):
+@pytest.mark.parametrize("degree", [0, 1, 2, 4])
+def test_bezier_simploid_of_one_factor_is_bezier_simplex(dim, degree):
     bsd = BezierSimploid.randn((dim,), degree, n_values=3)
-    bs = BezierSimplex({alpha[0]: bsd[alpha].tolist() for alpha in bsd.indices()})
     t = sample_simploid((dim,), 15, seed=1)
-    assert torch.allclose(bsd(t), bs(t), atol=1e-5)
+    expected = _bezier_simplex(t, {alpha[0]: bsd[alpha].detach() for alpha in bsd.indices()}, degree)
+    assert torch.allclose(bsd(t), expected, atol=1e-5)
 
 
 def test_bezier_simploid_vertex_is_constant():
@@ -176,16 +185,6 @@ def test_bezier_simploid_design_matrix_errors():
     with pytest.raises(ValueError):
         bsd.design_matrix(torch.zeros(3, 4))
     assert bsd.design_matrix(torch.ones(1, 5, dtype=torch.long)).dtype == torch.get_default_dtype()
-
-
-@pytest.mark.parametrize("n_params", [2, 3, 4])
-@pytest.mark.parametrize("degree", [0, 1, 3])
-def test_bezier_simploid_of_one_factor_matches_bezier_simplex(n_params, degree):
-    simplex = torch_bsf.bezier_simplex.randn(n_params=n_params, n_values=2, degree=degree)
-    rows = [simplex.control_points[index] for index in simplex.control_points.indices()]
-    simploid = BezierSimploid((n_params - 1,), degree, torch.stack(rows).detach())
-    t = sample_simploid((n_params - 1,), 20, seed=0)
-    assert torch.allclose(simploid(t), simplex(t), atol=1e-6)
 
 
 def test_space_design_matrix_matches_forward():
@@ -1319,7 +1318,8 @@ def test_save_formats(tmp_path):
     "suffix, content, match",
     [
         (".csv", "", "No control points found"),
-        (".csv", '"(1, 0)",1.0\n"(0, 1)",2.0\n', "Invalid control point index '\\(1, 0\\)'"),
+        (".csv", '"(1, 0)",1.0\n"((1, 0), (0, 1))",2.0\n', "does not match the simploid type"),
+        (".csv", '"1",1.0\n', "Invalid control point index '1'"),
         (".csv", '"((1, 0), (1, 0))",1.0\n"((1, 0), (0, 1))",2.0\n', "Control points are missing"),
         (".csv", '"((1, 0),)",1.0\n"((0, 1),)",2.0\n"((1, 0), )",3.0\n', "Duplicate control point index"),
         (".csv", '"((1, 0),)",1.0\n"((0, 0, 1),)",2.0\n', "does not match the simploid type \\(1,\\) and degree \\(1,\\)"),
@@ -1344,17 +1344,43 @@ def test_load_errors(tmp_path, suffix, content, match):
         torch_bsf.simploidal.load(path)
 
 
-def test_load_rejects_bezier_simplex_files(tmp_path):
-    """Files of torch_bsf.bezier_simplex.save are not Bézier simploid files."""
-    bs = BezierSimplex({(1, 0): [0.0], (0, 1): [1.0]})
-    for suffix in (".csv", ".json", ".pt"):
-        path = tmp_path / f"simplex{suffix}"
-        torch_bsf.bezier_simplex.save(path, bs)
-        with pytest.raises(ValueError, match="Invalid control point index|must contain a dictionary"):
-            torch_bsf.simploidal.load(path)
+@pytest.mark.parametrize("suffix", [".csv", ".tsv", ".json", ".yml"])
+def test_load_flat_keys(suffix):
+    """Files with flat keys such as "(2, 0)" hold a Bézier simplex."""
+    loaded = torch_bsf.simploidal.load(Path(__file__).parent / "data" / f"bezier_simplex{suffix}")
+    assert (loaded.simploid_type, loaded.degree, loaded.n_values) == ((1,), (2,), 3)
+    assert loaded[(1, 1)].tolist() == pytest.approx([0.5890220403671265, -0.5538082122802734, 2.7124223709106445])
+
+
+@pytest.mark.parametrize("suffix", [".csv", ".json", ".yml"])
+def test_save_one_factor_writes_flat_keys_and_loads_nested_keys(tmp_path, suffix):
+    """A Bézier simplex is saved with flat keys, and the same file with nested keys loads the same."""
+    bs = BezierSimploid.randn((2,), 2, n_values=2)
+    path = _saved(tmp_path, bs, suffix)
+    text = path.read_text()
+    assert "(2, 0, 0)" in text and "((2, 0, 0),)" not in text
+    nested = tmp_path / f"nested{suffix}"
+    nested.write_text(
+        "".join(line.replace("(", "((", 1).replace(")", "),)", 1) if "(" in line else line for line in text.splitlines(True))
+    )
+    assert "((2, 0, 0),)" in nested.read_text()
+    for loaded in (torch_bsf.simploidal.load(path), torch_bsf.simploidal.load(nested)):
+        assert (loaded.simploid_type, loaded.degree) == ((2,), (2,))
+        assert torch.equal(loaded.control_points, bs.control_points.detach())
+
+
+def test_load_pt_requires_a_dictionary(tmp_path):
+    """.pt files are loaded with weights_only=True and must hold the dictionary written by save."""
+    bs = BezierSimploid.randn((2, 1), 1, n_values=2)
+    data = torch.load(_saved(tmp_path, bs, ".pt"), weights_only=True)
+    assert data["simploid_type"] == [2, 1] and data["degree"] == [1, 1]
+    assert torch.equal(data["control_points"], bs.control_points.detach())
     torch.save({"control_points": torch.zeros(1, 1)}, tmp_path / "dict.pt")
     with pytest.raises(ValueError, match="must contain a dictionary"):
         torch_bsf.simploidal.load(tmp_path / "dict.pt")
+    torch.save(torch.nn.Linear(1, 1), tmp_path / "module.pt")  # a pickled module, e.g. of an old version
+    with pytest.raises(ValueError, match="must contain a dictionary"):
+        torch_bsf.simploidal.load(tmp_path / "module.pt")
 
 
 def test_save_unknown_file_type(tmp_path):
@@ -1393,15 +1419,19 @@ def _noisy(x: torch.Tensor, seed: int = 0) -> torch.Tensor:
 
 @pytest.mark.parametrize("n_params", [2, 3, 4])
 @pytest.mark.parametrize("degree", [1, 2, 4])
-def test_adjacency_of_one_factor_matches_bezier_simplex(n_params, degree):
-    simplex = torch_bsf.bezier_simplex.randn(n_params=n_params, n_values=1, degree=degree, smoothness_weight=1.0)
-    indices = list(simplex.control_points.indices())
-    expected = {tuple(sorted((indices[p], indices[q]))) for p, q in simplex.adjacency_indices_.tolist()}
+def test_adjacency_of_one_factor(n_params, degree):
+    """Adjacent control points of a Bézier simplex differ by moving one unit between two components."""
     simploid = BezierSimploid.zeros((n_params - 1,), degree, n_values=1)
     rows = [alpha[0] for alpha in simploid.indices()]
+    expected = {
+        (a, b)
+        for a in rows
+        for b in rows
+        if a < b and sorted(x - y for x, y in zip(a, b)) == [-1] + [0] * (n_params - 2) + [1]
+    }
     actual = {tuple(sorted((rows[p], rows[q]))) for p, q in simploid.adjacency().tolist()}
     assert actual == expected
-    assert len(simploid.adjacency()) == len(simplex.adjacency_indices_)
+    assert len(simploid.adjacency()) == len(expected)
 
 
 @pytest.mark.parametrize("simploid_type,degree", [((1, 1), 1), ((1, 1), (2, 3)), ((2, 1), 2), ((1, 1, 1), 1)])

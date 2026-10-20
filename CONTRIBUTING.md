@@ -200,7 +200,7 @@ feat(model_selection): add elastic net grid search
 fix: resolve UnpicklingError in PyTorch 2.6+
 docs: add CONTRIBUTING.md
 deps: update starlette constraint for mlflow compatibility
-test: add parametrized tests for BezierSimplex
+test: add parametrized tests for BezierSimploid
 ci: add Python 3.14 to test matrix
 ```
 
@@ -260,7 +260,7 @@ Use the spelling consistently depending on the context:
 
 | Spelling | Where to use |
 |----------|-------------|
-| `Bezier` (no accent) | Python identifiers (`BezierSimplex`, `bezier_simplex`, `plot_bezier_simplex`, …) and any string that may appear in a console (CLI `description`/`help` strings, `print()` output, log/warning/error messages) |
+| `Bezier` (no accent) | Python identifiers (`BezierSimploid`, `fit_simploidal_set`, `plot_bezier_simplex`, …) and any string that may appear in a console (CLI `description`/`help` strings, `print()` output, log/warning/error messages) |
 | `Bézier` (with accent) | Everything else: docstrings, RST/Markdown documentation, code comments, `pyproject.toml` metadata, example script module docstrings |
 
 The rationale for keeping `Bezier` in console-facing text is that this library is used on HPC clusters where the locale may be `LANG=C`, causing non-ASCII characters to be displayed incorrectly or to raise encoding errors.
@@ -281,12 +281,12 @@ pytest tests/
 pytest tests/ --cov=torch_bsf --cov-report=html
 
 # Run a specific file
-pytest tests/bezier_simplex.py
+pytest tests/simploidal.py
 ```
 
 ### Naming conventions
 
-- Test file names mirror the module under test (e.g., `torch_bsf/bezier_simplex.py` → `tests/bezier_simplex.py`).
+- Test file names mirror the module under test (e.g., `torch_bsf/splitting.py` → `tests/splitting.py`).
 - Test function names start with `test_` or `_test_`.
 
 ### Writing parametrized tests
@@ -299,19 +299,19 @@ import torch_bsf as tbsf
 
 
 @pytest.mark.parametrize(
-    "n_params, n_values, degree",
+    "dim, n_values, degree",
     [
-        (n_params, n_values, degree)
-        for n_params in range(3)
-        for n_values in range(3)
+        (dim, n_values, degree)
+        for dim in range(1, 4)
+        for n_values in range(1, 3)
         for degree in range(3)
     ],
 )
-def test_zeros(n_params: int, n_values: int, degree: int) -> None:
-    bs = tbsf.BezierSimplex.zeros(n_params, n_values, degree)
-    assert bs.n_params == n_params
+def test_zeros(dim: int, n_values: int, degree: int) -> None:
+    bs = tbsf.BezierSimploid.zeros((dim,), degree, n_values)
+    assert bs.n_params == dim + 1
     assert bs.n_values == n_values
-    assert bs.degree == degree
+    assert bs.degree == (degree,)
 ```
 
 ### Docstring tests
@@ -333,14 +333,14 @@ def fit(params, values, degree):
 
     Returns
     -------
-    BezierSimplex
-        A trained Bézier simplex.
+    BezierSimploid
+        A fitted Bézier simplex.
 
     Examples
     --------
     >>> import torch
     >>> import torch_bsf
-    >>> params = torch.tensor([[0.0], [0.5], [1.0]])
+    >>> params = torch.tensor([[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]])
     >>> values = torch.tensor([[0.0], [0.25], [1.0]])
     >>> bs = torch_bsf.fit(params=params, values=values, degree=2)
     """
@@ -375,24 +375,34 @@ pytorch-bsf/
 │   ├── CODEOWNERS                    # Code ownership settings
 │   └── dependabot.yml                # Automated dependency updates
 ├── torch_bsf/                        # Main package
-│   ├── __init__.py                   # Public API exports (BezierSimplex, fit)
+│   ├── __init__.py                   # Public API exports (BezierSimploid, fit, fit_kfold, split, …)
 │   ├── __main__.py                   # CLI entry point
-│   ├── bezier_simplex.py             # BezierSimplex class, fit function, DataModule
-│   ├── control_points.py             # Control point management and index calculation
+│   ├── _cli_args.py                  # Shared CLI arguments and data loading
+│   ├── simploidal/                   # Bézier simploids (a Bézier simplex is the case of one factor)
+│   │   ├── bezier.py                 # BezierSimploid model
+│   │   ├── combinatorics.py          # Control point indices and Bernstein basis
+│   │   ├── fitting.py                # fit, fit_kfold and fit_simploidal_set
+│   │   ├── io.py                     # save and load
+│   │   ├── sets.py                   # Simploidal sets
+│   │   └── space.py                  # Bézier spaces on simploidal sets
+│   ├── active_learning.py            # Query-by-committee point suggestion
+│   ├── plotting.py                   # Visualization
 │   ├── preprocessing.py              # Data scaling (MinMax, Std, Quantile, None)
 │   ├── sampling.py                   # Sampling utilities
-│   ├── validator.py                  # Input validation
+│   ├── sklearn.py                    # scikit-learn regressor
+│   ├── splitting.py                  # Splitting Bézier simploids
+│   ├── validator.py                  # Parsers of CLI arguments
 │   ├── py.typed                      # PEP 561 type hint marker
 │   └── model_selection/              # Model selection sub-package
 │       ├── __init__.py
+│       ├── degree_selection.py       # Degree selection by cross-validation
 │       ├── kfold.py                  # K-fold cross-validation CLI
 │       └── elastic_net_grid.py       # Elastic net grid search CLI
 ├── tests/                            # Test suite
 │   ├── __init__.py
-│   ├── bezier_simplex.py             # Unit tests for BezierSimplex
-│   ├── control_points.py             # Unit tests for ControlPoints
+│   ├── simploidal.py                 # Unit tests for torch_bsf.simploidal
 │   ├── validator.py                  # Unit tests for Validator
-│   ├── test_control_point_index_format.py
+│   ├── …                             # One file per module (see Naming conventions)
 │   └── data/                         # Test data files
 ├── docs/                             # Sphinx documentation
 │   ├── conf.py                       # Sphinx configuration
