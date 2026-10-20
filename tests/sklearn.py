@@ -11,7 +11,7 @@ def _make_data(n_params: int = 3, n_values: int = 2, n_samples: int = 20):
     rng = np.random.default_rng(42)
     raw = rng.random((n_samples, n_params))
     X = raw / raw.sum(axis=1, keepdims=True)
-    y = (1.0 - X ** 2)[:, :n_values]
+    y = (1.0 - X**2)[:, :n_values]
     return X.astype(np.float32), y.astype(np.float32)
 
 
@@ -19,7 +19,10 @@ class TestBezierSimplexRegressor:
     def test_fit_predict(self):
         X, y = _make_data()
         reg = BezierSimplexRegressor(
-            degree=2, max_epochs=5, accelerator="cpu", devices=1,
+            degree=2,
+            max_epochs=5,
+            accelerator="cpu",
+            devices=1,
             trainer_kwargs={"enable_progress_bar": False, "enable_model_summary": False},
         )
         reg.fit(X, y)
@@ -29,7 +32,10 @@ class TestBezierSimplexRegressor:
     def test_score_returns_float(self):
         X, y = _make_data()
         reg = BezierSimplexRegressor(
-            degree=2, max_epochs=5, accelerator="cpu", devices=1,
+            degree=2,
+            max_epochs=5,
+            accelerator="cpu",
+            devices=1,
             trainer_kwargs={"enable_progress_bar": False, "enable_model_summary": False},
         )
         reg.fit(X, y)
@@ -92,7 +98,10 @@ class TestSetParams:
         """After set_params(), fit trains with the updated degree."""
         X, y = _make_data()
         reg = BezierSimplexRegressor(
-            degree=3, max_epochs=3, accelerator="cpu", devices=1,
+            degree=3,
+            max_epochs=3,
+            accelerator="cpu",
+            devices=1,
             trainer_kwargs={"enable_progress_bar": False, "enable_model_summary": False},
         )
         reg.set_params(degree=1)
@@ -108,7 +117,10 @@ class TestSetParams:
 
 class TestPipelineIntegration:
     _kwargs = dict(
-        degree=2, max_epochs=3, accelerator="cpu", devices=1,
+        degree=2,
+        max_epochs=3,
+        accelerator="cpu",
+        devices=1,
         trainer_kwargs={"enable_progress_bar": False, "enable_model_summary": False},
     )
 
@@ -124,10 +136,12 @@ class TestPipelineIntegration:
         X_raw = rng.random((20, 3)).astype(np.float32)
         _, y = _make_data()
 
-        pipe = Pipeline([
-            ("normalize", FunctionTransformer(to_simplex)),
-            ("reg", BezierSimplexRegressor(**self._kwargs)),
-        ])
+        pipe = Pipeline(
+            [
+                ("normalize", FunctionTransformer(to_simplex)),
+                ("reg", BezierSimplexRegressor(**self._kwargs)),
+            ]
+        )
         pipe.fit(X_raw, y)
         preds = pipe.predict(X_raw)
         assert preds.shape == y.shape
@@ -168,7 +182,9 @@ class TestPipelineIntegration:
 
 class TestGridSearchCVIntegration:
     _kwargs = dict(
-        max_epochs=3, accelerator="cpu", devices=1,
+        max_epochs=3,
+        accelerator="cpu",
+        devices=1,
         trainer_kwargs={"enable_progress_bar": False, "enable_model_summary": False},
     )
 
@@ -192,7 +208,12 @@ class TestGridSearchCVIntegration:
         X, y = _make_data(n_samples=30)
         pipe = Pipeline([("reg", BezierSimplexRegressor(**self._kwargs))])
         gs = GridSearchCV(
-            pipe, {"reg__degree": [1, 2]}, cv=2, scoring="r2", refit=True, n_jobs=1,
+            pipe,
+            {"reg__degree": [1, 2]},
+            cv=2,
+            scoring="r2",
+            refit=True,
+            n_jobs=1,
         )
         gs.fit(X, y)
         assert gs.best_params_["reg__degree"] in [1, 2]
@@ -209,3 +230,217 @@ class TestGridSearchCVIntegration:
         gs.fit(X, y)
         assert "mean_test_score" in gs.cv_results_
         assert len(gs.cv_results_["params"]) == 2
+
+
+def _random_simplex(n_samples: int, n_params: int, seed: int) -> np.ndarray:
+    """Return float64 points sampled on the standard simplex."""
+    rng = np.random.default_rng(seed)
+    raw = rng.exponential(size=(n_samples, n_params))
+    return raw / raw.sum(axis=1, keepdims=True)
+
+
+def _fit_simploid_reference(X: np.ndarray, y: np.ndarray, degree: int, ridge: float = 0.0):
+    import torch
+
+    from torch_bsf.simploidal import fit_simploid
+
+    return fit_simploid(torch.from_numpy(X), torch.from_numpy(y), (X.shape[1] - 1,), degree, solver="lstsq", ridge=ridge)
+
+
+class TestLstsqSolver:
+    def test_default_solver_is_trainer(self):
+        """Omitting solver keeps the original trainer-based behavior."""
+        reg = BezierSimplexRegressor()
+        assert reg.solver == "trainer"
+        assert reg.ridge == 0.0
+        params = reg.get_params()
+        assert params["solver"] == "trainer"
+        assert params["ridge"] == 0.0
+
+    def test_trainer_solver_still_trains(self):
+        """The default solver still trains through torch_bsf.fit (float32 model)."""
+        import torch
+
+        X, y = _make_data()
+        reg = BezierSimplexRegressor(
+            degree=2,
+            max_epochs=2,
+            accelerator="cpu",
+            devices=1,
+            trainer_kwargs={"enable_progress_bar": False, "enable_model_summary": False},
+        )
+        reg.fit(X, y)
+        assert reg.model_.dtype == torch.float32
+        assert reg.predict(X).dtype == np.float32
+
+    @pytest.mark.parametrize("n_params, degree", [(2, 0), (2, 1), (2, 5), (3, 3), (4, 2)])
+    def test_matches_fit_simploid(self, n_params: int, degree: int):
+        """solver='lstsq' gives the same model as fit_simploid(..., solver='lstsq')."""
+        import torch
+
+        X = _random_simplex(60, n_params, seed=n_params * 10 + degree)
+        y = np.stack([np.cos(3 * X[:, 0]), X.prod(axis=1), np.exp(X[:, -1])], axis=1)
+        reg = BezierSimplexRegressor(degree=degree, solver="lstsq").fit(X, y)
+        ref = _fit_simploid_reference(X, y, degree)
+
+        X_test = _random_simplex(25, n_params, seed=999)
+        expected = ref(torch.from_numpy(X_test)).detach().numpy()
+        np.testing.assert_allclose(reg.predict(X_test), expected, rtol=0, atol=1e-8)
+        assert reg.model_.degree == degree
+        assert reg.model_.n_params == n_params
+        assert reg.n_features_in_ == n_params
+        assert reg.n_outputs_ == 3
+
+    @pytest.mark.parametrize("degree", [0, 2])
+    def test_zero_simplex_fits_mean(self, degree: int):
+        """With a single parameter (a 0-simplex), the least-squares fit is the mean of y."""
+        X = np.ones((5, 1))
+        y = np.arange(10.0).reshape(5, 2)
+        reg = BezierSimplexRegressor(degree=degree, solver="lstsq").fit(X, y)
+        assert reg.model_.n_params == 1
+        assert reg.model_.degree == degree
+        np.testing.assert_allclose(reg.predict(X[:1]), y.mean(axis=0, keepdims=True), rtol=0, atol=1e-12)
+
+    def test_integer_targets_give_floating_model(self):
+        """Integer y is fitted in floating point instead of truncating the solution."""
+        import torch
+
+        X = _random_simplex(20, 2, seed=5)
+        y = (10 * X).round().astype(np.int64)
+        reg = BezierSimplexRegressor(degree=1, solver="lstsq").fit(X, y)
+        assert reg.model_.dtype == torch.float64
+        ref = _fit_simploid_reference(X, y.astype(np.float64), 1)
+        np.testing.assert_allclose(reg.predict(X), ref(torch.from_numpy(X)).detach().numpy(), rtol=0, atol=1e-8)
+
+    def test_control_points_match_fit_simploid(self):
+        """The control points coincide with fit_simploid's, index by index."""
+        X = _random_simplex(40, 3, seed=1)
+        y = np.stack([X[:, 0] ** 3, np.sin(X[:, 1])], axis=1)
+        reg = BezierSimplexRegressor(degree=4, solver="lstsq").fit(X, y)
+        ref = _fit_simploid_reference(X, y, 4)
+        for alpha in ref.indices():
+            np.testing.assert_allclose(
+                reg.model_.control_points[alpha[0]].detach().numpy(),
+                ref[alpha].detach().numpy(),
+                rtol=0,
+                atol=1e-8,
+            )
+
+    def test_high_dimensional_output_matches_exact_least_squares(self):
+        """With 256 outputs, lstsq reproduces the exact least-squares fit (cf. issue #347)."""
+        import torch
+
+        from torch_bsf.simploidal import bernstein_basis
+
+        n_samples, n_values, degree = 41, 256, 10
+        X = _random_simplex(n_samples, 2, seed=0)
+        freqs = np.linspace(0.5, 6.0, n_values)
+        y = np.sin(np.outer(X[:, 0], freqs)) + np.cos(np.outer(X[:, 1], freqs[::-1]))
+        reg = BezierSimplexRegressor(degree=degree, solver="lstsq").fit(X, y)
+        assert reg.predict(X).shape == (n_samples, n_values)
+
+        # Independent reference: numpy least squares on the Bernstein basis.
+        basis = bernstein_basis((1,), degree, torch.from_numpy(X)).numpy()
+        coef, *_ = np.linalg.lstsq(basis, y, rcond=None)
+        X_test = _random_simplex(50, 2, seed=1)
+        basis_test = bernstein_basis((1,), degree, torch.from_numpy(X_test)).numpy()
+        np.testing.assert_allclose(reg.predict(X_test), basis_test @ coef, rtol=0, atol=1e-8)
+
+        ref = _fit_simploid_reference(X, y, degree)
+        np.testing.assert_allclose(reg.predict(X_test), ref(torch.from_numpy(X_test)).detach().numpy(), rtol=0, atol=1e-8)
+
+    def test_recovers_polynomial_exactly(self):
+        """Data generated by a Bézier simplex of the fitted degree is reproduced exactly."""
+        X = _random_simplex(30, 3, seed=2)
+        y = np.stack([X[:, 0] ** 2, X[:, 0] * X[:, 1], 1.0 - X[:, 2]], axis=1)
+        reg = BezierSimplexRegressor(degree=2, solver="lstsq").fit(X, y)
+        X_test = _random_simplex(10, 3, seed=3)
+        y_test = np.stack([X_test[:, 0] ** 2, X_test[:, 0] * X_test[:, 1], 1.0 - X_test[:, 2]], axis=1)
+        np.testing.assert_allclose(reg.predict(X_test), y_test, rtol=0, atol=1e-10)
+        assert reg.score(X_test, y_test) == pytest.approx(1.0)
+
+    @pytest.mark.parametrize("ridge", [1e-3, 1.0])
+    def test_ridge_matches_fit_simploid(self, ridge: float):
+        """ridge is passed through to the Tikhonov-regularized least-squares solve."""
+        import torch
+
+        X = _random_simplex(15, 3, seed=4)
+        y = np.stack([np.sin(4 * X[:, 0]), X[:, 1] ** 3], axis=1)
+        reg = BezierSimplexRegressor(degree=4, solver="lstsq", ridge=ridge).fit(X, y)
+        ref = _fit_simploid_reference(X, y, 4, ridge=ridge)
+        np.testing.assert_allclose(reg.predict(X), ref(torch.from_numpy(X)).detach().numpy(), rtol=0, atol=1e-8)
+        unregularized = BezierSimplexRegressor(degree=4, solver="lstsq").fit(X, y)
+        assert reg.model_.control_points.matrix.norm() < unregularized.model_.control_points.matrix.norm()
+
+    def test_float32_input_keeps_dtype(self):
+        """The fitted model keeps the dtype of y; float32 data give float32 predictions."""
+        import torch
+
+        X, y = _make_data()
+        reg = BezierSimplexRegressor(degree=2, solver="lstsq").fit(X, y)
+        assert reg.model_.dtype == torch.float32
+        assert reg.predict(X).dtype == np.float32
+        X64 = X.astype(np.float64)
+        y64 = y.astype(np.float64)
+        reg64 = BezierSimplexRegressor(degree=2, solver="lstsq").fit(X64, y64)
+        assert reg64.model_.dtype == torch.float64
+        np.testing.assert_allclose(reg.predict(X), reg64.predict(X64), rtol=0, atol=1e-5)
+
+    def test_get_set_params_clone(self):
+        """solver and ridge work with get_params, set_params and clone."""
+        from sklearn.base import clone
+
+        reg = BezierSimplexRegressor(degree=2, solver="lstsq", ridge=0.5)
+        params = reg.get_params()
+        assert params["solver"] == "lstsq"
+        assert params["ridge"] == 0.5
+        assert reg.set_params(solver="trainer", ridge=0.0) is reg
+        assert reg.solver == "trainer"
+        assert reg.ridge == 0.0
+        reg.set_params(solver="lstsq", ridge=0.25)
+        cloned = clone(reg)
+        assert cloned is not reg
+        assert cloned.solver == "lstsq"
+        assert cloned.ridge == 0.25
+        X, y = _make_data()
+        cloned.fit(X, y)
+        assert not hasattr(reg, "model_")
+
+    def test_gridsearchcv_over_solver_options(self):
+        """GridSearchCV can search over degree and ridge with the lstsq solver."""
+        from sklearn.model_selection import GridSearchCV
+
+        X, y = _make_data(n_samples=30)
+        gs = GridSearchCV(
+            BezierSimplexRegressor(solver="lstsq"),
+            {"degree": [1, 2, 3], "ridge": [0.0, 1e-3]},
+            cv=3,
+            scoring="r2",
+            n_jobs=1,
+        )
+        gs.fit(X, y)
+        assert gs.best_params_["degree"] in [1, 2, 3]
+        assert gs.predict(X).shape == y.shape
+
+    @pytest.mark.parametrize(
+        "kwargs, match",
+        [
+            ({"solver": "trainer", "ridge": 0.1}, "ridge"),
+            ({"solver": "lstsq", "init": {(1, 0): [0.0, 0.0], (0, 1): [1.0, 1.0]}}, "init"),
+            ({"solver": "lstsq", "freeze": [[2, 0, 0]]}, "freeze"),
+            ({"solver": "lstsq", "smoothness_weight": 0.1}, "smoothness_weight"),
+            ({"solver": "newton"}, "Unknown solver"),
+        ],
+    )
+    def test_invalid_option_combinations_raise(self, kwargs: dict, match: str):
+        """Options that the selected solver cannot honor raise ValueError in fit."""
+        X, y = _make_data()
+        reg = BezierSimplexRegressor(degree=2, **kwargs)
+        with pytest.raises(ValueError, match=match):
+            reg.fit(X, y)
+
+    def test_negative_ridge_raises(self):
+        """A negative ridge is rejected by the least-squares solver."""
+        X, y = _make_data()
+        with pytest.raises(ValueError, match="ridge"):
+            BezierSimplexRegressor(degree=2, solver="lstsq", ridge=-1.0).fit(X, y)
