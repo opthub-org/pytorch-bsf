@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 import torch
 from scipy.optimize import minimize
-from torch_bsf.simploidal import fit_simploid
+from torch_bsf import fit
 
 # CT reconstruction: fidelity vs. regularization (L-curve experiment)
 # 2D image: 16x16 pixels for realistic 2D reconstruction
@@ -116,11 +116,10 @@ def solve(t):
 def fit_bezier_simplex(X, Y, degree):
     """Fit a Bézier simplex by exact linear least squares and return its predictor.
 
-    A Bézier simplex on the 1-simplex is a Bézier simploid of type (1,). Its control
-    points enter the model linearly, so ``fit_simploid`` solves for them exactly, which
+    The control points enter the model linearly, so ``fit`` solves for them exactly, which
     is more accurate than gradient-based training for the 256-dimensional Pareto set.
     """
-    model = fit_simploid(torch.tensor(X), torch.tensor(Y), simploid_type=(1,), degree=degree)
+    model = fit(torch.tensor(X), torch.tensor(Y), degree=degree)
 
     def predict(X_new):
         with torch.no_grad():

@@ -1,24 +1,11 @@
-import logging
 import pathlib
-import warnings
 
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
-from torch_bsf.sklearn import BezierSimplexRegressor
-
-# Keep the output focused on the approximation errors: silence Lightning's
-# progress bar, model summary, logger, informational messages and warnings.
-logging.getLogger("lightning.pytorch").setLevel(logging.WARNING)
-warnings.filterwarnings("ignore", module="lightning")
-TRAINER_KWARGS = {
-    "enable_progress_bar": False,
-    "enable_model_summary": False,
-    "logger": False,
-    "enable_checkpointing": False,
-}
+from torch_bsf.sklearn import BezierSimploidRegressor
 
 # Two-task federated learning with quadratic losses
 # theta in R^2: shared model parameters
@@ -65,7 +52,7 @@ y = np.column_stack([
 ])
 
 # Fit a degree-3 Bézier simplex to the Pareto front
-regressor = BezierSimplexRegressor(degree=3, trainer_kwargs=TRAINER_KWARGS)
+regressor = BezierSimploidRegressor(degree=3)
 regressor.fit(X, y)
 
 # Generate smooth curve for visualization
@@ -93,7 +80,7 @@ print("Pareto front plot saved.")
 
 # Fit Bézier simplex to Pareto set (model parameter space)
 theta_targets = np.array([p[1] for p in optimals])
-regressor_set = BezierSimplexRegressor(degree=3, trainer_kwargs=TRAINER_KWARGS)
+regressor_set = BezierSimploidRegressor(degree=3)
 regressor_set.fit(X, theta_targets)
 theta_smooth = regressor_set.predict(X_smooth)
 

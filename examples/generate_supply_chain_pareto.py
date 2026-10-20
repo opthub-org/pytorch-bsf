@@ -1,24 +1,11 @@
-import logging
 import pathlib
-import warnings
 
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
-from torch_bsf.sklearn import BezierSimplexRegressor
-
-# Keep the output focused on the approximation errors: silence Lightning's
-# progress bar, model summary, logger, informational messages and warnings.
-logging.getLogger("lightning.pytorch").setLevel(logging.WARNING)
-warnings.filterwarnings("ignore", module="lightning")
-TRAINER_KWARGS = {
-    "enable_progress_bar": False,
-    "enable_model_summary": False,
-    "logger": False,
-    "enable_checkpointing": False,
-}
+from torch_bsf.sklearn import BezierSimploidRegressor
 
 # 2-objective LQR: inventory state deviation vs. ordering cost and volatility
 # U = [u0, u1, u2, u3, u4] in R^5 (ordering decisions over 5 periods)
@@ -81,7 +68,7 @@ y = np.column_stack([
 ])
 
 # Fit a degree-8 Bézier simplex to the Pareto front
-regressor = BezierSimplexRegressor(degree=8, trainer_kwargs=TRAINER_KWARGS)
+regressor = BezierSimploidRegressor(degree=8)
 regressor.fit(X, y)
 
 # Generate smooth curve for visualization
@@ -116,7 +103,7 @@ print("Pareto front plot saved.")
 
 # Fit Bézier simplex to Pareto set (ordering decision space, showing first two periods)
 U_targets = np.array([p[1] for p in optimals])
-regressor_set = BezierSimplexRegressor(degree=8, trainer_kwargs=TRAINER_KWARGS)
+regressor_set = BezierSimploidRegressor(degree=8)
 regressor_set.fit(X, U_targets)
 U_smooth = regressor_set.predict(X_smooth)
 

@@ -2,12 +2,11 @@ r"""Simploid types, control point indices, Bernstein bases and sampling."""
 
 from functools import lru_cache
 from itertools import product as iproduct
-from typing import Sequence, TypeAlias
+from math import factorial
+from numbers import Integral
+from typing import Sequence, TypeAlias, cast
 
 import torch
-
-from torch_bsf.bezier_simplex import polynom
-from torch_bsf.control_points import simplex_indices
 
 #: The type :math:`(a_1, \ldots, a_n)` of a simploid; ``()`` is a vertex.
 SimploidType: TypeAlias = tuple[int, ...]
@@ -20,6 +19,21 @@ SimploidIndex: TypeAlias = tuple[tuple[int, ...], ...]
 DegeneracyMap: TypeAlias = tuple[tuple[int, tuple[int, ...]], ...]
 
 
+def _simplex_indices(n_vertices: int, degree: int) -> list[tuple[int, ...]]:
+    """The multi-indices of length ``n_vertices`` summing to ``degree``, in reverse lexicographic order."""
+    if n_vertices == 1:
+        return [(degree,)]
+    return [(i,) + rest for i in range(degree, -1, -1) for rest in _simplex_indices(n_vertices - 1, degree - i)]
+
+
+def _multinomial(degree: int, index: Sequence[int]) -> float:
+    r"""The multinomial coefficient :math:`\binom{D}{\boldsymbol\alpha} = D! / (\alpha_1! \cdots \alpha_M!)`."""
+    r: float = factorial(degree)
+    for i in index:
+        r /= factorial(i)
+    return r
+
+
 def _check_type(simploid_type: Sequence[int]) -> SimploidType:
     t = tuple(int(a) for a in simploid_type)
     if any(a < 1 for a in t):
@@ -28,6 +42,8 @@ def _check_type(simploid_type: Sequence[int]) -> SimploidType:
 
 
 def _check_degree(degree: int | Sequence[int], length: int) -> tuple[int, ...]:
+    if isinstance(degree, int) and degree < 0:
+        raise ValueError(f"degree must be non-negative, but {degree} is given.")
     ds = (int(degree),) * length if isinstance(degree, int) else tuple(int(d) for d in degree)
     if len(ds) != length:
         raise ValueError(f"degree must have {length} components, but {ds} is given.")
@@ -38,7 +54,7 @@ def _check_degree(degree: int | Sequence[int], length: int) -> tuple[int, ...]:
 
 @lru_cache(maxsize=None)
 def _indices(simploid_type: SimploidType, degree: tuple[int, ...]) -> tuple[SimploidIndex, ...]:
-    return tuple(iproduct(*(tuple(simplex_indices(a + 1, d)) for a, d in zip(simploid_type, degree))))
+    return tuple(iproduct(*(tuple(_simplex_indices(a + 1, d)) for a, d in zip(simploid_type, degree))))
 
 
 @lru_cache(maxsize=None)
@@ -46,12 +62,24 @@ def _positions(simploid_type: SimploidType, degree: tuple[int, ...]) -> dict[Sim
     return {alpha: pos for pos, alpha in enumerate(_indices(simploid_type, degree))}
 
 
+def _canonical_index(simploid_type: SimploidType, index: object) -> SimploidIndex:
+    """A control point index as a tuple of tuples of ints.
+
+    A Bézier simplex (a single factor) also accepts its multi-index alone, e.g. ``(2, 1, 0)`` for ``((2, 1, 0),)``.
+    Raises :class:`TypeError` or :class:`ValueError` if ``index`` is not a sequence of multi-indices.
+    """
+    items = tuple(cast(Sequence, index))
+    if len(simploid_type) == 1 and items and all(isinstance(v, Integral) for v in items):
+        items = (items,)
+    return tuple(tuple(int(v) for v in m) for m in items)
+
+
 def simploid_indices(simploid_type: Sequence[int], degree: int | Sequence[int]) -> list[SimploidIndex]:
     r"""Lists the control point indices of a Bézier simploid in canonical order.
 
     The order is the lexicographic order of the tuples of multi-indices, the
     first factor varying slowest (Algorithm 4 of :cite:t:`peltier2018simploidal`);
-    the multi-indices of each factor follow :func:`torch_bsf.control_points.simplex_indices`.
+    the multi-indices of each factor are in reverse lexicographic order, e.g. ``(2, 0), (1, 1), (0, 2)``.
 
     Parameters
     ----------
@@ -124,8 +152,8 @@ def bernstein_basis(simploid_type: Sequence[int], degree: int | Sequence[int], t
 @lru_cache(maxsize=None)
 def _factor_tables(a: int, d: int) -> tuple[tuple[tuple[int, ...], ...], tuple[float, ...]]:
     """The multi-indices of a factor of dimension ``a`` and degree ``d`` and their multinomial coefficients."""
-    idx = tuple(simplex_indices(a + 1, d))
-    return idx, tuple(polynom(d, i) for i in idx)
+    idx = tuple(_simplex_indices(a + 1, d))
+    return idx, tuple(_multinomial(d, i) for i in idx)
 
 
 def _factor_tensors(a: int, d: int, dtype: torch.dtype, device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:

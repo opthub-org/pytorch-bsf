@@ -33,8 +33,9 @@ import torch.nn as nn
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, TensorDataset
 
-from torch_bsf.simploidal.bezier import BezierSimploid
-from torch_bsf.simploidal.combinatorics import SimploidIndex, _check_degree, _check_type, simploid_n_params
+from torch_bsf.preprocessing import NormalizeType, make_scaler
+from torch_bsf.simploidal.bezier import BezierSimploid, ControlPointsLike
+from torch_bsf.simploidal.combinatorics import SimploidIndex, SimploidType, _check_degree, _check_type, simploid_n_params
 from torch_bsf.simploidal.sets import Simploid, SimploidalSet
 from torch_bsf.simploidal.space import DegreeAssignment, SimploidalBezierSpace
 
@@ -111,13 +112,19 @@ class _LightningWrapper(L.LightningModule):
         return torch.optim.LBFGS(self.model.parameters())
 
 
-def _check_solver(solver: str, ridge: float, smoothness_weight: float) -> None:
+def _check_solver(
+    solver: str, ridge: float, smoothness_weight: float, batch_size: int | None = None, kwargs: Mapping[str, Any] = {}
+) -> None:
     if solver not in ("lstsq", "trainer"):
         raise ValueError(f"Unknown solver {solver!r}.")
     if ridge < 0:
         raise ValueError(f"ridge must be non-negative, but {ridge} is given.")
     if ridge and solver != "lstsq":
         raise ValueError("ridge is supported only by the 'lstsq' solver.")
+    if solver == "lstsq" and (batch_size is not None or kwargs):
+        options = (["batch_size"] if batch_size is not None else []) + sorted(kwargs)
+        verb = "is" if len(options) == 1 else "are"
+        raise ValueError(f"{', '.join(options)} {verb} supported only by the 'trainer' solver (pass solver='trainer').")
     if smoothness_weight < 0:
         raise ValueError(f"smoothness_weight must be non-negative, but {smoothness_weight} is given.")
 
@@ -216,22 +223,55 @@ def _check_values(params: torch.Tensor, values: torch.Tensor, n_params: int) -> 
         raise ValueError(f"values must have shape ({params.shape[0]}, n_values), but {tuple(values.shape)} is given.")
 
 
-def fit_simploid(
+def _resolve_shape(
+    params: torch.Tensor,
+    simploid_type: Sequence[int] | None,
+    degree: int | Sequence[int] | None,
+    init: object,
+) -> tuple[SimploidType, tuple[int, ...]]:
+    """The type and degree to fit: given explicitly, taken from a Bézier simploid ``init``, or inferred.
+
+    Without a type, ``params`` are taken as the barycentric coordinates of a simplex.
+    """
+    if simploid_type is None:
+        if isinstance(init, BezierSimploid):
+            simploid_type = init.simploid_type
+        else:
+            n_params = int(params.shape[1]) if params.dim() == 2 else 0
+            if n_params < 2:
+                raise ValueError(
+                    f"params must have at least 2 columns to infer a simplex, but {tuple(params.shape)} is given; "
+                    "pass simploid_type (e.g. simploid_type=() for a constant)."
+                )
+            simploid_type = (n_params - 1,)
+    st = _check_type(simploid_type)
+    if degree is None:
+        if not isinstance(init, BezierSimploid):
+            raise ValueError("degree is required unless init is a Bézier simploid.")
+        degree = init.degree
+    return st, _check_degree(degree, len(st))
+
+
+def fit(
     params: torch.Tensor,
     values: torch.Tensor,
-    simploid_type: Sequence[int],
-    degree: int | Sequence[int],
+    degree: int | Sequence[int] | None = None,
     *,
-    init: BezierSimploid | torch.Tensor | Mapping[SimploidIndex, Sequence[float] | torch.Tensor] | None = None,
-    freeze: Iterable[SimploidIndex] | None = None,
+    simploid_type: Sequence[int] | None = None,
+    init: BezierSimploid | ControlPointsLike | None = None,
+    freeze: Iterable[SimploidIndex | Sequence[int]] | None = None,
     smoothness_weight: float = 0.0,
+    normalize: NormalizeType = "none",
     solver: Solver = "lstsq",
     ridge: float = 0.0,
     batch_size: int | None = None,
     seed: int | None = None,
     **kwargs,
 ) -> BezierSimploid:
-    r"""Fits a Bézier simploid to data.
+    r"""Fits a Bézier simplex, or more generally a Bézier simploid, to data.
+
+    Without ``simploid_type``, ``params`` are the barycentric coordinates of a simplex, and
+    the result is a Bézier simplex: the Bézier simploid of type ``(n_params - 1,)``.
 
     The control points minimize the mean squared error
     :math:`\frac{1}{nm} \sum_k \|B(\mathbf t_k) - \mathbf x_k\|^2` plus ``smoothness_weight`` times
@@ -242,21 +282,32 @@ def fit_simploid(
     Parameters
     ----------
     params
-        Parameters of shape ``(n, sum(a_i + 1))``.
+        Parameters of shape ``(n, n_params)``: the barycentric coordinates of a simplex, or
+        of every factor of a simploid of type :math:`(a_1, \ldots, a_n)`, concatenated
+        (``n_params == sum(a_i + 1)``).
     values
         Values of shape ``(n, n_values)``.
-    simploid_type
-        The type :math:`(a_1, \ldots, a_n)`.
     degree
         The degree of every factor, or one degree per factor.
+        Optional if ``init`` is a Bézier simploid, whose degree is then used.
+    simploid_type
+        The type :math:`(a_1, \ldots, a_n)`.  Defaults to the type of ``init`` if it is a
+        Bézier simploid, and to the simplex ``(n_params - 1,)`` otherwise.
     init
         Initial control points: a Bézier simploid of the same type, degree and number of values,
-        or control points as accepted by :class:`BezierSimploid`.  ``"trainer"`` starts from them
-        (from random control points if ``None``); ``"lstsq"`` uses them only for the frozen rows.
+        or control points as accepted by :class:`BezierSimploid`, in the scale of ``values``.
+        ``"trainer"`` starts from them (from random control points if ``None``); ``"lstsq"`` uses
+        them only for the frozen rows.
     freeze
         Indices of control points that keep their values in ``init``, which is then required.
+        A Bézier simplex also accepts its multi-indices alone, e.g. ``(3, 0, 0)``.
     smoothness_weight
         The weight :math:`w \ge 0` of the smoothness penalty.
+    normalize
+        How the values are normalized while fitting: ``"max"``, ``"std"``, ``"quantile"`` or ``"none"``
+        (see :mod:`torch_bsf.preprocessing`).  The normalization is undone on the control points,
+        so the returned model predicts in the scale of ``values`` either way; it changes only
+        how the columns of ``values`` are weighted in the objective.
     solver
         ``"lstsq"`` solves the (linear) least-squares problem exactly;
         ``"trainer"`` trains with :class:`lightning.pytorch.Trainer`.
@@ -265,7 +316,7 @@ def fit_simploid(
         added to :math:`nm` times the objective (``"lstsq"`` only).
         Without it, under-determined problems get the minimum-norm solution.
     batch_size
-        Minibatch size for ``"trainer"`` (full batch by default).
+        Minibatch size (``"trainer"`` only; full batch by default).
     seed
         Random seed passed to :func:`lightning.pytorch.seed_everything` (``"trainer"`` only).
     kwargs
@@ -273,32 +324,52 @@ def fit_simploid(
 
     Returns
     -------
-    The fitted Bézier simploid.
+    The fitted Bézier simploid, predicting in the scale of ``values``.
+
+    Raises
+    ------
+    ValueError
+        If the shapes do not match, ``degree`` is missing, ``freeze`` is given without ``init``,
+        or an option is not supported by ``solver``.
 
     Examples
     --------
+    Fit a Bézier triangle to data on a triangle:
+
     >>> import torch
-    >>> from torch_bsf.simploidal import fit_simploid, sample_simploid
+    >>> import torch_bsf
+    >>> from torch_bsf.sampling import simplex_grid
+    >>> ts = simplex_grid(n_params=3, degree=3)  # parameters on a triangle
+    >>> xs = 1 - ts * ts  # values corresponding to the parameters
+    >>> bs = torch_bsf.fit(ts, xs, degree=2)
+    >>> bs.simploid_type
+    (2,)
+    >>> torch.allclose(bs(ts), xs, atol=1e-5)
+    True
+
+    Fit a Bézier simploid on a prism, the product of a triangle and an edge:
+
+    >>> from torch_bsf.simploidal import sample_simploid
     >>> t = sample_simploid((2, 1), 100, seed=0)
-    >>> x = t[:, :3] * t[:, 3:4]  # a function on a prism
-    >>> bs = fit_simploid(t, x, (2, 1), degree=(1, 1))
+    >>> x = t[:, :3] * t[:, 3:4]
+    >>> bs = torch_bsf.fit(t, x, degree=(1, 1), simploid_type=(2, 1))
     >>> torch.allclose(bs(t), x, atol=1e-5)
     True
 
     Keep the control point at a vertex and smooth the others:
 
-    >>> init = fit_simploid(t, x, (2, 1), degree=2)
+    >>> init = torch_bsf.fit(t, x, degree=2, simploid_type=(2, 1))
     >>> vertex = ((2, 0, 0), (2, 0))
     >>> with torch.no_grad():
     ...     _ = init[vertex].fill_(1.0)
-    >>> bs = fit_simploid(t, x, (2, 1), degree=2, init=init, freeze=[vertex], smoothness_weight=0.01)
+    >>> bs = torch_bsf.fit(t, x, init=init, freeze=[vertex], smoothness_weight=0.01)
     >>> bs[vertex].tolist()
     [1.0, 1.0, 1.0]
     """
-    st = _check_type(simploid_type)
-    ds = _check_degree(degree, len(st))
+    params, values = torch.as_tensor(params), torch.as_tensor(values)
+    st, ds = _resolve_shape(params, simploid_type, degree, init)
     _check_values(params, values, simploid_n_params(st))
-    _check_solver(solver, ridge, smoothness_weight)
+    _check_solver(solver, ridge, smoothness_weight, batch_size, kwargs)
     if solver == "trainer" and seed is not None:
         L.seed_everything(seed)
     n_values = int(values.shape[1])
@@ -308,9 +379,14 @@ def fit_simploid(
         raise ValueError("init is required when freeze is given.")
     else:
         model = BezierSimploid.randn(st, ds, n_values) if solver == "trainer" else BezierSimploid.zeros(st, ds, n_values)
-    frozen = [model.row(index) for index in freeze or ()]
+    frozen = sorted({model.row(index) for index in freeze or ()})
     dtype = _floating_dtype([values] if values.is_floating_point() else [params])
     model = model.to(dtype)
+    scaler = make_scaler(normalize)
+    values = scaler.fit_transform(values.to(dtype))
+    original = model.control_points.detach().clone()
+    with torch.no_grad():
+        model.control_points.copy_(scaler.transform(original))
     _fit(
         model,
         [params],
@@ -322,11 +398,118 @@ def fit_simploid(
         batch_size=batch_size,
         kwargs=kwargs,
     )
+    with torch.no_grad():
+        # The scalers are affine and the Bernstein basis sums to one, so this undoes the normalization of the model.
+        restored = scaler.inverse_transform(model.control_points.detach())
+        # Copy the frozen rows back exactly, free of the rounding of the round trip.
+        restored[frozen] = original[frozen].to(restored)
+        model.control_points.copy_(restored)
     return model
 
 
+def _fold_indices(n_samples: int, n_folds: int, shuffle: bool, seed: int | None) -> list[torch.Tensor]:
+    """The sample indices of ``min(n_folds, n_samples)`` nearly equal folds."""
+    if n_folds < 2:
+        raise ValueError(f"n_folds must be at least 2, but {n_folds} is given.")
+    if n_samples < 2:
+        raise ValueError(f"At least 2 samples are required for k-fold cross-validation, but {n_samples} is given.")
+    if shuffle:
+        generator = torch.Generator()
+        if seed is None:
+            generator.seed()
+        else:
+            generator.manual_seed(seed)
+        order = torch.randperm(n_samples, generator=generator)
+    else:
+        order = torch.arange(n_samples)
+    return list(torch.tensor_split(order, min(n_folds, n_samples)))
+
+
+def fit_kfold(
+    params: torch.Tensor,
+    values: torch.Tensor,
+    degree: int | Sequence[int] | None = None,
+    *,
+    n_folds: int = 5,
+    shuffle: bool = True,
+    seed: int | None = None,
+    **kwargs,
+) -> nn.ModuleList:
+    r"""Fits an ensemble of Bézier simploids by k-fold cross-validation.
+
+    Splits the samples into ``n_folds`` folds and fits one model per fold, with :func:`fit`,
+    to the samples of the other folds.  The resulting :class:`~torch.nn.ModuleList` can be
+    passed directly to :func:`torch_bsf.active_learning.suggest_next_points` to drive a
+    Query-By-Committee active learning loop.
+
+    If ``len(params) < n_folds``, the number of folds is capped at ``len(params)``.
+
+    Parameters
+    ----------
+    params
+        Parameters of shape ``(n, n_params)``, as in :func:`fit`.
+    values
+        Values of shape ``(n, n_values)``.
+    degree
+        The degree, as in :func:`fit`.
+    n_folds
+        The number of folds (committee size).
+    shuffle
+        Whether to shuffle the samples before splitting them into folds.
+        Otherwise, every fold is a contiguous block of samples.
+    seed
+        Random seed for shuffling, also passed to :func:`fit`.
+    kwargs
+        Other arguments for :func:`fit`, e.g. ``simploid_type``, ``smoothness_weight``, ``solver``
+        and :class:`lightning.pytorch.Trainer` arguments.
+
+    Returns
+    -------
+    A :class:`~torch.nn.ModuleList` of ``min(n_folds, len(params))`` fitted :class:`BezierSimploid`
+    models; model ``k`` is fitted to all samples but those of fold ``k``.
+
+    Raises
+    ------
+    ValueError
+        If ``n_folds < 2`` or ``len(params) < 2``, or from :func:`fit`.
+
+    Examples
+    --------
+    >>> import torch
+    >>> import torch_bsf
+    >>> from torch_bsf.active_learning import suggest_next_points
+    >>> from torch_bsf.sampling import simplex_grid
+
+    Prepare training data
+
+    >>> params = simplex_grid(n_params=3, degree=3)
+    >>> values = params.pow(2).sum(dim=1, keepdim=True)
+
+    Build a 5-fold ensemble and suggest the 2 most uncertain points
+
+    >>> models = torch_bsf.fit_kfold(params, values, degree=2, seed=0)
+    >>> len(models)
+    5
+    >>> suggestions = suggest_next_points(models, n_suggestions=2, method="qbc")
+    >>> suggestions.shape
+    torch.Size([2, 3])
+
+    See Also
+    --------
+    fit : Fit a single model.
+    torch_bsf.active_learning.suggest_next_points : Use the ensemble for active learning.
+    """
+    params, values = torch.as_tensor(params), torch.as_tensor(values)
+    folds = _fold_indices(len(params), n_folds, shuffle, seed)
+    models = nn.ModuleList()
+    for k in range(len(folds)):
+        train = torch.cat([fold for i, fold in enumerate(folds) if i != k])
+        models.append(fit(params[train], values[train], degree, seed=seed, **kwargs))
+    return models
+
+
 def _init_simploid(
-    init: BezierSimploid | torch.Tensor | Mapping[SimploidIndex, Sequence[float] | torch.Tensor],
+    init: BezierSimploid | ControlPointsLike,
     simploid_type: tuple[int, ...],
     degree: tuple[int, ...],
     n_values: int,
@@ -382,7 +565,7 @@ def fit_simploidal_set(
     continuous across shared faces.  The proper control points minimize the
     mean squared error over all samples plus ``smoothness_weight`` times the
     sum of :math:`\|P_p - P_q\|^2` over the adjacent stored control points
-    (see :meth:`SimploidalBezierSpace.adjacency`), as in :func:`fit_simploid`.
+    (see :meth:`SimploidalBezierSpace.adjacency`), as in :func:`fit`.
 
     Parameters
     ----------
@@ -456,7 +639,7 @@ def fit_simploidal_set(
     dtype = _floating_dtype([v for _, _, v in samples])
     # Convert the space before copying ``init`` into it, so that the initial (and frozen) points are not rounded.
     space = space.to(dtype)
-    _check_solver(solver, ridge, smoothness_weight)
+    _check_solver(solver, ridge, smoothness_weight, batch_size, kwargs)
     if init is not None:
         _init_space(space, init)
     elif freeze is not None:

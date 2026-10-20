@@ -9,9 +9,10 @@ they do not slow down the unit-test suite.  They are useful for detecting
 performance regressions in the forward pass and in :func:`torch_bsf.fit`.
 """
 
+import sys
+
 import pytest
 import torch
-import sys
 
 pytest.importorskip("pytest_benchmark")
 
@@ -21,9 +22,8 @@ if "--benchmark-only" not in sys.argv:
         allow_module_level=True,
     )
 import torch_bsf  # noqa: E402
-import torch_bsf.bezier_simplex as tbbs  # noqa: E402
+from torch_bsf import BezierSimploid  # noqa: E402
 from torch_bsf.sampling import simplex_grid  # noqa: E402
-
 
 # ---------------------------------------------------------------------------
 # Forward-pass benchmarks
@@ -41,8 +41,8 @@ from torch_bsf.sampling import simplex_grid  # noqa: E402
     ],
 )
 def test_benchmark_forward(n_params, n_values, degree, batch_size, benchmark):
-    """Benchmark the BezierSimplex forward pass."""
-    bs = tbbs.zeros(n_params=n_params, n_values=n_values, degree=degree)
+    """Benchmark the forward pass of a Bézier simplex."""
+    bs = BezierSimploid.zeros((n_params - 1,), degree, n_values)
     pts = simplex_grid(n_params=n_params, degree=degree)[:batch_size]
     if len(pts) < batch_size:
         # Repeat to reach batch_size
@@ -63,11 +63,12 @@ def test_benchmark_forward(n_params, n_values, degree, batch_size, benchmark):
 
 @pytest.mark.benchmark(group="fit")
 def test_benchmark_fit(benchmark):
-    """Benchmark a short training run of torch_bsf.fit()."""
+    """Benchmark a short training run of torch_bsf.fit(solver="trainer")."""
     params = simplex_grid(n_params=3, degree=3)
     values = params.pow(2).sum(dim=1, keepdim=True)
 
     fast = dict(
+        solver="trainer",
         max_epochs=5,
         enable_progress_bar=False,
         logger=False,
@@ -78,3 +79,11 @@ def test_benchmark_fit(benchmark):
         return torch_bsf.fit(params=params, values=values, degree=2, **fast)
 
     benchmark(_fit)
+
+
+@pytest.mark.benchmark(group="fit")
+def test_benchmark_fit_lstsq(benchmark):
+    """Benchmark the exact least-squares solver of torch_bsf.fit()."""
+    params = simplex_grid(n_params=3, degree=10)
+    values = params.pow(2).sum(dim=1, keepdim=True)
+    benchmark(lambda: torch_bsf.fit(params=params, values=values, degree=4))

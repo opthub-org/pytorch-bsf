@@ -3,7 +3,8 @@ import math
 
 import numpy as np
 import torch
-from torch_bsf.bezier_simplex import BezierSimplex
+
+from torch_bsf.sampling import simplex_grid
 from torch_bsf.simploidal import BezierSimploid, SimploidalBezierSpace, simploid_indices
 
 # Maximum number of sample points for the pairwise scatter plot.
@@ -17,8 +18,16 @@ _MAX_PAIRWISE_POINTS = 2000
 _MAX_CONTROL_POINTS = 500
 
 
+def _simplex_meshgrid(model: BezierSimploid, num: int) -> tuple[torch.Tensor, torch.Tensor]:
+    """The grid with ``num`` intervals on each edge of the simplex of a Bézier simplex, and its values."""
+    cp = model.control_points
+    ts = simplex_grid(n_params=model.n_params, degree=num).to(device=cp.device, dtype=cp.dtype)
+    with torch.no_grad():
+        return ts, model(ts)
+
+
 def plot_bezier_simplex(
-    model: BezierSimplex,
+    model: BezierSimploid,
     num: int = 100,
     ax=None,
     show_control_points: bool = True,
@@ -27,12 +36,15 @@ def plot_bezier_simplex(
     max_pairwise_points: int = _MAX_PAIRWISE_POINTS,
     **kwargs,
 ):
-    """Plots the Bézier simplex.
+    """Plots a Bézier simplex.
+
+    For a Bézier simploid of any type, see :func:`plot_bezier_simploid`.
 
     Parameters
     ----------
-    model : BezierSimplex
-        The Bézier simplex model to plot.
+    model : BezierSimploid
+        The Bézier simplex to plot: a Bézier simploid of a single factor
+        (type ``(n_params - 1,)``), e.g. as returned by :func:`torch_bsf.fit`.
     num : int
         The number of grid points for each edge.  For ``model.n_params >= 4``
         this value is used only to decide whether to use a full meshgrid or
@@ -89,20 +101,30 @@ def plot_bezier_simplex(
         required for the triangulation-based plotting used in the
         Bézier triangle case.
     ValueError
-        If ``model.n_params < 2``. This function only supports Bézier simplex
-        models with at least two parameters.
+        If ``model`` is not a Bézier simplex, i.e. its type does not have
+        exactly one factor.
+
+    Examples
+    --------
+    The plotting lines are skipped by doctest because matplotlib is optional.
+
+    >>> import torch_bsf
+    >>> from torch_bsf.plotting import plot_bezier_simplex
+    >>> from torch_bsf.sampling import simplex_grid
+    >>> ts = simplex_grid(n_params=3, degree=4)
+    >>> bs = torch_bsf.fit(ts, ts ** 2, degree=2)
+    >>> ax = plot_bezier_simplex(bs, num=20)  # doctest: +SKIP
     """
+    if len(model.simploid_type) != 1:
+        raise ValueError(
+            "plot_bezier_simplex requires a Bézier simplex (a simploid type with a single factor), "
+            f"but the type is {model.simploid_type}; use plot_bezier_simploid instead."
+        )
     if model.n_params == 2:
         return _plot_bezier_curve(model, num, ax, show_control_points, **kwargs)
     if model.n_params == 3:
         return _plot_bezier_triangle(model, num, ax, show_control_points, **kwargs)
-    if model.n_params >= 4:
-        return _plot_bezier_simplex_pairwise(
-            model, num, show_control_points, max_control_points, max_pairwise_points, **kwargs
-        )
-    raise ValueError(
-        f"plot_bezier_simplex only supports models with n_params >= 2; got n_params = {model.n_params}"
-    )
+    return _plot_bezier_simplex_pairwise(model, num, show_control_points, max_control_points, max_pairwise_points, **kwargs)
 
 
 def _plot_bezier_curve(model, num, ax, show_control_points, **kwargs):
@@ -119,8 +141,8 @@ def _plot_bezier_curve(model, num, ax, show_control_points, **kwargs):
 
     Parameters
     ----------
-    model : BezierSimplex
-        The Bézier simplex model to plot.
+    model : BezierSimploid
+        The Bézier simplex to plot.
     num : int
         The number of grid points along the curve.
     ax : matplotlib.axes.Axes or None
@@ -145,12 +167,9 @@ def _plot_bezier_curve(model, num, ax, show_control_points, **kwargs):
     try:
         import matplotlib.pyplot as plt
     except ImportError as e:
-        raise ImportError(
-            "matplotlib is required for plotting. "
-            "Install it with: pip install matplotlib"
-        ) from e
+        raise ImportError("matplotlib is required for plotting. " "Install it with: pip install matplotlib") from e
 
-    ts, xs = model.meshgrid(num=num)
+    ts, xs = _simplex_meshgrid(model, num)
     xs = xs.detach().cpu().numpy()
 
     if ax is None:
@@ -163,14 +182,14 @@ def _plot_bezier_curve(model, num, ax, show_control_points, **kwargs):
     if model.n_values == 2:
         ax.plot(xs[:, 0], xs[:, 1], **kwargs)
         if show_control_points:
-            cp = model.control_points.matrix.detach().cpu().numpy()
+            cp = model.control_points.detach().cpu().numpy()
             ax.scatter(cp[:, 0], cp[:, 1], c="r", marker="o", label="Control Points")
             # Connect control points with a dashed line
             ax.plot(cp[:, 0], cp[:, 1], "r--", alpha=0.3)
     elif model.n_values >= 3:
         ax.plot(xs[:, 0], xs[:, 1], xs[:, 2], **kwargs)
         if show_control_points:
-            cp = model.control_points.matrix.detach().cpu().numpy()
+            cp = model.control_points.detach().cpu().numpy()
             ax.scatter(cp[:, 0], cp[:, 1], cp[:, 2], c="r", marker="o", label="Control Points")
             ax.plot(cp[:, 0], cp[:, 1], cp[:, 2], "r--", alpha=0.3)
 
@@ -187,8 +206,8 @@ def _plot_bezier_triangle(model, num, ax, show_control_points, **kwargs):
 
     Parameters
     ----------
-    model : BezierSimplex
-        The Bézier simplex model to plot.
+    model : BezierSimploid
+        The Bézier simplex to plot.
     num : int
         The number of grid points along each edge of the triangle.
     ax : matplotlib.axes.Axes or None
@@ -215,19 +234,13 @@ def _plot_bezier_triangle(model, num, ax, show_control_points, **kwargs):
     try:
         import matplotlib.pyplot as plt
     except ImportError as e:
-        raise ImportError(
-            "matplotlib is required for plotting. "
-            "Install it with: pip install matplotlib"
-        ) from e
+        raise ImportError("matplotlib is required for plotting. " "Install it with: pip install matplotlib") from e
     try:
         from scipy.spatial import Delaunay
     except ImportError as e:
-        raise ImportError(
-            "scipy is required for triangle plotting. "
-            "Install it with: pip install scipy"
-        ) from e
+        raise ImportError("scipy is required for triangle plotting. " "Install it with: pip install scipy") from e
 
-    ts, xs = model.meshgrid(num=num)
+    ts, xs = _simplex_meshgrid(model, num)
     xs = xs.detach().cpu().numpy()
 
     # Project 3D simplex parameters to 2D for triangulation
@@ -251,14 +264,12 @@ def _plot_bezier_triangle(model, num, ax, show_control_points, **kwargs):
         # We can't easily plot a manifold surface in 2D values unless we pick 2 dimensions
         ax.scatter(xs[:, 0], xs[:, 1], alpha=0.1, s=1)
         if show_control_points:
-            cp = model.control_points.matrix.detach().cpu().numpy()
+            cp = model.control_points.detach().cpu().numpy()
             ax.scatter(cp[:, 0], cp[:, 1], c="r", marker="o")
     elif model.n_values >= 3:
-        ax.plot_trisurf(
-            xs[:, 0], xs[:, 1], xs[:, 2], triangles=tri.simplices, alpha=0.5, **kwargs
-        )
+        ax.plot_trisurf(xs[:, 0], xs[:, 1], xs[:, 2], triangles=tri.simplices, alpha=0.5, **kwargs)
         if show_control_points:
-            cp = model.control_points.matrix.detach().cpu().numpy()
+            cp = model.control_points.detach().cpu().numpy()
             ax.scatter(cp[:, 0], cp[:, 1], cp[:, 2], c="r", marker="o")
 
     return ax
@@ -274,8 +285,8 @@ def _plot_bezier_simplex_pairwise(model, num, show_control_points, max_control_p
 
     Parameters
     ----------
-    model : BezierSimplex
-        The Bézier simplex model to plot.
+    model : BezierSimploid
+        The Bézier simplex to plot.
     num : int
         The number of grid points along each edge of the simplex.  Used to
         estimate the full meshgrid size via
@@ -314,21 +325,14 @@ def _plot_bezier_simplex_pairwise(model, num, show_control_points, max_control_p
         If matplotlib is not installed.
     """
     if not isinstance(max_control_points, int) or max_control_points < 0:
-        raise ValueError(
-            f"max_control_points must be a non-negative integer; got {max_control_points!r}"
-        )
+        raise ValueError(f"max_control_points must be a non-negative integer; got {max_control_points!r}")
     if not isinstance(max_pairwise_points, int) or max_pairwise_points < 0:
-        raise ValueError(
-            f"max_pairwise_points must be a non-negative integer; got {max_pairwise_points!r}"
-        )
+        raise ValueError(f"max_pairwise_points must be a non-negative integer; got {max_pairwise_points!r}")
 
     try:
         import matplotlib.pyplot as plt
     except ImportError as e:
-        raise ImportError(
-            "matplotlib is required for plotting. "
-            "Install it with: pip install matplotlib"
-        ) from e
+        raise ImportError("matplotlib is required for plotting. " "Install it with: pip install matplotlib") from e
 
     # Early return before any sampling when there are no output values.
     n_v = model.n_values
@@ -342,26 +346,21 @@ def _plot_bezier_simplex_pairwise(model, num, show_control_points, max_control_p
         # samples instead to bound memory usage and plot time.
         from torch_bsf.sampling import simplex_random
 
-        cp_matrix = model.control_points.matrix
-        ts = simplex_random(n_params=n_p, n_samples=max_pairwise_points).to(
-            device=cp_matrix.device, dtype=cp_matrix.dtype
-        )
+        cp_matrix = model.control_points
+        ts = simplex_random(n_params=n_p, n_samples=max_pairwise_points).to(device=cp_matrix.device, dtype=cp_matrix.dtype)
         with torch.no_grad():
             xs = model(ts).detach().cpu().numpy()
     else:
-        with torch.no_grad():
-            _ts, xs_t = model.meshgrid(num=num)
+        _ts, xs_t = _simplex_meshgrid(model, num)
         xs = xs_t.detach().cpu().numpy()
 
     panel_size = max(1, min(3, 12 // max(n_v, 1)))
     figsize_dim = min(12, panel_size * n_v)
-    fig, axes = plt.subplots(
-        n_v, n_v, squeeze=False, figsize=(figsize_dim, figsize_dim)
-    )
+    fig, axes = plt.subplots(n_v, n_v, squeeze=False, figsize=(figsize_dim, figsize_dim))
     if show_control_points:
         # Work on the torch tensor first to avoid transferring an enormous
         # control-point matrix to CPU when max_control_points is small.
-        cp_t = model.control_points.matrix
+        cp_t = model.control_points
         cp_len = cp_t.shape[0]
         if cp_len > max_control_points:
             idx = torch.randperm(cp_len, device=cp_t.device)[:max_control_points]

@@ -7,7 +7,6 @@ import lightning.pytorch as L
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
 from torch.utils.data import DataLoader, TensorDataset
 
-import torch_bsf as tb
 import torch_bsf.bezier_simplex as tbbs
 from torch_bsf.bezier_simplex import (
     BezierSimplexDataModule,
@@ -126,7 +125,7 @@ def test_fit():
     xs = 1 - ts * ts  # values corresponding to the parameters
 
     # Train a model
-    bs = tb.fit(params=ts, values=xs, degree=3)
+    bs = tbbs.fit(params=ts, values=xs, degree=3)
 
     # Predict by the trained model
     t = [[0.2, 0.3, 0.5]]
@@ -156,7 +155,7 @@ def test_fit_kfold():
 
     # Normal case: returns an nn.ModuleList of n_folds models
     import torch.nn as nn
-    models = tb.fit_kfold(
+    models = tbbs.fit_kfold(
         params=ts,
         values=xs,
         n_folds=5,
@@ -166,14 +165,14 @@ def test_fit_kfold():
     assert isinstance(models, nn.ModuleList)
     assert len(models) == 5
     for m in models:
-        assert isinstance(m, tb.BezierSimplex)
+        assert isinstance(m, tbbs.BezierSimplex)
         assert m.n_params == 3
         assert m.n_values == 3
 
     # Edge case: n_folds > len(params) — capped automatically
     few_ts = ts[:3]
     few_xs = xs[:3]
-    models_capped = tb.fit_kfold(
+    models_capped = tbbs.fit_kfold(
         params=few_ts,
         values=few_xs,
         n_folds=10,
@@ -184,37 +183,37 @@ def test_fit_kfold():
 
     # Invalid n_folds
     with pytest.raises(ValueError):
-        tb.fit_kfold(params=ts, values=xs, n_folds=1, degree=3)
+        tbbs.fit_kfold(params=ts, values=xs, n_folds=1, degree=3)
 
     # Too few samples: even with n_folds=2, len(params)=1 can't be split
     one_ts = ts[:1]
     one_xs = xs[:1]
     with pytest.raises(ValueError):
-        tb.fit_kfold(params=one_ts, values=one_xs, n_folds=5, degree=3)
+        tbbs.fit_kfold(params=one_ts, values=one_xs, n_folds=5, degree=3)
 
     # Neither degree nor init — must raise ValueError
     with pytest.raises(ValueError, match="Either degree or init"):
-        tb.fit_kfold(params=ts, values=xs, n_folds=3)
+        tbbs.fit_kfold(params=ts, values=xs, n_folds=3)
 
     # Both degree and init — must raise ValueError
     init_bs = tbbs.randn(n_params=3, n_values=3, degree=3)
     with pytest.raises(ValueError, match="Either degree or init"):
-        tb.fit_kfold(params=ts, values=xs, n_folds=3, degree=3, init=init_bs)
+        tbbs.fit_kfold(params=ts, values=xs, n_folds=3, degree=3, init=init_bs)
 
     # init as BezierSimplex (no adjacency_indices_; creates new from control_points)
     init_bs2 = tbbs.randn(n_params=3, n_values=3, degree=3)
-    models_init_bs = tb.fit_kfold(
+    models_init_bs = tbbs.fit_kfold(
         params=ts, values=xs, n_folds=3, init=init_bs2, **fast,
     )
     assert len(models_init_bs) == 3
     for m in models_init_bs:
-        assert isinstance(m, tb.BezierSimplex)
+        assert isinstance(m, tbbs.BezierSimplex)
 
     # init as BezierSimplex with matching smoothness_weight and adjacency_indices_
     # (hits the `bs = init` fast-path in fit_kfold)
     init_smooth = tbbs.randn(n_params=3, n_values=3, degree=3, smoothness_weight=0.1)
     assert hasattr(init_smooth, "adjacency_indices_")  # sanity check
-    models_reuse = tb.fit_kfold(
+    models_reuse = tbbs.fit_kfold(
         params=ts, values=xs, n_folds=3, init=init_smooth, smoothness_weight=0.1,
         **fast,
     )
@@ -223,13 +222,13 @@ def test_fit_kfold():
     # init as control-points dict (non-BezierSimplex)
     from torch_bsf.bezier_simplex import simplex_indices
     cp_dict = {idx: [0.0] * 3 for idx in simplex_indices(3, 1)}
-    models_init_cp = tb.fit_kfold(
+    models_init_cp = tbbs.fit_kfold(
         params=ts, values=xs, n_folds=3, init=cp_dict, **fast,
     )
     assert len(models_init_cp) == 3
 
     # Explicit positive batch_size
-    models_bs = tb.fit_kfold(
+    models_bs = tbbs.fit_kfold(
         params=ts, values=xs, n_folds=3, degree=3, batch_size=5,
         **fast,
     )
@@ -237,19 +236,19 @@ def test_fit_kfold():
 
     # Invalid batch_size: negative integer
     with pytest.raises(ValueError, match="batch_size"):
-        tb.fit_kfold(params=ts, values=xs, n_folds=3, degree=3, batch_size=-1)
+        tbbs.fit_kfold(params=ts, values=xs, n_folds=3, degree=3, batch_size=-1)
 
     # Invalid batch_size: truthy non-integer (float)
     with pytest.raises(ValueError, match="batch_size"):
-        tb.fit_kfold(params=ts, values=xs, n_folds=3, degree=3, batch_size=1.5)
+        tbbs.fit_kfold(params=ts, values=xs, n_folds=3, degree=3, batch_size=1.5)
 
     # Invalid batch_size: bool True (Integral subclass but explicitly rejected)
     with pytest.raises(ValueError, match="batch_size"):
-        tb.fit_kfold(params=ts, values=xs, n_folds=3, degree=3, batch_size=True)
+        tbbs.fit_kfold(params=ts, values=xs, n_folds=3, degree=3, batch_size=True)
 
     # batch_size as numpy.int64 — numbers.Integral, should be accepted
     import numpy as np
-    models_np_bs = tb.fit_kfold(
+    models_np_bs = tbbs.fit_kfold(
         params=ts, values=xs, n_folds=3, degree=3, batch_size=np.int64(5),
         **fast,
     )
@@ -257,13 +256,13 @@ def test_fit_kfold():
 
     # Reserved key 'num_folds' in **kwargs must raise ValueError
     with pytest.raises(ValueError, match="num_folds"):
-        tb.fit_kfold(
+        tbbs.fit_kfold(
             params=ts, values=xs, n_folds=3, degree=3,
             num_folds=3,
         )
 
     # freeze parameter: freeze vertex [3,0,0]
-    models_freeze = tb.fit_kfold(
+    models_freeze = tbbs.fit_kfold(
         params=ts, values=xs, n_folds=3, degree=3, freeze=[[3, 0, 0]],
         **fast,
     )
@@ -371,7 +370,7 @@ def test_fit_with_bezier_simplex_init_rebuilds_adjacency():
     xs = ts * ts
 
     # First create a model WITHOUT smoothness
-    bs_no_smooth = tb.fit(
+    bs_no_smooth = tbbs.fit(
         params=ts, values=xs, degree=2,
         smoothness_weight=0.0,
         max_epochs=1, enable_progress_bar=False,
@@ -379,7 +378,7 @@ def test_fit_with_bezier_simplex_init_rebuilds_adjacency():
     assert not hasattr(bs_no_smooth, "adjacency_indices_")
 
     # Now use it as init WITH smoothness – adjacency must be rebuilt
-    bs_with_smooth = tb.fit(
+    bs_with_smooth = tbbs.fit(
         params=ts, values=xs,
         init=bs_no_smooth,
         smoothness_weight=0.5,
@@ -1015,8 +1014,8 @@ def test_fit_kfold_seed_reproducibility():
         devices=1,
         deterministic=True,
     )
-    models1 = tb.fit_kfold(params=_TS, values=_XS, degree=1, n_folds=2, seed=7, **fast)
-    models2 = tb.fit_kfold(params=_TS, values=_XS, degree=1, n_folds=2, seed=7, **fast)
+    models1 = tbbs.fit_kfold(params=_TS, values=_XS, degree=1, n_folds=2, seed=7, **fast)
+    models2 = tbbs.fit_kfold(params=_TS, values=_XS, degree=1, n_folds=2, seed=7, **fast)
     for m1, m2 in zip(models1, models2):
         assert torch.equal(m1.control_points.matrix, m2.control_points.matrix)
 

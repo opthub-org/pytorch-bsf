@@ -1,4 +1,5 @@
 """Tests for torch_bsf.__init__ (version fallback and public API)."""
+
 import importlib
 from importlib.metadata import PackageNotFoundError
 from unittest.mock import patch
@@ -31,8 +32,7 @@ def test_public_api_exports():
     """torch_bsf should export the documented public symbols."""
     import torch_bsf
 
-    assert hasattr(torch_bsf, "BezierSimplex")
-    assert hasattr(torch_bsf, "BezierSimplexDataModule")
-    assert hasattr(torch_bsf, "fit")
-    assert hasattr(torch_bsf, "fit_kfold")
-    assert hasattr(torch_bsf, "validate_control_points")
+    for name in ("BezierSimploid", "fit", "fit_kfold", "split", "SimploidalSet", "fit_simploidal_set"):
+        assert hasattr(torch_bsf, name)
+    for name in ("BezierSimplex", "BezierSimplexDataModule", "validate_control_points", "fit_simploid"):
+        assert not hasattr(torch_bsf, name)

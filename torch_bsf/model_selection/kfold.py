@@ -1,73 +1,43 @@
 from argparse import ArgumentParser, BooleanOptionalAction
 from pathlib import Path
+from typing import cast
 
 import numpy as np
-from lightning.pytorch.callbacks.early_stopping import EarlyStopping
+import torch
 from mlflow import autolog
-from pl_crossvalidate import KFoldTrainer
 
-from torch_bsf import BezierSimplexDataModule
-from torch_bsf._cli_args import add_common_training_args
-from torch_bsf.bezier_simplex import BezierSimplex, load, randn
-from torch_bsf.validator import index_list, validate_simplex_indices
+from torch_bsf._cli_args import (
+    add_common_training_args,
+    add_model_args,
+    check_columns,
+    file_tag,
+    fit_options,
+    load_model_data,
+    load_table,
+)
+from torch_bsf.simploidal import BezierSimploid
+from torch_bsf.simploidal.fitting import fit_kfold
 
 
 def main() -> None:
     """Entry point for ``python -m torch_bsf.model_selection.kfold``."""
     parser = ArgumentParser(
         prog="python -m torch_bsf.model_selection.kfold",
-        description="Bezier simplex fitting with k-fold cross validation",
+        description="Bezier simplex (or simploid) fitting with k-fold cross validation",
     )
+    add_model_args(parser)
     parser.add_argument(
-        "--params", type=Path, required=True, metavar="CSV",
-        help="Path to the input parameters CSV file",
-    )
-    parser.add_argument(
-        "--values", type=Path, required=True, metavar="CSV",
-        help="Path to the output values CSV file",
-    )
-    parser.add_argument(
-        "--meshgrid", type=Path, metavar="CSV|DIR",
-        help="Path to the meshgrid CSV file used for prediction output; if omitted or set to an existing directory, defaults to --params",
-    )
-    degree_init_group = parser.add_mutually_exclusive_group(required=True)
-    degree_init_group.add_argument(
-        "--degree", type=int, metavar="N",
-        help="Degree of the Bezier simplex (required when --init is not given)",
-    )
-    degree_init_group.add_argument(
-        "--init", type=Path, metavar="PT",
-        help="Path to a pretrained model file to initialize from (required when --degree is not given)",
-    )
-    parser.add_argument(
-        "--freeze", type=index_list, metavar="INDICES",
-        help=(
-            "JSON-style list-of-lists of simplex indices of control points to freeze during training; "
-            "each simplex index list must have length n_params and its entries must sum to the Bezier simplex degree "
-            "(either specified by --degree or inferred from the model loaded via --init; "
-            "e.g. '[[1,0],[0,1]]' for n_params=2, degree=1)"
-        ),
-    )
-    parser.add_argument(
-        "--header", type=int, default=0, metavar="N",
-        help="Number of header rows to skip in CSV files (default: 0)",
-    )
-    parser.add_argument(
-        "--normalize", type=str, choices=("none", "max", "std", "quantile"), default="none",
-        metavar="{none,max,std,quantile}",
-        help="Normalization applied to values before training (default: none)",
-    )
-    parser.add_argument(
-        "--num_folds", type=int, default=5, metavar="K",
+        "--num_folds",
+        type=int,
+        default=5,
+        metavar="K",
         help="Number of folds for k-fold cross-validation (default: 5)",
     )
     parser.add_argument(
-        "--shuffle", action=BooleanOptionalAction, default=True,
+        "--shuffle",
+        action=BooleanOptionalAction,
+        default=True,
         help="Shuffle the dataset before splitting into folds (default: True); use --no-shuffle to disable",
-    )
-    parser.add_argument(
-        "--stratified", action=BooleanOptionalAction, default=True,
-        help="Use stratified k-fold splitting (default: True); use --no-stratified to disable",
     )
     add_common_training_args(parser)
     parser.add_argument(
@@ -75,8 +45,12 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-
+    if args.split_ratio != 1.0:
+        parser.error("--split_ratio is not supported: every fold holds out its own validation samples")
+    params, values, simploid_type, init = load_model_data(parser, args)
     meshgrid: Path = args.params if (args.meshgrid is None or args.meshgrid.is_dir()) else args.meshgrid
+    ts = load_table(meshgrid, args.header)
+    check_columns(parser, "--meshgrid", ts, simploid_type)
 
     autolog(
         log_input_examples=(args.loglevel >= 2),
@@ -88,72 +62,27 @@ def main() -> None:
         silent=(args.loglevel <= 0),
     )
 
-    dm = BezierSimplexDataModule(
-        params=args.params,
-        values=args.values,
-        header=args.header,
-        batch_size=args.batch_size,
-        split_ratio=args.split_ratio,
-        normalize=args.normalize,
-    )
-
-    if args.init:
-        _loaded = load(args.init)
-        _same_weight = getattr(_loaded, "smoothness_weight", None) == args.smoothness_weight
-        _has_adjacency = hasattr(_loaded, "adjacency_indices_")
-        if _same_weight and _has_adjacency:
-            bs = _loaded
-        else:
-            bs = BezierSimplex(_loaded.control_points, smoothness_weight=args.smoothness_weight)
-    else:
-        bs = randn(
-            n_params=dm.n_params,
-            n_values=dm.n_values,
-            degree=args.degree,
-            smoothness_weight=args.smoothness_weight,
+    try:
+        models = fit_kfold(
+            params,
+            values,
+            args.degree,
+            n_folds=args.num_folds,
+            shuffle=args.shuffle,
+            **fit_options(args, simploid_type, init),
         )
+    except ValueError as e:
+        parser.error(str(e))
 
-    freeze: list[list[int]] = args.freeze or []
-    validate_simplex_indices(freeze, bs.n_params, bs.degree)
-
-    for index in freeze:
-        bs.freeze_row(index)
-
-    trainer = KFoldTrainer(
-        num_folds=args.num_folds,
-        shuffle=args.shuffle,
-        stratified=args.stratified,
-        accelerator=args.accelerator,
-        strategy=args.strategy,
-        devices=args.devices,
-        precision=args.precision,
-        num_nodes=args.num_nodes,
-        max_epochs=args.max_epochs,
-        enable_checkpointing=args.enable_checkpointing,
-        log_every_n_steps=args.log_every_n_steps,
-        callbacks=[EarlyStopping(monitor="val_mse")],
-    )
-
-    # Returns a list of per-fold/per-split stats dictionaries
-    cross_val_stats: list[list[dict[str, float]]] = trainer.cross_validate(bs, datamodule=dm)
-    print(f"{cross_val_stats=}")
-
-    # Additionally, we can construct an ensemble from the K trained models
-    ensemble_model = trainer.create_ensemble(bs)
-
-    ts = dm.load_data(meshgrid)
-    xs = ensemble_model.forward(ts)  # forward for each fold
-    for k in range(args.num_folds):
-        x = xs[k]
-        x = dm.inverse_transform(x).to("cpu").detach().numpy()
-        fn = f"{args.params.name},{args.values.name},{args.num_folds}fold,meshgrid,d_{bs.degree},r_{args.split_ratio},{k}.csv"
-        np.savetxt(fn, x, delimiter=",")
-
-    x = xs.mean(dim=0)  # mean over folds
-    x = dm.inverse_transform(x).to("cpu").detach().numpy()
-    fn = f"{args.params.name},{args.values.name},{args.num_folds}fold,meshgrid,d_{bs.degree},r_{args.split_ratio}.csv"
-    np.savetxt(fn, x, delimiter=",")
-
+    degree: tuple[int, ...] = cast(BezierSimploid, models[0]).degree
+    tag = file_tag(simploid_type, degree)
+    prefix = f"{args.params.name},{args.values.name},{len(models)}fold,meshgrid,{tag}"
+    with torch.no_grad():
+        xs = torch.stack([model(ts) for model in models])
+    for k, x in enumerate(xs):
+        np.savetxt(f"{prefix},{k}.csv", x.cpu().numpy(), delimiter=",")
+    fn = f"{prefix}.csv"
+    np.savetxt(fn, xs.mean(dim=0).cpu().numpy(), delimiter=",")  # mean over folds
     print(f"Meshgrid saved: {fn}")
 
 

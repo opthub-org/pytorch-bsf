@@ -1,6 +1,6 @@
 r"""Bézier simploids."""
 
-from typing import Mapping, Sequence
+from typing import Any, Mapping, Sequence, TypeAlias
 
 import torch
 import torch.nn as nn
@@ -9,6 +9,7 @@ from torch_bsf.simploidal.combinatorics import (
     SimploidIndex,
     SimploidType,
     _adjacent_pairs,
+    _canonical_index,
     _check_degree,
     _check_type,
     _factor_tensors,
@@ -21,12 +22,16 @@ from torch_bsf.simploidal.combinatorics import (
 )
 from torch_bsf.simploidal.sets import _identity_map
 
+#: Control points: a tensor whose rows follow :func:`~torch_bsf.simploidal.simploid_indices`,
+#: or a mapping from control point indices to values.
+ControlPointsLike: TypeAlias = torch.Tensor | Mapping[Any, Sequence[float] | torch.Tensor]
+
 
 class BezierSimploid(nn.Module):
     r"""A Bézier simploid.
 
     This is a plain :class:`torch.nn.Module` holding the control points; fit one to data with
-    :func:`~torch_bsf.simploidal.fit_simploid`.
+    :func:`torch_bsf.fit`.
 
     Parameters
     ----------
@@ -36,7 +41,8 @@ class BezierSimploid(nn.Module):
         The degree of every factor, or one degree per factor.
     control_points
         The control points: a tensor of shape ``(n_indices, n_values)`` whose rows follow
-        :func:`simploid_indices`, or a mapping from every index to its value.
+        :func:`simploid_indices`, or a mapping from every index to its value.  A Bézier simplex
+        (a single factor) also accepts its multi-indices alone as keys, e.g. ``(2, 1, 0)``.
         Zeros if ``None``, in which case ``n_values`` is required.
     n_values
         The number of values (target dimension); used only when ``control_points`` is ``None``.
@@ -61,7 +67,7 @@ class BezierSimploid(nn.Module):
         self,
         simploid_type: Sequence[int],
         degree: int | Sequence[int],
-        control_points: torch.Tensor | Mapping[SimploidIndex, Sequence[float] | torch.Tensor] | None = None,
+        control_points: "ControlPointsLike | None" = None,
         *,
         n_values: int | None = None,
     ):
@@ -74,10 +80,11 @@ class BezierSimploid(nn.Module):
                 raise TypeError("n_values is required when control_points is None.")
             matrix = torch.zeros(len(indices), n_values)
         elif isinstance(control_points, Mapping):
-            missing = [idx for idx in indices if idx not in control_points]
+            points = {_canonical_index(st, idx): value for idx, value in control_points.items()}
+            missing = [idx for idx in indices if idx not in points]
             if missing:
                 raise ValueError(f"Control points are missing for indices {missing}.")
-            matrix = torch.stack([torch.as_tensor(control_points[idx]) for idx in indices])
+            matrix = torch.stack([torch.as_tensor(points[idx]) for idx in indices])
         else:
             matrix = torch.as_tensor(control_points)
         if matrix.dim() != 2 or matrix.shape[0] != len(indices):
@@ -138,8 +145,8 @@ class BezierSimploid(nn.Module):
         """The control point indices in the order of the rows of :attr:`control_points`."""
         return list(_indices(self._simploid_type, self._degree))
 
-    def __getitem__(self, index: SimploidIndex) -> torch.Tensor:
-        return self.control_points[_positions(self._simploid_type, self._degree)[tuple(map(tuple, index))]]
+    def __getitem__(self, index: SimploidIndex | Sequence[int]) -> torch.Tensor:
+        return self.control_points[self.row(index)]
 
     def forward(self, t: torch.Tensor) -> torch.Tensor:
         r"""Evaluates the Bézier simploid.
@@ -186,8 +193,10 @@ class BezierSimploid(nn.Module):
         factors = [(getattr(self, f"_powers{k}"), getattr(self, f"_coeffs{k}")) for k in range(len(self._simploid_type))]
         return _tensor_product_basis(t, factors)
 
-    def row(self, index: SimploidIndex) -> int:
+    def row(self, index: SimploidIndex | Sequence[int]) -> int:
         """The row of :attr:`control_points` holding the control point of an index.
+
+        A Bézier simplex (a single factor) also accepts its multi-index alone, e.g. ``(2, 1, 0)`` for ``((2, 1, 0),)``.
 
         Raises
         ------
@@ -195,8 +204,8 @@ class BezierSimploid(nn.Module):
             If ``index`` is not a control point index of this Bézier simploid.
         """
         try:
-            return _positions(self._simploid_type, self._degree)[tuple(tuple(int(v) for v in m) for m in index)]
-        except (KeyError, TypeError):
+            return _positions(self._simploid_type, self._degree)[_canonical_index(self._simploid_type, index)]
+        except (KeyError, TypeError, ValueError):
             raise ValueError(
                 f"{index!r} is not a control point index of a Bézier simploid of type {self._simploid_type} "
                 f"and degree {self._degree}."

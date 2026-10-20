@@ -7,35 +7,25 @@ entry_points:
       values: {type: path}
       meshgrid: {type: path, default: "."}
       degree: {type: int}
-      smoothness_weight: {type: float, default: 0.0}
-    command: >-
-      python -m torch_bsf
-      --params={params}
-      --values={values}
-      --meshgrid={meshgrid}
-      --degree={degree}
-      --smoothness_weight={smoothness_weight}
-  simploid:
-    parameters:
-      params: {type: path}
-      values: {type: path}
-      meshgrid: {type: path, default: "."}
-      simploid_type: {type: str}
-      degree: {type: int}
+      simploid_type: {type: str, default: ""}
       solver: {type: str, default: "lstsq"}
       ridge: {type: float, default: 0.0}
+      smoothness_weight: {type: float, default: 0.0}
       normalize: {type: str, default: "none"}
+      split_ratio: {type: float, default: 1.0}
       max_epochs: {type: int, default: 2}
     command: >-
       python -m torch_bsf
       --params={params}
       --values={values}
       --meshgrid={meshgrid}
-      --simploid-type={simploid_type}
       --degree={degree}
+      --simploid-type={simploid_type}
       --solver={solver}
       --ridge={ridge}
+      --smoothness_weight={smoothness_weight}
       --normalize={normalize}
+      --split_ratio={split_ratio}
       --max_epochs={max_epochs}
   kfold:
     parameters:
@@ -43,14 +33,26 @@ entry_points:
       values: {type: path}
       meshgrid: {type: path, default: "."}
       degree: {type: int}
+      simploid_type: {type: str, default: ""}
+      num_folds: {type: int, default: 5}
+      solver: {type: str, default: "lstsq"}
+      ridge: {type: float, default: 0.0}
       smoothness_weight: {type: float, default: 0.0}
+      normalize: {type: str, default: "none"}
+      max_epochs: {type: int, default: 2}
     command: >-
       python -m torch_bsf.model_selection.kfold
       --params={params}
       --values={values}
       --meshgrid={meshgrid}
       --degree={degree}
+      --simploid-type={simploid_type}
+      --num_folds={num_folds}
+      --solver={solver}
+      --ridge={ridge}
       --smoothness_weight={smoothness_weight}
+      --normalize={normalize}
+      --max_epochs={max_epochs}
   degree_selection:
     parameters:
       params: {type: path}
@@ -58,6 +60,8 @@ entry_points:
       min_degree: {type: int, default: 1}
       max_degree: {type: int, default: 5}
       num_folds: {type: int, default: 5}
+      simploid_type: {type: str, default: ""}
+      solver: {type: str, default: "lstsq"}
       max_epochs: {type: int, default: 2}
       header: {type: int, default: 0}
       accelerator: {type: str, default: "auto"}
@@ -69,6 +73,8 @@ entry_points:
       --min_degree={min_degree}
       --max_degree={max_degree}
       --num_folds={num_folds}
+      --simploid-type={simploid_type}
+      --solver={solver}
       --max_epochs={max_epochs}
       --header={header}
       --accelerator={accelerator}

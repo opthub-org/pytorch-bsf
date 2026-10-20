@@ -13,6 +13,19 @@ _VALUES_CSV = _REPO_ROOT / "values.csv"
 _CLI_TIMEOUT = 300  # seconds
 
 
+def _init_file(tmp_path: Path) -> Path:
+    """Saves a random Bézier simplex fitting params.csv and values.csv to use as --init."""
+    import numpy as np
+
+    from torch_bsf.simploidal import BezierSimploid, save
+
+    n_params = np.loadtxt(_PARAMS_CSV, delimiter=",", ndmin=2).shape[1]
+    n_values = np.loadtxt(_VALUES_CSV, delimiter=",", ndmin=2).shape[1]
+    init_file = tmp_path / "model.pt"
+    save(init_file, BezierSimploid.randn((n_params - 1,), 1, n_values))
+    return init_file
+
+
 def _run_cli(*args, cwd=None):
     """Run `python -m torch_bsf` with the given arguments."""
     workdir = cwd or _REPO_ROOT
@@ -88,10 +101,7 @@ def test_cli_missing_degree_and_init_is_argparse_error():
 
 def test_cli_both_degree_and_init_fails(tmp_path):
     """CLI should fail with an argparse error when both --degree and --init are specified."""
-    import torch_bsf.bezier_simplex as tbbs
-
-    init_file = tmp_path / "model.pt"
-    tbbs.save(str(init_file), tbbs.randn(n_params=2, n_values=2, degree=1))
+    init_file = _init_file(tmp_path)
 
     result = _run_cli(
         f"--params={_PARAMS_CSV}",
@@ -106,10 +116,7 @@ def test_cli_both_degree_and_init_fails(tmp_path):
 
 def test_cli_both_degree_and_init_is_argparse_error(tmp_path):
     """CLI should emit a clean argparse error (not a Python traceback) when both --degree and --init are given."""
-    import torch_bsf.bezier_simplex as tbbs
-
-    init_file = tmp_path / "model.pt"
-    tbbs.save(str(init_file), tbbs.randn(n_params=2, n_values=2, degree=1))
+    init_file = _init_file(tmp_path)
 
     result = _run_cli(
         f"--params={_PARAMS_CSV}",
@@ -128,16 +135,13 @@ def test_cli_help_flag():
     result = _run_cli("--help")
     assert result.returncode == 0
     assert "--degree N" in result.stdout
-    assert "--init PT" in result.stdout
+    assert "--init FILE" in result.stdout
     assert "--devices N|auto" in result.stdout
 
 
 def test_cli_init_flag(tmp_path):
     """CLI should accept --init to load an existing model."""
-    import torch_bsf.bezier_simplex as tbbs
-
-    init_file = tmp_path / "model.pt"
-    tbbs.save(str(init_file), tbbs.randn(n_params=2, n_values=2, degree=1))
+    init_file = _init_file(tmp_path)
 
     result = _run_cli(
         f"--params={_PARAMS_CSV}",
@@ -213,12 +217,9 @@ class TestMainInProcess:
 
     def test_main_with_init(self, tmp_path, monkeypatch):
         """main() should accept --init to load an existing model."""
-        import torch_bsf.bezier_simplex as tbbs
         from torch_bsf.__main__ import main
 
-        # Create a model file to use as --init.
-        init_file = tmp_path / "model.pt"
-        tbbs.save(str(init_file), tbbs.randn(n_params=2, n_values=2, degree=1))
+        init_file = _init_file(tmp_path)
 
         monkeypatch.chdir(tmp_path)
         monkeypatch.setenv("MLFLOW_TRACKING_URI", f"file://{tmp_path}")
@@ -242,7 +243,7 @@ class TestMainInProcess:
 
 
 # ---------------------------------------------------------------------------
-# Bezier simploid fitting (--simploid-type)
+# Bezier simploid fitting (--simploid-type) and the options shared with simplices
 # ---------------------------------------------------------------------------
 
 
@@ -411,7 +412,15 @@ def test_main_simploid_in_mlflow_project_run(tmp_path, monkeypatch):
         logged = mlflow.get_run(run.info.run_id).data
     finally:
         mlflow.set_tracking_uri(None)
-    assert logged.params == {"simploid_type": "2, 1", "degree": "2", "ridge": "0", "solver": "lstsq"}
+    assert logged.params == {
+        "simploid_type": "2, 1",
+        "degree": "2",
+        "ridge": "0",
+        "solver": "lstsq",
+        "smoothness_weight": "0.0",
+        "normalize": "none",
+        "split_ratio": "1.0",
+    }
     assert "train_mse" in logged.metrics
 
 
@@ -432,27 +441,24 @@ def test_cli_simploid_error_is_clean(tmp_path):
         f"--params={params}", f"--values={values}", "--simploid-type=1,1", "--degree=2", "--loglevel=0", cwd=tmp_path
     )
     assert result.returncode == 2
-    assert "--params has 5 columns, but --simploid-type=1,1 requires sum(Ai + 1) = 4 columns" in result.stderr
+    assert "--params has 5 columns, but the type 1,1 requires sum(Ai + 1) = 4 columns" in result.stderr
     assert "Traceback" not in result.stderr
 
 
 @pytest.mark.parametrize(
     "args, message",
     [
-        (["--simploid-type=1,1", "--degree=2"], "--params has 5 columns, but --simploid-type=1,1 requires sum(Ai + 1) = 4"),
+        (["--simploid-type=1,1", "--degree=2"], "--params has 5 columns, but the type 1,1 requires sum(Ai + 1) = 4"),
         (["--simploid-type=2,0", "--degree=2"], "invalid simploid type '2,0'"),
         (["--simploid-type=a", "--degree=2"], "invalid simploid type 'a'"),
-        (["--simploid-type=", "--degree=2"], "invalid simploid type ''"),
-        (["--degree=2", "--solver=lstsq"], "--solver requires --simploid-type"),
-        (["--degree=2", "--ridge=0.1", "--save=x.csv"], "--ridge, --save requires --simploid-type"),
-        (["--simploid-type=2,1", "--init=model.pt"], "--init is not supported with --simploid-type"),
-        (["--simploid-type=2,1", "--degree=2", "--freeze=[[2,0]]"], "--freeze is not supported with --simploid-type"),
-        (["--simploid-type=2,1", "--degree=2", "--smoothness_weight=0.1"], "--smoothness_weight is not supported"),
-        (["--simploid-type=2,1", "--degree=2", "--split_ratio=0.5"], "--split_ratio is not supported"),
+        (["--simploid-type=2,1", "--init=model.pt"], "cannot load --init"),
+        (["--simploid-type=2,1", "--degree=2", "--freeze=[[[2,0,0],[2,0]]]"], "--freeze requires --init"),
+        (["--simploid-type=2,1", "--degree=2", "--smoothness_weight=-1"], "smoothness_weight"),
+        (["--simploid-type=2,1", "--degree=2", "--split_ratio=0"], "--split_ratio must satisfy 0 < R <= 1"),
         (["--simploid-type=2,1", "--degree=-1"], "--degree must be non-negative"),
         (["--simploid-type=2,1", "--degree=2", "--ridge=-1"], "--ridge must be non-negative"),
         (["--simploid-type=2,1", "--degree=2", "--solver=trainer", "--ridge=0.1"], "--ridge is supported only with"),
-        (["--simploid-type=2,1", "--degree=2", "--meshgrid=MESH"], "--meshgrid has 2 columns, but --simploid-type=2,1"),
+        (["--simploid-type=2,1", "--degree=2", "--meshgrid=MESH"], "--meshgrid has 2 columns, but the type 2,1"),
         (["--simploid-type=2,1", "--degree=2", "--values=SHORT"], "--params has 60 rows, but --values has 3 rows"),
     ],
 )
@@ -472,28 +478,59 @@ def test_main_simploid_errors(tmp_path, monkeypatch, capsys, args, message):
     assert message in capsys.readouterr().err
 
 
-def test_main_simploid_checks_rows_before_data_module(tmp_path, monkeypatch, capsys):
-    """A row-count mismatch should be reported before BezierSimplexDataModule pairs the rows.
+def test_main_simploid_init_freeze_and_smoothness(tmp_path, monkeypatch):
+    """--init, --freeze and --smoothness_weight work together with --simploid-type."""
+    import torch_bsf.simploidal as ts
 
-    Some PyTorch versions raise an ``AssertionError`` in ``TensorDataset`` for such data.
-    """
+    params, values = _write_prism_data(tmp_path)
+    init = ts.BezierSimploid.randn((2, 1), 2, 4)
+    ts.save(tmp_path / "init.json", init)
+    out = tmp_path / "fitted.json"
+    _run_main(
+        monkeypatch,
+        tmp_path,
+        f"--params={params}",
+        f"--values={values}",
+        "--simploid-type=2,1",
+        f"--init={tmp_path / 'init.json'}",
+        "--freeze=[[[2,0,0],[2,0]], [[0,0,2],[0,2]]]",
+        "--smoothness_weight=0.01",
+        f"--save={out}",
+        "--loglevel=0",
+    )
+    model = ts.load(out)
+    assert model.simploid_type == (2, 1)
+    for index in (((2, 0, 0), (2, 0)), ((0, 0, 2), (0, 2))):
+        assert model[index].tolist() == init[index].tolist()
+    assert model[((1, 1, 0), (1, 1))].tolist() != init[((1, 1, 0), (1, 1))].tolist()
+
+
+def test_main_split_ratio_logs_validation_error(tmp_path, monkeypatch):
+    """--split_ratio holds out samples for validation, and --seed makes the split reproducible."""
+    import mlflow
+
+    params, values = _write_prism_data(tmp_path)
+    args = [f"--params={params}", f"--values={values}", "--simploid-type=2,1", "--degree=2", "--split_ratio=0.5"]
+    _run_main(monkeypatch, tmp_path, *args, "--seed=0", "--loglevel=1")
+    run = mlflow.last_active_run()
+    assert run is not None
+    assert run.data.params["split_ratio"] == "0.5"
+    assert run.data.metrics["train_mse"] < 1e-6
+    assert run.data.metrics["val_mse"] < 1e-6  # the data is a degree-2 polynomial
+
+
+def test_main_simplex_is_the_default_type(tmp_path, monkeypatch):
+    """Without --simploid-type, a Bézier simplex of dimension n_params - 1 is fitted."""
     import numpy as np
 
-    def data_module(*args, **kwargs):
-        raise AssertionError("Size mismatch between tensors")
+    import torch_bsf.simploidal as ts
+    from torch_bsf.sampling import simplex_grid
 
-    monkeypatch.setattr("torch_bsf.__main__.BezierSimplexDataModule", data_module)
-    params, _ = _write_prism_data(tmp_path)
-    np.savetxt(tmp_path / "short.csv", np.ones((3, 4)), delimiter=",")
-    with pytest.raises(SystemExit) as excinfo:
-        _run_main(
-            monkeypatch,
-            tmp_path,
-            f"--params={params}",
-            f"--values={tmp_path / 'short.csv'}",
-            "--simploid-type=2,1",
-            "--degree=2",
-            "--loglevel=0",
-        )
-    assert excinfo.value.code == 2
-    assert "--params has 60 rows, but --values has 3 rows" in capsys.readouterr().err
+    t = simplex_grid(3, 4).double().numpy()
+    np.savetxt(tmp_path / "p.csv", t, delimiter=",")
+    np.savetxt(tmp_path / "v.csv", 5.0 + t[:, :2] ** 2, delimiter=",")
+    _run_main(monkeypatch, tmp_path, "--params=p.csv", "--values=v.csv", "--degree=2", "--normalize=std", "--loglevel=0")
+    model = ts.load(tmp_path / "p.csv,v.csv,control_points,t_2,d_2.csv")
+    assert model.simploid_type == (2,)
+    meshgrid = np.loadtxt(tmp_path / "p.csv,v.csv,meshgrid,t_2,d_2.csv", delimiter=",", ndmin=2)
+    np.testing.assert_allclose(meshgrid, 5.0 + t[:, :2] ** 2, atol=1e-4)

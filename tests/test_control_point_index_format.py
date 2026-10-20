@@ -77,5 +77,5 @@ def test_yaml_aesthetics(tmp_path):
 def test_training():
     ts = torch.tensor([[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]])
     xs = torch.tensor([[0.0, 0.0], [1.0, 1.0], [0.0, 0.0]])
-    bs = torch_bsf.fit(params=ts, values=xs, degree=2, max_epochs=1)
+    bs = torch_bsf.bezier_simplex.fit(params=ts, values=xs, degree=2, max_epochs=1)
     assert isinstance(bs, BezierSimplex)

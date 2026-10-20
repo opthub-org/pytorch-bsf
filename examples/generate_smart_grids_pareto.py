@@ -1,24 +1,11 @@
-import logging
 import pathlib
-import warnings
 
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
-from torch_bsf.sklearn import BezierSimplexRegressor
-
-# Keep the output focused on the approximation errors: silence Lightning's
-# progress bar, model summary, logger, informational messages and warnings.
-logging.getLogger("lightning.pytorch").setLevel(logging.WARNING)
-warnings.filterwarnings("ignore", module="lightning")
-TRAINER_KWARGS = {
-    "enable_progress_bar": False,
-    "enable_model_summary": False,
-    "logger": False,
-    "enable_checkpointing": False,
-}
+from torch_bsf.sklearn import BezierSimploidRegressor
 
 # 3-generator economic-emission dispatch: generation cost vs. emissions
 # P = [P1, P2, P3] in R^3 (power outputs), subject to the demand balance P1 + P2 + P3 = D
@@ -73,7 +60,7 @@ y = np.column_stack([
 ])
 
 # Fit a degree-4 Bézier simplex to the Pareto front
-regressor = BezierSimplexRegressor(degree=4, trainer_kwargs=TRAINER_KWARGS)
+regressor = BezierSimploidRegressor(degree=4)
 regressor.fit(X, y)
 
 # Generate smooth curve for visualization
@@ -108,7 +95,7 @@ print("Pareto front plot saved.")
 
 # Fit Bézier simplex to Pareto set (power output space, showing P1 and P2; P3 = D - P1 - P2)
 P_targets = np.array([p[1] for p in optimals])
-regressor_set = BezierSimplexRegressor(degree=4, trainer_kwargs=TRAINER_KWARGS)
+regressor_set = BezierSimploidRegressor(degree=4)
 regressor_set.fit(X, P_targets)
 P_smooth = regressor_set.predict(X_smooth)
 

@@ -1,24 +1,11 @@
-import logging
 import pathlib
-import warnings
 
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
-from torch_bsf.sklearn import BezierSimplexRegressor
-
-# Keep the output focused on the approximation errors: silence Lightning's
-# progress bar, model summary, logger, informational messages and warnings.
-logging.getLogger("lightning.pytorch").setLevel(logging.WARNING)
-warnings.filterwarnings("ignore", module="lightning")
-TRAINER_KWARGS = {
-    "enable_progress_bar": False,
-    "enable_model_summary": False,
-    "logger": False,
-    "enable_checkpointing": False,
-}
+from torch_bsf.sklearn import BezierSimploidRegressor
 
 # Define a four-objective facility location problem in 2D
 # x represents the facility location
@@ -74,7 +61,7 @@ X = np.array([p[0] for p in optimals])
 y = np.array([[p[2], p[3], p[4], p[5]] for p in optimals])
 
 # Fit a degree-2 Bézier simplex to the Pareto front
-regressor = BezierSimplexRegressor(degree=2, max_epochs=3, trainer_kwargs=TRAINER_KWARGS)
+regressor = BezierSimploidRegressor(degree=2)
 regressor.fit(X, y)
 
 # For visualization, project to 3D by dropping one objective (e.g., f4)
@@ -118,7 +105,7 @@ print("Plot saved.")
 
 # Visualize the Pareto set (x locations)
 x_targets = np.array([p[1] for p in optimals])  # x_opt for each w
-regressor_x = BezierSimplexRegressor(degree=2, max_epochs=3, trainer_kwargs=TRAINER_KWARGS)
+regressor_x = BezierSimploidRegressor(degree=2)
 regressor_x.fit(X, x_targets)
 
 # Predict smooth x locations

@@ -1,24 +1,11 @@
-import logging
 import pathlib
-import warnings
 
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
-from torch_bsf.sklearn import BezierSimplexRegressor
-
-# Keep the output focused on the approximation errors: silence Lightning's
-# progress bar, model summary, logger, informational messages and warnings.
-logging.getLogger("lightning.pytorch").setLevel(logging.WARNING)
-warnings.filterwarnings("ignore", module="lightning")
-TRAINER_KWARGS = {
-    "enable_progress_bar": False,
-    "enable_model_summary": False,
-    "logger": False,
-    "enable_checkpointing": False,
-}
+from torch_bsf.sklearn import BezierSimploidRegressor
 
 # Define objective functions for communication routing example
 # x = [x1, x2] representing routing allocations
@@ -61,7 +48,7 @@ f2_targets = np.array([p[3] for p in optimal_points])
 # Fit Bézier simplex (multi-output: predict f1 and f2)
 X = np.column_stack([w1_vals, w2_vals])
 y = np.column_stack([f1_targets, f2_targets])
-regressor = BezierSimplexRegressor(degree=3, trainer_kwargs=TRAINER_KWARGS)
+regressor = BezierSimploidRegressor(degree=3)
 regressor.fit(X, y)
 
 # Generate smooth curve for visualization
@@ -94,7 +81,7 @@ plt.savefig('docs/_static/communication_fitting.png', dpi=150, bbox_inches='tigh
 
 # Fit Bézier simplex to Pareto set (routing allocation space)
 x_targets = np.array([p[1] for p in optimal_points])
-regressor_set = BezierSimplexRegressor(degree=3, trainer_kwargs=TRAINER_KWARGS)
+regressor_set = BezierSimploidRegressor(degree=3)
 regressor_set.fit(X, x_targets)
 x_smooth = regressor_set.predict(X_smooth)
 

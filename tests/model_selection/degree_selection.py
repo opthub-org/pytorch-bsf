@@ -1,9 +1,10 @@
 import subprocess
 import sys
+from pathlib import Path
+from unittest.mock import patch
+
 import pytest
 import torch
-from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 from torch_bsf.model_selection.degree_selection import select_degree
 
@@ -19,24 +20,32 @@ def _make_simplex_data(n_params: int = 3, n_values: int = 2, n_samples: int = 20
     generator.manual_seed(seed)
     raw = torch.rand(n_samples, n_params, generator=generator)
     params = raw / raw.sum(dim=1, keepdim=True)
-    values = (1.0 - params ** 2)[:, :n_values]
+    values = (1.0 - params**2)[:, :n_values]
     return params, values
 
 
-def _make_mock_trainer(test_mse: float = 0.1):
-    """Return a MagicMock KFoldTrainer that yields a single fold result."""
-    mock = MagicMock()
-    mock.cross_validate.return_value = [[{"test_mse": test_mse}]]
-    return mock
+def _fake_fit(mse_by_degree):
+    """A stand-in for torch_bsf.fit whose models predict sqrt(mse) everywhere, recording its calls."""
+    calls = []
+
+    def fake_fit(params, values, degree, **kwargs):
+        calls.append((params, values, degree, kwargs))
+        level = mse_by_degree[degree] ** 0.5
+        return lambda t: torch.full((len(t), values.shape[1]), level)
+
+    return fake_fit, calls
 
 
 class TestSelectDegree:
     def test_returns_int_in_range(self):
         params, values = _make_simplex_data(n_params=3, n_values=2, n_samples=20)
         best = select_degree(
-            params, values,
-            min_degree=1, max_degree=3,
+            params,
+            values,
+            min_degree=1,
+            max_degree=3,
             num_folds=2,
+            solver="trainer",
             max_epochs=1,
             accelerator="cpu",
             devices=1,
@@ -50,9 +59,12 @@ class TestSelectDegree:
     def test_min_equals_max(self):
         params, values = _make_simplex_data(n_params=3, n_values=2, n_samples=20)
         best = select_degree(
-            params, values,
-            min_degree=2, max_degree=2,
+            params,
+            values,
+            min_degree=2,
+            max_degree=2,
             num_folds=2,
+            solver="trainer",
             max_epochs=1,
             accelerator="cpu",
             devices=1,
@@ -64,77 +76,40 @@ class TestSelectDegree:
 
 
 class TestSelectDegreeKwargForwarding:
-    """Verify correct kwargs are forwarded to KFoldTrainer.cross_validate."""
+    """Verify how select_degree calls torch_bsf.fit."""
 
-    _PATCH = "torch_bsf.bezier_simplex._KFoldTrainer"
+    _PATCH = "torch_bsf.model_selection.degree_selection.fit"
 
-    def test_default_forces_limit_val_batches(self):
-        """Without val_dataloaders/datamodule, limit_val_batches=0.0 is set."""
-        params, values = _make_simplex_data()
-        mock_trainer = _make_mock_trainer()
+    def test_fits_every_fold_and_forwards_kwargs(self):
+        """Each fold is fitted to the other folds, and the extra kwargs and seed reach fit."""
+        params, values = _make_simplex_data(n_samples=9)
+        fake_fit, calls = _fake_fit({1: 0.1})
+        with patch(self._PATCH, side_effect=fake_fit):
+            select_degree(params, values, min_degree=1, max_degree=1, num_folds=3, seed=4, ridge=0.5)
+        assert len(calls) == 3
+        for train_params, _, degree, kwargs in calls:
+            assert len(train_params) == 6
+            assert degree == 1
+            assert kwargs == {"seed": 4, "ridge": 0.5}
 
-        with patch(self._PATCH, return_value=mock_trainer) as mock_cls:
-            select_degree(params, values, min_degree=1, max_degree=1, num_folds=2)
+    def test_folds_are_reproducible(self):
+        params, values = _make_simplex_data(n_samples=10)
+        runs = []
+        for _ in range(2):
+            fake_fit, calls = _fake_fit({1: 0.1})
+            with patch(self._PATCH, side_effect=fake_fit):
+                select_degree(params, values, min_degree=1, max_degree=1, num_folds=2, seed=0)
+            runs.append([c[0] for c in calls])
+        for a, b in zip(*runs):
+            torch.testing.assert_close(a, b)
 
-        init_kwargs = mock_cls.call_args.kwargs
-        assert init_kwargs.get("limit_val_batches") == 0.0
+    def test_simploid_type(self):
+        """A simploid type is forwarded to fit, which fits Bézier simploids."""
+        from torch_bsf.simploidal import sample_simploid
 
-        cv_kwargs = mock_trainer.cross_validate.call_args.kwargs
-        assert "train_dataloader" in cv_kwargs
-        assert "datamodule" not in cv_kwargs
-        assert "val_dataloaders" not in cv_kwargs
-
-    def test_val_dataloaders_suppresses_limit_val_batches(self):
-        """Passing val_dataloaders does not force limit_val_batches=0.0."""
-        params, values = _make_simplex_data()
-        mock_trainer = _make_mock_trainer()
-        val_dl = MagicMock()
-
-        with patch(self._PATCH, return_value=mock_trainer) as mock_cls:
-            select_degree(
-                params, values, min_degree=1, max_degree=1, num_folds=2,
-                val_dataloaders=val_dl,
-            )
-
-        init_kwargs = mock_cls.call_args.kwargs
-        assert "limit_val_batches" not in init_kwargs
-
-        cv_kwargs = mock_trainer.cross_validate.call_args.kwargs
-        assert cv_kwargs.get("val_dataloaders") is val_dl
-        assert "train_dataloader" in cv_kwargs
-        assert "datamodule" not in cv_kwargs
-
-    def test_datamodule_suppresses_train_dataloader(self):
-        """Passing datamodule disables internal train_dataloader and limit_val_batches=0.0."""
-        params, values = _make_simplex_data()
-        mock_trainer = _make_mock_trainer()
-        dm = MagicMock()
-
-        with patch(self._PATCH, return_value=mock_trainer) as mock_cls:
-            select_degree(
-                params, values, min_degree=1, max_degree=1, num_folds=2,
-                datamodule=dm,
-            )
-
-        init_kwargs = mock_cls.call_args.kwargs
-        assert "limit_val_batches" not in init_kwargs
-
-        cv_kwargs = mock_trainer.cross_validate.call_args.kwargs
-        assert cv_kwargs.get("datamodule") is dm
-        assert "train_dataloader" not in cv_kwargs
-
-    def test_batch_size_ignored_with_datamodule(self):
-        """batch_size in trainer_kwargs is silently consumed when datamodule is provided."""
-        params, values = _make_simplex_data()
-        mock_trainer = _make_mock_trainer()
-        dm = MagicMock()
-
-        with patch(self._PATCH, return_value=mock_trainer):
-            # Should not raise even though batch_size has no effect here.
-            select_degree(
-                params, values, min_degree=1, max_degree=1, num_folds=2,
-                datamodule=dm, batch_size=16,
-            )
+        params = sample_simploid((1, 1), 30, seed=0)
+        values = params[:, :1] * params[:, 2:3]
+        assert select_degree(params, values, min_degree=1, max_degree=3, num_folds=3, seed=0, simploid_type=(1, 1)) == 1
 
 
 def _run_cli(*args, cwd=None):
@@ -278,21 +253,16 @@ class TestDegreeSelectionCLI:
 class TestSelectDegreePatience:
     """Tests for the patience-based early-stopping logic in select_degree."""
 
-    _PATCH = "torch_bsf.bezier_simplex._KFoldTrainer"
+    _PATCH = "torch_bsf.model_selection.degree_selection.fit"
 
     def _select_with_mse_sequence(self, mse_sequence, patience=1, min_degree=1):
         """Run select_degree with a predetermined sequence of per-degree MSE values."""
-        params, values = _make_simplex_data(n_params=3, n_values=2, n_samples=20)
-        mse_iter = iter(mse_sequence)
-
-        def make_trainer(**kwargs):
-            mock = MagicMock()
-            mse = next(mse_iter)
-            mock.cross_validate.return_value = [[{"test_mse": mse}]]
-            return mock
+        params, _ = _make_simplex_data(n_params=3, n_values=2, n_samples=20)
+        values = torch.zeros(20, 2)
+        fake_fit, _ = _fake_fit({min_degree + k: mse for k, mse in enumerate(mse_sequence)})
 
         max_degree = min_degree + len(mse_sequence) - 1
-        with patch(self._PATCH, side_effect=make_trainer):
+        with patch(self._PATCH, side_effect=fake_fit):
             return select_degree(
                 params,
                 values,
@@ -323,24 +293,19 @@ class TestSelectDegreePatience:
     def test_patience_high_traverses_all_degrees(self):
         """Large patience causes all degrees to be checked."""
         params, values = _make_simplex_data(n_params=3, n_values=2, n_samples=20)
-        call_count = 0
+        fake_fit, calls = _fake_fit({d: 1.0 + d for d in range(1, 5)})
 
-        def make_trainer(**kwargs):
-            nonlocal call_count
-            call_count += 1
-            mock = MagicMock()
-            mock.cross_validate.return_value = [[{"test_mse": 1.0 + call_count}]]
-            return mock
-
-        with patch(self._PATCH, side_effect=make_trainer):
+        with patch(self._PATCH, side_effect=fake_fit):
             select_degree(
-                params, values,
-                min_degree=1, max_degree=4,
+                params,
+                values,
+                min_degree=1,
+                max_degree=4,
                 num_folds=2,
                 patience=10,
             )
-        # All 4 degrees (1..4) should have been evaluated
-        assert call_count == 4
+        # All 4 degrees (1..4) should have been evaluated, each on 2 folds
+        assert [c[2] for c in calls] == [1, 1, 2, 2, 3, 3, 4, 4]
 
     def test_patience_zero_raises(self):
         """patience=0 is invalid and should raise ValueError."""
@@ -362,7 +327,7 @@ class TestSelectDegreeEdgeCases:
         """select_degree with zero samples should raise ValueError."""
         params = torch.empty(0, 3)
         values = torch.empty(0, 2)
-        with pytest.raises(ValueError, match="non-empty"):
+        with pytest.raises(ValueError, match="At least 2 samples"):
             select_degree(params, values, min_degree=1, max_degree=2, num_folds=2)
 
     def test_invalid_batch_size_raises(self):
@@ -433,5 +398,3 @@ class TestDegreeSelectionCliMain:
         with pytest.raises(SystemExit) as exc_info:
             _cli_main()
         assert exc_info.value.code != 0
-
-

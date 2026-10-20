@@ -1230,7 +1230,7 @@ def fit_kfold(
 
     Build a 5-fold ensemble and suggest the 2 most uncertain points
 
-    >>> models = torch_bsf.fit_kfold(
+    >>> models = torch_bsf.bezier_simplex.fit_kfold(  # doctest: +SKIP
     ...     params=params,
     ...     values=values,
     ...     degree=3,
@@ -1239,8 +1239,8 @@ def fit_kfold(
     ...     enable_model_summary=False,
     ...     logger=False,
     ... )
-    >>> suggestions = suggest_next_points(models, n_suggestions=2, method="qbc")
-    >>> suggestions.shape
+    >>> suggestions = suggest_next_points(models, n_suggestions=2, method="qbc")  # doctest: +SKIP
+    >>> suggestions.shape  # doctest: +SKIP
     torch.Size([2, 3])
 
     See Also

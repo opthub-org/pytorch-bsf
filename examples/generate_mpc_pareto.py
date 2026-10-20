@@ -6,7 +6,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import torch
 from scipy.optimize import minimize
-from torch_bsf.simploidal import fit_simploid
+from torch_bsf import fit
 
 # Parametric 2-objective MPC: tracking vs. control effort
 # 1D stable system: x(k+1) = a x(k) + u(k), target r = 1, horizon H = 5
@@ -75,8 +75,8 @@ y = np.array([sol[1] for sol in solutions])
 
 # Fit Bézier simploids of type (1, 1). The optimal inputs are affine in x0 and the
 # objectives are quadratic in x0, so degree 1 and 2 suffice for the x0 factor.
-front_model = fit_simploid(params, torch.tensor(y), simploid_type=(1, 1), degree=(6, 2))
-set_model = fit_simploid(params, torch.tensor(U_targets), simploid_type=(1, 1), degree=(6, 1))
+front_model = fit(params, torch.tensor(y), simploid_type=(1, 1), degree=(6, 2))
+set_model = fit(params, torch.tensor(U_targets), simploid_type=(1, 1), degree=(6, 1))
 
 # Compute approximation errors on training points and on a 41 x 21 test grid
 with torch.no_grad():

@@ -42,8 +42,8 @@ def run_parameter_experiment():
     xs_skew = f_parameter_experiment(ts_skew).unsqueeze(1)
 
     # Fit using high epochs to ensure convergence
-    bs_uni = torch_bsf.fit(params=ts_uni, values=xs_uni, degree=3, max_epochs=200, enable_progress_bar=False, accelerator="cpu", enable_checkpointing=False)
-    bs_skew = torch_bsf.fit(params=ts_skew, values=xs_skew, degree=3, max_epochs=200, enable_progress_bar=False, accelerator="cpu", enable_checkpointing=False)
+    bs_uni = torch_bsf.fit(params=ts_uni, values=xs_uni, degree=3, solver="trainer", max_epochs=200, enable_progress_bar=False, accelerator="cpu", enable_checkpointing=False)
+    bs_skew = torch_bsf.fit(params=ts_skew, values=xs_skew, degree=3, solver="trainer", max_epochs=200, enable_progress_bar=False, accelerator="cpu", enable_checkpointing=False)
 
     # Evaluate on a fine uniform test set
     ts_test = torch.distributions.Dirichlet(torch.ones(3)).sample((2000,))
@@ -63,13 +63,13 @@ def run_value_experiment():
     ts = torch.distributions.Dirichlet(torch.ones(3)).sample((400,))
     xs = f_value_experiment(ts)
 
+    # The gradient-based trainer is sensitive to the scale of values; the exact least-squares
+    # solver (the default of torch_bsf.fit) fits each value independently and is not.
     # Case A: Fit on raw values (optimizer will naturally prioritize the larger-scale y2)
-    bs_raw = torch_bsf.fit(params=ts, values=xs, degree=2, max_epochs=200, enable_progress_bar=False, accelerator="cpu", enable_checkpointing=False)
+    bs_raw = torch_bsf.fit(params=ts, values=xs, degree=2, solver="trainer", max_epochs=200, enable_progress_bar=False, accelerator="cpu", enable_checkpointing=False)
 
-    # Case B: Fit on normalized (standardized) values
-    means, stds = xs.mean(dim=0), xs.std(dim=0)
-    xs_norm = (xs - means) / stds
-    bs_norm = torch_bsf.fit(params=ts, values=xs_norm, degree=2, max_epochs=200, enable_progress_bar=False, accelerator="cpu", enable_checkpointing=False)
+    # Case B: Fit on normalized (standardized) values; the fitted model predicts in the original scale
+    bs_norm = torch_bsf.fit(params=ts, values=xs, degree=2, normalize="std", solver="trainer", max_epochs=200, enable_progress_bar=False, accelerator="cpu", enable_checkpointing=False)
 
     # Evaluate on original scale
     ts_test = torch.distributions.Dirichlet(torch.ones(3)).sample((1000,))
@@ -79,8 +79,8 @@ def run_value_experiment():
     pred_raw = bs_raw(ts_test)
     mse_raw = torch.mean((pred_raw - xs_test)**2, dim=0)
 
-    # Scaled fit result (transform back for fair comparison)
-    pred_norm = bs_norm(ts_test) * stds + means
+    # Scaled fit result
+    pred_norm = bs_norm(ts_test)
     mse_norm = torch.mean((pred_norm - xs_test)**2, dim=0)
 
     print(f"Raw Fit   MSE (y1, y2): {mse_raw[0].item():2.2e}, {mse_raw[1].item():2.2e}")

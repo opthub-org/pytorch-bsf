@@ -29,8 +29,7 @@ def _parse_index_key(key: object) -> SimploidIndex:
         isinstance(index, tuple) and all(isinstance(a, tuple) and all(type(v) is int and v >= 0 for v in a) for a in index)
     ):
         raise ValueError(
-            f"Invalid control point index {key!r}: expected a tuple of multi-indices such as '((2, 0, 0), (1, 0))' "
-            "(use torch_bsf.bezier_simplex.load for Bezier simplex files)."
+            f"Invalid control point index {key!r}: expected a tuple of multi-indices such as '((2, 0, 0), (1, 0))'."
         )
     return cast(SimploidIndex, index)
 
@@ -126,10 +125,7 @@ def save(path: str | Path, data: BezierSimploid) -> None:
 
 
 def _load_pt(path: Path) -> BezierSimploid:
-    message = (
-        f"'{path}' must contain a dictionary with the keys 'simploid_type', 'degree' and 'control_points' "
-        "(use torch_bsf.bezier_simplex.load for Bezier simplex files)."
-    )
+    message = f"'{path}' must contain a dictionary with the keys 'simploid_type', 'degree' and 'control_points'."
     try:
         # Only plain containers and tensors are accepted: loading never executes arbitrary code.
         data = torch.load(path, weights_only=True)
@@ -165,9 +161,10 @@ def load(path: str | Path) -> BezierSimploid:
     >>> import tempfile
     >>> from pathlib import Path
     >>> import torch
-    >>> from torch_bsf.simploidal import fit_simploid, load, sample_simploid, save
+    >>> import torch_bsf
+    >>> from torch_bsf.simploidal import load, sample_simploid, save
     >>> t = sample_simploid((2, 1), 50, seed=0)
-    >>> bs = fit_simploid(t, t[:, :3] * t[:, 3:4], (2, 1), degree=1)
+    >>> bs = torch_bsf.fit(t, t[:, :3] * t[:, 3:4], degree=1, simploid_type=(2, 1))
     >>> with tempfile.TemporaryDirectory() as d:
     ...     save(Path(d) / "simploid.json", bs)
     ...     loaded = load(Path(d) / "simploid.json")

@@ -10,6 +10,7 @@ from torch_bsf.simploidal.combinatorics import (
     SimploidIndex,
     SimploidType,
     _adjacent_pairs,
+    _canonical_index,
     _check_degree,
     _face_index,
     _indices,
@@ -346,8 +347,8 @@ class SimploidalBezierSpace(nn.Module):
         """
         degree = self.simploid_degree(simploid)
         try:
-            pos = _positions(simploid.simploid_type, degree)[tuple(tuple(int(v) for v in m) for m in index)]
-        except (KeyError, TypeError):
+            pos = _positions(simploid.simploid_type, degree)[_canonical_index(simploid.simploid_type, index)]
+        except (KeyError, TypeError, ValueError):
             raise ValueError(f"{index!r} is not a control point index of {simploid!r} with degree {degree}.") from None
         return self.control_point_rows(simploid)[pos]
 

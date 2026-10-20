@@ -27,8 +27,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import torch  # noqa: E402
 
+from torch_bsf import fit  # noqa: E402
 from torch_bsf.plotting import plot_bezier_simploid, plot_simploidal_bezier_space  # noqa: E402
-from torch_bsf.simploidal import BezierSimploid, SimploidalSet, fit_simploid, fit_simploidal_set, sample_simploid  # noqa: E402
+from torch_bsf.simploidal import BezierSimploid, SimploidalSet, fit_simploidal_set, sample_simploid  # noqa: E402
 
 
 def height(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
@@ -41,7 +42,7 @@ def square_patch() -> BezierSimploid:
     t = sample_simploid((1, 1), 200, seed=0)
     x, y = t[:, 1], t[:, 3]
     values = torch.stack([x, y, 0.5 * ((2 * x - 1) ** 2 - (2 * y - 1) ** 2)], dim=1)
-    return fit_simploid(t, values, simploid_type=(1, 1), degree=2)
+    return fit(t, values, simploid_type=(1, 1), degree=2)
 
 
 def prism() -> BezierSimploid:
@@ -54,7 +55,7 @@ def prism() -> BezierSimploid:
         [px * torch.cos(angle) - py * torch.sin(angle), px * torch.sin(angle) + py * torch.cos(angle), h],
         dim=1,
     )
-    return fit_simploid(t, values, simploid_type=(2, 1), degree=2)
+    return fit(t, values, simploid_type=(2, 1), degree=2)
 
 
 def triangle_and_square():
