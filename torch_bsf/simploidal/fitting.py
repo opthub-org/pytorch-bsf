@@ -24,6 +24,7 @@ Laplacian is :math:`L = D^\top D`, the ``"lstsq"`` solver minimizes :math:`nm` t
 for the free rows, as the stacked least-squares problem with matrix :math:`[A; \sqrt{nm\,w}\,D]`.
 """
 
+import copy
 from typing import Any, Iterable, Literal, Mapping, Sequence, TypeAlias, cast
 
 import lightning.pytorch as L
@@ -137,11 +138,13 @@ def _solve(
     frozen: torch.Tensor,
 ) -> torch.Tensor:
     """The exact minimizer of the objective (see the module docstring) over the rows not in ``frozen``."""
-    current = _parameter(model).detach().cpu().double()
+    # Build the design matrix on the CPU in double precision, whatever the device and dtype of the model;
+    # move the inputs first, since some devices (e.g., MPS) do not support float64.
+    if _parameter(model).device.type != "cpu":
+        model = copy.deepcopy(model).cpu()
+    current = _parameter(model).detach().double()
     free = torch.ones(len(current), dtype=torch.bool)
     free[frozen] = False
-    # Build the design matrix on the CPU in double precision, whatever the dtype of the model;
-    # move the inputs first, since some devices (e.g., MPS) do not support float64.
     a = model.design_matrix(*(x.cpu().double() if x.is_floating_point() else x.cpu() for x in inputs)).detach()
     y = values.detach().cpu().double() - a[:, ~free] @ current[~free]
     a = a[:, free]

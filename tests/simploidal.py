@@ -1131,6 +1131,17 @@ def test_fit_lstsq_accepts_mps_inputs():
     assert torch.allclose(space.evaluate(tri, t), x, atol=1e-5)
 
 
+@pytest.mark.skipif(not torch.backends.mps.is_available(), reason="MPS is not available")
+def test_fit_lstsq_accepts_mps_init():
+    """The exact solver builds the design matrix on the CPU even if init is on another device."""
+    t = sample_simploid((2,), 30, seed=0)
+    x = t[:, :1] * t[:, 1:2]
+    init = BezierSimploid.zeros((2,), 2, n_values=1).to("mps")
+    bs = fit_simploid(t, x, (2,), 2, init=init, freeze=[((2, 0, 0),)])
+    assert bs.control_points.device.type == "mps"
+    assert torch.allclose(bs.cpu()(t), x, atol=1e-5)
+
+
 def test_public_exports():
     for name in ["BezierSimploid", "Simploid", "SimploidalSet", "SimploidalBezierSpace", "fit_simploid", "fit_simploidal_set"]:
         assert hasattr(torch_bsf, name)
