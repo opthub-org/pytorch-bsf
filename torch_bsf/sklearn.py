@@ -13,7 +13,8 @@ except ImportError:
     _sklearn_available = False
 
 from torch_bsf.bezier_simplex import BezierSimplex, ControlPointsData, Index, fit
-from torch_bsf.simploidal import _solve_least_squares, fit_simploid
+from torch_bsf.simploidal import fit_simploid
+from torch_bsf.simploidal.fitting import _solve_least_squares
 
 
 def _check_sklearn() -> None:

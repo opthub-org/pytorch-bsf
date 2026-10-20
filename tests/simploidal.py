@@ -128,13 +128,125 @@ def test_bezier_simploid_init_errors():
         BezierSimploid((1,), 1, torch.zeros(3, 1))
 
 
-def test_bezier_simploid_hparams_rebuild():
+def test_models_are_plain_modules():
+    import lightning.pytorch as L
+
+    S = SimploidalSet()
+    S.add_simplex(2)
+    for model in (BezierSimploid.zeros((2, 1), 2, n_values=3), SimploidalBezierSpace(S, 2, n_values=1)):
+        assert isinstance(model, torch.nn.Module)
+        assert not isinstance(model, L.LightningModule)
+
+
+def test_bezier_simploid_state_dict_rebuild():
     bsd = BezierSimploid.randn((2, 1), 2, n_values=3)
-    rebuilt = BezierSimploid(**bsd.hparams)
-    assert rebuilt.control_points.shape == bsd.control_points.shape
+    assert list(bsd.state_dict()) == ["control_points"]  # the cached basis is not persistent
+    rebuilt = BezierSimploid(bsd.simploid_type, bsd.degree, n_values=bsd.n_values)
     rebuilt.load_state_dict(bsd.state_dict())
     t = sample_simploid((2, 1), 5, seed=0)
     assert torch.equal(rebuilt(t), bsd(t))
+
+
+def test_bezier_simploid_forward_uses_cached_basis(monkeypatch):
+    """forward rebuilds neither the multi-indices nor the multinomial coefficients."""
+    import torch_bsf.simploidal.combinatorics as comb_module
+
+    bsd = BezierSimploid.randn((2, 1), 3, n_values=2)
+    t = sample_simploid((2, 1), 5, seed=0)
+    expected = bernstein_basis((2, 1), 3, t) @ bsd.control_points
+
+    def fail(*args, **kwargs):
+        raise AssertionError("the basis tables must not be rebuilt")
+
+    for name in ("simplex_indices", "polynom", "_factor_tables", "_factor_tensors"):
+        monkeypatch.setattr(comb_module, name, fail)
+    assert torch.allclose(bsd(t), expected)
+
+
+def test_bezier_simploid_cached_basis_follows_dtype():
+    bsd = BezierSimploid.randn((2, 1), 2, n_values=2).double()
+    t = sample_simploid((2, 1), 5, seed=0).double()
+    assert bsd.design_matrix(t).dtype == torch.float64
+    assert bsd(t).dtype == torch.float64
+    assert torch.allclose(bsd(t), bernstein_basis((2, 1), 2, t) @ bsd.control_points)
+
+
+def test_bezier_simploid_design_matrix_errors():
+    bsd = BezierSimploid.randn((2, 1), 2, n_values=2)
+    with pytest.raises(ValueError):
+        bsd.design_matrix(torch.zeros(3, 4))
+    assert bsd.design_matrix(torch.ones(1, 5, dtype=torch.long)).dtype == torch.get_default_dtype()
+
+
+@pytest.mark.parametrize("n_params", [2, 3, 4])
+@pytest.mark.parametrize("degree", [0, 1, 3])
+def test_bezier_simploid_of_one_factor_matches_bezier_simplex(n_params, degree):
+    simplex = torch_bsf.bezier_simplex.randn(n_params=n_params, n_values=2, degree=degree)
+    rows = [simplex.control_points[index] for index in simplex.control_points.indices()]
+    simploid = BezierSimploid((n_params - 1,), degree, torch.stack(rows).detach())
+    t = sample_simploid((n_params - 1,), 20, seed=0)
+    assert torch.allclose(simploid(t), simplex(t), atol=1e-6)
+
+
+def test_space_design_matrix_matches_forward():
+    S, mains = _glued_set()
+    space = _random_space(S, 2, n_values=2)
+    width = max(simploid_n_params(s.simploid_type) for s in mains)
+    ts, ids = [], []
+    for k, s in enumerate(mains):
+        t = sample_simploid(s.simploid_type, 4, seed=k)
+        ts.append(torch.nn.functional.pad(t, (0, width - t.shape[1])))
+        ids.append(torch.full((4,), space.simploid_id(s)))
+    t, sid = torch.cat(ts), torch.cat(ids)
+    design = space.design_matrix(t, sid)
+    assert design.shape == (len(t), space.n_proper_control_points)
+    assert torch.allclose(design @ space.proper_control_points, space(t, sid), atol=1e-6)
+
+
+def test_solvers_share_one_code_path(monkeypatch):
+    """fit_simploid and fit_simploidal_set hand every model to the same solver function."""
+    import torch_bsf.simploidal.fitting as fitting
+
+    seen = []
+    original = fitting._fit
+
+    def spy(model, *args, **kwargs):
+        seen.append(type(model))
+        return original(model, *args, **kwargs)
+
+    monkeypatch.setattr(fitting, "_fit", spy)
+    t = sample_simploid((2,), 20, seed=0)
+    fit_simploid(t, t[:, :1], (2,), 2)
+    S = SimploidalSet()
+    tri = S.add_simplex(2)
+    fit_simploidal_set(S, [(tri, t, t[:, :1])], 2)
+    assert seen == [BezierSimploid, SimploidalBezierSpace]
+
+
+TRAINER_CONVERGENCE_KWARGS = dict(max_epochs=10, enable_progress_bar=False, logger=False, enable_checkpointing=False)
+
+
+def test_fit_simploid_trainer_converges_to_lstsq():
+    truth = BezierSimploid.randn((2, 1), 2, n_values=2)
+    t = sample_simploid((2, 1), 200, seed=0)
+    x = truth(t).detach() + 0.01 * torch.randn(200, 2, generator=torch.Generator().manual_seed(0))
+    exact = fit_simploid(t, x, (2, 1), 2)
+    trained = fit_simploid(t, x, (2, 1), 2, solver="trainer", seed=0, **TRAINER_CONVERGENCE_KWARGS)
+    assert torch.allclose(trained.control_points, exact.control_points, atol=1e-3)
+
+
+def test_fit_simploidal_set_trainer_converges_to_lstsq():
+    S = SimploidalSet()
+    tri, sq = S.add_simplex(2), S.add_simploid((1, 1))
+    S.identify(tri.face(0, 2), sq.face(1, 1))
+    data = []
+    for k, s in enumerate([tri, sq]):
+        t = sample_simploid(s.simploid_type, 100, seed=k)
+        noise = 0.01 * torch.randn(100, 2, generator=torch.Generator().manual_seed(k))
+        data.append((s, t, torch.sin(3 * t[:, :2]) + noise))
+    exact = fit_simploidal_set(S, data, 2)
+    trained = fit_simploidal_set(S, data, 2, solver="trainer", seed=0, **TRAINER_CONVERGENCE_KWARGS)
+    assert torch.allclose(trained.proper_control_points, exact.proper_control_points, atol=1e-3)
 
 
 @pytest.mark.parametrize("simploid_type", [t for t in TYPES if t])
@@ -289,7 +401,7 @@ def test_degenerate_simploids_are_canonical():
 
 
 def test_degenerate_simploids_satisfy_commutation():
-    from torch_bsf.simploidal import _check_commutation
+    from torch_bsf.simploidal.sets import _check_commutation
 
     S = SimploidalSet()
     prism = S.add_simploid((2, 1))
@@ -574,7 +686,7 @@ def test_homology_errors():
 
 
 def test_rank_is_exact():
-    from torch_bsf.simploidal import _rank
+    from torch_bsf.simploidal.sets import _rank
 
     m = torch.tensor([[2, 4, 6], [1, 2, 3], [0, 0, 0], [3, 1, 2]])
     assert _rank(m, None) == 2
@@ -1073,28 +1185,23 @@ def test_lightning_validation_and_test_steps():
     import lightning.pytorch as L
     from torch.utils.data import DataLoader, TensorDataset
 
+    from torch_bsf.simploidal.fitting import _LightningWrapper
+
     trainer = L.Trainer(accelerator="cpu", enable_progress_bar=False, logger=False, enable_model_summary=False)
     t = sample_simploid((2, 1), 10, seed=0)
     bsd = BezierSimploid.randn((2, 1), 1, n_values=1)
     dl = DataLoader(TensorDataset(t, bsd(t).detach()))
-    assert trainer.validate(bsd, dl, verbose=False)[0]["val_mse"] < 1e-10
-    assert trainer.test(bsd, dl, verbose=False)[0]["test_mse"] < 1e-10
+    assert trainer.validate(_LightningWrapper(bsd), dl, verbose=False)[0]["val_mse"] < 1e-10
+    assert trainer.test(_LightningWrapper(bsd), dl, verbose=False)[0]["test_mse"] < 1e-10
 
     S = SimploidalSet()
     tri = S.add_simplex(2)
     space = _random_space(S, 1, n_values=1)
     p = sample_simploid((2,), 10, seed=0)
     ids = torch.full((10,), space.simploid_id(tri))
-    dl = DataLoader(TensorDataset(ids, p, space.evaluate(tri, p).detach()))
-    assert trainer.validate(space, dl, verbose=False)[0]["val_mae"] < 1e-5
-    assert trainer.test(space, dl, verbose=False)[0]["test_mae"] < 1e-5
-
-
-def test_least_squares_module_requires_predict_batch():
-    from torch_bsf.simploidal import _LeastSquaresModule
-
-    with pytest.raises(NotImplementedError):
-        _LeastSquaresModule()._predict_batch(None)
+    dl = DataLoader(TensorDataset(p, ids, space.evaluate(tri, p).detach()))
+    assert trainer.validate(_LightningWrapper(space), dl, verbose=False)[0]["val_mae"] < 1e-5
+    assert trainer.test(_LightningWrapper(space), dl, verbose=False)[0]["test_mae"] < 1e-5
 
 
 def test_bezier_simploid_constructors_and_properties():
@@ -1217,3 +1324,13 @@ def test_load_rejects_bezier_simplex_files(tmp_path):
 def test_save_unknown_file_type(tmp_path):
     with pytest.raises(ValueError, match="Unknown file type"):
         torch_bsf.simploidal.save(tmp_path / "model.txt", BezierSimploid.zeros((1,), 1, 1))
+
+
+def test_bezier_simploid_pickles_under_public_path():
+    import pickle
+
+    bsd = BezierSimploid.randn((2, 1), 2, n_values=2)
+    assert type(bsd).__module__ == "torch_bsf.simploidal"
+    restored = pickle.loads(pickle.dumps(bsd))
+    t = sample_simploid((2, 1), 5, seed=0)
+    assert torch.equal(restored(t), bsd(t))
