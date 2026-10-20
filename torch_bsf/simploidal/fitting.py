@@ -1,11 +1,30 @@
 r"""Fitting Bézier simploids and simploidal Bézier spaces to data.
 
-Both models are linear in a single parameter matrix (the control points, or the proper control points
-of a space): ``model(*inputs) == model.design_matrix(*inputs) @ parameter``.  The solvers below rely
-on this interface only, so every model is fitted by the same code.
+Both models are linear in a single parameter matrix :math:`P` (the control points, or the proper control
+points of a space): ``model(*inputs) == model.design_matrix(*inputs) @ P``, and both list the pairs of
+adjacent rows of :math:`P` with ``model.adjacency()``.  The solvers below rely on this interface only,
+so every model is fitted by the same code.
+
+Given ``n`` samples with ``m`` values each, the design matrix :math:`A` and the targets :math:`Y`, both
+solvers minimize the mean squared error plus the smoothness penalty
+
+.. math::
+
+   \frac{1}{nm} \|A P - Y\|^2 + w \sum_{(p, q)} \|P_p - P_q\|^2
+
+over the pairs :math:`(p, q)` of adjacent rows, with the frozen rows of :math:`P` held fixed.
+Writing the sum as :math:`\|D P\|^2` with the incidence matrix :math:`D` of the adjacency graph, whose
+Laplacian is :math:`L = D^\top D`, the ``"lstsq"`` solver minimizes :math:`nm` times this objective
+(plus :math:`\mathrm{ridge}\,\|P\|^2`) exactly, i.e., it solves
+
+.. math::
+
+   (A^\top A + nm\,w\,L + \mathrm{ridge}\,I)\,P = A^\top Y
+
+for the free rows, as the stacked least-squares problem with matrix :math:`[A; \sqrt{nm\,w}\,D]`.
 """
 
-from typing import Any, Literal, Sequence, TypeAlias, cast
+from typing import Any, Iterable, Literal, Mapping, Sequence, TypeAlias, cast
 
 import lightning.pytorch as L
 import torch
@@ -14,7 +33,7 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader, TensorDataset
 
 from torch_bsf.simploidal.bezier import BezierSimploid
-from torch_bsf.simploidal.combinatorics import _check_degree, _check_type, simploid_n_params
+from torch_bsf.simploidal.combinatorics import SimploidIndex, _check_degree, _check_type, simploid_n_params
 from torch_bsf.simploidal.sets import Simploid, SimploidalSet
 from torch_bsf.simploidal.space import DegreeAssignment, SimploidalBezierSpace
 
@@ -41,15 +60,24 @@ def _parameter(model: _LinearBezierModel) -> nn.Parameter:
     return parameter
 
 
-class _LightningWrapper(L.LightningModule):
-    """Trains a linear Bézier model with :class:`lightning.pytorch.Trainer` by minimizing the mean squared error.
+def _smoothness_penalty(parameter: torch.Tensor, adjacency: torch.Tensor) -> torch.Tensor:
+    r"""The sum :math:`\sum_{(p, q)} \|P_p - P_q\|^2` over the pairs of adjacent rows."""
+    return (parameter[adjacency[:, 0]] - parameter[adjacency[:, 1]]).pow(2).sum()
 
+
+class _LightningWrapper(L.LightningModule):
+    """Trains a linear Bézier model with :class:`lightning.pytorch.Trainer`.
+
+    The training loss is the mean squared error plus ``smoothness_weight`` times the smoothness penalty.
     A batch is ``(*inputs, values)``, where ``inputs`` are the arguments of the model's ``forward``.
     """
 
-    def __init__(self, model: nn.Module):
+    def __init__(self, model: nn.Module, smoothness_weight: float = 0.0):
         super().__init__()
         self.model = model
+        self.smoothness_weight = smoothness_weight
+        if smoothness_weight > 0:
+            self.register_buffer("adjacency", cast(_LinearBezierModel, model).adjacency(), persistent=False)
 
     def _predict_batch(self, batch: Sequence[torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
         *inputs, y = batch
@@ -58,8 +86,13 @@ class _LightningWrapper(L.LightningModule):
     def training_step(self, batch, batch_idx) -> dict[str, Any]:
         y_hat, y = self._predict_batch(batch)
         mse = F.mse_loss(y_hat, y)
+        loss = mse
+        if self.smoothness_weight > 0:
+            parameter = _parameter(cast(_LinearBezierModel, self.model))
+            loss = mse + self.smoothness_weight * _smoothness_penalty(parameter, cast(torch.Tensor, self.adjacency))
         self.log("train_mse", mse, sync_dist=True)
-        return {"loss": mse}
+        self.log("train_loss", loss, sync_dist=True)
+        return {"loss": loss}
 
     def validation_step(self, batch, batch_idx) -> None:
         y_hat, y = self._predict_batch(batch)
@@ -77,36 +110,87 @@ class _LightningWrapper(L.LightningModule):
         return torch.optim.LBFGS(self.model.parameters())
 
 
-def _check_solver(solver: str, ridge: float) -> None:
+def _check_solver(solver: str, ridge: float, smoothness_weight: float) -> None:
     if solver not in ("lstsq", "trainer"):
         raise ValueError(f"Unknown solver {solver!r}.")
     if ridge and solver != "lstsq":
         raise ValueError("ridge is supported only by the 'lstsq' solver.")
+    if smoothness_weight < 0:
+        raise ValueError(f"smoothness_weight must be non-negative, but {smoothness_weight} is given.")
+
+
+def _incidence(adjacency: torch.Tensor, n_rows: int) -> torch.Tensor:
+    """The incidence matrix ``D`` (``+1`` at ``p``, ``-1`` at ``q`` for each pair), in double precision."""
+    d = torch.zeros(len(adjacency), n_rows, dtype=torch.float64)
+    edges = torch.arange(len(adjacency))
+    d[edges, adjacency[:, 0].cpu()] = 1.0
+    d[edges, adjacency[:, 1].cpu()] = -1.0
+    return d
+
+
+def _solve(
+    model: _LinearBezierModel,
+    inputs: Sequence[torch.Tensor],
+    values: torch.Tensor,
+    ridge: float,
+    smoothness_weight: float,
+    frozen: torch.Tensor,
+) -> torch.Tensor:
+    """The exact minimizer of the objective (see the module docstring) over the rows not in ``frozen``."""
+    current = _parameter(model).detach().cpu().double()
+    free = torch.ones(len(current), dtype=torch.bool)
+    free[frozen] = False
+    # Build the design matrix on the CPU in double precision, whatever the dtype of the model;
+    # move the inputs first, since some devices (e.g., MPS) do not support float64.
+    a = model.design_matrix(*(x.cpu().double() if x.is_floating_point() else x.cpu() for x in inputs)).detach()
+    y = values.detach().cpu().double() - a[:, ~free] @ current[~free]
+    a = a[:, free]
+    if smoothness_weight > 0:
+        d = _incidence(model.adjacency(), len(current)) * (values.numel() * smoothness_weight) ** 0.5
+        a = torch.cat([a, d[:, free]])
+        y = torch.cat([y, -d[:, ~free] @ current[~free]])
+    solution = current.clone()
+    if free.any():
+        solution[free] = _solve_least_squares(a, y, ridge)
+    return solution
 
 
 def _fit(
     model: _LinearBezierModel,
     inputs: Sequence[torch.Tensor],
     values: torch.Tensor,
+    *,
     solver: Solver,
     ridge: float,
+    smoothness_weight: float,
+    frozen: Sequence[int],
     batch_size: int | None,
     kwargs: dict[str, Any],
 ) -> None:
-    """Fits the parameter of a linear Bézier model to ``values`` at ``inputs`` in place."""
-    _check_solver(solver, ridge)
+    """Fits the parameter of a linear Bézier model to ``values`` at ``inputs`` in place.
+
+    The rows in ``frozen`` keep their current values.
+    """
+    _check_solver(solver, ridge, smoothness_weight)
     parameter = _parameter(model)
+    rows = torch.tensor(sorted(set(frozen)), dtype=torch.long)
     if solver == "lstsq":
-        # Build the design matrix on the CPU in double precision, whatever the dtype of the model;
-        # move the inputs first, since some devices (e.g., MPS) do not support float64.
-        design = model.design_matrix(*(x.cpu().double() if x.is_floating_point() else x.cpu() for x in inputs))
-        solution = _solve_least_squares(design, values, ridge)
+        solution = _solve(model, inputs, values, ridge, smoothness_weight, rows)
         with torch.no_grad():
             parameter.copy_(solution.to(parameter))
         return
     dataset = TensorDataset(*inputs, values.to(parameter.dtype))
     dl = DataLoader(dataset, batch_size=batch_size or len(dataset))
-    L.Trainer(**kwargs).fit(_LightningWrapper(model), dl)
+    mask = torch.zeros(len(parameter), 1, dtype=torch.bool)
+    mask[rows] = True
+    # Zeroing the gradient of the frozen rows keeps them fixed under LBFGS, whose steps are built from gradients.
+    # The trainer may move the model to another device, so the mask follows the gradient.
+    handle = parameter.register_hook(lambda grad: grad.masked_fill(mask.to(grad.device), 0.0)) if len(rows) else None
+    try:
+        L.Trainer(**kwargs).fit(_LightningWrapper(cast(nn.Module, model), smoothness_weight), dl)
+    finally:
+        if handle is not None:
+            handle.remove()
 
 
 def _floating_dtype(tensors: Sequence[torch.Tensor]) -> torch.dtype:
@@ -133,6 +217,9 @@ def fit_simploid(
     simploid_type: Sequence[int],
     degree: int | Sequence[int],
     *,
+    init: BezierSimploid | torch.Tensor | Mapping[SimploidIndex, Sequence[float] | torch.Tensor] | None = None,
+    freeze: Iterable[SimploidIndex] | None = None,
+    smoothness_weight: float = 0.0,
     solver: Solver = "lstsq",
     ridge: float = 0.0,
     batch_size: int | None = None,
@@ -141,8 +228,11 @@ def fit_simploid(
 ) -> BezierSimploid:
     r"""Fits a Bézier simploid to data.
 
-    The control points minimize the squared error
-    :math:`\sum_k \|B(\mathbf t_k) - \mathbf x_k\|^2`.
+    The control points minimize the mean squared error
+    :math:`\frac{1}{nm} \sum_k \|B(\mathbf t_k) - \mathbf x_k\|^2` plus ``smoothness_weight`` times
+    the sum of :math:`\|P_p - P_q\|^2` over the adjacent control points (see
+    :meth:`BezierSimploid.adjacency`), where ``n`` is the number of samples and ``m`` that of values.
+    Both solvers minimize this objective; ``"lstsq"`` does so exactly (see :mod:`torch_bsf.simploidal.fitting`).
 
     Parameters
     ----------
@@ -154,11 +244,20 @@ def fit_simploid(
         The type :math:`(a_1, \ldots, a_n)`.
     degree
         The degree of every factor, or one degree per factor.
+    init
+        Initial control points: a Bézier simploid of the same type, degree and number of values,
+        or control points as accepted by :class:`BezierSimploid`.  ``"trainer"`` starts from them
+        (from random control points if ``None``); ``"lstsq"`` uses them only for the frozen rows.
+    freeze
+        Indices of control points that keep their values in ``init``, which is then required.
+    smoothness_weight
+        The weight :math:`w \ge 0` of the smoothness penalty.
     solver
         ``"lstsq"`` solves the (linear) least-squares problem exactly;
-        ``"trainer"`` trains with :class:`lightning.pytorch.Trainer` from random control points.
+        ``"trainer"`` trains with :class:`lightning.pytorch.Trainer`.
     ridge
-        Weight of the Tikhonov penalty :math:`\mathrm{ridge}\,\|P\|^2` (``"lstsq"`` only).
+        Weight of the Tikhonov penalty :math:`\mathrm{ridge}\,\|P\|^2` on the free control points,
+        added to :math:`nm` times the objective (``"lstsq"`` only).
         Without it, under-determined problems get the minimum-norm solution.
     batch_size
         Minibatch size for ``"trainer"`` (full batch by default).
@@ -180,18 +279,64 @@ def fit_simploid(
     >>> bs = fit_simploid(t, x, (2, 1), degree=(1, 1))
     >>> torch.allclose(bs(t), x, atol=1e-5)
     True
+
+    Keep the control point at a vertex and smooth the others:
+
+    >>> init = fit_simploid(t, x, (2, 1), degree=2)
+    >>> vertex = ((2, 0, 0), (2, 0))
+    >>> with torch.no_grad():
+    ...     _ = init[vertex].fill_(1.0)
+    >>> bs = fit_simploid(t, x, (2, 1), degree=2, init=init, freeze=[vertex], smoothness_weight=0.01)
+    >>> bs[vertex].tolist()
+    [1.0, 1.0, 1.0]
     """
     st = _check_type(simploid_type)
     ds = _check_degree(degree, len(st))
     _check_values(params, values, simploid_n_params(st))
-    _check_solver(solver, ridge)
+    _check_solver(solver, ridge, smoothness_weight)
     if solver == "trainer" and seed is not None:
         L.seed_everything(seed)
     n_values = int(values.shape[1])
-    model = BezierSimploid.randn(st, ds, n_values) if solver == "trainer" else BezierSimploid.zeros(st, ds, n_values)
+    if init is not None:
+        model = _init_simploid(init, st, ds, n_values)
+    elif freeze is not None:
+        raise ValueError("init is required when freeze is given.")
+    else:
+        model = BezierSimploid.randn(st, ds, n_values) if solver == "trainer" else BezierSimploid.zeros(st, ds, n_values)
+    frozen = [model.row(index) for index in freeze or ()]
     dtype = _floating_dtype([values] if values.is_floating_point() else [params])
     model = model.to(dtype)
-    _fit(model, [params], values, solver, ridge, batch_size, kwargs)
+    _fit(
+        model,
+        [params],
+        values,
+        solver=solver,
+        ridge=ridge,
+        smoothness_weight=smoothness_weight,
+        frozen=frozen,
+        batch_size=batch_size,
+        kwargs=kwargs,
+    )
+    return model
+
+
+def _init_simploid(
+    init: BezierSimploid | torch.Tensor | Mapping[SimploidIndex, Sequence[float] | torch.Tensor],
+    simploid_type: tuple[int, ...],
+    degree: tuple[int, ...],
+    n_values: int,
+) -> BezierSimploid:
+    """A copy of the initial control points as a Bézier simploid, checked against the fitted shape."""
+    if isinstance(init, BezierSimploid):
+        if (init.simploid_type, init.degree) != (simploid_type, degree):
+            raise ValueError(
+                f"init has type {init.simploid_type} and degree {init.degree}, "
+                f"but type {simploid_type} and degree {degree} are fitted."
+            )
+        init = init.control_points.detach()
+    model = BezierSimploid(simploid_type, degree, init)
+    if model.n_values != n_values:
+        raise ValueError(f"init has {model.n_values} values, but values have {n_values} columns.")
     return model
 
 
@@ -215,6 +360,9 @@ def fit_simploidal_set(
     degree: DegreeAssignment,
     *,
     default_degree: int | None = None,
+    init: SimploidalBezierSpace | torch.Tensor | None = None,
+    freeze: Iterable[tuple[Simploid, SimploidIndex]] | None = None,
+    smoothness_weight: float = 0.0,
     solver: Solver = "lstsq",
     ridge: float = 0.0,
     batch_size: int | None = None,
@@ -227,7 +375,9 @@ def fit_simploidal_set(
     and given in that simploid's parameters.  Since simploids sharing a face
     share its control points, all pieces are fitted jointly and the result is
     continuous across shared faces.  The proper control points minimize the
-    total squared error over all samples.
+    mean squared error over all samples plus ``smoothness_weight`` times the
+    sum of :math:`\|P_p - P_q\|^2` over the adjacent stored control points
+    (see :meth:`SimploidalBezierSpace.adjacency`), as in :func:`fit_simploid`.
 
     Parameters
     ----------
@@ -242,12 +392,22 @@ def fit_simploidal_set(
         non-degenerate simploids to their degrees; see :class:`SimploidalBezierSpace`.
     default_degree
         The degree of the factors left undetermined by a ``degree`` mapping.
+    init
+        Initial proper control points: a space with the same number of them, or a tensor of shape
+        ``(n_proper_control_points, n_values)``.  ``"trainer"`` starts from them (from zero control
+        points if ``None``); ``"lstsq"`` uses them only for the frozen rows.
+    freeze
+        Control points that keep their values in ``init``, which is then required, given as pairs
+        ``(simploid, index)`` of any simploid of the set and a control point index of its Bézier simploid.
+    smoothness_weight
+        The weight :math:`w \ge 0` of the smoothness penalty.
     solver
         ``"lstsq"`` solves the (linear) least-squares problem exactly;
-        ``"trainer"`` trains with :class:`lightning.pytorch.Trainer` from zero control points.
+        ``"trainer"`` trains with :class:`lightning.pytorch.Trainer`.
     ridge
-        Weight of the Tikhonov penalty :math:`\mathrm{ridge}\,\|P\|^2` on the proper control points
-        (``"lstsq"`` only).  Without it, under-determined problems get the minimum-norm solution.
+        Weight of the Tikhonov penalty :math:`\mathrm{ridge}\,\|P\|^2` on the free proper control points,
+        added to :math:`nm` times the objective (``"lstsq"`` only).
+        Without it, under-determined problems get the minimum-norm solution.
     batch_size
         Minibatch size for ``"trainer"`` (full batch by default).
     seed
@@ -289,8 +449,13 @@ def fit_simploidal_set(
     space = SimploidalBezierSpace(simploidal_set, degree, n_values, default_degree=default_degree)
     samples = _normalize_data(space, data)
     dtype = _floating_dtype([v for _, _, v in samples])
+    _check_solver(solver, ridge, smoothness_weight)
+    if init is not None:
+        _init_space(space, init)
+    elif freeze is not None:
+        raise ValueError("init is required when freeze is given.")
+    frozen = [space.row(simploid, index) for simploid, index in freeze or ()]
     space = space.to(dtype)
-    _check_solver(solver, ridge)
     if solver == "trainer" and seed is not None:
         L.seed_everything(seed)
     width = max(p.shape[1] for _, p, _ in samples)
@@ -298,5 +463,26 @@ def fit_simploidal_set(
     params_dtype = _floating_dtype([p for _, p, _ in samples])
     params = torch.cat([F.pad(p.to(params_dtype), (0, width - p.shape[1])) for _, p, _ in samples])
     values = torch.cat([v.to(dtype) for _, _, v in samples])
-    _fit(space, [params, ids], values, solver, ridge, batch_size, kwargs)
+    _fit(
+        space,
+        [params, ids],
+        values,
+        solver=solver,
+        ridge=ridge,
+        smoothness_weight=smoothness_weight,
+        frozen=frozen,
+        batch_size=batch_size,
+        kwargs=kwargs,
+    )
     return space
+
+
+def _init_space(space: SimploidalBezierSpace, init: SimploidalBezierSpace | torch.Tensor) -> None:
+    """Copies the initial proper control points into ``space``, checking their shape."""
+    points = init.proper_control_points if isinstance(init, SimploidalBezierSpace) else torch.as_tensor(init)
+    if tuple(points.shape) != tuple(space.proper_control_points.shape):
+        raise ValueError(
+            f"init must have shape {tuple(space.proper_control_points.shape)}, but {tuple(points.shape)} is given."
+        )
+    with torch.no_grad():
+        space.proper_control_points.copy_(points.detach())

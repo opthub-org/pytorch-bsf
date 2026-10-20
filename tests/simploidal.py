@@ -1347,3 +1347,237 @@ def test_bezier_simploid_pickles_under_public_path():
     restored = pickle.loads(pickle.dumps(bsd))
     t = sample_simploid((2, 1), 5, seed=0)
     assert torch.equal(restored(t), bsd(t))
+
+
+# ---------------------------------------------------------------------------
+# Smoothness penalty and frozen control points
+# ---------------------------------------------------------------------------
+
+
+def _laplacian(adjacency: torch.Tensor, n: int) -> torch.Tensor:
+    lap = torch.zeros(n, n, dtype=torch.float64)
+    for p, q in adjacency.tolist():
+        lap[p, p] += 1
+        lap[q, q] += 1
+        lap[p, q] -= 1
+        lap[q, p] -= 1
+    return lap
+
+
+def _noisy(x: torch.Tensor, seed: int = 0) -> torch.Tensor:
+    return x + 0.05 * torch.randn(x.shape, generator=torch.Generator().manual_seed(seed))
+
+
+@pytest.mark.parametrize("n_params", [2, 3, 4])
+@pytest.mark.parametrize("degree", [1, 2, 4])
+def test_adjacency_of_one_factor_matches_bezier_simplex(n_params, degree):
+    simplex = torch_bsf.bezier_simplex.randn(n_params=n_params, n_values=1, degree=degree, smoothness_weight=1.0)
+    indices = list(simplex.control_points.indices())
+    expected = {tuple(sorted((indices[p], indices[q]))) for p, q in simplex.adjacency_indices_.tolist()}
+    simploid = BezierSimploid.zeros((n_params - 1,), degree, n_values=1)
+    rows = [alpha[0] for alpha in simploid.indices()]
+    actual = {tuple(sorted((rows[p], rows[q]))) for p, q in simploid.adjacency().tolist()}
+    assert actual == expected
+    assert len(simploid.adjacency()) == len(simplex.adjacency_indices_)
+
+
+@pytest.mark.parametrize("simploid_type,degree", [((1, 1), 1), ((1, 1), (2, 3)), ((2, 1), 2), ((1, 1, 1), 1)])
+def test_adjacency_of_several_factors(simploid_type, degree):
+    """Adjacent control points differ in one factor by moving one unit between two components."""
+    bs = BezierSimploid.zeros(simploid_type, degree, n_values=1)
+    indices = bs.indices()
+
+    def adjacent(alpha, beta):
+        diffs = [k for k in range(len(alpha)) if alpha[k] != beta[k]]
+        if len(diffs) != 1:
+            return False
+        d = [u - v for u, v in zip(alpha[diffs[0]], beta[diffs[0]])]
+        return sorted(d) == [-1] + [0] * (len(d) - 2) + [1]
+
+    expected = [(p, q) for p in range(len(indices)) for q in range(p + 1, len(indices)) if adjacent(indices[p], indices[q])]
+    assert bs.adjacency().tolist() == [list(pq) for pq in expected]
+    if simploid_type == (1, 1) and degree == 1:  # the four edges of a bilinear patch
+        assert bs.adjacency().tolist() == [[0, 1], [0, 2], [1, 3], [2, 3]]
+
+
+def test_space_adjacency_counts_shared_faces_once():
+    S = SimploidalSet()
+    t1, t2 = S.add_simplex(2), S.add_simplex(2)
+    S.identify(t1.face(0, 0), t2.face(0, 0))
+    space = SimploidalBezierSpace(S, degree=2, n_values=1)
+    pairs = space.adjacency()
+    assert len({tuple(p) for p in pairs.tolist()}) == len(pairs)
+    assert bool((pairs[:, 0] < pairs[:, 1]).all())
+    one = BezierSimploid.zeros((2,), 2, n_values=1).adjacency()
+    shared = BezierSimploid.zeros((1,), 2, n_values=1).adjacency()
+    assert len(pairs) == 2 * len(one) - len(shared)
+    for s in (t1, t2):
+        rows = space.control_point_rows(s)
+        local = {tuple(sorted((rows[p], rows[q]))) for p, q in one.tolist()}
+        assert local <= {tuple(p) for p in pairs.tolist()}
+
+
+def test_fit_simploid_smoothness_is_exact():
+    t = sample_simploid((2, 1), 60, seed=0)
+    x = _noisy(torch.sin(3 * t[:, :2]))
+    w = 0.01
+    fitted = fit_simploid(t, x, (2, 1), 2, smoothness_weight=w)
+    a = bernstein_basis((2, 1), 2, t).double()
+    lap = _laplacian(fitted.adjacency(), a.shape[1])
+    expected = torch.linalg.solve(a.T @ a + x.numel() * w * lap, a.T @ x.double())
+    assert torch.allclose(fitted.control_points.double(), expected, atol=1e-5)
+    # The penalty does smooth the control net.
+    rough = fit_simploid(t, x, (2, 1), 2)
+    i, j = fitted.adjacency().T
+    assert (fitted.control_points[i] - fitted.control_points[j]).pow(2).sum() < (
+        rough.control_points[i] - rough.control_points[j]
+    ).pow(2).sum()
+
+
+def test_fit_simploid_smoothness_trainer_matches_lstsq():
+    t = sample_simploid((2, 1), 100, seed=0)
+    x = _noisy(torch.sin(3 * t[:, :2]))
+    exact = fit_simploid(t, x, (2, 1), 2, smoothness_weight=0.01)
+    trained = fit_simploid(t, x, (2, 1), 2, smoothness_weight=0.01, solver="trainer", seed=0, **TRAINER_CONVERGENCE_KWARGS)
+    assert torch.allclose(trained.control_points, exact.control_points, atol=1e-3)
+
+
+@pytest.mark.parametrize("solver", ["lstsq", "trainer"])
+@pytest.mark.parametrize("smoothness_weight", [0.0, 0.01])
+def test_fit_simploid_freeze_keeps_init(solver, smoothness_weight):
+    t = sample_simploid((2, 1), 60, seed=0)
+    x = _noisy(torch.sin(3 * t[:, :2]))
+    init = BezierSimploid.randn((2, 1), 2, n_values=2)
+    freeze = [((2, 0, 0), (2, 0)), ((0, 1, 1), (1, 1))]
+    kwargs = dict(seed=0, **TRAINER_KWARGS) if solver == "trainer" else {}
+    fitted = fit_simploid(
+        t, x, (2, 1), 2, init=init, freeze=freeze, smoothness_weight=smoothness_weight, solver=solver, **kwargs
+    )
+    for index in freeze:
+        assert torch.equal(fitted[index], init[index])
+    assert not torch.equal(fitted.control_points, init.control_points)
+    # The frozen rows are no longer masked once fitting is done.
+    fitted(t).sum().backward()
+    assert fitted.control_points.grad[fitted.row(freeze[0])].abs().sum() > 0
+
+
+def test_fit_simploid_freeze_is_exact():
+    """lstsq with frozen rows solves the reduced system for the free rows."""
+    t = sample_simploid((2,), 40, seed=0)
+    x = _noisy(t[:, :1] ** 2)
+    init = BezierSimploid.randn((2,), 3, n_values=1)
+    freeze = [((3, 0, 0),), ((0, 3, 0),), ((0, 0, 3),)]
+    w = 0.1
+    fitted = fit_simploid(t, x, (2,), 3, init=init, freeze=freeze, smoothness_weight=w)
+    a = bernstein_basis((2,), 3, t).double()
+    lap = _laplacian(fitted.adjacency(), a.shape[1])
+    frozen = torch.tensor([init.row(i) for i in freeze])
+    free = torch.ones(a.shape[1], dtype=torch.bool)
+    free[frozen] = False
+    p0 = init.control_points.detach().double()
+    c = x.numel() * w
+    lhs = a[:, free].T @ a[:, free] + c * lap[free][:, free]
+    rhs = a[:, free].T @ (x.double() - a[:, ~free] @ p0[~free]) - c * lap[free][:, ~free] @ p0[~free]
+    expected = torch.linalg.solve(lhs, rhs)
+    assert torch.allclose(fitted.control_points.double()[free], expected, atol=1e-5)
+
+
+def test_fit_simploid_init_without_freeze():
+    t = sample_simploid((1,), 30, seed=0)
+    x = t[:, :1]
+    init = {((1, 0),): [5.0], ((0, 1),): [5.0]}
+    assert torch.allclose(fit_simploid(t, x, (1,), 1, init=init).control_points, torch.tensor([[1.0], [0.0]]), atol=1e-5)
+    trained = fit_simploid(t, x, (1,), 1, init=torch.full((2, 1), 5.0), solver="trainer", max_epochs=0, logger=False)
+    assert torch.equal(trained.control_points, torch.full((2, 1), 5.0))  # no epoch: the trainer starts from init
+
+
+def test_fit_simploid_all_rows_frozen():
+    t = sample_simploid((1,), 10, seed=0)
+    init = BezierSimploid.randn((1,), 1, n_values=1)
+    fitted = fit_simploid(t, t[:, :1], (1,), 1, init=init, freeze=init.indices())
+    assert torch.equal(fitted.control_points, init.control_points)
+
+
+def test_fit_simploid_smoothness_and_freeze_errors():
+    t = sample_simploid((2,), 10, seed=0)
+    x = t[:, :1]
+    with pytest.raises(ValueError, match="init is required"):
+        fit_simploid(t, x, (2,), 2, freeze=[((2, 0, 0),)])
+    with pytest.raises(ValueError, match="smoothness_weight"):
+        fit_simploid(t, x, (2,), 2, smoothness_weight=-1.0)
+    init = BezierSimploid.zeros((2,), 2, n_values=1)
+    with pytest.raises(ValueError, match="not a control point index"):
+        fit_simploid(t, x, (2,), 2, init=init, freeze=[((3, 0, 0),)])
+    with pytest.raises(ValueError, match="not a control point index"):
+        fit_simploid(t, x, (2,), 2, init=init, freeze=[(2, 0, 0)])  # type: ignore[list-item]
+    with pytest.raises(ValueError, match="degree"):
+        fit_simploid(t, x, (2,), 3, init=init)
+    with pytest.raises(ValueError, match="values"):
+        fit_simploid(t, x, (2,), 2, init=BezierSimploid.zeros((2,), 2, n_values=2))
+
+
+def _two_triangles_with_data():
+    S = SimploidalSet()
+    t1, t2 = S.add_simplex(2), S.add_simplex(2)
+    S.identify(t1.face(0, 0), t2.face(0, 0))
+    data = []
+    for k, s in enumerate((t1, t2)):
+        p = sample_simploid((2,), 50, seed=k)
+        data.append((s, p, _noisy(torch.sin(3 * p[:, :2]), seed=k)))
+    return S, (t1, t2), data
+
+
+def _stacked(space, data):
+    width = max(p.shape[1] for _, p, _ in data)
+    t = torch.cat([torch.nn.functional.pad(p, (0, width - p.shape[1])) for _, p, _ in data])
+    ids = torch.cat([torch.full((len(p),), space.simploid_id(s)) for s, p, _ in data])
+    return t, ids, torch.cat([x for _, _, x in data])
+
+
+def test_fit_simploidal_set_smoothness_is_exact():
+    S, _, data = _two_triangles_with_data()
+    w = 0.01
+    space = fit_simploidal_set(S, data, 2, smoothness_weight=w)
+    t, ids, x = _stacked(space, data)
+    a = space.design_matrix(t.double(), ids)
+    lap = _laplacian(space.adjacency(), a.shape[1])
+    expected = torch.linalg.solve(a.T @ a + x.numel() * w * lap, a.T @ x.double())
+    assert torch.allclose(space.proper_control_points.double(), expected, atol=1e-5)
+
+
+def test_fit_simploidal_set_smoothness_trainer_matches_lstsq():
+    S, _, data = _two_triangles_with_data()
+    exact = fit_simploidal_set(S, data, 2, smoothness_weight=0.01)
+    trained = fit_simploidal_set(S, data, 2, smoothness_weight=0.01, solver="trainer", seed=0, **TRAINER_CONVERGENCE_KWARGS)
+    assert torch.allclose(trained.proper_control_points, exact.proper_control_points, atol=1e-3)
+
+
+@pytest.mark.parametrize("solver", ["lstsq", "trainer"])
+def test_fit_simploidal_set_freeze_keeps_init(solver):
+    S, (t1, t2), data = _two_triangles_with_data()
+    init = _random_space(S, 2, n_values=2)
+    shared = t1.face(0, 0)
+    freeze = [(t1, ((2, 0, 0),)), (shared, ((1, 1),)), (t2, ((1, 1, 0),))]
+    kwargs = dict(seed=0, **TRAINER_KWARGS) if solver == "trainer" else {}
+    space = fit_simploidal_set(S, data, 2, init=init, freeze=freeze, smoothness_weight=0.01, solver=solver, **kwargs)
+    for simploid, index in freeze:
+        row = space.row(simploid, index)
+        assert torch.equal(space.proper_control_points[row], init.proper_control_points[row])
+    assert not torch.equal(space.proper_control_points, init.proper_control_points)
+    # A tensor of proper control points is accepted as init too.
+    again = fit_simploidal_set(S, data, 2, init=init.proper_control_points.detach(), freeze=freeze, smoothness_weight=0.01)
+    if solver == "lstsq":
+        assert torch.allclose(again.proper_control_points, space.proper_control_points)
+
+
+def test_fit_simploidal_set_smoothness_and_freeze_errors():
+    S, (t1, _), data = _two_triangles_with_data()
+    with pytest.raises(ValueError, match="init is required"):
+        fit_simploidal_set(S, data, 2, freeze=[(t1, ((2, 0, 0),))])
+    with pytest.raises(ValueError, match="smoothness_weight"):
+        fit_simploidal_set(S, data, 2, smoothness_weight=-1.0)
+    init = _random_space(S, 2, n_values=2)
+    with pytest.raises(ValueError, match="not a control point index"):
+        fit_simploidal_set(S, data, 2, init=init, freeze=[(t1, ((3, 0, 0),))])
+    with pytest.raises(ValueError, match="shape"):
+        fit_simploidal_set(S, data, 2, init=torch.zeros(3, 2))

@@ -150,6 +150,32 @@ def _tensor_product_basis(t: torch.Tensor, factors: Sequence[tuple[torch.Tensor,
     return basis
 
 
+@lru_cache(maxsize=None)
+def _adjacent_pairs(simploid_type: SimploidType, degree: tuple[int, ...]) -> tuple[tuple[int, int], ...]:
+    """The pairs ``(p, q)``, ``p < q``, of positions of adjacent control points in :func:`simploid_indices` order.
+
+    Two control points are adjacent if their multi-indices differ in a single factor, by moving one unit
+    from one component to another (an :math:`L^1` distance of 2 in that factor).
+    """
+    pos = _positions(simploid_type, degree)
+    pairs = []
+    for alpha, p in pos.items():
+        for k, m in enumerate(alpha):
+            for i in range(len(m)):
+                if m[i] == 0:
+                    continue
+                for j in range(len(m)):
+                    if j == i:
+                        continue
+                    n = list(m)
+                    n[i] -= 1
+                    n[j] += 1
+                    q = pos[alpha[:k] + (tuple(n),) + alpha[k + 1 :]]
+                    if p < q:
+                        pairs.append((p, q))
+    return tuple(sorted(pairs))
+
+
 def sample_simploid(simploid_type: Sequence[int], n_samples: int, seed: int | None = None) -> torch.Tensor:
     r"""Samples points uniformly on a simploid.
 

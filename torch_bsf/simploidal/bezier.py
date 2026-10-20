@@ -8,6 +8,7 @@ import torch.nn as nn
 from torch_bsf.simploidal.combinatorics import (
     SimploidIndex,
     SimploidType,
+    _adjacent_pairs,
     _check_degree,
     _check_type,
     _factor_tensors,
@@ -184,6 +185,48 @@ class BezierSimploid(nn.Module):
             raise ValueError(f"t must have shape (batch, {self.n_params}), but {tuple(t.shape)} is given.")
         factors = [(getattr(self, f"_powers{k}"), getattr(self, f"_coeffs{k}")) for k in range(len(self._simploid_type))]
         return _tensor_product_basis(t, factors)
+
+    def row(self, index: SimploidIndex) -> int:
+        """The row of :attr:`control_points` holding the control point of an index.
+
+        Raises
+        ------
+        ValueError
+            If ``index`` is not a control point index of this Bézier simploid.
+        """
+        try:
+            return _positions(self._simploid_type, self._degree)[tuple(tuple(int(v) for v in m) for m in index)]
+        except (KeyError, TypeError):
+            raise ValueError(
+                f"{index!r} is not a control point index of a Bézier simploid of type {self._simploid_type} "
+                f"and degree {self._degree}."
+            ) from None
+
+    def adjacency(self) -> torch.Tensor:
+        r"""The pairs of adjacent control points, as rows of :attr:`control_points`.
+
+        Two control points are adjacent if their multi-indices differ in a single factor, by moving
+        one unit from one component to another.  For a Bézier simplex, these are the edges of its
+        control net.
+
+        Returns
+        -------
+        A tensor of shape ``(n_pairs, 2)`` whose rows ``(p, q)`` satisfy ``p < q``, in lexicographic order.
+
+        Examples
+        --------
+        >>> from torch_bsf.simploidal import BezierSimploid
+        >>> BezierSimploid.zeros((1,), 2, n_values=1).adjacency()
+        tensor([[0, 1],
+                [1, 2]])
+        >>> BezierSimploid.zeros((1, 1), 1, n_values=1).adjacency()
+        tensor([[0, 1],
+                [0, 2],
+                [1, 3],
+                [2, 3]])
+        """
+        pairs = _adjacent_pairs(self._simploid_type, self._degree)
+        return torch.tensor(pairs, dtype=torch.long, device=self.control_points.device).reshape(len(pairs), 2)
 
     def _derived(self, simploid_type: SimploidType, degree: tuple[int, ...], parent: list[SimploidIndex]) -> "BezierSimploid":
         pos = _positions(self._simploid_type, self._degree)

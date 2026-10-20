@@ -9,6 +9,7 @@ from torch_bsf.simploidal.bezier import BezierSimploid
 from torch_bsf.simploidal.combinatorics import (
     SimploidIndex,
     SimploidType,
+    _adjacent_pairs,
     _check_degree,
     _face_index,
     _indices,
@@ -327,6 +328,60 @@ class SimploidalBezierSpace(nn.Module):
             pos = _positions(f.simploid_type, face_degree)
             rows.append(self._rows_of(f, face_degree)[pos[_face_index(alpha, i, j)]])
         return rows
+
+    def row(self, simploid: Simploid, index: SimploidIndex) -> int:
+        """The row of :attr:`proper_control_points` holding a control point of a simploid.
+
+        Parameters
+        ----------
+        simploid
+            Any simploid of the set, degenerate or not.
+        index
+            A control point index of the Bézier simploid of ``simploid``.
+
+        Raises
+        ------
+        ValueError
+            If ``index`` is not a control point index of that Bézier simploid.
+        """
+        degree = self.simploid_degree(simploid)
+        try:
+            pos = _positions(simploid.simploid_type, degree)[tuple(tuple(int(v) for v in m) for m in index)]
+        except (KeyError, TypeError):
+            raise ValueError(f"{index!r} is not a control point index of {simploid!r} with degree {degree}.") from None
+        return self.control_point_rows(simploid)[pos]
+
+    def adjacency(self) -> torch.Tensor:
+        r"""The pairs of adjacent stored control points, as rows of :attr:`proper_control_points`.
+
+        Two stored control points are adjacent if they are adjacent in the control net of some
+        non-degenerate simploid (see :meth:`BezierSimploid.adjacency`).  A pair on a face shared by
+        several simploids is listed once.
+
+        Returns
+        -------
+        A tensor of shape ``(n_pairs, 2)`` whose rows ``(p, q)`` satisfy ``p < q``, in lexicographic order.
+
+        Examples
+        --------
+        Two segments glued at a vertex form a path of 5 control points with 4 adjacent pairs:
+
+        >>> from torch_bsf.simploidal import SimploidalSet, SimploidalBezierSpace
+        >>> S = SimploidalSet()
+        >>> e1, e2 = S.add_simplex(1), S.add_simplex(1)
+        >>> _ = S.identify(e1.face(0, 0), e2.face(0, 1))
+        >>> SimploidalBezierSpace(S, degree=2, n_values=1).adjacency().shape
+        torch.Size([4, 2])
+        """
+        pairs: set[tuple[int, int]] = set()
+        for s in self.simploids:
+            rows = self.control_point_rows(s)
+            for p, q in _adjacent_pairs(s.simploid_type, self._degrees[s]):
+                a, b = rows[p], rows[q]
+                if a != b:
+                    pairs.add((min(a, b), max(a, b)))
+        ordered = sorted(pairs)
+        return torch.tensor(ordered, dtype=torch.long, device=self.proper_control_points.device).reshape(len(ordered), 2)
 
     def control_points(self, simploid: Simploid) -> torch.Tensor:
         """The full control net of a simploid, of shape ``(n_indices, n_values)`` (differentiable)."""
