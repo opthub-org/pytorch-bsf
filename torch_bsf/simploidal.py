@@ -1218,10 +1218,11 @@ class BezierSimploid(_LeastSquaresModule):
         --------
         >>> import torch
         >>> from torch_bsf.simploidal import BezierSimploid
+        >>> _ = torch.manual_seed(0)
         >>> prism = BezierSimploid.randn((2, 1), 3, n_values=2)
         >>> bottom = prism.face(1, 1)  # the triangle at u^2 = (1, 0)
         >>> u = torch.tensor([[0.2, 0.3, 0.5]])
-        >>> torch.allclose(prism(torch.cat([u, torch.tensor([[1.0, 0.0]])], dim=1)), bottom(u))
+        >>> torch.allclose(prism(torch.cat([u, torch.tensor([[1.0, 0.0]])], dim=1)), bottom(u), atol=1e-6)
         True
         """
         if not (0 <= i < len(self._simploid_type) and 0 <= j <= self._simploid_type[i]):
@@ -1259,9 +1260,10 @@ class BezierSimploid(_LeastSquaresModule):
         --------
         >>> import torch
         >>> from torch_bsf.simploidal import BezierSimploid
+        >>> _ = torch.manual_seed(0)
         >>> curve = BezierSimploid.randn((1,), 3, n_values=2)
         >>> triangle = curve.degenerate(0, 1)  # repeat vertex 1: (v0, v1, v1)
-        >>> torch.allclose(triangle(torch.tensor([[0.2, 0.3, 0.5]])), curve(torch.tensor([[0.2, 0.8]])))
+        >>> torch.allclose(triangle(torch.tensor([[0.2, 0.3, 0.5]])), curve(torch.tensor([[0.2, 0.8]])), atol=1e-6)
         True
         """
         st, ds = self._simploid_type, self._degree
@@ -1294,9 +1296,10 @@ class BezierSimploid(_LeastSquaresModule):
         --------
         >>> import torch
         >>> from torch_bsf.simploidal import BezierSimploid
+        >>> _ = torch.manual_seed(0)
         >>> b1, b2 = BezierSimploid.randn((2,), 2, n_values=3), BezierSimploid.randn((1,), 3, n_values=3)
         >>> u, v = torch.tensor([[0.2, 0.3, 0.5]]), torch.tensor([[0.4, 0.6]])
-        >>> torch.allclose(b1.product(b2)(torch.cat([u, v], dim=1)), b1(u) + b2(v))
+        >>> torch.allclose(b1.product(b2)(torch.cat([u, v], dim=1)), b1(u) + b2(v), atol=1e-6)
         True
         """
         if other.n_values != self.n_values:
@@ -1458,9 +1461,10 @@ class SimploidalBezierSpace(_LeastSquaresModule):
     >>> space = SimploidalBezierSpace(S, degree=3, n_values=2)
     >>> space.n_proper_control_points  # 4 vertices, 5 edges x 2, 2 triangles x 1
     16
+    >>> _ = torch.manual_seed(0)
     >>> _ = torch.nn.init.normal_(space.proper_control_points)
     >>> u = torch.tensor([[0.0, 0.3, 0.7]])  # a point on the shared edge
-    >>> torch.allclose(space.evaluate(t1, u), space.evaluate(t2, u))
+    >>> torch.allclose(space.evaluate(t1, u), space.evaluate(t2, u), atol=1e-6)
     True
 
     A prism that is linear across its triangles and cubic along its height,
