@@ -255,6 +255,70 @@ def test_main_writes_meshgrids_of_every_fold(tmp_path, monkeypatch):
     np.testing.assert_allclose(np.loadtxt(f"{prefix}.csv", delimiter=",", ndmin=2), (folds[0] + folds[1]) / 2)
 
 
+def test_main_reports_held_out_errors(tmp_path, monkeypatch, capsys):
+    """main() prints the errors of every fold model on its held-out fold, and their means."""
+    import numpy as np
+
+    from torch_bsf.model_selection.kfold import main
+
+    params = np.array([[1.0, 0.0], [0.75, 0.25], [0.5, 0.5], [0.25, 0.75], [0.0, 1.0], [0.6, 0.4]])
+    np.savetxt(tmp_path / "p.csv", params, delimiter=",")
+    np.savetxt(tmp_path / "v.csv", params[:, :1] ** 2, delimiter=",")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        "sys.argv",
+        ["kfold", "--params=p.csv", "--values=v.csv", "--degree=2", "--num_folds=3", "--seed=0", "--loglevel=0"],
+    )
+    main()
+    out = capsys.readouterr().out
+    for k in range(3):
+        assert f"Fold {k}: val_mse=" in out
+    assert "Mean: mean_val_mse=" in out
+    # A quadratic is fitted exactly from any 4 samples, so every held-out error vanishes.
+    mean_mse = float(out.split("mean_val_mse=")[1].split(",")[0])
+    assert mean_mse < 1e-12
+
+
+def test_main_logs_held_out_errors_to_mlflow(tmp_path, monkeypatch):
+    """With --loglevel=1, the held-out errors of every fold and their means are logged to MLflow."""
+    import mlflow
+    import numpy as np
+
+    from torch_bsf.model_selection.kfold import main
+
+    params = np.array([[1.0, 0.0], [0.75, 0.25], [0.5, 0.5], [0.25, 0.75], [0.0, 1.0], [0.6, 0.4]])
+    np.savetxt(tmp_path / "p.csv", params, delimiter=",")
+    np.savetxt(tmp_path / "v.csv", params[:, :1] ** 2, delimiter=",")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", f"sqlite:///{tmp_path / 'mlflow.db'}")
+    monkeypatch.setattr(
+        "sys.argv",
+        ["kfold", "--params=p.csv", "--values=v.csv", "--degree=2", "--num_folds=3", "--seed=0", "--loglevel=1"],
+    )
+    try:
+        main()
+        active = mlflow.active_run()
+    finally:
+        mlflow.end_run()
+    assert active is not None
+    run = mlflow.get_run(active.info.run_id)
+    assert run.data.metrics["mean_val_mse"] < 1e-12
+    history = mlflow.MlflowClient().get_metric_history(run.info.run_id, "val_mse")
+    assert sorted(m.step for m in history) == [0, 1, 2]
+
+
+def test_main_reports_fit_errors(tmp_path, monkeypatch, capsys):
+    from torch_bsf.model_selection.kfold import main
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        "sys.argv", ["kfold", f"--params={_PARAMS_CSV}", f"--values={_VALUES_CSV}", "--degree=1", "--num_folds=1"]
+    )
+    with pytest.raises(SystemExit):
+        main()
+    assert "n_folds must be at least 2" in capsys.readouterr().err
+
+
 def test_main_rejects_split_ratio(tmp_path, monkeypatch, capsys):
     from torch_bsf.model_selection.kfold import main
 

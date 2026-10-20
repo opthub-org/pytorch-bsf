@@ -92,6 +92,18 @@ class TestSelectDegreeKwargForwarding:
             assert degree == 1
             assert kwargs == {"seed": 4, "ridge": 0.5}
 
+    def test_freeze_iterator_reaches_every_fold(self):
+        params, values = _make_simplex_data(n_samples=9)
+        fake_fit, calls = _fake_fit({1: 0.1, 2: 0.2})
+        with patch(self._PATCH, side_effect=fake_fit):
+            select_degree(params, values, min_degree=1, max_degree=2, num_folds=3, freeze=iter([(1, 0, 0)]))
+        assert [c[3]["freeze"] for c in calls] == [[(1, 0, 0)]] * 6
+
+    def test_rejects_mismatched_sample_counts(self):
+        params, values = _make_simplex_data(n_samples=9)
+        with pytest.raises(ValueError, match="params has 9 samples, but values has 10 samples"):
+            select_degree(params, torch.cat([values, values[:1]]), num_folds=3)
+
     def test_folds_are_reproducible(self):
         params, values = _make_simplex_data(n_samples=10)
         runs = []
@@ -380,6 +392,51 @@ class TestDegreeSelectionCliMain:
             ],
         )
         _cli_main()
+
+    def test_cli_main_trainer_and_simploid_type(self, tmp_path, monkeypatch, capsys):
+        """_cli_main() forwards --simploid-type and the trainer options to select_degree."""
+        import numpy as np
+
+        from torch_bsf.model_selection.degree_selection import _cli_main
+
+        n_params = np.loadtxt(_PARAMS_CSV, delimiter=",", ndmin=2).shape[1]
+        monkeypatch.setattr(
+            "sys.argv",
+            [
+                "degree_selection",
+                f"--params={_PARAMS_CSV}",
+                f"--values={_VALUES_CSV}",
+                f"--simploid-type={n_params - 1}",
+                "--solver=trainer",
+                "--max_epochs=3",
+                "--accelerator=cpu",
+                "--min_degree=1",
+                "--max_degree=1",
+            ],
+        )
+        with patch("torch_bsf.model_selection.degree_selection.select_degree", return_value=1) as select:
+            _cli_main()
+        kwargs = select.call_args.kwargs
+        assert kwargs["simploid_type"] == (n_params - 1,)
+        assert (kwargs["solver"], kwargs["max_epochs"], kwargs["accelerator"]) == ("trainer", 3, "cpu")
+        assert "Best degree: 1" in capsys.readouterr().out
+
+    @pytest.mark.parametrize(
+        "args, message",
+        [
+            (["--simploid-type=1,1"], "--params has"),
+            (["--num_folds=1"], "n_folds must be at least 2"),
+        ],
+    )
+    def test_cli_main_errors_exit(self, monkeypatch, capsys, args, message):
+        """_cli_main() reports invalid columns and errors from select_degree with parser.error."""
+        from torch_bsf.model_selection.degree_selection import _cli_main
+
+        monkeypatch.setattr("sys.argv", ["degree_selection", f"--params={_PARAMS_CSV}", f"--values={_VALUES_CSV}", *args])
+        with pytest.raises(SystemExit) as exc_info:
+            _cli_main()
+        assert exc_info.value.code == 2
+        assert message in capsys.readouterr().err
 
     def test_cli_main_inverted_degrees_exits(self, monkeypatch):
         """_cli_main() should call parser.error (SystemExit 2) when min > max."""

@@ -471,7 +471,7 @@ def fit_kfold(
     Raises
     ------
     ValueError
-        If ``n_folds < 2`` or ``len(params) < 2``, or from :func:`fit`.
+        If ``n_folds < 2``, ``len(params) < 2`` or ``len(params) != len(values)``, or from :func:`fit`.
 
     Examples
     --------
@@ -500,13 +500,30 @@ def fit_kfold(
     torch_bsf.active_learning.suggest_next_points : Use the ensemble for active learning.
     """
     params, values = torch.as_tensor(params), torch.as_tensor(values)
+    folds = _fold_indices(len(params), n_folds, shuffle, seed)
+    return _fit_folds(params, values, degree, folds, seed=seed, **kwargs)
+
+
+def _check_n_samples(params: torch.Tensor, values: torch.Tensor) -> None:
+    if len(params) != len(values):
+        raise ValueError(f"params has {len(params)} samples, but values has {len(values)} samples.")
+
+
+def _fit_folds(
+    params: torch.Tensor,
+    values: torch.Tensor,
+    degree: int | Sequence[int] | None,
+    folds: Sequence[torch.Tensor],
+    **kwargs,
+) -> nn.ModuleList:
+    """Fits one model per fold, with :func:`fit`, to the samples of the other folds."""
+    _check_n_samples(params, values)
     if kwargs.get("freeze") is not None:
         kwargs["freeze"] = list(kwargs["freeze"])  # an iterator would be consumed by the first fold
-    folds = _fold_indices(len(params), n_folds, shuffle, seed)
     models = nn.ModuleList()
     for k in range(len(folds)):
         train = torch.cat([fold for i, fold in enumerate(folds) if i != k])
-        models.append(fit(params[train], values[train], degree, seed=seed, **kwargs))
+        models.append(fit(params[train], values[train], degree, **kwargs))
     return models
 
 

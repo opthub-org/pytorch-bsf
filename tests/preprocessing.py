@@ -62,6 +62,12 @@ class TestStdScaler:
         result = scaler.fit_transform(values)
         assert torch.allclose(result[:, 0], torch.zeros(3))
 
+    def test_single_sample(self):
+        # The corrected std of a single sample is NaN => replaced by 1
+        scaler = StdScaler()
+        result = scaler.fit_transform(torch.tensor([[2.0, 1.0]]))
+        assert torch.equal(result, torch.zeros(1, 2))
+
     def test_inverse_transform_roundtrip(self, simple_values):
         scaler = StdScaler()
         scaled = scaler.fit_transform(simple_values)

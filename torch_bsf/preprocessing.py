@@ -138,7 +138,7 @@ class StdScaler:
             Input tensor of shape ``(n_samples, n_features)``.
         """
         self.stds, self.means = torch.std_mean(values, dim=0)
-        self.stds[self.stds == 0.0] = 1.0  # Avoid division by zero
+        self.stds[~(self.stds > 0.0)] = 1.0  # Avoid division by zero, or by NaN for a single sample
 
     def fit_transform(self, values: torch.Tensor) -> torch.Tensor:
         """Fit the scaler to the data and return the standardized tensor.

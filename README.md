@@ -216,7 +216,8 @@ Additional parameters for k-fold (all standard parameters except `split_ratio` a
 | shuffle     | bool  | `True`  | Whether to shuffle data before splitting (`--no-shuffle` to disable). |
 | seed        | int   | `None`  | Random seed for shuffling (and for training).       |
 
-The command saves per-fold meshgrid predictions as well as an ensemble mean:
+The command prints the errors of each fold model on its held-out fold (`val_mse` and `val_mae`) and their means, which are also logged to MLflow (unless `--loglevel=0`).
+It saves per-fold meshgrid predictions as well as an ensemble mean:
 
 - `{params},{values},{num_folds}fold,meshgrid,t_{type},d_{degree},{k}.csv` (per fold)
 - `{params},{values},{num_folds}fold,meshgrid,t_{type},d_{degree}.csv` (mean over folds)

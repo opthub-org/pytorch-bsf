@@ -2,10 +2,13 @@ from argparse import ArgumentParser, BooleanOptionalAction
 from pathlib import Path
 from typing import cast
 
+import mlflow
 import numpy as np
 import torch
 from mlflow import autolog
+from torch.nn import functional as F
 
+from torch_bsf.__main__ import _mlflow_run
 from torch_bsf._cli_args import (
     add_common_training_args,
     add_model_args,
@@ -16,7 +19,20 @@ from torch_bsf._cli_args import (
     load_table,
 )
 from torch_bsf.simploidal import BezierSimploid
-from torch_bsf.simploidal.fitting import fit_kfold
+from torch_bsf.simploidal.fitting import _fit_folds, _fold_indices
+
+
+def _held_out_stats(
+    models: torch.nn.ModuleList, folds: list[torch.Tensor], params: torch.Tensor, values: torch.Tensor
+) -> list[dict[str, float]]:
+    """The errors of each model on the fold it was not fitted to."""
+    stats = []
+    with torch.no_grad():
+        for model, test in zip(models, folds):
+            predicted = model(params[test])
+            expected = values[test].to(predicted)
+            stats.append({"val_mse": F.mse_loss(predicted, expected).item(), "val_mae": F.l1_loss(predicted, expected).item()})
+    return stats
 
 
 def main() -> None:
@@ -63,16 +79,21 @@ def main() -> None:
     )
 
     try:
-        models = fit_kfold(
-            params,
-            values,
-            args.degree,
-            n_folds=args.num_folds,
-            shuffle=args.shuffle,
-            **fit_options(args, simploid_type, init),
-        )
+        folds = _fold_indices(len(params), args.num_folds, args.shuffle, args.seed)
+        models = _fit_folds(params, values, args.degree, folds, **fit_options(args, simploid_type, init))
     except ValueError as e:
         parser.error(str(e))
+
+    stats = _held_out_stats(models, folds, params, values)
+    for k, fold_stats in enumerate(stats):
+        print(f"Fold {k}: " + ", ".join(f"{name}={value:.6g}" for name, value in fold_stats.items()))
+    means = {f"mean_{name}": sum(s[name] for s in stats) / len(stats) for name in stats[0]}
+    print("Mean: " + ", ".join(f"{name}={value:.6g}" for name, value in means.items()))
+    if args.loglevel >= 1:
+        with _mlflow_run(resume=args.solver == "trainer"):
+            for k, fold_stats in enumerate(stats):
+                mlflow.log_metrics(fold_stats, step=k)
+            mlflow.log_metrics(means)
 
     degree: tuple[int, ...] = cast(BezierSimploid, models[0]).degree
     tag = file_tag(simploid_type, degree)

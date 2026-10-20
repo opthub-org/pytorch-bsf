@@ -4,7 +4,7 @@ from typing import Any
 import torch
 from torch.nn import functional as F
 
-from torch_bsf.simploidal.fitting import _fold_indices, fit
+from torch_bsf.simploidal.fitting import _check_n_samples, _fold_indices, fit
 
 _logger = logging.getLogger(__name__)
 
@@ -62,7 +62,8 @@ def select_degree(
     Raises
     ------
     ValueError
-        If ``patience < 1``, there are fewer than 2 samples, or from :func:`torch_bsf.fit`.
+        If ``patience < 1``, there are fewer than 2 samples, ``params`` and ``values`` have different numbers
+        of samples, or from :func:`torch_bsf.fit`.
 
     Examples
     --------
@@ -76,6 +77,9 @@ def select_degree(
     if patience < 1:
         raise ValueError(f"patience must be a positive integer (>= 1), got {patience!r}.")
     params, values = torch.as_tensor(params), torch.as_tensor(values)
+    _check_n_samples(params, values)
+    if kwargs.get("freeze") is not None:
+        kwargs["freeze"] = list(kwargs["freeze"])  # an iterator would be consumed by the first fold
     folds = _fold_indices(len(params), num_folds, shuffle, seed)
 
     best_degree = min_degree

@@ -520,6 +520,18 @@ def test_main_split_ratio_logs_validation_error(tmp_path, monkeypatch):
     assert run.data.metrics["val_mse"] < 1e-6  # the data is a degree-2 polynomial
 
 
+def test_main_split_ratio_without_seed(tmp_path, monkeypatch):
+    """Without --seed, --split_ratio splits the samples at random."""
+    import mlflow
+
+    params, values = _write_prism_data(tmp_path)
+    args = [f"--params={params}", f"--values={values}", "--simploid-type=2,1", "--degree=2", "--split_ratio=0.5"]
+    _run_main(monkeypatch, tmp_path, *args, "--loglevel=1")
+    run = mlflow.last_active_run()
+    assert run is not None
+    assert run.data.metrics["val_mse"] < 1e-6
+
+
 def test_main_simplex_is_the_default_type(tmp_path, monkeypatch):
     """Without --simploid-type, a Bézier simplex of dimension n_params - 1 is fitted."""
     import numpy as np

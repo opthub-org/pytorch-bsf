@@ -138,6 +138,16 @@ class TestSuggestNextPointsInteroperability:
         with pytest.raises(ValueError, match="n_params"):
             suggest_next_points(models, n_suggestions=1, n_candidates=50, n_params=4)
 
+    def test_generic_module_n_params_mismatch_raises(self):
+        """Without simploid_type, n_params is checked against the n_params attributes of the models."""
+        models = [_SimpleLinearModel(3, 2), _SimpleLinearModel(4, 2)]
+        for model, n in zip(models, (3, 4)):
+            model.n_params = n
+        with pytest.raises(ValueError, match="explicit n_params=4 but models\\[0\\].n_params=3"):
+            suggest_next_points(models, n_params=4)
+        with pytest.raises(ValueError, match="models\\[1\\].n_params=4 does not match"):
+            suggest_next_points(models)
+
     def test_buffer_only_device_inference(self):
         """_infer_device falls back to buffer device for modules with no parameters."""
         models = [_BufferOnlyModel(3) for _ in range(2)]

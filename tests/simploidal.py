@@ -1734,6 +1734,18 @@ def test_fit_kfold_freezes_in_every_fold_given_an_iterator():
         assert model[vertex].item() == 0.0
 
 
+def test_fit_kfold_rejects_mismatched_sample_counts():
+    t = sample_simploid((2,), 6, seed=0)
+    with pytest.raises(ValueError, match="params has 6 samples, but values has 7 samples"):
+        torch_bsf.fit_kfold(t, torch.zeros(7, 1), 1, n_folds=3)
+
+
+def test_fit_std_normalization_with_a_single_sample():
+    t = torch.tensor([[0.2, 0.3, 0.5]])
+    bs = torch_bsf.fit(t, torch.tensor([[1.5]]), 0, normalize="std")
+    assert torch.allclose(bs(t), torch.tensor([[1.5]]))
+
+
 def test_fit_kfold_shuffles_reproducibly_and_caps_folds():
     from torch_bsf.sampling import simplex_grid
 
