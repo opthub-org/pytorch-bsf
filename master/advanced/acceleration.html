@@ -55,7 +55,7 @@
 <li class="toctree-l2"><a class="reference internal" href="normalization.html">Data Normalization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn Integration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="initialization.html">Initial Control Points</a></li>
-<li class="toctree-l2"><a class="reference internal" href="visualization.html">Bézier Simplex Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualization.html">Bézier Simplex and Simploid Visualization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="splitting.html">Bézier Simplex Splitting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Automatic Degree Selection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="regularization.html">Smoothness Regularization</a></li>
@@ -72,6 +72,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#python-api">Python API</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#manual-device-management">Manual Device Management</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#passing-trainer-arguments">Passing Trainer Arguments</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bezier-simploids">Bézier Simploids</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#detailed-use-cases">Detailed Use Cases</a><ul>
@@ -124,7 +125,7 @@
   <section id="hardware-acceleration">
 <h1>Hardware Acceleration<a class="headerlink" href="#hardware-acceleration" title="Link to this heading"></a></h1>
 <p>PyTorch-BSF is built on top of <a class="reference external" href="https://lightning.ai/docs/pytorch/stable/">PyTorch Lightning</a>, which means it provides seamless support for hardware acceleration (GPUs, TPUs, etc.) and distributed training (multi-GPU, multi-node) out of the box.</p>
-<p>This page explains how to leverage these features to speed up your Bézier simplex fitting tasks.</p>
+<p>This page explains how to leverage these features to speed up your Bézier simplex and simploid fitting tasks.</p>
 <section id="cli-mlflow">
 <h2>CLI / MLflow<a class="headerlink" href="#cli-mlflow" title="Link to this heading"></a></h2>
 <p>When using the command-line interface or MLflow, you can control hardware usage via several flags. These flags are passed directly to the underlying PyTorch Lightning Trainer.</p>
@@ -205,12 +206,21 @@ python -m torch_bsf –params data.csv –values results.csv –accelerator gpu 
 </pre></div>
 </div>
 </section>
+<section id="bezier-simploids">
+<h3>Bézier Simploids<a class="headerlink" href="#bezier-simploids" title="Link to this heading"></a></h3>
+<p><a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.fit_simploid" title="torch_bsf.simploidal.fit_simploid"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_simploid()</span></code></a> solves the least-squares problem exactly on the CPU in double precision by default (<code class="docutils literal notranslate"><span class="pre">solver=&quot;lstsq&quot;</span></code>), so the options above do not apply. To fit a Bézier simploid with the Lightning trainer instead, pass <code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code> together with the trainer arguments, or <code class="docutils literal notranslate"><span class="pre">--solver=trainer</span></code> on the command line:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.simploidal</span><span class="w"> </span><span class="kn">import</span> <span class="n">fit_simploid</span>
+
+<span class="n">bs</span> <span class="o">=</span> <span class="n">fit_simploid</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">simploid_type</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s2">"trainer"</span><span class="p">,</span> <span class="n">accelerator</span><span class="o">=</span><span class="s2">"gpu"</span><span class="p">,</span> <span class="n">devices</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
 </section>
 <section id="detailed-use-cases">
 <h2>Detailed Use Cases<a class="headerlink" href="#detailed-use-cases" title="Link to this heading"></a></h2>
 <section id="large-scale-pareto-front-approximation">
 <h3>Large-Scale Pareto Front Approximation<a class="headerlink" href="#large-scale-pareto-front-approximation" title="Link to this heading"></a></h3>
-<p>When dealing with thousands of Pareto optimal points and high-degree Bézier simplices (e.g., degree 10+), the number of control points increases significantly. In such cases:</p>
+<p>When dealing with thousands of Pareto optimal points and high-degree Bézier simplices or simploids (e.g., degree 10+), the number of control points increases significantly. In such cases:</p>
 <ol class="arabic simple">
 <li><p><strong>Use GPUs</strong>: Fitting is highly parallelizable.</p></li>
 <li><p><strong>Vectorized Forward</strong>: PyTorch-BSF uses a highly efficient, fully vectorized <cite>forward</cite> pass. This means that instead of looping through each control point, it uses matrix operations, which significantly speeds up computation on GPUs.</p></li>

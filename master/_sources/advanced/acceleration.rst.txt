@@ -3,7 +3,7 @@ Hardware Acceleration
 
 PyTorch-BSF is built on top of `PyTorch Lightning <https://lightning.ai/docs/pytorch/stable/>`_, which means it provides seamless support for hardware acceleration (GPUs, TPUs, etc.) and distributed training (multi-GPU, multi-node) out of the box.
 
-This page explains how to leverage these features to speed up your Bézier simplex fitting tasks.
+This page explains how to leverage these features to speed up your Bézier simplex and simploid fitting tasks.
 
 CLI / MLflow
 ------------
@@ -92,13 +92,24 @@ For more granular control, you can pass any PyTorch Lightning `Trainer arguments
        precision="16-mixed"
    )
 
+Bézier Simploids
+^^^^^^^^^^^^^^^^
+
+:func:`~torch_bsf.simploidal.fit_simploid` solves the least-squares problem exactly on the CPU in double precision by default (``solver="lstsq"``), so the options above do not apply. To fit a Bézier simploid with the Lightning trainer instead, pass ``solver="trainer"`` together with the trainer arguments, or ``--solver=trainer`` on the command line:
+
+.. code-block:: python
+
+   from torch_bsf.simploidal import fit_simploid
+
+   bs = fit_simploid(ts, xs, simploid_type=(2, 1), degree=3, solver="trainer", accelerator="gpu", devices=2)
+
 Detailed Use Cases
 ------------------
 
 Large-Scale Pareto Front Approximation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When dealing with thousands of Pareto optimal points and high-degree Bézier simplices (e.g., degree 10+), the number of control points increases significantly. In such cases:
+When dealing with thousands of Pareto optimal points and high-degree Bézier simplices or simploids (e.g., degree 10+), the number of control points increases significantly. In such cases:
 
 1.  **Use GPUs**: Fitting is highly parallelizable.
 2.  **Vectorized Forward**: PyTorch-BSF uses a highly efficient, fully vectorized `forward` pass. This means that instead of looping through each control point, it uses matrix operations, which significantly speeds up computation on GPUs.

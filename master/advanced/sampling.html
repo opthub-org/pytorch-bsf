@@ -56,7 +56,7 @@
 <li class="toctree-l2"><a class="reference internal" href="normalization.html">Data Normalization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn Integration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="initialization.html">Initial Control Points</a></li>
-<li class="toctree-l2"><a class="reference internal" href="visualization.html">Bézier Simplex Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualization.html">Bézier Simplex and Simploid Visualization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="splitting.html">Bézier Simplex Splitting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Automatic Degree Selection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="regularization.html">Smoothness Regularization</a></li>
@@ -67,6 +67,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#when-to-use-each-method">When to Use Each Method</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#sobol-sequence-usage-conditions">Sobol Sequence: Usage Conditions</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#sobol-sequence-precision-characteristics">Sobol Sequence: Precision Characteristics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sampling-on-simploids">Sampling on Simploids</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="acceleration.html">Hardware Acceleration</a></li>
@@ -111,7 +112,7 @@
              
   <section id="advanced-sampling">
 <h1>Advanced Sampling<a class="headerlink" href="#advanced-sampling" title="Link to this heading"></a></h1>
-<p>PyTorch-BSF provides utilities for generating parameter points on a simplex beyond the default uniform grid.</p>
+<p>PyTorch-BSF provides utilities for generating parameter points on a simplex beyond the default uniform grid, and on a simploid (a product of simplices).</p>
 <section id="the-torch-bsf-sampling-module">
 <h2>The <code class="docutils literal notranslate"><span class="pre">torch_bsf.sampling</span></code> Module<a class="headerlink" href="#the-torch-bsf-sampling-module" title="Link to this heading"></a></h2>
 <p>Three functions are available:</p>
@@ -246,6 +247,18 @@ that sum to 1.</p></li>
 <p>This mapping is measure-preserving for the uniform distribution on the hypercube,
 so the resulting simplex points are also (approximately) uniformly distributed
 over the simplex and inherit the low-discrepancy properties of the Sobol sequence.</p>
+</section>
+<section id="sampling-on-simploids">
+<h2>Sampling on Simploids<a class="headerlink" href="#sampling-on-simploids" title="Link to this heading"></a></h2>
+<p>To sample parameters for a Bézier simploid (see <a class="reference internal" href="simploidal.html"><span class="doc">Simploidal Sets</span></a>), use
+<a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.sample_simploid" title="torch_bsf.simploidal.sample_simploid"><code class="xref py py-func docutils literal notranslate"><span class="pre">sample_simploid()</span></code></a>.  It samples each simplex factor
+from the flat Dirichlet distribution, as <code class="docutils literal notranslate"><span class="pre">simplex_random</span></code> does, and
+concatenates the factors’ barycentric coordinates:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.simploidal</span><span class="w"> </span><span class="kn">import</span> <span class="n">sample_simploid</span>
+
+<span class="n">pts</span> <span class="o">=</span> <span class="n">sample_simploid</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>  <span class="c1"># a prism; shape (200, 5)</span>
+</pre></div>
+</div>
 </section>
 </section>
 

@@ -19,10 +19,10 @@ The key difference is that PyTorch-BSF **exploits problem structure** rather tha
 What applications are there beyond multi-objective optimization?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-While primarily used for Pareto front approximation, Bézier simplex fitting is a general-purpose regression technique for any continuous map from a simplex to a Euclidean space. Potential applications include:
+While primarily used for Pareto front approximation, Bézier simplex fitting is a general-purpose regression technique for any continuous map from a simplex to a Euclidean space, and Bézier simploids extend it to maps from a product of simplices (see :doc:`advanced/simploidal`). Potential applications include:
 
-*   **Interpolation of parametric families:** When a model's behavior varies continuously with coefficients on a simplex (e.g., mixture weights, regularization strengths in Elastic Net), a Bézier simplex can compactly represent the entire family.
-*   **Shape modeling:** Bézier simplices generalize Bézier triangles used in CAD and computer graphics; they can represent smooth curved surfaces of any dimension.
+*   **Interpolation of parametric families:** When a model's behavior varies continuously with coefficients on a simplex (e.g., mixture weights, regularization strengths in Elastic Net), a Bézier simplex can compactly represent the entire family. If the coefficients consist of several independent groups (e.g., mixture weights and a separate interpolation ratio), a Bézier simploid takes one simplex factor per group.
+*   **Shape modeling:** Bézier simplices generalize Bézier triangles used in CAD and computer graphics, and Bézier simploids generalize tensor-product Bézier patches; they can represent smooth curved surfaces of any dimension, and simploidal sets glue such patches into larger shapes.
 *   **Solution manifolds:** Any problem whose solution set forms a continuous simplex-structured manifold is a candidate for fitting.
 *   **Scientific data fitting:** Modeling physical phenomena where constraints naturally form a simplex (e.g., chemical concentrations in a mixture).
 
@@ -55,6 +55,10 @@ The complexity of a Bézier simplex is determined by its **degree** (:math:`D`) 
 
 .. math:: N_{cp} = \binom{D+M-1}{M-1}
 
+For a Bézier simploid of type :math:`(a_1, \ldots, a_n)` and degree :math:`(d_1, \ldots, d_n)`, it is the product over the factors:
+
+.. math:: N_{cp} = \prod_{i=1}^n \binom{d_i+a_i}{a_i}
+
 **Guidelines:**
 
 *   **Start low:** A degree of 2 or 3 is usually a good starting point. Low-degree models are less prone to overfitting and faster to train.
@@ -64,7 +68,7 @@ The complexity of a Bézier simplex is determined by its **degree** (:math:`D`) 
 How do I normalize my parameters or values?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``fit()`` function requires that each row of the ``params`` tensor sums to 1 (i.e., lies on the standard simplex :math:`\Delta^{M-1}`). If your raw parameters don't satisfy this, you must normalize them manually.
+The ``fit()`` function requires that each row of the ``params`` tensor sums to 1 (i.e., lies on the standard simplex :math:`\Delta^{M-1}`). For :func:`~torch_bsf.simploidal.fit_simploid`, the ``params`` row of a simploid of type :math:`(a_1, \ldots, a_n)` is the concatenation of :math:`n` blocks of :math:`a_1 + 1, \ldots, a_n + 1` columns, and each block must sum to 1. If your raw parameters don't satisfy this, you must normalize them manually.
 
 Additionally, normalizing the output ``values`` can improve fitting stability and accuracy. PyTorch-BSF provides several options for automatic value normalization in the CLI/MLflow interface.
 
@@ -91,6 +95,8 @@ You can save and load models using the ``torch_bsf.bezier_simplex`` module. Supp
 
    # Load it back
    bs = load("my_model.pt")
+
+Bézier simploids are saved and loaded in the same formats with :func:`torch_bsf.simploidal.save` and :func:`torch_bsf.simploidal.load`.
 
 How can I perform cross-validation or grid search?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

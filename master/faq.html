@@ -129,10 +129,10 @@
 </section>
 <section id="what-applications-are-there-beyond-multi-objective-optimization">
 <h3>What applications are there beyond multi-objective optimization?<a class="headerlink" href="#what-applications-are-there-beyond-multi-objective-optimization" title="Link to this heading"></a></h3>
-<p>While primarily used for Pareto front approximation, Bézier simplex fitting is a general-purpose regression technique for any continuous map from a simplex to a Euclidean space. Potential applications include:</p>
+<p>While primarily used for Pareto front approximation, Bézier simplex fitting is a general-purpose regression technique for any continuous map from a simplex to a Euclidean space, and Bézier simploids extend it to maps from a product of simplices (see <a class="reference internal" href="advanced/simploidal.html"><span class="doc">Simploidal Sets</span></a>). Potential applications include:</p>
 <ul class="simple">
-<li><p><strong>Interpolation of parametric families:</strong> When a model’s behavior varies continuously with coefficients on a simplex (e.g., mixture weights, regularization strengths in Elastic Net), a Bézier simplex can compactly represent the entire family.</p></li>
-<li><p><strong>Shape modeling:</strong> Bézier simplices generalize Bézier triangles used in CAD and computer graphics; they can represent smooth curved surfaces of any dimension.</p></li>
+<li><p><strong>Interpolation of parametric families:</strong> When a model’s behavior varies continuously with coefficients on a simplex (e.g., mixture weights, regularization strengths in Elastic Net), a Bézier simplex can compactly represent the entire family. If the coefficients consist of several independent groups (e.g., mixture weights and a separate interpolation ratio), a Bézier simploid takes one simplex factor per group.</p></li>
+<li><p><strong>Shape modeling:</strong> Bézier simplices generalize Bézier triangles used in CAD and computer graphics, and Bézier simploids generalize tensor-product Bézier patches; they can represent smooth curved surfaces of any dimension, and simploidal sets glue such patches into larger shapes.</p></li>
 <li><p><strong>Solution manifolds:</strong> Any problem whose solution set forms a continuous simplex-structured manifold is a candidate for fitting.</p></li>
 <li><p><strong>Scientific data fitting:</strong> Modeling physical phenomena where constraints naturally form a simplex (e.g., chemical concentrations in a mixture).</p></li>
 </ul>
@@ -158,6 +158,9 @@
 <p>The complexity of a Bézier simplex is determined by its <strong>degree</strong> (<span class="math notranslate nohighlight">\(D\)</span>) and the number of <strong>objectives</strong> (<span class="math notranslate nohighlight">\(M\)</span>). The number of control points is given by the formula:</p>
 <div class="math notranslate nohighlight">
 \[N_{cp} = \binom{D+M-1}{M-1}\]</div>
+<p>For a Bézier simploid of type <span class="math notranslate nohighlight">\((a_1, \ldots, a_n)\)</span> and degree <span class="math notranslate nohighlight">\((d_1, \ldots, d_n)\)</span>, it is the product over the factors:</p>
+<div class="math notranslate nohighlight">
+\[N_{cp} = \prod_{i=1}^n \binom{d_i+a_i}{a_i}\]</div>
 <p><strong>Guidelines:</strong></p>
 <ul class="simple">
 <li><p><strong>Start low:</strong> A degree of 2 or 3 is usually a good starting point. Low-degree models are less prone to overfitting and faster to train.</p></li>
@@ -167,7 +170,7 @@
 </section>
 <section id="how-do-i-normalize-my-parameters-or-values">
 <h3>How do I normalize my parameters or values?<a class="headerlink" href="#how-do-i-normalize-my-parameters-or-values" title="Link to this heading"></a></h3>
-<p>The <code class="docutils literal notranslate"><span class="pre">fit()</span></code> function requires that each row of the <code class="docutils literal notranslate"><span class="pre">params</span></code> tensor sums to 1 (i.e., lies on the standard simplex <span class="math notranslate nohighlight">\(\Delta^{M-1}\)</span>). If your raw parameters don’t satisfy this, you must normalize them manually.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">fit()</span></code> function requires that each row of the <code class="docutils literal notranslate"><span class="pre">params</span></code> tensor sums to 1 (i.e., lies on the standard simplex <span class="math notranslate nohighlight">\(\Delta^{M-1}\)</span>). For <a class="reference internal" href="torch_bsf.html#torch_bsf.simploidal.fit_simploid" title="torch_bsf.simploidal.fit_simploid"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_simploid()</span></code></a>, the <code class="docutils literal notranslate"><span class="pre">params</span></code> row of a simploid of type <span class="math notranslate nohighlight">\((a_1, \ldots, a_n)\)</span> is the concatenation of <span class="math notranslate nohighlight">\(n\)</span> blocks of <span class="math notranslate nohighlight">\(a_1 + 1, \ldots, a_n + 1\)</span> columns, and each block must sum to 1. If your raw parameters don’t satisfy this, you must normalize them manually.</p>
 <p>Additionally, normalizing the output <code class="docutils literal notranslate"><span class="pre">values</span></code> can improve fitting stability and accuracy. PyTorch-BSF provides several options for automatic value normalization in the CLI/MLflow interface.</p>
 <p>Please refer to the <a class="reference internal" href="advanced/normalization.html"><span class="doc">Data Normalization</span></a> page for detailed instructions on how to normalize your parameter and value tensors.</p>
 </section>
@@ -188,6 +191,7 @@
 <span class="n">bs</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="s2">"my_model.pt"</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>Bézier simploids are saved and loaded in the same formats with <a class="reference internal" href="torch_bsf.html#torch_bsf.simploidal.save" title="torch_bsf.simploidal.save"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.simploidal.save()</span></code></a> and <a class="reference internal" href="torch_bsf.html#torch_bsf.simploidal.load" title="torch_bsf.simploidal.load"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.simploidal.load()</span></code></a>.</p>
 </section>
 <section id="how-can-i-perform-cross-validation-or-grid-search">
 <h3>How can I perform cross-validation or grid search?<a class="headerlink" href="#how-can-i-perform-cross-validation-or-grid-search" title="Link to this heading"></a></h3>

@@ -66,7 +66,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn Integration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="initialization.html">Initial Control Points</a></li>
-<li class="toctree-l2"><a class="reference internal" href="visualization.html">Bézier Simplex Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualization.html">Bézier Simplex and Simploid Visualization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="splitting.html">Bézier Simplex Splitting</a></li>
 <li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Automatic Degree Selection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="regularization.html">Smoothness Regularization</a></li>
@@ -115,16 +115,19 @@
              
   <section id="data-normalization">
 <h1>Data Normalization<a class="headerlink" href="#data-normalization" title="Link to this heading"></a></h1>
-<p>Proper normalization of your data is crucial for stable and accurate Bézier simplex fitting, as both the input parameters and the output values should ideally be within a well-defined range.</p>
+<p>Proper normalization of your data is crucial for stable and accurate Bézier simplex and simploid fitting, as both the input parameters and the output values should ideally be within a well-defined range.</p>
 <section id="parameter-normalization">
 <h2>Parameter Normalization<a class="headerlink" href="#parameter-normalization" title="Link to this heading"></a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">fit()</span></code> function expects each row of the <code class="docutils literal notranslate"><span class="pre">params</span></code> tensor to lie on the standard simplex <span class="math notranslate nohighlight">\(\Delta^{M-1}\)</span> (i.e., the elements must be non-negative and sum to 1). If your raw parameters do not satisfy this condition, you must normalize them manually before fitting.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">fit()</span></code> function expects each row of the <code class="docutils literal notranslate"><span class="pre">params</span></code> tensor to lie on the standard simplex <span class="math notranslate nohighlight">\(\Delta^{M-1}\)</span> (i.e., the elements must be non-negative and sum to 1). If your raw parameters do not satisfy this condition, you must normalize them manually before fitting. For <a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.fit_simploid" title="torch_bsf.simploidal.fit_simploid"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_simploid()</span></code></a>, each row consists of one block of barycentric coordinates per factor of the simploid, and each block must lie on its own simplex.</p>
 <p>A common approach is <strong>L1 Normalization</strong>: divide each parameter vector by its <span class="math notranslate nohighlight">\(\ell_1\)</span> norm. For parameters <span class="math notranslate nohighlight">\(a, b \ge 0\)</span>, you can compute the simplex coordinates as <span class="math notranslate nohighlight">\(t_1 = a / (a + b)\)</span> and <span class="math notranslate nohighlight">\(t_2 = b / (a + b)\)</span>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Manual L1 normalization for parameter tensors</span>
 <span class="n">ts</span> <span class="o">=</span> <span class="n">ts</span> <span class="o">/</span> <span class="n">ts</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="c1"># For a simploid of type (2, 1), normalize the blocks of 3 and 2 columns separately</span>
+<span class="n">ts</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">b</span> <span class="o">/</span> <span class="n">b</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">ts</span><span class="o">.</span><span class="n">split</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>While the best normalization method depends on your specific problem, the L1 approach is a solid default. If your parameter space does not naturally have a simplex structure and no intuitive normalization seems appropriate, it is possible that the problem is not well-suited for Bézier simplex fitting.</p>
+<p>While the best normalization method depends on your specific problem, the L1 approach is a solid default. If your parameter space does not naturally have a simplex (or product-of-simplices) structure and no intuitive normalization seems appropriate, it is possible that the problem is not well-suited for Bézier simplex or simploid fitting.</p>
 </section>
 <section id="value-normalization">
 <h2>Value Normalization<a class="headerlink" href="#value-normalization" title="Link to this heading"></a></h2>

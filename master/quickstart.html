@@ -190,6 +190,10 @@ cat<span class="w"> </span><span class="s">&lt;&lt; EOS &gt; values.csv</span>
 <span class="w">  </span>-P<span class="w"> </span><span class="nv">degree</span><span class="o">=</span><span class="m">3</span>
 </pre></div>
 </div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>To fit a Bézier simploid (e.g., on a prism) instead of a Bézier simplex, use the <code class="docutils literal notranslate"><span class="pre">simploid</span></code> entry point with <code class="docutils literal notranslate"><span class="pre">-P</span> <span class="pre">simploid_type=2,1</span></code>, or <code class="docutils literal notranslate"><span class="pre">--simploid-type=2,1</span></code> on the command line. See <a class="reference internal" href="advanced/simploidal.html"><span class="doc">Simploidal Sets</span></a>.</p>
+</div>
 <p>After the command finishes, the trained model will be saved in <code class="docutils literal notranslate"><span class="pre">mlruns/0</span></code> directory.
 Note the <strong>Run ID</strong> automatically set to the command execution, as you will need it for prediction.</p>
 </section>

@@ -1,7 +1,7 @@
-Bézier Simplex Visualization
-============================
+Bézier Simplex and Simploid Visualization
+=========================================
 
-Visualizing high-dimensional Bézier simplices is crucial for understanding the manifold structure and analyzing Pareto fronts. PyTorch-BSF provides high-level utilities to project and plot 2D and 3D Bézier manifolds.
+Visualizing high-dimensional Bézier simplices and simploids is crucial for understanding the manifold structure and analyzing Pareto fronts. PyTorch-BSF provides high-level utilities to project and plot 2D and 3D Bézier manifolds.
 
 The ``torch_bsf.plotting`` Module
 ---------------------------------
@@ -153,6 +153,6 @@ triangular net of a simplex factor and the grid of a cube.
 Why Visualize?
 --------------
 
-1.  **Validation**: See how well the Bézier simplex fits your training observations.
+1.  **Validation**: See how well the Bézier simplex or simploid fits your training observations.
 2.  **Pareto Front Analysis**: Analyze the shape and tradeoff of your Pareto front in multi-objective optimization.
 3.  **Communication**: Clearly communicate the structure of high-dimensional manifolds to stakeholders.
