@@ -148,8 +148,9 @@ class BezierSimplexRegressor(BaseEstimator, RegressorMixin):
         ----------
         X : array-like of shape (n_samples, n_params)
             Training data (parameters on a simplex).
-        y : array-like of shape (n_samples, n_values)
-            Target values.
+        y : array-like of shape (n_samples,) or (n_samples, n_values)
+            Target values.  A one-dimensional ``y`` is treated as a single output,
+            and :meth:`predict` then returns a one-dimensional array.
 
         Returns
         -------
@@ -166,6 +167,9 @@ class BezierSimplexRegressor(BaseEstimator, RegressorMixin):
 
         self._check_solver_options()
         X, y = check_X_y(X, y, multi_output=True, y_numeric=True)
+        self._single_output = y.ndim == 1
+        if self._single_output:
+            y = y.reshape(-1, 1)
 
         if self.solver == "lstsq":
             # Evaluate the basis in double precision; the solution keeps the floating dtype of y.
@@ -209,8 +213,8 @@ class BezierSimplexRegressor(BaseEstimator, RegressorMixin):
 
         Returns
         -------
-        y_pred : ndarray of shape (n_samples, n_values)
-            Predicted values.
+        y_pred : ndarray of shape (n_samples, n_values) or (n_samples,)
+            Predicted values; one-dimensional if the model was fitted with a one-dimensional ``y``.
         """
         from sklearn.utils.validation import check_array, check_is_fitted
 
@@ -222,7 +226,8 @@ class BezierSimplexRegressor(BaseEstimator, RegressorMixin):
         with torch.no_grad():
             ys = self.model_(ts)
 
-        return cast(np.ndarray, ys.cpu().numpy())
+        y_pred = cast(np.ndarray, ys.cpu().numpy())
+        return y_pred.ravel() if getattr(self, "_single_output", False) else y_pred
 
     def score(self, X: Any, y: Any, sample_weight: Any = None) -> float:
         """Return the coefficient of determination R^2 of the prediction.

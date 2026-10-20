@@ -301,6 +301,43 @@ class TestLstsqSolver:
         assert reg.model_.degree == degree
         np.testing.assert_allclose(reg.predict(X[:1]), y.mean(axis=0, keepdims=True), rtol=0, atol=1e-12)
 
+    def test_zero_simplex_negative_degree_raises(self):
+        """A negative degree is rejected for a 0-simplex as well."""
+        with pytest.raises(ValueError, match="degree"):
+            BezierSimplexRegressor(degree=-1, solver="lstsq").fit(np.ones((3, 1)), np.ones((3, 2)))
+
+    def test_one_dimensional_target(self):
+        """A 1-D y is fitted as a single output and predicted as a 1-D array."""
+        import torch
+
+        X = _random_simplex(30, 3, seed=6)
+        y = np.sin(3 * X[:, 0]) + X[:, 1] * X[:, 2]
+        reg = BezierSimplexRegressor(degree=3, solver="lstsq").fit(X, y)
+        assert reg.n_outputs_ == 1
+        X_test = _random_simplex(10, 3, seed=7)
+        y_pred = reg.predict(X_test)
+        assert y_pred.shape == (10,)
+        ref = _fit_simploid_reference(X, y.reshape(-1, 1), 3)
+        np.testing.assert_allclose(y_pred, ref(torch.from_numpy(X_test)).detach().numpy().ravel(), rtol=0, atol=1e-8)
+        assert isinstance(reg.score(X_test, np.sin(3 * X_test[:, 0]) + X_test[:, 1] * X_test[:, 2]), float)
+        # Refitting with a 2-D y restores 2-D predictions.
+        reg.fit(X, y.reshape(-1, 1))
+        assert reg.predict(X_test).shape == (10, 1)
+
+    def test_one_dimensional_target_trainer(self):
+        """The trainer solver also accepts a 1-D y."""
+        X, y = _make_data(n_values=1)
+        reg = BezierSimplexRegressor(
+            degree=2,
+            max_epochs=2,
+            accelerator="cpu",
+            devices=1,
+            trainer_kwargs={"enable_progress_bar": False, "enable_model_summary": False},
+        )
+        reg.fit(X, y.ravel())
+        assert reg.n_outputs_ == 1
+        assert reg.predict(X).shape == (X.shape[0],)
+
     def test_integer_targets_give_floating_model(self):
         """Integer y is fitted in floating point instead of truncating the solution."""
         import torch
