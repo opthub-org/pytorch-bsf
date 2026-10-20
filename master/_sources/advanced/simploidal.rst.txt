@@ -34,9 +34,10 @@ coordinates of all factors, a vector of length :math:`\sum_i (a_i + 1)`.
 A Bézier simploid of type :math:`(a)` is the Bézier simplex of degree
 :math:`d_1` with :math:`a + 1` parameters.
 
-:class:`~torch_bsf.simploidal.BezierSimploid` is a Lightning module like
-:class:`~torch_bsf.bezier_simplex.BezierSimplex`, and
-:func:`~torch_bsf.simploidal.fit_simploid` fits one to data:
+:class:`~torch_bsf.simploidal.BezierSimploid` is a plain :class:`torch.nn.Module`
+holding the control points, and :func:`~torch_bsf.simploidal.fit_simploid`
+fits one to data, either exactly by linear least squares or with a Lightning
+trainer:
 
 .. testcode::
    :pyversion: >= 3.10, < 3.15
