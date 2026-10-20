@@ -1118,6 +1118,19 @@ def test_fit_preserves_float64(solver):
         assert torch.allclose(space.evaluate(tri, t), x, atol=1e-12)
 
 
+@pytest.mark.skipif(not torch.backends.mps.is_available(), reason="MPS is not available")
+def test_fit_lstsq_accepts_mps_inputs():
+    """MPS does not support float64, so the exact solver must move the inputs to the CPU before promoting them."""
+    t = sample_simploid((2,), 30, seed=0)
+    x = t[:, :1] * t[:, 1:2]
+    bs = fit_simploid(t.to("mps"), x.to("mps"), (2,), 2)
+    assert torch.allclose(bs(t), x, atol=1e-5)
+    S = SimploidalSet()
+    tri = S.add_simplex(2)
+    space = fit_simploidal_set(S, [(tri, t.to("mps"), x.to("mps"))], 2)
+    assert torch.allclose(space.evaluate(tri, t), x, atol=1e-5)
+
+
 def test_public_exports():
     for name in ["BezierSimploid", "Simploid", "SimploidalSet", "SimploidalBezierSpace", "fit_simploid", "fit_simploidal_set"]:
         assert hasattr(torch_bsf, name)

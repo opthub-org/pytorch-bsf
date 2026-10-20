@@ -97,8 +97,9 @@ def _fit(
     _check_solver(solver, ridge)
     parameter = _parameter(model)
     if solver == "lstsq":
-        # Build the design matrix in double precision, whatever the dtype of the model.
-        design = model.design_matrix(*(x.double() if x.is_floating_point() else x for x in inputs))
+        # Build the design matrix on the CPU in double precision, whatever the dtype of the model;
+        # move the inputs first, since some devices (e.g., MPS) do not support float64.
+        design = model.design_matrix(*(x.cpu().double() if x.is_floating_point() else x.cpu() for x in inputs))
         solution = _solve_least_squares(design, values, ridge)
         with torch.no_grad():
             parameter.copy_(solution.to(parameter))
