@@ -1,0 +1,321 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scikit-learn Integration &mdash; PyTorch-BSF 0.18.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Initial Control Points" href="initialization.html" />
+    <link rel="prev" title="Data Normalization" href="normalization.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="normalization.html">Data Normalization</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Scikit-learn Integration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#the-beziersimploidregressor">The <code class="docutils literal notranslate"><span class="pre">BezierSimploidRegressor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#choosing-a-solver">Choosing a solver</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#bezier-simploids">Bézier simploids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#integration-with-pipelines">Integration with Pipelines</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#using-gridsearchcv">Using GridSearchCV</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="initialization.html">Initial Control Points</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualization.html">Bézier Simplex and Simploid Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="splitting.html">Bézier Simplex Splitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Automatic Degree Selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="regularization.html">Smoothness Regularization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_sampling.html">Elastic Net Grid Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="partial.html">Partial Training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sampling.html">Advanced Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="acceleration.html">Hardware Acceleration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="active_learning.html">Active Learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="simploidal.html">Simploidal Sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">torch_bsf</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Scikit-learn Integration</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/sklearn.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="scikit-learn-integration">
+<h1>Scikit-learn Integration<a class="headerlink" href="#scikit-learn-integration" title="Link to this heading"></a></h1>
+<p>PyTorch-BSF provides a high-level wrapper compatible with the <a class="reference external" href="https://scikit-learn.org/">Scikit-learn</a> estimator API. This allows you to integrate Bézier simplex fitting into standard machine learning workflows, including pipelines and cross-validation tools.</p>
+<section id="the-beziersimploidregressor">
+<h2>The <code class="docutils literal notranslate"><span class="pre">BezierSimploidRegressor</span></code><a class="headerlink" href="#the-beziersimploidregressor" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">BezierSimploidRegressor</span></code> class inherits from <code class="docutils literal notranslate"><span class="pre">sklearn.base.BaseEstimator</span></code> and <code class="docutils literal notranslate"><span class="pre">sklearn.base.RegressorMixin</span></code>. It supports the standard <code class="docutils literal notranslate"><span class="pre">fit()</span></code>, <code class="docutils literal notranslate"><span class="pre">predict()</span></code>, and <code class="docutils literal notranslate"><span class="pre">score()</span></code> methods, and fits the model with <a class="reference internal" href="../torch_bsf.html#torch_bsf.fit" title="torch_bsf.fit"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit()</span></code></a>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.sklearn</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSimploidRegressor</span>
+
+<span class="c1"># Your data (parameters must be on a simplex)</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]])</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.75</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]])</span>
+
+<span class="c1"># Initialize and fit</span>
+<span class="n">reg</span> <span class="o">=</span> <span class="n">BezierSimploidRegressor</span><span class="p">(</span><span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">reg</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+<span class="c1"># Predict</span>
+<span class="n">y_pred</span> <span class="o">=</span> <span class="n">reg</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>By default, each row of <code class="docutils literal notranslate"><span class="pre">X</span></code> is a point on a simplex with <code class="docutils literal notranslate"><span class="pre">n_features</span></code> vertices, and a Bézier simplex is fitted (a single feature gives a constant model).  The fitted model is available as <code class="docutils literal notranslate"><span class="pre">reg.model_</span></code>.</p>
+</section>
+<section id="choosing-a-solver">
+<h2>Choosing a solver<a class="headerlink" href="#choosing-a-solver" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">solver</span></code> parameter selects how the control points are computed:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">solver=&quot;lstsq&quot;</span></code> (default)</dt><dd><p>Since a Bézier simplex is linear in its control points, the squared error is minimized exactly by
+linear least squares on the Bernstein basis, solved in double precision.  This is fast and accurate,
+especially for high-dimensional outputs (e.g., hundreds of values per sample), where training may
+stop far from the optimum.  The optional <code class="docutils literal notranslate"><span class="pre">ridge</span></code> parameter adds the Tikhonov penalty
+<span class="math notranslate nohighlight">\(\mathrm{ridge}\,\|P\|^2\)</span> on the control points <span class="math notranslate nohighlight">\(P\)</span>; without it, under-determined
+problems (fewer samples than control points) get the minimum-norm solution.  The fitted model keeps
+the floating dtype of <code class="docutils literal notranslate"><span class="pre">y</span></code> (<code class="docutils literal notranslate"><span class="pre">float64</span></code> for <code class="docutils literal notranslate"><span class="pre">float64</span></code> or integer targets).</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code></dt><dd><p>Trains the control points by gradient-based optimization with <code class="docutils literal notranslate"><span class="pre">lightning.pytorch.Trainer</span></code> for up to
+<code class="docutils literal notranslate"><span class="pre">max_epochs</span></code> epochs in single precision.  Use it for minibatches and accelerators
+(<code class="docutils literal notranslate"><span class="pre">batch_size</span></code>, <code class="docutils literal notranslate"><span class="pre">max_epochs</span></code>, <code class="docutils literal notranslate"><span class="pre">accelerator</span></code>, <code class="docutils literal notranslate"><span class="pre">devices</span></code>, <code class="docutils literal notranslate"><span class="pre">precision</span></code> and <code class="docutils literal notranslate"><span class="pre">trainer_kwargs</span></code>).</p>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.sklearn</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSimploidRegressor</span>
+
+<span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">raw</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="mi">41</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">raw</span> <span class="o">/</span> <span class="n">raw</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>                  <span class="c1"># 41 points on a segment</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">X</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">256</span><span class="p">)))</span>    <span class="c1"># 256-dimensional values</span>
+
+<span class="n">reg</span> <span class="o">=</span> <span class="n">BezierSimploidRegressor</span><span class="p">(</span><span class="n">degree</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">ridge</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">)</span>
+<span class="n">reg</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">reg</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">reg</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.999</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(41, 256)
+True
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">init</span></code>, <code class="docutils literal notranslate"><span class="pre">freeze</span></code>, <code class="docutils literal notranslate"><span class="pre">smoothness_weight</span></code> and <code class="docutils literal notranslate"><span class="pre">normalize</span></code> work with both solvers; the predictions
+are in the scale of <code class="docutils literal notranslate"><span class="pre">y</span></code> whatever <code class="docutils literal notranslate"><span class="pre">normalize</span></code> is.  With <code class="docutils literal notranslate"><span class="pre">solver=&quot;lstsq&quot;</span></code>, the trainer-only options
+listed above are ignored, and a nonzero <code class="docutils literal notranslate"><span class="pre">ridge</span></code> with <code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code> raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p>
+<p>All parameters work with <code class="docutils literal notranslate"><span class="pre">get_params()</span></code>, <code class="docutils literal notranslate"><span class="pre">set_params()</span></code> and <code class="docutils literal notranslate"><span class="pre">clone()</span></code>, so they can be searched by
+<code class="docutils literal notranslate"><span class="pre">GridSearchCV</span></code> like any other hyperparameter (e.g., <code class="docutils literal notranslate"><span class="pre">{&quot;ridge&quot;:</span> <span class="pre">[0.0,</span> <span class="pre">1e-6,</span> <span class="pre">1e-3]}</span></code>).</p>
+</section>
+<section id="bezier-simploids">
+<h2>Bézier simploids<a class="headerlink" href="#bezier-simploids" title="Link to this heading"></a></h2>
+<p>To fit a Bézier simploid, i.e., a tensor product of Bézier simplices (see <a class="reference internal" href="simploidal.html"><span class="doc">Simploidal Sets</span></a>), pass its
+type as <code class="docutils literal notranslate"><span class="pre">simploid_type</span></code>.  Each row of <code class="docutils literal notranslate"><span class="pre">X</span></code> is then the concatenation of the barycentric coordinates of
+every factor, and <code class="docutils literal notranslate"><span class="pre">degree</span></code> is the degree of every factor or one degree per factor.  For example, on a
+prism (a triangle times a segment):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.simploidal</span><span class="w"> </span><span class="kn">import</span> <span class="n">sample_simploid</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.sklearn</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSimploidRegressor</span>
+
+<span class="n">X</span> <span class="o">=</span> <span class="n">sample_simploid</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">40</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">double</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>  <span class="c1"># 3 + 2 columns</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">X</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">X</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>
+
+<span class="n">reg</span> <span class="o">=</span> <span class="n">BezierSimploidRegressor</span><span class="p">(</span><span class="n">degree</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">simploid_type</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">reg</span><span class="o">.</span><span class="n">simploid_type_</span><span class="p">,</span> <span class="n">reg</span><span class="o">.</span><span class="n">model_</span><span class="o">.</span><span class="n">degree</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">reg</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">),</span> <span class="n">y</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(2, 1) (2, 1)
+True
+</pre></div>
+</div>
+</section>
+<section id="integration-with-pipelines">
+<h2>Integration with Pipelines<a class="headerlink" href="#integration-with-pipelines" title="Link to this heading"></a></h2>
+<p>You can include <code class="docutils literal notranslate"><span class="pre">BezierSimploidRegressor</span></code> in a Scikit-learn <code class="docutils literal notranslate"><span class="pre">Pipeline</span></code>. This is particularly useful if you need to perform data preprocessing (though note that Bézier simplex fitting usually expects parameters to be on a simplex).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pipeline</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">StandardScaler</span>
+
+<span class="n">pipe</span> <span class="o">=</span> <span class="n">Pipeline</span><span class="p">([</span>
+    <span class="p">(</span><span class="s1">'scaler'</span><span class="p">,</span> <span class="n">StandardScaler</span><span class="p">()),</span>
+    <span class="p">(</span><span class="s1">'bsf'</span><span class="p">,</span> <span class="n">BezierSimploidRegressor</span><span class="p">(</span><span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">))</span>
+<span class="p">])</span>
+
+<span class="n">pipe</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="using-gridsearchcv">
+<h2>Using GridSearchCV<a class="headerlink" href="#using-gridsearchcv" title="Link to this heading"></a></h2>
+<p>Since it’s a standard estimator, you can use <code class="docutils literal notranslate"><span class="pre">GridSearchCV</span></code> to find the optimal hyperparameters, such as the degree or smoothness weight.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">GridSearchCV</span>
+
+<span class="n">param_grid</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">'degree'</span><span class="p">:</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span>
+    <span class="s1">'smoothness_weight'</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">]</span>
+<span class="p">}</span>
+
+<span class="n">grid</span> <span class="o">=</span> <span class="n">GridSearchCV</span><span class="p">(</span><span class="n">BezierSimploidRegressor</span><span class="p">(),</span> <span class="n">param_grid</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">grid</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Best parameters: </span><span class="si">{</span><span class="n">grid</span><span class="o">.</span><span class="n">best_params_</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading"></a></h2>
+<p>See the <a class="reference external" href="../modules.html#torch_bsf.sklearn.BezierSimploidRegressor">API Documentation</a> for a full list of supported parameters.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="normalization.html" class="btn btn-neutral float-left" title="Data Normalization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="initialization.html" class="btn btn-neutral float-right" title="Initial Control Points" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: refactor/355-unify-peripherals
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/advanced/sklearn.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/advanced/sklearn.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/advanced/sklearn.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/advanced/sklearn.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/advanced/sklearn.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/advanced/sklearn.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="sklearn.html">refactor/355-unify-peripherals</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
