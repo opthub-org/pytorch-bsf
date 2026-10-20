@@ -5,7 +5,7 @@ You are probably familiar with Bézier curves (1-D) and Bézier triangles (2-D) 
 
 At its core, **Bézier simplex fitting is a general-purpose regression technique**. Just as a regular Bézier curve smoothly interpolates or approximates a 1-D point cloud using a small set of *control points*, a Bézier simplex can approximate any continuous map from a standard simplex to a high-dimensional Euclidean space. Given a point cloud dataset defined over simplex coordinates, it can fit a highly flexible and mathematically well-behaved parametric surface to the data.
 
-This page introduces the formal definition of Bézier simplices, the least-squares fitting algorithm used by PyTorch-BSF, and its most prominent real-world applications.
+This page introduces the formal definition of Bézier simplices, the least-squares fitting algorithm used by PyTorch-BSF, and its most prominent real-world applications. When the data are better described on a product of simplices (a prism, a square, a cube) or on several such cells glued together, PyTorch-BSF fits *Bézier simploids* instead (see :ref:`whatis-simploids`).
 
 
 Bézier Simplex
@@ -59,6 +59,16 @@ Any continuous map from a simplex to a Euclidean space can be approximated by a 
    For any continuous map :math:`\phi: \Delta^{M-1} \to \mathbb{R}^N` and any :math:`\epsilon > 0`, there exists a degree :math:`D` and control points :math:`\mathbf{p}` such that the Bézier simplex :math:`\mathbf{b}(\mathbf{t} \mid \mathbf{p})` satisfies :math:`\max_{\mathbf{t} \in \Delta^{M-1}} \| \phi(\mathbf{t}) - \mathbf{b}(\mathbf{t} \mid \mathbf{p}) \| < \epsilon`.
 
 This guarantees that Bézier simplices are universal approximators for any continuous simplex-domain function.
+
+
+.. _whatis-simploids:
+
+Beyond Simplices: Bézier Simploids
+----------------------------------
+
+A single simplex is not always the right parameter domain. A *simploid* of type :math:`(a_1, \ldots, a_n)` is the product :math:`\Delta^{a_1} \times \cdots \times \Delta^{a_n}` of simplices, e.g., a prism :math:`\Delta^2 \times \Delta^1` or a square :math:`\Delta^1 \times \Delta^1`, and a simplex is the simploid of type :math:`(M-1)`. A *Bézier simploid* is the tensor product of Bézier simplices, one per factor, and is fitted by the same least-squares formulation as above with :math:`\Delta^{M-1}` replaced by the simploid. Since the fitting problem is linear in the control points, :func:`~torch_bsf.simploidal.fit_simploid` solves it exactly by default.
+
+The approximation theorem carries over: polynomials are dense in the continuous maps on a compact product of simplices (Stone–Weierstrass), and every polynomial of degree at most :math:`d_i` in the :math:`i`-th factor is a Bézier simploid of degree :math:`(d_1, \ldots, d_n)`. *Simploidal sets* go further and glue several simploids along common faces. See :doc:`advanced/simploidal` for details.
 
 
 Relation to Multi-Objective Optimization

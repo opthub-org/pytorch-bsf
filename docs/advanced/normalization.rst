@@ -1,12 +1,12 @@
 Data Normalization
 ==================
 
-Proper normalization of your data is crucial for stable and accurate Bézier simplex fitting, as both the input parameters and the output values should ideally be within a well-defined range.
+Proper normalization of your data is crucial for stable and accurate Bézier simplex and simploid fitting, as both the input parameters and the output values should ideally be within a well-defined range.
 
 Parameter Normalization
 -----------------------
 
-The ``fit()`` function expects each row of the ``params`` tensor to lie on the standard simplex :math:`\Delta^{M-1}` (i.e., the elements must be non-negative and sum to 1). If your raw parameters do not satisfy this condition, you must normalize them manually before fitting.
+The ``fit()`` function expects each row of the ``params`` tensor to lie on the standard simplex :math:`\Delta^{M-1}` (i.e., the elements must be non-negative and sum to 1). If your raw parameters do not satisfy this condition, you must normalize them manually before fitting. For :func:`~torch_bsf.simploidal.fit_simploid`, each row consists of one block of barycentric coordinates per factor of the simploid, and each block must lie on its own simplex.
 
 A common approach is **L1 Normalization**: divide each parameter vector by its :math:`\ell_1` norm. For parameters :math:`a, b \ge 0`, you can compute the simplex coordinates as :math:`t_1 = a / (a + b)` and :math:`t_2 = b / (a + b)`.
 
@@ -15,7 +15,10 @@ A common approach is **L1 Normalization**: divide each parameter vector by its :
    # Manual L1 normalization for parameter tensors
    ts = ts / ts.sum(dim=1, keepdim=True)
 
-While the best normalization method depends on your specific problem, the L1 approach is a solid default. If your parameter space does not naturally have a simplex structure and no intuitive normalization seems appropriate, it is possible that the problem is not well-suited for Bézier simplex fitting.
+   # For a simploid of type (2, 1), normalize the blocks of 3 and 2 columns separately
+   ts = torch.cat([b / b.sum(dim=1, keepdim=True) for b in ts.split([3, 2], dim=1)], dim=1)
+
+While the best normalization method depends on your specific problem, the L1 approach is a solid default. If your parameter space does not naturally have a simplex (or product-of-simplices) structure and no intuitive normalization seems appropriate, it is possible that the problem is not well-suited for Bézier simplex or simploid fitting.
 
 Value Normalization
 -------------------

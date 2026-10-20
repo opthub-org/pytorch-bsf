@@ -1,7 +1,7 @@
 Advanced Sampling
 =================
 
-PyTorch-BSF provides utilities for generating parameter points on a simplex beyond the default uniform grid.
+PyTorch-BSF provides utilities for generating parameter points on a simplex beyond the default uniform grid, and on a simploid (a product of simplices).
 
 The ``torch_bsf.sampling`` Module
 ----------------------------------
@@ -156,4 +156,18 @@ called *order-statistics*) mapping:
 This mapping is measure-preserving for the uniform distribution on the hypercube,
 so the resulting simplex points are also (approximately) uniformly distributed
 over the simplex and inherit the low-discrepancy properties of the Sobol sequence.
+
+Sampling on Simploids
+---------------------
+
+To sample parameters for a Bézier simploid (see :doc:`simploidal`), use
+:func:`~torch_bsf.simploidal.sample_simploid`.  It samples each simplex factor
+from the flat Dirichlet distribution, as ``simplex_random`` does, and
+concatenates the factors' barycentric coordinates:
+
+.. code-block:: python
+
+   from torch_bsf.simploidal import sample_simploid
+
+   pts = sample_simploid((2, 1), n_samples=200)  # a prism; shape (200, 5)
 
