@@ -6,11 +6,17 @@ import torch
 import torch_bsf
 from torch_bsf import fit
 from torch_bsf.bezier_simplex import BezierSimplex
-from torch_bsf.simploidal import (BezierSimploid, Simploid,
-                                  SimploidalBezierSpace, SimploidalSet,
-                                  bernstein_basis, fit_simploidal_set,
-                                  sample_simploid, simploid_indices,
-                                  simploid_n_params)
+from torch_bsf.simploidal import (
+    BezierSimploid,
+    Simploid,
+    SimploidalBezierSpace,
+    SimploidalSet,
+    bernstein_basis,
+    fit_simploidal_set,
+    sample_simploid,
+    simploid_indices,
+    simploid_n_params,
+)
 
 TYPES = [(), (1,), (2,), (3,), (1, 1), (2, 1), (1, 2), (1, 1, 1), (2, 2)]
 TRAINER_KWARGS = dict(max_epochs=5, enable_progress_bar=False, logger=False, enable_checkpointing=False)
@@ -1134,9 +1140,10 @@ def test_fit_lstsq_accepts_mps_init():
     t = sample_simploid((2,), 30, seed=0)
     x = t[:, :1] * t[:, 1:2]
     init = BezierSimploid.zeros((2,), 2, n_values=1).to("mps")
-    bs = fit_simploid(t, x, (2,), 2, init=init, freeze=[((2, 0, 0),)])
-    assert bs.control_points.device.type == "mps"
-    assert torch.allclose(bs.cpu()(t), x, atol=1e-5)
+    for normalize in ["none", "std"]:
+        bs = torch_bsf.fit(t, x, 2, init=init, freeze=[(2, 0, 0)], normalize=normalize)
+        assert bs.control_points.device.type == "mps"
+        assert torch.allclose(bs.cpu()(t), x, atol=1e-5)
 
 
 def test_public_exports():

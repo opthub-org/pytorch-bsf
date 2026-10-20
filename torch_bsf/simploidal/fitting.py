@@ -35,9 +35,7 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from torch_bsf.preprocessing import NormalizeType, make_scaler
 from torch_bsf.simploidal.bezier import BezierSimploid, ControlPointsLike
-from torch_bsf.simploidal.combinatorics import (SimploidIndex, SimploidType,
-                                                _check_degree, _check_type,
-                                                simploid_n_params)
+from torch_bsf.simploidal.combinatorics import SimploidIndex, SimploidType, _check_degree, _check_type, simploid_n_params
 from torch_bsf.simploidal.sets import Simploid, SimploidalSet
 from torch_bsf.simploidal.space import DegreeAssignment, SimploidalBezierSpace
 

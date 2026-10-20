@@ -9,9 +9,15 @@ import torch
 from mlflow import autolog
 from torch.nn import functional as F
 
-from torch_bsf._cli_args import (add_common_training_args, add_model_args,
-                                 check_columns, file_tag, fit_options,
-                                 load_model_data, load_table)
+from torch_bsf._cli_args import (
+    add_common_training_args,
+    add_model_args,
+    check_columns,
+    file_tag,
+    fit_options,
+    load_model_data,
+    load_table,
+)
 from torch_bsf.simploidal import BezierSimploid, save
 from torch_bsf.simploidal.fitting import fit
 
