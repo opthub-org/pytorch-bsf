@@ -1369,6 +1369,16 @@ def test_save_one_factor_writes_flat_keys_and_loads_nested_keys(tmp_path, suffix
         assert torch.equal(loaded.control_points, bs.control_points.detach())
 
 
+@pytest.mark.parametrize("suffix", [".csv", ".json", ".yml"])
+def test_load_one_coordinate_flat_key_as_vertex(tmp_path, suffix):
+    """A flat key with one coordinate, written by earlier versions for one parameter, loads as a vertex."""
+    path = tmp_path / f"legacy{suffix}"
+    path.write_text({".csv": '"(3,)",1.0,2.0\n', ".json": '{"(3,)": [1.0, 2.0]}', ".yml": '"(3,)": [1.0, 2.0]\n'}[suffix])
+    loaded = torch_bsf.simploidal.load(path)
+    assert (loaded.simploid_type, loaded.degree) == ((), ())
+    assert loaded(torch.empty(4, 0)).tolist() == [[1.0, 2.0]] * 4
+
+
 def test_load_pt_requires_a_dictionary(tmp_path):
     """.pt files are loaded with weights_only=True and must hold the dictionary written by save."""
     bs = BezierSimploid.randn((2, 1), 1, n_values=2)

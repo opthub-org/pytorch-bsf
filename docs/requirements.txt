@@ -5,3 +5,6 @@ sphinx-design
 sphinx-multiversion
 sphinx-proof
 sphinxcontrib-bibtex
+# Needed to build the documentation of earlier versions with sphinx-multiversion
+jsonschema
+pl-crossvalidate

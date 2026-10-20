@@ -29,7 +29,11 @@ def _is_multi_index(value: object) -> bool:
 
 
 def _parse_index_key(key: object) -> SimploidIndex:
-    """Parses a key written by :func:`_index_key`: a flat key is the index of a single factor."""
+    """Parses a key written by :func:`_index_key`: a flat key is the index of a single factor.
+
+    A flat key with one coordinate, e.g. ``"(3,)"``, was written for a constant model with a single
+    parameter by earlier versions and is read as the vertex index ``()``.
+    """
     try:
         index = literal_eval(key) if isinstance(key, str) else None
     except (ValueError, SyntaxError):
@@ -37,7 +41,7 @@ def _parse_index_key(key: object) -> SimploidIndex:
     if isinstance(index, tuple) and all(_is_multi_index(alpha) for alpha in index):
         return cast(SimploidIndex, index)
     if index and _is_multi_index(index):
-        return cast(SimploidIndex, (index,))
+        return cast(SimploidIndex, (index,) if len(index) > 1 else ())
     raise ValueError(
         f"Invalid control point index {key!r}: expected a multi-index such as '(2, 0, 0)' "
         "or a tuple of multi-indices such as '((2, 0, 0), (1, 0))'."
@@ -165,6 +169,8 @@ def load(path: str | Path) -> BezierSimploid:
     every control point of that type and degree must be present exactly once.
     A flat key such as ``"(2, 0, 0)"`` is the index of a Bézier simplex (a single factor),
     and a nested key such as ``"((2, 0, 0), (1, 0))"`` is the index of any Bézier simploid.
+    A flat key with a single coordinate such as ``"(3,)"``, written by earlier versions for a
+    model with one parameter, is read as the vertex ``"()"``.
 
     Parameters
     ----------
