@@ -5,7 +5,6 @@ import torch
 
 from torch_bsf.sampling import simplex_grid, simplex_random, simplex_sobol
 
-
 # ---------------------------------------------------------------------------
 # simplex_grid
 # ---------------------------------------------------------------------------
@@ -212,19 +211,14 @@ def test_simplex_sobol_power_of_two_no_warning():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         simplex_sobol(3, 128)
-    user_warning_messages = [
-        str(x.message) for x in w if issubclass(x.category, UserWarning)
-    ]
+    user_warning_messages = [str(x.message) for x in w if issubclass(x.category, UserWarning)]
     # Ensure our custom "not a power of 2" warning is not emitted.
-    assert not any(
-        "not a power of 2" in msg for msg in user_warning_messages
-    ), f"Unexpected 'not a power of 2' UserWarning(s): {user_warning_messages}"
+    assert not any("not a power of 2" in msg for msg in user_warning_messages), (
+        f"Unexpected 'not a power of 2' UserWarning(s): {user_warning_messages}"
+    )
     # Ensure the known SciPy Sobol warning is not emitted.
-    assert not any(
-        "balance properties of Sobol" in msg for msg in user_warning_messages
-    ), (
-        "Unexpected SciPy Sobol UserWarning(s): "
-        f"{user_warning_messages}"
+    assert not any("balance properties of Sobol" in msg for msg in user_warning_messages), (
+        f"Unexpected SciPy Sobol UserWarning(s): {user_warning_messages}"
     )
 
 
@@ -276,7 +270,9 @@ def test_simplex_sobol_scipy_import_error(monkeypatch):
 
     # Re-import the function from a fresh copy of the module to bypass the cached import.
     import importlib
+
     import torch_bsf.sampling as sampling_mod
+
     importlib.reload(sampling_mod)
 
     with pytest.raises(ImportError, match="scipy"):

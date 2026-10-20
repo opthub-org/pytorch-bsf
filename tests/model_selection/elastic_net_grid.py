@@ -103,7 +103,7 @@ class TestElasticNetGridCliMain:
         monkeypatch.setattr("sys.argv", ["elastic_net_grid", "--n_lambdas=2", "--n_alphas=2"])
         _cli_main()
         captured = capsys.readouterr()
-        lines = [l for l in captured.out.strip().splitlines() if l]
+        lines = [line for line in captured.out.strip().splitlines() if line]
         assert len(lines) > 0
         # Each line should have 3 comma-separated float values.
         for line in lines:

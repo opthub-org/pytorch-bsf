@@ -167,7 +167,7 @@ def _plot_bezier_curve(model, num, ax, show_control_points, **kwargs):
     try:
         import matplotlib.pyplot as plt
     except ImportError as e:
-        raise ImportError("matplotlib is required for plotting. " "Install it with: pip install matplotlib") from e
+        raise ImportError("matplotlib is required for plotting. Install it with: pip install matplotlib") from e
 
     ts, xs = _simplex_meshgrid(model, num)
     xs = xs.detach().cpu().numpy()
@@ -234,11 +234,11 @@ def _plot_bezier_triangle(model, num, ax, show_control_points, **kwargs):
     try:
         import matplotlib.pyplot as plt
     except ImportError as e:
-        raise ImportError("matplotlib is required for plotting. " "Install it with: pip install matplotlib") from e
+        raise ImportError("matplotlib is required for plotting. Install it with: pip install matplotlib") from e
     try:
         from scipy.spatial import Delaunay
     except ImportError as e:
-        raise ImportError("scipy is required for triangle plotting. " "Install it with: pip install scipy") from e
+        raise ImportError("scipy is required for triangle plotting. Install it with: pip install scipy") from e
 
     ts, xs = _simplex_meshgrid(model, num)
     xs = xs.detach().cpu().numpy()
@@ -332,7 +332,7 @@ def _plot_bezier_simplex_pairwise(model, num, show_control_points, max_control_p
     try:
         import matplotlib.pyplot as plt
     except ImportError as e:
-        raise ImportError("matplotlib is required for plotting. " "Install it with: pip install matplotlib") from e
+        raise ImportError("matplotlib is required for plotting. Install it with: pip install matplotlib") from e
 
     # Early return before any sampling when there are no output values.
     n_v = model.n_values

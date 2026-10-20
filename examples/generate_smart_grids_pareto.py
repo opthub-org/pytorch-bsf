@@ -1,10 +1,12 @@
 import pathlib
 
-import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+import numpy as np
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
+
 from torch_bsf.sklearn import BezierSimploidRegressor
 
 # 3-generator economic-emission dispatch: generation cost vs. emissions
@@ -19,12 +21,12 @@ emis_b = np.array([0.30, 0.20, 0.10])  # linear emission coefficients
 
 def f1(P):
     # Generation cost (strongly convex)
-    return cost_a @ P ** 2 + cost_b @ P
+    return cost_a @ P**2 + cost_b @ P
 
 
 def f2(P):
     # Emissions (strongly convex)
-    return emis_a @ P ** 2 + emis_b @ P
+    return emis_a @ P**2 + emis_b @ P
 
 
 def f(P, w):
@@ -54,10 +56,12 @@ optimals = [solve(t) for t in weights]
 w1 = np.array([p[0][0] for p in optimals])
 w2 = np.array([p[0][1] for p in optimals])
 X = np.column_stack([w1, w2])
-y = np.column_stack([
-    np.array([p[2] for p in optimals]),
-    np.array([p[3] for p in optimals]),
-])
+y = np.column_stack(
+    [
+        np.array([p[2] for p in optimals]),
+        np.array([p[3] for p in optimals]),
+    ]
+)
 
 # Fit a degree-4 Bézier simplex to the Pareto front
 regressor = BezierSimploidRegressor(degree=4)

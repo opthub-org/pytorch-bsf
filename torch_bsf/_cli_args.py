@@ -18,7 +18,7 @@ def add_common_training_args(parser: ArgumentParser) -> None:
         type=float,
         default=1.0,
         metavar="R",
-        help=("Fraction of data used for training; the remainder becomes the validation " "set (default: 1.0)"),
+        help=("Fraction of data used for training; the remainder becomes the validation set (default: 1.0)"),
     )
     parser.add_argument(
         "--batch_size",
@@ -45,9 +45,7 @@ def add_common_training_args(parser: ArgumentParser) -> None:
         type=str,
         default="auto",
         metavar="TYPE",
-        help=(
-            "Hardware accelerator for the Lightning trainer (e.g., 'cpu', 'gpu', " "'tpu', 'mps', or 'auto'; default: auto)"
-        ),
+        help=("Hardware accelerator for the Lightning trainer (e.g., 'cpu', 'gpu', 'tpu', 'mps', or 'auto'; default: auto)"),
     )
     parser.add_argument(
         "--strategy",
@@ -64,7 +62,7 @@ def add_common_training_args(parser: ArgumentParser) -> None:
         type=int_or_str,
         default="auto",
         metavar="N|auto",
-        help=("Number of devices to use, or 'auto' to let the Lightning trainer " "decide (default: auto)"),
+        help=("Number of devices to use, or 'auto' to let the Lightning trainer decide (default: auto)"),
     )
     parser.add_argument(
         "--num_nodes",
@@ -79,8 +77,7 @@ def add_common_training_args(parser: ArgumentParser) -> None:
         default="32-true",
         metavar="PRECISION",
         help=(
-            "Floating-point precision for the Lightning trainer: '32-true', "
-            "'16-mixed', 'bf16-mixed', etc. (default: 32-true)"
+            "Floating-point precision for the Lightning trainer: '32-true', '16-mixed', 'bf16-mixed', etc. (default: 32-true)"
         ),
     )
     parser.add_argument(
@@ -208,7 +205,7 @@ def add_model_args(parser: ArgumentParser) -> None:
         default="none",
         metavar="{none,max,std,quantile}",
         help=(
-            "Normalization applied to values while fitting; the fitted model predicts in the original scale " "(default: none)"
+            "Normalization applied to values while fitting; the fitted model predicts in the original scale (default: none)"
         ),
     )
     parser.add_argument(

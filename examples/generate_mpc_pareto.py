@@ -1,11 +1,13 @@
 import pathlib
 
-import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+import numpy as np
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import torch
 from scipy.optimize import minimize
+
 from torch_bsf import fit
 
 # Parametric 2-objective MPC: tracking vs. control effort
@@ -37,7 +39,7 @@ def f1(U, x0):
 
 def f2(U):
     # Control effort: sum_{k=0}^{H-1} u(k)^2
-    return np.sum(U ** 2)
+    return np.sum(U**2)
 
 
 def f(U, w, x0):

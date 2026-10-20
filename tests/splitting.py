@@ -179,7 +179,7 @@ def test_split_reproduces_original_curve(degree, s):
         split_vals = bs_A(u_A)
 
     assert torch.allclose(orig_vals, split_vals, atol=1e-5), (
-        f"Sub-simplex A does not reproduce original: max diff = " f"{(orig_vals - split_vals).abs().max().item()}"
+        f"Sub-simplex A does not reproduce original: max diff = {(orig_vals - split_vals).abs().max().item()}"
     )
 
     # Sample 20 points in sub-domain B  (t_j >= s)
@@ -192,7 +192,7 @@ def test_split_reproduces_original_curve(degree, s):
         split_vals = bs_B(u_B)
 
     assert torch.allclose(orig_vals, split_vals, atol=1e-5), (
-        f"Sub-simplex B does not reproduce original: max diff = " f"{(orig_vals - split_vals).abs().max().item()}"
+        f"Sub-simplex B does not reproduce original: max diff = {(orig_vals - split_vals).abs().max().item()}"
     )
 
 

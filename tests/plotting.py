@@ -147,9 +147,9 @@ def test_plot_bezier_simplex_pairwise_sampling_cap(require_matplotlib):
     # n_params=4, num=30 => binom(33, 3) = 5456, which exceeds _MAX_PAIRWISE_POINTS
     n_params, num = 4, 30
     model = _simplex(n_params, 1, 2)
-    assert (
-        math.comb(num + n_params - 1, n_params - 1) > plotting_module._MAX_PAIRWISE_POINTS
-    ), "precondition: meshgrid size must exceed the cap so random sampling is triggered"
+    assert math.comb(num + n_params - 1, n_params - 1) > plotting_module._MAX_PAIRWISE_POINTS, (
+        "precondition: meshgrid size must exceed the cap so random sampling is triggered"
+    )
     result = plot_bezier_simplex(model, num=num)
     assert result.shape == (2, 2)
     plt.close(result[0, 0].figure)
@@ -167,9 +167,9 @@ def test_plot_bezier_simplex_pairwise_max_control_points_default(require_matplot
     import math
 
     n_cp = math.comb(model.n_params + degree - 1, degree)
-    assert (
-        n_cp > plotting_module._MAX_CONTROL_POINTS
-    ), f"precondition: model must have more than {plotting_module._MAX_CONTROL_POINTS} control points; got {n_cp}"
+    assert n_cp > plotting_module._MAX_CONTROL_POINTS, (
+        f"precondition: model must have more than {plotting_module._MAX_CONTROL_POINTS} control points; got {n_cp}"
+    )
     result = plot_bezier_simplex(model, num=3)
     assert result.shape == (2, 2)
     plt.close(result[0, 0].figure)

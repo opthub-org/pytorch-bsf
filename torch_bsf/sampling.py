@@ -29,9 +29,7 @@ def simplex_grid(n_params: int, degree: int) -> torch.Tensor:
 
     # Stars and bars method to generate all non-negative integer solutions to sum(i_j) = degree
     # Ps contains all picking positions for 'bars' in a row of degree + n_params - 1 positions.
-    ps = torch.tensor(
-        list(itertools.combinations(range(degree + n_params - 1), n_params - 1))
-    )
+    ps = torch.tensor(list(itertools.combinations(range(degree + n_params - 1), n_params - 1)))
 
     # Use vectorized differences to calculate the counts (stars) in each gap
     N = ps.shape[0]
@@ -165,12 +163,12 @@ def simplex_sobol(n_params: int, n_samples: int, seed: int | None = None) -> tor
         return torch.empty((0, n_params), dtype=torch.float32)
 
     import numpy as np
+
     try:
         from scipy.stats import qmc
     except ImportError as e:
         raise ImportError(
-            "SciPy is required for simplex_sobol. "
-            "Install it with: pip install scipy or pip install pytorch-bsf[sampling]"
+            "SciPy is required for simplex_sobol. Install it with: pip install scipy or pip install pytorch-bsf[sampling]"
         ) from e
 
     # Warn when n_samples is not a power of 2 (Sobol sequences are base-2).
@@ -208,9 +206,7 @@ def simplex_sobol(n_params: int, n_samples: int, seed: int | None = None) -> tor
     # 2. Prepend 0 and append 1 to get n_params + 1 boundary values.
     # 3. Take consecutive differences to obtain n_params non-negative values that sum to 1.
     q = np.sort(q, axis=1)
-    q = np.concatenate(
-        [np.zeros((n_samples, 1)), q, np.ones((n_samples, 1))], axis=1
-    )
+    q = np.concatenate([np.zeros((n_samples, 1)), q, np.ones((n_samples, 1))], axis=1)
     diffs = np.diff(q, axis=1)
 
     return torch.from_numpy(diffs).float()

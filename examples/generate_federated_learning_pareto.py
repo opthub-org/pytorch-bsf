@@ -1,27 +1,29 @@
 import pathlib
 
-import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+import numpy as np
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
+
 from torch_bsf.sklearn import BezierSimploidRegressor
 
 # Two-task federated learning with quadratic losses
 # theta in R^2: shared model parameters
-theta1_star = np.array([1.0, 0.5])   # Task 1 target
+theta1_star = np.array([1.0, 0.5])  # Task 1 target
 theta2_star = np.array([-0.5, 1.0])  # Task 2 target
 lam = 0.1
 
 
 def f1(theta):
     # Task 1 regularized loss
-    return np.sum((theta - theta1_star) ** 2) + lam * np.sum(theta ** 2)
+    return np.sum((theta - theta1_star) ** 2) + lam * np.sum(theta**2)
 
 
 def f2(theta):
     # Task 2 regularized loss
-    return np.sum((theta - theta2_star) ** 2) + lam * np.sum(theta ** 2)
+    return np.sum((theta - theta2_star) ** 2) + lam * np.sum(theta**2)
 
 
 def f(theta, w):
@@ -46,10 +48,12 @@ for t in weights:
 w1 = np.array([p[0][0] for p in optimals])
 w2 = np.array([p[0][1] for p in optimals])
 X = np.column_stack([w1, w2])
-y = np.column_stack([
-    np.array([p[2] for p in optimals]),
-    np.array([p[3] for p in optimals]),
-])
+y = np.column_stack(
+    [
+        np.array([p[2] for p in optimals]),
+        np.array([p[3] for p in optimals]),
+    ]
+)
 
 # Fit a degree-3 Bézier simplex to the Pareto front
 regressor = BezierSimploidRegressor(degree=3)

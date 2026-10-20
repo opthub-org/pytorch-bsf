@@ -465,13 +465,11 @@ def max_error_criterion(params: torch.Tensor, values: torch.Tensor, grid_size: i
             )
         if params_t.shape[1] != model.n_params:
             raise ValueError(
-                f"`params` must have shape (N, {model.n_params}) for the given model, "
-                f"but got shape {tuple(params_t.shape)}."
+                f"`params` must have shape (N, {model.n_params}) for the given model, but got shape {tuple(params_t.shape)}."
             )
         if values_t.shape[1] != model.n_values:
             raise ValueError(
-                f"`values` must have shape (N, {model.n_values}) for the given model, "
-                f"but got shape {tuple(values_t.shape)}."
+                f"`values` must have shape (N, {model.n_values}) for the given model, but got shape {tuple(values_t.shape)}."
             )
         # Move data to the same device and dtype as the model so that forward
         # passes and mse_loss calls don't raise device/dtype mismatch errors.

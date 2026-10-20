@@ -21,16 +21,17 @@ Usage::
 The script writes ``docs/_static/elastic_net_leaf_space.png``.
 """
 
-import matplotlib.patches
-import numpy as np
 from pathlib import Path
 
-from torch_bsf.model_selection.elastic_net_grid import elastic_net_grid
+import matplotlib.patches
+import numpy as np
 
+from torch_bsf.model_selection.elastic_net_grid import elastic_net_grid
 
 # ---------------------------------------------------------------------------
 # Color helper
 # ---------------------------------------------------------------------------
+
 
 def weights_to_rgb(w1, w2, w3):
     """Map weight vectors (w1, w2, w3) to RGB colors."""
@@ -41,6 +42,7 @@ def weights_to_rgb(w1, w2, w3):
 # Projection helpers
 # ---------------------------------------------------------------------------
 
+
 def project_to_2d(points):
     """Project 3-D simplex points to 2-D Cartesian coordinates.
 
@@ -50,7 +52,7 @@ def project_to_2d(points):
         (0, 1, 0)  ->  (0.5, sqrt3/2)  # pure-L1 vertex, top
         (0, 0, 1)  ->  (1,   0      )  # pure-L2 vertex, bottom-right
     """
-    w1, w2, w3 = points[:, 0], points[:, 1], points[:, 2]
+    w2, w3 = points[:, 1], points[:, 2]
     px = 0.5 * w2 + w3
     py = np.sqrt(3) / 2 * w2
     return px, py
@@ -105,6 +107,7 @@ BASE = 10
 def main():
     """Generate the elastic-net leaf-space figure and write it to disk."""
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib.collections import LineCollection
@@ -128,21 +131,18 @@ def main():
     # w1=0 corresponds to λ→∞ (base edge) – filter to finite λ only for the
     # left panel and leaf lines.
     unique_w1 = np.unique(grid[:n_main, 0])
-    unique_w1_finite = unique_w1[unique_w1 > 1e-10]   # finite-λ levels only
+    unique_w1_finite = unique_w1[unique_w1 > 1e-10]  # finite-λ levels only
     lambda_unique = (1.0 - unique_w1_finite) / unique_w1_finite  # λ = (1-w1)/w1
-    lambda_max = lambda_unique.max() * 1.15                       # axis upper limit
+    lambda_max = lambda_unique.max() * 1.15  # axis upper limit
 
     alphas_per_row = np.linspace(0.0, 1.0, N_ALPHAS, endpoint=True)
-    h3 = np.sqrt(3) / 2   # used in both center and right panels
+    h3 = np.sqrt(3) / 2  # used in both center and right panels
 
     # ---------------------------------------------------------------------------
     # Figure layout: three panels side by side
     # ---------------------------------------------------------------------------
 
-    fig, (ax_rect, ax_simplex, ax_leaf) = plt.subplots(
-        1, 3, figsize=(16, 5.2), gridspec_kw={"wspace": 0.45}
-    )
-
+    fig, (ax_rect, ax_simplex, ax_leaf) = plt.subplots(1, 3, figsize=(16, 5.2), gridspec_kw={"wspace": 0.45})
 
     # ===========================================================================
     # Left panel – (λ, α) hyperparameter space
@@ -177,9 +177,7 @@ def main():
 
     # Identified edge: λ=0 → all points collapse to w=(1,0,0) = red
     ax.axvline(x=0.0, color=(1.0, 0.0, 0.0), lw=2.5, zorder=3)
-    ax.scatter([0.0, 0.0], [0.0, 1.0],
-            c=[(1.0, 0.0, 0.0), (1.0, 0.0, 0.0)], s=60, zorder=5,
-            edgecolors="none")
+    ax.scatter([0.0, 0.0], [0.0, 1.0], c=[(1.0, 0.0, 0.0), (1.0, 0.0, 0.0)], s=60, zorder=5, edgecolors="none")
 
     # Annotation
     ax.annotate(
@@ -190,21 +188,17 @@ def main():
         ha="left",
         va="center",
         color="darkred",
-        arrowprops=dict(arrowstyle="-[", color="darkred", lw=1.5,
-                        connectionstyle="arc3,rad=0"),
+        arrowprops=dict(arrowstyle="-[", color="darkred", lw=1.5, connectionstyle="arc3,rad=0"),
     )
 
     # Corner labels
-    ax.text(-lambda_max * 0.035, -0.06, r"$\alpha=0$" "\n(pure L2)",
-            fontsize=8, va="top", ha="right")
-    ax.text(-lambda_max * 0.035, 1.06, r"$\alpha=1$" "\n(pure L1)",
-            fontsize=8, va="bottom", ha="right")
+    ax.text(-lambda_max * 0.035, -0.06, r"$\alpha=0$" "\n(pure L2)", fontsize=8, va="top", ha="right")
+    ax.text(-lambda_max * 0.035, 1.06, r"$\alpha=1$" "\n(pure L1)", fontsize=8, va="bottom", ha="right")
     ax.tick_params(axis="both", which="both", length=3)
     ax.set_box_aspect(1)
     # Horizontal grid lines at each α level in the data
     for alpha_val in alphas_per_row:
         ax.axhline(y=alpha_val, color="gray", lw=0.5, alpha=0.4, zorder=1)
-
 
     # ===========================================================================
     # Center panel – 2-simplex with foliation (leaves) and grid points
@@ -220,8 +214,8 @@ def main():
     # the base edge — only at α levels present in the data.
     # Base edge point for α: (0, α, 1-α)  →  (1 - 0.5*α, sqrt3/2 * α)
     for alpha_val in alphas_per_row:
-        bx = 1.0 - 0.5 * alpha_val   # x of base-edge point
-        by = h3 * alpha_val           # y of base-edge point
+        bx = 1.0 - 0.5 * alpha_val  # x of base-edge point
+        by = h3 * alpha_val  # y of base-edge point
         ax.plot([0.0, bx], [0.0, by], color="gray", lw=0.5, alpha=0.4, zorder=0)
 
     ax.set_title("Elastic-net grid on the 2-simplex\n(after identification)", fontsize=11, pad=34)
@@ -233,7 +227,7 @@ def main():
     # In this layout: (0,1,0) → (0.5, sqrt3/2) top; (0,0,1) → (1,0) bottom-right
     # This is the right side of the triangle.
     t_base = np.linspace(0.0, 1.0, 100)
-    x_base = 0.5 + 0.5 * t_base      # from (0.5, sqrt3/2) to (1, 0)
+    x_base = 0.5 + 0.5 * t_base  # from (0.5, sqrt3/2) to (1, 0)
     y_base = h3 * (1.0 - t_base)
     pts_base = np.column_stack([x_base, y_base])
     segs_base = np.stack([pts_base[:-1], pts_base[1:]], axis=1)
@@ -247,21 +241,20 @@ def main():
     # Color: from (w1, 1-w1, 0) [green end] to (w1, 0, 1-w1) [blue end]
     # Skip w1=0 (that is the base edge itself, already drawn above)
     for w1 in unique_w1_finite:
-        x_t = 0.5 * (1.0 - w1)          # (w1, 1-w1, 0)  top end
+        x_t = 0.5 * (1.0 - w1)  # (w1, 1-w1, 0)  top end
         y_t = h3 * (1.0 - w1)
-        x_r = 1.0 - w1                  # (w1, 0, 1-w1)  bottom-right end
+        x_r = 1.0 - w1  # (w1, 0, 1-w1)  bottom-right end
         y_r = 0.0
         t_lf = np.linspace(0.0, 1.0, 30)
         x_lf = np.linspace(x_t, x_r, 30)
         y_lf_arr = np.linspace(y_t, y_r, 30)
-        w2_lf = (1.0 - t_lf) * (1.0 - w1)   # 1-w1 → 0
-        w3_lf = t_lf * (1.0 - w1)            # 0 → 1-w1
+        w2_lf = (1.0 - t_lf) * (1.0 - w1)  # 1-w1 → 0
+        w3_lf = t_lf * (1.0 - w1)  # 0 → 1-w1
         c_lf = weights_to_rgb(np.full(30, w1), w2_lf, w3_lf)
         pts_lf = np.column_stack([x_lf, y_lf_arr])
         segs_lf = np.stack([pts_lf[:-1], pts_lf[1:]], axis=1)
         c_lf_mids = 0.5 * (c_lf[:-1] + c_lf[1:])
-        ax.add_collection(LineCollection(segs_lf, colors=c_lf_mids,
-                                        lw=1.0, alpha=0.7, zorder=1))
+        ax.add_collection(LineCollection(segs_lf, colors=c_lf_mids, lw=1.0, alpha=0.7, zorder=1))
 
     # Scatter grid points colored by (w1, w2, w3)
     ax.scatter(px, py, c=rgb_all, s=20, zorder=3, edgecolors="none")
@@ -272,15 +265,26 @@ def main():
     ax.plot(1.0, 0.0, "o", color=(0.0, 0.0, 1.0), markersize=8, zorder=5)
 
     offset = 0.05
-    ax.text(0.0 - offset, 0.0, r"$(1,0,0)$" "\n" r"$\lambda=0$",
-            ha="right", va="center", fontsize=8.5, color=(0.8, 0.0, 0.0))
-    ax.text(0.5, h3 + offset, r"$(0,1,0)$" "\n" r"$(\lambda\!\to\!\infty,\ \alpha\!=\!1)$",
-            ha="center", va="bottom", fontsize=8.5, color=(0.0, 0.65, 0.0))
-    ax.text(1.0 + offset, 0.0, r"$(0,0,1)$" "\n" r"$(\lambda\!\to\!\infty,\ \alpha\!=\!0)$",
-            ha="left", va="center", fontsize=8.5, color=(0.0, 0.0, 0.9))
-    ax.text(0.82, h3 * 0.45, "base edge\n(null model)", fontsize=7.5, ha="center",
-            color="dimgray", rotation=-60)
-
+    ax.text(0.0 - offset, 0.0, r"$(1,0,0)$" "\n" r"$\lambda=0$", ha="right", va="center", fontsize=8.5, color=(0.8, 0.0, 0.0))
+    ax.text(
+        0.5,
+        h3 + offset,
+        r"$(0,1,0)$" "\n" r"$(\lambda\!\to\!\infty,\ \alpha\!=\!1)$",
+        ha="center",
+        va="bottom",
+        fontsize=8.5,
+        color=(0.0, 0.65, 0.0),
+    )
+    ax.text(
+        1.0 + offset,
+        0.0,
+        r"$(0,0,1)$" "\n" r"$(\lambda\!\to\!\infty,\ \alpha\!=\!0)$",
+        ha="left",
+        va="center",
+        fontsize=8.5,
+        color=(0.0, 0.0, 0.9),
+    )
+    ax.text(0.82, h3 * 0.45, "base edge\n(null model)", fontsize=7.5, ha="center", color="dimgray", rotation=-60)
 
     # ===========================================================================
     # Right panel – quotient (leaf/eye) space, rotated 90° counterclockwise
@@ -318,7 +322,7 @@ def main():
     #   α=0 boundary → new_x = -cos(π t), new_y = -R * sin(π t)  (bottom, y ≤ 0)
     #   α=1 boundary → new_x = -cos(π t), new_y =  R * sin(π t)  (top,    y ≥ 0)
     x_alpha0_bnd, y_alpha0_bnd = rot90ccw(-R * np.sin(np.pi * t_bnd), np.cos(np.pi * t_bnd))
-    x_alpha1_bnd, y_alpha1_bnd = rot90ccw( R * np.sin(np.pi * t_bnd), np.cos(np.pi * t_bnd))
+    x_alpha1_bnd, y_alpha1_bnd = rot90ccw(R * np.sin(np.pi * t_bnd), np.cos(np.pi * t_bnd))
 
     # Bottom boundary (α=0): color transitions red→blue  (w1=1-t, w2=0, w3=t)
     pts_bb = np.column_stack([x_alpha0_bnd, y_alpha0_bnd])
@@ -337,7 +341,7 @@ def main():
     # Skip w1=0: it maps to P* (zero-width leaf) and is shown by the vertex marker
     for w1 in unique_w1_finite:
         t = 1.0 - w1
-        y_lf = np.cos(np.pi * t)    # original y of the leaf line (before rotation)
+        y_lf = np.cos(np.pi * t)  # original y of the leaf line (before rotation)
         width = R * np.sin(np.pi * t)
         # Before rotation: horizontal segment from (-width, y_lf) to (width, y_lf)
         # After 90° CCW: x = -y_lf (constant), y from width to -width
@@ -376,21 +380,23 @@ def main():
     # Collapsed point P*: large green dot (behind) + smaller blue dot (in front) — now at RIGHT (1, 0)
     # This visualizes that both (0,1,0) and (0,0,1) map to P*.
     ax.plot(1, 0, "o", color=(0.0, 1.0, 0.0), markersize=14, zorder=4)  # green, larger
-    ax.plot(1, 0, "o", color=(0.0, 0.0, 1.0), markersize=8,  zorder=5)  # blue, smaller
+    ax.plot(1, 0, "o", color=(0.0, 0.0, 1.0), markersize=8, zorder=5)  # blue, smaller
 
     # Labels
-    ax.text(-1.10, 0, r"$A$: $(1, 0, 0)$, $\lambda=0$",
-            ha="right", va="center", fontsize=8.5, color=(0.8, 0.0, 0.0))
-    ax.text(1.12, 0,
-            r"$P^*$: null model" "\n" r"$(0,1,0)$ and $(0,0,1)$ identified",
-            ha="left", va="center", fontsize=8.0, color="dimgray")
+    ax.text(-1.10, 0, r"$A$: $(1, 0, 0)$, $\lambda=0$", ha="right", va="center", fontsize=8.5, color=(0.8, 0.0, 0.0))
+    ax.text(
+        1.12,
+        0,
+        r"$P^*$: null model" "\n" r"$(0,1,0)$ and $(0,0,1)$ identified",
+        ha="left",
+        va="center",
+        fontsize=8.0,
+        color="dimgray",
+    )
 
     # Edge labels at the widest point (now top and bottom of the shape)
-    ax.text(0, R + 0.06, r"$\alpha=1$" "\n(pure L1)",
-            ha="center", va="bottom", fontsize=8)
-    ax.text(0, -(R + 0.06), r"$\alpha=0$" "\n(pure L2)",
-            ha="center", va="top", fontsize=8)
-
+    ax.text(0, R + 0.06, r"$\alpha=1$" "\n(pure L1)", ha="center", va="bottom", fontsize=8)
+    ax.text(0, -(R + 0.06), r"$\alpha=0$" "\n(pure L2)", ha="center", va="top", fontsize=8)
 
     # ===========================================================================
     # Save

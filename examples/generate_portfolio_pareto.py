@@ -1,10 +1,12 @@
 import pathlib
 
-import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+import numpy as np
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
+
 from torch_bsf.sklearn import BezierSimploidRegressor
 
 # 3-asset mean-variance portfolio optimization
@@ -15,12 +17,12 @@ sigma_diag = np.array([0.10, 0.15, 0.08])  # variances
 
 def f1(x):
     # Negative expected return + L2 regularization
-    return -mu @ x + 0.2 * np.sum(x ** 2)
+    return -mu @ x + 0.2 * np.sum(x**2)
 
 
 def f2(x):
     # Portfolio variance + L2 regularization
-    return x @ np.diag(sigma_diag) @ x + 0.05 * np.sum(x ** 2)
+    return x @ np.diag(sigma_diag) @ x + 0.05 * np.sum(x**2)
 
 
 def f(x, w):
@@ -47,10 +49,12 @@ optimals = [solve(t) for t in weights]
 w1 = np.array([p[0][0] for p in optimals])
 w2 = np.array([p[0][1] for p in optimals])
 X = np.column_stack([w1, w2])
-y = np.column_stack([
-    np.array([p[2] for p in optimals]),
-    np.array([p[3] for p in optimals]),
-])
+y = np.column_stack(
+    [
+        np.array([p[2] for p in optimals]),
+        np.array([p[3] for p in optimals]),
+    ]
+)
 
 # Fit a degree-3 Bézier simplex to the Pareto front
 regressor = BezierSimploidRegressor(degree=3)

@@ -1,10 +1,12 @@
 import pathlib
 
-import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+import numpy as np
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
+
 from torch_bsf.sklearn import BezierSimploidRegressor
 
 # Define a two-objective facility location problem in 2D
@@ -25,6 +27,7 @@ def f2(x):
 
 def f(x, w):
     return w[0] * f1(x) + w[1] * f2(x)
+
 
 # Sample 10 weights from w=(1,0) to w=(0,1)
 weights = np.linspace(0.0, 1.0, 10)

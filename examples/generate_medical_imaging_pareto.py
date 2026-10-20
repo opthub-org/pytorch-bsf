@@ -1,12 +1,14 @@
 import pathlib
 
-import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+import numpy as np
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.collections import LineCollection
 import torch
+from matplotlib.collections import LineCollection
 from scipy.optimize import minimize
+
 from torch_bsf import fit
 
 # CT reconstruction: fidelity vs. regularization (L-curve experiment)
@@ -31,8 +33,8 @@ for a in range(n_angles):
         t = (r - n_rays // 2) * 0.1
         for i in range(height):
             for j in range(width):
-                x = (i - height//2) * 0.1
-                y = (j - width//2) * 0.1
+                x = (i - height // 2) * 0.1
+                y = (j - width // 2) * 0.1
                 dist = abs(x * cos_theta + y * sin_theta - t)
                 if dist < 0.05:  # Simple line integral approximation
                     K[a * n_rays + r, i * width + j] = 1.0
@@ -55,11 +57,11 @@ L = L[:idx]  # Trim to actual size
 
 # True image: simple 2D phantom (circle)
 x_true = np.zeros((height, width))
-center = (height//2, width//2)
+center = (height // 2, width // 2)
 radius = min(height, width) // 4
 for i in range(height):
     for j in range(width):
-        if (i - center[0])**2 + (j - center[1])**2 <= radius**2:
+        if (i - center[0]) ** 2 + (j - center[1]) ** 2 <= radius**2:
             x_true[i, j] = 1.0
 x_true = x_true.flatten()
 
@@ -69,12 +71,12 @@ y_obs = K @ x_true + 0.05 * rng.standard_normal(K.shape[0])
 
 def f1(x):
     # Data fidelity + small L2 regularization
-    return np.sum((K @ x - y_obs) ** 2) + 0.01 * np.sum(x ** 2)
+    return np.sum((K @ x - y_obs) ** 2) + 0.01 * np.sum(x**2)
 
 
 def f2(x):
     # Smoothness (total variation via finite differences) + small L2
-    return np.sum((L @ x) ** 2) + 0.01 * np.sum(x ** 2)
+    return np.sum((L @ x) ** 2) + 0.01 * np.sum(x**2)
 
 
 def f(x, w):
@@ -140,10 +142,12 @@ pareto_colors = [(1 - t, t, 0) for t, _, _, _ in optimals]
 
 # Prepare training data for Bézier simplex fitting
 X = np.column_stack([1.0 - ts, ts])
-y = np.column_stack([
-    np.array([p[2] for p in optimals]),
-    np.array([p[3] for p in optimals]),
-])
+y = np.column_stack(
+    [
+        np.array([p[2] for p in optimals]),
+        np.array([p[3] for p in optimals]),
+    ]
+)
 
 # Fit a degree-10 Bézier simplex to the Pareto front (objective space)
 pf_bezier = fit_bezier_simplex(X, y, degree=10)
@@ -189,15 +193,12 @@ print(f"Max test approximation error (Pareto set): {np.max(np.abs(ps_bezier(X_te
 z_smooth = ps_bezier(X_smooth)
 
 fig2, ax2 = plt.subplots(figsize=(6, 6))
-ax2.scatter(z_targets[:, 0], z_targets[:, 1], color=pareto_colors,
-            label="Optimal reconstructions (samples)", s=50)
+ax2.scatter(z_targets[:, 0], z_targets[:, 1], color=pareto_colors, label="Optimal reconstructions (samples)", s=50)
 segments = np.array([z_smooth[:-1, 0:2], z_smooth[1:, 0:2]]).transpose(1, 0, 2)
 lc = LineCollection(segments, colors=line_colors, linewidth=2, label="Fitted Bézier simplex")
 ax2.add_collection(lc)
-ax2.axhline(x_true[1], color="gray", linestyle="--", alpha=0.5,
-            label=f"True pixel 2 = {x_true[1]:.1f}")
-ax2.axvline(x_true[0], color="gray", linestyle=":", alpha=0.5,
-            label=f"True pixel 1 = {x_true[0]:.1f}")
+ax2.axhline(x_true[1], color="gray", linestyle="--", alpha=0.5, label=f"True pixel 2 = {x_true[1]:.1f}")
+ax2.axvline(x_true[0], color="gray", linestyle=":", alpha=0.5, label=f"True pixel 1 = {x_true[0]:.1f}")
 ax2.set_xlabel("Pixel 1 (x₁)")
 ax2.set_ylabel("Pixel 2 (x₂)")
 ax2.set_title("CT Reconstruction Parameters with Bézier Approximation")
@@ -213,9 +214,9 @@ fig3, axes = plt.subplots(1, 5, figsize=(15, 3))
 selected_indices = [0, 49, 99, 149, 199]  # Select 5 points along the curve
 for idx, ax_idx in enumerate(selected_indices):
     img = z_smooth[ax_idx].reshape(height, width)
-    axes[idx].imshow(img, cmap='gray', vmin=0, vmax=1)
+    axes[idx].imshow(img, cmap="gray", vmin=0, vmax=1)
     axes[idx].set_title(f"λ={10.0 ** (-2.0 + 3.0 * t_smooth[ax_idx]):.3g}")
-    axes[idx].axis('off')
+    axes[idx].axis("off")
 plt.tight_layout()
 plt.savefig("docs/_static/medical_imaging_pareto_samples.png", dpi=150, bbox_inches="tight")
 print("Pareto set samples plot saved.")

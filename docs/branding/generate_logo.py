@@ -46,10 +46,7 @@ def main():
     parser.add_argument("--font", required=True, type=Path)
     args = parser.parse_args()
     source = TTFont(args.font)
-    fonts = {
-        w: instantiateVariableFont(source, {"wght": w}, inplace=False)
-        for w in (500, 650, 750)
-    }
+    fonts = {w: instantiateVariableFont(source, {"wght": w}, inplace=False) for w in (500, 650, 750)}
 
     def lettering(value, x, y, size, weight, fill, tracking=0):
         font = fonts[weight]
@@ -62,8 +59,7 @@ def main():
             glyph.draw(pen)
             if pen.getCommands():
                 parts.append(
-                    f'<path transform="translate({x:.3f} {y}) scale({scale:.7f} '
-                    f'{-scale:.7f})" d="{pen.getCommands()}"/>'
+                    f'<path transform="translate({x:.3f} {y}) scale({scale:.7f} {-scale:.7f})" d="{pen.getCommands()}"/>'
                 )
             x += glyph.width * scale + tracking
         return f'<g fill="{fill}">{"".join(parts)}</g>', x
@@ -77,25 +73,18 @@ def main():
         word, end = lettering("PyTorch", 158, 76, 43, 500, colors[2])
         dash, end = lettering("-", end + 2, 76, 43, 500, colors[2])
         bsf, end = lettering("BSF", end + 2, 76, 43, 750, colors[2])
-        sub, _ = lettering(
-            "BÉZIER SIMPLOID FITTING", 160, 106, 12.5, 650, colors[3], 1.3
-        )
+        sub, _ = lettering("BÉZIER SIMPLOID FITTING", 160, 106, 12.5, 650, colors[3], 1.3)
         body = mark + word + dash + bsf + sub
         STATIC.joinpath(f"logo{suffix}.svg").write_text(
             svg(448, 144, body, "PyTorch-BSF — Bézier Simploid Fitting", description)
         )
-        STATIC.joinpath(f"logo-icon{suffix}.svg").write_text(
-            svg(128, 128, icon(colors), "PyTorch-BSF", description)
-        )
+        STATIC.joinpath(f"logo-icon{suffix}.svg").write_text(svg(128, 128, icon(colors), "PyTorch-BSF", description))
         compact = mark + f'<g transform="translate(0 12)">{word}{dash}{bsf}</g>'
-        STATIC.joinpath(f"logo-compact{suffix}.svg").write_text(
-            svg(448, 144, compact, "PyTorch-BSF", description)
-        )
+        STATIC.joinpath(f"logo-compact{suffix}.svg").write_text(svg(448, 144, compact, "PyTorch-BSF", description))
         if suffix in ("", "-dark"):
             background = "#FFFFFF" if not suffix else "#101827"
             banner = (
-                f'<path fill="{background}" d="M0 0H1200V360H0Z"/>'
-                f'<g transform="translate(196.8 50.4) scale(1.8)">{body}</g>'
+                f'<path fill="{background}" d="M0 0H1200V360H0Z"/><g transform="translate(196.8 50.4) scale(1.8)">{body}</g>'
             )
             STATIC.joinpath(f"logo-banner{suffix}.svg").write_text(
                 svg(
@@ -110,9 +99,7 @@ def main():
     # The favicon has its own dark backing, so it is independent of browser theme.
     favicon = '<rect width="128" height="128" rx="28" fill="#18243B"/>'
     favicon += f'<g transform="translate(4 4) scale(.9375)">{icon(PALETTES["-dark"], micro=True)}</g>'
-    STATIC.joinpath("favicon.svg").write_text(
-        svg(128, 128, favicon, "PyTorch-BSF", description)
-    )
+    STATIC.joinpath("favicon.svg").write_text(svg(128, 128, favicon, "PyTorch-BSF", description))
 
 
 if __name__ == "__main__":

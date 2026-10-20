@@ -1,10 +1,12 @@
 import pathlib
 
-import numpy as np
 import matplotlib
-matplotlib.use('Agg')  # Use non-interactive backend
+import numpy as np
+
+matplotlib.use("Agg")  # Use non-interactive backend
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
+
 from torch_bsf.sklearn import BezierSimploidRegressor
 
 # Define a three-objective facility location problem in 2D
@@ -31,19 +33,22 @@ def f3(x):
 def f(x, w):
     return w[0] * f1(x) + w[1] * f2(x) + w[2] * f3(x)
 
+
 # Sample 10 weight vectors on the 2-simplex
-w_list = np.array([
-    [1.0, 0.0, 0.0],
-    [0.0, 1.0, 0.0],
-    [0.0, 0.0, 1.0],
-    [0.5, 0.5, 0.0],
-    [0.5, 0.0, 0.5],
-    [0.0, 0.5, 0.5],
-    [1/3, 1/3, 1/3],
-    [0.7, 0.2, 0.1],
-    [0.2, 0.7, 0.1],
-    [0.1, 0.2, 0.7],
-])
+w_list = np.array(
+    [
+        [1.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0],
+        [0.0, 0.0, 1.0],
+        [0.5, 0.5, 0.0],
+        [0.5, 0.0, 0.5],
+        [0.0, 0.5, 0.5],
+        [1 / 3, 1 / 3, 1 / 3],
+        [0.7, 0.2, 0.1],
+        [0.2, 0.7, 0.1],
+        [0.1, 0.2, 0.7],
+    ]
+)
 
 optimals = []
 for w in w_list:
@@ -85,7 +90,9 @@ print("Generating plot...")
 fig = plt.figure(figsize=(9, 7))
 ax = fig.add_subplot(111, projection="3d")
 ax.scatter(y[:, 0], y[:, 1], y[:, 2], color="blue", label="Optimization-derived Pareto points", s=40)
-ax.scatter(predicted[:, 0], predicted[:, 1], predicted[:, 2], color="red", alpha=0.15, s=10, label="Bézier simplex approximation")
+ax.scatter(
+    predicted[:, 0], predicted[:, 1], predicted[:, 2], color="red", alpha=0.15, s=10, label="Bézier simplex approximation"
+)
 ax.set_xlabel("Distance to demand center A (f₁)")
 ax.set_ylabel("Distance to demand center B (f₂)")
 ax.set_zlabel("Distance to demand center C (f₃)")

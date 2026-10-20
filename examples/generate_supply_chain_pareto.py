@@ -1,10 +1,12 @@
 import pathlib
 
-import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+import numpy as np
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
+
 from torch_bsf.sklearn import BezierSimploidRegressor
 
 # 2-objective LQR: inventory state deviation vs. ordering cost and volatility
@@ -35,7 +37,7 @@ def f1(U):
 
 def f2(U):
     # Ordering cost + policy volatility: sum_k u(k)^2 + 0.5 * sum_k (u(k) - u(k-1))^2 with u(-1) = 0
-    return np.sum(U ** 2) + 0.5 * np.sum(np.diff(U, prepend=0.0) ** 2)
+    return np.sum(U**2) + 0.5 * np.sum(np.diff(U, prepend=0.0) ** 2)
 
 
 def f(U, w):
@@ -62,10 +64,12 @@ optimals = [solve(t) for t in weights]
 w1 = np.array([p[0][0] for p in optimals])
 w2 = np.array([p[0][1] for p in optimals])
 X = np.column_stack([w1, w2])
-y = np.column_stack([
-    np.array([p[2] for p in optimals]),
-    np.array([p[3] for p in optimals]),
-])
+y = np.column_stack(
+    [
+        np.array([p[2] for p in optimals]),
+        np.array([p[3] for p in optimals]),
+    ]
+)
 
 # Fit a degree-8 Bézier simplex to the Pareto front
 regressor = BezierSimploidRegressor(degree=8)

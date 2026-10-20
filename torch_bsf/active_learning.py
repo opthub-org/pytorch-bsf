@@ -120,7 +120,7 @@ def suggest_next_points(
     for i, model in enumerate(itertools.islice(models, 1, None), start=1):
         model_n_params = getattr(model, "n_params", None)
         if model_n_params is not None and model_n_params != n_params:
-            raise ValueError(f"models[{i}].n_params={model_n_params} does not match " f"expected n_params={n_params}.")
+            raise ValueError(f"models[{i}].n_params={model_n_params} does not match expected n_params={n_params}.")
         model_device = _infer_device(model)
         if model_device != device:
             raise ValueError(

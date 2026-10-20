@@ -1,14 +1,17 @@
 import pathlib
 
-import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+import numpy as np
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
+
 from torch_bsf.sklearn import BezierSimploidRegressor
 
 # Define three convex objective functions for a simplified routing problem
 # x = [x1, x2] representing routing allocations
+
 
 def f1(x):
     return x[0] ** 2 + x[1] ** 2
@@ -26,6 +29,7 @@ def f3(x):
 
 def f(x, w):
     return w[0] * f1(x) + w[1] * f2(x) + w[2] * f3(x)
+
 
 # 10 deterministic weights on the 2-simplex
 w_list = np.array(
@@ -81,7 +85,9 @@ print(f"Max training point error: {max_error:.4f}")
 fig = plt.figure(figsize=(9, 7))
 ax = fig.add_subplot(111, projection="3d")
 ax.scatter(y[:, 0], y[:, 1], y[:, 2], color="blue", label="Optimization-derived points", s=40)
-ax.scatter(predicted[:, 0], predicted[:, 1], predicted[:, 2], color="red", alpha=0.15, s=10, label="Bézier simplex approximation")
+ax.scatter(
+    predicted[:, 0], predicted[:, 1], predicted[:, 2], color="red", alpha=0.15, s=10, label="Bézier simplex approximation"
+)
 ax.set_xlabel("f₁: Congestion Excess")
 ax.set_ylabel("f₂: Route Volatility")
 ax.set_zlabel("f₃: Path Imbalance")

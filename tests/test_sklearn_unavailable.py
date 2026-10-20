@@ -1,4 +1,5 @@
 """Tests for torch_bsf.sklearn when scikit-learn is unavailable."""
+
 import pytest
 
 

@@ -46,27 +46,18 @@ def reverse_logspace(num: int = 50, base: float = 10) -> np.ndarray:
     array([0.        , 0.74956092, 0.93784211, 0.9851362 , 0.99701594])
     """
     if base > 1.0:
-        return 1.0 - (np.logspace(1.0, 0.0, num, endpoint=False, base=base) - 1.0) / (
-            base - 1
-        )
+        return 1.0 - (np.logspace(1.0, 0.0, num, endpoint=False, base=base) - 1.0) / (base - 1)
     elif base == 1.0:
         return np.linspace(0.0, 1.0, num, endpoint=False)
     elif base > 0:
         inv_base = 1.0 / base
-        return (np.logspace(0.0, 1.0, num, endpoint=False, base=inv_base) - 1.0) / (
-            inv_base - 1
-        )
+        return (np.logspace(0.0, 1.0, num, endpoint=False, base=inv_base) - 1.0) / (inv_base - 1)
     else:
         raise ValueError("base must be > 0, but given: {base}")
 
 
-def elastic_net_grid(
-    n_lambdas: int = 102,
-    n_alphas: int = 12,
-    n_vertex_copies: int = 1,
-    base: float = 10
-) -> np.ndarray:
-    """Return an array of 3D grid points on the standard 2-simplex, which is suitable for grid search for elastic net's hyperparameters.
+def elastic_net_grid(n_lambdas: int = 102, n_alphas: int = 12, n_vertex_copies: int = 1, base: float = 10) -> np.ndarray:
+    """Return 3D grid points on the standard 2-simplex, suitable for grid search over elastic net hyperparameters.
 
     The grid consists of ``n_lambdas - 1`` regularization-strength slices (height levels),
     each containing ``n_alphas`` equally spaced points along the alpha axis with
@@ -173,9 +164,7 @@ def elastic_net_grid(
     if n_vertex_copies < 1:
         raise ValueError(f"n_vertex_copies must be >= 1, but given: {n_vertex_copies}")
     if n_lambdas < 0 or n_alphas < 0:
-        raise ValueError(
-            f"n_lambdas and n_alphas must be >= 0, but given: n_lambdas={n_lambdas}, n_alphas={n_alphas}"
-        )
+        raise ValueError(f"n_lambdas and n_alphas must be >= 0, but given: n_lambdas={n_lambdas}, n_alphas={n_alphas}")
     if n_lambdas == 0 or n_alphas == 0:
         return np.empty((0, 3))
     w1_values = reverse_logspace(n_lambdas - 1, base)
@@ -190,7 +179,7 @@ def elastic_net_grid(
 
     if n_vertices > 1:
         # fill remaining space with vertex copies
-        grids[-n_vertices + 1:] = np.tile(np.eye(3), (n_vertex_copies - 1, 1))
+        grids[-n_vertices + 1 :] = np.tile(np.eye(3), (n_vertex_copies - 1, 1))
 
     return grids
 
