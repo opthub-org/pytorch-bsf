@@ -9,15 +9,9 @@ import torch
 from mlflow import autolog
 from torch.nn import functional as F
 
-from torch_bsf._cli_args import (
-    add_common_training_args,
-    add_model_args,
-    check_columns,
-    file_tag,
-    fit_options,
-    load_model_data,
-    load_table,
-)
+from torch_bsf._cli_args import (add_common_training_args, add_model_args,
+                                 check_columns, file_tag, fit_options,
+                                 load_model_data, load_table)
 from torch_bsf.simploidal import BezierSimploid, save
 from torch_bsf.simploidal.fitting import fit
 
@@ -129,6 +123,8 @@ def main() -> None:
     if not 0.0 < args.split_ratio <= 1.0:
         parser.error(f"--split_ratio must satisfy 0 < R <= 1, but {args.split_ratio} is given")
     params, values, simploid_type, init = load_model_data(parser, args)
+    if int(len(params) * args.split_ratio) == 0:
+        parser.error(f"--split_ratio {args.split_ratio} leaves no training samples out of {len(params)}")
     meshgrid: Path = args.params if (args.meshgrid is None or args.meshgrid.is_dir()) else args.meshgrid
     ts = load_table(meshgrid, args.header)
     check_columns(parser, "--meshgrid", ts, simploid_type)

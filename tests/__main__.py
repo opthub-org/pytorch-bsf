@@ -455,6 +455,7 @@ def test_cli_simploid_error_is_clean(tmp_path):
         (["--simploid-type=2,1", "--degree=2", "--freeze=[[[2,0,0],[2,0]]]"], "--freeze requires --init"),
         (["--simploid-type=2,1", "--degree=2", "--smoothness_weight=-1"], "smoothness_weight"),
         (["--simploid-type=2,1", "--degree=2", "--split_ratio=0"], "--split_ratio must satisfy 0 < R <= 1"),
+        (["--simploid-type=2,1", "--degree=2", "--split_ratio=0.01"], "leaves no training samples out of 60"),
         (["--simploid-type=2,1", "--degree=-1"], "--degree must be non-negative"),
         (["--simploid-type=2,1", "--degree=2", "--ridge=-1"], "--ridge must be non-negative"),
         (["--simploid-type=2,1", "--degree=2", "--solver=trainer", "--ridge=0.1"], "--ridge is supported only with"),

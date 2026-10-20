@@ -6,17 +6,11 @@ import torch
 import torch_bsf
 from torch_bsf import fit
 from torch_bsf.bezier_simplex import BezierSimplex
-from torch_bsf.simploidal import (
-    BezierSimploid,
-    Simploid,
-    SimploidalBezierSpace,
-    SimploidalSet,
-    bernstein_basis,
-    fit_simploidal_set,
-    sample_simploid,
-    simploid_indices,
-    simploid_n_params,
-)
+from torch_bsf.simploidal import (BezierSimploid, Simploid,
+                                  SimploidalBezierSpace, SimploidalSet,
+                                  bernstein_basis, fit_simploidal_set,
+                                  sample_simploid, simploid_indices,
+                                  simploid_n_params)
 
 TYPES = [(), (1,), (2,), (3,), (1, 1), (2, 1), (1, 2), (1, 1, 1), (2, 2)]
 TRAINER_KWARGS = dict(max_epochs=5, enable_progress_bar=False, logger=False, enable_checkpointing=False)
@@ -1125,8 +1119,9 @@ def test_fit_lstsq_accepts_mps_inputs():
     """MPS does not support float64, so the exact solver must move the inputs to the CPU before promoting them."""
     t = sample_simploid((2,), 30, seed=0)
     x = t[:, :1] * t[:, 1:2]
-    bs = fit_simploid(t.to("mps"), x.to("mps"), (2,), 2)
-    assert torch.allclose(bs(t), x, atol=1e-5)
+    for normalize in ["none", "std"]:
+        bs = torch_bsf.fit(t.to("mps"), x.to("mps"), 2, normalize=normalize)
+        assert torch.allclose(bs(t), x, atol=1e-5)
     S = SimploidalSet()
     tri = S.add_simplex(2)
     space = fit_simploidal_set(S, [(tri, t.to("mps"), x.to("mps"))], 2)
@@ -1718,6 +1713,18 @@ def test_fit_kfold_fits_each_model_to_the_other_folds():
         train[test] = False
         expected = torch_bsf.fit(t[train], x[train], 1, simploid_type=(2, 1))
         assert torch.allclose(model.control_points, expected.control_points)
+
+
+def test_fit_kfold_freezes_in_every_fold_given_an_iterator():
+    from torch_bsf.sampling import simplex_grid
+
+    t = simplex_grid(3, 3)
+    x = t[:, :1]
+    init = BezierSimploid.zeros((2,), 1, n_values=1)
+    vertex = (1, 0, 0)
+    models = torch_bsf.fit_kfold(t, x, 1, n_folds=3, seed=0, init=init, freeze=iter([vertex]))
+    for model in models:
+        assert model[vertex].item() == 0.0
 
 
 def test_fit_kfold_shuffles_reproducibly_and_caps_folds():

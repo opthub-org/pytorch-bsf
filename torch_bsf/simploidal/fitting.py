@@ -35,7 +35,9 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from torch_bsf.preprocessing import NormalizeType, make_scaler
 from torch_bsf.simploidal.bezier import BezierSimploid, ControlPointsLike
-from torch_bsf.simploidal.combinatorics import SimploidIndex, SimploidType, _check_degree, _check_type, simploid_n_params
+from torch_bsf.simploidal.combinatorics import (SimploidIndex, SimploidType,
+                                                _check_degree, _check_type,
+                                                simploid_n_params)
 from torch_bsf.simploidal.sets import Simploid, SimploidalSet
 from torch_bsf.simploidal.space import DegreeAssignment, SimploidalBezierSpace
 
@@ -383,7 +385,7 @@ def fit(
     dtype = _floating_dtype([values] if values.is_floating_point() else [params])
     model = model.to(dtype)
     scaler = make_scaler(normalize)
-    values = scaler.fit_transform(values.to(dtype))
+    values = scaler.fit_transform(values.to(model.control_points.device, dtype))
     original = model.control_points.detach().clone()
     with torch.no_grad():
         model.control_points.copy_(scaler.transform(original))
@@ -500,6 +502,8 @@ def fit_kfold(
     torch_bsf.active_learning.suggest_next_points : Use the ensemble for active learning.
     """
     params, values = torch.as_tensor(params), torch.as_tensor(values)
+    if kwargs.get("freeze") is not None:
+        kwargs["freeze"] = list(kwargs["freeze"])  # an iterator would be consumed by the first fold
     folds = _fold_indices(len(params), n_folds, shuffle, seed)
     models = nn.ModuleList()
     for k in range(len(folds)):
