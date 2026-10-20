@@ -123,12 +123,14 @@
 <section id="how-to-use">
 <h2>How to Use<a class="headerlink" href="#how-to-use" title="Link to this heading"></a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">select_degree()</span></code> function iterates through multiple degrees and evaluates the mean squared error (MSE) using cross-validation.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch_bsf</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch_bsf</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.model_selection.degree_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">select_degree</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.sampling</span><span class="w"> </span><span class="kn">import</span> <span class="n">simplex_random</span>
 
 <span class="c1"># Your data</span>
-<span class="n">ts</span> <span class="o">=</span> <span class="o">...</span> <span class="c1"># parameters</span>
-<span class="n">xs</span> <span class="o">=</span> <span class="o">...</span> <span class="c1"># values</span>
+<span class="n">ts</span> <span class="o">=</span> <span class="n">simplex_random</span><span class="p">(</span><span class="n">n_params</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># parameters</span>
+<span class="n">xs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">ts</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">])</span>  <span class="c1"># values</span>
 
 <span class="c1"># Select the best degree between 1 and 5</span>
 <span class="n">best_d</span> <span class="o">=</span> <span class="n">select_degree</span><span class="p">(</span>
@@ -137,34 +139,43 @@
     <span class="n">min_degree</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
     <span class="n">max_degree</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
     <span class="n">num_folds</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
-    <span class="n">max_epochs</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-    <span class="n">accelerator</span><span class="o">=</span><span class="s2">"auto"</span> <span class="c1"># use GPU if available</span>
+    <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>  <span class="c1"># shuffle the samples into the same folds every time</span>
 <span class="p">)</span>
 
 <span class="c1"># Use the best degree for final fitting</span>
 <span class="n">bs</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">ts</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="n">best_d</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="mi">1</span> <span class="o">&lt;=</span> <span class="n">best_d</span> <span class="o">&lt;=</span> <span class="mi">5</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>True
 </pre></div>
 </div>
 </section>
 <section id="how-it-works">
 <h2>How It Works<a class="headerlink" href="#how-it-works" title="Link to this heading"></a></h2>
 <ol class="arabic simple">
-<li><p><strong>Iteration</strong>: The tool trains Bézier simplices for degrees from <code class="docutils literal notranslate"><span class="pre">min_degree</span></code> to <code class="docutils literal notranslate"><span class="pre">max_degree</span></code>.</p></li>
-<li><p><strong>K-Fold CV</strong>: For each degree, it performs <span class="math notranslate nohighlight">\(k\)</span>-fold cross-validation. The mean MSE across all validation folds is calculated.</p></li>
-<li><p><strong>Heuristic Search</strong>: If the CV error increases for a degree compared to the previous one, the search stops early to save time.</p></li>
+<li><p><strong>Iteration</strong>: The tool fits Bézier simplices with <code class="docutils literal notranslate"><span class="pre">torch_bsf.fit()</span></code> for degrees from <code class="docutils literal notranslate"><span class="pre">min_degree</span></code> to <code class="docutils literal notranslate"><span class="pre">max_degree</span></code>.</p></li>
+<li><p><strong>K-Fold CV</strong>: For each degree, it performs <span class="math notranslate nohighlight">\(k\)</span>-fold cross-validation: the samples are shuffled (unless <code class="docutils literal notranslate"><span class="pre">shuffle=False</span></code>) and split into <code class="docutils literal notranslate"><span class="pre">num_folds</span></code> folds, a model is fitted to all folds but one, and its MSE is measured on the held-out fold. The mean MSE across all validation folds is calculated.</p></li>
+<li><p><strong>Heuristic Search</strong>: If the CV error does not improve for <code class="docutils literal notranslate"><span class="pre">patience</span></code> consecutive degrees (<code class="docutils literal notranslate"><span class="pre">1</span></code> by default), the search stops early to save time.</p></li>
 <li><p><strong>Optimal Selection</strong>: The degree with the lowest mean validation MSE is returned.</p></li>
 </ol>
 </section>
 <section id="configuration">
 <h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading"></a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">select_degree()</span></code> function accepts any keyword arguments that the standard PyTorch Lightning <a class="reference external" href="https://lightning.ai/docs/pytorch/stable/common/trainer.html#trainer-flags">Trainer</a> supports.</p>
 <p>Important parameters include:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">min_degree</span></code> / <code class="docutils literal notranslate"><span class="pre">max_degree</span></code>: Range of degrees to check.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">num_folds</span></code>: Number of cross-validation folds.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">max_epochs</span></code>: Number of epochs to train for each fold (smaller is faster, but might be less accurate for selection).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">accelerator</span></code> / <code class="docutils literal notranslate"><span class="pre">devices</span></code>: Hardware settings for training.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">num_folds</span></code>: Number of cross-validation folds (capped at the number of samples).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">patience</span></code>: Number of consecutive degrees without improvement before stopping.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">shuffle</span></code> / <code class="docutils literal notranslate"><span class="pre">seed</span></code>: Whether to shuffle the samples before splitting them into folds, and the random seed for shuffling (also passed to <code class="docutils literal notranslate"><span class="pre">fit()</span></code>).</p></li>
 </ul>
+<p>Any other keyword arguments are passed to <code class="docutils literal notranslate"><span class="pre">torch_bsf.fit()</span></code>, e.g., <code class="docutils literal notranslate"><span class="pre">smoothness_weight</span></code>, <code class="docutils literal notranslate"><span class="pre">normalize</span></code> or <code class="docutils literal notranslate"><span class="pre">ridge</span></code>.
+By default, each fold is fitted exactly by the <code class="docutils literal notranslate"><span class="pre">&quot;lstsq&quot;</span></code> solver.
+To train with the Lightning trainer instead, pass <code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code> together with any <a class="reference external" href="https://lightning.ai/docs/pytorch/stable/common/trainer.html#trainer-flags">Trainer arguments</a>, such as <code class="docutils literal notranslate"><span class="pre">max_epochs</span></code> (smaller is faster, but might be less accurate for selection) and <code class="docutils literal notranslate"><span class="pre">accelerator</span></code> / <code class="docutils literal notranslate"><span class="pre">devices</span></code>.</p>
+<p>To select the degree of a Bézier simploid (see <a class="reference internal" href="simploidal.html"><span class="doc">Simploidal Sets</span></a>), pass its <code class="docutils literal notranslate"><span class="pre">simploid_type</span></code>; every factor then gets the same degree.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">best_d</span> <span class="o">=</span> <span class="n">select_degree</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">ts</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span> <span class="n">simploid_type</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+</pre></div>
+</div>
 </section>
 <section id="when-to-use">
 <h2>When to Use<a class="headerlink" href="#when-to-use" title="Link to this heading"></a></h2>
@@ -186,26 +197,32 @@
 <span class="w">    </span>--min_degree<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--max_degree<span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--num_folds<span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--max_epochs<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--accelerator<span class="w"> </span>auto
+<span class="w">    </span>--seed<span class="w"> </span><span class="m">0</span>
 </pre></div>
 </div>
 <p>All options except <code class="docutils literal notranslate"><span class="pre">--params</span></code> and <code class="docutils literal notranslate"><span class="pre">--values</span></code> are optional and fall back to their
-defaults (<code class="docutils literal notranslate"><span class="pre">--min_degree</span> <span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">--max_degree</span> <span class="pre">5</span></code>, <code class="docutils literal notranslate"><span class="pre">--num_folds</span> <span class="pre">5</span></code>,
-<code class="docutils literal notranslate"><span class="pre">--max_epochs</span> <span class="pre">2</span></code>, <code class="docutils literal notranslate"><span class="pre">--accelerator</span> <span class="pre">auto</span></code>).</p>
+defaults (<code class="docutils literal notranslate"><span class="pre">--min_degree</span> <span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">--max_degree</span> <span class="pre">5</span></code>, <code class="docutils literal notranslate"><span class="pre">--num_folds</span> <span class="pre">5</span></code>, <code class="docutils literal notranslate"><span class="pre">--patience</span> <span class="pre">1</span></code>,
+<code class="docutils literal notranslate"><span class="pre">--solver</span> <span class="pre">lstsq</span></code>).
+Pass <code class="docutils literal notranslate"><span class="pre">--simploid-type</span></code> (e.g., <code class="docutils literal notranslate"><span class="pre">--simploid-type</span> <span class="pre">2,1</span></code>) to select the degree of a Bézier simploid.
+The trainer options (<code class="docutils literal notranslate"><span class="pre">--batch_size</span></code>, <code class="docutils literal notranslate"><span class="pre">--max_epochs</span></code>, <code class="docutils literal notranslate"><span class="pre">--accelerator</span></code> and <code class="docutils literal notranslate"><span class="pre">--devices</span></code>)
+are used only with <code class="docutils literal notranslate"><span class="pre">--solver</span> <span class="pre">trainer</span></code>.</p>
 </section>
 <section id="example-output">
 <h3>Example Output<a class="headerlink" href="#example-output" title="Link to this heading"></a></h3>
 <p>With the default <code class="docutils literal notranslate"><span class="pre">--loglevel</span> <span class="pre">INFO</span></code>, the command prints per-degree progress to
 <em>stderr</em> and writes the selected degree to <em>stdout</em>:</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>INFO:torch_bsf.model_selection.degree_selection:Checking degree 1...
-INFO:torch_bsf.model_selection.degree_selection:Degree 1: Mean MSE = 0.012345
-INFO:torch_bsf.model_selection.degree_selection:Checking degree 2...
-INFO:torch_bsf.model_selection.degree_selection:Degree 2: Mean MSE = 0.007891
-INFO:torch_bsf.model_selection.degree_selection:Checking degree 3...
-INFO:torch_bsf.model_selection.degree_selection:Degree 3: Mean MSE = 0.009012
-INFO:torch_bsf.model_selection.degree_selection:MSE increased at degree 3, stopping.
-Best degree: 2
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>INFO:__main__:Checking degree 1...
+INFO:__main__:Degree 1: Mean MSE = 0.043644
+INFO:__main__:Checking degree 2...
+INFO:__main__:Degree 2: Mean MSE = 0.000454
+INFO:__main__:Checking degree 3...
+INFO:__main__:Degree 3: Mean MSE = 0.000177
+INFO:__main__:Checking degree 4...
+INFO:__main__:Degree 4: Mean MSE = 0.000115
+INFO:__main__:Checking degree 5...
+INFO:__main__:Degree 5: Mean MSE = 0.000278
+INFO:__main__:No improvement for 1 consecutive degree(s) at degree 5, stopping.
+Best degree: 4
 </pre></div>
 </div>
 <p>The final line <code class="docutils literal notranslate"><span class="pre">Best</span> <span class="pre">degree:</span> <span class="pre">&lt;N&gt;</span></code> is the only output written to <em>stdout</em>.
@@ -214,39 +231,46 @@ Pass <code class="docutils literal notranslate"><span class="pre">--loglevel</sp
 <section id="available-options">
 <h3>Available Options<a class="headerlink" href="#available-options" title="Link to this heading"></a></h3>
 <p>Run with <code class="docutils literal notranslate"><span class="pre">--help</span></code> to see all available options:</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: python -m torch_bsf.model_selection.degree_selection [-h]
-                                                             --params PARAMS
-                                                             --values VALUES
-                                                             [--header HEADER]
-                                                             [--min_degree MIN_DEGREE]
-                                                             [--max_degree MAX_DEGREE]
-                                                             [--num_folds NUM_FOLDS]
-                                                             [--batch_size BATCH_SIZE]
-                                                             [--max_epochs MAX_EPOCHS]
-                                                             [--accelerator ACCELERATOR]
-                                                             [--devices DEVICES]
-                                                             [--loglevel {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>usage: python -m torch_bsf.model_selection.degree_selection
+       [-h] --params PARAMS --values VALUES [--header HEADER]
+       [--simploid-type A1,...,An] [--min_degree MIN_DEGREE]
+       [--max_degree MAX_DEGREE] [--num_folds NUM_FOLDS] [--patience PATIENCE]
+       [--seed SEED] [--solver {lstsq,trainer}] [--batch_size BATCH_SIZE]
+       [--max_epochs MAX_EPOCHS] [--accelerator ACCELERATOR]
+       [--devices DEVICES] [--loglevel {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
 
-Automatic degree selection for Bezier simplex via k-fold cross-validation
+Automatic degree selection for a Bezier simplex (or simploid) via k-fold
+cross-validation
 
 options:
   -h, --help            show this help message and exit
   --params PARAMS       Path to the input parameters CSV file
   --values VALUES       Path to the output values CSV file
   --header HEADER       Number of header rows to skip (default: 0)
+  --simploid-type, --simploid_type A1,...,An
+                        Type of the Bezier simploid (default: a Bezier simplex
+                        of dimension n_params - 1)
   --min_degree MIN_DEGREE
                         Minimum degree to search (default: 1)
   --max_degree MAX_DEGREE
                         Maximum degree to search (default: 5)
   --num_folds NUM_FOLDS
                         Number of cross-validation folds (default: 5)
+  --patience PATIENCE   Consecutive non-improving degrees before stopping
+                        (default: 1)
+  --seed SEED           Random seed for the folds and training (default: none)
+  --solver {lstsq,trainer}
+                        'lstsq' solves the least-squares problem exactly,
+                        'trainer' trains with Lightning (default: lstsq)
   --batch_size BATCH_SIZE
-                        Batch size for training (default: full-batch)
+                        Batch size for --solver=trainer (default: full-batch)
   --max_epochs MAX_EPOCHS
-                        Training epochs per fold (default: 2)
+                        Training epochs per fold for --solver=trainer
+                        (default: 2)
   --accelerator ACCELERATOR
-                        Accelerator type (default: auto)
-  --devices DEVICES     Devices to use, integer or 'auto' (default: auto)
+                        Accelerator for --solver=trainer (default: auto)
+  --devices DEVICES     Devices for --solver=trainer, integer or 'auto'
+                        (default: auto)
   --loglevel {DEBUG,INFO,WARNING,ERROR,CRITICAL}
                         Python logging level for degree selection progress
                         (default: INFO)
@@ -262,17 +286,15 @@ options:
 <span class="w">    </span>-P<span class="w"> </span><span class="nv">values</span><span class="o">=</span>values.csv<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-P<span class="w"> </span><span class="nv">min_degree</span><span class="o">=</span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-P<span class="w"> </span><span class="nv">max_degree</span><span class="o">=</span><span class="m">5</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>-P<span class="w"> </span><span class="nv">num_folds</span><span class="o">=</span><span class="m">5</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>-P<span class="w"> </span><span class="nv">max_epochs</span><span class="o">=</span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>-P<span class="w"> </span><span class="nv">accelerator</span><span class="o">=</span>auto<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>-P<span class="w"> </span><span class="nv">devices</span><span class="o">=</span>auto
+<span class="w">    </span>-P<span class="w"> </span><span class="nv">num_folds</span><span class="o">=</span><span class="m">5</span>
 </pre></div>
 </div>
 <p>The best degree is printed to the run’s stdout and can be reviewed in the MLflow UI.
-The <code class="docutils literal notranslate"><span class="pre">header</span></code>, <code class="docutils literal notranslate"><span class="pre">accelerator</span></code>, and <code class="docutils literal notranslate"><span class="pre">devices</span></code> parameters are also exposed and
-default to <code class="docutils literal notranslate"><span class="pre">0</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code>, and <code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code> respectively.  The <code class="docutils literal notranslate"><span class="pre">batch_size</span></code> option
-is not exposed through the MLproject entry point; the default full-batch loading is
-used for all MLflow runs.</p>
+The <code class="docutils literal notranslate"><span class="pre">simploid_type</span></code> (default <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>, i.e., a Bézier simplex), <code class="docutils literal notranslate"><span class="pre">solver</span></code> (default
+<code class="docutils literal notranslate"><span class="pre">lstsq</span></code>), <code class="docutils literal notranslate"><span class="pre">header</span></code> (default <code class="docutils literal notranslate"><span class="pre">0</span></code>), and, for <code class="docutils literal notranslate"><span class="pre">solver=trainer</span></code>,
+<code class="docutils literal notranslate"><span class="pre">max_epochs</span></code> (default <code class="docutils literal notranslate"><span class="pre">2</span></code>), <code class="docutils literal notranslate"><span class="pre">accelerator</span></code> and <code class="docutils literal notranslate"><span class="pre">devices</span></code> (default <code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code>)
+parameters are also exposed.  The <code class="docutils literal notranslate"><span class="pre">seed</span></code> and <code class="docutils literal notranslate"><span class="pre">batch_size</span></code> options are not exposed through
+the MLproject entry point; MLflow runs shuffle the folds at random and use full-batch loading.</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <ul class="simple">

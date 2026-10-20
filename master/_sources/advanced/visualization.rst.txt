@@ -6,15 +6,19 @@ Visualizing high-dimensional Bézier simplices and simploids is crucial for unde
 The ``torch_bsf.plotting`` Module
 ---------------------------------
 
-The ``plot_bezier_simplex()`` function provides a high-level API for visualization. It automatically handles the dimensionality of your model.
+The ``plot_bezier_simplex()`` function provides a high-level API for visualization of a Bézier simplex, such as a model returned by :func:`torch_bsf.fit`. It automatically handles the dimensionality of your model.  For a Bézier simploid with more than one factor, use ``plot_bezier_simploid()`` (see :ref:`visualization-simploids`).
 
 .. code-block:: python
 
+   import torch
    import torch_bsf
    from torch_bsf.plotting import plot_bezier_simplex
+   from torch_bsf.sampling import simplex_grid
    import matplotlib.pyplot as plt
 
-   # Fit a model (e.g., a Bézier curve in 3D)
+   # Fit a model (e.g., a Bézier triangle in 3D)
+   ts = simplex_grid(n_params=3, degree=6)
+   xs = torch.stack([ts[:, 0], ts[:, 1], ts[:, 0] * ts[:, 1] * ts[:, 2]], dim=1)
    bs = torch_bsf.fit(params=ts, values=xs, degree=3)
 
    # Plot the model
@@ -62,12 +66,12 @@ shape ``(n_values, n_values)``.
 
 .. code-block:: python
 
-   from torch_bsf import bezier_simplex
+   from torch_bsf import BezierSimploid
    from torch_bsf.plotting import plot_bezier_simplex
    import matplotlib.pyplot as plt
 
-   # Build a random 4-parameter, 3-output model (n_params=4 means a 3-simplex input)
-   model = bezier_simplex.randn(n_params=4, n_values=3, degree=2)
+   # Build a random degree-2 model on a 3-simplex (n_params=4) with 3 outputs
+   model = BezierSimploid.randn((3,), 2, 3)
 
    # Plot returns an (n_values, n_values) grid of axes
    axes = plot_bezier_simplex(model, num=30)
@@ -84,11 +88,13 @@ The ``plot_bezier_simplex()`` function returns a standard Matplotlib axes object
 
 .. code-block:: python
 
-   ax = plot_bezier_simplex(bs, num=100, color="blue", alpha=0.5)
+   ax = plot_bezier_simplex(bs, num=100, color="blue")
    ax.set_xlabel("Objective 1")
    ax.set_ylabel("Objective 2")
    ax.set_zlabel("Objective 3")
    ax.view_init(elev=20, azim=45)
+
+.. _visualization-simploids:
 
 Bézier Simploids and Simploidal Bézier Spaces
 ---------------------------------------------

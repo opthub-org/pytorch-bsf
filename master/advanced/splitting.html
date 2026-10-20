@@ -67,6 +67,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#custom-criteria">Custom Criteria</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#splitting-bezier-simploids">Splitting Bézier Simploids</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#iterative-refinement">Iterative Refinement</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a></li>
 </ul>
@@ -131,15 +132,7 @@ polynomial degree.</p>
 <span class="c1"># Fit an initial model</span>
 <span class="n">params</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]])</span>
 <span class="n">values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]])</span>
-<span class="n">bs</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
-    <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span>
-    <span class="n">values</span><span class="o">=</span><span class="n">values</span><span class="p">,</span>
-    <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-    <span class="n">max_epochs</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
-    <span class="n">enable_progress_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">logger</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">enable_checkpointing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="n">bs</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="n">values</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 
 <span class="c1"># Split along the longest edge in value space</span>
 <span class="n">bs_A</span><span class="p">,</span> <span class="n">bs_B</span> <span class="o">=</span> <span class="n">split_by_criterion</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="n">longest_edge_criterion</span><span class="p">)</span>
@@ -239,11 +232,11 @@ barycentric coordinates of the sub-simplex they belong to.
 <span class="n">t</span> <span class="o">=</span> <span class="n">params</span>  <span class="c1"># e.g. from your training dataset</span>
 
 <span class="c1"># Map to sub-simplex A</span>
-<span class="n">u_A</span><span class="p">,</span> <span class="n">mask_A</span> <span class="o">=</span> <span class="n">reparametrize</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">subsimplex</span><span class="o">=</span><span class="s2">"A"</span><span class="p">)</span>
+<span class="n">u_A</span><span class="p">,</span> <span class="n">mask_A</span> <span class="o">=</span> <span class="n">reparametrize</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">part</span><span class="o">=</span><span class="s2">"A"</span><span class="p">)</span>
 <span class="c1"># u_A[mask_A] are the local coordinates of the points in sub-simplex A</span>
 
 <span class="c1"># Map to sub-simplex B</span>
-<span class="n">u_B</span><span class="p">,</span> <span class="n">mask_B</span> <span class="o">=</span> <span class="n">reparametrize</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">subsimplex</span><span class="o">=</span><span class="s2">"B"</span><span class="p">)</span>
+<span class="n">u_B</span><span class="p">,</span> <span class="n">mask_B</span> <span class="o">=</span> <span class="n">reparametrize</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">part</span><span class="o">=</span><span class="s2">"B"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The returned <code class="docutils literal notranslate"><span class="pre">mask</span></code> is a boolean tensor indicating which input points belong
@@ -253,7 +246,7 @@ shared boundary and appear in both masks.</p>
 <p class="admonition-title">Note</p>
 <p>The local barycentric coordinates <code class="docutils literal notranslate"><span class="pre">u</span></code> returned by
 <a class="reference internal" href="../torch_bsf.html#torch_bsf.splitting.reparametrize" title="torch_bsf.splitting.reparametrize"><code class="xref py py-func docutils literal notranslate"><span class="pre">reparametrize()</span></code></a> sum to 1 by construction, so
-they can be passed directly to <code class="xref py py-meth docutils literal notranslate"><span class="pre">__call__()</span></code>.</p>
+they can be passed directly to the piece, e.g. <code class="docutils literal notranslate"><span class="pre">bs_A(u_A[mask_A])</span></code>.</p>
 </div>
 </section>
 <section id="choosing-a-split-automatically">
@@ -261,8 +254,9 @@ they can be passed directly to <code class="xref py py-meth docutils literal not
 <p>Rather than specifying <code class="docutils literal notranslate"><span class="pre">(i,</span> <span class="pre">j,</span> <span class="pre">s)</span></code> by hand, you can pass a
 <a class="reference internal" href="../torch_bsf.html#torch_bsf.splitting.SplitCriterion" title="torch_bsf.splitting.SplitCriterion"><code class="xref py py-data docutils literal notranslate"><span class="pre">SplitCriterion</span></code></a> to
 <a class="reference internal" href="../torch_bsf.html#torch_bsf.splitting.split_by_criterion" title="torch_bsf.splitting.split_by_criterion"><code class="xref py py-func docutils literal notranslate"><span class="pre">split_by_criterion()</span></code></a>.  The criterion inspects the
-fitted model (and optionally the data) and returns the best <code class="docutils literal notranslate"><span class="pre">(i,</span> <span class="pre">j,</span> <span class="pre">s)</span></code>
-triple.</p>
+fitted model (and optionally the data) and returns the best
+<code class="docutils literal notranslate"><span class="pre">(factor,</span> <span class="pre">i,</span> <span class="pre">j,</span> <span class="pre">s)</span></code>, where <code class="docutils literal notranslate"><span class="pre">factor</span></code> is always <code class="docutils literal notranslate"><span class="pre">0</span></code> for a Bézier simplex
+(see <a class="reference internal" href="#splitting-simploids"><span class="std std-ref">Splitting Bézier Simploids</span></a>).</p>
 <p>Two built-in criteria are provided.</p>
 <section id="longest-edge-criterion">
 <h3>Longest-Edge Criterion<a class="headerlink" href="#longest-edge-criterion" title="Link to this heading"></a></h3>
@@ -288,7 +282,7 @@ well when the manifold is elongated along a single direction.</p>
 </pre></div>
 </div>
 <p>You can also call the criterion directly to inspect which edge it selects:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="n">longest_edge_criterion</span><span class="p">(</span><span class="n">bs</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">factor</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="n">longest_edge_criterion</span><span class="p">(</span><span class="n">bs</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Splitting edge (</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">j</span><span class="si">}</span><span class="s2">) at s=</span><span class="si">{</span><span class="n">s</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -346,19 +340,47 @@ midpoint.  The dashed line shows the split and the star marks
 <section id="custom-criteria">
 <h3>Custom Criteria<a class="headerlink" href="#custom-criteria" title="Link to this heading"></a></h3>
 <p>A <a class="reference internal" href="../torch_bsf.html#torch_bsf.splitting.SplitCriterion" title="torch_bsf.splitting.SplitCriterion"><code class="xref py py-data docutils literal notranslate"><span class="pre">SplitCriterion</span></code></a> is any callable with the
-signature <code class="docutils literal notranslate"><span class="pre">(bs:</span> <span class="pre">BezierSimplex)</span> <span class="pre">-&gt;</span> <span class="pre">tuple[int,</span> <span class="pre">int,</span> <span class="pre">float]</span></code>.  You can write
-your own criterion and pass it to <a class="reference internal" href="../torch_bsf.html#torch_bsf.splitting.split_by_criterion" title="torch_bsf.splitting.split_by_criterion"><code class="xref py py-func docutils literal notranslate"><span class="pre">split_by_criterion()</span></code></a>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSimplex</span>
+signature <code class="docutils literal notranslate"><span class="pre">(model:</span> <span class="pre">BezierSimploid)</span> <span class="pre">-&gt;</span> <span class="pre">tuple[int,</span> <span class="pre">int,</span> <span class="pre">int,</span> <span class="pre">float]</span></code> returning
+<code class="docutils literal notranslate"><span class="pre">(factor,</span> <span class="pre">i,</span> <span class="pre">j,</span> <span class="pre">s)</span></code>.  You can write your own criterion and pass it to
+<a class="reference internal" href="../torch_bsf.html#torch_bsf.splitting.split_by_criterion" title="torch_bsf.splitting.split_by_criterion"><code class="xref py py-func docutils literal notranslate"><span class="pre">split_by_criterion()</span></code></a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSimploid</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.splitting</span><span class="w"> </span><span class="kn">import</span> <span class="n">split_by_criterion</span>
 
-<span class="k">def</span><span class="w"> </span><span class="nf">my_criterion</span><span class="p">(</span><span class="n">bs</span><span class="p">:</span> <span class="n">BezierSimplex</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
-    <span class="c1"># Always split the first edge at the one-third point</span>
-    <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="mf">3.0</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">my_criterion</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">BezierSimploid</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+    <span class="c1"># Always split the first edge of the (only) factor at the one-third point</span>
+    <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="mf">3.0</span>
 
 <span class="n">bs_A</span><span class="p">,</span> <span class="n">bs_B</span> <span class="o">=</span> <span class="n">split_by_criterion</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="n">my_criterion</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
+</section>
+<section id="splitting-bezier-simploids">
+<span id="splitting-simploids"></span><h2>Splitting Bézier Simploids<a class="headerlink" href="#splitting-bezier-simploids" title="Link to this heading"></a></h2>
+<p>The same functions split a Bézier simploid, i.e., a tensor product of Bézier
+simplices (see <a class="reference internal" href="simploidal.html"><span class="doc">Simploidal Sets</span></a>).  An edge of a simploid is an edge
+<span class="math notranslate nohighlight">\((i, j)\)</span> of one of its factors, chosen by the keyword argument
+<code class="docutils literal notranslate"><span class="pre">factor</span></code> (<code class="docutils literal notranslate"><span class="pre">0</span></code> by default); the other factors are left unchanged.
+<a class="reference internal" href="../torch_bsf.html#torch_bsf.splitting.reparametrize" title="torch_bsf.splitting.reparametrize"><code class="xref py py-func docutils literal notranslate"><span class="pre">reparametrize()</span></code></a> then needs the type of the
+simploid to locate the coordinates of that factor:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch_bsf</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.simploidal</span><span class="w"> </span><span class="kn">import</span> <span class="n">sample_simploid</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.splitting</span><span class="w"> </span><span class="kn">import</span> <span class="n">reparametrize</span><span class="p">,</span> <span class="n">split</span>
+
+<span class="c1"># A Bézier simploid on a prism (a triangle times a segment)</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">sample_simploid</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">100</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">t</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">t</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">simploid_type</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+<span class="c1"># Split the segment (the second factor) at its midpoint</span>
+<span class="n">model_A</span><span class="p">,</span> <span class="n">model_B</span> <span class="o">=</span> <span class="n">split</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">factor</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">u_A</span><span class="p">,</span> <span class="n">mask_A</span> <span class="o">=</span> <span class="n">reparametrize</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s2">"A"</span><span class="p">,</span> <span class="n">simploid_type</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">factor</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">model_A</span><span class="p">(</span><span class="n">u_A</span><span class="p">[</span><span class="n">mask_A</span><span class="p">]),</span> <span class="n">model</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="n">mask_A</span><span class="p">]),</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">))</span>  <span class="c1"># True</span>
+</pre></div>
+</div>
+<p>The built-in criteria consider the edges of every factor, and return the
+factor of the chosen edge as the first element of <code class="docutils literal notranslate"><span class="pre">(factor,</span> <span class="pre">i,</span> <span class="pre">j,</span> <span class="pre">s)</span></code>.</p>
 </section>
 <section id="iterative-refinement">
 <h2>Iterative Refinement<a class="headerlink" href="#iterative-refinement" title="Link to this heading"></a></h2>
@@ -384,45 +406,21 @@ below demonstrates one round of such refinement:</p>
 <span class="p">])</span>
 <span class="n">values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="p">])</span>  <span class="c1"># nonlinear target</span>
 
-<span class="n">bs</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
-    <span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span>
-    <span class="n">values</span><span class="o">=</span><span class="n">values</span><span class="p">,</span>
-    <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-    <span class="n">max_epochs</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
-    <span class="n">enable_progress_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">logger</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">enable_checkpointing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="n">bs</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="n">values</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 
 <span class="c1"># ── 2. Split using the data-driven criterion ───────────────────────────────</span>
 <span class="n">criterion</span> <span class="o">=</span> <span class="n">max_error_criterion</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">grid_size</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
-<span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="n">criterion</span><span class="p">(</span><span class="n">bs</span><span class="p">)</span>  <span class="c1"># retrieve the chosen (i, j, s) once</span>
+<span class="n">_</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="n">criterion</span><span class="p">(</span><span class="n">bs</span><span class="p">)</span>  <span class="c1"># retrieve the chosen edge and position once</span>
 <span class="n">bs_A</span><span class="p">,</span> <span class="n">bs_B</span> <span class="o">=</span> <span class="n">split</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
 
 <span class="c1"># ── 3. Reparametrize the data and re-fit each sub-simplex ─────────────────</span>
-<span class="n">u_A</span><span class="p">,</span> <span class="n">mask_A</span> <span class="o">=</span> <span class="n">reparametrize</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">subsimplex</span><span class="o">=</span><span class="s2">"A"</span><span class="p">)</span>
-<span class="n">u_B</span><span class="p">,</span> <span class="n">mask_B</span> <span class="o">=</span> <span class="n">reparametrize</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">subsimplex</span><span class="o">=</span><span class="s2">"B"</span><span class="p">)</span>
+<span class="n">u_A</span><span class="p">,</span> <span class="n">mask_A</span> <span class="o">=</span> <span class="n">reparametrize</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">part</span><span class="o">=</span><span class="s2">"A"</span><span class="p">)</span>
+<span class="n">u_B</span><span class="p">,</span> <span class="n">mask_B</span> <span class="o">=</span> <span class="n">reparametrize</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">part</span><span class="o">=</span><span class="s2">"B"</span><span class="p">)</span>
 
 <span class="k">if</span> <span class="n">mask_A</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-    <span class="n">bs_A_refined</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
-        <span class="n">params</span><span class="o">=</span><span class="n">u_A</span><span class="p">[</span><span class="n">mask_A</span><span class="p">],</span>
-        <span class="n">values</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="n">mask_A</span><span class="p">],</span>
-        <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-        <span class="n">max_epochs</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
-        <span class="n">enable_progress_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">logger</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">enable_checkpointing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="n">bs_A_refined</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">u_A</span><span class="p">[</span><span class="n">mask_A</span><span class="p">],</span> <span class="n">values</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="n">mask_A</span><span class="p">],</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 <span class="k">if</span> <span class="n">mask_B</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-    <span class="n">bs_B_refined</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span>
-        <span class="n">params</span><span class="o">=</span><span class="n">u_B</span><span class="p">[</span><span class="n">mask_B</span><span class="p">],</span>
-        <span class="n">values</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="n">mask_B</span><span class="p">],</span>
-        <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-        <span class="n">max_epochs</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
-        <span class="n">enable_progress_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">logger</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">enable_checkpointing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="n">bs_B_refined</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="n">u_B</span><span class="p">[</span><span class="n">mask_B</span><span class="p">],</span> <span class="n">values</span><span class="o">=</span><span class="n">values</span><span class="p">[</span><span class="n">mask_B</span><span class="p">],</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>

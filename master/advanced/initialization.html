@@ -56,11 +56,13 @@
 <li class="toctree-l2"><a class="reference internal" href="normalization.html">Data Normalization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn Integration</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Initial Control Points</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#saving-and-loading">Saving and Loading</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#pickled-pytorch">Pickled PyTorch</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#csv">CSV</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#tsv">TSV</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#json">JSON</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#yaml">YAML</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#bezier-simploids">Bézier Simploids</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="visualization.html">Bézier Simplex and Simploid Visualization</a></li>
@@ -112,13 +114,62 @@
              
   <section id="initial-control-points">
 <h1>Initial Control Points<a class="headerlink" href="#initial-control-points" title="Link to this heading"></a></h1>
-<p>By default, <code class="docutils literal notranslate"><span class="pre">fit()</span></code> generates random initial control points for the Bézier simplex. You can override this by supplying your own initial control points via the <code class="docutils literal notranslate"><span class="pre">init</span></code> argument, which may help the optimizer converge faster or to a better solution when you have prior knowledge about the shape of the target manifold.</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">init</span></code> argument accepts a dictionary mapping multi-index tuples to value vectors, or an already-constructed object (such as a <code class="xref py py-class docutils literal notranslate"><span class="pre">BezierSimplex</span></code> or control-points data) that you have loaded in Python. Each key is a multi-index <span class="math notranslate nohighlight">\(\mathbf{d} \in \mathbb{N}_D^M\)</span> and each value is the corresponding control point <span class="math notranslate nohighlight">\(\mathbf{p}_{\mathbf{d}} \in \mathbb{R}^N\)</span>.</p>
-<p>When working from a file in Python, load the control points or Bézier simplex first (for example, via <code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.bezier_simplex.load(path)()</span></code>) and then pass the resulting object as <code class="docutils literal notranslate"><span class="pre">init</span></code>. The command-line interface instead accepts a file path directly via <code class="docutils literal notranslate"><span class="pre">--init</span></code>.</p>
-<p>Supported file formats for saving and loading control points (and for use with the CLI <code class="docutils literal notranslate"><span class="pre">--init</span></code> option) are described below. In every format the key is the string representation of the multi-index tuple (e.g., <code class="docutils literal notranslate"><span class="pre">&quot;(2,</span> <span class="pre">0)&quot;</span></code> for the control point at index <span class="math notranslate nohighlight">\((2, 0)\)</span>) and the value is a list of floats.</p>
+<p>By default, <code class="docutils literal notranslate"><span class="pre">fit()</span></code> solves the least-squares problem exactly (<code class="docutils literal notranslate"><span class="pre">solver=&quot;lstsq&quot;</span></code>), so it needs no initial control points.
+When you train with the Lightning trainer instead (<code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code>), <code class="docutils literal notranslate"><span class="pre">fit()</span></code> starts from random control points unless you supply your own via the <code class="docutils literal notranslate"><span class="pre">init</span></code> argument, which may help the optimizer converge faster or to a better solution when you have prior knowledge about the shape of the target manifold.
+With either solver, <code class="docutils literal notranslate"><span class="pre">init</span></code> also gives the values of the control points held fixed by <code class="docutils literal notranslate"><span class="pre">freeze</span></code> (see <a class="reference internal" href="partial.html"><span class="doc">Partial Training</span></a>).</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">init</span></code> argument accepts:</p>
+<ul class="simple">
+<li><p>a <a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.BezierSimploid" title="torch_bsf.simploidal.BezierSimploid"><code class="xref py py-class docutils literal notranslate"><span class="pre">BezierSimploid</span></code></a>, e.g., a model returned by an earlier <code class="docutils literal notranslate"><span class="pre">fit()</span></code> or loaded from a file; its degree is then used, so <code class="docutils literal notranslate"><span class="pre">degree</span></code> may be omitted;</p></li>
+<li><p>a dictionary mapping multi-index tuples to value vectors, where each key is a multi-index <span class="math notranslate nohighlight">\(\mathbf{d} \in \mathbb{N}_D^M\)</span> (e.g., <code class="docutils literal notranslate"><span class="pre">(2,</span> <span class="pre">0)</span></code>) and each value is the corresponding control point <span class="math notranslate nohighlight">\(\mathbf{p}_{\mathbf{d}} \in \mathbb{R}^N\)</span>;</p></li>
+<li><p>a tensor of shape <code class="docutils literal notranslate"><span class="pre">(n_control_points,</span> <span class="pre">n_values)</span></code> whose rows follow <a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.BezierSimploid.indices" title="torch_bsf.simploidal.BezierSimploid.indices"><code class="xref py py-meth docutils literal notranslate"><span class="pre">indices()</span></code></a>.</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch_bsf</span>
+
+<span class="n">ts</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]])</span>
+<span class="n">xs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.1</span><span class="p">],</span> <span class="p">[</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">2.1</span><span class="p">]])</span>
+
+<span class="n">init</span> <span class="o">=</span> <span class="p">{</span>
+   <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">],</span>
+   <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.1</span><span class="p">],</span>
+   <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span> <span class="p">[</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">2.1</span><span class="p">],</span>
+<span class="p">}</span>
+<span class="n">bs</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="n">init</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s2">"trainer"</span><span class="p">,</span> <span class="n">max_epochs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                   <span class="n">enable_progress_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">enable_model_summary</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">bs</span><span class="o">.</span><span class="n">degree</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(2,)
+</pre></div>
+</div>
+<section id="saving-and-loading">
+<h2>Saving and Loading<a class="headerlink" href="#saving-and-loading" title="Link to this heading"></a></h2>
+<p>Save a fitted model with <a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.save" title="torch_bsf.simploidal.save"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.simploidal.save()</span></code></a> and load it with <a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.load" title="torch_bsf.simploidal.load"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.simploidal.load()</span></code></a>; the loaded model can be passed as <code class="docutils literal notranslate"><span class="pre">init</span></code>.
+The command-line interface instead accepts a file path directly via <code class="docutils literal notranslate"><span class="pre">--init</span></code>, whose type and degree are then used in place of <code class="docutils literal notranslate"><span class="pre">--degree</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.simploidal</span><span class="w"> </span><span class="kn">import</span> <span class="n">load</span><span class="p">,</span> <span class="n">save</span>
+
+<span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">d</span><span class="p">:</span>
+   <span class="n">save</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="o">/</span> <span class="s2">"control_points.yml"</span><span class="p">,</span> <span class="n">bs</span><span class="p">)</span>
+   <span class="n">init</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="o">/</span> <span class="s2">"control_points.yml"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">init</span><span class="o">.</span><span class="n">degree</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(2,)
+</pre></div>
+</div>
+<p>The file format is chosen by the extension, as described below.
+In every format except <code class="docutils literal notranslate"><span class="pre">.pt</span></code>, the key of a control point is the string representation of its index, which is a tuple with one multi-index per factor of the Bézier simploid: a Bézier simplex has a single factor, so the key of the control point at <span class="math notranslate nohighlight">\((2, 0)\)</span> is <code class="docutils literal notranslate"><span class="pre">&quot;((2,</span> <span class="pre">0),)&quot;</span></code>.
+The degree and the dimension are recovered from the keys, and every control point must be present exactly once.
+Files written by versions before the unification of Bézier simplices and simploids (whose keys look like <code class="docutils literal notranslate"><span class="pre">&quot;(2,</span> <span class="pre">0)&quot;</span></code>) are rejected.</p>
+</section>
 <section id="pickled-pytorch">
 <h2>Pickled PyTorch<a class="headerlink" href="#pickled-pytorch" title="Link to this heading"></a></h2>
-<p>See PyTorch documentation for details:</p>
+<p>A dictionary with the keys <code class="docutils literal notranslate"><span class="pre">&quot;simploid_type&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;degree&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;control_points&quot;</span></code> saved with <a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.save.html#torch.save" title="(in PyTorch v2.14)"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch.save()</span></code></a>.
+It is loaded with <code class="docutils literal notranslate"><span class="pre">weights_only=True</span></code>, so loading never executes arbitrary code.
+See PyTorch documentation for details:</p>
 <ul class="simple">
 <li><p><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.save.html#torch.save">https://pytorch.org/docs/stable/generated/torch.save.html#torch.save</a></p></li>
 <li><p><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.load.html#torch.load">https://pytorch.org/docs/stable/generated/torch.load.html#torch.load</a></p></li>
@@ -126,37 +177,42 @@
 </section>
 <section id="csv">
 <h2>CSV<a class="headerlink" href="#csv" title="Link to this heading"></a></h2>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">"(2, 0)"</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.1</span>
-<span class="s2">"(1, 1)"</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.1</span>
-<span class="s2">"(0, 2)"</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">2.1</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">"((2, 0),)"</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.1</span>
+<span class="s2">"((1, 1),)"</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.1</span>
+<span class="s2">"((0, 2),)"</span><span class="p">,</span><span class="mf">2.0</span><span class="p">,</span><span class="mf">2.1</span>
 </pre></div>
 </div>
 </section>
 <section id="tsv">
 <h2>TSV<a class="headerlink" href="#tsv" title="Link to this heading"></a></h2>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">"(2, 0)"</span>     <span class="mf">0.0</span>     <span class="mf">0.1</span>
-<span class="s2">"(1, 1)"</span>     <span class="mf">1.0</span>     <span class="mf">1.1</span>
-<span class="s2">"(0, 2)"</span>     <span class="mf">2.0</span>     <span class="mf">2.1</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),)</span>    <span class="mf">0.0</span>     <span class="mf">0.1</span>
+<span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),)</span>    <span class="mf">1.0</span>     <span class="mf">1.1</span>
+<span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),)</span>    <span class="mf">2.0</span>     <span class="mf">2.1</span>
 </pre></div>
 </div>
 </section>
 <section id="json">
 <h2>JSON<a class="headerlink" href="#json" title="Link to this heading"></a></h2>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">"(2, 0)"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.1</span><span class="p">],</span>
-<span class="w">  </span><span class="nt">"(1, 1)"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">1.1</span><span class="p">],</span>
-<span class="w">  </span><span class="nt">"(0, 2)"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">2.0</span><span class="p">,</span><span class="w"> </span><span class="mf">2.1</span><span class="p">]</span>
+<span class="w">  </span><span class="nt">"((2, 0),)"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.1</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"((1, 1),)"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">1.1</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"((0, 2),)"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">2.0</span><span class="p">,</span><span class="w"> </span><span class="mf">2.1</span><span class="p">]</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 </section>
 <section id="yaml">
 <h2>YAML<a class="headerlink" href="#yaml" title="Link to this heading"></a></h2>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">(2, 0)</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">0.0</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">0.1</span><span class="p p-Indicator">]</span>
-<span class="l l-Scalar l-Scalar-Plain">(1, 1)</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">1.0</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">1.1</span><span class="p p-Indicator">]</span>
-<span class="l l-Scalar l-Scalar-Plain">(0, 2)</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">2.0</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">2.1</span><span class="p p-Indicator">]</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">((2, 0),)</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">0.0</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">0.1</span><span class="p p-Indicator">]</span>
+<span class="l l-Scalar l-Scalar-Plain">((1, 1),)</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">1.0</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">1.1</span><span class="p p-Indicator">]</span>
+<span class="l l-Scalar l-Scalar-Plain">((0, 2),)</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">2.0</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">2.1</span><span class="p p-Indicator">]</span>
 </pre></div>
 </div>
+</section>
+<section id="bezier-simploids">
+<h2>Bézier Simploids<a class="headerlink" href="#bezier-simploids" title="Link to this heading"></a></h2>
+<p>The same formats hold Bézier simploids, with one multi-index per factor in each key, e.g., <code class="docutils literal notranslate"><span class="pre">&quot;((2,</span> <span class="pre">0,</span> <span class="pre">0),</span> <span class="pre">(1,</span> <span class="pre">0))&quot;</span></code> for a prism of type <span class="math notranslate nohighlight">\((2, 1)\)</span>.
+See <a class="reference internal" href="simploidal.html"><span class="doc">Simploidal Sets</span></a>.</p>
 </section>
 </section>
 

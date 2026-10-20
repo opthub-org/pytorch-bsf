@@ -56,7 +56,7 @@ As in the classical L-curve analysis, we therefore sweep :math:`\lambda` on a lo
 1. Sample 41 equally spaced parameters :math:`t \in [0, 1]`, i.e., :math:`\lambda` from :math:`10^{-2}` to :math:`10^{1}`.
 2. For each :math:`t`, solve :math:`x^*(t) = \arg\min_x [w_1(t) f_1(x) + w_2(t) f_2(x)]` using L-BFGS-B with the analytic gradient.
 3. Collect the Pareto front points :math:`(f_1(x^*(t)), f_2(x^*(t)))` and the reconstructions :math:`x^*(t)`.
-4. Fit degree-10 Bézier simplices to the Pareto front and to the Pareto set (the 256 pixels) by exact linear least squares (:func:`~torch_bsf.simploidal.fit_simploid` with type :math:`(1)`).
+4. Fit degree-10 Bézier simplices to the Pareto front and to the Pareto set (the 256 pixels) by exact linear least squares (:func:`torch_bsf.fit`).
 5. Evaluate the fitted Bézier curves on 20 held-out parameters between the training ones.
 
 On the held-out parameters, the maximum error is about :math:`10^{-3}` on the Pareto front (whose :math:`f_1` ranges over :math:`[0.4, 31]`) and below :math:`10^{-4}` per pixel on the Pareto set.

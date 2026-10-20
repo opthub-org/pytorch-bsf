@@ -68,9 +68,9 @@ For a Bézier simploid of type :math:`(a_1, \ldots, a_n)` and degree :math:`(d_1
 How do I normalize my parameters or values?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``fit()`` function requires that each row of the ``params`` tensor sums to 1 (i.e., lies on the standard simplex :math:`\Delta^{M-1}`). For :func:`~torch_bsf.simploidal.fit_simploid`, the ``params`` row of a simploid of type :math:`(a_1, \ldots, a_n)` is the concatenation of :math:`n` blocks of :math:`a_1 + 1, \ldots, a_n + 1` columns, and each block must sum to 1. If your raw parameters don't satisfy this, you must normalize them manually.
+The ``fit()`` function requires that each row of the ``params`` tensor sums to 1 (i.e., lies on the standard simplex :math:`\Delta^{M-1}`). For a Bézier simploid of type :math:`(a_1, \ldots, a_n)` (``fit(..., simploid_type=...)``), each ``params`` row is the concatenation of :math:`n` blocks of :math:`a_1 + 1, \ldots, a_n + 1` columns, and each block must sum to 1. If your raw parameters don't satisfy this, you must normalize them manually.
 
-Additionally, normalizing the output ``values`` can improve fitting stability and accuracy. PyTorch-BSF provides several options for automatic value normalization in the CLI/MLflow interface.
+Additionally, normalizing the output ``values`` can improve fitting stability and accuracy. Pass ``normalize="max"``, ``"std"`` or ``"quantile"`` to ``fit()`` (``--normalize`` in the CLI/MLflow interface); the values are scaled while fitting, and the fitted model still predicts in the original scale.
 
 Please refer to the :doc:`advanced/normalization` page for detailed instructions on how to normalize your parameter and value tensors.
 
@@ -84,11 +84,11 @@ Please refer to the :doc:`advanced/acceleration` page for detailed instructions 
 How do I save and load a trained model?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can save and load models using the ``torch_bsf.bezier_simplex`` module. Supported formats include ``.pt`` (PyTorch), ``.csv``, ``.tsv``, ``.json``, and ``.yaml``.
+Use :func:`torch_bsf.simploidal.save` and :func:`torch_bsf.simploidal.load`. The format is chosen by the extension: ``.pt`` (PyTorch), ``.csv``, ``.tsv``, ``.json``, ``.yml`` or ``.yaml``. The file records the type and degree of the model along with its control points.
 
 .. code-block:: python
 
-   from torch_bsf.bezier_simplex import save, load
+   from torch_bsf.simploidal import save, load
 
    # Save the trained model
    save("my_model.pt", bs)
@@ -96,14 +96,14 @@ You can save and load models using the ``torch_bsf.bezier_simplex`` module. Supp
    # Load it back
    bs = load("my_model.pt")
 
-Bézier simploids are saved and loaded in the same formats with :func:`torch_bsf.simploidal.save` and :func:`torch_bsf.simploidal.load`.
+The command line saves the control points of the fitted model to a CSV file (or to the file given by ``--save``), which ``--init`` accepts as the initial model.
 
 How can I perform cross-validation or grid search?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 PyTorch-BSF includes built-in tools for model selection and specific task automation:
 
-*   **K-Fold Cross-Validation:** Run `python -m torch_bsf.model_selection.kfold` to evaluate model performance across different data splits.
+*   **K-Fold Cross-Validation:** Call ``torch_bsf.fit_kfold()``, or run `python -m torch_bsf.model_selection.kfold`, to evaluate model performance across different data splits.
 *   **Elastic Net Grid Search:** Run `python -m torch_bsf.model_selection.elastic_net_grid` to generate parameter grids specifically for Elastic Net regularization paths.
 
 When should I use the ``freeze`` argument?
@@ -167,6 +167,7 @@ If you encounter poor accuracy or optimization issues, try these steps:
 
 1.  **Check Data Quality:** Ensure ``params`` sum to 1 and that you have enough samples relative to the degree.
 2.  **Adjust the Degree:** If the surface is too complex, increase the degree. If the model is oscillating or overfitting, decrease it.
-3.  **Better Initialization:** Use the ``init`` argument to provide a better starting point, perhaps from a coarse fit or domain knowledge.
-4.  **Increase Training Epochs:** For complex surfaces, the L-BFGS optimizer might need more iterations. In the CLI, use ``--max_epochs``.
-5.  **Data Normalization:** Scale your output values (``values``) to a similar range (e.g., using ``--normalize std``) to help the optimizer converge faster.
+3.  **Use the Exact Solver:** By default (``solver="lstsq"``), ``fit()`` solves the least-squares problem exactly, so there is nothing to converge. Add a small ``ridge`` penalty if the problem is ill-conditioned (e.g., too few samples for the degree).
+4.  **Better Initialization:** With ``solver="trainer"``, use the ``init`` argument to provide a better starting point, perhaps from a coarse fit or domain knowledge.
+5.  **Increase Training Epochs:** With ``solver="trainer"``, the L-BFGS optimizer might need more iterations for complex surfaces. Pass ``max_epochs`` to ``fit()``, or ``--max_epochs`` in the CLI.
+6.  **Data Normalization:** With ``solver="trainer"``, scale your output values (``values``) to a similar range (e.g., ``normalize="std"`` or ``--normalize std``) to help the optimizer converge faster.

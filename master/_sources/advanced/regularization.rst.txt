@@ -20,22 +20,45 @@ How to Use
 
 You can enable smoothness regularization by passing the ``smoothness_weight`` argument to the ``fit()`` function.
 
+.. testcode::
+   :pyversion: >= 3.10, < 3.15
+
+   import torch
+   import torch_bsf
+   from torch_bsf.sampling import simplex_random
+
+   ts = simplex_random(n_params=3, n_samples=200, seed=0)  # parameters on a triangle
+   xs = torch.sin(3 * ts[:, :2]) + 0.05 * torch.randn(200, 2)  # noisy values
+
+   # Fit with a smoothness weight (e.g., 0.01)
+   bs = torch_bsf.fit(
+       params=ts,
+       values=xs,
+       degree=3,
+       smoothness_weight=0.01,
+   )
+
+Since the penalty is quadratic, the default ``"lstsq"`` solver minimizes the regularized loss exactly. With :math:`n` samples of :math:`m` values, the design matrix :math:`A`, the targets :math:`Y` and the Laplacian :math:`L` of the adjacency graph, it solves
+
+.. math::
+   (A^\top A + nm\,w\,L)\,P = A^\top Y,
+
+which is the minimizer of :math:`\frac{1}{nm}\|AP - Y\|^2 + w\,\mathcal L_{smooth}`, the loss minimized by ``solver="trainer"``.
+
+Ridge Regularization
+--------------------
+
+The ``"lstsq"`` solver also takes ``ridge``, the weight :math:`r \ge 0` of the Tikhonov penalty :math:`r\|P\|^2` on the control points, which is added to the left-hand side above as :math:`r I`.
+It keeps the control points small when the samples do not determine them (e.g., too few samples for the degree); without it, such problems get the minimum-norm solution.
+
 .. code-block:: python
 
-   import torch_bsf
-
-   # Fit with a smoothness weight (e.g., 0.1)
-   bs = torch_bsf.fit(
-       params=ts, 
-       values=xs, 
-       degree=3, 
-       smoothness_weight=0.1
-   )
+   bs = torch_bsf.fit(params=ts, values=xs, degree=3, ridge=1e-6)
 
 CLI / MLflow
 ------------
 
-You can also specify the smoothness weight via the command-line interface or MLflow using the ``--smoothness_weight`` flag.
+You can also specify the weights via the command-line interface or MLflow using the ``--smoothness_weight`` and ``--ridge`` flags.
 
 **CLI Example:**
 
@@ -52,26 +75,18 @@ You can also specify the smoothness weight via the command-line interface or MLf
 Bézier Simploids
 ----------------
 
-:func:`~torch_bsf.simploidal.fit_simploid` and :func:`~torch_bsf.simploidal.fit_simploidal_set` take the same ``smoothness_weight``.
+``smoothness_weight`` and ``ridge`` work in the same way for a Bézier simploid (``fit(..., simploid_type=...)``, see :doc:`simploidal`) and for :func:`~torch_bsf.simploidal.fit_simploidal_set`.
 Two control points of a Bézier simploid are adjacent if their multi-indices differ in a single factor, by moving one unit between two components of that factor (see :meth:`~torch_bsf.simploidal.BezierSimploid.adjacency`); for a Bézier simplex, this is the definition above.
 In a simploidal Bézier space, the stored control points adjacent in the control net of some simploid are adjacent, and a pair on a shared face counts once (see :meth:`~torch_bsf.simploidal.SimploidalBezierSpace.adjacency`).
-
-Since the penalty is quadratic, the default ``"lstsq"`` solver minimizes the regularized loss exactly. With :math:`n` samples of :math:`m` values, the design matrix :math:`A`, the targets :math:`Y` and the Laplacian :math:`L` of the adjacency graph, it solves
-
-.. math::
-   (A^\top A + nm\,w\,L)\,P = A^\top Y,
-
-which is the minimizer of :math:`\frac{1}{nm}\|AP - Y\|^2 + w\,\mathcal L_{smooth}`, the loss minimized by ``solver="trainer"``.
 
 .. testcode::
    :pyversion: >= 3.10, < 3.15
 
-   import torch
-   from torch_bsf.simploidal import fit_simploid, sample_simploid
+   from torch_bsf.simploidal import sample_simploid
 
    t = sample_simploid((2, 1), 200, seed=0)  # parameters on a prism
    x = torch.sin(3 * t[:, :2]) + 0.05 * torch.randn(200, 2)  # noisy values
-   bs = fit_simploid(t, x, (2, 1), degree=3, smoothness_weight=0.01)
+   bs = torch_bsf.fit(t, x, degree=3, simploid_type=(2, 1), smoothness_weight=0.01)
 
 Choosing the Weight
 -------------------

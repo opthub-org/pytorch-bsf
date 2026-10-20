@@ -3,12 +3,17 @@ Hardware Acceleration
 
 PyTorch-BSF is built on top of `PyTorch Lightning <https://lightning.ai/docs/pytorch/stable/>`_, which means it provides seamless support for hardware acceleration (GPUs, TPUs, etc.) and distributed training (multi-GPU, multi-node) out of the box.
 
-This page explains how to leverage these features to speed up your Bézier simplex and simploid fitting tasks.
+This page explains how to leverage these features to speed up your Bézier simplex (and simploid) fitting tasks.
+
+.. note::
+   By default, ``fit()`` solves the least-squares problem exactly on the CPU in double precision (``solver="lstsq"``), which is usually the fastest and most accurate choice, so the options on this page do not apply.
+   They take effect when you train with the Lightning trainer instead: pass ``solver="trainer"`` to ``fit()``, or ``--solver=trainer`` on the command line.
+   Passing a trainer option without ``solver="trainer"`` raises a ``ValueError`` in the Python API; the command line ignores the trainer options unless ``--solver=trainer`` is given.
 
 CLI / MLflow
 ------------
 
-When using the command-line interface or MLflow, you can control hardware usage via several flags. These flags are passed directly to the underlying PyTorch Lightning Trainer.
+When using the command-line interface or MLflow with ``--solver=trainer``, you can control hardware usage via several flags. These flags are passed directly to the underlying PyTorch Lightning Trainer.
 
 Accelerator and Devices
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -21,7 +26,7 @@ The ``--accelerator`` and ``--devices`` flags are the primary way to specify you
 Example: Use all available GPUs
 .. code-block:: bash
 
-   python -m torch_bsf --params data.csv --values results.csv --accelerator gpu --devices -1
+   python -m torch_bsf --params data.csv --values results.csv --degree 3 --solver trainer --accelerator gpu --devices -1
 
 Precision
 ^^^^^^^^^
@@ -33,7 +38,7 @@ You can reduce memory usage and increase training speed by using lower-precision
 Example: Mixed precision training
 .. code-block:: bash
 
-   python -m torch_bsf --params data.csv --values results.csv --accelerator gpu --precision 16-mixed
+   python -m torch_bsf --params data.csv --values results.csv --degree 3 --solver trainer --accelerator gpu --precision 16-mixed
 
 Multi-Node Training
 ^^^^^^^^^^^^^^^^^^^
@@ -46,37 +51,12 @@ Example: Training on 4 nodes with 4 GPUs each
 .. code-block:: bash
 
    # Run this on each node (usually handled by a cluster manager like SLURM)
-   python -m torch_bsf --params data.csv --values results.csv --accelerator gpu --devices 4 --num_nodes 4
+   python -m torch_bsf --params data.csv --values results.csv --degree 3 --solver trainer --accelerator gpu --devices 4 --num_nodes 4
 
 Python API
 ----------
 
-The Python API provides two ways to handle hardware acceleration: by moving data to the device manually or by passing trainer configuration to ``fit()``.
-
-Manual Device Management
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-If you move your training tensors to a specific device before calling ``fit()``, PyTorch-BSF will attempt to run on that device.
-
-.. code-block:: python
-
-   import torch
-   import torch_bsf
-
-   # Assume ts and xs are your parameter and value tensors
-   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-   
-   # Move tensors to GPU
-   ts = ts.to(device)
-   xs = xs.to(device)
-
-   # Fit the model (it will detect the device from the tensors)
-   bs = torch_bsf.fit(params=ts, values=xs, degree=3)
-
-Passing Trainer Arguments
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-For more granular control, you can pass any PyTorch Lightning `Trainer arguments <https://lightning.ai/docs/pytorch/stable/common/trainer.html#trainer-flags>`_ directly as keyword arguments to the ``fit()`` function.
+Pass ``solver="trainer"`` together with any PyTorch Lightning `Trainer arguments <https://lightning.ai/docs/pytorch/stable/common/trainer.html#trainer-flags>`_ as keyword arguments to the ``fit()`` function.
 
 .. code-block:: python
 
@@ -84,24 +64,22 @@ For more granular control, you can pass any PyTorch Lightning `Trainer arguments
 
    # Use multi-GPU and mixed precision via API
    bs = torch_bsf.fit(
-       params=ts, 
-       values=xs, 
+       params=ts,
+       values=xs,
        degree=3,
+       solver="trainer",
        accelerator="gpu",
        devices=2,
-       precision="16-mixed"
+       precision="16-mixed",
    )
 
-Bézier Simploids
-^^^^^^^^^^^^^^^^
-
-:func:`~torch_bsf.simploidal.fit_simploid` solves the least-squares problem exactly on the CPU in double precision by default (``solver="lstsq"``), so the options above do not apply. To fit a Bézier simploid with the Lightning trainer instead, pass ``solver="trainer"`` together with the trainer arguments, or ``--solver=trainer`` on the command line:
+The same holds for a Bézier simploid (see :doc:`simploidal`):
 
 .. code-block:: python
 
-   from torch_bsf.simploidal import fit_simploid
+   bs = torch_bsf.fit(ts, xs, degree=3, simploid_type=(2, 1), solver="trainer", accelerator="gpu", devices=2)
 
-   bs = fit_simploid(ts, xs, simploid_type=(2, 1), degree=3, solver="trainer", accelerator="gpu", devices=2)
+The returned model can be moved to any device for prediction, like any PyTorch module (e.g., ``bs.to("cuda")``).
 
 Detailed Use Cases
 ------------------
@@ -109,7 +87,7 @@ Detailed Use Cases
 Large-Scale Pareto Front Approximation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When dealing with thousands of Pareto optimal points and high-degree Bézier simplices or simploids (e.g., degree 10+), the number of control points increases significantly. In such cases:
+When dealing with thousands of Pareto optimal points and high-degree Bézier simplices (e.g., degree 10+), the number of control points increases significantly. The exact ``"lstsq"`` solver then solves a large dense linear system on the CPU; if it becomes too slow or too large for memory, train with ``solver="trainer"`` and:
 
 1.  **Use GPUs**: Fitting is highly parallelizable.
 2.  **Vectorized Forward**: PyTorch-BSF uses a highly efficient, fully vectorized `forward` pass. This means that instead of looping through each control point, it uses matrix operations, which significantly speeds up computation on GPUs.

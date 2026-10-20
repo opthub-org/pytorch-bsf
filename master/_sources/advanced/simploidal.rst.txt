@@ -35,21 +35,24 @@ A Bézier simploid of type :math:`(a)` is the Bézier simplex of degree
 :math:`d_1` with :math:`a + 1` parameters.
 
 :class:`~torch_bsf.simploidal.BezierSimploid` is a plain :class:`torch.nn.Module`
-holding the control points, and :func:`~torch_bsf.simploidal.fit_simploid`
-fits one to data, either exactly by linear least squares or with a Lightning
-trainer:
+holding the control points, and :func:`torch_bsf.fit` fits one to data, either
+exactly by linear least squares (the default) or with a Lightning trainer
+(``solver="trainer"``).  Without ``simploid_type``, :func:`torch_bsf.fit` fits a
+Bézier simplex, i.e. a Bézier simploid of type :math:`(M - 1)` for :math:`M`
+parameters; pass the type to fit any other simploid:
 
 .. testcode::
    :pyversion: >= 3.10, < 3.15
 
    import torch
-   from torch_bsf.simploidal import fit_simploid, sample_simploid
+   from torch_bsf import fit
+   from torch_bsf.simploidal import sample_simploid
 
    # Samples on a prism: (u0, u1, u2) on a triangle, (v0, v1) on a segment
    t = sample_simploid((2, 1), 200, seed=0)
    x = torch.cat([t[:, :3] * t[:, 3:4], t[:, 4:] ** 2], dim=1)
 
-   bs = fit_simploid(t, x, simploid_type=(2, 1), degree=2)
+   bs = fit(t, x, simploid_type=(2, 1), degree=2)
    print(bs.simploid_type, bs.degree, bs.n_params, bs.n_values)
    print(torch.allclose(bs(t), x, atol=1e-4))
 
@@ -113,9 +116,9 @@ degree and the control point tensor (and keeps its dtype), which is loaded
 with ``torch.load(..., weights_only=True)``.
 
 The command line interface fits a Bézier simploid instead of a Bézier simplex
-when ``--simploid-type`` is given.  The parameters file must then have
-:math:`\sum_i (a_i + 1)` columns, the barycentric coordinates of the factors
-side by side:
+when ``--simploid-type`` is given (or when ``--init`` is a Bézier simploid of
+another type).  The parameters file must then have :math:`\sum_i (a_i + 1)`
+columns, the barycentric coordinates of the factors side by side:
 
 .. code-block:: bash
 
@@ -125,28 +128,37 @@ side by side:
      --simploid-type=2,1 \
      --degree=2
 
-This calls :func:`~torch_bsf.simploidal.fit_simploid`, saves the control points
-to ``params.csv,values.csv,control_points,t_2-1,d_2.csv`` (choose another path
-and format with ``--save=model.json``) and the predictions on ``--meshgrid``
+This calls :func:`torch_bsf.fit`, saves the control points to
+``params.csv,values.csv,control_points,t_2-1,d_2.csv`` (choose another path and
+format with ``--save=model.json``) and the predictions on ``--meshgrid``
 (default: the parameters) to ``params.csv,values.csv,meshgrid,t_2-1,d_2.csv``.
-The simploid-specific options are:
+The degree in these names is a single number when all factors share it, and
+lists the degree of every factor otherwise (e.g. ``d_3-1``).  The options are
+the same as for a Bézier simplex:
 
-* ``--simploid-type=A1,...,An`` — the type; ``--degree`` applies to every factor;
+* ``--simploid-type=A1,...,An`` — the type (default: the type of ``--init``,
+  else a Bézier simplex); ``--degree`` applies to every factor;
+* ``--init=FILE`` — start from a model saved by :func:`~torch_bsf.simploidal.save`
+  (e.g. by ``--save``), taking its type and degree, instead of ``--degree``;
+* ``--freeze=INDICES`` — keep these control points of ``--init`` fixed, e.g.
+  ``'[[[2,0,0],[2,0]]]'`` for the type ``2,1``;
 * ``--solver={lstsq,trainer}`` — solve the least-squares problem exactly
   (default) or train with the Lightning trainer options (``--max_epochs``,
-  ``--batch_size``, ``--accelerator``, ...);
+  ``--batch_size``, ``--accelerator``, ...), which are ignored otherwise;
 * ``--ridge=W`` — the ridge penalty of the ``lstsq`` solver (default: 0);
+* ``--smoothness_weight=W`` — the smoothness penalty (default: 0);
+* ``--split_ratio=R`` — fit to a random fraction ``R`` of the samples and
+  report the error on the others (``val_mse``, ``val_mae``); ``--seed`` fixes
+  the split;
 * ``--save=FILE`` — where to save the control points.
 
 ``--normalize`` is applied during fitting and undone on the saved control
-points, so the saved model predicts values in the original scale.  ``--init``,
-``--freeze``, ``--smoothness_weight`` and ``--split_ratio`` apply to Bézier
-simplices only.  The same is available as the ``simploid`` entry point of the
-MLflow project:
+points, so the saved model predicts values in the original scale.  The same is
+available from the MLflow project:
 
 .. code-block:: bash
 
-   mlflow run https://github.com/opthub-org/pytorch-bsf -e simploid \
+   mlflow run https://github.com/opthub-org/pytorch-bsf \
      -P params=params.csv \
      -P values=values.csv \
      -P simploid_type=2,1 \

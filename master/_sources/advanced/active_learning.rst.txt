@@ -1,7 +1,7 @@
 Active Learning
 ===============
 
-When training costs are high (e.g., in engineering simulations), you want to achieve the best possible Bézier simplex fit with as few samples as possible. **Active Learning** helps you achieve this by suggesting where on the simplex to collect the next sample.
+When training costs are high (e.g., in engineering simulations), you want to achieve the best possible Bézier simplex fit with as few samples as possible. **Active Learning** helps you achieve this by suggesting where on the simplex to collect the next sample.  The same works for Bézier simploids (see :ref:`active-learning-simploids`).
 
 PyTorch-BSF provides two strategies through the ``suggest_next_points()`` function in the ``torch_bsf.active_learning`` module.
 
@@ -36,17 +36,15 @@ This method trains an *ensemble* (committee) of models and suggests points where
    params_train = simplex_grid(n_params=3, degree=2)          # shape (6, 3)
    values_train = params_train.pow(2).sum(dim=1, keepdim=True)  # shape (6, 1)
 
-   # Build a 5-fold ensemble: each model is trained on 4/5 of the data,
+   # Build a 5-fold ensemble: each model is fitted to 4/5 of the data,
    # leaving out a different fold, so the committee members genuinely differ.
+   # The samples are shuffled before splitting; pass seed=... for reproducible folds.
    models = torch_bsf.fit_kfold(
        params=params_train,
        values=values_train,
        n_folds=5,
        degree=3,
-       max_epochs=1,
-       enable_progress_bar=False,
-       logger=False,
-       enable_checkpointing=False,
+       seed=0,
    )
 
    # Suggest the 3 most uncertain points
@@ -68,7 +66,7 @@ This method suggests points that are as far as possible from **all** existing tr
 **Practical tips:**
 
 *   Pass the full history of sampled parameters as ``params`` so the strategy avoids revisiting already-covered areas.
-*   Density sampling is deterministic when you reuse the same random seed in the RNG used for candidate generation (currently NumPy's RNG, so you must seed ``numpy.random`` in addition to any PyTorch seeds); QBC results also vary with how your ensemble is trained.
+*   The candidates are drawn at random on every call; pass ``seed=...`` to :func:`~torch_bsf.active_learning.suggest_next_points` for reproducible suggestions.  QBC results also vary with how your ensemble is built (e.g., the ``seed`` of :func:`torch_bsf.fit_kfold`).
 *   Switch from density to QBC once you have enough data to train a reliable ensemble (typically after 2–3 initial rounds).
 
 .. code-block:: python
@@ -86,15 +84,7 @@ This method suggests points that are as far as possible from **all** existing tr
 
    # Placeholder training values derived from the existing parameters
    existing_values = existing_params.sum(dim=1, keepdim=True)
-   model = torch_bsf.fit(
-       params=existing_params,
-       values=existing_values,
-       degree=2,
-       max_epochs=3,
-       enable_progress_bar=False,
-       logger=False,
-       enable_checkpointing=False,
-   )
+   model = torch_bsf.fit(params=existing_params, values=existing_values, degree=2)
 
    # Suggest the 2 points furthest from all existing samples
    suggestions = suggest_next_points(
@@ -183,7 +173,6 @@ The following self-contained example illustrates the full workflow: starting fro
            values=values,
            n_folds=N_ENSEMBLE,
            degree=3,
-           max_epochs=300,
        )
 
        # Suggest the N_SUGGESTIONS most uncertain points using QBC
@@ -204,7 +193,7 @@ The following self-contained example illustrates the full workflow: starting fro
        print(f"Round {round_idx + 1}: dataset size = {params.shape[0]}")
 
    # ── 3. Final model ─────────────────────────────────────────────────────────
-   final_model = torch_bsf.fit(params=params, values=values, degree=3, max_epochs=500)
+   final_model = torch_bsf.fit(params=params, values=values, degree=3)
    print("Final model trained on", params.shape[0], "points.")
 
 **Switching between methods mid-loop**
@@ -241,6 +230,29 @@ Start with ``method="density"`` for the first 1–2 rounds to ensure broad simpl
        next_values = expensive_simulation(next_params)
        params = torch.cat([params, next_params], dim=0)
        values = torch.cat([values, next_values], dim=0)
+
+.. _active-learning-simploids:
+
+Bézier Simploids
+----------------
+
+For Bézier simploids (see :doc:`simploidal`), the candidates are drawn from the simploid instead of
+the simplex.  ``suggest_next_points()`` takes the type from ``models[0].simploid_type``, so models
+fitted with ``simploid_type`` need nothing else; for other models, pass ``simploid_type=...``.
+
+.. code-block:: python
+
+   import torch_bsf
+   from torch_bsf.active_learning import suggest_next_points
+   from torch_bsf.simploidal import sample_simploid
+
+   # A square, the product of two segments
+   t = sample_simploid((1, 1), 30, seed=0)
+   x = t[:, :1] * t[:, 2:3]
+   models = torch_bsf.fit_kfold(t, x, degree=2, simploid_type=(1, 1), seed=0)
+
+   suggestions = suggest_next_points(models, n_suggestions=3)
+   # suggestions: Tensor of shape (3, 4), one pair of barycentric coordinates per segment
 
 API Reference
 -------------

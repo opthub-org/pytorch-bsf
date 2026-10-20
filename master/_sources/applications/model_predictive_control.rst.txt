@@ -48,7 +48,7 @@ For a fixed :math:`w`, it is affine in :math:`x_0`, and the objective values are
 1. Sample an :math:`11 \times 5` grid on the square: 11 weight vectors from :math:`w = (1,0)` to :math:`(0,1)` and 5 initial states from :math:`x_0 = -1` to :math:`1`.
 2. For each :math:`(w, x_0)`, solve :math:`U^*(w, x_0) = \arg\min_U [w_1 f_1(U; x_0) + w_2 f_2(U)]` using L-BFGS-B.
 3. Collect the Pareto front points :math:`(f_1, f_2)` and the Pareto set points :math:`U^*`.
-4. Fit Bézier simploids of type :math:`(1, 1)` with :func:`~torch_bsf.simploidal.fit_simploid`: degree :math:`(6, 2)` for the Pareto front and :math:`(6, 1)` for the Pareto set.
+4. Fit Bézier simploids of type :math:`(1, 1)` with :func:`torch_bsf.fit`: degree :math:`(6, 2)` for the Pareto front and :math:`(6, 1)` for the Pareto set.
 5. Evaluate the fitted simploids on a :math:`41 \times 21` test grid.
 
 On the test grid, the maximum error is about :math:`0.01` on the Pareto front (0.2% of the range of :math:`f_1`) and below :math:`10^{-3}` on the Pareto set.

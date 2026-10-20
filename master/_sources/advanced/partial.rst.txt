@@ -1,17 +1,18 @@
 Partial Training
 ================
 
-By default, ``fit()`` trains all control points of the Bézier simplex simultaneously. The ``freeze`` argument lets you hold a subset of control points constant during training, so that only the remaining (free) control points are updated.
+By default, ``fit()`` fits all control points of the Bézier simplex simultaneously. The ``freeze`` argument lets you hold a subset of control points constant at their values in ``init``, so that only the remaining (free) control points are fitted.
 
 This is useful when:
 
-*   **Boundary constraints are known** — If single-objective optimizations have already determined the vertex solutions, you can freeze those vertices and train only the interior and edge control points.
-*   **Incremental refinement** — Fit a low-degree model first, reuse its control points as the initialization for a higher-degree model, and freeze the already-accurate points to stabilize training.
+*   **Boundary constraints are known** — If single-objective optimizations have already determined the vertex solutions, you can freeze those vertices and fit only the interior and edge control points.
+*   **Incremental refinement** — Fit a low-degree model first, reuse its control points as the initialization for a higher-degree model, and freeze the already-accurate points to stabilize fitting.
 *   **Encoding prior knowledge** — Pin control points whose values are theoretically or physically determined.
 
-The example below demonstrates how to freeze the two vertices of a Bézier curve while training its interior control points.
+The example below demonstrates how to freeze the two vertices of a Bézier curve while fitting its interior control points.
 
-The ``freeze`` argument takes a list of multi-index lists (e.g., ``[[3, 0], [0, 3]]``). Any control point whose multi-index appears in ``freeze`` is excluded from gradient updates.
+The ``freeze`` argument takes a list of multi-indices (e.g., ``[[3, 0], [0, 3]]``), and requires ``init``, which gives the values of the frozen control points (see :doc:`initialization`).
+The default ``"lstsq"`` solver solves the least-squares problem exactly for the free control points, and ``solver="trainer"`` starts from ``init`` and excludes the frozen control points from gradient updates.
 
 .. testcode::
    :pyversion: >= 3.10, < 3.15
@@ -44,16 +45,16 @@ The ``freeze`` argument takes a list of multi-index lists (e.g., ``[[3, 0], [0, 
    }
 
    # Or, generate random control points in [0, 1)
-   init = torch_bsf.bezier_simplex.rand(n_params=2, n_values=2, degree=3)
+   init = torch_bsf.BezierSimploid.rand((1,), 3, n_values=2)
 
-   # Or, load control points from a file
-   init = torch_bsf.bezier_simplex.load("control_points.yml")
+   # Or, load control points from a file saved by torch_bsf.simploidal.save
+   # init = torch_bsf.simploidal.load("control_points.yml")
 
-   # Train the edge of a Bézier curve while its vertices are frozen
+   # Fit the edge of a Bézier curve while its vertices are frozen
    bs = torch_bsf.fit(
       params=ts,  # input observations (training data)
       values=xs,  # output observations (training data)
-      init=init,  # initial values of control points
+      init=init,  # values of the frozen control points; the degree is taken from it
       freeze=[[3, 0], [0, 3]],  # freeze vertices of the Bézier curve
    )
 
@@ -73,15 +74,14 @@ The ``freeze`` argument takes a list of multi-index lists (e.g., ``[[3, 0], [0, 
 Bézier Simploids
 ----------------
 
-:func:`~torch_bsf.simploidal.fit_simploid` takes ``init`` and ``freeze`` too.
-The indices in ``freeze`` are those of the Bézier simploid, one multi-index per factor (e.g., ``((2, 0, 0), (2, 0))``), and ``init`` is required since it gives the values of the frozen control points.
-The default ``"lstsq"`` solver then solves the least-squares problem exactly for the free control points, and ``solver="trainer"`` starts from ``init`` and keeps the frozen control points fixed.
+``freeze`` works in the same way for a Bézier simploid (see :doc:`simploidal`), whose indices have one multi-index per factor (e.g., ``((2, 0, 0), (2, 0))``).
 
 .. testcode::
    :pyversion: >= 3.10, < 3.15
 
    import torch
-   from torch_bsf.simploidal import BezierSimploid, fit_simploid, sample_simploid
+   from torch_bsf import BezierSimploid, fit
+   from torch_bsf.simploidal import sample_simploid
 
    t = sample_simploid((2, 1), 100, seed=0)  # parameters on a prism
    x = t[:, :3] * t[:, 3:4]
@@ -91,7 +91,7 @@ The default ``"lstsq"`` solver then solves the least-squares problem exactly for
    with torch.no_grad():
        init[corner].copy_(torch.tensor([1.0, 0.0, 0.0]))
 
-   bs = fit_simploid(t, x, (2, 1), degree=2, init=init, freeze=[corner])
+   bs = fit(t, x, init=init, freeze=[corner])  # the type and degree are taken from init
    print(bs[corner].tolist())
 
 .. testoutput::
