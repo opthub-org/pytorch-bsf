@@ -1,6 +1,6 @@
 ---
 name: setup-env
-description: Set up or repair the pytorch-bsf development environment (conda env, editable install, dev/test/docs tools) and verify it. Use when the user asks to set up / 環境構築 / fix the environment, or when pytest, mypy, flake8, black, isort or sphinx is missing.
+description: Set up or repair the pytorch-bsf development environment (conda env, editable install, dev/test/docs tools) and verify it. Use when the user asks to set up / 環境構築 / fix the environment, or when pytest, mypy, ruff or sphinx is missing.
 ---
 
 # setup-env
@@ -20,7 +20,7 @@ conda --version
 conda env list
 "$PY" --version
 "$PY" -c "import torch_bsf; print(torch_bsf.__file__)"
-for m in torch lightning mlflow scipy sklearn matplotlib pytest pytest_cov pytest_randomly pytest_benchmark mypy flake8 black isort sphinx sphinx_rtd_theme sphinx_design sphinxcontrib.bibtex; do
+for m in torch lightning mlflow scipy sklearn matplotlib pytest pytest_cov pytest_randomly pytest_benchmark mypy ruff sphinx sphinx_rtd_theme sphinx_design sphinxcontrib.bibtex; do
   "$PY" -c "import $m" 2>/dev/null && echo "ok $m" || echo "MISSING $m"
 done
 ```
@@ -47,7 +47,7 @@ If conda is not installed, see "Without conda" below.
 
 `docs/requirements.txt` starts with `.` (this package, for the docs CI). Passing it with `-r` together with `-e .` makes pip fail with `ResolutionImpossible`, and installing it alone would replace the editable install, so the `.` line is filtered out.
 
-- `develop`: pytest, mypy, flake8, black, isort and type stubs.
+- `develop`: pytest, mypy, ruff and type stubs.
 - `all`: scipy, scikit-learn, matplotlib. Without these, parts of the test suite are skipped and mypy may report missing imports.
 - `docs/requirements.txt`: Sphinx and extensions needed for `sphinx-build -b doctest`.
 
@@ -66,12 +66,11 @@ The path must be inside the current repository (or worktree). If it points elsew
 
 ```bash
 "$PY" -c "import torch, torch_bsf; print(torch.__version__, torch_bsf.__version__)"
-"$PY" -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --extend-exclude=venv,.venv
+"$PY" -m ruff check .
 "$PY" -m mypy torch_bsf
 "$PY" -m pytest tests/test_init.py -q
 ```
 
-- `--extend-exclude` keeps flake8 out of local virtual environments (CI has none); without it flake8 scans their `site-packages` and can crash.
 - These are smoke checks. Run the full `"$PY" -m pytest` and `"$PY" -m sphinx -b doctest docs docs/_build/doctest` only when the user asks or a task needs them.
 - A failure caused by the environment (import error, missing package) means setup is not done: fix it and re-verify. A failure in the code itself is not an environment problem; report it without fixing.
 

@@ -49,7 +49,7 @@ git switch -c <type>/<N>-<short-kebab-desc> origin/master
 Use the `pytorch-bsf` conda environment through its interpreter, `PY="$(conda info --base)/envs/pytorch-bsf/bin/python"`, and run every Python tool in steps 4–5 as `"$PY" -m <tool>`. Confirm the tools are available and `torch_bsf` is imported from this checkout:
 
 ```bash
-(cd /tmp && "$PY" -c "import torch_bsf, pytest, mypy, flake8, sphinx; print(torch_bsf.__file__)")
+(cd /tmp && "$PY" -c "import torch_bsf, pytest, mypy, ruff, sphinx; print(torch_bsf.__file__)")
 ```
 
 If anything is missing or `torch_bsf` comes from elsewhere, follow the `setup-env` skill (`.claude/skills/setup-env/SKILL.md`) first.
@@ -67,10 +67,10 @@ If anything is missing or `torch_bsf` comes from elsewhere, follow the `setup-en
 Run all of these and fix every failure:
 
 ```bash
-"$PY" -m isort <changed .py files>
-"$PY" -m black --line-length 127 <changed .py files>
-"$PY" -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --extend-exclude=venv,.venv
-"$PY" -m flake8 --max-complexity=10 --max-line-length=127 <changed .py files>
+"$PY" -m ruff check --fix <changed .py files>
+"$PY" -m ruff format <changed .py files>
+"$PY" -m ruff check .
+"$PY" -m ruff format --check .
 "$PY" -m mypy torch_bsf
 "$PY" -m pytest
 "$PY" -m sphinx -b doctest docs docs/_build/doctest
@@ -128,7 +128,7 @@ Closes #<N>
 ## Verification
 - `python -m pytest`: <N passed>
 - `python -m mypy torch_bsf`: <result>
-- `flake8`: <result>
+- `ruff check` / `ruff format --check`: <result>
 - `sphinx-build -b doctest`: <result>
 
 ## Out of scope / follow-ups

@@ -63,8 +63,7 @@ The `[develop]` extras include:
 |---------|---------|
 | `pytest`, `pytest-cov`, `pytest-randomly` | Running tests |
 | `mypy` + type stubs | Static type checking |
-| `black` | Code formatting |
-| `isort` | Import sorting |
+| `ruff` | Linting, import sorting and code formatting |
 
 ---
 
@@ -208,29 +207,23 @@ ci: add Python 3.14 to test matrix
 
 ## Coding Conventions
 
-### Formatters
+### Linter and formatter
 
-Format your code before committing:
-
-```bash
-# Sort imports
-isort torch_bsf/ tests/
-
-# Format code (use 127 characters to match the flake8 line-length setting)
-black --line-length 127 torch_bsf/ tests/
-```
-
-### Linter
-
-CI runs flake8. You can run the same checks locally:
+[Ruff](https://docs.astral.sh/ruff/) lints, sorts imports and formats code. CI fails if either of the following checks reports a problem, so run them before committing:
 
 ```bash
-# Check for syntax errors and undefined names (same settings as CI)
-flake8 --select=E9,F63,F7,F82 --show-source --statistics torch_bsf/ tests/
+# Lint and sort imports (add --fix to apply automatic fixes)
+ruff check .
 
-# General code style check
-flake8 --max-complexity=10 --max-line-length=127 torch_bsf/ tests/
+# Format code (drop --check to rewrite files)
+ruff format --check .
 ```
+
+Configuration in `pyproject.toml` (`[tool.ruff]` section):
+
+- `line-length = 127`
+- `target-version = "py310"`
+- `select = ["E", "F", "W", "I"]` (pycodestyle errors and warnings, Pyflakes, isort)
 
 ### Type checking
 
@@ -249,8 +242,8 @@ Configuration in `pyproject.toml` (`[tool.mypy]` section):
 ### Style guidelines
 
 - **Indentation**: 4 spaces
-- **Maximum line length**: 127 characters (matches `flake8 --max-line-length=127`; run `black` with `--line-length 127` accordingly)
-- **Strings**: Double quotes (black default)
+- **Maximum line length**: 127 characters (`line-length` in `[tool.ruff]`)
+- **Strings**: Double quotes (`ruff format` default)
 - **Docstrings**: NumPy style (use ``Parameters\n----------``, ``Returns\n-------``, ``Raises\n------`` sections)
 - **Type hints**: Use Python 3.10 built-in type hint syntax without `from __future__ import annotations`
 
@@ -300,12 +293,7 @@ import torch_bsf as tbsf
 
 @pytest.mark.parametrize(
     "dim, n_values, degree",
-    [
-        (dim, n_values, degree)
-        for dim in range(1, 4)
-        for n_values in range(1, 3)
-        for degree in range(3)
-    ],
+    [(dim, n_values, degree) for dim in range(1, 4) for n_values in range(1, 3) for degree in range(3)],
 )
 def test_zeros(dim: int, n_values: int, degree: int) -> None:
     bs = tbsf.BezierSimploid.zeros((dim,), degree, n_values)
@@ -362,7 +350,7 @@ sphinx-build -b doctest docs/ docs/_build/doctest
 pytorch-bsf/
 ├── .github/
 │   ├── workflows/                    # GitHub Actions workflows
-│   │   ├── python-package.yml        # pytest + flake8 + doctest
+│   │   ├── python-package.yml        # pytest + ruff + mypy + doctest
 │   │   ├── release-please-action.yml # Automated releases (CHANGELOG + PyPI publish)
 │   │   ├── sphinx-pages.yml          # Build and publish Sphinx docs to GitHub Pages
 │   │   ├── codeql-analysis.yml       # Security scanning

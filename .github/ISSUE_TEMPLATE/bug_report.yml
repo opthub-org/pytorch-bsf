@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         Write this issue so that a developer (or an AI agent) can fix it and open a PR **without asking for more context**.
-        Project-wide checks (pytest, flake8, mypy, doctest, docs build) are always required; list only issue-specific items below.
+        Project-wide checks (pytest, ruff, mypy, doctest, docs build) are always required; list only issue-specific items below.
 
   - type: textarea
     id: summary
