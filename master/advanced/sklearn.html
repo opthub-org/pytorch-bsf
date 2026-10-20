@@ -20,6 +20,7 @@
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -55,6 +56,7 @@
 <li class="toctree-l2"><a class="reference internal" href="normalization.html">Data Normalization</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Scikit-learn Integration</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#the-beziersimplexregressor">The <code class="docutils literal notranslate"><span class="pre">BezierSimplexRegressor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#choosing-a-solver">Choosing a solver</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#integration-with-pipelines">Integration with Pipelines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#using-gridsearchcv">Using GridSearchCV</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#api-reference">API Reference</a></li>
@@ -129,6 +131,51 @@
 <span class="n">y_pred</span> <span class="o">=</span> <span class="n">reg</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
 </pre></div>
 </div>
+</section>
+<section id="choosing-a-solver">
+<h2>Choosing a solver<a class="headerlink" href="#choosing-a-solver" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">solver</span></code> parameter selects how the control points are computed:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code> (default)</dt><dd><p>Trains the control points with <a class="reference internal" href="../torch_bsf.html#torch_bsf.fit" title="torch_bsf.fit"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit()</span></code></a>, i.e., gradient-based optimization with
+<code class="docutils literal notranslate"><span class="pre">lightning.pytorch.Trainer</span></code> for up to <code class="docutils literal notranslate"><span class="pre">max_epochs</span></code> epochs.  This is the original behavior and
+supports <code class="docutils literal notranslate"><span class="pre">init</span></code>, <code class="docutils literal notranslate"><span class="pre">freeze</span></code>, <code class="docutils literal notranslate"><span class="pre">smoothness_weight</span></code>, minibatches and accelerators.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">solver=&quot;lstsq&quot;</span></code></dt><dd><p>Since a Bézier simplex is linear in its control points, the squared error is minimized exactly by
+linear least squares on the Bernstein basis, solved in double precision.  The result is the same as
+<a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.fit_simploid" title="torch_bsf.simploidal.fit_simploid"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.simploidal.fit_simploid()</span></code></a> with <code class="docutils literal notranslate"><span class="pre">simploid_type=(n_params</span> <span class="pre">-</span> <span class="pre">1,)</span></code> and
+<code class="docutils literal notranslate"><span class="pre">solver=&quot;lstsq&quot;</span></code>.  This is much faster and more accurate than training, especially for
+high-dimensional outputs (e.g., hundreds of values per sample), where training may stop far from the
+optimum.  The optional <code class="docutils literal notranslate"><span class="pre">ridge</span></code> parameter adds the Tikhonov penalty
+<span class="math notranslate nohighlight">\(\mathrm{ridge}\,\|P\|^2\)</span> on the control points <span class="math notranslate nohighlight">\(P\)</span>; without it, under-determined
+problems (fewer samples than control points) get the minimum-norm solution.</p>
+</dd>
+</dl>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.sklearn</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSimplexRegressor</span>
+
+<span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">raw</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="mi">41</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">raw</span> <span class="o">/</span> <span class="n">raw</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>                  <span class="c1"># 41 points on a segment</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">outer</span><span class="p">(</span><span class="n">X</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">256</span><span class="p">)))</span>    <span class="c1"># 256-dimensional values</span>
+
+<span class="n">reg</span> <span class="o">=</span> <span class="n">BezierSimplexRegressor</span><span class="p">(</span><span class="n">degree</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s2">"lstsq"</span><span class="p">,</span> <span class="n">ridge</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">)</span>
+<span class="n">reg</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">reg</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">reg</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.999</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(41, 256)
+True
+</pre></div>
+</div>
+<p>With <code class="docutils literal notranslate"><span class="pre">solver=&quot;lstsq&quot;</span></code>, the trainer-only options (<code class="docutils literal notranslate"><span class="pre">batch_size</span></code>, <code class="docutils literal notranslate"><span class="pre">max_epochs</span></code>, <code class="docutils literal notranslate"><span class="pre">accelerator</span></code>,
+<code class="docutils literal notranslate"><span class="pre">devices</span></code>, <code class="docutils literal notranslate"><span class="pre">precision</span></code> and <code class="docutils literal notranslate"><span class="pre">trainer_kwargs</span></code>) are ignored, and <code class="docutils literal notranslate"><span class="pre">fit()</span></code> raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> if
+<code class="docutils literal notranslate"><span class="pre">init</span></code>, <code class="docutils literal notranslate"><span class="pre">freeze</span></code> or a nonzero <code class="docutils literal notranslate"><span class="pre">smoothness_weight</span></code> is given, since the exact solution does not
+depend on an initial guess and these constraints are not part of the least-squares problem.
+Conversely, a nonzero <code class="docutils literal notranslate"><span class="pre">ridge</span></code> with <code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code> raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.  The fitted model
+keeps the floating dtype of <code class="docutils literal notranslate"><span class="pre">y</span></code> (<code class="docutils literal notranslate"><span class="pre">float64</span></code> for <code class="docutils literal notranslate"><span class="pre">float64</span></code> or integer targets).</p>
+<p>Both parameters work with <code class="docutils literal notranslate"><span class="pre">get_params()</span></code>, <code class="docutils literal notranslate"><span class="pre">set_params()</span></code> and <code class="docutils literal notranslate"><span class="pre">clone()</span></code>, so they can be searched by
+<code class="docutils literal notranslate"><span class="pre">GridSearchCV</span></code> like any other hyperparameter (e.g., <code class="docutils literal notranslate"><span class="pre">{&quot;solver&quot;:</span> <span class="pre">[&quot;lstsq&quot;],</span> <span class="pre">&quot;ridge&quot;:</span> <span class="pre">[0.0,</span> <span class="pre">1e-6,</span> <span class="pre">1e-3]}</span></code>).</p>
 </section>
 <section id="integration-with-pipelines">
 <h2>Integration with Pipelines<a class="headerlink" href="#integration-with-pipelines" title="Link to this heading"></a></h2>
