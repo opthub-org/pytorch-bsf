@@ -68,25 +68,39 @@ def elastic_net_grid(
 ) -> np.ndarray:
     """Return an array of 3D grid points on the standard 2-simplex, which is suitable for grid search for elastic net's hyperparameters.
 
-    The returned array is of shape ``((n_lambdas - 1) * n_alphas + 3 * n_copy_vertices - 2, 3)``.
-    The first column values are spaced evenly on a log scale.
+    The grid consists of ``n_lambdas - 1`` regularization-strength slices (height levels),
+    each containing ``n_alphas`` equally spaced points along the alpha axis with
+    ``0 <= w_1 < 1``, together with the data-fidelity vertex at ``w_1 = 1`` and any
+    additional vertex copies. When either ``n_lambdas == 0`` or ``n_alphas == 0``
+    (i.e. the product ``n_lambdas * n_alphas == 0``), an empty ``(0, 3)`` array is
+    returned. Otherwise the shape is
+    ``((n_lambdas - 1) * n_alphas + 3 * n_vertex_copies - 2, 3)``.
+    The first column (``w_1``) values are log-spaced: :func:`reverse_logspace` generates
+    ``n_lambdas - 1`` values of ``w_1`` in ``[0, 1)`` and the vertex ``w_1 = 1`` is appended separately.
+    The regularization strength is derived as ``λ = (1 - w_1) / w_1``.
     The second and third column values are spaced evenly over a specified interval.
 
     Parameters
     ----------
     n_lambdas : int, optional
-        Number of samples to generate along `lambda` axis.
-        The values are equally spaced on a log scale.
+        Number of samples to generate along the regularization-strength axis.
+        :func:`reverse_logspace` generates ``n_lambdas - 1`` values of the
+        data-fidelity weight ``w_1`` log-spaced in ``[0, 1)``, and the
+        data-fidelity vertex (``w_1 = 1``, i.e. ``λ = 0``) is appended separately.
         Default is ``102``. Must be non-negative.
     n_alphas : int, optional
         Number of samples to generate along `alpha` axis.
         The values are equally spaced.
         Default is ``12``. Must be non-negative.
-    n_copy_vertices : int, optional
-        Number of duplicated samples to generate vertices.
-        Each vertices is sampled ``n_copy_vertices`` times.
-        Default is ``1``. Must be non-negative.
-        Useful for k-fold cross validation.
+    n_vertex_copies : int, optional
+        Controls how many additional copies of the three simplex vertices are
+        appended to the grid as extra rows. In particular, the implementation
+        appends extra vertex rows so that, for typical settings with
+        ``n_lambdas >= 2`` and ``n_alphas >= 2``, each vertex appears
+        ``n_vertex_copies`` times overall (including those already present in
+        the main grid). This can be useful for k-fold cross-validation (one
+        can choose ``n_vertex_copies >= k``). Default is ``1``. Must be a
+        positive integer (>= 1).
     base : float, optional
         The base of the log space.
         The step size between the elements in ``ln(samples) / ln(base)`` (or ``log_base(samples)``) is uniform.
@@ -95,7 +109,8 @@ def elastic_net_grid(
     Returns
     -------
     samples : ndarray
-        ``(n_lambdas - 1) * n_alphas + 3 * n_copy_vertices - 2`` samples.
+        An empty ``(0, 3)`` array when ``n_lambdas == 0`` or ``n_alphas == 0``;
+        otherwise an array of shape ``((n_lambdas - 1) * n_alphas + 3 * n_vertex_copies - 2, 3)``.
 
     Examples
     --------
@@ -155,7 +170,13 @@ def elastic_net_grid(
            [0.        , 1.        , 0.        ],
            [0.        , 0.        , 1.        ]])
     """
-    if n_lambdas < 1 or n_alphas < 1:
+    if n_vertex_copies < 1:
+        raise ValueError(f"n_vertex_copies must be >= 1, but given: {n_vertex_copies}")
+    if n_lambdas < 0 or n_alphas < 0:
+        raise ValueError(
+            f"n_lambdas and n_alphas must be >= 0, but given: n_lambdas={n_lambdas}, n_alphas={n_alphas}"
+        )
+    if n_lambdas == 0 or n_alphas == 0:
         return np.empty((0, 3))
     w1_values = reverse_logspace(n_lambdas - 1, base)
     w2_values = np.linspace(0.0, 1.0 - w1_values, n_alphas, axis=1)
@@ -174,17 +195,21 @@ def elastic_net_grid(
     return grids
 
 
-if __name__ == "__main__":
-
+def _cli_main() -> None:
+    """Entry point for ``python -m torch_bsf.model_selection.elastic_net_grid``."""
     parser = ArgumentParser(
         prog="python -m torch_bsf.model_selection.elastic_net_grid",
         description="Grid search for elastic net's hyperparameters",
     )
     parser.add_argument("--n_lambdas", help="Number of samples for lambda values", type=int, default=102)
     parser.add_argument("--n_alphas", help="Number of samples for alpha values", type=int, default=12)
-    parser.add_argument("--n_vertex_copies", help="Number of copies of each vertex", type=int, default=10)
+    parser.add_argument("--n_vertex_copies", help="Number of copies of each vertex", type=int, default=1)
     parser.add_argument("--base", help="Base of the log space", type=float, default=10)
     args = parser.parse_args()
 
     grid = elastic_net_grid(args.n_lambdas, args.n_alphas, args.n_vertex_copies, base=args.base)
     print("\n".join(f"{p[0]:.17e},{p[1]:.17e},{p[2]:.17e}" for p in grid.tolist()))
+
+
+if __name__ == "__main__":
+    _cli_main()

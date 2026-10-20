@@ -20,6 +20,8 @@ jobs:
       with:
         release-type: python
         package-name: torch_bsf
+        # While the major version is 0, a breaking change bumps the minor version, not the major one
+        bump-minor-pre-major: true
 
   pypi:
     needs: github-release

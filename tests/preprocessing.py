@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from torch_bsf.preprocessing import MinMaxScaler, NoneScaler, QuantileScaler, StdScaler
+from torch_bsf.preprocessing import MinMaxScaler, NoneScaler, QuantileScaler, StdScaler, make_scaler
 
 
 @pytest.fixture
@@ -62,6 +62,12 @@ class TestStdScaler:
         result = scaler.fit_transform(values)
         assert torch.allclose(result[:, 0], torch.zeros(3))
 
+    def test_single_sample(self):
+        # The corrected std of a single sample is NaN => replaced by 1
+        scaler = StdScaler()
+        result = scaler.fit_transform(torch.tensor([[2.0, 1.0]]))
+        assert torch.equal(result, torch.zeros(1, 2))
+
     def test_inverse_transform_roundtrip(self, simple_values):
         scaler = StdScaler()
         scaled = scaler.fit_transform(simple_values)
@@ -100,3 +106,29 @@ class TestNoneScaler:
         scaler.fit(simple_values)
         result = scaler.inverse_transform(simple_values)
         assert torch.equal(result, simple_values)
+
+
+@pytest.mark.parametrize("scaler_class", [MinMaxScaler, StdScaler, QuantileScaler, NoneScaler])
+def test_transform_applies_the_fitted_scale_to_new_values(scaler_class, simple_values):
+    """transform() reuses the scale fitted by fit(), and inverse_transform() undoes it."""
+    scaler = scaler_class()
+    torch.testing.assert_close(scaler.fit_transform(simple_values), scaler.transform(simple_values))
+    new_values = torch.tensor([[0.0, 100.0], [4.0, -5.0]])
+    scaled = scaler.transform(new_values)
+    torch.testing.assert_close(scaler.inverse_transform(scaled), new_values)
+    # The scale is affine, so transform() commutes with the convex combinations of a Bézier simploid.
+    w = torch.tensor([[0.25, 0.75]])
+    torch.testing.assert_close(scaler.transform(w @ new_values), w @ scaled)
+
+
+@pytest.mark.parametrize(
+    "normalize, scaler_class",
+    [("max", MinMaxScaler), ("std", StdScaler), ("quantile", QuantileScaler), ("none", NoneScaler)],
+)
+def test_make_scaler(normalize, scaler_class):
+    assert isinstance(make_scaler(normalize), scaler_class)
+
+
+def test_make_scaler_rejects_unknown_names():
+    with pytest.raises(ValueError, match="normalize"):
+        make_scaler("minmax")  # type: ignore[arg-type]

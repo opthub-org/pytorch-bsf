@@ -42,6 +42,7 @@ extensions = [
     "sphinx.ext.linkcode",
     "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
+    "sphinx_design",
     "sphinx_rtd_theme",
     "sphinx_multiversion",
     "sphinx_proof",
@@ -51,9 +52,6 @@ extensions = [
 bibtex_bibfiles = ["refs.bib"]
 
 # -- autodoc -----------------------------------------------------------------
-autodoc_type_aliases = {
-    "Index": "torch_bsf.bezier_simplex.Index",
-}
 autodoc_inherit_docstrings = False
 # Optional dependencies that may not be present in the docs build environment.
 # These modules are imported lazily (inside functions) but autodoc may still
@@ -62,6 +60,13 @@ autodoc_mock_imports = ["matplotlib", "sklearn", "scipy"]
 
 # -- doctest -----------------------------------------------------------------
 # https://www.sphinx-doc.org/ja/master/usage/extensions/doctest.html#confval-doctest_global_setup
+import doctest
+
+doctest_default_flags = (
+    doctest.ELLIPSIS
+    | doctest.IGNORE_EXCEPTION_DETAIL
+    | getattr(doctest, "DONT_ACCEPT_TRUE_FOR_1", 0)
+)
 doctest_global_setup = """
 import torch
 import torch_bsf
@@ -106,6 +111,10 @@ html_theme = "sphinx_rtd_theme"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+
+# The RTD sidebar has a colored background; use the reversed compact wordmark.
+html_logo = "_static/logo-compact-white.svg"
+html_favicon = "_static/favicon.ico"
 
 
 # -- Options for sphinx-multiversion -----------------------------------------

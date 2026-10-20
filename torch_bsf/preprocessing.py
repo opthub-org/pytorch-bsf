@@ -1,4 +1,35 @@
+from typing import Literal, Protocol
+
 import torch
+
+#: The value normalization methods: ``"max"`` (:class:`MinMaxScaler`), ``"std"`` (:class:`StdScaler`),
+#: ``"quantile"`` (:class:`QuantileScaler`) and ``"none"`` (:class:`NoneScaler`).
+NormalizeType = Literal["max", "std", "quantile", "none"]
+
+
+class Scaler(Protocol):
+    """Protocol for data scalers with a fit/transform interface.
+
+    All concrete scaler classes (:class:`MinMaxScaler`, :class:`StdScaler`,
+    :class:`QuantileScaler`, :class:`NoneScaler`) satisfy this protocol via
+    structural subtyping — no explicit inheritance is required.
+    """
+
+    def fit(self, values: torch.Tensor) -> None:
+        """Fit the scaler to ``values``."""
+        ...
+
+    def fit_transform(self, values: torch.Tensor) -> torch.Tensor:
+        """Fit the scaler to ``values`` and return the transformed tensor."""
+        ...
+
+    def transform(self, values: torch.Tensor) -> torch.Tensor:
+        """Transform ``values`` with the fitted statistics."""
+        ...
+
+    def inverse_transform(self, values: torch.Tensor) -> torch.Tensor:
+        """Reverse the transformation applied by :meth:`fit_transform`."""
+        ...
 
 
 class MinMaxScaler:
@@ -48,6 +79,21 @@ class MinMaxScaler:
             with each feature scaled to the [0, 1] range.
         """
         self.fit(values)
+        return self.transform(values)
+
+    def transform(self, values: torch.Tensor) -> torch.Tensor:
+        """Normalize ``values`` with the fitted minimum and scale.
+
+        Parameters
+        ----------
+        values : torch.Tensor
+            Tensor of shape ``(n_samples, n_features)``.
+
+        Returns
+        -------
+        torch.Tensor
+            Transformed tensor of the same shape as ``values``.
+        """
         return (values - self.mins) / self.scales
 
     def inverse_transform(self, values: torch.Tensor) -> torch.Tensor:
@@ -92,7 +138,7 @@ class StdScaler:
             Input tensor of shape ``(n_samples, n_features)``.
         """
         self.stds, self.means = torch.std_mean(values, dim=0)
-        self.stds[self.stds == 0.0] = 1.0  # Avoid division by zero
+        self.stds[~(self.stds > 0.0)] = 1.0  # Avoid division by zero, or by NaN for a single sample
 
     def fit_transform(self, values: torch.Tensor) -> torch.Tensor:
         """Fit the scaler to the data and return the standardized tensor.
@@ -109,6 +155,21 @@ class StdScaler:
             with each feature having zero mean and unit standard deviation.
         """
         self.fit(values)
+        return self.transform(values)
+
+    def transform(self, values: torch.Tensor) -> torch.Tensor:
+        """Standardize ``values`` with the fitted mean and standard deviation.
+
+        Parameters
+        ----------
+        values : torch.Tensor
+            Tensor of shape ``(n_samples, n_features)``.
+
+        Returns
+        -------
+        torch.Tensor
+            Transformed tensor of the same shape as ``values``.
+        """
         return (values - self.means) / self.stds
 
     def inverse_transform(self, values: torch.Tensor) -> torch.Tensor:
@@ -182,6 +243,21 @@ class QuantileScaler:
             Values outside the fitted quantile range may exceed [0, 1].
         """
         self.fit(values)
+        return self.transform(values)
+
+    def transform(self, values: torch.Tensor) -> torch.Tensor:
+        """Scale ``values`` with the fitted quantile bounds.
+
+        Parameters
+        ----------
+        values : torch.Tensor
+            Tensor of shape ``(n_samples, n_features)``.
+
+        Returns
+        -------
+        torch.Tensor
+            Transformed tensor of the same shape as ``values``.
+        """
         return (values - self.mins) / self.scales
 
     def inverse_transform(self, values: torch.Tensor) -> torch.Tensor:
@@ -233,6 +309,21 @@ class NoneScaler:
         """
         return values
 
+    def transform(self, values: torch.Tensor) -> torch.Tensor:
+        """Return ``values`` unchanged.
+
+        Parameters
+        ----------
+        values : torch.Tensor
+            Input tensor of any shape.
+
+        Returns
+        -------
+        torch.Tensor
+            The same tensor as ``values`` without any modification.
+        """
+        return values
+
     def inverse_transform(self, values: torch.Tensor) -> torch.Tensor:
         """Return ``values`` unchanged.
 
@@ -247,3 +338,43 @@ class NoneScaler:
             The same tensor as ``values`` without any modification.
         """
         return values
+
+
+def make_scaler(normalize: NormalizeType) -> Scaler:
+    """The scaler of a normalization method.
+
+    Every scaler is an affine map of each feature, so it commutes with Bézier
+    simploids, whose Bernstein basis sums to one: transforming the control
+    points transforms the values of the model.
+
+    Parameters
+    ----------
+    normalize
+        ``"max"``, ``"std"``, ``"quantile"`` or ``"none"``.
+
+    Returns
+    -------
+    A new, unfitted scaler.
+
+    Raises
+    ------
+    ValueError
+        If ``normalize`` is not one of the methods.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from torch_bsf.preprocessing import make_scaler
+    >>> scaler = make_scaler("max")
+    >>> scaler.fit_transform(torch.tensor([[1.0], [3.0]])).tolist()
+    [[0.0], [1.0]]
+    """
+    scalers: dict[str, type[Scaler]] = {
+        "max": MinMaxScaler,
+        "std": StdScaler,
+        "quantile": QuantileScaler,
+        "none": NoneScaler,
+    }
+    if normalize not in scalers:
+        raise ValueError(f"{normalize=}. Must be one of {list(scalers)}.")
+    return scalers[normalize]()
