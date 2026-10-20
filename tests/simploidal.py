@@ -1570,6 +1570,19 @@ def test_fit_simploidal_set_freeze_keeps_init(solver):
         assert torch.allclose(again.proper_control_points, space.proper_control_points)
 
 
+def test_fit_simploidal_set_freeze_keeps_float64_init():
+    """A float64 init is not rounded to the default dtype before the space is converted to float64."""
+    S, (t1, _), data = _two_triangles_with_data()
+    data = [(s, t.double(), x.double()) for s, t, x in data]
+    init = _random_space(S, 2, n_values=2).double()
+    with torch.no_grad():
+        init.proper_control_points.add_(1e-10)  # not representable in float32
+    freeze = [(t1, ((2, 0, 0),))]
+    space = fit_simploidal_set(S, data, 2, init=init, freeze=freeze)
+    row = space.row(*freeze[0])
+    assert torch.equal(space.proper_control_points[row], init.proper_control_points[row])
+
+
 def test_fit_simploidal_set_smoothness_and_freeze_errors():
     S, (t1, _), data = _two_triangles_with_data()
     with pytest.raises(ValueError, match="init is required"):

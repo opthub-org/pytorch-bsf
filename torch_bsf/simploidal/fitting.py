@@ -449,13 +449,14 @@ def fit_simploidal_set(
     space = SimploidalBezierSpace(simploidal_set, degree, n_values, default_degree=default_degree)
     samples = _normalize_data(space, data)
     dtype = _floating_dtype([v for _, _, v in samples])
+    # Convert the space before copying ``init`` into it, so that the initial (and frozen) points are not rounded.
+    space = space.to(dtype)
     _check_solver(solver, ridge, smoothness_weight)
     if init is not None:
         _init_space(space, init)
     elif freeze is not None:
         raise ValueError("init is required when freeze is given.")
     frozen = [space.row(simploid, index) for simploid, index in freeze or ()]
-    space = space.to(dtype)
     if solver == "trainer" and seed is not None:
         L.seed_everything(seed)
     width = max(p.shape[1] for _, p, _ in samples)
