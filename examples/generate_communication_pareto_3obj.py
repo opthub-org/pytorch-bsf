@@ -1,4 +1,6 @@
+import logging
 import pathlib
+import warnings
 
 import numpy as np
 import matplotlib
@@ -6,6 +8,17 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 from torch_bsf.sklearn import BezierSimplexRegressor
+
+# Keep the output focused on the approximation errors: silence Lightning's
+# progress bar, model summary, logger, informational messages and warnings.
+logging.getLogger("lightning.pytorch").setLevel(logging.WARNING)
+warnings.filterwarnings("ignore", module="lightning")
+TRAINER_KWARGS = {
+    "enable_progress_bar": False,
+    "enable_model_summary": False,
+    "logger": False,
+    "enable_checkpointing": False,
+}
 
 # Define three convex objective functions for a simplified routing problem
 # x = [x1, x2] representing routing allocations
@@ -56,7 +69,7 @@ optimal_values = np.array([[p[2], p[3], p[4]] for p in optimals])
 # Fit a Bézier simplex to the weight-objective mapping
 X = w_list
 y = optimal_values
-regressor = BezierSimplexRegressor(degree=3)
+regressor = BezierSimplexRegressor(degree=3, trainer_kwargs=TRAINER_KWARGS)
 regressor.fit(X, y)
 
 # Generate a smooth set of weights across the simplex edge for visualization
@@ -94,7 +107,7 @@ plt.savefig("docs/_static/communication_pareto_3obj.png", dpi=150, bbox_inches="
 
 # Fit Bézier simplex to Pareto set (routing allocation space)
 x_targets = np.array([p[1] for p in optimals])
-regressor_set = BezierSimplexRegressor(degree=3)
+regressor_set = BezierSimplexRegressor(degree=3, trainer_kwargs=TRAINER_KWARGS)
 regressor_set.fit(X, x_targets)
 x_smooth = regressor_set.predict(weights_smooth)
 
