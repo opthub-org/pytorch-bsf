@@ -6,23 +6,26 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Frequently Asked Questions &mdash; PyTorch-BSF 0.16.0 documentation</title>
+  <title>Frequently Asked Questions &mdash; PyTorch-BSF 0.18.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
 
   
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=7de89ed4"></script>
+      <script src="_static/documentation_options.js?v=ba2e7b09"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
       <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="References" href="references.html" />
-    <link rel="prev" title="Facility location and continuous approximations" href="applications/facility_location.html" /> 
+    <link rel="prev" title="Facility Location and Continuous Approximations" href="applications/facility_location.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -35,6 +38,7 @@
           
           <a href="index.html" class="icon icon-home">
             PyTorch-BSF
+              <img src="_static/logo-compact-white.svg" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -46,9 +50,9 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
-<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Frequently Asked Questions</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#general-information">General Information</a><ul>
@@ -67,7 +71,8 @@
 <li class="toctree-l3"><a class="reference internal" href="#can-i-use-gpu-or-multi-node-training">Can I use GPU or multi-node training?</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#how-do-i-save-and-load-a-trained-model">How do I save and load a trained model?</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#how-can-i-perform-cross-validation-or-grid-search">How can I perform cross-validation or grid search?</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#when-should-i-use-the-fix-argument">When should I use the <code class="docutils literal notranslate"><span class="pre">fix</span></code> argument?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#when-should-i-use-the-freeze-argument">When should I use the <code class="docutils literal notranslate"><span class="pre">freeze</span></code> argument?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#what-is-bezier-simplex-splitting-subdivision">What is Bézier simplex splitting (subdivision)?</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a><ul>
@@ -124,10 +129,10 @@
 </section>
 <section id="what-applications-are-there-beyond-multi-objective-optimization">
 <h3>What applications are there beyond multi-objective optimization?<a class="headerlink" href="#what-applications-are-there-beyond-multi-objective-optimization" title="Link to this heading"></a></h3>
-<p>While primarily used for Pareto front approximation, Bézier simplex fitting is a general-purpose regression technique for any continuous map from a simplex to a Euclidean space. Potential applications include:</p>
+<p>While primarily used for Pareto front approximation, Bézier simplex fitting is a general-purpose regression technique for any continuous map from a simplex to a Euclidean space, and Bézier simploids extend it to maps from a product of simplices (see <a class="reference internal" href="advanced/simploidal.html"><span class="doc">Simploidal Sets</span></a>). Potential applications include:</p>
 <ul class="simple">
-<li><p><strong>Interpolation of parametric families:</strong> When a model’s behavior varies continuously with coefficients on a simplex (e.g., mixture weights, regularization strengths in Elastic Net), a Bézier simplex can compactly represent the entire family.</p></li>
-<li><p><strong>Shape modeling:</strong> Bézier simplices generalize Bézier triangles used in CAD and computer graphics; they can represent smooth curved surfaces of any dimension.</p></li>
+<li><p><strong>Interpolation of parametric families:</strong> When a model’s behavior varies continuously with coefficients on a simplex (e.g., mixture weights, regularization strengths in Elastic Net), a Bézier simplex can compactly represent the entire family. If the coefficients consist of several independent groups (e.g., mixture weights and a separate interpolation ratio), a Bézier simploid takes one simplex factor per group.</p></li>
+<li><p><strong>Shape modeling:</strong> Bézier simplices generalize Bézier triangles used in CAD and computer graphics, and Bézier simploids generalize tensor-product Bézier patches; they can represent smooth curved surfaces of any dimension, and simploidal sets glue such patches into larger shapes.</p></li>
 <li><p><strong>Solution manifolds:</strong> Any problem whose solution set forms a continuous simplex-structured manifold is a candidate for fitting.</p></li>
 <li><p><strong>Scientific data fitting:</strong> Modeling physical phenomena where constraints naturally form a simplex (e.g., chemical concentrations in a mixture).</p></li>
 </ul>
@@ -143,7 +148,7 @@
 <section id="can-i-verify-the-weakly-simplicial-assumption-for-my-problem">
 <h3>Can I verify the “weakly simplicial” assumption for my problem?<a class="headerlink" href="#can-i-verify-the-weakly-simplicial-assumption-for-my-problem" title="Link to this heading"></a></h3>
 <p>Yes. If your problem is unconstrained and strongly convex, it is guaranteed to be weakly simplicial. For other cases, you can use a <strong>data-driven statistical test</strong> based on persistent homology.</p>
-<p>The test checks whether the topology of the sampled Pareto set is consistent with a simplex structure. If the test rejects the simplicial hypothesis, a Bézier simplex model may not be appropriate. If it does not reject, you have statistical evidence supporting the use of PyTorch-BSF. Detailed information on these tests can be found in <span id="id1">Hamada and Goto [<a class="reference internal" href="references.html#id5" title="Naoki Hamada and Keisuke Goto. Data-driven analysis of pareto set topology. In Proceedings of the Genetic and Evolutionary Computation Conference, 657–664. 2018. URL: https://doi.org/10.1145/3205455.3205613.">HG18</a>]</span> and <span id="id2">Hamada [<a class="reference internal" href="references.html#id28" title="Naoki Hamada. 多目的最適化の解集合のトポロジーの検定法 (statistical test for the topology of solution sets in multi-objective optimization). In 日本応用数理学会2020年度年会講演予稿集 (Proceedings of the JSIAM Annual Meeting 2020). 2020.">Ham20</a>]</span>.</p>
+<p>The test checks whether the topology of the sampled Pareto set is consistent with a simplex structure. If the test rejects the simplicial hypothesis, a Bézier simplex model may not be appropriate. If it does not reject, you have statistical evidence supporting the use of PyTorch-BSF. Detailed information on these tests can be found in <span class="bibtex-citation" id="id1">Hamada and Goto [<a class="reference internal" href="references.html#id5" title="Naoki Hamada and Keisuke Goto. Data-driven analysis of pareto set topology. In Proceedings of the Genetic and Evolutionary Computation Conference, 657–664. 2018. URL: https://doi.org/10.1145/3205455.3205613.">HG18</a>]</span> and <span class="bibtex-citation" id="id2">Hamada [<a class="reference internal" href="references.html#id28" title="Naoki Hamada. 多目的最適化の解集合のトポロジーの検定法 (statistical test for the topology of solution sets in multi-objective optimization). In 日本応用数理学会2020年度年会講演予稿集 (Proceedings of the JSIAM Annual Meeting 2020). 2020.">Ham20</a>]</span>.</p>
 </section>
 </section>
 <section id="practical-usage">
@@ -153,6 +158,9 @@
 <p>The complexity of a Bézier simplex is determined by its <strong>degree</strong> (<span class="math notranslate nohighlight">\(D\)</span>) and the number of <strong>objectives</strong> (<span class="math notranslate nohighlight">\(M\)</span>). The number of control points is given by the formula:</p>
 <div class="math notranslate nohighlight">
 \[N_{cp} = \binom{D+M-1}{M-1}\]</div>
+<p>For a Bézier simploid of type <span class="math notranslate nohighlight">\((a_1, \ldots, a_n)\)</span> and degree <span class="math notranslate nohighlight">\((d_1, \ldots, d_n)\)</span>, it is the product over the factors:</p>
+<div class="math notranslate nohighlight">
+\[N_{cp} = \prod_{i=1}^n \binom{d_i+a_i}{a_i}\]</div>
 <p><strong>Guidelines:</strong></p>
 <ul class="simple">
 <li><p><strong>Start low:</strong> A degree of 2 or 3 is usually a good starting point. Low-degree models are less prone to overfitting and faster to train.</p></li>
@@ -162,8 +170,8 @@
 </section>
 <section id="how-do-i-normalize-my-parameters-or-values">
 <h3>How do I normalize my parameters or values?<a class="headerlink" href="#how-do-i-normalize-my-parameters-or-values" title="Link to this heading"></a></h3>
-<p>The <code class="docutils literal notranslate"><span class="pre">fit()</span></code> function requires that each row of the <code class="docutils literal notranslate"><span class="pre">params</span></code> tensor sums to 1 (i.e., lies on the standard simplex <span class="math notranslate nohighlight">\(\Delta^{M-1}\)</span>). If your raw parameters don’t satisfy this, you must normalize them manually.</p>
-<p>Additionally, normalizing the output <code class="docutils literal notranslate"><span class="pre">values</span></code> can improve fitting stability and accuracy. PyTorch-BSF provides several options for automatic value normalization in the CLI/MLflow interface.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">fit()</span></code> function requires that each row of the <code class="docutils literal notranslate"><span class="pre">params</span></code> tensor sums to 1 (i.e., lies on the standard simplex <span class="math notranslate nohighlight">\(\Delta^{M-1}\)</span>). For a Bézier simploid of type <span class="math notranslate nohighlight">\((a_1, \ldots, a_n)\)</span> (<code class="docutils literal notranslate"><span class="pre">fit(...,</span> <span class="pre">simploid_type=...)</span></code>), each <code class="docutils literal notranslate"><span class="pre">params</span></code> row is the concatenation of <span class="math notranslate nohighlight">\(n\)</span> blocks of <span class="math notranslate nohighlight">\(a_1 + 1, \ldots, a_n + 1\)</span> columns, and each block must sum to 1. If your raw parameters don’t satisfy this, you must normalize them manually.</p>
+<p>Additionally, normalizing the output <code class="docutils literal notranslate"><span class="pre">values</span></code> can improve fitting stability and accuracy. Pass <code class="docutils literal notranslate"><span class="pre">normalize=&quot;max&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;std&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;quantile&quot;</span></code> to <code class="docutils literal notranslate"><span class="pre">fit()</span></code> (<code class="docutils literal notranslate"><span class="pre">--normalize</span></code> in the CLI/MLflow interface); the values are scaled while fitting, and the fitted model still predicts in the original scale.</p>
 <p>Please refer to the <a class="reference internal" href="advanced/normalization.html"><span class="doc">Data Normalization</span></a> page for detailed instructions on how to normalize your parameter and value tensors.</p>
 </section>
 <section id="can-i-use-gpu-or-multi-node-training">
@@ -173,33 +181,61 @@
 </section>
 <section id="how-do-i-save-and-load-a-trained-model">
 <h3>How do I save and load a trained model?<a class="headerlink" href="#how-do-i-save-and-load-a-trained-model" title="Link to this heading"></a></h3>
-<p>You can save and load models using the <code class="docutils literal notranslate"><span class="pre">torch_bsf.bezier_simplex</span></code> module. Supported formats include <code class="docutils literal notranslate"><span class="pre">.pt</span></code> (PyTorch), <code class="docutils literal notranslate"><span class="pre">.csv</span></code>, <code class="docutils literal notranslate"><span class="pre">.tsv</span></code>, <code class="docutils literal notranslate"><span class="pre">.json</span></code>, and <code class="docutils literal notranslate"><span class="pre">.yaml</span></code>.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.bezier_simplex</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">load</span>
+<p>Use <a class="reference internal" href="torch_bsf.html#torch_bsf.simploidal.save" title="torch_bsf.simploidal.save"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.simploidal.save()</span></code></a> and <a class="reference internal" href="torch_bsf.html#torch_bsf.simploidal.load" title="torch_bsf.simploidal.load"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.simploidal.load()</span></code></a>. The format is chosen by the extension: <code class="docutils literal notranslate"><span class="pre">.pt</span></code> (PyTorch), <code class="docutils literal notranslate"><span class="pre">.csv</span></code>, <code class="docutils literal notranslate"><span class="pre">.tsv</span></code>, <code class="docutils literal notranslate"><span class="pre">.json</span></code>, <code class="docutils literal notranslate"><span class="pre">.yml</span></code> or <code class="docutils literal notranslate"><span class="pre">.yaml</span></code>. The file records the type and degree of the model along with its control points.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.simploidal</span><span class="w"> </span><span class="kn">import</span> <span class="n">save</span><span class="p">,</span> <span class="n">load</span>
 
 <span class="c1"># Save the trained model</span>
-<span class="n">save</span><span class="p">(</span><span class="s2">&quot;my_model.pt&quot;</span><span class="p">,</span> <span class="n">bs</span><span class="p">)</span>
+<span class="n">save</span><span class="p">(</span><span class="s2">"my_model.pt"</span><span class="p">,</span> <span class="n">bs</span><span class="p">)</span>
 
 <span class="c1"># Load it back</span>
-<span class="n">bs</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="s2">&quot;my_model.pt&quot;</span><span class="p">)</span>
+<span class="n">bs</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="s2">"my_model.pt"</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>The command line saves the control points of the fitted model to a CSV file (or to the file given by <code class="docutils literal notranslate"><span class="pre">--save</span></code>), which <code class="docutils literal notranslate"><span class="pre">--init</span></code> accepts as the initial model.</p>
 </section>
 <section id="how-can-i-perform-cross-validation-or-grid-search">
 <h3>How can I perform cross-validation or grid search?<a class="headerlink" href="#how-can-i-perform-cross-validation-or-grid-search" title="Link to this heading"></a></h3>
 <p>PyTorch-BSF includes built-in tools for model selection and specific task automation:</p>
 <ul class="simple">
-<li><p><strong>K-Fold Cross-Validation:</strong> Run <cite>python -m torch_bsf.model_selection.kfold</cite> to evaluate model performance across different data splits.</p></li>
+<li><p><strong>K-Fold Cross-Validation:</strong> Call <code class="docutils literal notranslate"><span class="pre">torch_bsf.fit_kfold()</span></code>, or run <cite>python -m torch_bsf.model_selection.kfold</cite>, to evaluate model performance across different data splits.</p></li>
 <li><p><strong>Elastic Net Grid Search:</strong> Run <cite>python -m torch_bsf.model_selection.elastic_net_grid</cite> to generate parameter grids specifically for Elastic Net regularization paths.</p></li>
 </ul>
 </section>
-<section id="when-should-i-use-the-fix-argument">
-<h3>When should I use the <code class="docutils literal notranslate"><span class="pre">fix</span></code> argument?<a class="headerlink" href="#when-should-i-use-the-fix-argument" title="Link to this heading"></a></h3>
-<p>The <code class="docutils literal notranslate"><span class="pre">fix</span></code> argument allows you to hold specific control points constant during training. This is useful for:</p>
+<section id="when-should-i-use-the-freeze-argument">
+<h3>When should I use the <code class="docutils literal notranslate"><span class="pre">freeze</span></code> argument?<a class="headerlink" href="#when-should-i-use-the-freeze-argument" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">freeze</span></code> argument allows you to hold specific control points constant during training. This is useful for:</p>
 <ul class="simple">
-<li><p><strong>Boundary constraints:</strong> If you know the exact values at the vertices of the simplex (e.g., results of single-objective optimizations), fix those vertices and fit only the interior.</p></li>
-<li><p><strong>Incremental refinement:</strong> Fit a low-degree model first, then use its control points as initialization for a higher-degree model, fixing the well-estimated parts to stabilize training.</p></li>
+<li><p><strong>Boundary constraints:</strong> If you know the exact values at the vertices of the simplex (e.g., results of single-objective optimizations), freeze those vertices and fit only the interior.</p></li>
+<li><p><strong>Incremental refinement:</strong> Fit a low-degree model first, then use its control points as initialization for a higher-degree model, freezing the well-estimated parts to stabilize training.</p></li>
 <li><p><strong>Encoding prior knowledge:</strong> If theoretical or physical constraints dictate the value at certain parameter combinations, you can pin those points to ensure the model respects them.</p></li>
 </ul>
+</section>
+<section id="what-is-bezier-simplex-splitting-subdivision">
+<h3>What is Bézier simplex splitting (subdivision)?<a class="headerlink" href="#what-is-bezier-simplex-splitting-subdivision" title="Link to this heading"></a></h3>
+<p>Bézier simplex <strong>splitting</strong> (or <strong>subdivision</strong>) is a technique for refining a fitted Bézier simplex model by recursively dividing the parameter domain (the simplex) into smaller sub-simplices.</p>
+<p><strong>How it works:</strong></p>
+<ol class="arabic simple">
+<li><p>A Bézier simplex maps a standard parameter simplex to a family of objective values.</p></li>
+<li><p>Splitting subdivides the parameter simplex by choosing an edge and inserting a new vertex on that edge (by default at the midpoint, <code class="docutils literal notranslate"><span class="pre">s=0.5</span></code>), which forms smaller sub-simplices.</p></li>
+<li><p>Each resulting sub-simplex inherits control points from the parent in a way that preserves continuity and smoothness across the subdivision.</p></li>
+<li><p>Repeating this process creates a hierarchical decomposition, where different regions can be approximated with different levels of detail.</p></li>
+</ol>
+<p><strong>Why use splitting?</strong></p>
+<ul class="simple">
+<li><p><strong>Local refinement:</strong> Focus computational effort on regions of interest without uniformly increasing the global degree.</p></li>
+<li><p><strong>Adaptive complexity:</strong> Automatically increase model complexity only where the surface is complex or “wiggly.”</p></li>
+<li><p><strong>Reduced overfitting:</strong> By keeping low degree in simple regions and increasing it only where needed, you avoid unnecessary parameters.</p></li>
+<li><p><strong>Efficient multi-resolution analysis:</strong> Create a coarse-to-fine hierarchy useful for progressive fitting or visualization.</p></li>
+</ul>
+<p><strong>Practical usage:</strong></p>
+<p>Splitting is particularly valuable when:</p>
+<ul class="simple">
+<li><p>The Pareto front has <strong>varying curvature</strong>—smooth in some regions, highly curved in others.</p></li>
+<li><p>Computational budget is limited and you want to allocate samples intelligently.</p></li>
+<li><p>You need a <strong>hierarchical representation</strong> for visualization or downstream analysis.</p></li>
+<li><p>High-degree fits suffer from oscillations or overfitting, but low-degree models miss important features.</p></li>
+</ul>
+<p>See the <a class="reference internal" href="advanced.html"><span class="doc">Advanced Topics</span></a> documentation for implementation details and examples.</p>
 </section>
 </section>
 <section id="troubleshooting">
@@ -219,9 +255,10 @@
 <ol class="arabic simple">
 <li><p><strong>Check Data Quality:</strong> Ensure <code class="docutils literal notranslate"><span class="pre">params</span></code> sum to 1 and that you have enough samples relative to the degree.</p></li>
 <li><p><strong>Adjust the Degree:</strong> If the surface is too complex, increase the degree. If the model is oscillating or overfitting, decrease it.</p></li>
-<li><p><strong>Better Initialization:</strong> Use the <code class="docutils literal notranslate"><span class="pre">init</span></code> argument to provide a better starting point, perhaps from a coarse fit or domain knowledge.</p></li>
-<li><p><strong>Increase Training Epochs:</strong> For complex surfaces, the L-BFGS optimizer might need more iterations. In the CLI, use <code class="docutils literal notranslate"><span class="pre">--max_epochs</span></code>.</p></li>
-<li><p><strong>Data Normalization:</strong> Scale your output values (<code class="docutils literal notranslate"><span class="pre">values</span></code>) to a similar range (e.g., using <code class="docutils literal notranslate"><span class="pre">--normalize</span> <span class="pre">std</span></code>) to help the optimizer converge faster.</p></li>
+<li><p><strong>Use the Exact Solver:</strong> By default (<code class="docutils literal notranslate"><span class="pre">solver=&quot;lstsq&quot;</span></code>), <code class="docutils literal notranslate"><span class="pre">fit()</span></code> solves the least-squares problem exactly, so there is nothing to converge. Add a small <code class="docutils literal notranslate"><span class="pre">ridge</span></code> penalty if the problem is ill-conditioned (e.g., too few samples for the degree).</p></li>
+<li><p><strong>Better Initialization:</strong> With <code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code>, use the <code class="docutils literal notranslate"><span class="pre">init</span></code> argument to provide a better starting point, perhaps from a coarse fit or domain knowledge.</p></li>
+<li><p><strong>Increase Training Epochs:</strong> With <code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code>, the L-BFGS optimizer might need more iterations for complex surfaces. Pass <code class="docutils literal notranslate"><span class="pre">max_epochs</span></code> to <code class="docutils literal notranslate"><span class="pre">fit()</span></code>, or <code class="docutils literal notranslate"><span class="pre">--max_epochs</span></code> in the CLI.</p></li>
+<li><p><strong>Data Normalization:</strong> With <code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code>, scale your output values (<code class="docutils literal notranslate"><span class="pre">values</span></code>) to a similar range (e.g., <code class="docutils literal notranslate"><span class="pre">normalize=&quot;std&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">--normalize</span> <span class="pre">std</span></code>) to help the optimizer converge faster.</p></li>
 </ol>
 </section>
 </section>
@@ -231,7 +268,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="applications/facility_location.html" class="btn btn-neutral float-left" title="Facility location and continuous approximations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="applications/facility_location.html" class="btn btn-neutral float-left" title="Facility Location and Continuous Approximations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="references.html" class="btn btn-neutral float-right" title="References" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
@@ -284,6 +321,8 @@
             <dd><a href="../../../v0.15.1/faq.html">v0.15.1</a></dd>
             <dd><a href="../../../v0.16.0/faq.html">v0.16.0</a></dd>
             <dd><a href="../../../v0.16.1/faq.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/faq.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/faq.html">v0.18.0</a></dd>
             <dd><a href="../../../v0.2.0/faq.html">v0.2.0</a></dd>
             <dd><a href="../../../v0.3.0/faq.html">v0.3.0</a></dd>
             <dd><a href="../../../v0.3.1/faq.html">v0.3.1</a></dd>

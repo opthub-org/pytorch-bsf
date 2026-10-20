@@ -5,7 +5,7 @@ PyTorch-BSF can be used in four ways depending on your workflow: as a **Docker c
 Pick the option that best fits your setup.
 
 
-Run as a Docker container
+Run as a Docker Container
 --------------------------
 
 A pre-built image is available on GHCR, built on ``continuumio/miniconda3`` with PyTorch installed via the ``pytorch`` conda channel — providing Intel MKL as the BLAS backend.
@@ -44,12 +44,10 @@ Mount the current directory as ``/workspace`` inside the container and run train
 The trained model will be saved under ``mlruns/`` in the current directory.
 
 
-Run as an MLflow project
+Run as an MLflow Project
 ------------------------
 
-If you have parameters and values for training a Bézier simplex in common file formats such as CSV, JSON, etc., then the easiest way is to invoke PyTorch-BSF via `MLflow`_.
-In this way, some CLI commands for training and prediction are provided without installing PyTorch-BSF.
-On each training and prediction, separation of runtime environment and installation of PyTorch-BSF are automatically handled by MLflow!
+MLflow can run PyTorch-BSF directly from its GitHub repository without a manual installation step. It automatically creates a conda environment from the project's ``environment.yml``, which uses the ``pytorch`` conda channel and provides Intel MKL as the BLAS backend. This makes it the easiest way to get started with experiment tracking.
 
 .. _MLflow: https://www.mlflow.org/docs/latest/
 
@@ -92,6 +90,9 @@ Now, you can fit a Bézier simplex model using the latest version of PyTorch-BSF
    :start-after: [TAG:RunMLflowTraining]
    :end-before: [TAG:RunMLflowTraining_End]
 
+.. tip::
+   To fit a Bézier simploid (e.g., on a prism) instead of a Bézier simplex, add ``-P simploid_type=2,1``, or ``--simploid-type=2,1`` on the command line. See :doc:`advanced/simploidal`.
+
 After the command finishes, the trained model will be saved in ``mlruns/0`` directory.
 Note the **Run ID** automatically set to the command execution, as you will need it for prediction.
 
@@ -119,7 +120,7 @@ Next, you can predict with the model and output the results to a specified file 
 See https://mlflow.org/docs/latest/api_reference/cli.html#mlflow-models-predict for details.
 
 
-Serve prediction API
+Serve Prediction API
 ^^^^^^^^^^^^^^^^^^^^
 
 You can also serve a Web API for prediction.
@@ -151,17 +152,16 @@ Now, you can request a prediction with HTTP POST method:
 See https://mlflow.org/docs/latest/genai/serving/ for details.
 
 
-Run as a Python package
+Run as a Python Package
 -----------------------
 
-Assume you have installed Python 3.10 or above.
-Then, install the package:
+First, install the package (requires Python 3.10 or above):
 
 .. code-block:: bash
 
    pip install pytorch-bsf
 
-Then, run `torch_bsf` as a module:
+Then run ``torch_bsf`` as a CLI module:
 
 .. literalinclude:: ../examples/quickstart/run.sh
    :language: bash
@@ -169,17 +169,16 @@ Then, run `torch_bsf` as a module:
    :end-before: [TAG:RunPackageTraining_End]
 
 
-Run as Python code
+Run as Python Code
 ------------------
 
-Assume you have installed Python 3.10 or above.
-Then, install the package:
+First, install the package (requires Python 3.10 or above):
 
 .. code-block:: bash
 
    pip install pytorch-bsf
 
-Train a model by ``fit()``, and call the model to predict.
+Train a model by calling ``fit()``, then call the model to predict.
 
 .. testcode::
    :pyversion: >= 3.10, < 3.15

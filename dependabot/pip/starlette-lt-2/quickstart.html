@@ -6,22 +6,25 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quickstart &mdash; PyTorch-BSF 0.16.0 documentation</title>
+  <title>Quickstart &mdash; PyTorch-BSF 0.18.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
 
   
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=7de89ed4"></script>
+      <script src="_static/documentation_options.js?v=ba2e7b09"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Advanced Topics" href="advanced.html" />
-    <link rel="prev" title="Welcome to PyTorch-BSF!" href="index.html" /> 
+    <link rel="prev" title="What is Bézier simplex fitting?" href="whatis.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -34,6 +37,7 @@
           
           <a href="index.html" class="icon icon-home">
             PyTorch-BSF
+              <img src="_static/logo-compact-white.svg" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -45,24 +49,24 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Quickstart</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#run-as-a-docker-container">Run as a Docker container</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#run-as-a-docker-container">Run as a Docker Container</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#training">Training</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#run-as-an-mlflow-project">Run as an MLflow project</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#run-as-an-mlflow-project">Run as an MLflow Project</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#installation">Installation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id1">Training</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#prediction">Prediction</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#serve-prediction-api">Serve prediction API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#serve-prediction-api">Serve Prediction API</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#run-as-a-python-package">Run as a Python package</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#run-as-python-code">Run as Python code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#run-as-a-python-package">Run as a Python Package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#run-as-python-code">Run as Python Code</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
-<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
@@ -101,7 +105,7 @@
 <p>PyTorch-BSF can be used in four ways depending on your workflow: as a <strong>Docker container</strong> (no installation required), as a zero-install <strong>MLflow project</strong> (great for one-off experiments with experiment tracking), as a <strong>CLI module</strong> (scriptable, no Python coding required), or as a <strong>Python library</strong> (for full programmatic control).
 Pick the option that best fits your setup.</p>
 <section id="run-as-a-docker-container">
-<h2>Run as a Docker container<a class="headerlink" href="#run-as-a-docker-container" title="Link to this heading"></a></h2>
+<h2>Run as a Docker Container<a class="headerlink" href="#run-as-a-docker-container" title="Link to this heading"></a></h2>
 <p>A pre-built image is available on GHCR, built on <code class="docutils literal notranslate"><span class="pre">continuumio/miniconda3</span></code> with PyTorch installed via the <code class="docutils literal notranslate"><span class="pre">pytorch</span></code> conda channel — providing Intel MKL as the BLAS backend.</p>
 <p><strong>Prerequisites:</strong> <a class="reference external" href="https://docs.docker.com/get-docker/">Docker</a>.</p>
 <section id="training">
@@ -129,8 +133,8 @@ cat<span class="w"> </span><span class="s">&lt;&lt; EOS &gt; values.csv</span>
 </div>
 <p>Mount the current directory as <code class="docutils literal notranslate"><span class="pre">/workspace</span></code> inside the container and run training:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--user<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span><span class="s2">&quot;</span>:<span class="s2">&quot;</span><span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">&quot;</span>:/workspace<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--user<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span><span class="s2">"</span>:<span class="s2">"</span><span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-v<span class="w"> </span><span class="s2">"</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">"</span>:/workspace<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>ghcr.io/opthub-org/pytorch-bsf<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>python<span class="w"> </span>-m<span class="w"> </span>torch_bsf<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--params<span class="o">=</span>params.csv<span class="w"> </span><span class="se">\</span>
@@ -142,10 +146,8 @@ cat<span class="w"> </span><span class="s">&lt;&lt; EOS &gt; values.csv</span>
 </section>
 </section>
 <section id="run-as-an-mlflow-project">
-<h2>Run as an MLflow project<a class="headerlink" href="#run-as-an-mlflow-project" title="Link to this heading"></a></h2>
-<p>If you have parameters and values for training a Bézier simplex in common file formats such as CSV, JSON, etc., then the easiest way is to invoke PyTorch-BSF via <a class="reference external" href="https://www.mlflow.org/docs/latest/">MLflow</a>.
-In this way, some CLI commands for training and prediction are provided without installing PyTorch-BSF.
-On each training and prediction, separation of runtime environment and installation of PyTorch-BSF are automatically handled by MLflow!</p>
+<h2>Run as an MLflow Project<a class="headerlink" href="#run-as-an-mlflow-project" title="Link to this heading"></a></h2>
+<p>MLflow can run PyTorch-BSF directly from its GitHub repository without a manual installation step. It automatically creates a conda environment from the project’s <code class="docutils literal notranslate"><span class="pre">environment.yml</span></code>, which uses the <code class="docutils literal notranslate"><span class="pre">pytorch</span></code> conda channel and provides Intel MKL as the BLAS backend. This makes it the easiest way to get started with experiment tracking.</p>
 <section id="installation">
 <h3>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h3>
 <p>Install <a class="reference external" href="https://docs.conda.io/en/latest/miniconda.html">Miniconda</a>.
@@ -182,11 +184,15 @@ cat<span class="w"> </span><span class="s">&lt;&lt; EOS &gt; values.csv</span>
 <span class="nv">MLFLOW_ENV_MANAGER</span><span class="o">=</span>conda
 </pre></div>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mlflow<span class="w"> </span>run<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$MLFLOW_PROJECT_URL</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mlflow<span class="w"> </span>run<span class="w"> </span><span class="s2">"</span><span class="nv">$MLFLOW_PROJECT_URL</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-P<span class="w"> </span><span class="nv">params</span><span class="o">=</span>params.csv<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-P<span class="w"> </span><span class="nv">values</span><span class="o">=</span>values.csv<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-P<span class="w"> </span><span class="nv">degree</span><span class="o">=</span><span class="m">3</span>
 </pre></div>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>To fit a Bézier simploid (e.g., on a prism) instead of a Bézier simplex, add <code class="docutils literal notranslate"><span class="pre">-P</span> <span class="pre">simploid_type=2,1</span></code>, or <code class="docutils literal notranslate"><span class="pre">--simploid-type=2,1</span></code> on the command line. See <a class="reference internal" href="advanced/simploidal.html"><span class="doc">Simploidal Sets</span></a>.</p>
 </div>
 <p>After the command finishes, the trained model will be saved in <code class="docutils literal notranslate"><span class="pre">mlruns/0</span></code> directory.
 Note the <strong>Run ID</strong> automatically set to the command execution, as you will need it for prediction.</p>
@@ -195,62 +201,61 @@ Note the <strong>Run ID</strong> automatically set to the command execution, as 
 <h3>Prediction<a class="headerlink" href="#prediction" title="Link to this heading"></a></h3>
 <p>To make predictions, MLflow may use <code class="docutils literal notranslate"><span class="pre">virtualenv</span></code> and <code class="docutils literal notranslate"><span class="pre">pyenv</span></code> to create an isolated environment for the model. Please ensure it’s available in your system.</p>
 <p>First, find the <strong>Run ID</strong> (e.g., <cite>47a7…</cite>) from the previous training step.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">LATEST_RUN_ID</span><span class="o">=</span><span class="k">$(</span>ls<span class="w"> </span>-td<span class="w"> </span>mlruns/0/*/<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s2">&quot;models&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-1<span class="w"> </span><span class="p">|</span><span class="w"> </span>xargs<span class="w"> </span>basename<span class="k">)</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Tested Run ID: </span><span class="si">${</span><span class="nv">LATEST_RUN_ID</span><span class="si">}</span><span class="s2">&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">LATEST_RUN_ID</span><span class="o">=</span><span class="k">$(</span>ls<span class="w"> </span>-td<span class="w"> </span>mlruns/0/*/<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s2">"models"</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-1<span class="w"> </span><span class="p">|</span><span class="w"> </span>xargs<span class="w"> </span>basename<span class="k">)</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">"Tested Run ID: </span><span class="si">${</span><span class="nv">LATEST_RUN_ID</span><span class="si">}</span><span class="s2">"</span>
 </pre></div>
 </div>
 <p>Next, you can predict with the model and output the results to a specified file (in this example, <cite>test_values.json</cite>).</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mlflow<span class="w"> </span>models<span class="w"> </span>predict<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--env-manager<span class="o">=</span><span class="nv">$MLFLOW_ENV_MANAGER</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--model-uri<span class="w"> </span><span class="s2">&quot;runs:/</span><span class="si">${</span><span class="nv">LATEST_RUN_ID</span><span class="si">}</span><span class="s2">/model&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--model-uri<span class="w"> </span><span class="s2">"runs:/</span><span class="si">${</span><span class="nv">LATEST_RUN_ID</span><span class="si">}</span><span class="s2">/model"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--content-type<span class="w"> </span>csv<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--input-path<span class="w"> </span>params.csv<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--output-path<span class="w"> </span>test_values.json
 cat<span class="w"> </span>test_values.json
-<span class="c1"># result will be shown like {&quot;predictions&quot;: [{&quot;0&quot;: 0.05797366052865982, ...}</span>
+<span class="c1"># result will be shown like {"predictions": [{"0": 0.05797366052865982, ...}</span>
 </pre></div>
 </div>
 <p>See <a class="reference external" href="https://mlflow.org/docs/latest/api_reference/cli.html#mlflow-models-predict">https://mlflow.org/docs/latest/api_reference/cli.html#mlflow-models-predict</a> for details.</p>
 </section>
 <section id="serve-prediction-api">
-<h3>Serve prediction API<a class="headerlink" href="#serve-prediction-api" title="Link to this heading"></a></h3>
+<h3>Serve Prediction API<a class="headerlink" href="#serve-prediction-api" title="Link to this heading"></a></h3>
 <p>You can also serve a Web API for prediction.</p>
 <p>First, find the Run ID (e.g., <cite>a1b2c3…</cite>) set to the model training.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">LATEST_RUN_ID</span><span class="o">=</span><span class="k">$(</span>ls<span class="w"> </span>-td<span class="w"> </span>mlruns/0/*/<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s2">&quot;models&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-1<span class="w"> </span><span class="p">|</span><span class="w"> </span>xargs<span class="w"> </span>basename<span class="k">)</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Tested Run ID: </span><span class="si">${</span><span class="nv">LATEST_RUN_ID</span><span class="si">}</span><span class="s2">&quot;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">LATEST_RUN_ID</span><span class="o">=</span><span class="k">$(</span>ls<span class="w"> </span>-td<span class="w"> </span>mlruns/0/*/<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-v<span class="w"> </span><span class="s2">"models"</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-1<span class="w"> </span><span class="p">|</span><span class="w"> </span>xargs<span class="w"> </span>basename<span class="k">)</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">"Tested Run ID: </span><span class="si">${</span><span class="nv">LATEST_RUN_ID</span><span class="si">}</span><span class="s2">"</span>
 </pre></div>
 </div>
 <p>Then, start a prediction server using the Run ID.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mlflow<span class="w"> </span>models<span class="w"> </span>serve<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--env-manager<span class="o">=</span><span class="nv">$MLFLOW_ENV_MANAGER</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--model-uri<span class="w"> </span><span class="s2">&quot;runs:/</span><span class="si">${</span><span class="nv">LATEST_RUN_ID</span><span class="si">}</span><span class="s2">/model&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--model-uri<span class="w"> </span><span class="s2">"runs:/</span><span class="si">${</span><span class="nv">LATEST_RUN_ID</span><span class="si">}</span><span class="s2">/model"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--host<span class="w"> </span>localhost<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--port<span class="w"> </span><span class="m">5001</span><span class="w"> </span><span class="p">&amp;</span>
 </pre></div>
 </div>
 <p>Now, you can request a prediction with HTTP POST method:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>http://localhost:5001/invocations<span class="w"> </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
-<span class="s1">  &quot;dataframe_split&quot;:{</span>
-<span class="s1">    &quot;columns&quot;: [&quot;t1&quot;, &quot;t2&quot;],</span>
-<span class="s1">    &quot;data&quot;: [</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>http://localhost:5001/invocations<span class="w"> </span>-H<span class="w"> </span><span class="s1">'Content-Type: application/json'</span><span class="w"> </span>-d<span class="w"> </span><span class="s1">'{</span>
+<span class="s1">  "dataframe_split":{</span>
+<span class="s1">    "columns": ["t1", "t2"],</span>
+<span class="s1">    "data": [</span>
 <span class="s1">       [0.2, 0.8],</span>
 <span class="s1">       [0.7, 0.3]</span>
 <span class="s1">    ]</span>
 <span class="s1">  }</span>
-<span class="s1">}&#39;</span>
+<span class="s1">}'</span>
 </pre></div>
 </div>
 <p>See <a class="reference external" href="https://mlflow.org/docs/latest/genai/serving/">https://mlflow.org/docs/latest/genai/serving/</a> for details.</p>
 </section>
 </section>
 <section id="run-as-a-python-package">
-<h2>Run as a Python package<a class="headerlink" href="#run-as-a-python-package" title="Link to this heading"></a></h2>
-<p>Assume you have installed Python 3.10 or above.
-Then, install the package:</p>
+<h2>Run as a Python Package<a class="headerlink" href="#run-as-a-python-package" title="Link to this heading"></a></h2>
+<p>First, install the package (requires Python 3.10 or above):</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>pytorch-bsf
 </pre></div>
 </div>
-<p>Then, run <cite>torch_bsf</cite> as a module:</p>
+<p>Then run <code class="docutils literal notranslate"><span class="pre">torch_bsf</span></code> as a CLI module:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>torch_bsf<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--params<span class="w"> </span>params.csv<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--values<span class="w"> </span>values.csv<span class="w"> </span><span class="se">\</span>
@@ -259,13 +264,12 @@ Then, install the package:</p>
 </div>
 </section>
 <section id="run-as-python-code">
-<h2>Run as Python code<a class="headerlink" href="#run-as-python-code" title="Link to this heading"></a></h2>
-<p>Assume you have installed Python 3.10 or above.
-Then, install the package:</p>
+<h2>Run as Python Code<a class="headerlink" href="#run-as-python-code" title="Link to this heading"></a></h2>
+<p>First, install the package (requires Python 3.10 or above):</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>pytorch-bsf
 </pre></div>
 </div>
-<p>Train a model by <code class="docutils literal notranslate"><span class="pre">fit()</span></code>, and call the model to predict.</p>
+<p>Train a model by calling <code class="docutils literal notranslate"><span class="pre">fit()</span></code>, then call the model to predict.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch_bsf</span>
 
@@ -304,7 +308,7 @@ Then, install the package:</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to PyTorch-BSF!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="whatis.html" class="btn btn-neutral float-left" title="What is Bézier simplex fitting?" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="advanced.html" class="btn btn-neutral float-right" title="Advanced Topics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
@@ -357,6 +361,8 @@ Then, install the package:</p>
             <dd><a href="../../../v0.15.1/quickstart.html">v0.15.1</a></dd>
             <dd><a href="../../../v0.16.0/quickstart.html">v0.16.0</a></dd>
             <dd><a href="../../../v0.16.1/quickstart.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/quickstart.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/quickstart.html">v0.18.0</a></dd>
             <dd><a href="../../../v0.2.0/quickstart.html">v0.2.0</a></dd>
             <dd><a href="../../../v0.3.0/quickstart.html">v0.3.0</a></dd>
             <dd><a href="../../../v0.3.1/quickstart.html">v0.3.1</a></dd>

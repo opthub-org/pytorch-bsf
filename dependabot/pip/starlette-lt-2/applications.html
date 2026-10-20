@@ -6,22 +6,25 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Applications &mdash; PyTorch-BSF 0.16.0 documentation</title>
+  <title>Applications &mdash; PyTorch-BSF 0.18.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
 
   
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=7de89ed4"></script>
+      <script src="_static/documentation_options.js?v=ba2e7b09"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Elastic net model selection" href="applications/elastic_net.html" />
-    <link rel="prev" title="What is Bézier simplex fitting?" href="whatis.html" /> 
+    <link rel="next" title="Elastic Net Model Selection" href="applications/elastic_net.html" />
+    <link rel="prev" title="The Category of Simploidal Sets" href="advanced/simploidal_category.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -34,6 +37,7 @@
           
           <a href="index.html" class="icon icon-home">
             PyTorch-BSF
+              <img src="_static/logo-compact-white.svg" class="logo" alt="Logo"/>
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
@@ -45,19 +49,19 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
-<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Applications</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="applications/elastic_net.html">Elastic net model selection</a></li>
-<li class="toctree-l2"><a class="reference internal" href="applications/portfolio.html">Robust portfolio management</a></li>
-<li class="toctree-l2"><a class="reference internal" href="applications/smart_grids.html">Distributed smart grids and energy operations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="applications/federated_learning.html">Multi-task and federated learning</a></li>
-<li class="toctree-l2"><a class="reference internal" href="applications/model_predictive_control.html">Multi-objective model predictive control</a></li>
-<li class="toctree-l2"><a class="reference internal" href="applications/communications.html">Communication systems and routing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="applications/supply_chain.html">Supply chain and logistics optimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="applications/medical_imaging.html">Medical imaging and radiation therapy</a></li>
-<li class="toctree-l2"><a class="reference internal" href="applications/facility_location.html">Facility location and continuous approximations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="applications/elastic_net.html">Elastic Net Model Selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="applications/portfolio.html">Robust Portfolio Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="applications/smart_grids.html">Distributed Smart Grids and Energy Operations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="applications/federated_learning.html">Multi-Task and Federated Learning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="applications/model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
+<li class="toctree-l2"><a class="reference internal" href="applications/communications.html">Communication Systems and Routing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="applications/supply_chain.html">Supply Chain and Logistics Optimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="applications/medical_imaging.html">Medical Imaging and Radiation Therapy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="applications/facility_location.html">Facility Location and Continuous Approximations</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions</a></li>
@@ -99,15 +103,15 @@
 <p>Furthermore, we present several other potential applications across diverse domains. While these examples arise from different fields, they share a crucial mathematical property: their underlying formulations are strongly convex optimization problems. As established in the theoretical foundations of this method, strong convexity guarantees that their Pareto sets admit a simplex-like topology. This inherently makes them perfectly suited for Bézier simplex fitting.</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="applications/elastic_net.html">Elastic net model selection</a></li>
-<li class="toctree-l1"><a class="reference internal" href="applications/portfolio.html">Robust portfolio management</a></li>
-<li class="toctree-l1"><a class="reference internal" href="applications/smart_grids.html">Distributed smart grids and energy operations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="applications/federated_learning.html">Multi-task and federated learning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="applications/model_predictive_control.html">Multi-objective model predictive control</a></li>
-<li class="toctree-l1"><a class="reference internal" href="applications/communications.html">Communication systems and routing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="applications/supply_chain.html">Supply chain and logistics optimization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="applications/medical_imaging.html">Medical imaging and radiation therapy</a></li>
-<li class="toctree-l1"><a class="reference internal" href="applications/facility_location.html">Facility location and continuous approximations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications/elastic_net.html">Elastic Net Model Selection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications/portfolio.html">Robust Portfolio Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications/smart_grids.html">Distributed Smart Grids and Energy Operations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications/federated_learning.html">Multi-Task and Federated Learning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications/model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications/communications.html">Communication Systems and Routing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications/supply_chain.html">Supply Chain and Logistics Optimization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications/medical_imaging.html">Medical Imaging and Radiation Therapy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications/facility_location.html">Facility Location and Continuous Approximations</a></li>
 </ul>
 </div>
 </section>
@@ -116,8 +120,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="whatis.html" class="btn btn-neutral float-left" title="What is Bézier simplex fitting?" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="applications/elastic_net.html" class="btn btn-neutral float-right" title="Elastic net model selection" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="advanced/simploidal_category.html" class="btn btn-neutral float-left" title="The Category of Simploidal Sets" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="applications/elastic_net.html" class="btn btn-neutral float-right" title="Elastic Net Model Selection" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
@@ -169,6 +173,8 @@
             <dd><a href="../../../v0.15.1/applications.html">v0.15.1</a></dd>
             <dd><a href="../../../v0.16.0/applications.html">v0.16.0</a></dd>
             <dd><a href="../../../v0.16.1/applications.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/applications.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/applications.html">v0.18.0</a></dd>
             <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
             <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
             <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
