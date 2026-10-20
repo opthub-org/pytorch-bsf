@@ -91,3 +91,7 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
+   :exclude-members: BezierSimploid, Simploid, SimploidalSet, SimploidalBezierSpace, fit_simploidal_set
+
+The Bézier simploid classes and :func:`~torch_bsf.simploidal.fit_simploidal_set` that ``torch_bsf``
+re-exports are documented in :mod:`torch_bsf.simploidal`.

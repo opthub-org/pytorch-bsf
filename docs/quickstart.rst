@@ -91,7 +91,7 @@ Now, you can fit a Bézier simplex model using the latest version of PyTorch-BSF
    :end-before: [TAG:RunMLflowTraining_End]
 
 .. tip::
-   To fit a Bézier simploid (e.g., on a prism) instead of a Bézier simplex, use the ``simploid`` entry point with ``-P simploid_type=2,1``, or ``--simploid-type=2,1`` on the command line. See :doc:`advanced/simploidal`.
+   To fit a Bézier simploid (e.g., on a prism) instead of a Bézier simplex, add ``-P simploid_type=2,1``, or ``--simploid-type=2,1`` on the command line. See :doc:`advanced/simploidal`.
 
 After the command finishes, the trained model will be saved in ``mlruns/0`` directory.
 Note the **Run ID** automatically set to the command execution, as you will need it for prediction.

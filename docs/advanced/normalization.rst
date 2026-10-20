@@ -1,12 +1,12 @@
 Data Normalization
 ==================
 
-Proper normalization of your data is crucial for stable and accurate Bézier simplex and simploid fitting, as both the input parameters and the output values should ideally be within a well-defined range.
+Proper normalization of your data is crucial for stable and accurate Bézier simplex fitting, as both the input parameters and the output values should ideally be within a well-defined range.
 
 Parameter Normalization
 -----------------------
 
-The ``fit()`` function expects each row of the ``params`` tensor to lie on the standard simplex :math:`\Delta^{M-1}` (i.e., the elements must be non-negative and sum to 1). If your raw parameters do not satisfy this condition, you must normalize them manually before fitting. For :func:`~torch_bsf.simploidal.fit_simploid`, each row consists of one block of barycentric coordinates per factor of the simploid, and each block must lie on its own simplex.
+The ``fit()`` function expects each row of the ``params`` tensor to lie on the standard simplex :math:`\Delta^{M-1}` (i.e., the elements must be non-negative and sum to 1). If your raw parameters do not satisfy this condition, you must normalize them manually before fitting. For a Bézier simploid (``fit(..., simploid_type=...)``, see :doc:`simploidal`), each row consists of one block of barycentric coordinates per factor of the simploid, and each block must lie on its own simplex.
 
 A common approach is **L1 Normalization**: divide each parameter vector by its :math:`\ell_1` norm. For parameters :math:`a, b \ge 0`, you can compute the simplex coordinates as :math:`t_1 = a / (a + b)` and :math:`t_2 = b / (a + b)`.
 
@@ -23,31 +23,39 @@ While the best normalization method depends on your specific problem, the L1 app
 Value Normalization
 -------------------
 
-Normalizing the output ``values`` (the targets) can help the optimizer converge faster by ensuring that different objectives are on a similar scale. In the CLI or MLflow interface, you can use the ``--normalize`` argument.
+Normalizing the output ``values`` (the targets) can help the gradient-based trainer (``solver="trainer"``) converge faster by ensuring that different objectives are on a similar scale. Pass the ``normalize`` argument to ``fit()``, or use the ``--normalize`` argument in the CLI or MLflow interface.
 
 Available options include:
 
-*   ``max``: Scales values to the range ``[0, 1]`` based on the observed maximum. This is suitable when the training data covers the full expected range (upper and lower bounds) for all axes.
+*   ``none`` (default): Fits the values as they are.
+*   ``max``: Scales values to the range ``[0, 1]`` based on the observed minimum and maximum. This is suitable when the training data covers the full expected range (upper and lower bounds) for all axes.
 *   ``std``: Standardizes values to have zero mean and unit variance. This is the most common choice for general datasets.
 *   ``quantile``: Transforms values based on quantiles. This is robust to outliers and is recommended when the training data contains significant extremes that might otherwise skew the scaling.
 
-.. code-block:: python
+Every method is an affine map of each value axis. Since the Bernstein basis of a Bézier simplex sums to one, ``fit()`` undoes the normalization on the fitted control points, so the returned model predicts in the **original scale** of ``values``; frozen control points (see :doc:`partial`) keep exactly their values in ``init``.
 
-   from torch_bsf.preprocessing import StdScaler
+.. testcode::
+   :pyversion: >= 3.10, < 3.15
 
-   # Normalize values using the internal StdScaler
-   scaler = StdScaler()
-   xs_normalized = scaler.fit_transform(xs)
+   import torch
+   import torch_bsf
+   from torch_bsf.sampling import simplex_grid
 
-   # Fit the model (remember to use normalized values)
-   bs = torch_bsf.fit(params=ts, values=xs_normalized, degree=3)
+   ts = simplex_grid(n_params=3, degree=6)
+   xs = torch.stack([ts[:, 0] ** 2, 1000 * (ts[:, 1] + ts[:, 2])], dim=1)  # different scales
 
-   # To predict and get results in the original scale
-   t_new = [[0.2, 0.3, 0.5]]
-   x_normalized = bs(t_new)
-   x_original = scaler.inverse_transform(x_normalized)
+   bs = torch_bsf.fit(params=ts, values=xs, degree=3, normalize="std")
 
-While normalization can often improve prediction accuracy and training stability, it is not a guarantee. You should select the method that best aligns with your data distribution to achieve the best results.
+   # Predictions are in the original scale; no inverse transform is needed
+   print(torch.allclose(bs(ts), xs, atol=1e-3))
+
+.. testoutput::
+
+   True
+
+The scalers are also available in :mod:`torch_bsf.preprocessing` (e.g., :class:`~torch_bsf.preprocessing.StdScaler`) if you prefer to transform the values yourself.
+
+The default ``"lstsq"`` solver fits each value axis independently and exactly, so normalization does not change its result (up to rounding errors). It matters for ``solver="trainer"``, where it changes how the optimizer balances the axes. While normalization can often improve prediction accuracy and training stability there, it is not a guarantee. You should select the method that best aligns with your data distribution to achieve the best results.
 
 Advanced Considerations
 -----------------------
@@ -85,7 +93,7 @@ In practice, when using such skewed grids, it is often more effective to perform
 Preserving Physical Scales in Values
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The objective function in PyTorch-BSF (Mean Squared Error) is calculated in the **normalized value space** whenever normalization is applied.
+The objective function in PyTorch-BSF (Mean Squared Error) is calculated in the **normalized value space** whenever normalization is applied. This affects the result of the gradient-based trainer (``solver="trainer"``), which stops before reaching the exact minimum.
 
 *   **Automatic Balancing:** Scaling all axes to [0, 1] ensures that each objective contributes roughly equally to the training process, regardless of its original unit or magnitude.
 *   **Physical Significance:** However, if the absolute magnitude of an axis has physical meaning or represents its relative importance, you may choose **not to scale**. For instance, if one objective ranges from 0 to 1 and another from 0 to 1000, and you want the optimizer to prioritize absolute precision on the larger objective, leaving the data unscaled will naturally cause the larger values to dominate the loss function.
@@ -95,6 +103,6 @@ Carefully consider whether you want all objectives to be weighted "fairly" accor
 See Also
 --------
 
-*   `examples/normalization_comparison.py <https://github.com/opthub-org/pytorch-bsf/blob/main/examples/normalization_comparison.py>`_: A complete script demonstrating the impact of parameter distribution and value scaling described above.
+*   `examples/normalization_comparison.py <https://github.com/opthub-org/pytorch-bsf/blob/main/examples/normalization_comparison.py>`_: A complete script demonstrating the impact of parameter distribution and value scaling (with ``solver="trainer"``) described above.
 
 

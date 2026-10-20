@@ -17,15 +17,7 @@ polynomial degree.
    # Fit an initial model
    params = torch.tensor([[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]])
    values = torch.tensor([[0.0], [1.0], [0.0]])
-   bs = torch_bsf.fit(
-       params=params,
-       values=values,
-       degree=2,
-       max_epochs=200,
-       enable_progress_bar=False,
-       logger=False,
-       enable_checkpointing=False,
-   )
+   bs = torch_bsf.fit(params=params, values=values, degree=2)
 
    # Split along the longest edge in value space
    bs_A, bs_B = split_by_criterion(bs, longest_edge_criterion)
@@ -134,11 +126,11 @@ barycentric coordinates of the sub-simplex they belong to.
    t = params  # e.g. from your training dataset
 
    # Map to sub-simplex A
-   u_A, mask_A = reparametrize(t, i=0, j=1, s=0.5, subsimplex="A")
+   u_A, mask_A = reparametrize(t, i=0, j=1, s=0.5, part="A")
    # u_A[mask_A] are the local coordinates of the points in sub-simplex A
 
    # Map to sub-simplex B
-   u_B, mask_B = reparametrize(t, i=0, j=1, s=0.5, subsimplex="B")
+   u_B, mask_B = reparametrize(t, i=0, j=1, s=0.5, part="B")
 
 The returned ``mask`` is a boolean tensor indicating which input points belong
 to the requested sub-simplex.  Points where :math:`t_i = t_j = 0` lie on a
@@ -148,7 +140,7 @@ shared boundary and appear in both masks.
 
    The local barycentric coordinates ``u`` returned by
    :func:`~torch_bsf.splitting.reparametrize` sum to 1 by construction, so
-   they can be passed directly to :meth:`~torch_bsf.BezierSimplex.__call__`.
+   they can be passed directly to the piece, e.g. ``bs_A(u_A[mask_A])``.
 
 Choosing a Split Automatically
 -------------------------------
@@ -156,8 +148,9 @@ Choosing a Split Automatically
 Rather than specifying ``(i, j, s)`` by hand, you can pass a
 :data:`~torch_bsf.splitting.SplitCriterion` to
 :func:`~torch_bsf.splitting.split_by_criterion`.  The criterion inspects the
-fitted model (and optionally the data) and returns the best ``(i, j, s)``
-triple.
+fitted model (and optionally the data) and returns the best
+``(factor, i, j, s)``, where ``factor`` is always ``0`` for a Bézier simplex
+(see :ref:`splitting-simploids`).
 
 Two built-in criteria are provided.
 
@@ -194,7 +187,7 @@ You can also call the criterion directly to inspect which edge it selects:
 
 .. code-block:: python
 
-   i, j, s = longest_edge_criterion(bs)
+   factor, i, j, s = longest_edge_criterion(bs)
    print(f"Splitting edge ({i}, {j}) at s={s}")
 
 Maximum-Error Criterion
@@ -253,19 +246,52 @@ Custom Criteria
 ^^^^^^^^^^^^^^^
 
 A :data:`~torch_bsf.splitting.SplitCriterion` is any callable with the
-signature ``(bs: BezierSimplex) -> tuple[int, int, float]``.  You can write
-your own criterion and pass it to :func:`~torch_bsf.splitting.split_by_criterion`:
+signature ``(model: BezierSimploid) -> tuple[int, int, int, float]`` returning
+``(factor, i, j, s)``.  You can write your own criterion and pass it to
+:func:`~torch_bsf.splitting.split_by_criterion`:
 
 .. code-block:: python
 
-   from torch_bsf import BezierSimplex
+   from torch_bsf import BezierSimploid
    from torch_bsf.splitting import split_by_criterion
 
-   def my_criterion(bs: BezierSimplex) -> tuple[int, int, float]:
-       # Always split the first edge at the one-third point
-       return 0, 1, 1.0 / 3.0
+   def my_criterion(model: BezierSimploid) -> tuple[int, int, int, float]:
+       # Always split the first edge of the (only) factor at the one-third point
+       return 0, 0, 1, 1.0 / 3.0
 
    bs_A, bs_B = split_by_criterion(bs, my_criterion)
+
+.. _splitting-simploids:
+
+Splitting Bézier Simploids
+--------------------------
+
+The same functions split a Bézier simploid, i.e., a tensor product of Bézier
+simplices (see :doc:`simploidal`).  An edge of a simploid is an edge
+:math:`(i, j)` of one of its factors, chosen by the keyword argument
+``factor`` (``0`` by default); the other factors are left unchanged.
+:func:`~torch_bsf.splitting.reparametrize` then needs the type of the
+simploid to locate the coordinates of that factor:
+
+.. code-block:: python
+
+   import torch
+   import torch_bsf
+   from torch_bsf.simploidal import sample_simploid
+   from torch_bsf.splitting import reparametrize, split
+
+   # A Bézier simploid on a prism (a triangle times a segment)
+   t = sample_simploid((2, 1), 100, seed=0)
+   x = t[:, :1] * t[:, 3:4]
+   model = torch_bsf.fit(t, x, degree=2, simploid_type=(2, 1))
+
+   # Split the segment (the second factor) at its midpoint
+   model_A, model_B = split(model, 0, 1, 0.5, factor=1)
+   u_A, mask_A = reparametrize(t, 0, 1, 0.5, "A", simploid_type=(2, 1), factor=1)
+   print(torch.allclose(model_A(u_A[mask_A]), model(t[mask_A]), atol=1e-5))  # True
+
+The built-in criteria consider the edges of every factor, and return the
+factor of the chosen edge as the first element of ``(factor, i, j, s)``.
 
 Iterative Refinement
 ---------------------
@@ -295,45 +321,21 @@ below demonstrates one round of such refinement:
    ])
    values = torch.stack([p[0:1] * p[1:2] for p in params])  # nonlinear target
 
-   bs = torch_bsf.fit(
-       params=params,
-       values=values,
-       degree=2,
-       max_epochs=500,
-       enable_progress_bar=False,
-       logger=False,
-       enable_checkpointing=False,
-   )
+   bs = torch_bsf.fit(params=params, values=values, degree=2)
 
    # ── 2. Split using the data-driven criterion ───────────────────────────────
    criterion = max_error_criterion(params, values, grid_size=10)
-   i, j, s = criterion(bs)  # retrieve the chosen (i, j, s) once
+   _, i, j, s = criterion(bs)  # retrieve the chosen edge and position once
    bs_A, bs_B = split(bs, i, j, s)
 
    # ── 3. Reparametrize the data and re-fit each sub-simplex ─────────────────
-   u_A, mask_A = reparametrize(params, i, j, s, subsimplex="A")
-   u_B, mask_B = reparametrize(params, i, j, s, subsimplex="B")
+   u_A, mask_A = reparametrize(params, i, j, s, part="A")
+   u_B, mask_B = reparametrize(params, i, j, s, part="B")
 
    if mask_A.any():
-       bs_A_refined = torch_bsf.fit(
-           params=u_A[mask_A],
-           values=values[mask_A],
-           degree=2,
-           max_epochs=500,
-           enable_progress_bar=False,
-           logger=False,
-           enable_checkpointing=False,
-       )
+       bs_A_refined = torch_bsf.fit(params=u_A[mask_A], values=values[mask_A], degree=2)
    if mask_B.any():
-       bs_B_refined = torch_bsf.fit(
-           params=u_B[mask_B],
-           values=values[mask_B],
-           degree=2,
-           max_epochs=500,
-           enable_progress_bar=False,
-           logger=False,
-           enable_checkpointing=False,
-       )
+       bs_B_refined = torch_bsf.fit(params=u_B[mask_B], values=values[mask_B], degree=2)
 
 API Reference
 -------------

@@ -19,11 +19,11 @@
 
 Key features:
 
-- **Simple, Pythonic API** — train a model in one line with `torch_bsf.fit()`, call it like any PyTorch module, and persist control points in `.pt`, `.csv`, `.tsv`, `.json`, or `.yaml` formats.
-- **Scalable Training** — fully vectorized `forward` pass backed by [PyTorch Lightning](https://www.pytorchlightning.ai/) for seamless scaling from a single CPU to multi-GPU, multi-node clusters.
+- **Simple, Pythonic API** — fit a model in one line with `torch_bsf.fit()`, which solves the least-squares problem exactly by default, call it like any PyTorch module, and persist control points in `.pt`, `.csv`, `.tsv`, `.json`, or `.yaml` formats.
+- **Scalable Training** — fully vectorized `forward` pass, and an optional [PyTorch Lightning](https://www.pytorchlightning.ai/) trainer (`solver="trainer"`) for seamless scaling from a single CPU to multi-GPU, multi-node clusters.
 - **Robust & Automatic Fitting** — built-in smoothness regularization tames noisy data, and automatic degree selection via k-fold cross-validation removes guesswork.
-- **Rich ML Ecosystem** — scikit-learn-compatible `BezierSimplexRegressor` for use in `Pipeline` and `GridSearchCV`; [MLflow](https://mlflow.org/) experiment tracking; active learning; and advanced sampling strategies (Dirichlet, Sobol).
-- **Beyond Simplices** — `torch_bsf.simploidal` fits Bézier simploids and simploidal sets when a single simplex is not the right parameter domain.
+- **Rich ML Ecosystem** — scikit-learn-compatible `BezierSimploidRegressor` for use in `Pipeline` and `GridSearchCV`; [MLflow](https://mlflow.org/) experiment tracking; active learning; and advanced sampling strategies (Dirichlet, Sobol).
+- **Beyond Simplices** — the same `torch_bsf.fit()` fits Bézier simploids (e.g., `simploid_type=(2, 1)` for a prism), and `torch_bsf.simploidal` fits simploidal sets, when a single simplex is not the right parameter domain.
 - **Ready to Run** — CLI entry points, a pre-built Docker image, and a Conda/MLflow project so you can run `pytorch-bsf` without installing it into your local environment.
 
 <img src="https://opthub-org.github.io/pytorch-bsf/master/_images/bezier-simplex.png" width="49%" alt="A Bézier simplex and its control points"><img src="https://opthub-org.github.io/pytorch-bsf/master/_images/bezier-simplex-fitting.png" width="49%" alt="A Bézier simplex that fits to a dataset">
@@ -110,38 +110,41 @@ python -m torch_bsf \
 <details>
 <summary>Click to see all MLflow / CLI parameters</summary>
 
-| Parameter            | Type                                                         | Default      | Description                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| -------------------- | ------------------------------------------------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| params               | path                                                         | required     | The parameter data file, which contains input observations for training a Bézier simplex (or simploid). The file must be a CSV (`.csv`) or TSV (`.tsv`) file. Each line in the file represents an input observation, corresponding to an output observation in the same line in the value data file.                                                                                                                                                                |
-| values               | path                                                         | required     | The value data file, which contains output observations for training a Bézier simplex (or simploid). The file must be a CSV (`.csv`) or TSV (`.tsv`) file. Each line in the file represents an output observation, corresponding to an input observation in the same line in the parameter data file.                                                                                                                                                               |
-| meshgrid             | path                                                         | `None`       | The meshgrid data file used for prediction after training. The file format is the same as `params`. If omitted, `params` is used as the meshgrid.                                                                                                                                                                                                                                                                                                 |
-| init                 | path                                                         | `None`       | Load initial control points from a file. The file must be of pickled PyTorch (`.pt`), CSV (`.csv`), TSV (`.tsv`), JSON (`.json`), or YAML (`.yml` or `.yaml`). Either this option or `--degree` must be specified, but not both.                                                                                                                                                                                                                  |
-| degree               | int $(x \ge 1)$                                              | `None`       | Generate initial control points at random with specified degree. Either this option or `--init` must be specified, but not both.                                                                                                                                                                                                                                                                                                                  |
-| freeze               | list[list[int]]                                              | `None`       | Indices of control points to exclude from training. By default, all control points are trained.                                                                                                                                                                                                                                                                                                                                                   |
-| header               | int $(x \ge 0)$                                              | `0`          | The number of header lines in params/values files.                                                                                                                                                                                                                                                                                                                                                                                                |
-| normalize            | `"none"`, `"max"`, `"std"`, `"quantile"`                     | `"none"`     | The data normalization: `"max"` scales each feature such that the minimum is 0 and the maximum is 1, suitable for uniformly distributed data; `"std"` does so such that the mean is 0 and the standard deviation is 1, suitable for non-uniformly distributed data; `"quantile"` does so such that the 5-percentile is 0 and the 95-percentile is 1, suitable for data containing outliers; `"none"` does not perform any scaling, suitable for pre-normalized data.                  |
-| split_ratio          | float $(0 < x \le 1)$                                        | `1.0`        | The ratio of training data against validation data. When set to `1.0` (the default), all data is used for training and the validation step is skipped.                                                                                                                                                                                                                                                                                            |
-| batch_size           | int $(x \ge 1)$                                              | `None`       | The size of minibatch. The default (`None`) uses all records in a single batch.                                                                                                                                                                                                                                                                                                                                                                   |
-| max_epochs           | int $(x \ge 1)$                                              | `2`          | The number of epochs to stop training.                                                                                                                                                                                                                                                                                                                                                                                                            |
-| smoothness_weight    | float $(x \ge 0)$                                            | `0.0`        | The weight of smoothness penalty. Adding a small weight (e.g., `0.1`) helps produce a smooth, stable manifold when fitting noisy datasets.                                                                                                                                                                                                                                                                                                        |
-| accelerator          | `"auto"`, `"cpu"`, `"gpu"`, etc.                             | `"auto"`     | Accelerator to use. See [PyTorch Lightning documentation](https://pytorch-lightning.readthedocs.io/en/latest/extensions/accelerator.html).                                                                                                                                                                                                                                                                                                        |
-| strategy             | `"auto"`, `"dp"`, `"ddp"`, etc.                              | `"auto"`     | Distributed strategy. See [PyTorch Lightning documentation](https://pytorch-lightning.readthedocs.io/en/latest/extensions/strategy.html).                                                                                                                                                                                                                                                                                                         |
-| devices              | int $(x \ge -1)$                                             | `"auto"`     | The number of accelerators to use. By default, use all available devices. See [PyTorch Lightning documentation](https://pytorch-lightning.readthedocs.io/en/latest/accelerators/gpu_basic.html).                                                                                                                                                                                                                                                  |
-| num_nodes            | int $(x \ge 1)$                                              | `1`          | The number of compute nodes to use. See [PyTorch Lightning documentation](https://pytorch-lightning.readthedocs.io/en/latest/guides/speed.html).                                                                                                                                                                                                                                                                                                  |
-| precision            | `"64-true"`, `"32-true"`, `"16-mixed"`, `"bf16-mixed"`, etc. | `"32-true"`  | The precision of floating point numbers.                                                                                                                                                                                                                                                                                                                                                                                                          |
-| loglevel             | int $(0 \le x \le 2)$                                        | `2`          | What objects to be logged. `0`: nothing; `1`: metrics; `2`: metrics and models.                                                                                                                                                                                                                                                                                                                                                                   |
-| enable_checkpointing | flag                                                         | `False`      | With this flag, model files will be stored every epoch during training.                                                                                                                                                                                                                                                                                                                                                                           |
-| log_every_n_steps    | int $(x \ge 1)$                                              | `1`          | The interval of training steps when training loss is logged.                                                                                                                                                                                                                                                                                                                                                                                      |
-| simploid-type        | comma-separated ints $(a_i \ge 1)$                           | `None`       | Fit a Bézier simploid of type $(a_1, \ldots, a_n)$, i.e., a tensor product of Bézier simplices, instead of a Bézier simplex (e.g., `2,1` for a prism). The `params` file must have $\sum_i (a_i + 1)$ columns. `--degree` applies to every factor; `--init`, `--freeze`, `--smoothness_weight` and `--split_ratio` are not supported. MLflow: use the `simploid` entry point (`-e simploid -P simploid_type=2,1`). See [Simploidal Sets](https://opthub-org.github.io/pytorch-bsf/master/advanced/simploidal.html). |
-| solver               | `"lstsq"`, `"trainer"`                                       | `"lstsq"`    | How to fit a Bézier simploid: `"lstsq"` solves the least-squares problem exactly; `"trainer"` trains with the trainer options above. Requires `--simploid-type`.                                                                                                                                                                                                                                                                                  |
-| ridge                | float $(x \ge 0)$                                            | `0.0`        | The ridge penalty weight of the `"lstsq"` solver. Requires `--simploid-type`.                                                                                                                                                                                                                                                                                                                                                                    |
-| save                 | path                                                         | see desc.    | The file to save the control points of the fitted Bézier simploid to (`.csv`, `.tsv`, `.json`, `.yml`, `.yaml` or `.pt`). Defaults to `<params>,<values>,control_points,t_<a_1-...-a_n>,d_<degree>.csv`. Requires `--simploid-type`.                                                                                                                                                                                                         |
+The MLflow `main` entry point exposes `params`, `values`, `meshgrid`, `degree`, `simploid_type` (an empty string, the default, fits a Bézier simplex), `solver`, `ridge`, `smoothness_weight`, `normalize`, `split_ratio` and `max_epochs`; the CLI accepts all of the following.
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| params | path | required | The parameter data file, which contains input observations for training a Bézier simplex (or simploid). The file must be a CSV (`.csv`) or TSV (`.tsv`) file. Each line in the file represents an input observation, corresponding to an output observation in the same line in the value data file. |
+| values | path | required | The value data file, which contains output observations for training a Bézier simplex (or simploid). The file must be a CSV (`.csv`) or TSV (`.tsv`) file. Each line in the file represents an output observation, corresponding to an input observation in the same line in the parameter data file. |
+| meshgrid | path | `None` | The meshgrid data file used for prediction after training. The file format is the same as `params`. If omitted, `params` is used as the meshgrid. |
+| degree | int $(x \ge 0)$ | `None` | The degree of the Bézier simplex, or of every factor of the Bézier simploid. Either this option or `--init` must be specified, but not both. |
+| init | path | `None` | Initialize from a model file saved by `--save` or `torch_bsf.simploidal.save` (`.pt`, `.csv`, `.tsv`, `.json`, `.yml` or `.yaml`); its type and degree are used. Either this option or `--degree` must be specified, but not both. CLI only. |
+| simploid-type | comma-separated ints $(a_i \ge 1)$ | see desc. | Fit a Bézier simploid of type $(a_1, \ldots, a_n)$, i.e., a tensor product of Bézier simplices (e.g., `2,1` for a prism). The `params` file must then have $\sum_i (a_i + 1)$ columns, one block of barycentric coordinates per factor. Defaults to the type of `--init`, else a Bézier simplex of dimension (the number of `params` columns) $- 1$. See [Simploidal Sets](https://opthub-org.github.io/pytorch-bsf/master/advanced/simploidal.html). |
+| freeze | list of indices | `None` | Indices of control points to keep at their values in `--init`. An index of a Bézier simplex is a list of integers summing to the degree (e.g., `[[3,0],[0,3]]`), and that of a Bézier simploid is a list of such lists, one per factor. Requires `--init`. CLI only. |
+| header | int $(x \ge 0)$ | `0` | The number of header lines in params/values files. |
+| normalize | `"none"`, `"max"`, `"std"`, `"quantile"` | `"none"` | The normalization of values while fitting; the fitted model predicts in the original scale. `"max"` scales each value such that the minimum is 0 and the maximum is 1, suitable for uniformly distributed data; `"std"` does so such that the mean is 0 and the standard deviation is 1, suitable for non-uniformly distributed data; `"quantile"` does so such that the 5-percentile is 0 and the 95-percentile is 1, suitable for data containing outliers; `"none"` does not perform any scaling, suitable for pre-normalized data. |
+| solver | `"lstsq"`, `"trainer"` | `"lstsq"` | How to fit: `"lstsq"` solves the least-squares problem exactly (in double precision on the CPU); `"trainer"` trains with PyTorch Lightning and the trainer options below. |
+| ridge | float $(x \ge 0)$ | `0.0` | The ridge (Tikhonov) penalty weight of the `"lstsq"` solver. |
+| smoothness_weight | float $(x \ge 0)$ | `0.0` | The weight of smoothness penalty. Adding a small weight (e.g., `0.1`) helps produce a smooth, stable manifold when fitting noisy datasets. |
+| split_ratio | float $(0 < x \le 1)$ | `1.0` | The ratio of training data against validation data. The validation error is logged as `val_mse` and `val_mae`. When set to `1.0` (the default), all data is used for training. |
+| seed | int | `None` | The random seed for splitting the data and for training. |
+| save | path | see desc. | The file to save the control points of the fitted model to (`.csv`, `.tsv`, `.json`, `.yml`, `.yaml` or `.pt`). Defaults to `<params>,<values>,control_points,t_<a_1-...-a_n>,d_<degree>.csv`. CLI only. |
+| loglevel | int $(0 \le x \le 2)$ | `2` | What objects to be logged. `0`: nothing; `1`: metrics; `2`: metrics and models. |
+| batch_size | int $(x \ge 1)$ | `None` | The size of minibatch for `--solver=trainer`. The default (`None`) uses all records in a single batch. |
+| max_epochs | int $(x \ge 1)$ | `2` | The number of epochs to stop training for `--solver=trainer`. |
+| accelerator | `"auto"`, `"cpu"`, `"gpu"`, etc. | `"auto"` | Accelerator to use for `--solver=trainer`. See [PyTorch Lightning documentation](https://pytorch-lightning.readthedocs.io/en/latest/extensions/accelerator.html). |
+| strategy | `"auto"`, `"dp"`, `"ddp"`, etc. | `"auto"` | Distributed strategy for `--solver=trainer`. See [PyTorch Lightning documentation](https://pytorch-lightning.readthedocs.io/en/latest/extensions/strategy.html). |
+| devices | int $(x \ge -1)$ | `"auto"` | The number of accelerators to use for `--solver=trainer`. By default, use all available devices. See [PyTorch Lightning documentation](https://pytorch-lightning.readthedocs.io/en/latest/accelerators/gpu_basic.html). |
+| num_nodes | int $(x \ge 1)$ | `1` | The number of compute nodes to use for `--solver=trainer`. See [PyTorch Lightning documentation](https://pytorch-lightning.readthedocs.io/en/latest/guides/speed.html). |
+| precision | `"64-true"`, `"32-true"`, `"16-mixed"`, `"bf16-mixed"`, etc. | `"32-true"` | The precision of floating point numbers for `--solver=trainer`. |
+| enable_checkpointing | flag | `False` | With this flag, model files will be stored every epoch during training with `--solver=trainer`. |
+| log_every_n_steps | int $(x \ge 1)$ | `1` | The interval of training steps when training loss is logged with `--solver=trainer`. |
 
 </details>
 
 ### 4. via Python Script
 
-This is the most flexible method, allowing you to use custom data loaders to read large-scale data and finely control logging. Train a model using the Python API `fit()`, and call the resulting model to predict.
+This is the most flexible method. Fit a model using the Python API `fit()`, and call the resulting model to predict.
 
 ```python
 import torch
@@ -163,7 +166,7 @@ ts = torch.tensor(  # parameters on a simplex
 )
 xs = 1 - ts * ts  # values corresponding to the parameters
 
-# Train a model
+# Fit a model (exact least squares; pass solver="trainer" and Lightning options to train instead)
 bs = torch_bsf.fit(params=ts, values=xs, degree=3)
 
 # Predict with the trained model
@@ -181,7 +184,7 @@ Save a trained model and reload it later:
 
 ```python
 import torch_bsf
-from torch_bsf.bezier_simplex import save, load
+from torch_bsf.simploidal import save, load
 
 # Train
 bs = torch_bsf.fit(params=ts, values=xs, degree=3)
@@ -205,18 +208,22 @@ python -m torch_bsf.model_selection.kfold \
   --num_folds=5
 ```
 
-Additional parameters for k-fold (all standard parameters are also accepted):
+Additional parameters for k-fold (all standard parameters except `split_ratio` and `save` are also accepted):
 
 | Parameter   | Type  | Default | Description                                         |
 | ----------- | ----- | ------- | --------------------------------------------------- |
 | num_folds   | int   | `5`     | Number of folds.                                    |
-| shuffle     | bool  | `True`  | Whether to shuffle data before splitting.           |
-| stratified  | bool  | `True`  | Whether to use stratified splitting.                |
+| shuffle     | bool  | `True`  | Whether to shuffle data before splitting (`--no-shuffle` to disable). |
+| seed        | int   | `None`  | Random seed for shuffling (and for training).       |
 
 The command saves per-fold meshgrid predictions as well as an ensemble mean:
 
-- `{params},{values},{num_folds}fold,meshgrid,d_{degree},r_{split_ratio},{k}.csv` (per fold)
-- `{params},{values},{num_folds}fold,meshgrid,d_{degree},r_{split_ratio}.csv` (mean over folds)
+- `{params},{values},{num_folds}fold,meshgrid,t_{type},d_{degree},{k}.csv` (per fold)
+- `{params},{values},{num_folds}fold,meshgrid,t_{type},d_{degree}.csv` (mean over folds)
+
+Here `{type}` is the simploid type joined by `-` (e.g., `2` for a triangle, `2-1` for a prism), and `{degree}` is the degree, joined by `-` if the factors have different degrees.
+
+In Python, `torch_bsf.fit_kfold(params, values, degree=3, n_folds=5)` returns the models of the folds.
 
 ## Elastic Net Grid Search
 
@@ -249,7 +256,7 @@ Full documentation for each topic is linked below.
 | [Visualization](https://opthub-org.github.io/pytorch-bsf/master/advanced/visualization.html) | Plot fitted 2D curves and 3D surfaces with a single call. |
 | [Advanced Sampling](https://opthub-org.github.io/pytorch-bsf/master/advanced/sampling.html) | Generate simplex parameter points via Dirichlet random sampling or quasi-random Sobol sequences, in addition to the default uniform grid, and sample simploids with `sample_simploid`. |
 | [Automatic Degree Selection](https://opthub-org.github.io/pytorch-bsf/master/advanced/auto_degree.html) | Automatically pick the best polynomial degree using k-fold cross-validation. |
-| [Scikit-learn Integration](https://opthub-org.github.io/pytorch-bsf/master/advanced/sklearn.html) | `BezierSimplexRegressor` exposes a standard `fit` / `predict` / `score` API compatible with `Pipeline` and `GridSearchCV`. |
+| [Scikit-learn Integration](https://opthub-org.github.io/pytorch-bsf/master/advanced/sklearn.html) | `BezierSimploidRegressor` exposes a standard `fit` / `predict` / `score` API compatible with `Pipeline` and `GridSearchCV`. |
 | [Active Learning](https://opthub-org.github.io/pytorch-bsf/master/advanced/active_learning.html) | Suggest the most informative next sampling points using Query-By-Committee or density-based strategies. |
 
 ## Author
