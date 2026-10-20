@@ -17,7 +17,7 @@ This document is a guide for contributing to pytorch-bsf.
 
 ## Development Policy
 
-pytorch-bsf is a Python library for Bézier Simplex Fitting. Development follows these principles:
+pytorch-bsf is a Python library for Bézier Simploid Fitting (formerly Bézier Simplex Fitting). Development follows these principles:
 
 - **Simple API**: Keep the API minimal so users can get started with a single call to `torch_bsf.fit()`.
 - **Backward compatibility**: Do not break existing public APIs in minor releases. Reserve breaking changes for major version bumps.
@@ -65,7 +65,6 @@ The `[develop]` extras include:
 | `mypy` + type stubs | Static type checking |
 | `black` | Code formatting |
 | `isort` | Import sorting |
-| `tox` | Test automation |
 
 ---
 
@@ -110,10 +109,19 @@ mlflow run . --entry-point main \
 
 ### Filing issues
 
-- Use the **Bug report** template for bug reports.
-- Use the **Feature request** template for feature requests.
-- Clearly describe the reproduction steps, expected behavior, and actual behavior.
+Issues are written so that a developer or an AI agent can implement them and open a PR without asking for more context. Use one of the issue forms:
+
+| Form | Use for | Label |
+|------|---------|-------|
+| **Bug report** | Incorrect behavior | `bug` |
+| **Feature / improvement** | New features, API changes, refactoring, tests, performance, CI, tooling, dependencies | `enhancement` |
+| **Documentation** | Sphinx docs, README, docstrings, examples | `documentation` |
+
+- Fill in **Acceptance criteria** with concrete, checkable items; project-wide checks (tests, lint, type check, doctest, docs build) are implied.
+- Name the files, modules or APIs involved when you know them, and state what is out of scope.
+- Record decisions already made (backward compatibility, design choices) so the implementer does not have to guess.
 - Link related issues or PRs to keep discussions focused.
+- When filing from the command line (`gh issue create --body-file`), keep the same `### <Field>` headings as the form.
 
 ### Creating branches
 
@@ -192,7 +200,7 @@ feat(model_selection): add elastic net grid search
 fix: resolve UnpicklingError in PyTorch 2.6+
 docs: add CONTRIBUTING.md
 deps: update starlette constraint for mlflow compatibility
-test: add parametrized tests for BezierSimplex
+test: add parametrized tests for BezierSimploid
 ci: add Python 3.14 to test matrix
 ```
 
@@ -232,7 +240,7 @@ Add type hints to all public APIs. Use mypy for static analysis:
 mypy torch_bsf/
 ```
 
-Configuration in `setup.cfg` (`[mypy]` section):
+Configuration in `pyproject.toml` (`[tool.mypy]` section):
 
 - `python_version = 3.10` (type checking targets the minimum supported version)
 - `warn_return_any = True`
@@ -243,8 +251,19 @@ Configuration in `setup.cfg` (`[mypy]` section):
 - **Indentation**: 4 spaces
 - **Maximum line length**: 127 characters (matches `flake8 --max-line-length=127`; run `black` with `--line-length 127` accordingly)
 - **Strings**: Double quotes (black default)
-- **Docstrings**: Google style recommended
+- **Docstrings**: NumPy style (use ``Parameters\n----------``, ``Returns\n-------``, ``Raises\n------`` sections)
 - **Type hints**: Use Python 3.10 built-in type hint syntax without `from __future__ import annotations`
+
+### "Bezier" vs "Bézier" spelling
+
+Use the spelling consistently depending on the context:
+
+| Spelling | Where to use |
+|----------|-------------|
+| `Bezier` (no accent) | Python identifiers (`BezierSimploid`, `fit_simploidal_set`, `plot_bezier_simplex`, …) and any string that may appear in a console (CLI `description`/`help` strings, `print()` output, log/warning/error messages) |
+| `Bézier` (with accent) | Everything else: docstrings, RST/Markdown documentation, code comments, `pyproject.toml` metadata, example script module docstrings |
+
+The rationale for keeping `Bezier` in console-facing text is that this library is used on HPC clusters where the locale may be `LANG=C`, causing non-ASCII characters to be displayed incorrectly or to raise encoding errors.
 
 ---
 
@@ -262,12 +281,12 @@ pytest tests/
 pytest tests/ --cov=torch_bsf --cov-report=html
 
 # Run a specific file
-pytest tests/bezier_simplex.py
+pytest tests/simploidal.py
 ```
 
 ### Naming conventions
 
-- Test file names mirror the module under test (e.g., `torch_bsf/bezier_simplex.py` → `tests/bezier_simplex.py`).
+- Test file names mirror the module under test (e.g., `torch_bsf/splitting.py` → `tests/splitting.py`).
 - Test function names start with `test_` or `_test_`.
 
 ### Writing parametrized tests
@@ -280,19 +299,19 @@ import torch_bsf as tbsf
 
 
 @pytest.mark.parametrize(
-    "n_params, n_values, degree",
+    "dim, n_values, degree",
     [
-        (n_params, n_values, degree)
-        for n_params in range(3)
-        for n_values in range(3)
+        (dim, n_values, degree)
+        for dim in range(1, 4)
+        for n_values in range(1, 3)
         for degree in range(3)
     ],
 )
-def test_zeros(n_params: int, n_values: int, degree: int) -> None:
-    bs = tbsf.BezierSimplex.zeros(n_params, n_values, degree)
-    assert bs.n_params == n_params
+def test_zeros(dim: int, n_values: int, degree: int) -> None:
+    bs = tbsf.BezierSimploid.zeros((dim,), degree, n_values)
+    assert bs.n_params == dim + 1
     assert bs.n_values == n_values
-    assert bs.degree == degree
+    assert bs.degree == (degree,)
 ```
 
 ### Docstring tests
@@ -303,12 +322,27 @@ Write runnable examples in docstrings for all public APIs. They are verified aut
 def fit(params, values, degree):
     """Fit a Bézier simplex to the given data.
 
-    Example:
-        >>> import torch
-        >>> import torch_bsf
-        >>> params = torch.tensor([[0.0], [0.5], [1.0]])
-        >>> values = torch.tensor([[0.0], [0.25], [1.0]])
-        >>> bs = torch_bsf.fit(params=params, values=values, degree=2)
+    Parameters
+    ----------
+    params : torch.Tensor
+        The parameter data on the simplex.
+    values : torch.Tensor
+        The label data.
+    degree : int
+        The degree of the Bézier simplex.
+
+    Returns
+    -------
+    BezierSimploid
+        A fitted Bézier simplex.
+
+    Examples
+    --------
+    >>> import torch
+    >>> import torch_bsf
+    >>> params = torch.tensor([[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]])
+    >>> values = torch.tensor([[0.0], [0.25], [1.0]])
+    >>> bs = torch_bsf.fit(params=params, values=values, degree=2)
     """
 ```
 
@@ -334,29 +368,41 @@ pytorch-bsf/
 │   │   ├── codeql-analysis.yml       # Security scanning
 │   │   └── python-package-conda.yml  # End-to-end tests in a Conda environment
 │   ├── ISSUE_TEMPLATE/
-│   │   ├── bug_report.md             # Bug report template
-│   │   └── feature_request.md        # Feature request template
+│   │   ├── bug_report.yml            # Bug report form
+│   │   ├── feature_request.yml       # Feature / improvement form
+│   │   ├── documentation.yml         # Documentation form
+│   │   └── config.yml                # Disables blank issues
 │   ├── CODEOWNERS                    # Code ownership settings
 │   └── dependabot.yml                # Automated dependency updates
 ├── torch_bsf/                        # Main package
-│   ├── __init__.py                   # Public API exports (BezierSimplex, fit)
+│   ├── __init__.py                   # Public API exports (BezierSimploid, fit, fit_kfold, split, …)
 │   ├── __main__.py                   # CLI entry point
-│   ├── bezier_simplex.py             # BezierSimplex class, fit function, DataModule
-│   ├── control_points.py             # Control point management and index calculation
+│   ├── _cli_args.py                  # Shared CLI arguments and data loading
+│   ├── simploidal/                   # Bézier simploids (a Bézier simplex is the case of one factor)
+│   │   ├── bezier.py                 # BezierSimploid model
+│   │   ├── combinatorics.py          # Control point indices and Bernstein basis
+│   │   ├── fitting.py                # fit, fit_kfold and fit_simploidal_set
+│   │   ├── io.py                     # save and load
+│   │   ├── sets.py                   # Simploidal sets
+│   │   └── space.py                  # Bézier spaces on simploidal sets
+│   ├── active_learning.py            # Query-by-committee point suggestion
+│   ├── plotting.py                   # Visualization
 │   ├── preprocessing.py              # Data scaling (MinMax, Std, Quantile, None)
 │   ├── sampling.py                   # Sampling utilities
-│   ├── validator.py                  # Input validation
+│   ├── sklearn.py                    # scikit-learn regressor
+│   ├── splitting.py                  # Splitting Bézier simploids
+│   ├── validator.py                  # Parsers of CLI arguments
 │   ├── py.typed                      # PEP 561 type hint marker
 │   └── model_selection/              # Model selection sub-package
 │       ├── __init__.py
+│       ├── degree_selection.py       # Degree selection by cross-validation
 │       ├── kfold.py                  # K-fold cross-validation CLI
 │       └── elastic_net_grid.py       # Elastic net grid search CLI
 ├── tests/                            # Test suite
 │   ├── __init__.py
-│   ├── bezier_simplex.py             # Unit tests for BezierSimplex
-│   ├── control_points.py             # Unit tests for ControlPoints
+│   ├── simploidal.py                 # Unit tests for torch_bsf.simploidal
 │   ├── validator.py                  # Unit tests for Validator
-│   ├── test_control_point_index_format.py
+│   ├── …                             # One file per module (see Naming conventions)
 │   └── data/                         # Test data files
 ├── docs/                             # Sphinx documentation
 │   ├── conf.py                       # Sphinx configuration
@@ -372,6 +418,8 @@ pytorch-bsf/
 ├── README.md                         # Project overview and usage
 ├── MLproject                         # MLflow project definition
 ├── environment.yml                   # Conda environment definition
-├── setup.cfg                         # Package configuration, dependencies, tool settings
-└── setup.py                          # setuptools entry point (minimal)
+├── pyproject.toml                    # Package configuration, dependencies, tool settings
+└── examples/                         # Example scripts
+    └── quickstart/
+        └── run.sh                    # Quickstart shell script
 ```

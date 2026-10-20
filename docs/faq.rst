@@ -19,10 +19,10 @@ The key difference is that PyTorch-BSF **exploits problem structure** rather tha
 What applications are there beyond multi-objective optimization?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-While primarily used for Pareto front approximation, Bézier simplex fitting is a general-purpose regression technique for any continuous map from a simplex to a Euclidean space. Potential applications include:
+While primarily used for Pareto front approximation, Bézier simplex fitting is a general-purpose regression technique for any continuous map from a simplex to a Euclidean space, and Bézier simploids extend it to maps from a product of simplices (see :doc:`advanced/simploidal`). Potential applications include:
 
-*   **Interpolation of parametric families:** When a model's behavior varies continuously with coefficients on a simplex (e.g., mixture weights, regularization strengths in Elastic Net), a Bézier simplex can compactly represent the entire family.
-*   **Shape modeling:** Bézier simplices generalize Bézier triangles used in CAD and computer graphics; they can represent smooth curved surfaces of any dimension.
+*   **Interpolation of parametric families:** When a model's behavior varies continuously with coefficients on a simplex (e.g., mixture weights, regularization strengths in Elastic Net), a Bézier simplex can compactly represent the entire family. If the coefficients consist of several independent groups (e.g., mixture weights and a separate interpolation ratio), a Bézier simploid takes one simplex factor per group.
+*   **Shape modeling:** Bézier simplices generalize Bézier triangles used in CAD and computer graphics, and Bézier simploids generalize tensor-product Bézier patches; they can represent smooth curved surfaces of any dimension, and simploidal sets glue such patches into larger shapes.
 *   **Solution manifolds:** Any problem whose solution set forms a continuous simplex-structured manifold is a candidate for fitting.
 *   **Scientific data fitting:** Modeling physical phenomena where constraints naturally form a simplex (e.g., chemical concentrations in a mixture).
 
@@ -55,6 +55,10 @@ The complexity of a Bézier simplex is determined by its **degree** (:math:`D`) 
 
 .. math:: N_{cp} = \binom{D+M-1}{M-1}
 
+For a Bézier simploid of type :math:`(a_1, \ldots, a_n)` and degree :math:`(d_1, \ldots, d_n)`, it is the product over the factors:
+
+.. math:: N_{cp} = \prod_{i=1}^n \binom{d_i+a_i}{a_i}
+
 **Guidelines:**
 
 *   **Start low:** A degree of 2 or 3 is usually a good starting point. Low-degree models are less prone to overfitting and faster to train.
@@ -64,9 +68,9 @@ The complexity of a Bézier simplex is determined by its **degree** (:math:`D`) 
 How do I normalize my parameters or values?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``fit()`` function requires that each row of the ``params`` tensor sums to 1 (i.e., lies on the standard simplex :math:`\Delta^{M-1}`). If your raw parameters don't satisfy this, you must normalize them manually.
+The ``fit()`` function requires that each row of the ``params`` tensor sums to 1 (i.e., lies on the standard simplex :math:`\Delta^{M-1}`). For a Bézier simploid of type :math:`(a_1, \ldots, a_n)` (``fit(..., simploid_type=...)``), each ``params`` row is the concatenation of :math:`n` blocks of :math:`a_1 + 1, \ldots, a_n + 1` columns, and each block must sum to 1. If your raw parameters don't satisfy this, you must normalize them manually.
 
-Additionally, normalizing the output ``values`` can improve fitting stability and accuracy. PyTorch-BSF provides several options for automatic value normalization in the CLI/MLflow interface.
+Additionally, normalizing the output ``values`` can improve fitting stability and accuracy. Pass ``normalize="max"``, ``"std"`` or ``"quantile"`` to ``fit()`` (``--normalize`` in the CLI/MLflow interface); the values are scaled while fitting, and the fitted model still predicts in the original scale.
 
 Please refer to the :doc:`advanced/normalization` page for detailed instructions on how to normalize your parameter and value tensors.
 
@@ -80,11 +84,11 @@ Please refer to the :doc:`advanced/acceleration` page for detailed instructions 
 How do I save and load a trained model?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can save and load models using the ``torch_bsf.bezier_simplex`` module. Supported formats include ``.pt`` (PyTorch), ``.csv``, ``.tsv``, ``.json``, and ``.yaml``.
+Use :func:`torch_bsf.simploidal.save` and :func:`torch_bsf.simploidal.load`. The format is chosen by the extension: ``.pt`` (PyTorch), ``.csv``, ``.tsv``, ``.json``, ``.yml`` or ``.yaml``. The file records the type and degree of the model along with its control points.
 
 .. code-block:: python
 
-   from torch_bsf.bezier_simplex import save, load
+   from torch_bsf.simploidal import save, load
 
    # Save the trained model
    save("my_model.pt", bs)
@@ -92,22 +96,54 @@ You can save and load models using the ``torch_bsf.bezier_simplex`` module. Supp
    # Load it back
    bs = load("my_model.pt")
 
+The command line saves the control points of the fitted model to a CSV file (or to the file given by ``--save``), which ``--init`` accepts as the initial model.
+
 How can I perform cross-validation or grid search?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 PyTorch-BSF includes built-in tools for model selection and specific task automation:
 
-*   **K-Fold Cross-Validation:** Run `python -m torch_bsf.model_selection.kfold` to evaluate model performance across different data splits.
+*   **K-Fold Cross-Validation:** Call ``torch_bsf.fit_kfold()``, or run `python -m torch_bsf.model_selection.kfold`, to evaluate model performance across different data splits.
 *   **Elastic Net Grid Search:** Run `python -m torch_bsf.model_selection.elastic_net_grid` to generate parameter grids specifically for Elastic Net regularization paths.
 
-When should I use the ``fix`` argument?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+When should I use the ``freeze`` argument?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``fix`` argument allows you to hold specific control points constant during training. This is useful for:
+The ``freeze`` argument allows you to hold specific control points constant during training. This is useful for:
 
-*   **Boundary constraints:** If you know the exact values at the vertices of the simplex (e.g., results of single-objective optimizations), fix those vertices and fit only the interior.
-*   **Incremental refinement:** Fit a low-degree model first, then use its control points as initialization for a higher-degree model, fixing the well-estimated parts to stabilize training.
+*   **Boundary constraints:** If you know the exact values at the vertices of the simplex (e.g., results of single-objective optimizations), freeze those vertices and fit only the interior.
+*   **Incremental refinement:** Fit a low-degree model first, then use its control points as initialization for a higher-degree model, freezing the well-estimated parts to stabilize training.
 *   **Encoding prior knowledge:** If theoretical or physical constraints dictate the value at certain parameter combinations, you can pin those points to ensure the model respects them.
+
+What is Bézier simplex splitting (subdivision)?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Bézier simplex **splitting** (or **subdivision**) is a technique for refining a fitted Bézier simplex model by recursively dividing the parameter domain (the simplex) into smaller sub-simplices.
+
+**How it works:**
+
+1.  A Bézier simplex maps a standard parameter simplex to a family of objective values.
+2.  Splitting subdivides the parameter simplex by choosing an edge and inserting a new vertex on that edge (by default at the midpoint, ``s=0.5``), which forms smaller sub-simplices.
+3.  Each resulting sub-simplex inherits control points from the parent in a way that preserves continuity and smoothness across the subdivision.
+4.  Repeating this process creates a hierarchical decomposition, where different regions can be approximated with different levels of detail.
+
+**Why use splitting?**
+
+*   **Local refinement:** Focus computational effort on regions of interest without uniformly increasing the global degree.
+*   **Adaptive complexity:** Automatically increase model complexity only where the surface is complex or "wiggly."
+*   **Reduced overfitting:** By keeping low degree in simple regions and increasing it only where needed, you avoid unnecessary parameters.
+*   **Efficient multi-resolution analysis:** Create a coarse-to-fine hierarchy useful for progressive fitting or visualization.
+
+**Practical usage:**
+
+Splitting is particularly valuable when:
+
+*   The Pareto front has **varying curvature**—smooth in some regions, highly curved in others.
+*   Computational budget is limited and you want to allocate samples intelligently.
+*   You need a **hierarchical representation** for visualization or downstream analysis.
+*   High-degree fits suffer from oscillations or overfitting, but low-degree models miss important features.
+
+See the :doc:`advanced` documentation for implementation details and examples.
 
 
 Troubleshooting
@@ -131,6 +167,7 @@ If you encounter poor accuracy or optimization issues, try these steps:
 
 1.  **Check Data Quality:** Ensure ``params`` sum to 1 and that you have enough samples relative to the degree.
 2.  **Adjust the Degree:** If the surface is too complex, increase the degree. If the model is oscillating or overfitting, decrease it.
-3.  **Better Initialization:** Use the ``init`` argument to provide a better starting point, perhaps from a coarse fit or domain knowledge.
-4.  **Increase Training Epochs:** For complex surfaces, the L-BFGS optimizer might need more iterations. In the CLI, use ``--max_epochs``.
-5.  **Data Normalization:** Scale your output values (``values``) to a similar range (e.g., using ``--normalize std``) to help the optimizer converge faster.
+3.  **Use the Exact Solver:** By default (``solver="lstsq"``), ``fit()`` solves the least-squares problem exactly, so there is nothing to converge. Add a small ``ridge`` penalty if the problem is ill-conditioned (e.g., too few samples for the degree).
+4.  **Better Initialization:** With ``solver="trainer"``, use the ``init`` argument to provide a better starting point, perhaps from a coarse fit or domain knowledge.
+5.  **Increase Training Epochs:** With ``solver="trainer"``, the L-BFGS optimizer might need more iterations for complex surfaces. Pass ``max_epochs`` to ``fit()``, or ``--max_epochs`` in the CLI.
+6.  **Data Normalization:** With ``solver="trainer"``, scale your output values (``values``) to a similar range (e.g., ``normalize="std"`` or ``--normalize std``) to help the optimizer converge faster.

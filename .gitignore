@@ -123,3 +123,4 @@ mlruns/
 *,meshgrid,*.csv
 pytest.xml
 checkpoints/
+*.ckpt

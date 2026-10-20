@@ -79,3 +79,35 @@ class TestElasticNetGrid:
         r1 = elastic_net_grid(3, 3, n_vertex_copies=1)
         r2 = elastic_net_grid(3, 3, n_vertex_copies=2)
         assert len(r2) == len(r1) + 3
+
+    def test_n_vertex_copies_below_one_raises(self):
+        with pytest.raises(ValueError, match="n_vertex_copies"):
+            elastic_net_grid(3, 3, n_vertex_copies=0)
+
+    def test_negative_n_lambdas_raises(self):
+        with pytest.raises(ValueError, match="n_lambdas"):
+            elastic_net_grid(-1, 3)
+
+    def test_negative_n_alphas_raises(self):
+        with pytest.raises(ValueError, match="n_alphas"):
+            elastic_net_grid(3, -1)
+
+
+class TestElasticNetGridCliMain:
+    """Tests for the _cli_main() entry point of elastic_net_grid."""
+
+    def test_cli_main_default(self, monkeypatch, capsys):
+        """_cli_main() should print grid rows to stdout with default arguments."""
+        from torch_bsf.model_selection.elastic_net_grid import _cli_main
+
+        monkeypatch.setattr("sys.argv", ["elastic_net_grid", "--n_lambdas=2", "--n_alphas=2"])
+        _cli_main()
+        captured = capsys.readouterr()
+        lines = [l for l in captured.out.strip().splitlines() if l]
+        assert len(lines) > 0
+        # Each line should have 3 comma-separated float values.
+        for line in lines:
+            parts = line.split(",")
+            assert len(parts) == 3
+            parsed_parts = [float(p) for p in parts]
+            assert np.isfinite(parsed_parts).all()

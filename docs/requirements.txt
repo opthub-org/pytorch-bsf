@@ -1,6 +1,10 @@
 .
-sphinx<9
+sphinx>=7,<9
 sphinx-rtd-theme
+sphinx-design
 sphinx-multiversion
 sphinx-proof
 sphinxcontrib-bibtex
+# Needed to build the documentation of earlier versions with sphinx-multiversion
+jsonschema
+pl-crossvalidate

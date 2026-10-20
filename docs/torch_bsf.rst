@@ -12,24 +12,8 @@ torch\_bsf.active\_learning module
    :undoc-members:
    :show-inheritance:
 
-torch\_bsf.bezier\_simplex module
----------------------------------
-
-.. automodule:: torch_bsf.bezier_simplex
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-torch\_bsf.control\_points module
----------------------------------
-
-.. automodule:: torch_bsf.control_points
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 torch\_bsf.plotting module
----------------------------
+--------------------------
 
 .. automodule:: torch_bsf.plotting
    :members:
@@ -45,17 +29,33 @@ torch\_bsf.preprocessing module
    :show-inheritance:
 
 torch\_bsf.sampling module
----------------------------
+--------------------------
 
 .. automodule:: torch_bsf.sampling
    :members:
    :undoc-members:
    :show-inheritance:
 
+torch\_bsf.simploidal module
+-----------------------------
+
+.. automodule:: torch_bsf.simploidal
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 torch\_bsf.sklearn module
----------------------------
+-------------------------
 
 .. automodule:: torch_bsf.sklearn
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+torch\_bsf.splitting module
+---------------------------
+
+.. automodule:: torch_bsf.splitting
    :members:
    :undoc-members:
    :show-inheritance:
@@ -75,3 +75,7 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
+   :exclude-members: BezierSimploid, Simploid, SimploidalSet, SimploidalBezierSpace, fit_simploidal_set
+
+The Bézier simploid classes and :func:`~torch_bsf.simploidal.fit_simploidal_set` that ``torch_bsf``
+re-exports are documented in :mod:`torch_bsf.simploidal`.
