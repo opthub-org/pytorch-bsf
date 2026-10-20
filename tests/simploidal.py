@@ -1740,6 +1740,11 @@ def test_fit_kfold_rejects_mismatched_sample_counts():
         torch_bsf.fit_kfold(t, torch.zeros(7, 1), 1, n_folds=3)
 
 
+def test_fit_rejects_empty_data():
+    with pytest.raises(ValueError, match="At least one sample"):
+        torch_bsf.fit(torch.zeros(0, 3), torch.zeros(0, 1), 1)
+
+
 def test_fit_std_normalization_with_a_single_sample():
     t = torch.tensor([[0.2, 0.3, 0.5]])
     bs = torch_bsf.fit(t, torch.tensor([[1.5]]), 0, normalize="std")

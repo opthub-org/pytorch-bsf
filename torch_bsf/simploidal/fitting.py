@@ -315,6 +315,9 @@ def fit(
         Weight of the Tikhonov penalty :math:`\mathrm{ridge}\,\|P\|^2` on the free control points,
         added to :math:`nm` times the objective (``"lstsq"`` only).
         Without it, under-determined problems get the minimum-norm solution.
+        With ``normalize``, the penalty applies to the normalized control points, so it shrinks them
+        toward the offset of the normalization (e.g., the mean of ``values`` for ``"std"``) rather than zero,
+        like an unpenalized intercept.
     batch_size
         Minibatch size (``"trainer"`` only; full batch by default).
     seed
@@ -329,8 +332,8 @@ def fit(
     Raises
     ------
     ValueError
-        If the shapes do not match, ``degree`` is missing, ``freeze`` is given without ``init``,
-        or an option is not supported by ``solver``.
+        If the shapes do not match, there are no samples, ``degree`` is missing, ``freeze`` is given
+        without ``init``, or an option is not supported by ``solver``.
 
     Examples
     --------
@@ -369,6 +372,8 @@ def fit(
     params, values = torch.as_tensor(params), torch.as_tensor(values)
     st, ds = _resolve_shape(params, simploid_type, degree, init)
     _check_values(params, values, simploid_n_params(st))
+    if len(params) == 0:
+        raise ValueError("At least one sample is required.")
     _check_solver(solver, ridge, smoothness_weight, batch_size, kwargs)
     if solver == "trainer" and seed is not None:
         L.seed_everything(seed)
