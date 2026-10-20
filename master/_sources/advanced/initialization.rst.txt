@@ -57,9 +57,11 @@ The command-line interface instead accepts a file path directly via ``--init``, 
    (2,)
 
 The file format is chosen by the extension, as described below.
-In every format except ``.pt``, the key of a control point is the string representation of its index, which is a tuple with one multi-index per factor of the Bézier simploid: a Bézier simplex has a single factor, so the key of the control point at :math:`(2, 0)` is ``"((2, 0),)"``.
+In every format except ``.pt``, the key of a control point is the string representation of its index.
+For a Bézier simplex, it is the multi-index itself, e.g., ``"(2, 0)"``.
+For a Bézier simploid with several factors, it is a tuple with one multi-index per factor (see below).
 The degree and the dimension are recovered from the keys, and every control point must be present exactly once.
-Files written by versions before the unification of Bézier simplices and simploids (whose keys look like ``"(2, 0)"``) are rejected.
+Text files written by earlier versions have the same keys and can still be loaded, but ``.pt`` files of earlier versions (pickled models) cannot.
 
 Pickled PyTorch
 ---------------
@@ -76,18 +78,18 @@ CSV
 
 .. code-block::
 
-   "((2, 0),)",0.0,0.1
-   "((1, 1),)",1.0,1.1
-   "((0, 2),)",2.0,2.1
+   "(2, 0)",0.0,0.1
+   "(1, 1)",1.0,1.1
+   "(0, 2)",2.0,2.1
 
 TSV
 ---
 
 .. code-block::
 
-   ((2, 0),)	0.0	0.1
-   ((1, 1),)	1.0	1.1
-   ((0, 2),)	2.0	2.1
+   (2, 0)	0.0	0.1
+   (1, 1)	1.0	1.1
+   (0, 2)	2.0	2.1
 
 JSON
 ----
@@ -95,9 +97,9 @@ JSON
 .. code-block:: json
 
    {
-     "((2, 0),)": [0.0, 0.1],
-     "((1, 1),)": [1.0, 1.1],
-     "((0, 2),)": [2.0, 2.1]
+     "(2, 0)": [0.0, 0.1],
+     "(1, 1)": [1.0, 1.1],
+     "(0, 2)": [2.0, 2.1]
    }
 
 YAML
@@ -105,12 +107,13 @@ YAML
 
 .. code-block:: yaml
 
-   ((2, 0),): [0.0, 0.1]
-   ((1, 1),): [1.0, 1.1]
-   ((0, 2),): [2.0, 2.1]
+   (2, 0): [0.0, 0.1]
+   (1, 1): [1.0, 1.1]
+   (0, 2): [2.0, 2.1]
 
 Bézier Simploids
 ----------------
 
 The same formats hold Bézier simploids, with one multi-index per factor in each key, e.g., ``"((2, 0, 0), (1, 0))"`` for a prism of type :math:`(2, 1)`.
+:func:`~torch_bsf.simploidal.load` also accepts this nested form for a Bézier simplex, e.g., ``"((2, 0),)"``.
 See :doc:`simploidal`.

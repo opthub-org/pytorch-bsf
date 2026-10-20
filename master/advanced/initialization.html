@@ -161,9 +161,11 @@ The command-line interface instead accepts a file path directly via <code class=
 </pre></div>
 </div>
 <p>The file format is chosen by the extension, as described below.
-In every format except <code class="docutils literal notranslate"><span class="pre">.pt</span></code>, the key of a control point is the string representation of its index, which is a tuple with one multi-index per factor of the Bézier simploid: a Bézier simplex has a single factor, so the key of the control point at <span class="math notranslate nohighlight">\((2, 0)\)</span> is <code class="docutils literal notranslate"><span class="pre">&quot;((2,</span> <span class="pre">0),)&quot;</span></code>.
+In every format except <code class="docutils literal notranslate"><span class="pre">.pt</span></code>, the key of a control point is the string representation of its index.
+For a Bézier simplex, it is the multi-index itself, e.g., <code class="docutils literal notranslate"><span class="pre">&quot;(2,</span> <span class="pre">0)&quot;</span></code>.
+For a Bézier simploid with several factors, it is a tuple with one multi-index per factor (see below).
 The degree and the dimension are recovered from the keys, and every control point must be present exactly once.
-Files written by versions before the unification of Bézier simplices and simploids (whose keys look like <code class="docutils literal notranslate"><span class="pre">&quot;(2,</span> <span class="pre">0)&quot;</span></code>) are rejected.</p>
+Text files written by earlier versions have the same keys and can still be loaded, but <code class="docutils literal notranslate"><span class="pre">.pt</span></code> files of earlier versions (pickled models) cannot.</p>
 </section>
 <section id="pickled-pytorch">
 <h2>Pickled PyTorch<a class="headerlink" href="#pickled-pytorch" title="Link to this heading"></a></h2>
@@ -177,41 +179,42 @@ See PyTorch documentation for details:</p>
 </section>
 <section id="csv">
 <h2>CSV<a class="headerlink" href="#csv" title="Link to this heading"></a></h2>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">"((2, 0),)"</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.1</span>
-<span class="s2">"((1, 1),)"</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.1</span>
-<span class="s2">"((0, 2),)"</span><span class="p">,</span><span class="mf">2.0</span><span class="p">,</span><span class="mf">2.1</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">"(2, 0)"</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.1</span>
+<span class="s2">"(1, 1)"</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.1</span>
+<span class="s2">"(0, 2)"</span><span class="p">,</span><span class="mf">2.0</span><span class="p">,</span><span class="mf">2.1</span>
 </pre></div>
 </div>
 </section>
 <section id="tsv">
 <h2>TSV<a class="headerlink" href="#tsv" title="Link to this heading"></a></h2>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),)</span>    <span class="mf">0.0</span>     <span class="mf">0.1</span>
-<span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),)</span>    <span class="mf">1.0</span>     <span class="mf">1.1</span>
-<span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),)</span>    <span class="mf">2.0</span>     <span class="mf">2.1</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>       <span class="mf">0.0</span>     <span class="mf">0.1</span>
+<span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>       <span class="mf">1.0</span>     <span class="mf">1.1</span>
+<span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>       <span class="mf">2.0</span>     <span class="mf">2.1</span>
 </pre></div>
 </div>
 </section>
 <section id="json">
 <h2>JSON<a class="headerlink" href="#json" title="Link to this heading"></a></h2>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
-<span class="w">  </span><span class="nt">"((2, 0),)"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.1</span><span class="p">],</span>
-<span class="w">  </span><span class="nt">"((1, 1),)"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">1.1</span><span class="p">],</span>
-<span class="w">  </span><span class="nt">"((0, 2),)"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">2.0</span><span class="p">,</span><span class="w"> </span><span class="mf">2.1</span><span class="p">]</span>
+<span class="w">  </span><span class="nt">"(2, 0)"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.1</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"(1, 1)"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">1.1</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">"(0, 2)"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">2.0</span><span class="p">,</span><span class="w"> </span><span class="mf">2.1</span><span class="p">]</span>
 <span class="p">}</span>
 </pre></div>
 </div>
 </section>
 <section id="yaml">
 <h2>YAML<a class="headerlink" href="#yaml" title="Link to this heading"></a></h2>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">((2, 0),)</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">0.0</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">0.1</span><span class="p p-Indicator">]</span>
-<span class="l l-Scalar l-Scalar-Plain">((1, 1),)</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">1.0</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">1.1</span><span class="p p-Indicator">]</span>
-<span class="l l-Scalar l-Scalar-Plain">((0, 2),)</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">2.0</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">2.1</span><span class="p p-Indicator">]</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">(2, 0)</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">0.0</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">0.1</span><span class="p p-Indicator">]</span>
+<span class="l l-Scalar l-Scalar-Plain">(1, 1)</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">1.0</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">1.1</span><span class="p p-Indicator">]</span>
+<span class="l l-Scalar l-Scalar-Plain">(0, 2)</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">2.0</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">2.1</span><span class="p p-Indicator">]</span>
 </pre></div>
 </div>
 </section>
 <section id="bezier-simploids">
 <h2>Bézier Simploids<a class="headerlink" href="#bezier-simploids" title="Link to this heading"></a></h2>
 <p>The same formats hold Bézier simploids, with one multi-index per factor in each key, e.g., <code class="docutils literal notranslate"><span class="pre">&quot;((2,</span> <span class="pre">0,</span> <span class="pre">0),</span> <span class="pre">(1,</span> <span class="pre">0))&quot;</span></code> for a prism of type <span class="math notranslate nohighlight">\((2, 1)\)</span>.
+<a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.load" title="torch_bsf.simploidal.load"><code class="xref py py-func docutils literal notranslate"><span class="pre">load()</span></code></a> also accepts this nested form for a Bézier simplex, e.g., <code class="docutils literal notranslate"><span class="pre">&quot;((2,</span> <span class="pre">0),)&quot;</span></code>.
 See <a class="reference internal" href="simploidal.html"><span class="doc">Simploidal Sets</span></a>.</p>
 </section>
 </section>
