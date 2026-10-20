@@ -60,7 +60,10 @@
 <li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Automatic Degree Selection</a></li>
 <li class="toctree-l2"><a class="reference internal" href="regularization.html">Smoothness Regularization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="grid_sampling.html">Elastic Net Grid Sampling</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Partial Training</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Partial Training</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#bezier-simploids">Bézier Simploids</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="sampling.html">Advanced Sampling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="acceleration.html">Hardware Acceleration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="active_learning.html">Active Learning</a></li>
@@ -163,6 +166,32 @@
 <span class="nb">print</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 </pre></div>
 </div>
+<section id="bezier-simploids">
+<h2>Bézier Simploids<a class="headerlink" href="#bezier-simploids" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.fit_simploid" title="torch_bsf.simploidal.fit_simploid"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_simploid()</span></code></a> takes <code class="docutils literal notranslate"><span class="pre">init</span></code> and <code class="docutils literal notranslate"><span class="pre">freeze</span></code> too.
+The indices in <code class="docutils literal notranslate"><span class="pre">freeze</span></code> are those of the Bézier simploid, one multi-index per factor (e.g., <code class="docutils literal notranslate"><span class="pre">((2,</span> <span class="pre">0,</span> <span class="pre">0),</span> <span class="pre">(2,</span> <span class="pre">0))</span></code>), and <code class="docutils literal notranslate"><span class="pre">init</span></code> is required since it gives the values of the frozen control points.
+The default <code class="docutils literal notranslate"><span class="pre">&quot;lstsq&quot;</span></code> solver then solves the least-squares problem exactly for the free control points, and <code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code> starts from <code class="docutils literal notranslate"><span class="pre">init</span></code> and keeps the frozen control points fixed.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.simploidal</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSimploid</span><span class="p">,</span> <span class="n">fit_simploid</span><span class="p">,</span> <span class="n">sample_simploid</span>
+
+<span class="n">t</span> <span class="o">=</span> <span class="n">sample_simploid</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">100</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># parameters on a prism</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">t</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="n">t</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>
+
+<span class="n">init</span> <span class="o">=</span> <span class="n">BezierSimploid</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">2</span><span class="p">,</span> <span class="n">n_values</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">corner</span> <span class="o">=</span> <span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+<span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+    <span class="n">init</span><span class="p">[</span><span class="n">corner</span><span class="p">]</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]))</span>
+
+<span class="n">bs</span> <span class="o">=</span> <span class="n">fit_simploid</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="n">init</span><span class="p">,</span> <span class="n">freeze</span><span class="o">=</span><span class="p">[</span><span class="n">corner</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">bs</span><span class="p">[</span><span class="n">corner</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[1.0, 0.0, 0.0]
+</pre></div>
+</div>
+<p>For <a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.fit_simploidal_set" title="torch_bsf.simploidal.fit_simploidal_set"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_simploidal_set()</span></code></a>, <code class="docutils literal notranslate"><span class="pre">init</span></code> is a simploidal Bézier space (or its proper control points), and each element of <code class="docutils literal notranslate"><span class="pre">freeze</span></code> is a pair <code class="docutils literal notranslate"><span class="pre">(simploid,</span> <span class="pre">index)</span></code> of any simploid of the set and a control point index of its Bézier simploid.
+A control point on a shared face is the same whichever simploid names it.</p>
+</section>
 </section>
 
 

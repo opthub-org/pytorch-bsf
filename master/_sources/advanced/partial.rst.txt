@@ -69,3 +69,34 @@ The ``freeze`` argument takes a list of multi-index lists (e.g., ``[[3, 0], [0, 
    :hide:
 
    tensor([[...]], grad_fn=<...>)
+
+Bézier Simploids
+----------------
+
+:func:`~torch_bsf.simploidal.fit_simploid` takes ``init`` and ``freeze`` too.
+The indices in ``freeze`` are those of the Bézier simploid, one multi-index per factor (e.g., ``((2, 0, 0), (2, 0))``), and ``init`` is required since it gives the values of the frozen control points.
+The default ``"lstsq"`` solver then solves the least-squares problem exactly for the free control points, and ``solver="trainer"`` starts from ``init`` and keeps the frozen control points fixed.
+
+.. testcode::
+   :pyversion: >= 3.10, < 3.15
+
+   import torch
+   from torch_bsf.simploidal import BezierSimploid, fit_simploid, sample_simploid
+
+   t = sample_simploid((2, 1), 100, seed=0)  # parameters on a prism
+   x = t[:, :3] * t[:, 3:4]
+
+   init = BezierSimploid.zeros((2, 1), 2, n_values=3)
+   corner = ((2, 0, 0), (2, 0))
+   with torch.no_grad():
+       init[corner].copy_(torch.tensor([1.0, 0.0, 0.0]))
+
+   bs = fit_simploid(t, x, (2, 1), degree=2, init=init, freeze=[corner])
+   print(bs[corner].tolist())
+
+.. testoutput::
+
+   [1.0, 0.0, 0.0]
+
+For :func:`~torch_bsf.simploidal.fit_simploidal_set`, ``init`` is a simploidal Bézier space (or its proper control points), and each element of ``freeze`` is a pair ``(simploid, index)`` of any simploid of the set and a control point index of its Bézier simploid.
+A control point on a shared face is the same whichever simploid names it.

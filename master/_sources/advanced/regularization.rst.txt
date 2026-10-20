@@ -49,6 +49,30 @@ You can also specify the smoothness weight via the command-line interface or MLf
 
    mlflow run https://github.com/opthub-org/pytorch-bsf -P params=params.csv -P values=values.csv -P degree=3 -P smoothness_weight=0.1
 
+Bézier Simploids
+----------------
+
+:func:`~torch_bsf.simploidal.fit_simploid` and :func:`~torch_bsf.simploidal.fit_simploidal_set` take the same ``smoothness_weight``.
+Two control points of a Bézier simploid are adjacent if their multi-indices differ in a single factor, by moving one unit between two components of that factor (see :meth:`~torch_bsf.simploidal.BezierSimploid.adjacency`); for a Bézier simplex, this is the definition above.
+In a simploidal Bézier space, the stored control points adjacent in the control net of some simploid are adjacent, and a pair on a shared face counts once (see :meth:`~torch_bsf.simploidal.SimploidalBezierSpace.adjacency`).
+
+Since the penalty is quadratic, the default ``"lstsq"`` solver minimizes the regularized loss exactly. With :math:`n` samples of :math:`m` values, the design matrix :math:`A`, the targets :math:`Y` and the Laplacian :math:`L` of the adjacency graph, it solves
+
+.. math::
+   (A^\top A + nm\,w\,L)\,P = A^\top Y,
+
+which is the minimizer of :math:`\frac{1}{nm}\|AP - Y\|^2 + w\,\mathcal L_{smooth}`, the loss minimized by ``solver="trainer"``.
+
+.. testcode::
+   :pyversion: >= 3.10, < 3.15
+
+   import torch
+   from torch_bsf.simploidal import fit_simploid, sample_simploid
+
+   t = sample_simploid((2, 1), 200, seed=0)  # parameters on a prism
+   x = torch.sin(3 * t[:, :2]) + 0.05 * torch.randn(200, 2)  # noisy values
+   bs = fit_simploid(t, x, (2, 1), degree=3, smoothness_weight=0.01)
+
 Choosing the Weight
 -------------------
 

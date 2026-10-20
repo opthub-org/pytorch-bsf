@@ -63,6 +63,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#the-smoothness-penalty">The Smoothness Penalty</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#how-to-use">How to Use</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cli-mlflow">CLI / MLflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#bezier-simploids">Bézier Simploids</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#choosing-the-weight">Choosing the Weight</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#benefits">Benefits</a></li>
 </ul>
@@ -145,6 +146,24 @@
 </div>
 <p><strong>MLflow Example:</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mlflow<span class="w"> </span>run<span class="w"> </span>https://github.com/opthub-org/pytorch-bsf<span class="w"> </span>-P<span class="w"> </span><span class="nv">params</span><span class="o">=</span>params.csv<span class="w"> </span>-P<span class="w"> </span><span class="nv">values</span><span class="o">=</span>values.csv<span class="w"> </span>-P<span class="w"> </span><span class="nv">degree</span><span class="o">=</span><span class="m">3</span><span class="w"> </span>-P<span class="w"> </span><span class="nv">smoothness_weight</span><span class="o">=</span><span class="m">0</span>.1
+</pre></div>
+</div>
+</section>
+<section id="bezier-simploids">
+<h2>Bézier Simploids<a class="headerlink" href="#bezier-simploids" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.fit_simploid" title="torch_bsf.simploidal.fit_simploid"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_simploid()</span></code></a> and <a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.fit_simploidal_set" title="torch_bsf.simploidal.fit_simploidal_set"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_simploidal_set()</span></code></a> take the same <code class="docutils literal notranslate"><span class="pre">smoothness_weight</span></code>.
+Two control points of a Bézier simploid are adjacent if their multi-indices differ in a single factor, by moving one unit between two components of that factor (see <a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.BezierSimploid.adjacency" title="torch_bsf.simploidal.BezierSimploid.adjacency"><code class="xref py py-meth docutils literal notranslate"><span class="pre">adjacency()</span></code></a>); for a Bézier simplex, this is the definition above.
+In a simploidal Bézier space, the stored control points adjacent in the control net of some simploid are adjacent, and a pair on a shared face counts once (see <a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.SimploidalBezierSpace.adjacency" title="torch_bsf.simploidal.SimploidalBezierSpace.adjacency"><code class="xref py py-meth docutils literal notranslate"><span class="pre">adjacency()</span></code></a>).</p>
+<p>Since the penalty is quadratic, the default <code class="docutils literal notranslate"><span class="pre">&quot;lstsq&quot;</span></code> solver minimizes the regularized loss exactly. With <span class="math notranslate nohighlight">\(n\)</span> samples of <span class="math notranslate nohighlight">\(m\)</span> values, the design matrix <span class="math notranslate nohighlight">\(A\)</span>, the targets <span class="math notranslate nohighlight">\(Y\)</span> and the Laplacian <span class="math notranslate nohighlight">\(L\)</span> of the adjacency graph, it solves</p>
+<div class="math notranslate nohighlight">
+\[(A^\top A + nm\,w\,L)\,P = A^\top Y,\]</div>
+<p>which is the minimizer of <span class="math notranslate nohighlight">\(\frac{1}{nm}\|AP - Y\|^2 + w\,\mathcal L_{smooth}\)</span>, the loss minimized by <code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.simploidal</span><span class="w"> </span><span class="kn">import</span> <span class="n">fit_simploid</span><span class="p">,</span> <span class="n">sample_simploid</span>
+
+<span class="n">t</span> <span class="o">=</span> <span class="n">sample_simploid</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">200</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># parameters on a prism</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">t</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">])</span> <span class="o">+</span> <span class="mf">0.05</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># noisy values</span>
+<span class="n">bs</span> <span class="o">=</span> <span class="n">fit_simploid</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">smoothness_weight</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
