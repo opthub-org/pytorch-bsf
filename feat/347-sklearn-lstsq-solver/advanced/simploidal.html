@@ -1,0 +1,658 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simploidal Sets &mdash; PyTorch-BSF 0.18.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=ba2e7b09"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="The Category of Simploidal Sets" href="simploidal_category.html" />
+    <link rel="prev" title="Active Learning" href="active_learning.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="normalization.html">Data Normalization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="initialization.html">Initial Control Points</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualization.html">Bézier Simplex Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="splitting.html">Bézier Simplex Splitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Automatic Degree Selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="regularization.html">Smoothness Regularization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_sampling.html">Elastic Net Grid Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="partial.html">Partial Training</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sampling.html">Advanced Sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="acceleration.html">Hardware Acceleration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="active_learning.html">Active Learning</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Simploidal Sets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#simploids-and-bezier-simploids">Simploids and Bézier simploids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#saving-loading-and-the-command-line">Saving, loading and the command line</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Simploidal sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#homology">Homology</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#simploidal-bezier-spaces">Simploidal Bézier spaces</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#per-factor-degrees">Per-factor degrees</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#fitting">Fitting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#visualization">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#limitations">Limitations</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">torch_bsf</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Simploidal Sets</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/simploidal.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="simploidal-sets">
+<h1>Simploidal Sets<a class="headerlink" href="#simploidal-sets" title="Link to this heading"></a></h1>
+<p>A Bézier simplex has a single simplex as its parameter domain.  Some data are
+better described on a <strong>product of simplices</strong> — a prism (triangle ×
+segment), a square (segment × segment) — or on <strong>several cells glued along
+common faces</strong>.  The <code class="docutils literal notranslate"><span class="pre">torch_bsf.simploidal</span></code> module implements the
+<em>simploidal sets</em> of <span class="bibtex-citation" id="id1">Peltier and Lienhardt [<a class="reference internal" href="../references.html#id31" title="Samuel Peltier and Pascal Lienhardt. Simploidal sets: a data structure for handling simploidal bézier spaces. Computer Aided Geometric Design, 62:44–62, 2018. URL: https://doi.org/10.1016/j.cagd.2018.03.010.">PL18</a>]</span>, which describe exactly
+such assemblies, together with the Bézier spaces they carry and their fitting.</p>
+<section id="simploids-and-bezier-simploids">
+<h2>Simploids and Bézier simploids<a class="headerlink" href="#simploids-and-bezier-simploids" title="Link to this heading"></a></h2>
+<p>A <em>simploid</em> of type <span class="math notranslate nohighlight">\((a_1, \ldots, a_n)\)</span> is the cartesian product
+<span class="math notranslate nohighlight">\(\Delta^{a_1} \times \cdots \times \Delta^{a_n}\)</span> of simplices.  A simplex
+is a simploid of type <span class="math notranslate nohighlight">\((a)\)</span>, a cube one of type <span class="math notranslate nohighlight">\((1, \ldots, 1)\)</span>,
+and a vertex one of type <span class="math notranslate nohighlight">\(()\)</span>.</p>
+<p>A <em>Bézier simploid</em> of type <span class="math notranslate nohighlight">\((a_1, \ldots, a_n)\)</span> and degree
+<span class="math notranslate nohighlight">\((d_1, \ldots, d_n)\)</span> is the tensor product of Bézier simplices:</p>
+<div class="math notranslate nohighlight">
+\[B(\mathbf u^1, \ldots, \mathbf u^n)
+= \sum_{\boldsymbol\alpha^1 \in \Gamma^{a_1}_{d_1}} \cdots \sum_{\boldsymbol\alpha^n \in \Gamma^{a_n}_{d_n}}
+  P_{(\boldsymbol\alpha^1, \ldots, \boldsymbol\alpha^n)}
+  \prod_{i=1}^n \binom{d_i}{\boldsymbol\alpha^i} (\mathbf u^i)^{\boldsymbol\alpha^i},\]</div>
+<p>where <span class="math notranslate nohighlight">\(\Gamma^a_d\)</span> is the set of multi-indices of length <span class="math notranslate nohighlight">\(a + 1\)</span>
+summing to <span class="math notranslate nohighlight">\(d\)</span>, and every <span class="math notranslate nohighlight">\(\mathbf u^i\)</span> lies on the standard
+<span class="math notranslate nohighlight">\(a_i\)</span>-simplex.  In <code class="docutils literal notranslate"><span class="pre">torch_bsf</span></code> the parameter of a simploid is the
+concatenation <span class="math notranslate nohighlight">\((\mathbf u^1, \ldots, \mathbf u^n)\)</span> of the barycentric
+coordinates of all factors, a vector of length <span class="math notranslate nohighlight">\(\sum_i (a_i + 1)\)</span>.
+A Bézier simploid of type <span class="math notranslate nohighlight">\((a)\)</span> is the Bézier simplex of degree
+<span class="math notranslate nohighlight">\(d_1\)</span> with <span class="math notranslate nohighlight">\(a + 1\)</span> parameters.</p>
+<p><a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.BezierSimploid" title="torch_bsf.simploidal.BezierSimploid"><code class="xref py py-class docutils literal notranslate"><span class="pre">BezierSimploid</span></code></a> is a Lightning module like
+<a class="reference internal" href="../torch_bsf.html#torch_bsf.bezier_simplex.BezierSimplex" title="torch_bsf.bezier_simplex.BezierSimplex"><code class="xref py py-class docutils literal notranslate"><span class="pre">BezierSimplex</span></code></a>, and
+<a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.fit_simploid" title="torch_bsf.simploidal.fit_simploid"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_simploid()</span></code></a> fits one to data:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.simploidal</span><span class="w"> </span><span class="kn">import</span> <span class="n">fit_simploid</span><span class="p">,</span> <span class="n">sample_simploid</span>
+
+<span class="c1"># Samples on a prism: (u0, u1, u2) on a triangle, (v0, v1) on a segment</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">sample_simploid</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">200</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">t</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="n">t</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">4</span><span class="p">],</span> <span class="n">t</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">:]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">bs</span> <span class="o">=</span> <span class="n">fit_simploid</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">simploid_type</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">bs</span><span class="o">.</span><span class="n">simploid_type</span><span class="p">,</span> <span class="n">bs</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="n">bs</span><span class="o">.</span><span class="n">n_params</span><span class="p">,</span> <span class="n">bs</span><span class="o">.</span><span class="n">n_values</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">bs</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">x</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(2, 1) (2, 2) 5 4
+True
+</pre></div>
+</div>
+<p>A Bézier simploid can also be restricted to a face, degenerated, or
+multiplied with another one (the Minkowski sum of the control points):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">bottom</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>          <span class="c1"># the triangle at v = (1, 0)</span>
+<span class="n">pyramid_like</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">degenerate</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># insert a degenerate edge: type (2, 1, 1)</span>
+<span class="n">product</span> <span class="o">=</span> <span class="n">bs</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>     <span class="c1"># type (2, 1) + type of other</span>
+</pre></div>
+</div>
+</section>
+<section id="saving-loading-and-the-command-line">
+<h2>Saving, loading and the command line<a class="headerlink" href="#saving-loading-and-the-command-line" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.save" title="torch_bsf.simploidal.save"><code class="xref py py-func docutils literal notranslate"><span class="pre">save()</span></code></a> writes the control points of a Bézier
+simploid to a <code class="docutils literal notranslate"><span class="pre">.csv</span></code>, <code class="docutils literal notranslate"><span class="pre">.tsv</span></code>, <code class="docutils literal notranslate"><span class="pre">.json</span></code>, <code class="docutils literal notranslate"><span class="pre">.yml</span></code>/<code class="docutils literal notranslate"><span class="pre">.yaml</span></code> or <code class="docutils literal notranslate"><span class="pre">.pt</span></code>
+file, and <a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.load" title="torch_bsf.simploidal.load"><code class="xref py py-func docutils literal notranslate"><span class="pre">load()</span></code></a> reads them back:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.simploidal</span><span class="w"> </span><span class="kn">import</span> <span class="n">load</span><span class="p">,</span> <span class="n">save</span>
+
+<span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">d</span><span class="p">:</span>
+    <span class="n">save</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="o">/</span> <span class="s2">"prism.csv"</span><span class="p">,</span> <span class="n">bs</span><span class="p">)</span>
+    <span class="n">loaded</span> <span class="o">=</span> <span class="n">load</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="o">/</span> <span class="s2">"prism.csv"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">loaded</span><span class="o">.</span><span class="n">simploid_type</span><span class="p">,</span> <span class="n">loaded</span><span class="o">.</span><span class="n">degree</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">loaded</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">bs</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(2, 1) (2, 2)
+True
+</pre></div>
+</div>
+<p>As for Bézier simplices (see <a class="reference internal" href="initialization.html"><span class="doc">Initial Control Points</span></a>), the text formats map each
+index to its control point, but an index is now a tuple of multi-indices
+<span class="math notranslate nohighlight">\((\boldsymbol\alpha^1, \ldots, \boldsymbol\alpha^n)\)</span>, one per factor:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s2">"((2, 0, 0), (2, 0))"</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.1</span>
+<span class="s2">"((2, 0, 0), (1, 1))"</span><span class="p">,</span><span class="mf">1.0</span><span class="p">,</span><span class="mf">1.1</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+<p>The simploid type <span class="math notranslate nohighlight">\((a_1, \ldots, a_n)\)</span> and the degree are not stored
+separately; <a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.load" title="torch_bsf.simploidal.load"><code class="xref py py-func docutils literal notranslate"><span class="pre">load()</span></code></a> infers them from the lengths
+and the sums of the multi-indices, and checks that every control point is
+present exactly once.  A <code class="docutils literal notranslate"><span class="pre">.pt</span></code> file holds a dictionary of the type, the
+degree and the control point tensor (and keeps its dtype), which is loaded
+with <code class="docutils literal notranslate"><span class="pre">torch.load(...,</span> <span class="pre">weights_only=True)</span></code>.</p>
+<p>The command line interface fits a Bézier simploid instead of a Bézier simplex
+when <code class="docutils literal notranslate"><span class="pre">--simploid-type</span></code> is given.  The parameters file must then have
+<span class="math notranslate nohighlight">\(\sum_i (a_i + 1)\)</span> columns, the barycentric coordinates of the factors
+side by side:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>torch_bsf<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--params<span class="o">=</span>params.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--values<span class="o">=</span>values.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--simploid-type<span class="o">=</span><span class="m">2</span>,1<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--degree<span class="o">=</span><span class="m">2</span>
+</pre></div>
+</div>
+<p>This calls <a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.fit_simploid" title="torch_bsf.simploidal.fit_simploid"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_simploid()</span></code></a>, saves the control points
+to <code class="docutils literal notranslate"><span class="pre">params.csv,values.csv,control_points,t_2-1,d_2.csv</span></code> (choose another path
+and format with <code class="docutils literal notranslate"><span class="pre">--save=model.json</span></code>) and the predictions on <code class="docutils literal notranslate"><span class="pre">--meshgrid</span></code>
+(default: the parameters) to <code class="docutils literal notranslate"><span class="pre">params.csv,values.csv,meshgrid,t_2-1,d_2.csv</span></code>.
+The simploid-specific options are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--simploid-type=A1,...,An</span></code> — the type; <code class="docutils literal notranslate"><span class="pre">--degree</span></code> applies to every factor;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--solver={lstsq,trainer}</span></code> — solve the least-squares problem exactly
+(default) or train with the Lightning trainer options (<code class="docutils literal notranslate"><span class="pre">--max_epochs</span></code>,
+<code class="docutils literal notranslate"><span class="pre">--batch_size</span></code>, <code class="docutils literal notranslate"><span class="pre">--accelerator</span></code>, …);</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--ridge=W</span></code> — the ridge penalty of the <code class="docutils literal notranslate"><span class="pre">lstsq</span></code> solver (default: 0);</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--save=FILE</span></code> — where to save the control points.</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">--normalize</span></code> is applied during fitting and undone on the saved control
+points, so the saved model predicts values in the original scale.  <code class="docutils literal notranslate"><span class="pre">--init</span></code>,
+<code class="docutils literal notranslate"><span class="pre">--freeze</span></code>, <code class="docutils literal notranslate"><span class="pre">--smoothness_weight</span></code> and <code class="docutils literal notranslate"><span class="pre">--split_ratio</span></code> apply to Bézier
+simplices only.  The same is available as the <code class="docutils literal notranslate"><span class="pre">simploid</span></code> entry point of the
+MLflow project:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mlflow<span class="w"> </span>run<span class="w"> </span>https://github.com/opthub-org/pytorch-bsf<span class="w"> </span>-e<span class="w"> </span>simploid<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-P<span class="w"> </span><span class="nv">params</span><span class="o">=</span>params.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-P<span class="w"> </span><span class="nv">values</span><span class="o">=</span>values.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-P<span class="w"> </span><span class="nv">simploid_type</span><span class="o">=</span><span class="m">2</span>,1<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-P<span class="w"> </span><span class="nv">degree</span><span class="o">=</span><span class="m">2</span>
+</pre></div>
+</div>
+</section>
+<section id="id2">
+<h2>Simploidal sets<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<p>A <em>simploidal set</em> is a set of simploids equipped with</p>
+<ul class="simple">
+<li><p><strong>face operators</strong> <span class="math notranslate nohighlight">\(d^i_j\)</span>, mapping a simploid to the face obtained by
+removing vertex <span class="math notranslate nohighlight">\(j\)</span> of its <span class="math notranslate nohighlight">\(i\)</span>-th factor (the factor disappears
+when it was an edge), and</p></li>
+<li><p><strong>degeneracy operators</strong> <span class="math notranslate nohighlight">\(s^i_j\)</span>, mapping a simploid to a degenerate
+simploid of one more dimension that has the same shape: <span class="math notranslate nohighlight">\(s^i_j\)</span>
+repeats vertex <span class="math notranslate nohighlight">\(j\)</span> of factor <span class="math notranslate nohighlight">\(i\)</span>, and <span class="math notranslate nohighlight">\(s^i_{-1}\)</span> inserts a
+degenerate edge as a new factor.</p></li>
+</ul>
+<p>These operators satisfy the commutation relations of Definition 1 in the
+paper.  Degeneracies make it possible to represent, e.g., a square-based
+pyramid as a cube whose top face is collapsed into a vertex.</p>
+<p>As simplicial sets are presheaves on the simplex category, simploidal sets
+are presheaves on a <em>simploid category</em>, and they form a topos; see
+<a class="reference internal" href="simploidal_category.html"><span class="doc">The Category of Simploidal Sets</span></a> for the definitions and proofs.</p>
+<p><a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.SimploidalSet" title="torch_bsf.simploidal.SimploidalSet"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimploidalSet</span></code></a> stores only the non-degenerate
+simploids; degenerate ones are kept in a canonical form (a base simploid plus
+a degeneracy map), so that equal degenerate simploids are the same Python
+object.  It provides the basic construction operations of the paper:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Method</p></th>
+<th class="head"><p>Operation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">add_vertex</span></code>, <code class="docutils literal notranslate"><span class="pre">add_simplex(dim)</span></code>, <code class="docutils literal notranslate"><span class="pre">add_simploid(type)</span></code></p></td>
+<td><p>Add a complete cell with its whole boundary.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">product(other)</span></code></p></td>
+<td><p>Cartesian product of two simploidal sets (Algorithm 7).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">identify(a,</span> <span class="pre">b)</span></code></p></td>
+<td><p>Identify two simploids of the same type; their boundaries are identified face by face,
+<code class="docutils literal notranslate"><span class="pre">a.face(i,</span> <span class="pre">j)</span></code> with <code class="docutils literal notranslate"><span class="pre">b.face(i,</span> <span class="pre">j)</span></code>, and so are the induced degeneracies.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">degenerate(simploid,</span> <span class="pre">face,</span> <span class="pre">i,</span> <span class="pre">j)</span></code></p></td>
+<td><p>Identify <code class="docutils literal notranslate"><span class="pre">simploid</span></code> with <code class="docutils literal notranslate"><span class="pre">face.degeneracy(i,</span> <span class="pre">j)</span></code>: collapse it onto one of its faces.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cone(simploids)</span></code></p></td>
+<td><p>Cone with a new vertex (Algorithm 8): a simploid of type <span class="math notranslate nohighlight">\((a_1, \ldots, a_k)\)</span> becomes one of
+type <span class="math notranslate nohighlight">\((a_1, \ldots, a_k, 1)\)</span> whose far end is degenerated into the new vertex.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">check()</span></code></p></td>
+<td><p>Verify the face commutation relations.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Factor indices are 0-based in <code class="docutils literal notranslate"><span class="pre">torch_bsf</span></code>, whereas the paper uses 1-based ones:
+<code class="docutils literal notranslate"><span class="pre">face(i,</span> <span class="pre">j)</span></code> is <span class="math notranslate nohighlight">\(d^{i+1}_j\)</span>, <code class="docutils literal notranslate"><span class="pre">degeneracy(i,</span> <span class="pre">j)</span></code> with <span class="math notranslate nohighlight">\(j \ge 0\)</span> is <span class="math notranslate nohighlight">\(s^{i+1}_j\)</span>,
+and <code class="docutils literal notranslate"><span class="pre">degeneracy(i,</span> <span class="pre">-1)</span></code> is <span class="math notranslate nohighlight">\(s^i_{-1}\)</span>.</p>
+</div>
+<p>The following builds the example of Figure 1(c) of the paper, a tetrahedron
+and a cube connected by a prism, and adds a pyramid on top of the cube:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.simploidal</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimploidalSet</span>
+
+<span class="n">S</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">tetra</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">add_simplex</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">prism</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">add_simploid</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">cube</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">add_simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+<span class="c1"># Glue a triangle of the tetrahedron to an end of the prism,</span>
+<span class="c1"># and a square side of the prism to a face of the cube.</span>
+<span class="n">S</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">tetra</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">prism</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+<span class="n">S</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">prism</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">cube</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+
+<span class="c1"># Cone the opposite face of the cube: a square-based pyramid.</span>
+<span class="n">apex</span><span class="p">,</span> <span class="n">cones</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">cone</span><span class="p">([</span><span class="n">cube</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)])</span>
+<span class="n">pyramid</span> <span class="o">=</span> <span class="n">cones</span><span class="p">[</span><span class="n">cube</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span>
+
+<span class="n">S</span><span class="o">.</span><span class="n">check</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">simploid_type</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">S</span><span class="o">.</span><span class="n">main_simploids</span><span class="p">()])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">pyramid</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">is_degenerate</span><span class="p">,</span> <span class="n">pyramid</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">base</span> <span class="ow">is</span> <span class="n">apex</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[(3,), (2, 1), (1, 1, 1), (1, 1, 1)]
+True True
+</pre></div>
+</div>
+</section>
+<section id="homology">
+<h2>Homology<a class="headerlink" href="#homology" title="Link to this heading"></a></h2>
+<p>The topology of a simploidal set can be checked after it is built by
+computing its homology (Section 4.4 of <span class="bibtex-citation" id="id3">Peltier and Lienhardt [<a class="reference internal" href="../references.html#id31" title="Samuel Peltier and Pascal Lienhardt. Simploidal sets: a data structure for handling simploidal bézier spaces. Computer Aided Geometric Design, 62:44–62, 2018. URL: https://doi.org/10.1016/j.cagd.2018.03.010.">PL18</a>]</span>).  The
+chain group <span class="math notranslate nohighlight">\(C_k\)</span> is spanned by the <strong>non-degenerate</strong> simploids of
+dimension <span class="math notranslate nohighlight">\(k\)</span>, and the boundary of a simploid <span class="math notranslate nohighlight">\(\sigma\)</span> of type
+<span class="math notranslate nohighlight">\((a_1, \ldots, a_n)\)</span> follows the sign rule of a product of simplices:</p>
+<div class="math notranslate nohighlight">
+\[\partial \sigma = \sum_{i=1}^n \sum_{j=0}^{a_i} (-1)^{a_1 + \cdots + a_{i-1} + j} d^i_j \sigma,\]</div>
+<p>where the terms whose face <span class="math notranslate nohighlight">\(d^i_j \sigma\)</span> is degenerate are dropped.</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.SimploidalSet.boundary_matrix" title="torch_bsf.simploidal.SimploidalSet.boundary_matrix"><code class="xref py py-meth docutils literal notranslate"><span class="pre">boundary_matrix()</span></code></a> returns the
+integer matrix of <span class="math notranslate nohighlight">\(\partial_k\)</span>, with rows <code class="docutils literal notranslate"><span class="pre">simploids(k</span> <span class="pre">-</span> <span class="pre">1)</span></code> and
+columns <code class="docutils literal notranslate"><span class="pre">simploids(k)</span></code>; it satisfies
+<code class="docutils literal notranslate"><span class="pre">boundary_matrix(k)</span> <span class="pre">&#64;</span> <span class="pre">boundary_matrix(k</span> <span class="pre">+</span> <span class="pre">1)</span> <span class="pre">==</span> <span class="pre">0</span></code>.</p></li>
+<li><p><a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.SimploidalSet.betti_numbers" title="torch_bsf.simploidal.SimploidalSet.betti_numbers"><code class="xref py py-meth docutils literal notranslate"><span class="pre">betti_numbers()</span></code></a> returns the Betti
+numbers <span class="math notranslate nohighlight">\(\beta_0, \ldots, \beta_{\dim}\)</span>, the ranks of the homology
+groups.  The ranks are computed exactly by integer elimination, over the
+rationals (<code class="docutils literal notranslate"><span class="pre">field=&quot;Q&quot;</span></code>, default) or over <span class="math notranslate nohighlight">\(\mathbb Z / 2\)</span>
+(<code class="docutils literal notranslate"><span class="pre">field=&quot;Z2&quot;</span></code>); the two differ only for spaces whose integral homology has
+torsion, such as non-orientable surfaces.</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.simploidal</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimploidalSet</span>
+
+<span class="c1"># A torus: a square whose opposite edges are identified</span>
+<span class="n">torus</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">square</span> <span class="o">=</span> <span class="n">torus</span><span class="o">.</span><span class="n">add_simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">torus</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">torus</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">torus</span><span class="o">.</span><span class="n">betti_numbers</span><span class="p">())</span>
+
+<span class="c1"># A sphere: a square whose two edges face(1, *) are collapsed into</span>
+<span class="c1"># vertices and whose two other edges are identified</span>
+<span class="n">sphere</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">square</span> <span class="o">=</span> <span class="n">sphere</span><span class="o">.</span><span class="n">add_simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+    <span class="n">edge</span> <span class="o">=</span> <span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+    <span class="n">sphere</span><span class="o">.</span><span class="n">degenerate</span><span class="p">(</span><span class="n">edge</span><span class="p">,</span> <span class="n">edge</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">sphere</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">sphere</span><span class="o">.</span><span class="n">betti_numbers</span><span class="p">())</span>
+
+<span class="c1"># A projective plane: two triangles glued along their edges</span>
+<span class="n">rp2</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">t1</span><span class="p">,</span> <span class="n">t2</span> <span class="o">=</span> <span class="n">rp2</span><span class="o">.</span><span class="n">add_simplex</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">rp2</span><span class="o">.</span><span class="n">add_simplex</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">rp2</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">t1</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">t2</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+<span class="n">rp2</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">t1</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">t2</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="n">rp2</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">t1</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">t2</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">rp2</span><span class="o">.</span><span class="n">betti_numbers</span><span class="p">(),</span> <span class="n">rp2</span><span class="o">.</span><span class="n">betti_numbers</span><span class="p">(</span><span class="n">field</span><span class="o">=</span><span class="s2">"Z2"</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[1, 2, 1]
+[1, 0, 1]
+[1, 0, 0] [1, 1, 1]
+</pre></div>
+</div>
+</section>
+<section id="simploidal-bezier-spaces">
+<h2>Simploidal Bézier spaces<a class="headerlink" href="#simploidal-bezier-spaces" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.SimploidalBezierSpace" title="torch_bsf.simploidal.SimploidalBezierSpace"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimploidalBezierSpace</span></code></a> associates a Bézier
+simploid with every simploid of a simploidal set; by default all factors have
+a common degree <span class="math notranslate nohighlight">\(d \ge 1\)</span>, as in the paper.  Following Section 4.3 of the
+paper, every non-degenerate simploid stores only its <strong>proper</strong> control points
+— those whose multi-indices have no zero component, i.e.
+<span class="math notranslate nohighlight">\(\prod_i \binom{d_i - 1}{a_i}\)</span> points for degrees <span class="math notranslate nohighlight">\((d_1, \ldots, d_n)\)</span>,
+and one point for a vertex.  The control net of any simploid is rebuilt from its
+proper points and the points of its faces (Property 2-1), and the control net
+of a degenerate simploid from the one of its base (Property 2-2).
+Consequently:</p>
+<ul class="simple">
+<li><p>every control point is stored exactly once;</p></li>
+<li><p>simploids sharing a face share the control points of that face, so the space
+is continuous across shared faces by construction;</p></li>
+<li><p>a degenerate face (such as the apex face of a pyramid) has the shape of its
+base (the apex vertex).</p></li>
+</ul>
+<section id="per-factor-degrees">
+<h3>Per-factor degrees<a class="headerlink" href="#per-factor-degrees" title="Link to this heading"></a></h3>
+<p>When the data varies very differently along different directions — say, a
+prism that is linear across its triangles but cubic along its height — raising
+every direction to the highest degree adds many control points and invites
+over-fitting.  Instead of an integer, <code class="docutils literal notranslate"><span class="pre">degree</span></code> can be a mapping from
+non-degenerate simploids to their degrees: an integer for all their factors, or
+one degree per factor.</p>
+<p>The degrees must be consistent so that shared faces keep a single control net:
+a factor of a simploid and the corresponding factor of each of its faces have
+the same degree.  Equivalently, each factor of a simploid has the degree of its
+edges in the direction of that factor.  The given degrees propagate through
+shared faces, the factors still undetermined get <code class="docutils literal notranslate"><span class="pre">default_degree</span></code>, and an
+inconsistent mapping raises <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ValueError</span></code></a>.  Edge factors inserted by a
+degeneracy <span class="math notranslate nohighlight">\(s^i_{-1}\)</span> impose no constraint, since a degenerate Bézier
+simploid is constant along them; <code class="docutils literal notranslate"><span class="pre">simploid_degree</span></code> reports them with the
+maximum degree of the space (its <code class="docutils literal notranslate"><span class="pre">degree</span></code> attribute).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.simploidal</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimploidalSet</span><span class="p">,</span> <span class="n">SimploidalBezierSpace</span><span class="p">,</span> <span class="n">sample_simploid</span>
+
+<span class="c1"># A prism glued to a cube along a square face</span>
+<span class="n">S</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">prism</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">add_simploid</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">cube</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">add_simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">S</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">prism</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">cube</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+
+<span class="c1"># Linear across the triangles, cubic along the height; the cube inherits</span>
+<span class="c1"># these degrees on the shared face and gets the default on its last factor.</span>
+<span class="n">space</span> <span class="o">=</span> <span class="n">SimploidalBezierSpace</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="p">{</span><span class="n">prism</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)},</span> <span class="n">n_values</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">default_degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">space</span><span class="o">.</span><span class="n">simploid_degree</span><span class="p">(</span><span class="n">prism</span><span class="p">),</span> <span class="n">space</span><span class="o">.</span><span class="n">simploid_degree</span><span class="p">(</span><span class="n">cube</span><span class="p">))</span>
+
+<span class="c1"># Inconsistent degrees on the shared face are rejected</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">SimploidalBezierSpace</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="p">{</span><span class="n">prism</span><span class="p">:</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">cube</span><span class="p">:</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">)},</span> <span class="n">n_values</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"inconsistent"</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>(1, 3) (2, 1, 3)
+inconsistent
+</pre></div>
+</div>
+</section>
+</section>
+<section id="fitting">
+<h2>Fitting<a class="headerlink" href="#fitting" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.fit_simploidal_set" title="torch_bsf.simploidal.fit_simploidal_set"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_simploidal_set()</span></code></a> fits a simploidal Bézier
+space to samples attached to any non-degenerate simploids, each given in the
+parameters of its simploid.  The proper control points minimize the total
+squared error</p>
+<div class="math notranslate nohighlight">
+\[\sum_{(\sigma, \mathbf t, \mathbf x)} \| B_\sigma(\mathbf t) - \mathbf x \|^2
++ \lambda \| P \|^2,\]</div>
+<p>where <span class="math notranslate nohighlight">\(B_\sigma\)</span> is the Bézier simploid of <span class="math notranslate nohighlight">\(\sigma\)</span> and
+<span class="math notranslate nohighlight">\(\lambda\)</span> is the optional <code class="docutils literal notranslate"><span class="pre">ridge</span></code> weight.  Because the problem is
+linear in the proper control points, the default solver <code class="docutils literal notranslate"><span class="pre">&quot;lstsq&quot;</span></code> solves it
+exactly (the minimum-norm solution when it is under-determined and
+<code class="docutils literal notranslate"><span class="pre">ridge=0</span></code>).  <code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code> trains the space with
+<code class="xref py py-class docutils literal notranslate"><span class="pre">lightning.pytorch.Trainer</span></code> instead, forwarding the extra keyword
+arguments to it; this is useful for very large data sets.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.simploidal</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimploidalSet</span><span class="p">,</span> <span class="n">fit_simploidal_set</span><span class="p">,</span> <span class="n">sample_simploid</span>
+
+<span class="c1"># A triangle and a square sharing an edge</span>
+<span class="n">S</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">tri</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">add_simplex</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">sq</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">add_simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">S</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">tri</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">sq</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+<span class="c1"># Noisy samples of two unrelated functions on the two cells</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">sample_simploid</span><span class="p">((</span><span class="mi">2</span><span class="p">,),</span> <span class="mi">100</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">t2</span> <span class="o">=</span> <span class="n">sample_simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">100</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">x1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">t1</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">x2</span> <span class="o">=</span> <span class="n">t2</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+<span class="n">space</span> <span class="o">=</span> <span class="n">fit_simploidal_set</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="p">[(</span><span class="n">tri</span><span class="p">,</span> <span class="n">t1</span><span class="p">,</span> <span class="n">x1</span><span class="p">),</span> <span class="p">(</span><span class="n">sq</span><span class="p">,</span> <span class="n">t2</span><span class="p">,</span> <span class="n">x2</span><span class="p">)],</span> <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
+<span class="c1"># The two pieces agree on the shared edge</span>
+<span class="n">w</span> <span class="o">=</span> <span class="n">sample_simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,),</span> <span class="mi">10</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">on_tri</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">w</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">1</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">on_sq</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">w</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]])</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">2</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">space</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">tri</span><span class="p">,</span> <span class="n">on_tri</span><span class="p">),</span> <span class="n">space</span><span class="o">.</span><span class="n">evaluate</span><span class="p">(</span><span class="n">sq</span><span class="p">,</span> <span class="n">on_sq</span><span class="p">)))</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>True
+</pre></div>
+</div>
+<p>Useful methods of a fitted space:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">evaluate(simploid,</span> <span class="pre">t)</span></code> — evaluate the Bézier simploid of any simploid;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">simploid_degree(simploid)</span></code> — the degree of each factor of any simploid;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">forward(t,</span> <span class="pre">simploid_ids)</span></code> — evaluate a batch mixing several simploids
+(parameters padded to a common width; ids from <code class="docutils literal notranslate"><span class="pre">simploid_id</span></code>);</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">control_points(simploid)</span></code> — the full control net of any simploid;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bezier_simploid(simploid)</span></code> — a standalone
+<a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.BezierSimploid" title="torch_bsf.simploidal.BezierSimploid"><code class="xref py py-class docutils literal notranslate"><span class="pre">BezierSimploid</span></code></a> copy, e.g. for further
+processing.</p></li>
+</ul>
+</section>
+<section id="visualization">
+<h2>Visualization<a class="headerlink" href="#visualization" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="../torch_bsf.html#torch_bsf.plotting.plot_bezier_simploid" title="torch_bsf.plotting.plot_bezier_simploid"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_bezier_simploid()</span></code></a> and
+<a class="reference internal" href="../torch_bsf.html#torch_bsf.plotting.plot_simploidal_bezier_space" title="torch_bsf.plotting.plot_simploidal_bezier_space"><code class="xref py py-func docutils literal notranslate"><span class="pre">plot_simploidal_bezier_space()</span></code></a> draw Bézier simploids
+and simploidal Bézier spaces with 2 or 3 values (they require matplotlib).
+Curves are drawn as lines, triangles and squares as triangulated surfaces with
+their boundary curves, and simploids of dimension 3 or more through their
+2-dimensional faces.  The control net — the control points and the segments
+joining the control points whose indices differ by <span class="math notranslate nohighlight">\(e_k - e_l\)</span> in one
+factor — is shown unless <code class="docutils literal notranslate"><span class="pre">show_control_points=False</span></code>.  Every piece of a space
+is drawn in its own color, so that the pieces can be seen to meet on their
+shared faces.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.plotting</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_bezier_simploid</span><span class="p">,</span> <span class="n">plot_simploidal_bezier_space</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.simploidal</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSimploid</span><span class="p">,</span> <span class="n">SimploidalBezierSpace</span><span class="p">,</span> <span class="n">SimploidalSet</span>
+
+<span class="c1"># A random Bézier simploid of type (2, 1) (a prism) with 3 values</span>
+<span class="n">prism</span> <span class="o">=</span> <span class="n">BezierSimploid</span><span class="o">.</span><span class="n">randn</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_values</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
+<span class="c1"># A random space on a triangle and a square sharing an edge, with 3 values</span>
+<span class="n">S</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">tri</span><span class="p">,</span> <span class="n">sq</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">add_simplex</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">S</span><span class="o">.</span><span class="n">add_simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">S</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">tri</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">sq</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">space</span> <span class="o">=</span> <span class="n">SimploidalBezierSpace</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">n_values</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">normal_</span><span class="p">(</span><span class="n">space</span><span class="o">.</span><span class="n">proper_control_points</span><span class="p">)</span>
+
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">projection</span><span class="o">=</span><span class="s2">"3d"</span><span class="p">)</span>
+<span class="n">plot_bezier_simploid</span><span class="p">(</span><span class="n">prism</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">projection</span><span class="o">=</span><span class="s2">"3d"</span><span class="p">)</span>
+<span class="n">plot_simploidal_bezier_space</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">examples/generate_simploidal_plot.py</span></code> produces the figure below from fitted
+models in the same way.</p>
+<figure class="align-default" id="id4">
+<a class="reference internal image-reference" href="../_images/simploidal_bezier_space.png"><img alt="../_images/simploidal_bezier_space.png" src="../_images/simploidal_bezier_space.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 13 </span><span class="caption-text"><strong>Left</strong> – A Bézier simploid of type <span class="math notranslate nohighlight">\((1, 1)\)</span> with its control net.
+<strong>Middle</strong> – A Bézier simploid of type <span class="math notranslate nohighlight">\((2, 1)\)</span>, drawn through its two
+triangles and three squares.
+<strong>Right</strong> – A simploidal Bézier space of degree 3 made of a triangle (blue)
+and a square (orange) sharing an edge, fitted to samples of a surface.
+Generated by <code class="docutils literal notranslate"><span class="pre">examples/generate_simploidal_plot.py</span></code>.</span><a class="headerlink" href="#id4" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</section>
+<section id="limitations">
+<h2>Limitations<a class="headerlink" href="#limitations" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Per-factor degrees must agree exactly on shared faces.  Pieces of different
+degrees on a shared face are not reconciled by degree elevation (which would
+store the face at the lower degree and constrain the higher-degree piece to
+its elevation); give the shared factors the higher degree instead.</p></li>
+<li><p>Degrees are chosen by the user; they are not selected automatically.</p></li>
+<li><p>A space captures the structure of its simploidal set when it is created;
+build the set completely before creating or fitting a space.</p></li>
+<li><p>After <a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.SimploidalSet.identify" title="torch_bsf.simploidal.SimploidalSet.identify"><code class="xref py py-meth docutils literal notranslate"><span class="pre">identify()</span></code></a>, references to
+simploids that were merged away are stale; use the returned simploid or the
+faces of the surviving simploids.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="active_learning.html" class="btn btn-neutral float-left" title="Active Learning" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="simploidal_category.html" class="btn btn-neutral float-right" title="The Category of Simploidal Sets" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: feat/347-sklearn-lstsq-solver
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="simploidal.html">feat/347-sklearn-lstsq-solver</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
