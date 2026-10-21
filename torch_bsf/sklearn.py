@@ -1,4 +1,5 @@
-from typing import Any, Iterable, Literal, Sequence, cast
+from collections.abc import Iterable, Sequence
+from typing import Any, Literal, cast
 
 import numpy as np
 import torch

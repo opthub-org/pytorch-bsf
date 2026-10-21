@@ -1,6 +1,7 @@
 r"""Simploidal Bézier spaces :cite:p:`peltier2018simploidal`."""
 
-from typing import Mapping, Sequence, TypeAlias, cast
+from collections.abc import Mapping, Sequence
+from typing import TypeAlias, cast
 
 import torch
 import torch.nn as nn

@@ -1,5 +1,6 @@
 import itertools
-from typing import Literal, Optional, Sequence
+from collections.abc import Sequence
+from typing import Literal
 
 import torch
 import torch.nn as nn
@@ -31,10 +32,10 @@ def suggest_next_points(
     n_suggestions: int = 1,
     n_candidates: int = 1000,
     method: Literal["qbc", "density"] = "qbc",
-    params: Optional[torch.Tensor] = None,
-    n_params: Optional[int] = None,
-    simploid_type: Optional[Sequence[int]] = None,
-    seed: Optional[int] = None,
+    params: torch.Tensor | None = None,
+    n_params: int | None = None,
+    simploid_type: Sequence[int] | None = None,
+    seed: int | None = None,
 ) -> torch.Tensor:
     """Suggest points on the simplex or simploid where new data should be sampled.
 

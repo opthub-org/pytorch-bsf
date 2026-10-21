@@ -1,7 +1,7 @@
 from argparse import ArgumentParser, Namespace
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterator
 
 import mlflow
 import numpy as np

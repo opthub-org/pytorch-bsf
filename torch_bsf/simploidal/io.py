@@ -4,8 +4,9 @@ import csv
 import json
 import pickle
 from ast import literal_eval
+from collections.abc import Iterable, Sequence
 from pathlib import Path
-from typing import Any, Iterable, Sequence, cast
+from typing import Any, cast
 
 import torch
 import yaml

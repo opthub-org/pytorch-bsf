@@ -25,7 +25,8 @@ for the free rows, as the stacked least-squares problem with matrix :math:`[A; \
 """
 
 import copy
-from typing import Any, Iterable, Literal, Mapping, Sequence, TypeAlias, cast
+from collections.abc import Iterable, Mapping, Sequence
+from typing import Any, Literal, TypeAlias, cast
 
 import lightning.pytorch as L
 import torch

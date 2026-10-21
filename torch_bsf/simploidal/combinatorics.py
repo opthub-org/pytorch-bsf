@@ -1,10 +1,11 @@
 r"""Simploid types, control point indices, Bernstein bases and sampling."""
 
-from functools import lru_cache
+from collections.abc import Sequence
+from functools import cache
 from itertools import product as iproduct
 from math import factorial
 from numbers import Integral
-from typing import Sequence, TypeAlias, cast
+from typing import TypeAlias, cast
 
 import torch
 
@@ -52,12 +53,12 @@ def _check_degree(degree: int | Sequence[int], length: int) -> tuple[int, ...]:
     return ds
 
 
-@lru_cache(maxsize=None)
+@cache
 def _indices(simploid_type: SimploidType, degree: tuple[int, ...]) -> tuple[SimploidIndex, ...]:
     return tuple(iproduct(*(tuple(_simplex_indices(a + 1, d)) for a, d in zip(simploid_type, degree))))
 
 
-@lru_cache(maxsize=None)
+@cache
 def _positions(simploid_type: SimploidType, degree: tuple[int, ...]) -> dict[SimploidIndex, int]:
     return {alpha: pos for pos, alpha in enumerate(_indices(simploid_type, degree))}
 
@@ -149,7 +150,7 @@ def bernstein_basis(simploid_type: Sequence[int], degree: int | Sequence[int], t
     return _tensor_product_basis(t, [_factor_tensors(a, d, dtype, t.device) for a, d in zip(st, ds)])
 
 
-@lru_cache(maxsize=None)
+@cache
 def _factor_tables(a: int, d: int) -> tuple[tuple[tuple[int, ...], ...], tuple[float, ...]]:
     """The multi-indices of a factor of dimension ``a`` and degree ``d`` and their multinomial coefficients."""
     idx = tuple(_simplex_indices(a + 1, d))
@@ -178,7 +179,7 @@ def _tensor_product_basis(t: torch.Tensor, factors: Sequence[tuple[torch.Tensor,
     return basis
 
 
-@lru_cache(maxsize=None)
+@cache
 def _adjacent_pairs(simploid_type: SimploidType, degree: tuple[int, ...]) -> tuple[tuple[int, int], ...]:
     """The pairs ``(p, q)``, ``p < q``, of positions of adjacent control points in :func:`simploid_indices` order.
 

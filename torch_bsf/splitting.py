@@ -27,9 +27,10 @@ Use the longest-edge criterion to choose the split automatically:
 >>> bs_A, bs_B = split_by_criterion(bs, longest_edge_criterion)
 """
 
-from functools import lru_cache
+from collections.abc import Callable, Sequence
+from functools import cache
 from itertools import product
-from typing import Callable, Literal, Sequence
+from typing import Literal
 
 import torch
 import torch.nn.functional as F
@@ -63,7 +64,7 @@ def _check_s(s: float) -> None:
         raise ValueError(f"Split parameter s must be in (0, 1), but s={s}.")
 
 
-@lru_cache(maxsize=None)
+@cache
 def _edge_tables(
     simploid_type: SimploidType, degree: tuple[int, ...], factor: int, i: int, j: int
 ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[int, ...], tuple[int, ...]]:

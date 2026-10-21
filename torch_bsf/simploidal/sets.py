@@ -1,8 +1,9 @@
 r"""Simploids and simploidal sets :cite:p:`peltier2018simploidal`."""
 
+from collections.abc import Iterator, Sequence
 from itertools import combinations
 from math import gcd
-from typing import Iterator, Literal, Sequence, cast
+from typing import Literal, cast
 
 import torch
 
