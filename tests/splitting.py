@@ -448,6 +448,17 @@ def test_max_error_criterion_wrong_values_shape():
         criterion(bs)
 
 
+def test_max_error_criterion_piece_without_data():
+    # All data lie at vertex 0, so one of the two pieces holds no data for every s.
+    # That piece contributes nothing to the error; the error is 0.25 for every s,
+    # so the first candidate s = 0.25 wins (an empty piece yielding NaN would keep the default s = 0.5).
+    bs = _identity_curve()
+    params = torch.tensor([[1.0, 0.0]])
+    values = torch.tensor([[0.5]])
+    criterion = max_error_criterion(params, values, grid_size=3)
+    assert criterion(bs) == (0, 0, 1, 0.25)
+
+
 # ---------------------------------------------------------------------------
 # split_by_criterion()
 # ---------------------------------------------------------------------------
