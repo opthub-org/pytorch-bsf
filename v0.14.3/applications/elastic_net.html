@@ -108,17 +108,17 @@
   <section id="elastic-net-model-selection">
 <h1>Elastic net model selection<a class="headerlink" href="#elastic-net-model-selection" title="Link to this heading"></a></h1>
 <p>A canonical and highly practical application of this theory is hyperparameter optimization for the <strong>Elastic Net</strong>. In machine learning and statistics, selecting the correct regularization parameters is critical to balancing data fidelity, model sparsity, and numerical stability.</p>
-<p>Traditional approaches rely on exhaustive grid searches or cross-validation over a discrete set of hyperparameter combinations <span class="math notranslate nohighlight">\((\alpha, \lambda)\)</span>. This process is computationally expensive. By formulating the hyperparameter tuning as a multi-objective optimization problem over a <strong>regularization map</strong> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="#id22" title="Henri Bonnel and Corinne Schneider. Post-pareto analysis and a new algorithm for the optimal parameter tuning of the elastic net. Journal of Optimization Theory and Applications, 183(3):993–1027, 2019. doi:10.1007/s10957-019-01592-x.">BS19</a>]</span>, PyTorch-BSF allows for a continuous exploration of the model space, often reducing the computational cost by orders of magnitude (e.g., achieving speeds up to 2,000 times faster than exhaustive search for a 3-objective problem).</p>
+<p>Traditional approaches rely on exhaustive grid searches or cross-validation over a discrete set of hyperparameter combinations <span class="math notranslate nohighlight">\((\alpha, \lambda)\)</span>. This process is computationally expensive. By formulating the hyperparameter tuning as a multi-objective optimization problem over a <strong>regularization map</strong> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="#id23" title="Henri Bonnel and Corinne Schneider. Post-pareto analysis and a new algorithm for the optimal parameter tuning of the elastic net. Journal of Optimization Theory and Applications, 183(3):993–1027, 2019. doi:10.1007/s10957-019-01592-x.">BS19</a>]</span>, PyTorch-BSF allows for a continuous exploration of the model space, often reducing the computational cost by orders of magnitude (e.g., achieving speeds up to 2,000 times faster than exhaustive search for a 3-objective problem).</p>
 <section id="unified-framework-for-sparse-modeling">
 <h2>Unified Framework for Sparse Modeling<a class="headerlink" href="#unified-framework-for-sparse-modeling" title="Link to this heading"></a></h2>
 <p>The Elastic Net example is part of a broader framework for <strong>generalized sparse modeling</strong>. Any optimization problem expressed as a convex combination of several strongly convex functions can be analyzed using this approach:</p>
 <div class="math notranslate nohighlight">
 \[\min_{\beta \in \mathbb{R}^N} f_w(\beta) = \sum_{m=1}^M w_m f_m(\beta), \quad w \in \Delta^{M-1}\]</div>
-<p>where <span class="math notranslate nohighlight">\(f_m\)</span> represent different aspects of the model, such as data fidelity (loss functions) or structural priors (regularization terms). By ensuring each <span class="math notranslate nohighlight">\(f_m\)</span> is strongly convex (e.g., by adding a small <span class="math notranslate nohighlight">\(L_2\)</span> penalty <span class="math notranslate nohighlight">\(\frac{\epsilon}{2} \|\beta\|_2^2\)</span>), the resulting solution map <span class="math notranslate nohighlight">\(x^*(w)\)</span> is guaranteed to be weakly simplicial <span class="bibtex-citation" id="id2">[<a class="reference internal" href="#id8" title="Yuto Mizota, Naoki Hamada, and Shunsuke Ichiki. All unconstrained strongly convex problems are weakly simplicial. 2021. URL: https://arxiv.org/abs/2106.12704, arXiv:2106.12704.">MHI21</a>]</span>, allowing for high-quality approximation via Bézier simplices.</p>
+<p>where <span class="math notranslate nohighlight">\(f_m\)</span> represent different aspects of the model, such as data fidelity (loss functions) or structural priors (regularization terms). By ensuring each <span class="math notranslate nohighlight">\(f_m\)</span> is strongly convex (e.g., by adding a small <span class="math notranslate nohighlight">\(L_2\)</span> penalty <span class="math notranslate nohighlight">\(\frac{\epsilon}{2} \|\beta\|_2^2\)</span>), the resulting solution map <span class="math notranslate nohighlight">\(x^*(w)\)</span> is guaranteed to be weakly simplicial <span class="bibtex-citation" id="id2">[<a class="reference internal" href="#id9" title="Yuto Mizota, Naoki Hamada, and Shunsuke Ichiki. All unconstrained strongly convex problems are weakly simplicial. 2021. URL: https://arxiv.org/abs/2106.12704, arXiv:2106.12704.">MHI21</a>]</span>, allowing for high-quality approximation via Bézier simplices.</p>
 <p>This unified framework extends far beyond the standard Elastic Net:</p>
 <ul class="simple">
 <li><p><strong>Generalized Linear Models (GLMs)</strong>: The loss term can be any negative log-likelihood with a canonical link function (e.g., Logistic, Poisson, or Gamma regression).</p></li>
-<li><p><strong>Structural Regularization</strong>: Practitioners can incorporate structural priors like <strong>Group Lasso</strong> <span class="bibtex-citation" id="id3">[<a class="reference internal" href="#id33" title="Ming Yuan and Yi Lin. Model selection and estimation in regression with grouped variables. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 68(1):49–67, 2006.">YL06</a>]</span>, <strong>Fused Lasso</strong> <span class="bibtex-citation" id="id4">[<a class="reference internal" href="#id34" title="Robert Tibshirani, Michael Saunders, Saharon Rosset, Ji Zhu, and Keith Knight. Sparsity and smoothness via the fused lasso. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 67(1):91–108, 2005.">TSR+05</a>]</span>, or <strong>Smoothed Lasso</strong> to encode spatial or group relationships between features.</p></li>
+<li><p><strong>Structural Regularization</strong>: Practitioners can incorporate structural priors like <strong>Group Lasso</strong> <span class="bibtex-citation" id="id3">[<a class="reference internal" href="#id34" title="Ming Yuan and Yi Lin. Model selection and estimation in regression with grouped variables. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 68(1):49–67, 2006.">YL06</a>]</span>, <strong>Fused Lasso</strong> <span class="bibtex-citation" id="id4">[<a class="reference internal" href="#id35" title="Robert Tibshirani, Michael Saunders, Saharon Rosset, Ji Zhu, and Keith Knight. Sparsity and smoothness via the fused lasso. Journal of the Royal Statistical Society: Series B (Statistical Methodology), 67(1):91–108, 2005.">TSR+05</a>]</span>, or <strong>Smoothed Lasso</strong> to encode spatial or group relationships between features.</p></li>
 <li><p><strong>Transfer Learning and Covariate Shift</strong>: By using importance-weighted empirical risk as the loss function, the framework can handle scenarios where the training and test data distributions differ (covariate shift).</p></li>
 <li><p><strong>Robust Estimation</strong>: Replacing the standard squared error with robust loss functions like the <strong>Huber loss</strong> allows for model selection that is resilient to outliers.</p></li>
 </ul>
@@ -136,35 +136,35 @@ f_{smooth}(\beta) &amp;= \frac{1+\epsilon}{2}\|\beta\|_2^2\end{split}\]</div>
 w_2 &amp;= \frac{\lambda \alpha}{1 + \lambda} \\
 w_3 &amp;= \frac{\lambda (1-\alpha)}{1 + \lambda}\end{split}\]</div>
 <p>By training the model on a sparse subset of weight vectors <span class="math notranslate nohighlight">\(w\)</span> and fitting a Bézier simplex, we obtain a continuous <strong>solution map</strong> <span class="math notranslate nohighlight">\((x^*, f \circ x^*): \Delta^{M-1} \to G^*(f)\)</span> that maps any weight <span class="math notranslate nohighlight">\(w\)</span> to the optimal weights <span class="math notranslate nohighlight">\(\beta\)</span> and the corresponding objective values.</p>
-<table class="docutils align-default" id="id41">
-<caption><span class="caption-number">Table 2 </span><span class="caption-text">Regularization map of the elastic net.</span><a class="headerlink" href="#id41" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id42">
+<caption><span class="caption-number">Table 2 </span><span class="caption-text">Regularization map of the elastic net.</span><a class="headerlink" href="#id42" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 33.3%" />
 <col style="width: 33.3%" />
 <col style="width: 33.3%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><figure class="align-default" id="id42">
+<tr class="row-odd"><td><figure class="align-default" id="id43">
 <a class="reference internal image-reference" href="../_images/wine,weight_102_102_1_1000,W.png"><img alt="../_images/wine%2Cweight_102_102_1_1000%2CW.png" src="../_images/wine%2Cweight_102_102_1_1000%2CW.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 6 </span><span class="caption-text">Weight space <span class="math notranslate nohighlight">\(\Delta^{2}\)</span></span><a class="headerlink" href="#id42" title="Link to this image"></a></p>
-</figcaption>
-</figure>
-</td>
-<td><figure class="align-default" id="id43">
-<a class="reference internal image-reference" href="../_images/wine,weight_102_102_1_1000,X123.png"><img alt="../_images/wine%2Cweight_102_102_1_1000%2CX123.png" src="../_images/wine%2Cweight_102_102_1_1000%2CX123.png" style="width: 100%;" />
-</a>
-<figcaption>
-<p><span class="caption-number">Fig. 7 </span><span class="caption-text">Parameter space <span class="math notranslate nohighlight">\(\Theta^*(f)\)</span></span><a class="headerlink" href="#id43" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 6 </span><span class="caption-text">Weight space <span class="math notranslate nohighlight">\(\Delta^{2}\)</span></span><a class="headerlink" href="#id43" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </td>
 <td><figure class="align-default" id="id44">
+<a class="reference internal image-reference" href="../_images/wine,weight_102_102_1_1000,X123.png"><img alt="../_images/wine%2Cweight_102_102_1_1000%2CX123.png" src="../_images/wine%2Cweight_102_102_1_1000%2CX123.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 7 </span><span class="caption-text">Parameter space <span class="math notranslate nohighlight">\(\Theta^*(f)\)</span></span><a class="headerlink" href="#id44" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</td>
+<td><figure class="align-default" id="id45">
 <a class="reference internal image-reference" href="../_images/wine,weight_102_102_1_1000,F.png"><img alt="../_images/wine%2Cweight_102_102_1_1000%2CF.png" src="../_images/wine%2Cweight_102_102_1_1000%2CF.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 8 </span><span class="caption-text">Objective space <span class="math notranslate nohighlight">\(f(\Theta^*(f))\)</span></span><a class="headerlink" href="#id44" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 8 </span><span class="caption-text">Objective space <span class="math notranslate nohighlight">\(f(\Theta^*(f))\)</span></span><a class="headerlink" href="#id45" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </td>
@@ -194,86 +194,86 @@ w_3 &amp;= \frac{\lambda (1-\alpha)}{1 + \lambda}\end{split}\]</div>
 <h2>Empirical Evaluation<a class="headerlink" href="#empirical-evaluation" title="Link to this heading"></a></h2>
 <p>The effectiveness of PyTorch-BSF for Elastic Net is demonstrated using the <strong>Wine</strong> dataset from the UCI Machine Learning Repository. Experiments show that even with a limited number of training points (e.g., 51 points for a degree-6 simplex), the Bézier simplex accurately approximates the entire solution map, maintaining low Mean Squared Error (MSE) across the continuous hyperparameter space.</p>
 <p>The following tables compare the results obtained through an exhaustive grid search (ground truth) and the Bézier simplex approximation. The high similarity between the performance surfaces confirms the fidelity of the surrogate model.</p>
-<table class="docutils align-default" id="id45">
-<caption><span class="caption-number">Table 3 </span><span class="caption-text">Ground truth results from exhaustive grid search (102x102 grid).</span><a class="headerlink" href="#id45" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id46">
+<caption><span class="caption-number">Table 3 </span><span class="caption-text">Ground truth results from exhaustive grid search (102x102 grid).</span><a class="headerlink" href="#id46" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 50.0%" />
 <col style="width: 50.0%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><figure class="align-default" id="id46">
+<tr class="row-odd"><td><figure class="align-default" id="id47">
 <a class="reference internal image-reference" href="../_images/wine,weight_102_102_1_1000,mean,F.png"><img alt="../_images/wine%2Cweight_102_102_1_1000%2Cmean%2CF.png" src="../_images/wine%2Cweight_102_102_1_1000%2Cmean%2CF.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 9 </span><span class="caption-text">Mean CV error</span><a class="headerlink" href="#id46" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 9 </span><span class="caption-text">Mean CV error</span><a class="headerlink" href="#id47" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </td>
-<td><figure class="align-default" id="id47">
+<td><figure class="align-default" id="id48">
 <a class="reference internal image-reference" href="../_images/wine,weight_102_102_1_1000,std,F.png"><img alt="../_images/wine%2Cweight_102_102_1_1000%2Cstd%2CF.png" src="../_images/wine%2Cweight_102_102_1_1000%2Cstd%2CF.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 10 </span><span class="caption-text">Std dev of CV error</span><a class="headerlink" href="#id47" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 10 </span><span class="caption-text">Std dev of CV error</span><a class="headerlink" href="#id48" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </td>
 </tr>
-<tr class="row-even"><td><figure class="align-default" id="id48">
+<tr class="row-even"><td><figure class="align-default" id="id49">
 <a class="reference internal image-reference" href="../_images/wine,weight_102_102_1_1000,aicc,F.png"><img alt="../_images/wine%2Cweight_102_102_1_1000%2Caicc%2CF.png" src="../_images/wine%2Cweight_102_102_1_1000%2Caicc%2CF.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 11 </span><span class="caption-text">AICc</span><a class="headerlink" href="#id48" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 11 </span><span class="caption-text">AICc</span><a class="headerlink" href="#id49" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </td>
-<td><figure class="align-default" id="id49">
+<td><figure class="align-default" id="id50">
 <a class="reference internal image-reference" href="../_images/wine,weight_102_102_1_1000,nonzero,F.png"><img alt="../_images/wine%2Cweight_102_102_1_1000%2Cnonzero%2CF.png" src="../_images/wine%2Cweight_102_102_1_1000%2Cnonzero%2CF.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 12 </span><span class="caption-text">Number of nonzero coefficients</span><a class="headerlink" href="#id49" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 12 </span><span class="caption-text">Number of nonzero coefficients</span><a class="headerlink" href="#id50" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </td>
 </tr>
 </tbody>
 </table>
-<table class="docutils align-default" id="id50">
-<caption><span class="caption-number">Table 4 </span><span class="caption-text">Approximation results for the Wine dataset with a Bézier simplex of degree <span class="math notranslate nohighlight">\(d = 6\)</span>.</span><a class="headerlink" href="#id50" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id51">
+<caption><span class="caption-number">Table 4 </span><span class="caption-text">Approximation results for the Wine dataset with a Bézier simplex of degree <span class="math notranslate nohighlight">\(d = 6\)</span>.</span><a class="headerlink" href="#id51" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 50.0%" />
 <col style="width: 50.0%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><figure class="align-default" id="id51">
+<tr class="row-odd"><td><figure class="align-default" id="id52">
 <a class="reference internal image-reference" href="../_images/wine,weight_7_7_1_1000,meshgrid,d_6,f,mean,std,nonzero,aicc,x1-6.tsv,mean,F.png"><img alt="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Cmean%2CF.png" src="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Cmean%2CF.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 13 </span><span class="caption-text">Mean CV error</span><a class="headerlink" href="#id51" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 13 </span><span class="caption-text">Mean CV error</span><a class="headerlink" href="#id52" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </td>
-<td><figure class="align-default" id="id52">
+<td><figure class="align-default" id="id53">
 <a class="reference internal image-reference" href="../_images/wine,weight_7_7_1_1000,meshgrid,d_6,f,mean,std,nonzero,aicc,x1-6.tsv,std,F.png"><img alt="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Cstd%2CF.png" src="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Cstd%2CF.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 14 </span><span class="caption-text">Std dev of CV error</span><a class="headerlink" href="#id52" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 14 </span><span class="caption-text">Std dev of CV error</span><a class="headerlink" href="#id53" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </td>
 </tr>
-<tr class="row-even"><td><figure class="align-default" id="id53">
+<tr class="row-even"><td><figure class="align-default" id="id54">
 <a class="reference internal image-reference" href="../_images/wine,weight_7_7_1_1000,meshgrid,d_6,f,mean,std,nonzero,aicc,x1-6.tsv,aicc,F.png"><img alt="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Caicc%2CF.png" src="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Caicc%2CF.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 15 </span><span class="caption-text">AICc</span><a class="headerlink" href="#id53" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 15 </span><span class="caption-text">AICc</span><a class="headerlink" href="#id54" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </td>
-<td><figure class="align-default" id="id54">
+<td><figure class="align-default" id="id55">
 <a class="reference internal image-reference" href="../_images/wine,weight_7_7_1_1000,meshgrid,d_6,f,mean,std,nonzero,aicc,x1-6.tsv,nonzero,F.png"><img alt="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Cnonzero%2CF.png" src="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Cnonzero%2CF.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 16 </span><span class="caption-text">Nonzero coefficients</span><a class="headerlink" href="#id54" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 16 </span><span class="caption-text">Nonzero coefficients</span><a class="headerlink" href="#id55" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </td>
@@ -285,39 +285,39 @@ w_3 &amp;= \frac{\lambda (1-\alpha)}{1 + \lambda}\end{split}\]</div>
 <h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
 <div class="docutils container" id="id5">
 <div role="list" class="citation-list">
-<div class="citation" id="id26" role="doc-biblioentry">
+<div class="citation" id="id27" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>BDK21<span class="fn-bracket">]</span></span>
 <p>El Houcine Bergou, Youssef Diouane, and Vyacheslav Kungurtsev. Complexity iteration analysis for strongly convex multi-objective optimization using a newton path-following procedure. <em>Optimization Letters</em>, 15:1215–1227, 2021. <a class="reference external" href="https://doi.org/10.1007/s11590-020-01623-x">doi:10.1007/s11590-020-01623-x</a>.</p>
 </div>
-<div class="citation" id="id22" role="doc-biblioentry">
+<div class="citation" id="id23" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">BS19</a><span class="fn-bracket">]</span></span>
 <p>Henri Bonnel and Corinne Schneider. Post-pareto analysis and a new algorithm for the optimal parameter tuning of the elastic net. <em>Journal of Optimization Theory and Applications</em>, 183(3):993–1027, 2019. <a class="reference external" href="https://doi.org/10.1007/s10957-019-01592-x">doi:10.1007/s10957-019-01592-x</a>.</p>
 </div>
-<div class="citation" id="id28" role="doc-biblioentry">
+<div class="citation" id="id29" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>BSK+07<span class="fn-bracket">]</span></span>
 <p>S Breedveld, P Storchi, M Keijzer, A Heemink, and B Heijmen. A novel approach to multi-criteria inverse planning for imrt. <em>Physics in Medicine and Biology</em>, 2007.</p>
 </div>
-<div class="citation" id="id31" role="doc-biblioentry">
+<div class="citation" id="id32" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>dWK<span class="fn-bracket">]</span></span>
 <p>Olivier de Weck and Il Yong Kim. Adaptive weighted sum method for multiobjective optimization. Submitted to Structural and Multidisciplinary Optimization for Review.</p>
 </div>
-<div class="citation" id="id23" role="doc-biblioentry">
+<div class="citation" id="id24" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>FGranaDS09<span class="fn-bracket">]</span></span>
 <p>Jörg Fliege, L M Graña Drummond, and Benar Fux Svaiter. Newton's method for multiobjective optimization. <em>SIAM Journal on Optimization</em>, 20(2):602–626, 2009. <a class="reference external" href="https://doi.org/10.1137/08071692X">doi:10.1137/08071692X</a>.</p>
 </div>
-<div class="citation" id="id32" role="doc-biblioentry">
+<div class="citation" id="id33" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>Ham20<span class="fn-bracket">]</span></span>
 <p>Naoki Hamada. 多目的最適化の解集合のトポロジーの検定法 (statistical test for the topology of solution sets in multi-objective optimization). In <em>日本応用数理学会2020年度年会講演予稿集 (Proceedings of the JSIAM Annual Meeting 2020)</em>. 2020.</p>
 </div>
-<div class="citation" id="id9" role="doc-biblioentry">
+<div class="citation" id="id10" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>HG18<span class="fn-bracket">]</span></span>
 <p>Naoki Hamada and Keisuke Goto. Data-driven analysis of pareto set topology. In <em>Proceedings of the Genetic and Evolutionary Computation Conference</em>, 657–664. 2018. URL: <a class="reference external" href="https://doi.org/10.1145/3205455.3205613">https://doi.org/10.1145/3205455.3205613</a>.</p>
 </div>
-<div class="citation" id="id20" role="doc-biblioentry">
+<div class="citation" id="id21" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>HHI+20<span class="fn-bracket">]</span></span>
 <p>Naoki Hamada, Kenta Hayano, Shunsuke Ichiki, Yutaro Kabata, and Hiroshi Teramoto. Topology of pareto sets of strongly convex problems. <em>SIAM Journal on Optimization</em>, 30(3):2659–2686, 2020. <a class="reference external" href="https://doi.org/10.1137/19M1264175">doi:10.1137/19M1264175</a>.</p>
 </div>
-<div class="citation" id="id29" role="doc-biblioentry">
+<div class="citation" id="id30" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>HOLeary93<span class="fn-bracket">]</span></span>
 <p>Per Christian Hansen and Dianne Prost O'Leary. The use of the l-curve in the regularization of discrete ill-posed problems. <em>SIAM Journal on Scientific Computing</em>, 14(6):1487–1503, 1993. <a class="reference external" href="https://doi.org/10.1137/0914086">doi:10.1137/0914086</a>.</p>
 </div>
@@ -325,31 +325,31 @@ w_3 &amp;= \frac{\lambda (1-\alpha)}{1 + \lambda}\end{split}\]</div>
 <span class="label"><span class="fn-bracket">[</span>KHS+19<span class="fn-bracket">]</span></span>
 <p>Ken Kobayashi, Naoki Hamada, Akiyoshi Sannai, Aiko Tanaka, Kenichi Bannai, and Masashi Sugiyama. Bézier simplex fitting: describing pareto fronts of simplicial problems with small samples in multi-objective optimization. In <em>Proceedings of the AAAI Conference on Artificial Intelligence</em>, volume 33, 2304–2313. 2019. URL: <a class="reference external" href="https://doi.org/10.1609/aaai.v33i01.33012304">https://doi.org/10.1609/aaai.v33i01.33012304</a>.</p>
 </div>
-<div class="citation" id="id21" role="doc-biblioentry">
+<div class="citation" id="id22" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>LV24<span class="fn-bracket">]</span></span>
 <p>Suyun Liu and Luís N Vicente. The stochastic multi-gradient algorithm for multi-objective optimization and its application to supervised machine learning. <em>Annals of Operations Research</em>, 339(3):1119–1148, 2024. <a class="reference external" href="https://doi.org/10.1007/s10479-021-04033-z">doi:10.1007/s10479-021-04033-z</a>.</p>
 </div>
-<div class="citation" id="id27" role="doc-biblioentry">
+<div class="citation" id="id28" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>Mar52<span class="fn-bracket">]</span></span>
 <p>Harry Markowitz. Portfolio selection. <em>The Journal of Finance</em>, 7(1):77–91, 1952. <a class="reference external" href="https://doi.org/10.2307/2975974">doi:10.2307/2975974</a>.</p>
 </div>
-<div class="citation" id="id8" role="doc-biblioentry">
+<div class="citation" id="id9" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id2">MHI21</a><span class="fn-bracket">]</span></span>
 <p>Yuto Mizota, Naoki Hamada, and Shunsuke Ichiki. All unconstrained strongly convex problems are weakly simplicial. 2021. URL: <a class="reference external" href="https://arxiv.org/abs/2106.12704">https://arxiv.org/abs/2106.12704</a>, <a class="reference external" href="https://arxiv.org/abs/2106.12704">arXiv:2106.12704</a>.</p>
 </div>
-<div class="citation" id="id10" role="doc-biblioentry">
+<div class="citation" id="id11" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>Qi<span class="fn-bracket">]</span></span>
 <p>Houduo Qi. Optimal portfolio selections via l1,2-norm regularization. URL: <a class="reference external" href="https://eprints.soton.ac.uk/451606/1/mvpl12_for_PURE.pdf">https://eprints.soton.ac.uk/451606/1/mvpl12_for_PURE.pdf</a>.</p>
 </div>
-<div class="citation" id="id34" role="doc-biblioentry">
+<div class="citation" id="id35" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id4">TSR+05</a><span class="fn-bracket">]</span></span>
 <p>Robert Tibshirani, Michael Saunders, Saharon Rosset, Ji Zhu, and Keith Knight. Sparsity and smoothness via the fused lasso. <em>Journal of the Royal Statistical Society: Series B (Statistical Methodology)</em>, 67(1):91–108, 2005.</p>
 </div>
-<div class="citation" id="id30" role="doc-biblioentry">
+<div class="citation" id="id31" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>YYLM21<span class="fn-bracket">]</span></span>
 <p>Dongxiang Yan, He Yin, Tao Li, and Chengbin Ma. A two-stage scheme for both power allocation and ev charging coordination in a grid tied pv-battery charging station. <em>IEEE Transactions on Industrial Informatics</em>, 2021. <a class="reference external" href="https://doi.org/10.1109/TII.2021.3054417">doi:10.1109/TII.2021.3054417</a>.</p>
 </div>
-<div class="citation" id="id33" role="doc-biblioentry">
+<div class="citation" id="id34" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id3">YL06</a><span class="fn-bracket">]</span></span>
 <p>Ming Yuan and Yi Lin. Model selection and estimation in regression with grouped variables. <em>Journal of the Royal Statistical Society: Series B (Statistical Methodology)</em>, 68(1):49–67, 2006.</p>
 </div>
@@ -430,7 +430,7 @@ w_3 &amp;= \frac{\lambda (1-\alpha)}{1 + \lambda}\end{split}\]</div>
         </dl>
         <dl>
             <dt>Branches</dt>
-            <dd><a href="../../fix/dependabot-versioning-strategy/applications/elastic_net.html">fix/dependabot-versioning-strategy</a></dd>
+            <dd><a href="../../feat/199-pareto-sgd/applications/elastic_net.html">feat/199-pareto-sgd</a></dd>
         </dl>
     </div>
 </div><script>
