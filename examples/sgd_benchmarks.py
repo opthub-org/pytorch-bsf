@@ -28,7 +28,10 @@ The script writes, for every problem ``<name>`` above, ``docs/_static/sgd_benchm
 (the history of the empirical and generalization losses: the mean and the range over the trials) and
 ``docs/_static/sgd_benchmark_<name>_pareto.png`` (the Pareto set and front approximated by PSGD in the
 median trial, with the control points).  The median trial is the one of the median final empirical value
-in the loss figure: the optimality gap, or the loss for the skew-MMD.  It runs in less than a minute on a CPU.
+in the loss figure: the optimality gap, or the loss for the skew-MMD.  For the problems with a known Pareto
+set (all but the skew-MMD), it also writes ``docs/_static/sgd_benchmark_<name>_mse.png``: the history of the
+mean squared error ``MSE(P) = mean_i ||b(t_i | P) - x*(t_i)||^2`` to the Pareto set on the 10,000 samples of
+the generalization loss (Figure 4 of the paper).  It runs in less than a minute on a CPU.
 """
 
 import math
@@ -176,18 +179,32 @@ def optimal_loss(problem: Problem, init: BezierSimploid, inputs: list[torch.Tens
     return float(mean(p))
 
 
+def mean_squared_error(problem: Problem, model: BezierSimploid, inputs: list[torch.Tensor]) -> float:
+    """The mean of ``||b(t | P) - x*(t)||^2`` over the parameters ``t`` in ``inputs``."""
+    assert problem.pareto_set is not None
+    with torch.no_grad():
+        return float(((model(*inputs) - problem.pareto_set(*inputs)) ** 2).sum(dim=1).mean())
+
+
 def run_trial(
     problem: Problem, degree: int, preconditioner: Any, trial: int, test_inputs: list[torch.Tensor]
 ) -> tuple[BezierSimploid, dict[str, list[float]]]:
-    """Fits a Bézier simplex once and records the losses at ``P^(0), ..., P^(K)``."""
+    """Fits a Bézier simplex once and records the losses at ``P^(0), ..., P^(K)``.
+
+    If the Pareto set is known, it also records the MSE to it on ``test_inputs``.
+    """
     init = initial_model(problem, degree)
     loss = linear_scalarization(problem.objective)
     inputs = [t.double() for t in sample_domain(init, N_SAMPLES, seed=trial)]
     history = {"empirical": [mean_loss(loss, init, inputs)], "generalization": [mean_loss(loss, init, test_inputs)]}
+    if problem.pareto_set is not None:
+        history["mse"] = [mean_squared_error(problem, init, test_inputs)]
 
     def record(k: int, model: BezierSimploid, batch_loss: float) -> None:
         history["empirical"].append(mean_loss(loss, model, inputs))
         history["generalization"].append(mean_loss(loss, model, test_inputs))
+        if problem.pareto_set is not None:
+            history["mse"].append(mean_squared_error(problem, model, test_inputs))
 
     model = torch_bsf.fit_sgd(
         init,
@@ -224,7 +241,7 @@ def run_problem(problem: Problem) -> dict[tuple[int, str], Any]:
                 model, history = run_trial(problem, degree, preconditioner, trial, test_inputs)
                 models.append(model)
                 histories.append(history)
-            result = {key: np.array([h[key] for h in histories]) for key in ("empirical", "generalization")}
+            result = {key: np.array([h[key] for h in histories]) for key in histories[0]}
             median = np.argsort(result["empirical"][:, -1])[N_TRIALS // 2]
             results[degree, method] = {"model": models[median], **result}
     return results
@@ -255,6 +272,26 @@ def plot_losses(problem: Problem, results: dict[tuple[int, str], Any]) -> Path:
     fig.suptitle(f"{problem.title}: SGD vs. PSGD (mean and range over {N_TRIALS} trials)")
     fig.tight_layout()
     return save(fig, f"sgd_benchmark_{problem.name}_loss.png")
+
+
+def plot_mse(problem: Problem, results: dict[tuple[int, str], Any]) -> Path:
+    """Plots the mean and the range of the MSE to the Pareto set over the trials, for every degree and method."""
+    fig, axes = plt.subplots(1, len(DEGREES), figsize=(11, 3.5), sharey=True)
+    for ax, degree in zip(axes, DEGREES, strict=True):
+        for method in METHODS:
+            values = results[degree, method]["mse"]
+            iterations = np.arange(values.shape[1])
+            (line,) = ax.plot(iterations, values.mean(axis=0), label=method)
+            ax.fill_between(iterations, values.min(axis=0), values.max(axis=0), color=line.get_color(), alpha=0.25)
+        ax.set_yscale("log")
+        ax.grid(alpha=0.3)
+        ax.set_title(f"$D = {degree}$")
+        ax.set_xlabel("iteration $k$")
+    axes[0].set_ylabel(r"$\mathrm{MSE}(P^{(k)})$")
+    axes[0].legend()
+    fig.suptitle(f"{problem.title}: MSE to the Pareto set (mean and range over {N_TRIALS} trials)")
+    fig.tight_layout()
+    return save(fig, f"sgd_benchmark_{problem.name}_mse.png")
 
 
 def boundary(n_objectives: int, num: int = 100) -> list[torch.Tensor]:
@@ -338,6 +375,9 @@ def summarize(problem: Problem, results: dict[tuple[int, str], Any]) -> None:
             for key in ("empirical", "generalization")
         ]
         print(f"  D = {degree}, {quantity} at k = {MAX_ITER}: " + ", ".join(cells))
+        if problem.pareto_set is not None:
+            cells = [f"{method} {results[degree, method]['mse'][:, -1].mean():.2e}" for method in METHODS]
+            print(f"  D = {degree}, MSE at k = {MAX_ITER}: " + ", ".join(cells))
 
 
 def main() -> None:
@@ -346,7 +386,10 @@ def main() -> None:
         results = run_problem(problem)
         print(f"{problem.title} ({time.perf_counter() - start:.1f} s)")
         summarize(problem, results)
-        for path in (plot_losses(problem, results), plot_pareto(problem, results)):
+        paths = [plot_losses(problem, results), plot_pareto(problem, results)]
+        if problem.pareto_set is not None:
+            paths.append(plot_mse(problem, results))
+        for path in paths:
             print(f"  Saved {path}")
 
 
