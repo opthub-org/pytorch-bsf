@@ -70,6 +70,7 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Pareto Set Learning by Stochastic Gradient Descent</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#the-algorithm">The algorithm</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#fitting-a-bezier-simplex-to-a-pareto-set">Fitting a Bézier simplex to a Pareto set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#monitoring-the-loss-and-stopping-early">Monitoring the loss and stopping early</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#freezing-control-points-and-smoothing">Freezing control points and smoothing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#generalization-to-simploids-and-simploidal-spaces">Generalization to simploids and simploidal spaces</a></li>
 </ul>
@@ -187,6 +188,74 @@ number <span class="math notranslate nohighlight">\(n\)</span> of fixed samples 
 iterations and <span class="math notranslate nohighlight">\(\alpha = 0.05\)</span>, which are the defaults except for the
 minibatch size (full batch by default).  The returned model is a copy, so
 <code class="docutils literal notranslate"><span class="pre">init</span></code> can be reused.</p>
+</section>
+<section id="monitoring-the-loss-and-stopping-early">
+<h2>Monitoring the loss and stopping early<a class="headerlink" href="#monitoring-the-loss-and-stopping-early" title="Link to this heading"></a></h2>
+<p>Pass <code class="docutils literal notranslate"><span class="pre">callback</span></code> to watch the fitting.  After the update of every iteration
+<span class="math notranslate nohighlight">\(k = 0, 1, \ldots\)</span>, <a class="reference internal" href="../torch_bsf.html#torch_bsf.fit_sgd" title="torch_bsf.fit_sgd"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_sgd()</span></code></a> calls
+<code class="docutils literal notranslate"><span class="pre">callback(k,</span> <span class="pre">model,</span> <span class="pre">batch_loss)</span></code>, where <code class="docutils literal notranslate"><span class="pre">model</span></code> is the model being fitted
+(already updated) and <code class="docutils literal notranslate"><span class="pre">batch_loss</span></code> is the mean loss of the minibatch at the
+parameters <em>before</em> the update, i.e., <span class="math notranslate nohighlight">\(\mathcal L_B(P^{(k)})\)</span>.  To
+compare the empirical loss on the fixed samples with the generalization loss
+on fresh ones, as the paper does, pass the samples as <code class="docutils literal notranslate"><span class="pre">inputs</span></code> and evaluate
+the model on both in the callback, under <code class="xref py py-func docutils literal notranslate"><span class="pre">torch.no_grad()</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">inputs</span> <span class="o">=</span> <span class="n">sample_domain</span><span class="p">(</span><span class="n">init</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># the samples fit_sgd minimizes on</span>
+<span class="n">test_inputs</span> <span class="o">=</span> <span class="n">sample_domain</span><span class="p">(</span><span class="n">init</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># fresh samples</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">mean_loss</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">loss</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">),</span> <span class="o">*</span><span class="n">inputs</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+<span class="n">history</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"minibatch"</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">"empirical"</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">"generalization"</span><span class="p">:</span> <span class="p">[]}</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">record</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">batch_loss</span><span class="p">):</span>
+    <span class="n">history</span><span class="p">[</span><span class="s2">"minibatch"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_loss</span><span class="p">)</span>  <span class="c1"># at P^(k)</span>
+    <span class="n">history</span><span class="p">[</span><span class="s2">"empirical"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mean_loss</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">inputs</span><span class="p">))</span>  <span class="c1"># at P^(k+1)</span>
+    <span class="n">history</span><span class="p">[</span><span class="s2">"generalization"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mean_loss</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">test_inputs</span><span class="p">))</span>  <span class="c1"># at P^(k+1)</span>
+
+<span class="n">bs</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit_sgd</span><span class="p">(</span><span class="n">init</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">record</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">history</span><span class="p">[</span><span class="s2">"empirical"</span><span class="p">]))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">history</span><span class="p">[</span><span class="s2">"generalization"</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">history</span><span class="p">[</span><span class="s2">"generalization"</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>100
+True
+</pre></div>
+</div>
+<p>and plot the records, e.g., with matplotlib:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">history</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"iteration"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">"loss"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>If the callback returns <code class="docutils literal notranslate"><span class="pre">True</span></code>, the fitting stops after that iteration and
+returns the model updated so far.  There is no built-in stopping criterion;
+write one in the callback.  For example, stop once the empirical loss
+decreases by less than <span class="math notranslate nohighlight">\(10^{-6}\)</span> in an iteration:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">losses</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">converged</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">batch_loss</span><span class="p">):</span>
+    <span class="n">losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mean_loss</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">inputs</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">k</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">losses</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">losses</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">1e-6</span>
+
+<span class="n">bs</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit_sgd</span><span class="p">(</span><span class="n">init</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">converged</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">losses</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1000</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>True
+</pre></div>
+</div>
+<p>The callback receives the model being fitted, not a copy: it may evaluate the
+model but must not modify it.  To keep a snapshot, e.g., of the best model so
+far, copy its parameters (<code class="docutils literal notranslate"><span class="pre">model.control_points.detach().clone()</span></code> for a
+Bézier simploid, <code class="docutils literal notranslate"><span class="pre">model.proper_control_points.detach().clone()</span></code> for a
+simploidal Bézier space).  The callback does not change the fitting: a
+callback that never returns <code class="docutils literal notranslate"><span class="pre">True</span></code> gives the same model as no callback.</p>
 </section>
 <section id="freezing-control-points-and-smoothing">
 <h2>Freezing control points and smoothing<a class="headerlink" href="#freezing-control-points-and-smoothing" title="Link to this heading"></a></h2>
