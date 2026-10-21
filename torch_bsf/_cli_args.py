@@ -358,6 +358,16 @@ def _optional_int(text: str) -> int | None:
     return int(text) if text.strip() else None
 
 
+def _optional_path(text: str) -> Path | None:
+    """Parse a path, or ``None`` for an empty string (the default of MLflow projects)."""
+    return Path(text) if text.strip() else None
+
+
+def _optional_index_list(text: str) -> list[list[int]] | None:
+    """Parse a list of indices as :func:`~torch_bsf.validator.index_list`, or ``None`` for an empty string."""
+    return index_list(text) if text.strip() else None
+
+
 def add_sgd_args(parser: ArgumentParser) -> None:
     """Register the arguments of ``python -m torch_bsf sgd``, which fits a Bézier simplex with :func:`torch_bsf.fit_sgd`."""
     parser.add_argument(
@@ -460,6 +470,46 @@ def add_sgd_args(parser: ArgumentParser) -> None:
     parser.add_argument(
         "--seed", type=_optional_int, metavar="N", help="Random seed for the samples and the minibatches (default: none)"
     )
+    parser.add_argument(
+        "--init",
+        type=_optional_path,
+        metavar="FILE",
+        help=(
+            "Path to a model file saved by torch_bsf.simploidal.save (e.g. by --save) to start from, which must be "
+            "a Bezier simplex of dimension M - 1, degree N and L values (default: the zero control points)"
+        ),
+    )
+    parser.add_argument(
+        "--freeze",
+        type=_optional_index_list,
+        metavar="INDICES",
+        help=(
+            "JSON-style list of the multi-indices of control points to keep at their values in --init, "
+            "each a list of M integers summing to the degree (e.g. '[[2,0,0],[0,2,0],[0,0,2]]' for the vertices "
+            "of a quadratic Bezier triangle)"
+        ),
+    )
+    parser.add_argument(
+        "--smoothness-weight",
+        "--smoothness_weight",
+        dest="smoothness_weight",
+        type=float,
+        default=0.0,
+        metavar="W",
+        help="Weight of the smoothness penalty on adjacent control points added to the loss (default: 0.0)",
+    )
+    parser.add_argument(
+        "--log-every",
+        "--log_every",
+        dest="log_every",
+        type=int,
+        default=1,
+        metavar="N",
+        help=(
+            "Log the loss of the minibatch 'batch_loss' to MLflow at every N-th iteration, "
+            "with the iteration as the step; 0 logs only the final loss (default: 1)"
+        ),
+    )
 
 
 def check_sgd_args(parser: ArgumentParser, args: Namespace) -> None:
@@ -471,12 +521,57 @@ def check_sgd_args(parser: ArgumentParser, args: Namespace) -> None:
         "--n-samples": (args.n_samples, 1),
         "--batch-size": (1 if args.batch_size is None else args.batch_size, 1),
         "--max-iter": (args.max_iter, 0),
+        "--log-every": (args.log_every, 0),
     }
     for option, (value, minimum) in minimums.items():
         if value < minimum:
             parser.error(f"{option} must be at least {minimum}, but {value} is given")
     if not args.step_size > 0:
         parser.error(f"--step-size must be positive, but {args.step_size} is given")
+    if not args.smoothness_weight >= 0:
+        parser.error(f"--smoothness-weight must be non-negative, but {args.smoothness_weight} is given")
+    if args.freeze is not None and args.init is None:
+        parser.error("--freeze requires --init")
+
+
+def load_sgd_init(parser: ArgumentParser, args: Namespace) -> BezierSimploid:
+    """The initial model of ``python -m torch_bsf sgd``: ``--init`` if given, else zeros.
+
+    Reports an error with ``parser`` if ``--init`` cannot be read or does not match ``--n-objectives``,
+    ``--n-variables`` and ``--degree``, or if ``--freeze`` has an invalid index.
+    """
+    simploid_type, degree = (args.n_objectives - 1,), (args.degree,)
+    init = _load_init(parser, args.init)
+    if init is None:
+        return BezierSimploid.zeros(simploid_type, degree, n_values=args.n_variables)
+    if init.simploid_type != simploid_type:
+        type_str = ",".join(map(str, init.simploid_type))
+        parser.error(
+            f"--init is a Bezier simploid of type {type_str}, but --n-objectives={args.n_objectives} requires "
+            f"a Bezier simplex of type {simploid_type[0]}"
+        )
+    if init.degree != degree:
+        parser.error(f"--init has degree {init.degree[0]}, but --degree={args.degree} is given")
+    if init.n_values != args.n_variables:
+        parser.error(f"--init has {init.n_values} values, but --n-variables={args.n_variables} is given")
+    _check_freeze(parser, init, args.freeze)
+    return init
+
+
+def _check_freeze(parser: ArgumentParser, model: BezierSimploid, freeze: Any) -> None:
+    """Reports an error unless ``freeze`` is ``None`` or a list of control point indices of ``model``."""
+    if freeze is None:
+        return
+    if not isinstance(freeze, list):
+        parser.error(f"--freeze must be a list of indices, but {freeze!r} is given")
+    for index in freeze:
+        try:
+            model.row(index)
+        except ValueError:
+            parser.error(
+                f"--freeze has {index!r}, which is not a control point index of a Bezier simplex of type "
+                f"{model.simploid_type[0]} and degree {model.degree[0]}"
+            )
 
 
 def import_callable(spec: str) -> Callable[..., Any]:

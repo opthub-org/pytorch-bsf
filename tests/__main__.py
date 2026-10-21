@@ -719,7 +719,8 @@ def test_main_sgd_logs_to_mlflow(tmp_path, monkeypatch, loglevel):
     assert expected <= artifacts and (loglevel == 2 or not artifacts)  # MLflow < 3 also logs the model as an artifact
 
 
-def test_main_sgd_mlproject_entry_point(tmp_path, monkeypatch):
+@pytest.mark.parametrize("init", [False, True])
+def test_main_sgd_mlproject_entry_point(tmp_path, monkeypatch, init):
     """The command of the sgd entry point of MLproject should run in an MLflow project run, keeping its parameters."""
     import shlex
 
@@ -730,6 +731,9 @@ def test_main_sgd_mlproject_entry_point(tmp_path, monkeypatch):
 
     entry = yaml.safe_load((_REPO_ROOT / "MLproject").read_text())["entry_points"]["sgd"]
     given = dict(objective=_SGD_OBJECTIVE, n_objectives="3", n_variables="3", degree="1", batch_size="20", step_size="0.2")
+    if init:  # start from the solution with a vertex frozen
+        ts.save(tmp_path / "init.csv", ts.BezierSimploid((2,), 1, torch.eye(3)))
+        given |= dict(init=str(tmp_path / "init.csv"), freeze="[[1, 0, 0]]", smoothness_weight="1e-4", log_every="10")
     parameters = {k: v.get("default") for k, v in entry["parameters"].items()} | given
     assert all(v is not None for v in parameters.values()), parameters
     command = shlex.split(entry["command"].format(**{k: shlex.quote(str(v)) for k, v in parameters.items()}))
@@ -747,7 +751,12 @@ def test_main_sgd_mlproject_entry_point(tmp_path, monkeypatch):
     assert logged.params == {k: str(v) for k, v in parameters.items()}
     assert 0 < logged.metrics["train_loss"] < 1  # the loss of the initial model x = 0 is 1
     model = ts.load(tmp_path / "tests.__main__.sgd_objective,control_points,t_2,d_1.csv")
-    assert torch.allclose(model.control_points, torch.eye(3), atol=1e-3)
+    assert torch.allclose(model.control_points, torch.eye(3), atol=1e-2 if init else 1e-3)
+    history = mlflow.MlflowClient(f"sqlite:///{tmp_path / 'mlflow.db'}").get_metric_history(run.info.run_id, "batch_loss")
+    assert sorted(m.step for m in history) == list(range(0, 100, 10 if init else 1))
+    if init:  # the vertex stays, and the smoothing moves the others off the solution slightly
+        assert model[[1, 0, 0]].tolist() == [1.0, 0.0, 0.0]
+        assert not torch.allclose(model.control_points, torch.eye(3), atol=1e-4)
 
 
 def test_cli_sgd_help():
@@ -776,6 +785,12 @@ def test_cli_sgd_help():
         "--seed N",
         "--meshgrid CSV|DIR",
         "--save FILE",
+        "--init FILE",
+        "--freeze INDICES",
+        "--smoothness-weight",
+        "--smoothness_weight W",
+        "--log-every",
+        "--log_every N",
     ):
         assert option in result.stdout, option
     assert result.stdout.isascii()
@@ -816,6 +831,11 @@ def test_cli_sgd_error_is_clean(tmp_path):
         (["--step-size=0"], "--step-size must be positive, but 0.0 is given"),
         (["--step-decay=linear"], "invalid choice: 'linear'"),
         (["--meshgrid=MESH"], "--meshgrid has 2 columns, but the type 2 requires sum(Ai + 1) = 3 columns"),
+        (["--smoothness-weight=-0.1"], "--smoothness-weight must be non-negative, but -0.1 is given"),
+        (["--smoothness_weight=nan"], "--smoothness-weight must be non-negative, but nan is given"),
+        (["--log-every=-1"], "--log-every must be at least 0, but -1 is given"),
+        (["--freeze=[[1,0,0]]"], "--freeze requires --init"),
+        (["--freeze=[[1,0"], "argument --freeze: invalid _optional_index_list value"),
     ],
 )
 def test_main_sgd_errors(tmp_path, monkeypatch, capsys, args, message):
@@ -830,3 +850,81 @@ def test_main_sgd_errors(tmp_path, monkeypatch, capsys, args, message):
     err = capsys.readouterr().err
     assert message in err
     assert err.isascii()
+
+
+@pytest.mark.parametrize(
+    "init, args, message",
+    [
+        ("missing", [], "cannot load --init:"),
+        (((2, 1), 1, 3), [], "--init is a Bezier simploid of type 2,1, but --n-objectives=3 requires a Bezier simplex"),
+        (((1,), 1, 3), [], "--init is a Bezier simploid of type 1, but --n-objectives=3 requires a Bezier simplex of type 2"),
+        (((2,), 2, 3), [], "--init has degree 2, but --degree=1 is given"),
+        (((2,), 1, 2), [], "--init has 2 values, but --n-variables=3 is given"),
+        (((2,), 1, 3), ["--freeze=[[2,0,0]]"], "--freeze has [2, 0, 0], which is not a control point index of a Bezier "),
+        (((2,), 1, 3), ["--freeze=[[1,0]]"], "--freeze has [1, 0], which is not a control point index"),
+        (((2,), 1, 3), ["--freeze=3"], "--freeze must be a list of indices, but 3 is given"),
+    ],
+)
+def test_main_sgd_init_errors(tmp_path, monkeypatch, capsys, init, args, message):
+    """An --init that does not match the options, or an invalid --freeze, should exit with a clear argparse error in ASCII."""
+    import torch_bsf.simploidal as ts
+
+    if init != "missing":
+        ts.save(tmp_path / "init.csv", ts.BezierSimploid.randn(*init))
+    with pytest.raises(SystemExit) as excinfo:
+        _run_main(monkeypatch, tmp_path, "sgd", *_SGD_ARGS, "--degree=1", "--init=init.csv", *args, "--loglevel=0")
+    assert excinfo.value.code == 2
+    err = capsys.readouterr().err
+    assert message in err
+    assert err.isascii()
+
+
+def test_main_sgd_init_freeze_and_smoothness(tmp_path, monkeypatch):
+    """--init, --freeze and --smoothness-weight should be passed to fit_sgd, keeping the frozen control points bitwise."""
+    import torch_bsf
+    import torch_bsf.simploidal as ts
+
+    init = ts.BezierSimploid.randn((2,), 3, 3)
+    ts.save(tmp_path / "init.csv", init)
+    init = ts.load(tmp_path / "init.csv")  # as read by the command
+    vertices = [[3, 0, 0], [0, 3, 0], [0, 0, 3]]
+    args = ["--degree=3", "--init=init.csv", f"--freeze={vertices}", "--smoothness-weight=0.01", "--seed=0"]
+    _run_main(monkeypatch, tmp_path, "sgd", *_SGD_ARGS, *args, "--save=model.csv", "--loglevel=0")
+    model = ts.load(tmp_path / "model.csv")
+    for index in vertices:
+        assert model[index].tolist() == init[index].tolist()
+    assert model[[1, 1, 1]].tolist() != init[[1, 1, 1]].tolist()
+    expected = torch_bsf.fit_sgd(init, ts.linear_scalarization(sgd_objective), freeze=vertices, smoothness_weight=0.01, seed=0)
+    ts.save(tmp_path / "expected.csv", expected)
+    assert (tmp_path / "model.csv").read_text() == (tmp_path / "expected.csv").read_text()
+
+
+@pytest.mark.parametrize("log_every", [None, 3, 0])
+def test_main_sgd_logs_loss_history(tmp_path, monkeypatch, log_every):
+    """sgd should log batch_loss of every --log-every-th iteration with its step, without changing the fitted model."""
+    import mlflow
+
+    import torch_bsf
+    import torch_bsf.simploidal as ts
+
+    options = dict(batch_size=20, max_iter=10, step_size=0.2, seed=0)
+    args = [f"--{k.replace('_', '-')}={v}" for k, v in options.items()]
+    args += [] if log_every is None else [f"--log-every={log_every}"]
+    _run_main(monkeypatch, tmp_path, "sgd", *_SGD_ARGS, "--degree=1", *args, "--save=model.pt", "--loglevel=1")
+    history: list[float] = []
+    expected = torch_bsf.fit_sgd(
+        ts.BezierSimploid.zeros((2,), 1, n_values=3),
+        ts.linear_scalarization(sgd_objective),
+        callback=lambda k, model, batch_loss: history.append(batch_loss),
+        **options,  # type: ignore[arg-type]
+    )
+    assert torch.equal(ts.load(tmp_path / "model.pt").control_points, expected.control_points)
+    run = mlflow.last_active_run()
+    assert run is not None
+    logged = mlflow.MlflowClient().get_metric_history(run.info.run_id, "batch_loss")
+    every = 1 if log_every is None else log_every
+    steps = list(range(0, 10, every)) if every else []
+    assert [(m.step, m.value) for m in sorted(logged, key=lambda m: m.step)] == [(k, history[k]) for k in steps]
+    assert run.data.params["log_every"] == str(every)
+    assert run.data.params["init"] == "None" and run.data.params["freeze"] == "None"
+    assert "train_loss" in run.data.metrics

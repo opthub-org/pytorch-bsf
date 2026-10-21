@@ -41,6 +41,10 @@ entry_points:
       step_decay: {type: str, default: "constant"}
       preconditioner: {type: str, default: "gram"}
       seed: {type: str, default: ""}
+      init: {type: str, default: ""}
+      freeze: {type: str, default: ""}
+      smoothness_weight: {type: float, default: 0.0}
+      log_every: {type: int, default: 1}
     command: >-
       python -m torch_bsf sgd
       --objective={objective}
@@ -55,6 +59,10 @@ entry_points:
       --step-decay={step_decay}
       --preconditioner={preconditioner}
       --seed={seed}
+      --init={init}
+      --freeze={freeze}
+      --smoothness-weight={smoothness_weight}
+      --log-every={log_every}
   kfold:
     parameters:
       params: {type: path}

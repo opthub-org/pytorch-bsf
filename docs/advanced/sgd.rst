@@ -333,7 +333,40 @@ command ``python -m torch_bsf``:
   is omitted or a directory;
 * unless ``--loglevel=0``, the options and the final loss ``train_loss`` (the
   mean loss over the samples) are logged to MLflow, together with the control
-  points file and the model with ``--loglevel=2`` (the default).
+  points file and the model with ``--loglevel=2`` (the default), and so is the
+  loss ``batch_loss`` of the minibatch of every iteration, as a metric whose
+  step is the iteration ``k``.
+
+The options of `Freezing control points and smoothing`_ and
+`Monitoring the loss and stopping early`_ are also available:
+
+.. code-block:: bash
+
+   python -m torch_bsf sgd \
+     --objective=problems:objective \
+     --n-objectives=3 --n-variables=3 --degree=3 \
+     --init=control_points.csv \
+     --freeze='[[3,0,0],[0,3,0],[0,0,3]]' \
+     --smoothness-weight=0.01 \
+     --log-every=10
+
+* ``--init`` starts from the control points of a file saved by
+  :func:`torch_bsf.simploidal.save` (e.g., by ``--save`` of an earlier run)
+  instead of :math:`P_0 = O`.  It must be a Bézier simplex of dimension
+  :math:`M - 1`, the degree ``--degree`` and :math:`L` values; otherwise, the
+  command stops with an error message.
+* ``--freeze`` keeps the control points of the given multi-indices at their
+  values in ``--init``, which it requires, in the JSON-style format of
+  ``--freeze`` of ``python -m torch_bsf``.  Above, the vertices of the
+  triangle stay at the minimizers of the single objectives written in
+  ``control_points.csv``.
+* ``--smoothness-weight`` (also ``--smoothness_weight``) is
+  ``smoothness_weight`` of :func:`~torch_bsf.fit_sgd` (default ``0.0``), which
+  must be non-negative.
+* ``--log-every`` thins out ``batch_loss`` to every :math:`N`-th iteration
+  (default ``1``), and ``--log-every=0`` logs only ``train_loss``.  The loss is
+  recorded by ``callback`` and logged to MLflow in a batch after fitting; it
+  is that of the minibatch before the update, without the smoothness penalty.
 
 Before fitting, the objective is evaluated on two points to check that it
 maps ``(batch, L)`` to differentiable values of shape ``(batch, M)``; an
@@ -359,8 +392,12 @@ objectives must be installed in the environment of the run or found on its
 ``PYTHONPATH`` (with ``--env-manager=local``, set ``PYTHONPATH`` to the
 directory of ``problems.py``).  The parameters ``meshgrid`` (default ``.``,
 i.e., no meshgrid), ``n_samples``, ``batch_size`` (default ``""``, i.e., the
-full batch), ``max_iter``, ``step_size``, ``step_decay``, ``preconditioner``
-and ``seed`` (default ``""``, i.e., none) are also exposed.
+full batch), ``max_iter``, ``step_size``, ``step_decay``, ``preconditioner``,
+``seed`` (default ``""``, i.e., none), ``init`` and ``freeze`` (default ``""``,
+i.e., none), ``smoothness_weight`` and ``log_every`` are also exposed, e.g.,
+``-P init=/path/to/control_points.csv -P freeze='[[2,0,0],[0,2,0],[0,0,2]]'``
+(give ``init`` as an absolute path, since the command runs in the directory of
+the project).
 
 The command line fits Bézier simplices with the linear scalarization only;
 for Bézier simploids, simploidal Bézier spaces or other losses, use

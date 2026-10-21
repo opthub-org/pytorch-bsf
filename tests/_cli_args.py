@@ -2,6 +2,7 @@
 
 import re
 from argparse import ArgumentParser, ArgumentTypeError
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -211,13 +212,21 @@ def test_add_sgd_args_defaults_are_those_of_fit_sgd():
     add_sgd_args(parser)
     args = parser.parse_args(["--objective=m:f", "--n-objectives=3", "--n-variables=2", "--degree=1"])
     defaults = inspect.signature(torch_bsf.fit_sgd).parameters
-    for name in ("n_samples", "batch_size", "max_iter", "step_size", "step_decay", "preconditioner", "seed"):
+    names = ("n_samples", "batch_size", "max_iter", "step_size", "step_decay", "preconditioner", "seed")
+    for name in (*names, "freeze", "smoothness_weight"):
         assert getattr(args, name) == defaults[name].default, name
-    assert args.meshgrid is None
+    assert args.meshgrid is None and args.init is None and args.log_every == 1
     args = parser.parse_args(
         ["--objective=m:f", "--n-objectives=3", "--n-variables=2", "--degree=1", "--batch-size=", "--seed= "]
+        + ["--init=", "--freeze="]
     )
-    assert args.batch_size is None and args.seed is None
+    assert args.batch_size is None and args.seed is None and args.init is None and args.freeze is None
+    args = parser.parse_args(
+        ["--objective=m:f", "--n-objectives=3", "--n-variables=2", "--degree=1", "--init=a.csv", "--freeze=[[1,0,0]]"]
+        + ["--smoothness_weight=0.5", "--log_every=3"]
+    )
+    assert args.init == Path("a.csv") and args.freeze == [[1, 0, 0]]
+    assert args.smoothness_weight == 0.5 and args.log_every == 3
     args = parser.parse_args(
         ["--objective=m:f", "--n-objectives=3", "--n-variables=2", "--degree=1", "--batch_size=4", "--seed=7"]
     )

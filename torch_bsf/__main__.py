@@ -1,4 +1,5 @@
 import sys
+import time
 from argparse import ArgumentParser, Namespace
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
@@ -9,6 +10,7 @@ import mlflow
 import numpy as np
 import torch
 from mlflow import autolog
+from mlflow.entities import Metric
 from torch.nn import functional as F
 
 from torch_bsf._cli_args import (
@@ -21,6 +23,7 @@ from torch_bsf._cli_args import (
     fit_options,
     import_callable,
     load_model_data,
+    load_sgd_init,
     load_table,
 )
 from torch_bsf.simploidal import BezierSimploid, save
@@ -119,14 +122,17 @@ def _log_to_mlflow(
     save_path: Path,
     loglevel: int,
     resume: bool,
+    history: Sequence[Metric] = (),
 ) -> None:
     """Logs the parameters, the metrics, the control points file and (loglevel 2) the model to MLflow.
 
-    ``resume`` is passed to :func:`_mlflow_run`.
+    ``resume`` is passed to :func:`_mlflow_run`.  ``history`` gives metrics with their steps logged in a batch.
     """
     with _mlflow_run(resume=resume):
         mlflow.log_metrics(metrics)  # starts a run if none is active
         run = mlflow.active_run()
+        if run is not None and history:
+            mlflow.MlflowClient().log_batch(run.info.run_id, metrics=history)
         # An MLflow project run has already logged its own parameters, which cannot be changed.
         logged = mlflow.get_run(run.info.run_id).data.params if run is not None else {}
         mlflow.log_params({k: v for k, v in params.items() if k not in logged})
@@ -209,8 +215,20 @@ def _check_objective(
 
 def _sgd_params(args: Namespace) -> dict[str, Any]:
     """The parameters of ``python -m torch_bsf sgd`` logged to MLflow."""
-    names = ("objective", "n_objectives", "n_variables", "degree", "n_samples", "batch_size", "max_iter")
-    return {name: getattr(args, name) for name in (*names, "step_size", "step_decay", "preconditioner", "seed")}
+    names = ("objective", "n_objectives", "n_variables", "degree", "n_samples", "batch_size", "max_iter", "step_size")
+    options = ("step_decay", "preconditioner", "seed", "init", "freeze", "smoothness_weight", "log_every")
+    return {name: getattr(args, name) for name in (*names, *options)}
+
+
+def _loss_recorder(log_every: int) -> tuple[list[Metric], Callable[[int, BezierSimploid, float], None]]:
+    """A callback of :func:`fit_sgd` recording ``batch_loss`` at every ``log_every``-th iteration, and its records."""
+    history: list[Metric] = []
+
+    def record(k: int, model: BezierSimploid, batch_loss: float) -> None:  # reads only the loss, not the model
+        if k % log_every == 0:
+            history.append(Metric("batch_loss", batch_loss, int(time.time() * 1000), k))
+
+    return history, record
 
 
 def sgd_main(argv: Sequence[str] | None = None) -> None:
@@ -231,13 +249,15 @@ def sgd_main(argv: Sequence[str] | None = None) -> None:
         ts = load_table(args.meshgrid, args.header)
         check_columns(parser, "--meshgrid", ts, simploid_type)
 
-    init = BezierSimploid.zeros(simploid_type, args.degree, n_values=args.n_variables)
+    init = load_sgd_init(parser, args)
     # The samples fit_sgd would draw itself, kept to evaluate the loss after fitting.
     (t,) = sample_domain(init, args.n_samples, seed=args.seed)
     _check_objective(parser, objective, init(t[:2]), args.n_objectives)
     loss = linear_scalarization(objective)
-    options = {name: getattr(args, name) for name in ("batch_size", "max_iter", "step_size", "step_decay", "preconditioner")}
-    model = fit_sgd(init, loss, inputs=[t], seed=args.seed, **options)  # the options are checked above
+    names = ("batch_size", "max_iter", "step_size", "step_decay", "preconditioner", "freeze", "smoothness_weight")
+    options = {name: getattr(args, name) for name in names}
+    history, record = _loss_recorder(args.log_every) if args.loglevel >= 1 and args.log_every > 0 else ([], None)
+    model = fit_sgd(init, loss, inputs=[t], seed=args.seed, callback=record, **options)  # the options are checked above
 
     tag = file_tag(model.simploid_type, model.degree)
     name = args.objective.replace(":", ".")
@@ -248,7 +268,7 @@ def sgd_main(argv: Sequence[str] | None = None) -> None:
     if args.loglevel >= 1:
         with torch.no_grad():
             metrics = {"train_loss": loss(model(t), t).mean().item()}
-        _log_to_mlflow(model, metrics, _sgd_params(args), save_path, args.loglevel, resume=False)
+        _log_to_mlflow(model, metrics, _sgd_params(args), save_path, args.loglevel, resume=False, history=history)
 
     if ts is not None:
         fn = f"{name},meshgrid,{tag}.csv"
