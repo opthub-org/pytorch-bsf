@@ -1,5 +1,56 @@
 # Changelog
 
+## [0.19.0](https://github.com/opthub-org/pytorch-bsf/compare/v0.18.0...v0.19.0) (2026-10-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* torch_bsf.bezier_simplex and torch_bsf.control_points are removed; use BezierSimploid, torch_bsf.fit and torch_bsf.simploidal.save/load instead. Pickled .pt models saved by earlier versions can no longer be loaded. ControlPointsLike is renamed to ControlPointData.
+* torch_bsf.fit and fit_kfold return BezierSimploid models and default to solver="lstsq" (trainer options require solver="trainer"). BezierSimplex, BezierSimplexDataModule, validate_control_points and fit_simploid are no longer exported from torch_bsf. BezierSimplexRegressor is renamed to BezierSimploidRegressor and defaults to solver="lstsq". reparametrize's subsimplex argument is renamed to part, and split criteria return (factor, i, j, s). The CLI --init reads files written by torch_bsf.simploidal.save, k-fold drops --stratified, and output file names carry the simploid type (t_<type>,d_<degree>).
+* **simploidal:** BezierSimploid and SimploidalBezierSpace are no longer LightningModules: they have no hparams, training_step or configure_optimizers, and cannot be passed to Trainer.fit directly. Use fit_simploid / fit_simploidal_set with solver="trainer" instead.
+
+### Features
+
+* add simploidal sets and simploidal Bézier space fitting ([#334](https://github.com/opthub-org/pytorch-bsf/issues/334)) ([2ae1b37](https://github.com/opthub-org/pytorch-bsf/commit/2ae1b372a7bb9cb2b109f7454a7d900635b371f3))
+* **cli:** add init, freeze, smoothing and loss logging to sgd ([#394](https://github.com/opthub-org/pytorch-bsf/issues/394)) ([f633854](https://github.com/opthub-org/pytorch-bsf/commit/f633854bc17242ddabafc3645e657d77c8a16526))
+* **cli:** fit Bezier simplices to Pareto sets from the CLI and MLflow ([#390](https://github.com/opthub-org/pytorch-bsf/issues/390)) ([0a6a0ec](https://github.com/opthub-org/pytorch-bsf/commit/0a6a0ec494b2c998dfb21dfd9b59b3649fb28b2e))
+* **cli:** fit Bezier simploids from the CLI and MLflow ([#345](https://github.com/opthub-org/pytorch-bsf/issues/345)) ([73c2db9](https://github.com/opthub-org/pytorch-bsf/commit/73c2db948922e63eea7fa2677898224912abc6af))
+* **plotting:** plot Bézier simploids and simploidal Bézier spaces ([#344](https://github.com/opthub-org/pytorch-bsf/issues/344)) ([e9a1cbd](https://github.com/opthub-org/pytorch-bsf/commit/e9a1cbdd234ec0d4745d5ad7a9926b75c3a71e3f))
+* **simploidal:** add a callback to fit_sgd for monitoring and stopping ([#388](https://github.com/opthub-org/pytorch-bsf/issues/388)) ([c124e3f](https://github.com/opthub-org/pytorch-bsf/commit/c124e3f9328d35008f4e0153efdc055519ff3443))
+* **simploidal:** add smoothness penalty and frozen control points ([#359](https://github.com/opthub-org/pytorch-bsf/issues/359)) ([449ed94](https://github.com/opthub-org/pytorch-bsf/commit/449ed94a60c29ed46a4a3c8929fcc618f3476826))
+* **simploidal:** compute homology of simploidal sets ([#341](https://github.com/opthub-org/pytorch-bsf/issues/341)) ([3bd296b](https://github.com/opthub-org/pytorch-bsf/commit/3bd296bc268ba91f8300945043e2e5b519e1a1c3)), closes [#335](https://github.com/opthub-org/pytorch-bsf/issues/335)
+* **simploidal:** fit models to Pareto sets by preconditioned SGD ([#383](https://github.com/opthub-org/pytorch-bsf/issues/383)) ([2a0a390](https://github.com/opthub-org/pytorch-bsf/commit/2a0a39045a385c915302c588311444715c5e35f7))
+* **simploidal:** freeze control points and smooth in fit_sgd ([#389](https://github.com/opthub-org/pytorch-bsf/issues/389)) ([0703ffa](https://github.com/opthub-org/pytorch-bsf/commit/0703ffaee5a45cddc8d58548784277ae72555561)), closes [#385](https://github.com/opthub-org/pytorch-bsf/issues/385)
+* **simploidal:** support per-factor degrees in SimploidalBezierSpace ([#342](https://github.com/opthub-org/pytorch-bsf/issues/342)) ([a21ff29](https://github.com/opthub-org/pytorch-bsf/commit/a21ff29cbd38b29844336c026ba68c6e134ad493)), closes [#338](https://github.com/opthub-org/pytorch-bsf/issues/338)
+
+
+### Bug Fixes
+
+* **deps:** test and declare the oldest working dependency versions ([#381](https://github.com/opthub-org/pytorch-bsf/issues/381)) ([a0910ce](https://github.com/opthub-org/pytorch-bsf/commit/a0910ce881d7d8952fd234163827f5ea4a62ed6c))
+* **deps:** use a versioning strategy Dependabot accepts for pip ([#382](https://github.com/opthub-org/pytorch-bsf/issues/382)) ([19adee9](https://github.com/opthub-org/pytorch-bsf/commit/19adee99e59a25400e550c852031112eb8a31d00))
+* **simploidal:** make random docstring comparisons deterministic ([#349](https://github.com/opthub-org/pytorch-bsf/issues/349)) ([547034e](https://github.com/opthub-org/pytorch-bsf/commit/547034eefa49ccd1e8742a5fdbecb71acbb7ff61)), closes [#346](https://github.com/opthub-org/pytorch-bsf/issues/346)
+
+
+### Documentation
+
+* add application examples with accurate Pareto front fits ([#328](https://github.com/opthub-org/pytorch-bsf/issues/328)) ([fb3b5d4](https://github.com/opthub-org/pytorch-bsf/commit/fb3b5d4b711ec9bb729654e6a14e19760017dedb))
+* Adopt sphinx-design grids for Elastic Net figure layouts ([#331](https://github.com/opthub-org/pytorch-bsf/issues/331)) ([d5b75e5](https://github.com/opthub-org/pytorch-bsf/commit/d5b75e570e720060c59b8ad9cf03627081107be8))
+* **bezier_simplex:** disable model summary in the training example ([#360](https://github.com/opthub-org/pytorch-bsf/issues/360)) ([5f234bf](https://github.com/opthub-org/pytorch-bsf/commit/5f234bfba4aa41e6e6cb2731c69c67b33fc88280))
+* describe Bézier simploids where simplex-only wording was too narrow ([#352](https://github.com/opthub-org/pytorch-bsf/issues/352)) ([3033408](https://github.com/opthub-org/pytorch-bsf/commit/3033408a1028418fb1bb53c3e903900e9ef07438))
+* **examples:** quiet Lightning output in Pareto front examples ([#351](https://github.com/opthub-org/pytorch-bsf/issues/351)) ([f3abeff](https://github.com/opthub-org/pytorch-bsf/commit/f3abeff919988e9c8ab8d8e5e26ea1623b53facc)), closes [#348](https://github.com/opthub-org/pytorch-bsf/issues/348)
+* redefine BSF as Bézier Simploid Fitting ([#339](https://github.com/opthub-org/pytorch-bsf/issues/339)) ([af7fa87](https://github.com/opthub-org/pytorch-bsf/commit/af7fa87eed1601b78e69b77769845d65d2f219e6))
+* refresh PyTorch-BSF visual identity ([#343](https://github.com/opthub-org/pytorch-bsf/issues/343)) ([48dbb3d](https://github.com/opthub-org/pytorch-bsf/commit/48dbb3d85ede4effb44bbf38b90368d146919f2e))
+* **sgd:** compare SGD and PSGD on the benchmarks of the paper ([#391](https://github.com/opthub-org/pytorch-bsf/issues/391)) ([4223f15](https://github.com/opthub-org/pytorch-bsf/commit/4223f15d3a0aff57e0098ad43513272848161bbc))
+* **sgd:** plot the MSE to the Pareto set in the SGD benchmarks ([#395](https://github.com/opthub-org/pytorch-bsf/issues/395)) ([b0f296e](https://github.com/opthub-org/pytorch-bsf/commit/b0f296e2e3f45fd788e81e2374bc1ea8fbd1e80d))
+* **simploidal:** define the simploid category and prove sSpd is a topos ([#340](https://github.com/opthub-org/pytorch-bsf/issues/340)) ([f14223e](https://github.com/opthub-org/pytorch-bsf/commit/f14223ee4e3f8d1663a146a58ecbcf0dd2be0dc8))
+
+
+### Code Refactoring
+
+* **simploidal:** decouple Bézier simploid models from Lightning ([#358](https://github.com/opthub-org/pytorch-bsf/issues/358)) ([d8ac277](https://github.com/opthub-org/pytorch-bsf/commit/d8ac277532c32e3f8e771cfa67b1257007991c5c))
+* unify peripheral features on BezierSimploid ([#361](https://github.com/opthub-org/pytorch-bsf/issues/361)) ([540c997](https://github.com/opthub-org/pytorch-bsf/commit/540c9977edc0cebf0e7f542b8fa68521c1438d12))
+* unify save/load and remove the legacy Bézier simplex modules ([#362](https://github.com/opthub-org/pytorch-bsf/issues/362)) ([3b8e014](https://github.com/opthub-org/pytorch-bsf/commit/3b8e0147421ac9fdc14e93bf567cd6ebb6fbcc21))
+
 ## [0.18.0](https://github.com/opthub-org/pytorch-bsf/compare/v0.17.0...v0.18.0) (2026-04-04)
 
 
