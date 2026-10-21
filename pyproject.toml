@@ -63,6 +63,7 @@ all = [
   "matplotlib",
 ]
 develop = [
+  "pre-commit",
   "ruff",
   "pytest",
   "pytest-cov",

@@ -20,9 +20,10 @@ conda --version
 conda env list
 "$PY" --version
 "$PY" -c "import torch_bsf; print(torch_bsf.__file__)"
-for m in torch lightning mlflow scipy sklearn matplotlib pytest pytest_cov pytest_randomly pytest_benchmark mypy ruff sphinx sphinx_rtd_theme sphinx_design sphinxcontrib.bibtex; do
+for m in torch lightning mlflow scipy sklearn matplotlib pytest pytest_cov pytest_randomly pytest_benchmark mypy ruff pre_commit sphinx sphinx_rtd_theme sphinx_design sphinxcontrib.bibtex; do
   "$PY" -c "import $m" 2>/dev/null && echo "ok $m" || echo "MISSING $m"
 done
+test -f "$(git rev-parse --git-path hooks)/pre-commit" && echo "ok git hook" || echo "MISSING git hook"
 ```
 
 Decide what is needed from the result; skip steps that are already satisfied.
@@ -47,11 +48,19 @@ If conda is not installed, see "Without conda" below.
 
 `docs/requirements.txt` starts with `.` (this package, for the docs CI). Passing it with `-r` together with `-e .` makes pip fail with `ResolutionImpossible`, and installing it alone would replace the editable install, so the `.` line is filtered out.
 
-- `develop`: pytest, mypy, ruff and type stubs.
+- `develop`: pytest, mypy, ruff, pre-commit and type stubs.
 - `all`: scipy, scikit-learn, matplotlib. Without these, parts of the test suite are skipped and mypy may report missing imports.
 - `docs/requirements.txt`: Sphinx and extensions needed for `sphinx-build -b doctest`.
 
-## 4. Make sure the editable install points to this checkout
+## 4. Install the git hook
+
+```bash
+"$PY" -m pre_commit install
+```
+
+This makes every `git commit` run Ruff (`ruff check --fix` and `ruff format`) with the version pinned in `.pre-commit-config.yaml`. The hook goes into the shared hooks directory of the clone (`git rev-parse --git-path hooks`), so one install covers the main checkout and all its worktrees, including `.claude/worktrees/`; skip this step if the check in step 1 printed `ok git hook`. If a commit is aborted because a hook changed files, review the changes, stage them and commit again.
+
+## 5. Make sure the editable install points to this checkout
 
 Check from outside the repository, since the current directory shadows the installed package:
 
@@ -62,10 +71,11 @@ Check from outside the repository, since the current directory shadows the insta
 
 The path must be inside the current repository (or worktree). If it points elsewhere (another clone or worktree, or `site-packages`), re-run step 3 from this directory and tell the user that the environment now follows this checkout.
 
-## 5. Verify
+## 6. Verify
 
 ```bash
 "$PY" -c "import torch, torch_bsf; print(torch.__version__, torch_bsf.__version__)"
+"$PY" -m pre_commit run --all-files
 "$PY" -m ruff check .
 "$PY" -m mypy torch_bsf
 "$PY" -m pytest tests/test_init.py -q
@@ -85,11 +95,11 @@ PY=.venv/bin/python
 "$PY" -m pip install -e ".[develop,all]" -r docs/requirements.txt
 ```
 
-Then run step 5. Do not reuse or delete an existing broken `venv/` directory; report it to the user instead.
+Then run steps 4 and 6. Do not reuse or delete an existing broken `venv/` directory; report it to the user instead.
 
 ## Report
 
 Tell the user:
 - the environment path and Python / torch / torch_bsf versions,
-- what was created, updated or installed,
+- what was created, updated or installed (including whether the git hook was installed),
 - the verification results, and anything still failing.

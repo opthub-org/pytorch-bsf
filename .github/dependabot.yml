@@ -9,3 +9,7 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+  - package-ecosystem: "pre-commit" # Bumps `rev` of the hooks in .pre-commit-config.yaml (Ruff)
+    directory: "/"
+    schedule:
+      interval: "weekly"

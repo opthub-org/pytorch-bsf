@@ -64,6 +64,19 @@ The `[develop]` extras include:
 | `pytest`, `pytest-cov`, `pytest-randomly` | Running tests |
 | `mypy` + type stubs | Static type checking |
 | `ruff` | Linting, import sorting and code formatting |
+| `pre-commit` | Running Ruff automatically on `git commit` |
+
+With Conda, install them into the environment with `pip install -e ".[develop]"` as well.
+
+### Install the git hook
+
+Install the [pre-commit](https://pre-commit.com/) hook so that Ruff checks and formats your changes on every commit:
+
+```bash
+pre-commit install
+```
+
+Run this once per clone. The hook is installed in the shared `.git/hooks` directory, so it also runs in every `git worktree` of the clone (including `.claude/worktrees/`). If a hook fixes or reformats files, the commit is aborted; review the changes, `git add` them and commit again.
 
 ---
 
@@ -209,15 +222,18 @@ ci: add Python 3.14 to test matrix
 
 ### Linter and formatter
 
-[Ruff](https://docs.astral.sh/ruff/) lints, sorts imports and formats code. CI fails if either of the following checks reports a problem, so run them before committing:
+[Ruff](https://docs.astral.sh/ruff/) lints, sorts imports and formats code. The pre-commit hook (see [Install the git hook](#install-the-git-hook)) runs `ruff check --fix` and `ruff format` on the files you commit. CI runs the same hooks on all files and fails if they report a problem or change a file. To run them manually:
 
 ```bash
-# Lint and sort imports (add --fix to apply automatic fixes)
-ruff check .
+# Run the hooks on all files, as CI does
+pre-commit run --all-files
 
-# Format code (drop --check to rewrite files)
-ruff format --check .
+# Or run Ruff directly
+ruff check .           # lint and sort imports (add --fix to apply automatic fixes)
+ruff format --check .  # check formatting (drop --check to rewrite files)
 ```
+
+The Ruff version is pinned by `rev` in `.pre-commit-config.yaml`, which is the single source of truth: the git hook and CI both use it, and Dependabot opens a weekly PR to bump it. Run `pre-commit autoupdate` only if you need a newer Ruff before Dependabot does. The `ruff` in the `[develop]` extras is unpinned (for editors and direct use); if its results differ from the hook's, trust `pre-commit run --all-files`.
 
 Configuration in `pyproject.toml` (`[tool.ruff]` section):
 
@@ -360,7 +376,7 @@ sphinx-build -b doctest docs/ docs/_build/doctest
 pytorch-bsf/
 ├── .github/
 │   ├── workflows/                    # GitHub Actions workflows
-│   │   ├── python-package.yml        # pytest + ruff + mypy + doctest
+│   │   ├── python-package.yml        # ruff (via pre-commit) + pytest + mypy + doctest
 │   │   ├── release-please-action.yml # Automated releases (CHANGELOG + PyPI publish)
 │   │   ├── sphinx-pages.yml          # Build and publish Sphinx docs to GitHub Pages
 │   │   ├── codeql-analysis.yml       # Security scanning
@@ -371,7 +387,7 @@ pytorch-bsf/
 │   │   ├── documentation.yml         # Documentation form
 │   │   └── config.yml                # Disables blank issues
 │   ├── CODEOWNERS                    # Code ownership settings
-│   └── dependabot.yml                # Automated dependency updates
+│   └── dependabot.yml                # Automated dependency updates (pip and pre-commit hooks)
 ├── torch_bsf/                        # Main package
 │   ├── __init__.py                   # Public API exports (BezierSimploid, fit, fit_kfold, split, …)
 │   ├── __main__.py                   # CLI entry point
@@ -414,6 +430,7 @@ pytorch-bsf/
 ├── CONTRIBUTING.md                   # This file
 ├── LICENSE                           # MIT License
 ├── README.md                         # Project overview and usage
+├── .pre-commit-config.yaml           # Git hooks (Ruff) run on commit and in CI
 ├── MLproject                         # MLflow project definition
 ├── environment.yml                   # Conda environment definition
 ├── pyproject.toml                    # Package configuration, dependencies, tool settings
