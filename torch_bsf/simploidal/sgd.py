@@ -63,6 +63,11 @@ Preconditioner = Literal["gram", "none"]
 
 _Model = TypeVar("_Model", BezierSimploid, SimploidalBezierSpace)
 
+#: A callback ``callback(k, model, batch_loss)`` of :func:`fit_sgd`, called after the update of every iteration
+#: with the 0-based iteration number ``k``, the model being fitted and the mean loss of the minibatch at the
+#: parameters before the update.  Returning ``True`` stops the fitting.
+SGDCallback: TypeAlias = Callable[[int, _Model, float], bool | None]
+
 
 def _factor_gram(a: int, d: int) -> torch.Tensor:
     """The Gram matrix of the Bernstein basis of degree ``d`` on the standard ``a``-simplex, in double precision."""
@@ -317,6 +322,7 @@ def fit_sgd(
     preconditioner: Preconditioner = "gram",
     weights: Mapping[Simploid, float] | None = None,
     seed: int | None = None,
+    callback: SGDCallback[_Model] | None = None,
 ) -> _Model:
     r"""Fits a model to the minimizers of a loss by (preconditioned) stochastic gradient descent.
 
@@ -356,6 +362,12 @@ def fit_sgd(
         another) if ``None``.
     seed
         Random seed for the samples and the minibatches.
+    callback
+        Called as ``callback(k, model, batch_loss)`` after the update of every iteration ``k = 0, 1, ...``
+        (see :data:`SGDCallback`), where ``model`` is the model being fitted and ``batch_loss`` is the mean
+        loss of the minibatch at the parameters before the update.  If it returns ``True``, the fitting
+        stops after this iteration.  It may evaluate ``model``, preferably under :func:`torch.no_grad`,
+        but must not modify it: copy the parameters to keep a snapshot.
 
     Returns
     -------
@@ -381,6 +393,16 @@ def fit_sgd(
     >>> bs = torch_bsf.fit_sgd(init, linear_scalarization(objective), batch_size=20, step_size=0.2, seed=0)
     >>> torch.allclose(bs.control_points, torch.eye(3), atol=1e-3)
     True
+
+    A callback records the loss of every iteration and stops the fitting once the loss stops decreasing:
+
+    >>> history = []
+    >>> def callback(k, model, batch_loss):
+    ...     history.append(batch_loss)
+    ...     return k > 0 and history[-2] - batch_loss < 1e-4
+    >>> bs = torch_bsf.fit_sgd(init, linear_scalarization(objective), step_size=0.2, seed=0, callback=callback)
+    >>> len(history) < 100  # stopped before max_iter
+    True
     """
     _check_sgd_options(max_iter, step_size, batch_size, step_decay, preconditioner)
     model = _copy_model(model)
@@ -401,9 +423,12 @@ def fit_sgd(
         losses = loss(model(*batch), *batch)
         if losses.shape != (m,):
             raise ValueError(f"loss must return a tensor of shape ({m},), but {tuple(losses.shape)} is given.")
-        (grad,) = torch.autograd.grad(losses.mean(), parameter)
+        batch_loss = losses.mean()
+        (grad,) = torch.autograd.grad(batch_loss, parameter)
         direction = grad if precondition is None else precondition @ grad
         alpha = step_size if step_decay == "constant" else step_size / (k + 1) ** 0.5
         with torch.no_grad():
             parameter.sub_(alpha * direction)
+        if callback is not None and callback(k, model, batch_loss.item()):
+            break
     return model

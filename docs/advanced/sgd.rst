@@ -92,6 +92,87 @@ iterations and :math:`\alpha = 0.05`, which are the defaults except for the
 minibatch size (full batch by default).  The returned model is a copy, so
 ``init`` can be reused.
 
+Monitoring the loss and stopping early
+--------------------------------------
+
+Pass ``callback`` to watch the fitting.  After the update of every iteration
+:math:`k = 0, 1, \ldots`, :func:`~torch_bsf.fit_sgd` calls
+``callback(k, model, batch_loss)``, where ``model`` is the model being fitted
+(already updated) and ``batch_loss`` is the mean loss of the minibatch at the
+parameters *before* the update, i.e., :math:`\mathcal L_B(P^{(k)})`.  To
+compare the empirical loss on the fixed samples with the generalization loss
+on fresh ones, as the paper does, pass the samples as ``inputs`` and evaluate
+the model on both in the callback, under :func:`torch.no_grad`:
+
+.. testcode::
+   :pyversion: >= 3.10, < 3.15
+
+   inputs = sample_domain(init, 100, seed=0)  # the samples fit_sgd minimizes on
+   test_inputs = sample_domain(init, 1000, seed=1)  # fresh samples
+
+   def mean_loss(model, inputs):
+       with torch.no_grad():
+           return loss(model(*inputs), *inputs).mean().item()
+
+   history = {"minibatch": [], "empirical": [], "generalization": []}
+
+   def record(k, model, batch_loss):
+       history["minibatch"].append(batch_loss)  # at P^(k)
+       history["empirical"].append(mean_loss(model, inputs))  # at P^(k+1)
+       history["generalization"].append(mean_loss(model, test_inputs))  # at P^(k+1)
+
+   bs = torch_bsf.fit_sgd(init, loss, inputs=inputs, batch_size=20, step_size=0.2, seed=0, callback=record)
+   print(len(history["empirical"]))
+   print(history["generalization"][-1] < history["generalization"][0])
+
+.. testoutput::
+   :pyversion: >= 3.10, < 3.15
+
+   100
+   True
+
+and plot the records, e.g., with matplotlib:
+
+.. code-block:: python
+
+   import matplotlib.pyplot as plt
+
+   for name, values in history.items():
+       plt.plot(values, label=name)
+   plt.xlabel("iteration")
+   plt.ylabel("loss")
+   plt.legend()
+   plt.show()
+
+If the callback returns ``True``, the fitting stops after that iteration and
+returns the model updated so far.  There is no built-in stopping criterion;
+write one in the callback.  For example, stop once the empirical loss
+decreases by less than :math:`10^{-6}` in an iteration:
+
+.. testcode::
+   :pyversion: >= 3.10, < 3.15
+
+   losses = []
+
+   def converged(k, model, batch_loss):
+       losses.append(mean_loss(model, inputs))
+       return k > 0 and losses[-2] - losses[-1] < 1e-6
+
+   bs = torch_bsf.fit_sgd(init, loss, inputs=inputs, max_iter=1000, step_size=0.2, seed=0, callback=converged)
+   print(len(losses) < 1000)
+
+.. testoutput::
+   :pyversion: >= 3.10, < 3.15
+
+   True
+
+The callback receives the model being fitted, not a copy: it may evaluate the
+model but must not modify it.  To keep a snapshot, e.g., of the best model so
+far, copy its parameters (``model.control_points.detach().clone()`` for a
+Bézier simploid, ``model.proper_control_points.detach().clone()`` for a
+simploidal Bézier space).  The callback does not change the fitting: a
+callback that never returns ``True`` gives the same model as no callback.
+
 Generalization to simploids and simploidal spaces
 -------------------------------------------------
 

@@ -242,6 +242,104 @@ def test_fit_sgd_loss_shape_error() -> None:
         fit_sgd(init, lambda values, t: values, n_samples=5)
 
 
+def _reference_sgd(
+    init: BezierSimploid, loss: Any, t: torch.Tensor, batch_size: int, max_iter: int, step_size: float, seed: int
+) -> tuple[list[tuple[torch.Tensor, float]], torch.Tensor]:
+    """The control points and the minibatch loss before every iteration of fit_sgd, and the final control points."""
+    precondition = torch.linalg.inv(gram_matrix(init)).to(init.control_points.dtype)
+    generator = torch.Generator().manual_seed(seed + 1)
+    p = init.control_points.detach().clone()
+    iterates = []
+    for _ in range(max_iter):
+        rows = torch.randperm(len(t), generator=generator)[:batch_size]
+        p_k = p.clone().requires_grad_(True)
+        batch_loss = loss(init.design_matrix(t[rows]) @ p_k, t[rows]).mean()
+        (grad,) = torch.autograd.grad(batch_loss, p_k)
+        iterates.append((p, batch_loss.item()))
+        p = p - step_size * (precondition @ grad)
+    return iterates, p
+
+
+def test_fit_sgd_callback_calls_and_batch_loss() -> None:
+    """The callback is called once per iteration, in order, with the minibatch loss before the update."""
+    init = BezierSimploid.zeros((2,), 2, n_values=3).double()
+    loss = linear_scalarization(_location_objective)
+    (t,) = sample_domain(init, 50, seed=0)
+    t = t.double()
+    calls: list[tuple[int, torch.nn.Module, float, torch.Tensor]] = []
+
+    def callback(k: int, model: BezierSimploid, batch_loss: float) -> None:
+        calls.append((k, model, batch_loss, model.control_points.detach().clone()))
+
+    bs = fit_sgd(init, loss, inputs=[t], batch_size=10, max_iter=7, step_size=0.1, seed=3, callback=callback)
+    iterates, final = _reference_sgd(init, loss, t, batch_size=10, max_iter=7, step_size=0.1, seed=3)
+    assert [k for k, *_ in calls] == list(range(7))
+    assert all(model is bs for _, model, _, _ in calls)
+    for (_, _, batch_loss, _), (_, expected) in zip(calls, iterates, strict=True):
+        assert isinstance(batch_loss, float)
+        assert batch_loss == pytest.approx(expected, rel=1e-12)
+    # The model passed at iteration k is already updated: it holds the control points before iteration k + 1.
+    for (_, _, _, after), (before, _) in zip(calls[:-1], iterates[1:], strict=True):
+        assert torch.allclose(after, before, rtol=0, atol=1e-12)
+    assert torch.allclose(calls[-1][3], final, rtol=0, atol=1e-12)
+    assert torch.equal(calls[-1][3], bs.control_points)
+
+
+@pytest.mark.parametrize("stop_at", [0, 4])
+def test_fit_sgd_callback_early_stopping(stop_at: int) -> None:
+    """Returning True stops after that iteration, keeping its update."""
+    init = BezierSimploid.zeros((2,), 2, n_values=3)
+    loss = linear_scalarization(_location_objective)
+    calls: list[int] = []
+
+    def callback(k: int, model: BezierSimploid, batch_loss: float) -> bool:
+        calls.append(k)
+        return k == stop_at
+
+    stopped = fit_sgd(init, loss, batch_size=10, max_iter=20, seed=0, callback=callback)
+    expected = fit_sgd(init, loss, batch_size=10, max_iter=stop_at + 1, seed=0)
+    assert calls == list(range(stop_at + 1))
+    assert torch.equal(stopped.control_points, expected.control_points)
+    assert not torch.equal(stopped.control_points, init.control_points)
+
+
+@pytest.mark.parametrize("result", [None, False])
+def test_fit_sgd_callback_does_not_change_the_result(result: bool | None) -> None:
+    """A callback that does not stop gives bitwise the same model as no callback."""
+    init = BezierSimploid.zeros((2,), 3, n_values=3)
+    loss = linear_scalarization(_location_objective)
+    calls: list[int] = []
+
+    def callback(k: int, model: BezierSimploid, batch_loss: float) -> bool | None:
+        calls.append(k)
+        return result
+
+    with_callback = fit_sgd(init, loss, batch_size=20, max_iter=30, step_decay="sqrt", seed=5, callback=callback)
+    without = fit_sgd(init, loss, batch_size=20, max_iter=30, step_decay="sqrt", seed=5)
+    assert calls == list(range(30))
+    assert torch.equal(with_callback.control_points, without.control_points)
+
+
+def test_fit_sgd_callback_records_generalization_loss() -> None:
+    """A callback can evaluate the model being fitted, e.g. on held-out samples of a space."""
+    S, init, _ = _glued_space()
+    target = SimploidalBezierSpace(S, 2, 2).double()
+    torch.manual_seed(0)
+    torch.nn.init.normal_(target.proper_control_points)
+    loss = _squared_error(target)
+    test_inputs = sample_domain(init, 200, seed=1)
+    history: list[float] = []
+
+    def callback(k: int, model: SimploidalBezierSpace, batch_loss: float) -> None:
+        assert isinstance(model, SimploidalBezierSpace)
+        history.append(_mean_loss(model, loss, test_inputs))
+
+    space = fit_sgd(init, loss, n_samples=300, batch_size=100, max_iter=20, step_size=0.25, seed=0, callback=callback)
+    assert len(history) == 20
+    assert history[-1] == pytest.approx(_mean_loss(space, loss, test_inputs))
+    assert history[-1] < 0.01 * history[0]
+
+
 def test_fit_sgd_space_keeps_cells() -> None:
     """The fitted space accepts the cells of the input space, also as keys of weights."""
     _, init, (tri, sq, edge) = _glued_space()

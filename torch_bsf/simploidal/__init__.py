@@ -84,7 +84,7 @@ from torch_bsf.simploidal.combinatorics import (
 from torch_bsf.simploidal.fitting import Solver, fit_simploidal_set
 from torch_bsf.simploidal.io import load, save
 from torch_bsf.simploidal.sets import Simploid, SimploidalSet
-from torch_bsf.simploidal.sgd import SGDLoss, fit_sgd, gram_matrix, linear_scalarization, sample_domain
+from torch_bsf.simploidal.sgd import SGDCallback, SGDLoss, fit_sgd, gram_matrix, linear_scalarization, sample_domain
 from torch_bsf.simploidal.space import DegreeAssignment, SimploidalBezierSpace
 
 __all__ = [
@@ -96,6 +96,7 @@ __all__ = [
     "SimploidalSet",
     "SimploidIndex",
     "SimploidType",
+    "SGDCallback",
     "SGDLoss",
     "Solver",
     "bernstein_basis",
