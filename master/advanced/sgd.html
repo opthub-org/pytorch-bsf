@@ -398,7 +398,39 @@ fitted model is evaluated on them and saved to
 is omitted or a directory;</p></li>
 <li><p>unless <code class="docutils literal notranslate"><span class="pre">--loglevel=0</span></code>, the options and the final loss <code class="docutils literal notranslate"><span class="pre">train_loss</span></code> (the
 mean loss over the samples) are logged to MLflow, together with the control
-points file and the model with <code class="docutils literal notranslate"><span class="pre">--loglevel=2</span></code> (the default).</p></li>
+points file and the model with <code class="docutils literal notranslate"><span class="pre">--loglevel=2</span></code> (the default), and so is the
+loss <code class="docutils literal notranslate"><span class="pre">batch_loss</span></code> of the minibatch of every iteration, as a metric whose
+step is the iteration <code class="docutils literal notranslate"><span class="pre">k</span></code>.</p></li>
+</ul>
+<p>The options of <a class="reference internal" href="#freezing-control-points-and-smoothing">Freezing control points and smoothing</a> and
+<a class="reference internal" href="#monitoring-the-loss-and-stopping-early">Monitoring the loss and stopping early</a> are also available:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>torch_bsf<span class="w"> </span>sgd<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--objective<span class="o">=</span>problems:objective<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--n-objectives<span class="o">=</span><span class="m">3</span><span class="w"> </span>--n-variables<span class="o">=</span><span class="m">3</span><span class="w"> </span>--degree<span class="o">=</span><span class="m">3</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--init<span class="o">=</span>control_points.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--freeze<span class="o">=</span><span class="s1">'[[3,0,0],[0,3,0],[0,0,3]]'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--smoothness-weight<span class="o">=</span><span class="m">0</span>.01<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--log-every<span class="o">=</span><span class="m">10</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--init</span></code> starts from the control points of a file saved by
+<a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.save" title="torch_bsf.simploidal.save"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.simploidal.save()</span></code></a> (e.g., by <code class="docutils literal notranslate"><span class="pre">--save</span></code> of an earlier run)
+instead of <span class="math notranslate nohighlight">\(P_0 = O\)</span>.  It must be a Bézier simplex of dimension
+<span class="math notranslate nohighlight">\(M - 1\)</span>, the degree <code class="docutils literal notranslate"><span class="pre">--degree</span></code> and <span class="math notranslate nohighlight">\(L\)</span> values; otherwise, the
+command stops with an error message.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--freeze</span></code> keeps the control points of the given multi-indices at their
+values in <code class="docutils literal notranslate"><span class="pre">--init</span></code>, which it requires, in the JSON-style format of
+<code class="docutils literal notranslate"><span class="pre">--freeze</span></code> of <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">torch_bsf</span></code>.  Above, the vertices of the
+triangle stay at the minimizers of the single objectives written in
+<code class="docutils literal notranslate"><span class="pre">control_points.csv</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--smoothness-weight</span></code> (also <code class="docutils literal notranslate"><span class="pre">--smoothness_weight</span></code>) is
+<code class="docutils literal notranslate"><span class="pre">smoothness_weight</span></code> of <a class="reference internal" href="../torch_bsf.html#torch_bsf.fit_sgd" title="torch_bsf.fit_sgd"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_sgd()</span></code></a> (default <code class="docutils literal notranslate"><span class="pre">0.0</span></code>), which
+must be non-negative.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--log-every</span></code> thins out <code class="docutils literal notranslate"><span class="pre">batch_loss</span></code> to every <span class="math notranslate nohighlight">\(N\)</span>-th iteration
+(default <code class="docutils literal notranslate"><span class="pre">1</span></code>), and <code class="docutils literal notranslate"><span class="pre">--log-every=0</span></code> logs only <code class="docutils literal notranslate"><span class="pre">train_loss</span></code>.  The loss is
+recorded by <code class="docutils literal notranslate"><span class="pre">callback</span></code> and logged to MLflow in a batch after fitting; it
+is that of the minibatch before the update, without the smoothness penalty.</p></li>
 </ul>
 <p>Before fitting, the objective is evaluated on two points to check that it
 maps <code class="docutils literal notranslate"><span class="pre">(batch,</span> <span class="pre">L)</span></code> to differentiable values of shape <code class="docutils literal notranslate"><span class="pre">(batch,</span> <span class="pre">M)</span></code>; an
@@ -421,8 +453,12 @@ objectives must be installed in the environment of the run or found on its
 <code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code> (with <code class="docutils literal notranslate"><span class="pre">--env-manager=local</span></code>, set <code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code> to the
 directory of <code class="docutils literal notranslate"><span class="pre">problems.py</span></code>).  The parameters <code class="docutils literal notranslate"><span class="pre">meshgrid</span></code> (default <code class="docutils literal notranslate"><span class="pre">.</span></code>,
 i.e., no meshgrid), <code class="docutils literal notranslate"><span class="pre">n_samples</span></code>, <code class="docutils literal notranslate"><span class="pre">batch_size</span></code> (default <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>, i.e., the
-full batch), <code class="docutils literal notranslate"><span class="pre">max_iter</span></code>, <code class="docutils literal notranslate"><span class="pre">step_size</span></code>, <code class="docutils literal notranslate"><span class="pre">step_decay</span></code>, <code class="docutils literal notranslate"><span class="pre">preconditioner</span></code>
-and <code class="docutils literal notranslate"><span class="pre">seed</span></code> (default <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>, i.e., none) are also exposed.</p>
+full batch), <code class="docutils literal notranslate"><span class="pre">max_iter</span></code>, <code class="docutils literal notranslate"><span class="pre">step_size</span></code>, <code class="docutils literal notranslate"><span class="pre">step_decay</span></code>, <code class="docutils literal notranslate"><span class="pre">preconditioner</span></code>,
+<code class="docutils literal notranslate"><span class="pre">seed</span></code> (default <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>, i.e., none), <code class="docutils literal notranslate"><span class="pre">init</span></code> and <code class="docutils literal notranslate"><span class="pre">freeze</span></code> (default <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>,
+i.e., none), <code class="docutils literal notranslate"><span class="pre">smoothness_weight</span></code> and <code class="docutils literal notranslate"><span class="pre">log_every</span></code> are also exposed, e.g.,
+<code class="docutils literal notranslate"><span class="pre">-P</span> <span class="pre">init=/path/to/control_points.csv</span> <span class="pre">-P</span> <span class="pre">freeze='[[2,0,0],[0,2,0],[0,0,2]]'</span></code>
+(give <code class="docutils literal notranslate"><span class="pre">init</span></code> as an absolute path, since the command runs in the directory of
+the project).</p>
 <p>The command line fits Bézier simplices with the linear scalarization only;
 for Bézier simploids, simploidal Bézier spaces or other losses, use
 <a class="reference internal" href="../torch_bsf.html#torch_bsf.fit_sgd" title="torch_bsf.fit_sgd"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit_sgd()</span></code></a> from Python.</p>
