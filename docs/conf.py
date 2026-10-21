@@ -139,8 +139,9 @@ def linkcode_resolve(domain, info):
     if domain != "py" or not info["module"]:
         return None
     try:
-        filename = "torch_bsf/%s#L%d-L%d" % find_source()
+        fn, start, end = find_source()
+        filename = f"torch_bsf/{fn}#L{start}-L{end}"
     except Exception:
         filename = info["module"].replace(".", "/") + ".py"
     tag = "master"  # if 'dev' in release else ('v' + release)
-    return "https://github.com/opthub-org/pytorch-bsf/blob/%s/%s" % (tag, filename)
+    return f"https://github.com/opthub-org/pytorch-bsf/blob/{tag}/{filename}"

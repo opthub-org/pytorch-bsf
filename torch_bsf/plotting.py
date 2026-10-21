@@ -174,10 +174,7 @@ def _plot_bezier_curve(model, num, ax, show_control_points, **kwargs):
 
     if ax is None:
         fig = plt.figure()
-        if model.n_values >= 3:
-            ax = fig.add_subplot(111, projection="3d")
-        else:
-            ax = fig.add_subplot(111)
+        ax = fig.add_subplot(111, projection="3d" if model.n_values >= 3 else None)
 
     if model.n_values == 2:
         ax.plot(xs[:, 0], xs[:, 1], **kwargs)
@@ -253,10 +250,7 @@ def _plot_bezier_triangle(model, num, ax, show_control_points, **kwargs):
 
     if ax is None:
         fig = plt.figure()
-        if model.n_values >= 3:
-            ax = fig.add_subplot(111, projection="3d")
-        else:
-            ax = fig.add_subplot(111)
+        ax = fig.add_subplot(111, projection="3d" if model.n_values >= 3 else None)
 
     if model.n_values == 2:
         # Use the triangulation connectivity in value space for a consistent 2D plot
