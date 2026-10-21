@@ -505,3 +505,58 @@ approach, converge the slowest.  On the skew-MMD, :math:`f_1` is not convex
 :math:`\mathbf t^\top f(\mathbf x)` need not trace the Pareto set smoothly,
 and the fitted surface is only a local minimizer of :math:`\mathcal L`; the
 paper uses this problem only for the convergence comparison.
+
+The last figures correspond to Figure 4 of :cite:t:`hikima2025stochastic`:
+they compare how close the approximated Pareto set gets to the true one, by
+the mean squared error of Section 5.3 of the paper,
+
+.. math::
+
+   \mathrm{MSE}(P) = \frac{1}{N} \sum_{i=1}^N
+   \bigl\| b(\mathbf t_i \mid P) - \mathbf x^*(\mathbf t_i) \bigr\|_2^2,
+
+where :math:`\mathbf x^*(\mathbf t)` is the minimizer of
+:math:`\mathbf t^\top f(\mathbf x)` given in closed form above and
+:math:`\mathbf t_1, \dots, \mathbf t_N` are the :math:`N = 10{,}000` samples of
+the generalization loss.  It is recorded at
+:math:`P^{(0)}, \dots, P^{(K)}` in the same ``callback`` under
+``torch.no_grad()``; at :math:`P^{(0)} = O`, it is the mean of
+:math:`\|\mathbf x^*(\mathbf t_i)\|_2^2`.  The script draws the MSE of the
+location problem and Scaled-MED, as the paper does, and of Bergou2020, whose
+Pareto set is also known.  As in the other figures, the band is the range over
+the 5 trials, whereas the paper shows a 95% confidence interval.
+
+.. figure:: ../_static/sgd_benchmark_facility_location_mse.png
+   :width: 100%
+
+   Location problem: the MSE to the true Pareto set.
+
+.. figure:: ../_static/sgd_benchmark_scaled_med_mse.png
+   :width: 100%
+
+   Scaled-MED: the MSE to the true Pareto set.
+
+.. figure:: ../_static/sgd_benchmark_bergou2020_mse.png
+   :width: 100%
+
+   Bergou2020: the MSE to the true Pareto set.
+
+The MSE follows the optimality gap.  For the location problem,
+:math:`\mathbf t^\top f(\mathbf x) = \|\mathbf x - \mathbf x^*(\mathbf t)\|_2^2
++ 1 - \|\mathbf x^*(\mathbf t)\|_2^2` on the simplex, so the MSE equals the
+generalization optimality gap; :math:`\mathbf x^*` is linear in
+:math:`\mathbf t` and the MSE of PSGD keeps decreasing towards zero (to
+:math:`2 \times 10^{-6}` after 100 iterations with :math:`D = 2`, against
+:math:`6 \times 10^{-2}` for SGD).  For Scaled-MED and Bergou2020,
+:math:`\mathbf x^*` is a rational function that a Bézier simplex of degree
+:math:`D` cannot represent exactly, so even the minimizer :math:`P^*` of the
+generalization loss has a positive MSE, which decreases with the degree
+(:math:`6 \times 10^{-4}`, :math:`3 \times 10^{-5}` and
+:math:`2 \times 10^{-6}` for Scaled-MED with :math:`D = 2, 3, 4`).  The MSE of
+PSGD for Scaled-MED with :math:`D = 2` levels off near this floor after about
+30 iterations, while SGD is still two orders of magnitude above it.  The
+divergence of PSGD in two trials of Scaled-MED with :math:`D = 4` discussed
+above shows up in the MSE as well: the mean MSE of PSGD ends at 2.6, above
+the 0.15 of SGD, because one trial ends at 13 and another rises from
+:math:`3 \times 10^{-4}` to :math:`2 \times 10^{-3}`, whereas the other three
+trials end below :math:`10^{-3}`.
