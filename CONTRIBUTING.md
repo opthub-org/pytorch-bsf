@@ -225,6 +225,16 @@ Configuration in `pyproject.toml` (`[tool.ruff]` section):
 - `target-version = "py310"`
 - `select = ["E", "F", "W", "I"]` (pycodestyle errors and warnings, Pyflakes, isort)
 
+### Ignoring bulk formatting commits in git blame
+
+Commits that only reformat code (for example, the switch to Ruff in #364) are listed in `.git-blame-ignore-revs` at the repository root, so that `git blame` shows the commit that actually wrote each line. GitHub's blame view reads this file automatically. To use it locally, run this once in your clone:
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
+After a PR whose main purpose is a repository-wide reformat (for example, a formatter upgrade or a new rule that rewrites many files) is merged, open a follow-up PR that appends its commit to `.git-blame-ignore-revs`: a comment line with the commit subject, then the full 40-character SHA. Use the squash-merged SHA on `master`, not a SHA from the PR branch. Keep reformatting PRs free of unrelated changes, because every line they touch is hidden from blame.
+
 ### Type checking
 
 Add type hints to all public APIs. Use mypy for static analysis:

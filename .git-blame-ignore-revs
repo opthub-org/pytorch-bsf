@@ -1,0 +1,9 @@
+# Revisions listed here are skipped by `git blame` so that bulk reformatting
+# commits do not hide the commits that actually wrote each line.
+# GitHub's blame view reads this file automatically. Locally, run:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# See CONTRIBUTING.md ("Ignoring bulk formatting commits in git blame").
+# Add one full 40-character SHA per entry, preceded by a comment with its subject.
+
+# chore: replace flake8, black and isort with ruff (#364)
+e55c76f30e28a6790fe4c5ceb18d91ffcce1aad1
