@@ -126,7 +126,8 @@ def _log_to_mlflow(
 ) -> None:
     """Logs the parameters, the metrics, the control points file and (loglevel 2) the model to MLflow.
 
-    ``resume`` is passed to :func:`_mlflow_run`.  ``history`` gives metrics with their steps logged in a batch.
+    ``resume`` is passed to :func:`_mlflow_run`.  ``history`` gives metrics with their steps, which
+    :meth:`mlflow.MlflowClient.log_batch` splits into requests within the limits of MLflow.
     """
     with _mlflow_run(resume=resume):
         mlflow.log_metrics(metrics)  # starts a run if none is active

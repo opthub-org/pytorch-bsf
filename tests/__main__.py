@@ -928,3 +928,15 @@ def test_main_sgd_logs_loss_history(tmp_path, monkeypatch, log_every):
     assert run.data.params["log_every"] == str(every)
     assert run.data.params["init"] == "None" and run.data.params["freeze"] == "None"
     assert "train_loss" in run.data.metrics
+
+
+def test_main_sgd_logs_long_loss_history(tmp_path, monkeypatch):
+    """A history longer than the 1,000 metrics of an MLflow batch should be logged in full."""
+    import mlflow
+
+    args = ["--degree=1", "--n-samples=10", "--max-iter=1001", "--step-size=0.2", "--seed=0", "--loglevel=1"]
+    _run_main(monkeypatch, tmp_path, "sgd", *_SGD_ARGS, *args)
+    run = mlflow.last_active_run()
+    assert run is not None
+    logged = mlflow.MlflowClient().get_metric_history(run.info.run_id, "batch_loss")
+    assert sorted(m.step for m in logged) == list(range(1001))
