@@ -240,3 +240,26 @@ def test_fit_sgd_loss_shape_error() -> None:
     init = BezierSimploid.zeros((1,), 1, n_values=1)
     with pytest.raises(ValueError, match="loss must return"):
         fit_sgd(init, lambda values, t: values, n_samples=5)
+
+
+def test_fit_sgd_space_keeps_cells() -> None:
+    """The fitted space accepts the cells of the input space, also as keys of weights."""
+    _, init, (tri, sq, edge) = _glued_space()
+    loss = _squared_error(init)
+    space = fit_sgd(init, loss, n_samples=20, max_iter=2, weights={tri: 1.0, sq: 1.0, edge: 1.0}, seed=0)
+    assert space.simploids == init.simploids
+    assert space.proper_control_points is not init.proper_control_points
+    with torch.no_grad():
+        space.proper_control_points.fill_(1.0)
+    assert (init.proper_control_points == 0).all()
+    assert torch.allclose(space.evaluate(tri, torch.tensor([[0.2, 0.3, 0.5]])), torch.ones(1, 2, dtype=torch.float64))
+
+
+def test_space_default_weights_ignore_later_cells() -> None:
+    """The default weights follow the structure captured by the space, not later changes to its set."""
+    S, space, _ = _glued_space()
+    gram = gram_matrix(space)
+    S.add_simplex(2)
+    assert torch.equal(gram_matrix(space), gram)
+    _, ids = sample_domain(space, 50, seed=0)
+    assert ids.max() < len(space.simploids)

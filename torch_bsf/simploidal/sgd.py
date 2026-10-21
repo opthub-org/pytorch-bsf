@@ -84,9 +84,11 @@ def _simploid_gram(simploid_type: SimploidType, degree: tuple[int, ...]) -> torc
 
 
 def _cell_weights(space: SimploidalBezierSpace, weights: Mapping[Simploid, float] | None) -> dict[Simploid, float]:
-    """The probability of every simploid of ``space``: ``weights`` normalized, or uniform over the main simploids."""
+    """The probability of every simploid of ``space``: ``weights`` normalized, or uniform over its main simploids."""
     if weights is None:
-        weights = dict.fromkeys(space.simploidal_set.main_simploids(), 1.0)
+        # The main simploids of the structure captured by the space, which ignores later changes to its set.
+        faces = {id(f.base) for s in space.simploids for _, f in s.faces()}
+        weights = {s: 1.0 for s in space.simploids if id(s) not in faces}
     for s, w in weights.items():
         space.simploid_id(s)
         if not w >= 0:
@@ -112,7 +114,8 @@ def gram_matrix(
         A Bézier simploid or a simploidal Bézier space.
     weights
         For a space, the probability of every non-degenerate simploid (normalized to sum to one).
-        Uniform over :meth:`SimploidalSet.main_simploids` if ``None``.  Ignored for a Bézier simploid.
+        Uniform over the main simploids of the space (those that are not a face of another) if ``None``.
+        Ignored for a Bézier simploid.
 
     Returns
     -------
@@ -130,9 +133,10 @@ def gram_matrix(
     The Gram matrix of the linear Bézier curve (the paper's closed form for :math:`M = 2`, :math:`D = 1`):
 
     >>> from torch_bsf.simploidal import BezierSimploid, gram_matrix
-    >>> gram_matrix(BezierSimploid.zeros((1,), 1, n_values=1)) * 6
-    tensor([[2., 1.],
-            [1., 2.]], dtype=torch.float64)
+    >>> import torch
+    >>> gram = gram_matrix(BezierSimploid.zeros((1,), 1, n_values=1))
+    >>> torch.allclose(gram * 6, torch.tensor([[2.0, 1.0], [1.0, 2.0]], dtype=torch.float64))
+    True
     """
     if isinstance(model, BezierSimploid):
         return _simploid_gram(model.simploid_type, model.degree)
@@ -186,7 +190,8 @@ def sample_domain(
         The number of samples.
     weights
         For a space, the probability of every non-degenerate simploid (normalized to sum to one).
-        Uniform over :meth:`SimploidalSet.main_simploids` if ``None``.  Ignored for a Bézier simploid.
+        Uniform over the main simploids of the space (those that are not a face of another) if ``None``.
+        Ignored for a Bézier simploid.
     seed
         Random seed for reproducibility.
 
@@ -259,6 +264,19 @@ def linear_scalarization(objective: Callable[[torch.Tensor], torch.Tensor]) -> S
         return (t * fs).sum(dim=-1)
 
     return loss
+
+
+#: The attributes of every :class:`torch.nn.Module` (parameters, buffers, submodules, hooks, ...).
+_MODULE_STATE = frozenset(vars(torch.nn.Module()))
+
+
+def _copy_model(model: _Model) -> _Model:
+    """A copy of ``model`` with its own parameters, sharing its other attributes.
+
+    The cells of a space are identified by identity, so the copy keeps them (and their simploidal set) as they are.
+    """
+    shared = {id(v): v for k, v in vars(model).items() if k not in _MODULE_STATE}
+    return copy.deepcopy(model, shared)
 
 
 def _check_sgd_options(max_iter: int, step_size: float, batch_size: int | None, step_decay: str, preconditioner: str) -> None:
@@ -334,7 +352,8 @@ def fit_sgd(
         ``"none"`` is plain stochastic gradient descent.
     weights
         For a space, the probability of every non-degenerate simploid, used both to sample ``inputs``
-        and in :math:`\Sigma`.  Uniform over :meth:`SimploidalSet.main_simploids` if ``None``.
+        and in :math:`\Sigma`.  Uniform over the main simploids of the space (those that are not a face of
+        another) if ``None``.
     seed
         Random seed for the samples and the minibatches.
 
@@ -364,7 +383,7 @@ def fit_sgd(
     True
     """
     _check_sgd_options(max_iter, step_size, batch_size, step_decay, preconditioner)
-    model = copy.deepcopy(model)
+    model = _copy_model(model)
     parameter = _parameter(model)
     if inputs is None:
         inputs = sample_domain(model, n_samples, weights=weights, seed=seed)
