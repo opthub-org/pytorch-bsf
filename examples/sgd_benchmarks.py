@@ -19,8 +19,9 @@ its minimizer ``P*`` over the Bézier simplices of degree ``D`` is computed exac
 and the figures show the optimality gap ``L(P) - L(P*)``.  The skew-MMD has no closed form, so its
 figure shows the loss ``L(P)`` itself.
 
-Usage::
+Usage (matplotlib and SciPy are required, e.g., by the ``plot`` extra)::
 
+    pip install -e ".[plot]"
     python examples/sgd_benchmarks.py
 
 The script writes, for every problem ``<name>`` above, ``docs/_static/sgd_benchmark_<name>_loss.png``

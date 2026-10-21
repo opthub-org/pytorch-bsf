@@ -398,10 +398,13 @@ step size :math:`\alpha = 0.05`, the degrees :math:`D \in \{2, 3, 4\}`, and 5
 trials with different samples, SGD and PSGD sharing the samples of a trial.
 The losses are recorded with ``callback`` as in
 `Monitoring the loss and stopping early`_: the empirical loss on the
-:math:`n` samples and the generalization loss on 10,000 other samples.  Run
+:math:`n` samples and the generalization loss on 10,000 other samples.  The
+script plots with matplotlib and SciPy, which the ``plot`` extra installs.  In
+a clone of the repository, run
 
 .. code-block:: bash
 
+   pip install -e ".[plot]"
    python examples/sgd_benchmarks.py
 
 to write the figures below to ``docs/_static/``; it takes less than a minute
