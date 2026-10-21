@@ -1,7 +1,9 @@
 import itertools
 import math
+from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 import torch
 
 from torch_bsf.sampling import simplex_grid
@@ -318,10 +320,8 @@ def _plot_bezier_simplex_pairwise(model, num, show_control_points, max_control_p
     ImportError
         If matplotlib is not installed.
     """
-    if not isinstance(max_control_points, int) or max_control_points < 0:
-        raise ValueError(f"max_control_points must be a non-negative integer; got {max_control_points!r}")
-    if not isinstance(max_pairwise_points, int) or max_pairwise_points < 0:
-        raise ValueError(f"max_pairwise_points must be a non-negative integer; got {max_pairwise_points!r}")
+    _check_non_negative_int(max_control_points, "max_control_points")
+    _check_non_negative_int(max_pairwise_points, "max_pairwise_points")
 
     try:
         import matplotlib.pyplot as plt
@@ -333,6 +333,40 @@ def _plot_bezier_simplex_pairwise(model, num, show_control_points, max_control_p
     if n_v == 0:
         return np.empty((0, 0), dtype=object)
 
+    xs = _pairwise_samples(model, num, max_pairwise_points)
+
+    panel_size = max(1, min(3, 12 // max(n_v, 1)))
+    figsize_dim = min(12, panel_size * n_v)
+    fig, axes = plt.subplots(n_v, n_v, squeeze=False, figsize=(figsize_dim, figsize_dim))
+    cp = _pairwise_control_points(model, max_control_points) if show_control_points else None
+
+    # Allow caller to override scatter defaults via kwargs
+    scatter_s = kwargs.pop("s", 1)
+    scatter_alpha = kwargs.pop("alpha", 0.3)
+    # Compute a reasonable bin count (Sturges' rule, minimum 10)
+    n_samples = len(xs)
+    bins = max(10, int(np.ceil(np.log2(n_samples))) + 1) if n_samples > 1 else 10
+    scatter_kwargs = {"s": scatter_s, "alpha": scatter_alpha, **kwargs}
+
+    for i in range(n_v):
+        for j in range(n_v):
+            _draw_pairwise_panel(axes[i, j], xs, cp, i, j, bins, scatter_kwargs)
+
+    return axes
+
+
+def _check_non_negative_int(value: object, name: str) -> None:
+    """Raises a :class:`ValueError` unless ``value`` is a non-negative integer."""
+    if not isinstance(value, int) or value < 0:
+        raise ValueError(f"{name} must be a non-negative integer; got {value!r}")
+
+
+def _pairwise_samples(model: BezierSimploid, num: int, max_pairwise_points: int) -> npt.NDArray[Any]:
+    """The values of ``model`` on the meshgrid with ``num`` intervals on each edge of the simplex.
+
+    If the meshgrid has more than ``max_pairwise_points`` points, the values on
+    ``max_pairwise_points`` uniformly random points of the simplex instead.
+    """
     n_p = model.n_params
     meshgrid_size = math.comb(num + n_p - 1, n_p - 1) if n_p > 0 else 1
     if meshgrid_size > max_pairwise_points:
@@ -343,48 +377,49 @@ def _plot_bezier_simplex_pairwise(model, num, show_control_points, max_control_p
         cp_matrix = model.control_points
         ts = simplex_random(n_params=n_p, n_samples=max_pairwise_points).to(device=cp_matrix.device, dtype=cp_matrix.dtype)
         with torch.no_grad():
-            xs = model(ts).detach().cpu().numpy()
+            xs: npt.NDArray[Any] = model(ts).detach().cpu().numpy()
+        return xs
+    _ts, xs_t = _simplex_meshgrid(model, num)
+    return xs_t.detach().cpu().numpy()
+
+
+def _pairwise_control_points(model: BezierSimploid, max_control_points: int) -> npt.NDArray[Any]:
+    """The control points of ``model``, or a random subset of ``max_control_points`` of them if it has more."""
+    # Work on the torch tensor first to avoid transferring an enormous
+    # control-point matrix to CPU when max_control_points is small.
+    cp_t: torch.Tensor = model.control_points
+    cp_len = cp_t.shape[0]
+    if cp_len > max_control_points:
+        idx = torch.randperm(cp_len, device=cp_t.device)[:max_control_points]
+        cp_t = cp_t[idx]
+    return cp_t.detach().cpu().numpy()
+
+
+def _draw_pairwise_panel(
+    ax: Any,
+    xs: npt.NDArray[Any],
+    cp: npt.NDArray[Any] | None,
+    i: int,
+    j: int,
+    bins: int,
+    scatter_kwargs: dict[str, Any],
+) -> None:
+    """Draws the panel in row ``i`` and column ``j`` of the pairwise plot.
+
+    The diagonal panel is a histogram of the values ``xs[:, i]`` with vertical lines at the control points ``cp``;
+    an off-diagonal panel is a scatter plot of ``xs[:, j]`` against ``xs[:, i]`` with ``scatter_kwargs``
+    and of the control points.
+    """
+    if i == j:
+        ax.hist(xs[:, i], bins=bins)
+        if cp is not None:
+            x_vals = cp[:, i]
+            ymin, ymax = ax.get_ylim()
+            ax.vlines(x_vals, ymin, ymax, colors="r", alpha=0.5, linewidth=1)
     else:
-        _ts, xs_t = _simplex_meshgrid(model, num)
-        xs = xs_t.detach().cpu().numpy()
-
-    panel_size = max(1, min(3, 12 // max(n_v, 1)))
-    figsize_dim = min(12, panel_size * n_v)
-    fig, axes = plt.subplots(n_v, n_v, squeeze=False, figsize=(figsize_dim, figsize_dim))
-    if show_control_points:
-        # Work on the torch tensor first to avoid transferring an enormous
-        # control-point matrix to CPU when max_control_points is small.
-        cp_t = model.control_points
-        cp_len = cp_t.shape[0]
-        if cp_len > max_control_points:
-            idx = torch.randperm(cp_len, device=cp_t.device)[:max_control_points]
-            cp_t = cp_t[idx]
-        cp = cp_t.detach().cpu().numpy()
-    else:
-        cp = None
-
-    # Allow caller to override scatter defaults via kwargs
-    scatter_s = kwargs.pop("s", 1)
-    scatter_alpha = kwargs.pop("alpha", 0.3)
-    # Compute a reasonable bin count (Sturges' rule, minimum 10)
-    n_samples = len(xs)
-    bins = max(10, int(np.ceil(np.log2(n_samples))) + 1) if n_samples > 1 else 10
-
-    for i in range(n_v):
-        for j in range(n_v):
-            a = axes[i, j]
-            if i == j:
-                a.hist(xs[:, i], bins=bins)
-                if cp is not None:
-                    x_vals = cp[:, i]
-                    ymin, ymax = a.get_ylim()
-                    a.vlines(x_vals, ymin, ymax, colors="r", alpha=0.5, linewidth=1)
-            else:
-                a.scatter(xs[:, j], xs[:, i], s=scatter_s, alpha=scatter_alpha, **kwargs)
-                if cp is not None:
-                    a.scatter(cp[:, j], cp[:, i], c="r", s=20, marker="o", zorder=5)
-
-    return axes
+        ax.scatter(xs[:, j], xs[:, i], **scatter_kwargs)
+        if cp is not None:
+            ax.scatter(cp[:, j], cp[:, i], c="r", s=20, marker="o", zorder=5)
 
 
 # ---------------------------------------------------------------------------
