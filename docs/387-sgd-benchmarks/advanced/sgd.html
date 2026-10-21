@@ -71,6 +71,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#the-algorithm">The algorithm</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#fitting-a-bezier-simplex-to-a-pareto-set">Fitting a Bézier simplex to a Pareto set</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#monitoring-the-loss-and-stopping-early">Monitoring the loss and stopping early</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#freezing-control-points-and-smoothing">Freezing control points and smoothing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#generalization-to-simploids-and-simploidal-spaces">Generalization to simploids and simploidal spaces</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#benchmarks-sgd-vs-psgd">Benchmarks: SGD vs. PSGD</a></li>
 </ul>
@@ -256,6 +257,56 @@ far, copy its parameters (<code class="docutils literal notranslate"><span class
 Bézier simploid, <code class="docutils literal notranslate"><span class="pre">model.proper_control_points.detach().clone()</span></code> for a
 simploidal Bézier space).  The callback does not change the fitting: a
 callback that never returns <code class="docutils literal notranslate"><span class="pre">True</span></code> gives the same model as no callback.</p>
+</section>
+<section id="freezing-control-points-and-smoothing">
+<h2>Freezing control points and smoothing<a class="headerlink" href="#freezing-control-points-and-smoothing" title="Link to this heading"></a></h2>
+<p>The minimizer of each single objective <span class="math notranslate nohighlight">\(f_m\)</span> is often known in advance.
+It is the vertex <span class="math notranslate nohighlight">\(\mathbf t = \mathbf e_m\)</span> of the Pareto set, so you can
+put it in the initial model and keep it there with <code class="docutils literal notranslate"><span class="pre">freeze</span></code>, as in
+<a class="reference internal" href="../torch_bsf.html#torch_bsf.fit" title="torch_bsf.fit"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit()</span></code></a>.  <code class="docutils literal notranslate"><span class="pre">smoothness_weight</span></code> adds the smoothness penalty
+<span class="math notranslate nohighlight">\(w \sum_{(p, q)} \|P_p - P_q\|^2\)</span> over the adjacent control points to the
+loss, which keeps the control net of a high degree model from oscillating:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">init</span> <span class="o">=</span> <span class="n">BezierSimploid</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,),</span> <span class="mi">3</span><span class="p">,</span> <span class="n">n_values</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>  <span class="c1"># a cubic Bézier triangle</span>
+<span class="n">vertices</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">)]</span>
+<span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">m</span><span class="p">,</span> <span class="n">vertex</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">vertices</span><span class="p">):</span>
+        <span class="n">init</span><span class="p">[</span><span class="n">vertex</span><span class="p">]</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)[</span><span class="n">m</span><span class="p">])</span>  <span class="c1"># the minimizer of f_m</span>
+
+<span class="n">bs</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit_sgd</span><span class="p">(</span>
+    <span class="n">init</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">freeze</span><span class="o">=</span><span class="n">vertices</span><span class="p">,</span> <span class="n">smoothness_weight</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span>
+<span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">all</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">bs</span><span class="p">[</span><span class="n">v</span><span class="p">],</span> <span class="n">init</span><span class="p">[</span><span class="n">v</span><span class="p">])</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vertices</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">bs</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">t</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>True
+True
+</pre></div>
+</div>
+<p>The frozen control points keep their values in <code class="docutils literal notranslate"><span class="pre">init</span></code> bit for bit.  For a
+Bézier simplex, give their multi-indices (or full indices, as
+<code class="docutils literal notranslate"><span class="pre">((3,</span> <span class="pre">0,</span> <span class="pre">0),)</span></code>); for a Bézier simploid, their indices; and for a
+simploidal Bézier space, pairs <code class="docutils literal notranslate"><span class="pre">(simploid,</span> <span class="pre">index)</span></code> of any simploid of the
+set and an index of its control net, as in
+<a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.fit_simploidal_set" title="torch_bsf.simploidal.fit_simploidal_set"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_simploidal_set()</span></code></a>.</p>
+<p>With frozen rows, the step moves only the free rows <span class="math notranslate nohighlight">\(F\)</span> and is
+preconditioned by the block <span class="math notranslate nohighlight">\(\Sigma_{FF}\)</span> of the Gram matrix rather
+than by <span class="math notranslate nohighlight">\(\Sigma\)</span>, so that it still minimizes the linearized loss plus
+the move of the surface while the frozen rows stay fixed:</p>
+<div class="math notranslate nohighlight">
+\[P_F^{(k+1)} = P_F^{(k)} - \alpha_k (\Sigma_{FF} + 2 \alpha_k w L_{FF})^{-1}
+\nabla_F \bigl(\mathcal L_B(P^{(k)}) + w \operatorname{tr}(P^{(k)\top} L P^{(k)})\bigr),\]</div>
+<p>where <span class="math notranslate nohighlight">\(L\)</span> is the Laplacian of the adjacency graph of the control
+points, so that the penalty is <span class="math notranslate nohighlight">\(w \operatorname{tr}(P^\top L P)\)</span>.
+The term <span class="math notranslate nohighlight">\(2 \alpha_k w L_{FF}\)</span> comes from minimizing the penalty
+exactly instead of following its gradient.  The surface metric
+<span class="math notranslate nohighlight">\(\Sigma\)</span> is tiny along oscillating control nets, so
+<span class="math notranslate nohighlight">\(\Sigma^{-1} L\)</span> has eigenvalues in the thousands already for a cubic
+Bézier triangle, and a plain gradient step on the penalty would diverge
+unless <span class="math notranslate nohighlight">\(\alpha w\)</span> were tiny; the exact treatment is stable for every
+<span class="math notranslate nohighlight">\(w\)</span>.  The matrix is factorized once (once per iteration with
+<code class="docutils literal notranslate"><span class="pre">step_decay=&quot;sqrt&quot;</span></code> and <span class="math notranslate nohighlight">\(w &gt; 0\)</span>).  Without frozen rows and with
+<span class="math notranslate nohighlight">\(w = 0\)</span>, the step is the one of the paper.</p>
 </section>
 <section id="generalization-to-simploids-and-simploidal-spaces">
 <h2>Generalization to simploids and simploidal spaces<a class="headerlink" href="#generalization-to-simploids-and-simploidal-spaces" title="Link to this heading"></a></h2>
