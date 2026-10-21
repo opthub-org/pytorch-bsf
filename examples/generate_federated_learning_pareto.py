@@ -37,8 +37,9 @@ optimals = []
 for t in weights:
     w = np.array([1.0 - t, t])
     result = minimize(
-        lambda theta: f(theta, w),
+        f,
         x0=np.zeros(2),
+        args=(w,),
         method="L-BFGS-B",
     )
     theta_opt = result.x

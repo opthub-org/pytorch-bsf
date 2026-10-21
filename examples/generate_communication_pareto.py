@@ -39,7 +39,7 @@ for w in w_list:
     # Initial guess
     x0 = np.array([0.5, 0.5])
     # Minimize f(x, w)
-    result = minimize(lambda x: f(x, w), x0, method="L-BFGS-B")
+    result = minimize(f, x0, args=(w,), method="L-BFGS-B")
     x_opt = result.x
     f1_val = f1(x_opt)
     f2_val = f2(x_opt)

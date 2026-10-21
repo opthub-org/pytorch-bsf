@@ -34,7 +34,7 @@ weights = np.linspace(0.0, 1.0, 10)
 optimals = []
 for t in weights:
     w = np.array([1.0 - t, t])
-    result = minimize(lambda x: f(x, w), x0=np.array([0.5, 0.5]), method="L-BFGS-B")
+    result = minimize(f, x0=np.array([0.5, 0.5]), args=(w,), method="L-BFGS-B")
     x_opt = result.x
     optimals.append((w, x_opt, f1(x_opt), f2(x_opt)))
 

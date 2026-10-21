@@ -57,7 +57,7 @@ w_list = np.array(
 
 optimals = []
 for w in w_list:
-    result = minimize(lambda x: f(x, w), x0=np.array([0.5, 0.5]), method="L-BFGS-B")
+    result = minimize(f, x0=np.array([0.5, 0.5]), args=(w,), method="L-BFGS-B")
     x_opt = result.x
     optimals.append((w, x_opt, f1(x_opt), f2(x_opt), f3(x_opt), f4(x_opt)))
 
