@@ -1,11 +1,20 @@
 """Tests for torch_bsf._cli_args."""
 
+import re
 from argparse import ArgumentParser, ArgumentTypeError
 
 import numpy as np
 import pytest
 
-from torch_bsf._cli_args import add_common_training_args, add_model_args, fit_options, load_model_data, simploid_type
+from torch_bsf._cli_args import (
+    add_common_training_args,
+    add_model_args,
+    add_sgd_args,
+    fit_options,
+    import_callable,
+    load_model_data,
+    simploid_type,
+)
 
 
 def test_add_common_training_args_registers_all():
@@ -190,3 +199,48 @@ def test_fit_options_passes_trainer_options_to_the_trainer_solver(tmp_path):
     assert options["max_epochs"] == 7
     assert options["batch_size"] == 4
     assert options["simploid_type"] == (1,)
+
+
+def test_add_sgd_args_defaults_are_those_of_fit_sgd():
+    """The defaults of the sgd options should be those of torch_bsf.fit_sgd, and '' should mean None."""
+    import inspect
+
+    import torch_bsf
+
+    parser = ArgumentParser()
+    add_sgd_args(parser)
+    args = parser.parse_args(["--objective=m:f", "--n-objectives=3", "--n-variables=2", "--degree=1"])
+    defaults = inspect.signature(torch_bsf.fit_sgd).parameters
+    for name in ("n_samples", "batch_size", "max_iter", "step_size", "step_decay", "preconditioner", "seed"):
+        assert getattr(args, name) == defaults[name].default, name
+    assert args.meshgrid is None
+    args = parser.parse_args(
+        ["--objective=m:f", "--n-objectives=3", "--n-variables=2", "--degree=1", "--batch-size=", "--seed= "]
+    )
+    assert args.batch_size is None and args.seed is None
+    args = parser.parse_args(
+        ["--objective=m:f", "--n-objectives=3", "--n-variables=2", "--degree=1", "--batch_size=4", "--seed=7"]
+    )
+    assert args.batch_size == 4 and args.seed == 7
+
+
+def test_import_callable_resolves_dotted_attributes():
+    from torch_bsf.simploidal import BezierSimploid
+
+    assert import_callable("torch_bsf.simploidal:BezierSimploid.zeros") == BezierSimploid.zeros
+    assert import_callable("torch_bsf.simploidal.sgd:fit_sgd").__name__ == "fit_sgd"
+
+
+@pytest.mark.parametrize(
+    "spec, message",
+    [
+        ("torch_bsf", "expected MODULE:FUNCTION"),
+        (":fit_sgd", "expected MODULE:FUNCTION"),
+        ("torch_bsf.no_such_module:f", "cannot import module 'torch_bsf.no_such_module': ModuleNotFoundError"),
+        ("torch_bsf:BezierSimploid.no_such_method", "module 'torch_bsf' has no attribute 'BezierSimploid.no_such_method'"),
+        ("torch_bsf:__all__", "'torch_bsf:__all__' is not callable"),
+    ],
+)
+def test_import_callable_rejects(spec, message):
+    with pytest.raises(ValueError, match=re.escape(message)):
+        import_callable(spec)

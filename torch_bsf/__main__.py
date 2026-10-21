@@ -1,7 +1,9 @@
+import sys
 from argparse import ArgumentParser, Namespace
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
+from typing import Any
 
 import mlflow
 import numpy as np
@@ -12,18 +14,29 @@ from torch.nn import functional as F
 from torch_bsf._cli_args import (
     add_common_training_args,
     add_model_args,
+    add_sgd_args,
     check_columns,
+    check_sgd_args,
     file_tag,
     fit_options,
+    import_callable,
     load_model_data,
     load_table,
 )
 from torch_bsf.simploidal import BezierSimploid, save
 from torch_bsf.simploidal.fitting import fit
+from torch_bsf.simploidal.sgd import fit_sgd, linear_scalarization, sample_domain
 
 
 def _build_parser() -> ArgumentParser:
-    parser = ArgumentParser(prog="python -m torch_bsf", description="Bezier simplex (or simploid) fitting")
+    parser = ArgumentParser(
+        prog="python -m torch_bsf",
+        description="Bezier simplex (or simploid) fitting",
+        epilog=(
+            "To fit a Bezier simplex to the Pareto set of objective functions instead of data, "
+            "run 'python -m torch_bsf sgd' (see 'python -m torch_bsf sgd --help')."
+        ),
+    )
     add_model_args(parser)
     add_common_training_args(parser)
     parser.add_argument(
@@ -99,33 +112,166 @@ def _metrics(model: BezierSimploid, prefix: str, params: torch.Tensor, values: t
         }
 
 
-def _log_run(args: Namespace, model: BezierSimploid, metrics: dict[str, float], save_path: Path) -> None:
-    """Logs the parameters, the errors, the control points file and (loglevel 2) the model to MLflow."""
-    trained = args.solver == "trainer"  # whether autolog started (and finished) a run
-    with _mlflow_run(resume=trained):
+def _log_to_mlflow(
+    model: BezierSimploid,
+    metrics: dict[str, float],
+    params: dict[str, Any],
+    save_path: Path,
+    loglevel: int,
+    resume: bool,
+) -> None:
+    """Logs the parameters, the metrics, the control points file and (loglevel 2) the model to MLflow.
+
+    ``resume`` is passed to :func:`_mlflow_run`.
+    """
+    with _mlflow_run(resume=resume):
         mlflow.log_metrics(metrics)  # starts a run if none is active
         run = mlflow.active_run()
         # An MLflow project run has already logged its own parameters, which cannot be changed.
         logged = mlflow.get_run(run.info.run_id).data.params if run is not None else {}
-        params = {
-            "simploid_type": ",".join(map(str, model.simploid_type)),
-            "degree": ",".join(map(str, model.degree)),
-            "solver": args.solver,
-            "ridge": args.ridge,
-            "smoothness_weight": args.smoothness_weight,
-            "normalize": args.normalize,
-            "split_ratio": args.split_ratio,
-        }
         mlflow.log_params({k: v for k, v in params.items() if k not in logged})
-        if args.loglevel >= 2:
+        if loglevel >= 2:
             mlflow.log_artifact(str(save_path))
             _log_model(model, model.n_params, model.n_values)
 
 
-def main() -> None:
-    """Entry point for ``python -m torch_bsf``."""
+def _log_run(args: Namespace, model: BezierSimploid, metrics: dict[str, float], save_path: Path) -> None:
+    """Logs the parameters, the errors, the control points file and (loglevel 2) the model to MLflow."""
+    params = {
+        "simploid_type": ",".join(map(str, model.simploid_type)),
+        "degree": ",".join(map(str, model.degree)),
+        "solver": args.solver,
+        "ridge": args.ridge,
+        "smoothness_weight": args.smoothness_weight,
+        "normalize": args.normalize,
+        "split_ratio": args.split_ratio,
+    }
+    trained = args.solver == "trainer"  # whether autolog started (and finished) a run
+    _log_to_mlflow(model, metrics, params, save_path, args.loglevel, resume=trained)
+
+
+def _build_sgd_parser() -> ArgumentParser:
+    parser = ArgumentParser(
+        prog="python -m torch_bsf sgd",
+        description=(
+            "Bezier simplex fitting to the Pareto set of objective functions by the preconditioned stochastic "
+            "gradient descent of Hikima et al. (AISTATS 2025), minimizing the linear scalarization t^T f(x) "
+            "averaged over the weights t on the simplex"
+        ),
+    )
+    add_sgd_args(parser)
+    parser.add_argument(
+        "--save",
+        type=Path,
+        metavar="FILE",
+        help=(
+            "Path to save the control points of the fitted model to; the format is chosen by the "
+            "extension (.csv, .tsv, .json, .yml, .yaml or .pt) "
+            "(default: '<module>.<function>,control_points,t_<M-1>,d_<N>.csv' named after --objective)"
+        ),
+    )
+    parser.add_argument(
+        "--loglevel", type=int, choices=(0, 1, 2), default=2, help="0: nothing, 1: metrics, 2: metrics & models"
+    )
+    return parser
+
+
+def _load_objective(parser: ArgumentParser, spec: str) -> Callable[[torch.Tensor], torch.Tensor]:
+    """Imports the objective functions given by ``--objective``, reporting an error if they cannot be imported."""
+    try:
+        return import_callable(spec)
+    except ValueError as e:
+        parser.error(f"cannot load --objective: {e}")
+
+
+def _check_objective(
+    parser: ArgumentParser, objective: Callable[[torch.Tensor], torch.Tensor], x: torch.Tensor, n_objectives: int
+) -> None:
+    """Reports an error unless ``objective`` maps the points ``x`` to differentiable values of ``n_objectives`` columns."""
+    try:
+        fs = objective(x)
+    except Exception as e:  # the objective is user code
+        parser.error(f"--objective failed on points of shape {tuple(x.shape)}: {type(e).__name__}: {e}")
+    expected = (len(x), n_objectives)
+    if not isinstance(fs, torch.Tensor) or fs.shape != expected:
+        got = f"shape {tuple(fs.shape)}" if isinstance(fs, torch.Tensor) else f"a {type(fs).__name__}"
+        parser.error(
+            f"--objective must map points of shape {tuple(x.shape)} (--n-variables) to a tensor of shape "
+            f"{expected} (--n-objectives), but it returned {got}"
+        )
+    if not fs.requires_grad:
+        parser.error("--objective must be differentiable with PyTorch, but its values do not require grad")
+
+
+def _sgd_params(args: Namespace) -> dict[str, Any]:
+    """The parameters of ``python -m torch_bsf sgd`` logged to MLflow."""
+    names = ("objective", "n_objectives", "n_variables", "degree", "n_samples", "batch_size", "max_iter")
+    return {name: getattr(args, name) for name in (*names, "step_size", "step_decay", "preconditioner", "seed")}
+
+
+def sgd_main(argv: Sequence[str] | None = None) -> None:
+    """Entry point for ``python -m torch_bsf sgd``, which fits a Bézier simplex with :func:`torch_bsf.fit_sgd`.
+
+    Parameters
+    ----------
+    argv
+        The arguments after ``sgd``; ``sys.argv[2:]`` if ``None``.
+    """
+    parser = _build_sgd_parser()
+    args = parser.parse_args(sys.argv[2:] if argv is None else argv)
+    check_sgd_args(parser, args)
+    objective = _load_objective(parser, args.objective)
+    simploid_type = (args.n_objectives - 1,)
+    ts = None
+    if args.meshgrid is not None and not args.meshgrid.is_dir():
+        ts = load_table(args.meshgrid, args.header)
+        check_columns(parser, "--meshgrid", ts, simploid_type)
+
+    init = BezierSimploid.zeros(simploid_type, args.degree, n_values=args.n_variables)
+    # The samples fit_sgd would draw itself, kept to evaluate the loss after fitting.
+    (t,) = sample_domain(init, args.n_samples, seed=args.seed)
+    _check_objective(parser, objective, init(t[:2]), args.n_objectives)
+    loss = linear_scalarization(objective)
+    options = {name: getattr(args, name) for name in ("batch_size", "max_iter", "step_size", "step_decay", "preconditioner")}
+    model = fit_sgd(init, loss, inputs=[t], seed=args.seed, **options)  # the options are checked above
+
+    tag = file_tag(model.simploid_type, model.degree)
+    name = args.objective.replace(":", ".")
+    save_path: Path = args.save or Path(f"{name},control_points,{tag}.csv")
+    save(save_path, model)
+    print(f"Control points saved: {save_path}")
+
+    if args.loglevel >= 1:
+        with torch.no_grad():
+            metrics = {"train_loss": loss(model(t), t).mean().item()}
+        _log_to_mlflow(model, metrics, _sgd_params(args), save_path, args.loglevel, resume=False)
+
+    if ts is not None:
+        fn = f"{name},meshgrid,{tag}.csv"
+        with torch.no_grad():
+            np.savetxt(fn, model(ts).cpu().numpy(), delimiter=",")
+        print(f"Meshgrid saved: {fn}")
+
+
+def main(argv: Sequence[str] | None = None) -> None:
+    """Entry point for ``python -m torch_bsf``; ``python -m torch_bsf sgd ...`` runs :func:`sgd_main`.
+
+    Parameters
+    ----------
+    argv
+        The command-line arguments; ``sys.argv[1:]`` if ``None``.
+    """
+    args = sys.argv[1:] if argv is None else list(argv)
+    if args[:1] == ["sgd"]:
+        sgd_main(args[1:])
+    else:
+        _fit_main(args)
+
+
+def _fit_main(argv: Sequence[str]) -> None:
+    """Fits a model to the data given by the command-line arguments ``argv``."""
     parser = _build_parser()
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if not 0.0 < args.split_ratio <= 1.0:
         parser.error(f"--split_ratio must satisfy 0 < R <= 1, but {args.split_ratio} is given")
     params, values, simploid_type, init = load_model_data(parser, args)

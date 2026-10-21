@@ -27,6 +27,34 @@ entry_points:
       --normalize={normalize}
       --split_ratio={split_ratio}
       --max_epochs={max_epochs}
+  sgd:
+    parameters:
+      objective: {type: str}
+      n_objectives: {type: int}
+      n_variables: {type: int}
+      degree: {type: int}
+      meshgrid: {type: path, default: "."}
+      n_samples: {type: int, default: 100}
+      batch_size: {type: str, default: ""}
+      max_iter: {type: int, default: 100}
+      step_size: {type: float, default: 0.05}
+      step_decay: {type: str, default: "constant"}
+      preconditioner: {type: str, default: "gram"}
+      seed: {type: str, default: ""}
+    command: >-
+      python -m torch_bsf sgd
+      --objective={objective}
+      --n-objectives={n_objectives}
+      --n-variables={n_variables}
+      --degree={degree}
+      --meshgrid={meshgrid}
+      --n-samples={n_samples}
+      --batch-size={batch_size}
+      --max-iter={max_iter}
+      --step-size={step_size}
+      --step-decay={step_decay}
+      --preconditioner={preconditioner}
+      --seed={seed}
   kfold:
     parameters:
       params: {type: path}

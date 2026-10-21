@@ -1,8 +1,10 @@
 """Shared argparse argument registration and data loading for CLI entry points."""
 
+import importlib
 from argparse import ArgumentParser, ArgumentTypeError, Namespace
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import torch
@@ -349,3 +351,159 @@ def fit_options(args: Namespace, simploid_type: tuple[int, ...], init: BezierSim
     if args.solver == "trainer":
         options.update(batch_size=args.batch_size, **trainer_kwargs(args))
     return options
+
+
+def _optional_int(text: str) -> int | None:
+    """Parse an integer, or ``None`` for an empty string (the default of MLflow projects)."""
+    return int(text) if text.strip() else None
+
+
+def add_sgd_args(parser: ArgumentParser) -> None:
+    """Register the arguments of ``python -m torch_bsf sgd``, which fits a Bézier simplex with :func:`torch_bsf.fit_sgd`."""
+    parser.add_argument(
+        "--objective",
+        required=True,
+        metavar="MODULE:FUNCTION",
+        help=(
+            "Objective functions to minimize: a differentiable PyTorch function mapping points of shape (batch, L) "
+            "to objective values of shape (batch, M), e.g. 'mypkg.problems:objective'; the module is imported from "
+            "the current directory or the installed packages"
+        ),
+    )
+    parser.add_argument(
+        "--n-objectives",
+        "--n_objectives",
+        dest="n_objectives",
+        type=int,
+        required=True,
+        metavar="M",
+        help="Number M >= 2 of objectives; a Bezier simplex of dimension M - 1 is fitted",
+    )
+    parser.add_argument(
+        "--n-variables",
+        "--n_variables",
+        dest="n_variables",
+        type=int,
+        required=True,
+        metavar="L",
+        help="Number L >= 1 of variables of the objectives, i.e. the dimension of the space the Bezier simplex lies in",
+    )
+    parser.add_argument("--degree", type=int, required=True, metavar="N", help="Degree of the Bezier simplex")
+    parser.add_argument(
+        "--meshgrid",
+        type=Path,
+        metavar="CSV|DIR",
+        help=(
+            "Path to a CSV file of parameters (M columns) at which to evaluate the fitted model; "
+            "nothing is evaluated if omitted or if an existing directory path is given"
+        ),
+    )
+    parser.add_argument(
+        "--header",
+        type=int,
+        default=0,
+        metavar="N",
+        help="Number of header rows to skip in the meshgrid CSV file (default: 0)",
+    )
+    parser.add_argument(
+        "--n-samples",
+        "--n_samples",
+        dest="n_samples",
+        type=int,
+        default=100,
+        metavar="N",
+        help="Number of parameters sampled uniformly on the simplex to average the loss over (default: 100)",
+    )
+    parser.add_argument(
+        "--batch-size",
+        "--batch_size",
+        dest="batch_size",
+        type=_optional_int,
+        metavar="N",
+        help="Minibatch size; omit to use the full batch",
+    )
+    parser.add_argument(
+        "--max-iter",
+        "--max_iter",
+        dest="max_iter",
+        type=int,
+        default=100,
+        metavar="N",
+        help="Number of iterations (default: 100)",
+    )
+    parser.add_argument(
+        "--step-size",
+        "--step_size",
+        dest="step_size",
+        type=float,
+        default=0.05,
+        metavar="ALPHA",
+        help="Step size (default: 0.05)",
+    )
+    parser.add_argument(
+        "--step-decay",
+        "--step_decay",
+        dest="step_decay",
+        choices=("constant", "sqrt"),
+        default="constant",
+        help="'constant' keeps the step size, 'sqrt' divides it by sqrt(k + 1) at iteration k (default: constant)",
+    )
+    parser.add_argument(
+        "--preconditioner",
+        choices=("gram", "none"),
+        default="gram",
+        help=(
+            "'gram' preconditions the gradient by the inverse Gram matrix of the Bernstein basis (Hikima et al., 2025); "
+            "'none' is plain stochastic gradient descent (default: gram)"
+        ),
+    )
+    parser.add_argument(
+        "--seed", type=_optional_int, metavar="N", help="Random seed for the samples and the minibatches (default: none)"
+    )
+
+
+def check_sgd_args(parser: ArgumentParser, args: Namespace) -> None:
+    """Reports an error if an argument registered by :func:`add_sgd_args` is out of range."""
+    minimums = {
+        "--n-objectives": (args.n_objectives, 2),
+        "--n-variables": (args.n_variables, 1),
+        "--degree": (args.degree, 0),
+        "--n-samples": (args.n_samples, 1),
+        "--batch-size": (1 if args.batch_size is None else args.batch_size, 1),
+        "--max-iter": (args.max_iter, 0),
+    }
+    for option, (value, minimum) in minimums.items():
+        if value < minimum:
+            parser.error(f"{option} must be at least {minimum}, but {value} is given")
+    if not args.step_size > 0:
+        parser.error(f"--step-size must be positive, but {args.step_size} is given")
+
+
+def import_callable(spec: str) -> Callable[..., Any]:
+    """Import the callable given as ``module:name``, where ``name`` may be a dotted path of attributes.
+
+    Raises
+    ------
+    ValueError
+        If ``spec`` is malformed, the module cannot be imported, it has no such attribute, or it is not callable.
+
+    Examples
+    --------
+    >>> from torch_bsf._cli_args import import_callable
+    >>> import_callable("torch_bsf.simploidal:BezierSimploid.zeros")((1,), 1, n_values=1).degree
+    (1,)
+    """
+    module_name, _, name = spec.partition(":")
+    if not module_name or not name:
+        raise ValueError(f"expected MODULE:FUNCTION, e.g. 'mypkg.problems:objective', but {spec!r} is given")
+    try:
+        obj = importlib.import_module(module_name)
+    except Exception as e:  # importing a module runs arbitrary code
+        raise ValueError(f"cannot import module {module_name!r}: {type(e).__name__}: {e}") from e
+    for attr in name.split("."):
+        if not hasattr(obj, attr):
+            raise ValueError(f"module {module_name!r} has no attribute {name!r}")
+        obj = getattr(obj, attr)
+    if not callable(obj):
+        raise ValueError(f"{spec!r} is not callable")
+    return cast(Callable[..., Any], obj)

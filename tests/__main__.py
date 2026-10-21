@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import torch
 
 _REPO_ROOT = Path(__file__).parent.parent
 _PARAMS_CSV = _REPO_ROOT / "params.csv"
@@ -547,3 +548,268 @@ def test_main_simplex_is_the_default_type(tmp_path, monkeypatch):
     assert model.simploid_type == (2,)
     meshgrid = np.loadtxt(tmp_path / "p.csv,v.csv,meshgrid,t_2,d_2.csv", delimiter=",", ndmin=2)
     np.testing.assert_allclose(meshgrid, 5.0 + t[:, :2] ** 2, atol=1e-4)
+
+
+def test_main_help_mentions_sgd():
+    """The help of the data fitting command should point to the sgd subcommand."""
+    result = _run_cli("--help")
+    assert result.returncode == 0
+    assert "python -m torch_bsf sgd" in result.stdout
+
+
+# ---------------------------------------------------------------------------
+# Pareto set learning by stochastic gradient descent (python -m torch_bsf sgd)
+# ---------------------------------------------------------------------------
+
+
+def sgd_objective(x: torch.Tensor) -> torch.Tensor:
+    """f_m(x) = ||x - e_m||^2 (m = 1, 2, 3), whose Pareto set is the triangle spanned by e_1, e_2, e_3, reached at x = t."""
+    return ((x.unsqueeze(1) - torch.eye(3, dtype=x.dtype)) ** 2).sum(dim=-1)
+
+
+def sgd_objective_raises(x: torch.Tensor) -> torch.Tensor:
+    raise RuntimeError("cannot evaluate")
+
+
+def sgd_objective_not_differentiable(x: torch.Tensor) -> torch.Tensor:
+    return sgd_objective(x).detach()
+
+
+def sgd_objective_list(x: torch.Tensor) -> list[float]:
+    return [0.0, 0.0, 0.0]
+
+
+SGD_NOT_CALLABLE = 1
+
+_SGD_OBJECTIVE = "tests.__main__:sgd_objective"
+_SGD_ARGS = (f"--objective={_SGD_OBJECTIVE}", "--n-objectives=3", "--n-variables=3")
+
+
+def _write_simplex_grid(path: Path, n_params: int = 3) -> torch.Tensor:
+    """Writes a grid on the simplex of ``n_params`` parameters to ``path`` and returns it."""
+    import numpy as np
+
+    from torch_bsf.sampling import simplex_grid
+
+    t = simplex_grid(n_params, 4)
+    np.savetxt(path, t.double().numpy(), delimiter=",")
+    return t
+
+
+def test_cli_sgd_fits_and_saves_control_points_and_meshgrid(tmp_path):
+    """sgd should fit a Bezier simplex to the Pareto set and save its control points and the meshgrid."""
+    import numpy as np
+
+    import torch_bsf.simploidal as ts
+
+    t = _write_simplex_grid(tmp_path / "mesh.csv")
+    result = _run_cli(
+        "sgd",
+        *_SGD_ARGS,
+        "--degree=1",
+        "--batch-size=20",
+        "--step-size=0.2",
+        "--seed=0",
+        "--meshgrid=mesh.csv",
+        "--loglevel=0",
+        cwd=tmp_path,
+    )
+    assert result.returncode == 0, result.stderr
+    saved = tmp_path / "tests.__main__.sgd_objective,control_points,t_2,d_1.csv"
+    assert f"Control points saved: {saved.name}" in result.stdout
+    model = ts.load(saved)
+    assert model.simploid_type == (2,)
+    assert model.degree == (1,)
+    assert torch.allclose(model.control_points, torch.eye(3), atol=1e-3)
+    meshgrid = tmp_path / "tests.__main__.sgd_objective,meshgrid,t_2,d_1.csv"
+    assert f"Meshgrid saved: {meshgrid.name}" in result.stdout
+    np.testing.assert_allclose(np.loadtxt(meshgrid, delimiter=",", ndmin=2), t.numpy(), atol=1e-3)
+
+
+@pytest.mark.parametrize("meshgrid", [[], ["--meshgrid=."]])
+def test_main_sgd_matches_fit_sgd(tmp_path, monkeypatch, meshgrid):
+    """The options should be passed to fit_sgd, and no meshgrid is saved unless a file is given."""
+    import torch_bsf
+    import torch_bsf.simploidal as ts
+
+    options = dict(n_samples=50, batch_size=10, max_iter=20, step_size=0.1, step_decay="sqrt", preconditioner="none", seed=3)
+    args = [f"--{k.replace('_', '-')}={v}" for k, v in options.items()]
+    _run_main(monkeypatch, tmp_path, "sgd", *_SGD_ARGS, "--degree=2", *args, "--save=model.pt", "--loglevel=0", *meshgrid)
+    expected = torch_bsf.fit_sgd(
+        ts.BezierSimploid.zeros((2,), 2, n_values=3),
+        ts.linear_scalarization(sgd_objective),
+        **options,  # type: ignore[arg-type]
+    )
+    assert torch.equal(ts.load(tmp_path / "model.pt").control_points, expected.control_points)
+    assert sorted(p.name for p in tmp_path.iterdir() if p.suffix != ".db") == ["model.pt"]
+
+
+def test_main_sgd_saves_meshgrid(tmp_path, monkeypatch):
+    """With a meshgrid file, sgd should save the fitted model evaluated at its rows."""
+    import numpy as np
+
+    import torch_bsf.simploidal as ts
+
+    t = _write_simplex_grid(tmp_path / "mesh.csv")
+    args = ["--degree=1", "--batch-size=20", "--step-size=0.2", "--seed=0", "--meshgrid=mesh.csv", "--save=model.pt"]
+    _run_main(monkeypatch, tmp_path, "sgd", *_SGD_ARGS, *args, "--loglevel=0")
+    model = ts.load(tmp_path / "model.pt")
+    meshgrid = np.loadtxt(tmp_path / "tests.__main__.sgd_objective,meshgrid,t_2,d_1.csv", delimiter=",", ndmin=2)
+    np.testing.assert_allclose(meshgrid, model(t).detach().numpy(), atol=1e-6)
+
+
+def test_main_sgd_accepts_underscored_options(tmp_path, monkeypatch):
+    """The options should also be accepted with underscores, as the other options of the CLI."""
+    import torch_bsf.simploidal as ts
+
+    args = ["--n_samples=10", "--batch_size=5", "--max_iter=1", "--step_size=0.1", "--step_decay=sqrt"]
+    _run_main(
+        monkeypatch,
+        tmp_path,
+        "sgd",
+        f"--objective={_SGD_OBJECTIVE}",
+        "--n_objectives=3",
+        "--n_variables=3",
+        "--degree=1",
+        *args,
+        "--save=model.json",
+        "--loglevel=0",
+    )
+    assert ts.load(tmp_path / "model.json").degree == (1,)
+
+
+@pytest.mark.parametrize("loglevel", [1, 2])
+def test_main_sgd_logs_to_mlflow(tmp_path, monkeypatch, loglevel):
+    """sgd should log its options and the final loss, and at loglevel 2 the control points and the model."""
+    import mlflow
+
+    import torch_bsf.__main__ as cli
+    import torch_bsf.simploidal as ts
+
+    logged_models = []
+    log_model = cli._log_model
+
+    def spy(model, n_params, n_values):  # MLflow 3 logs the model outside the artifacts of the run
+        logged_models.append((n_params, n_values))
+        log_model(model, n_params, n_values)
+
+    monkeypatch.setattr(cli, "_log_model", spy)
+    args = ["--degree=1", "--step-size=0.2", "--seed=0", f"--loglevel={loglevel}"]
+    _run_main(monkeypatch, tmp_path, "sgd", *_SGD_ARGS, *args)
+    assert logged_models == ([(3, 3)] if loglevel == 2 else [])
+    run = mlflow.last_active_run()
+    assert run is not None
+    assert run.data.params["objective"] == _SGD_OBJECTIVE
+    assert run.data.params["n_objectives"] == "3"
+    assert run.data.params["preconditioner"] == "gram"
+    assert run.data.params["batch_size"] == "None"
+    # The minimum of t^T f(x) is sum_m t_m ||t - e_m||^2 = 1 - ||t||^2 at x = t, which the linear model reaches.
+    (t,) = ts.sample_domain(ts.BezierSimploid.zeros((2,), 1, n_values=3), 100, seed=0)
+    assert abs(run.data.metrics["train_loss"] - (1 - (t**2).sum(dim=1)).mean().item()) < 1e-4
+    artifacts = {a.path for a in mlflow.MlflowClient().list_artifacts(run.info.run_id)}
+    expected = {"tests.__main__.sgd_objective,control_points,t_2,d_1.csv"} if loglevel == 2 else set()
+    assert expected <= artifacts and (loglevel == 2 or not artifacts)  # MLflow < 3 also logs the model as an artifact
+
+
+def test_main_sgd_mlproject_entry_point(tmp_path, monkeypatch):
+    """The command of the sgd entry point of MLproject should run in an MLflow project run, keeping its parameters."""
+    import shlex
+
+    import mlflow
+    import yaml
+
+    import torch_bsf.simploidal as ts
+
+    entry = yaml.safe_load((_REPO_ROOT / "MLproject").read_text())["entry_points"]["sgd"]
+    given = dict(objective=_SGD_OBJECTIVE, n_objectives="3", n_variables="3", degree="1", batch_size="20", step_size="0.2")
+    parameters = {k: v.get("default") for k, v in entry["parameters"].items()} | given
+    assert all(v is not None for v in parameters.values()), parameters
+    command = shlex.split(entry["command"].format(**{k: shlex.quote(str(v)) for k, v in parameters.items()}))
+    assert command[:4] == ["python", "-m", "torch_bsf", "sgd"]
+
+    mlflow.set_tracking_uri(f"sqlite:///{tmp_path / 'mlflow.db'}")
+    try:
+        with mlflow.start_run() as run:  # what `mlflow run -e sgd -P objective=... ...` does
+            mlflow.log_params(parameters)
+        monkeypatch.setenv("MLFLOW_RUN_ID", run.info.run_id)
+        _run_main(monkeypatch, tmp_path, *command[3:])
+        logged = mlflow.get_run(run.info.run_id).data
+    finally:
+        mlflow.set_tracking_uri(None)  # type: ignore[arg-type]  # None restores the default URI at runtime
+    assert logged.params == {k: str(v) for k, v in parameters.items()}
+    assert 0 < logged.metrics["train_loss"] < 1  # the loss of the initial model x = 0 is 1
+    model = ts.load(tmp_path / "tests.__main__.sgd_objective,control_points,t_2,d_1.csv")
+    assert torch.allclose(model.control_points, torch.eye(3), atol=1e-3)
+
+
+def test_cli_sgd_help():
+    """sgd --help should document the options of fit_sgd."""
+    result = _run_cli("sgd", "--help")
+    assert result.returncode == 0
+    for option in (
+        "--objective MODULE:FUNCTION",
+        "--n-objectives, --n_objectives M",
+        "--n-variables, --n_variables L",
+        "--degree N",
+        "--n-samples, --n_samples N",
+        "--batch-size, --batch_size N",
+        "--max-iter, --max_iter N",
+        "--step-size, --step_size ALPHA",
+        "--step-decay, --step_decay {constant,sqrt}",
+        "--preconditioner {gram,none}",
+        "--seed N",
+        "--meshgrid CSV|DIR",
+        "--save FILE",
+    ):
+        assert option in result.stdout
+    assert result.stdout.isascii()
+
+
+def test_cli_sgd_error_is_clean(tmp_path):
+    """An objective that cannot be imported should be a clean argparse error, not a traceback."""
+    result = _run_cli("sgd", "--objective=no_such_module_for_torch_bsf:f", "--n-objectives=3", "--n-variables=3", "--degree=1")
+    assert result.returncode == 2
+    assert "cannot load --objective: cannot import module 'no_such_module_for_torch_bsf'" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
+@pytest.mark.parametrize(
+    "args, message",
+    [
+        (["--objective=nocolon"], "cannot load --objective: expected MODULE:FUNCTION"),
+        (["--objective=tests.__main__:"], "cannot load --objective: expected MODULE:FUNCTION"),
+        (["--objective=no_such_module_for_torch_bsf:f"], "cannot import module 'no_such_module_for_torch_bsf'"),
+        (["--objective=tests.__main__:missing"], "module 'tests.__main__' has no attribute 'missing'"),
+        (["--objective=tests.__main__:SGD_NOT_CALLABLE"], "'tests.__main__:SGD_NOT_CALLABLE' is not callable"),
+        (
+            ["--n-objectives=2"],
+            "--objective must map points of shape (2, 3) (--n-variables) to a tensor of shape (2, 2) (--n-objectives), "
+            "but it returned shape (2, 3)",
+        ),
+        (["--n-variables=2"], "--objective failed on points of shape (2, 2): RuntimeError"),
+        (["--objective=tests.__main__:sgd_objective_raises"], "--objective failed on points of shape (2, 3): RuntimeError"),
+        (["--objective=tests.__main__:sgd_objective_list"], "but it returned a list"),
+        (["--objective=tests.__main__:sgd_objective_not_differentiable"], "--objective must be differentiable"),
+        (["--n-objectives=1"], "--n-objectives must be at least 2, but 1 is given"),
+        (["--n-variables=0"], "--n-variables must be at least 1, but 0 is given"),
+        (["--degree=-1"], "--degree must be at least 0, but -1 is given"),
+        (["--n-samples=0"], "--n-samples must be at least 1, but 0 is given"),
+        (["--batch-size=0"], "--batch-size must be at least 1, but 0 is given"),
+        (["--max-iter=-1"], "--max-iter must be at least 0, but -1 is given"),
+        (["--step-size=0"], "--step-size must be positive, but 0.0 is given"),
+        (["--step-decay=linear"], "invalid choice: 'linear'"),
+        (["--meshgrid=MESH"], "--meshgrid has 2 columns, but the type 2 requires sum(Ai + 1) = 3 columns"),
+    ],
+)
+def test_main_sgd_errors(tmp_path, monkeypatch, capsys, args, message):
+    """Invalid objectives and options should exit with a clear argparse error in ASCII."""
+    _write_simplex_grid(tmp_path / "mesh.csv", n_params=2)
+    args = [a.replace("MESH", str(tmp_path / "mesh.csv")) for a in args]
+    defaults = dict(a.split("=", 1) for a in (*_SGD_ARGS, "--degree=1"))
+    defaults.update(a.split("=", 1) for a in args)
+    with pytest.raises(SystemExit) as excinfo:
+        _run_main(monkeypatch, tmp_path, "sgd", *(f"{k}={v}" for k, v in defaults.items()), "--loglevel=0")
+    assert excinfo.value.code == 2
+    err = capsys.readouterr().err
+    assert message in err
+    assert err.isascii()
