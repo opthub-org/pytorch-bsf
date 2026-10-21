@@ -94,30 +94,63 @@ def suggest_next_points(
     if not models:
         raise ValueError("models must be a non-empty sequence of models")
 
+    simploid_type, n_params = _resolve_simploid_type(models, simploid_type, n_params)
+    n_params = _resolve_n_params(models[0], n_params)
+    device = _infer_device(models[0])
+    _check_models_consistent(models, n_params, device)
+
+    # Generate candidate points
+    if simploid_type is not None:
+        candidates = sample_simploid(simploid_type, n_candidates, seed=seed).to(device)
+    else:
+        candidates = simplex_random(n_params, n_candidates, seed=seed).to(device)
+
+    if method == "qbc":
+        return _suggest_by_qbc(models, candidates, n_suggestions)
+    if method == "density":
+        return _suggest_by_density(candidates, params, n_suggestions, device)
+    raise ValueError(f"Unknown method: {method}")
+
+
+def _resolve_simploid_type(
+    models: Sequence[nn.Module], simploid_type: Sequence[int] | None, n_params: int | None
+) -> tuple[tuple[int, ...] | None, int | None]:
+    """Resolve the simploid type of the candidates and check it against ``models`` and ``n_params``.
+
+    Returns ``(simploid_type, n_params)``, where ``simploid_type`` is ``None`` for the simplex and
+    ``n_params`` is inferred from the simploid type if it is not given.
+    """
     if simploid_type is None:
         simploid_type = getattr(models[0], "simploid_type", None)
-    if simploid_type is not None:
-        simploid_type = tuple(simploid_type)
-        for i, model in enumerate(models):
-            model_type = getattr(model, "simploid_type", None)
-            if model_type is not None and tuple(model_type) != simploid_type:
-                raise ValueError(f"models[{i}].simploid_type={model_type} does not match simploid_type={simploid_type}.")
-        if n_params is None:
-            n_params = simploid_n_params(simploid_type)
-        elif n_params != simploid_n_params(simploid_type):
-            raise ValueError(f"n_params={n_params} does not match simploid_type={simploid_type}.")
-
-    model_n_params = getattr(models[0], "n_params", None)
+    if simploid_type is None:
+        return None, n_params
+    st = tuple(simploid_type)
+    for i, model in enumerate(models):
+        model_type = getattr(model, "simploid_type", None)
+        if model_type is not None and tuple(model_type) != st:
+            raise ValueError(f"models[{i}].simploid_type={model_type} does not match simploid_type={st}.")
     if n_params is None:
-        n_params = model_n_params
-        if n_params is None:
+        return st, simploid_n_params(st)
+    if n_params != simploid_n_params(st):
+        raise ValueError(f"n_params={n_params} does not match simploid_type={st}.")
+    return st, n_params
+
+
+def _resolve_n_params(model: nn.Module, n_params: int | None) -> int:
+    """Resolve ``n_params`` from the argument or ``model.n_params``, checking that the two agree."""
+    model_n_params = getattr(model, "n_params", None)
+    if n_params is None:
+        if model_n_params is None:
             raise ValueError("n_params must be provided when models do not have an 'n_params' attribute")
-    elif model_n_params is not None and n_params != model_n_params:
+        resolved: int = model_n_params
+        return resolved
+    if model_n_params is not None and n_params != model_n_params:
         raise ValueError(f"n_params mismatch: explicit n_params={n_params} but models[0].n_params={model_n_params}")
+    return n_params
 
-    device = _infer_device(models[0])
 
-    # Validate that all models share the same n_params and device
+def _check_models_consistent(models: Sequence[nn.Module], n_params: int, device: torch.device) -> None:
+    """Check that ``models[1:]`` share ``n_params`` (when they expose it) and are on ``device``."""
     for i, model in enumerate(itertools.islice(models, 1, None), start=1):
         model_n_params = getattr(model, "n_params", None)
         if model_n_params is not None and model_n_params != n_params:
@@ -128,49 +161,46 @@ def suggest_next_points(
                 f"models[{i}] is on device '{model_device}' but models[0] is on "
                 f"device '{device}'. All models in 'models' must be on the same device."
             )
-    # Generate candidate points
-    if simploid_type is not None:
-        candidates = sample_simploid(simploid_type, n_candidates, seed=seed).to(device)
-    else:
-        candidates = simplex_random(n_params, n_candidates, seed=seed).to(device)
 
-    if method == "qbc":
-        # Calculate variance across models
-        preds: list[torch.Tensor] = []
-        for model in models:
-            model.eval()
-            with torch.no_grad():
-                preds.append(model(candidates))
 
-        # preds_stacked: (K, n_candidates, n_values)
-        preds_stacked = torch.stack(preds)
+def _suggest_by_qbc(models: Sequence[nn.Module], candidates: torch.Tensor, n_suggestions: int) -> torch.Tensor:
+    """Select the ``n_suggestions`` candidates on which the predictions of ``models`` vary most (Query-By-Committee)."""
+    preds: list[torch.Tensor] = []
+    for model in models:
+        model.eval()
+        with torch.no_grad():
+            preds.append(model(candidates))
 
-        # Variance of predictions: (n_candidates, n_values)
-        # Use unbiased=False so a single-model committee yields zero (not NaN).
-        var = torch.var(preds_stacked, dim=0, unbiased=False)
+    # preds_stacked: (K, n_candidates, n_values)
+    preds_stacked = torch.stack(preds)
 
-        # Sum of variance across dimensions: (n_candidates,)
-        uncertainty = torch.sum(var, dim=1)
+    # Variance of predictions: (n_candidates, n_values)
+    # Use unbiased=False so a single-model committee yields zero (not NaN).
+    var = torch.var(preds_stacked, dim=0, unbiased=False)
 
-        # Select top candidates
-        _, indices = torch.topk(uncertainty, n_suggestions)
-        return candidates[indices]
+    # Sum of variance across dimensions: (n_candidates,)
+    uncertainty = torch.sum(var, dim=1)
 
-    elif method == "density":
-        if params is None:
-            raise ValueError("params must be provided for method='density'")
+    # Select top candidates
+    _, indices = torch.topk(uncertainty, n_suggestions)
+    return candidates[indices]
 
-        # Calculate distance to nearest neighbor in parameter space
-        # candidates: (C, M), params: (N, M)
-        # We use squared Euclidean distance
-        dist = torch.cdist(candidates, params.to(device))
 
-        # min distance to any existing point: (C,)
-        min_dist, _ = torch.min(dist, dim=1)
+def _suggest_by_density(
+    candidates: torch.Tensor, params: torch.Tensor | None, n_suggestions: int, device: torch.device
+) -> torch.Tensor:
+    """Select the ``n_suggestions`` candidates furthest from the existing training points ``params``."""
+    if params is None:
+        raise ValueError("params must be provided for method='density'")
 
-        # Select points with largest min_dist
-        _, indices = torch.topk(min_dist, n_suggestions)
-        return candidates[indices]
+    # Calculate distance to nearest neighbor in parameter space
+    # candidates: (C, M), params: (N, M)
+    # We use squared Euclidean distance
+    dist = torch.cdist(candidates, params.to(device))
 
-    else:
-        raise ValueError(f"Unknown method: {method}")
+    # min distance to any existing point: (C,)
+    min_dist, _ = torch.min(dist, dim=1)
+
+    # Select points with largest min_dist
+    _, indices = torch.topk(min_dist, n_suggestions)
+    return candidates[indices]
