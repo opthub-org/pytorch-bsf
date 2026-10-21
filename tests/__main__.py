@@ -746,22 +746,30 @@ def test_cli_sgd_help():
     """sgd --help should document the options of fit_sgd."""
     result = _run_cli("sgd", "--help")
     assert result.returncode == 0
+    # Python < 3.13 repeats the metavar after every alias ("--n-objectives M, --n_objectives M"), so check them apart.
     for option in (
         "--objective MODULE:FUNCTION",
-        "--n-objectives, --n_objectives M",
-        "--n-variables, --n_variables L",
+        "--n-objectives",
+        "--n_objectives M",
+        "--n-variables",
+        "--n_variables L",
         "--degree N",
-        "--n-samples, --n_samples N",
-        "--batch-size, --batch_size N",
-        "--max-iter, --max_iter N",
-        "--step-size, --step_size ALPHA",
-        "--step-decay, --step_decay {constant,sqrt}",
+        "--n-samples",
+        "--n_samples N",
+        "--batch-size",
+        "--batch_size N",
+        "--max-iter",
+        "--max_iter N",
+        "--step-size",
+        "--step_size ALPHA",
+        "--step-decay",
+        "--step_decay {constant,sqrt}",
         "--preconditioner {gram,none}",
         "--seed N",
         "--meshgrid CSV|DIR",
         "--save FILE",
     ):
-        assert option in result.stdout
+        assert option in result.stdout, option
     assert result.stdout.isascii()
 
 
