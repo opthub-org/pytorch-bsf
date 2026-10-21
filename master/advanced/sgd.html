@@ -73,6 +73,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#monitoring-the-loss-and-stopping-early">Monitoring the loss and stopping early</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#freezing-control-points-and-smoothing">Freezing control points and smoothing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#generalization-to-simploids-and-simploidal-spaces">Generalization to simploids and simploidal spaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#from-the-command-line-and-mlflow">From the command line and MLflow</a></li>
 </ul>
 </li>
 </ul>
@@ -356,6 +357,74 @@ torch.Size([4, 4])
 </div>
 <p>A simploidal Bézier space is fitted in the same way; the loss then also
 receives the index of the simploid of every sample.</p>
+</section>
+<section id="from-the-command-line-and-mlflow">
+<h2>From the command line and MLflow<a class="headerlink" href="#from-the-command-line-and-mlflow" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">torch_bsf</span> <span class="pre">sgd</span></code> fits a Bézier simplex to the Pareto set of
+objectives written in Python, without writing a script.  Put the objectives
+in a module that can be imported from the current directory (or from an
+installed package), e.g. <code class="docutils literal notranslate"><span class="pre">problems.py</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">objective</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>  <span class="c1"># (batch, L) -&gt; (batch, M), differentiable with PyTorch</span>
+    <span class="k">return</span> <span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>and pass it as <code class="docutils literal notranslate"><span class="pre">--objective=MODULE:FUNCTION</span></code> with the number <span class="math notranslate nohighlight">\(M\)</span> of
+objectives, the number <span class="math notranslate nohighlight">\(L\)</span> of variables and the degree:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>torch_bsf<span class="w"> </span>sgd<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--objective<span class="o">=</span>problems:objective<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--n-objectives<span class="o">=</span><span class="m">3</span><span class="w"> </span>--n-variables<span class="o">=</span><span class="m">3</span><span class="w"> </span>--degree<span class="o">=</span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--n-samples<span class="o">=</span><span class="m">100</span><span class="w"> </span>--batch-size<span class="o">=</span><span class="m">20</span><span class="w"> </span>--max-iter<span class="o">=</span><span class="m">100</span><span class="w"> </span>--step-size<span class="o">=</span><span class="m">0</span>.2<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--step-decay<span class="o">=</span>constant<span class="w"> </span>--preconditioner<span class="o">=</span>gram<span class="w"> </span>--seed<span class="o">=</span><span class="m">0</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--meshgrid<span class="o">=</span>meshgrid.csv
+</pre></div>
+</div>
+<p>It starts from <span class="math notranslate nohighlight">\(P_0 = O\)</span> and minimizes the linear scalarization on a
+Bézier simplex on <span class="math notranslate nohighlight">\(\Delta^{M-1}\)</span>, as the first example above.  The
+options <code class="docutils literal notranslate"><span class="pre">--n-samples</span></code>, <code class="docutils literal notranslate"><span class="pre">--batch-size</span></code>, <code class="docutils literal notranslate"><span class="pre">--max-iter</span></code>, <code class="docutils literal notranslate"><span class="pre">--step-size</span></code>,
+<code class="docutils literal notranslate"><span class="pre">--step-decay</span></code>, <code class="docutils literal notranslate"><span class="pre">--preconditioner</span></code> and <code class="docutils literal notranslate"><span class="pre">--seed</span></code> are those of
+<a class="reference internal" href="../torch_bsf.html#torch_bsf.fit_sgd" title="torch_bsf.fit_sgd"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit_sgd()</span></code></a>, with the same defaults (each one is also accepted
+with underscores, e.g. <code class="docutils literal notranslate"><span class="pre">--batch_size</span></code>).  The outputs follow the data fitting
+command <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">torch_bsf</span></code>:</p>
+<ul class="simple">
+<li><p>the control points are saved to
+<code class="docutils literal notranslate"><span class="pre">&lt;module&gt;.&lt;function&gt;,control_points,t_&lt;M-1&gt;,d_&lt;N&gt;.csv</span></code>, or to the file given
+by <code class="docutils literal notranslate"><span class="pre">--save</span></code> in the format chosen by its extension;</p></li>
+<li><p>if <code class="docutils literal notranslate"><span class="pre">--meshgrid</span></code> is a CSV file of parameters (<span class="math notranslate nohighlight">\(M\)</span> columns), the
+fitted model is evaluated on them and saved to
+<code class="docutils literal notranslate"><span class="pre">&lt;module&gt;.&lt;function&gt;,meshgrid,t_&lt;M-1&gt;,d_&lt;N&gt;.csv</span></code>; nothing is evaluated if it
+is omitted or a directory;</p></li>
+<li><p>unless <code class="docutils literal notranslate"><span class="pre">--loglevel=0</span></code>, the options and the final loss <code class="docutils literal notranslate"><span class="pre">train_loss</span></code> (the
+mean loss over the samples) are logged to MLflow, together with the control
+points file and the model with <code class="docutils literal notranslate"><span class="pre">--loglevel=2</span></code> (the default).</p></li>
+</ul>
+<p>Before fitting, the objective is evaluated on two points to check that it
+maps <code class="docutils literal notranslate"><span class="pre">(batch,</span> <span class="pre">L)</span></code> to differentiable values of shape <code class="docutils literal notranslate"><span class="pre">(batch,</span> <span class="pre">M)</span></code>; an
+objective that cannot be imported or does not match <code class="docutils literal notranslate"><span class="pre">--n-objectives</span></code> and
+<code class="docutils literal notranslate"><span class="pre">--n-variables</span></code> stops the command with an error message.  Run
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">torch_bsf</span> <span class="pre">sgd</span> <span class="pre">--help</span></code> for all the options.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">sgd</span></code> entry point of <code class="docutils literal notranslate"><span class="pre">MLproject</span></code> runs the same command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mlflow<span class="w"> </span>run<span class="w"> </span>https://github.com/opthub-org/pytorch-bsf<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-e<span class="w"> </span>sgd<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-P<span class="w"> </span><span class="nv">objective</span><span class="o">=</span>problems:objective<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-P<span class="w"> </span><span class="nv">n_objectives</span><span class="o">=</span><span class="m">3</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-P<span class="w"> </span><span class="nv">n_variables</span><span class="o">=</span><span class="m">3</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-P<span class="w"> </span><span class="nv">degree</span><span class="o">=</span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-P<span class="w"> </span><span class="nv">batch_size</span><span class="o">=</span><span class="m">20</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-P<span class="w"> </span><span class="nv">step_size</span><span class="o">=</span><span class="m">0</span>.2
+</pre></div>
+</div>
+<p>The command runs in the directory of the project, so the module of the
+objectives must be installed in the environment of the run or found on its
+<code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code> (with <code class="docutils literal notranslate"><span class="pre">--env-manager=local</span></code>, set <code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code> to the
+directory of <code class="docutils literal notranslate"><span class="pre">problems.py</span></code>).  The parameters <code class="docutils literal notranslate"><span class="pre">meshgrid</span></code> (default <code class="docutils literal notranslate"><span class="pre">.</span></code>,
+i.e., no meshgrid), <code class="docutils literal notranslate"><span class="pre">n_samples</span></code>, <code class="docutils literal notranslate"><span class="pre">batch_size</span></code> (default <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>, i.e., the
+full batch), <code class="docutils literal notranslate"><span class="pre">max_iter</span></code>, <code class="docutils literal notranslate"><span class="pre">step_size</span></code>, <code class="docutils literal notranslate"><span class="pre">step_decay</span></code>, <code class="docutils literal notranslate"><span class="pre">preconditioner</span></code>
+and <code class="docutils literal notranslate"><span class="pre">seed</span></code> (default <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>, i.e., none) are also exposed.</p>
+<p>The command line fits Bézier simplices with the linear scalarization only;
+for Bézier simploids, simploidal Bézier spaces or other losses, use
+<a class="reference internal" href="../torch_bsf.html#torch_bsf.fit_sgd" title="torch_bsf.fit_sgd"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit_sgd()</span></code></a> from Python.</p>
 </section>
 </section>
 

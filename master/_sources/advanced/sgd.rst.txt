@@ -288,3 +288,80 @@ tetrahedron of weights along a bilinear patch:
 
 A simploidal Bézier space is fitted in the same way; the loss then also
 receives the index of the simploid of every sample.
+
+From the command line and MLflow
+--------------------------------
+
+``python -m torch_bsf sgd`` fits a Bézier simplex to the Pareto set of
+objectives written in Python, without writing a script.  Put the objectives
+in a module that can be imported from the current directory (or from an
+installed package), e.g. ``problems.py``:
+
+.. code-block:: python
+
+   import torch
+
+   def objective(x):  # (batch, L) -> (batch, M), differentiable with PyTorch
+       return ((x.unsqueeze(1) - torch.eye(3)) ** 2).sum(dim=-1)
+
+and pass it as ``--objective=MODULE:FUNCTION`` with the number :math:`M` of
+objectives, the number :math:`L` of variables and the degree:
+
+.. code-block:: bash
+
+   python -m torch_bsf sgd \
+     --objective=problems:objective \
+     --n-objectives=3 --n-variables=3 --degree=2 \
+     --n-samples=100 --batch-size=20 --max-iter=100 --step-size=0.2 \
+     --step-decay=constant --preconditioner=gram --seed=0 \
+     --meshgrid=meshgrid.csv
+
+It starts from :math:`P_0 = O` and minimizes the linear scalarization on a
+Bézier simplex on :math:`\Delta^{M-1}`, as the first example above.  The
+options ``--n-samples``, ``--batch-size``, ``--max-iter``, ``--step-size``,
+``--step-decay``, ``--preconditioner`` and ``--seed`` are those of
+:func:`torch_bsf.fit_sgd`, with the same defaults (each one is also accepted
+with underscores, e.g. ``--batch_size``).  The outputs follow the data fitting
+command ``python -m torch_bsf``:
+
+* the control points are saved to
+  ``<module>.<function>,control_points,t_<M-1>,d_<N>.csv``, or to the file given
+  by ``--save`` in the format chosen by its extension;
+* if ``--meshgrid`` is a CSV file of parameters (:math:`M` columns), the
+  fitted model is evaluated on them and saved to
+  ``<module>.<function>,meshgrid,t_<M-1>,d_<N>.csv``; nothing is evaluated if it
+  is omitted or a directory;
+* unless ``--loglevel=0``, the options and the final loss ``train_loss`` (the
+  mean loss over the samples) are logged to MLflow, together with the control
+  points file and the model with ``--loglevel=2`` (the default).
+
+Before fitting, the objective is evaluated on two points to check that it
+maps ``(batch, L)`` to differentiable values of shape ``(batch, M)``; an
+objective that cannot be imported or does not match ``--n-objectives`` and
+``--n-variables`` stops the command with an error message.  Run
+``python -m torch_bsf sgd --help`` for all the options.
+
+The ``sgd`` entry point of ``MLproject`` runs the same command:
+
+.. code-block:: bash
+
+   mlflow run https://github.com/opthub-org/pytorch-bsf \
+     -e sgd \
+     -P objective=problems:objective \
+     -P n_objectives=3 \
+     -P n_variables=3 \
+     -P degree=2 \
+     -P batch_size=20 \
+     -P step_size=0.2
+
+The command runs in the directory of the project, so the module of the
+objectives must be installed in the environment of the run or found on its
+``PYTHONPATH`` (with ``--env-manager=local``, set ``PYTHONPATH`` to the
+directory of ``problems.py``).  The parameters ``meshgrid`` (default ``.``,
+i.e., no meshgrid), ``n_samples``, ``batch_size`` (default ``""``, i.e., the
+full batch), ``max_iter``, ``step_size``, ``step_decay``, ``preconditioner``
+and ``seed`` (default ``""``, i.e., none) are also exposed.
+
+The command line fits Bézier simplices with the linear scalarization only;
+for Bézier simploids, simploidal Bézier spaces or other losses, use
+:func:`torch_bsf.fit_sgd` from Python.
