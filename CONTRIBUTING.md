@@ -239,7 +239,8 @@ Configuration in `pyproject.toml` (`[tool.ruff]` section):
 
 - `line-length = 127`
 - `target-version = "py310"`
-- `select = ["E", "F", "W", "I", "UP", "B", "SIM"]` (pycodestyle errors and warnings, Pyflakes, isort, pyupgrade, flake8-bugbear, flake8-simplify)
+- `select = ["E", "F", "W", "I", "UP", "B", "SIM", "C90"]` (pycodestyle errors and warnings, Pyflakes, isort, pyupgrade, flake8-bugbear, flake8-simplify, McCabe complexity)
+- `max-complexity = 10` (`[tool.ruff.lint.mccabe]` section): split a function whose cyclomatic complexity exceeds 10 into smaller helpers
 
 `B905` requires an explicit `strict=` on every `zip()`: pass `strict=True` when the iterables must have the same length, and `strict=False` only when truncation is intended.
 
