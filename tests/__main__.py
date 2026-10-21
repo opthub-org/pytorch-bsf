@@ -411,7 +411,7 @@ def test_main_simploid_in_mlflow_project_run(tmp_path, monkeypatch):
         )
         logged = mlflow.get_run(run.info.run_id).data
     finally:
-        mlflow.set_tracking_uri(None)
+        mlflow.set_tracking_uri(None)  # type: ignore[arg-type]  # None restores the default URI at runtime
     assert logged.params == {
         "simploid_type": "2, 1",
         "degree": "2",

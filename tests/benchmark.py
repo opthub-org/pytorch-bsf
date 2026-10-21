@@ -10,6 +10,7 @@ performance regressions in the forward pass and in :func:`torch_bsf.fit`.
 """
 
 import sys
+from typing import Any
 
 import pytest
 import torch
@@ -67,7 +68,7 @@ def test_benchmark_fit(benchmark):
     params = simplex_grid(n_params=3, degree=3)
     values = params.pow(2).sum(dim=1, keepdim=True)
 
-    fast = dict(
+    fast: dict[str, Any] = dict(
         solver="trainer",
         max_epochs=5,
         enable_progress_bar=False,

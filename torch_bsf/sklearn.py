@@ -9,8 +9,8 @@ try:
 
     _sklearn_available = True
 except ImportError:
-    BaseEstimator = object  # type: ignore[assignment,misc]
-    RegressorMixin = object  # type: ignore[assignment,misc]
+    BaseEstimator = object
+    RegressorMixin = object
     _sklearn_available = False
 
 from torch_bsf.preprocessing import NormalizeType
@@ -133,7 +133,7 @@ class BezierSimploidRegressor(RegressorMixin, BaseEstimator):
             X = X[:, :0]
         return torch.from_numpy(np.ascontiguousarray(X))
 
-    def fit(self, X: Any, y: Any):
+    def fit(self, X: Any, y: Any) -> "BezierSimploidRegressor":
         """Fit the model.
 
         Parameters

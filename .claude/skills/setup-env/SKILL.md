@@ -77,7 +77,7 @@ The path must be inside the current repository (or worktree). If it points elsew
 "$PY" -c "import torch, torch_bsf; print(torch.__version__, torch_bsf.__version__)"
 "$PY" -m pre_commit run --all-files
 "$PY" -m ruff check .
-"$PY" -m mypy torch_bsf
+"$PY" -m mypy torch_bsf tests
 "$PY" -m pytest tests/test_init.py -q
 ```
 

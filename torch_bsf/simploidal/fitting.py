@@ -86,7 +86,7 @@ class _LightningWrapper(L.LightningModule):
         *inputs, y = batch
         return self.model(*inputs), y
 
-    def training_step(self, batch, batch_idx) -> dict[str, Any]:
+    def training_step(self, batch: Sequence[torch.Tensor], batch_idx: int) -> dict[str, Any]:
         y_hat, y = self._predict_batch(batch)
         mse = F.mse_loss(y_hat, y)
         loss = mse
@@ -97,12 +97,12 @@ class _LightningWrapper(L.LightningModule):
         self.log("train_loss", loss, sync_dist=True)
         return {"loss": loss}
 
-    def validation_step(self, batch, batch_idx) -> None:
+    def validation_step(self, batch: Sequence[torch.Tensor], batch_idx: int) -> None:
         y_hat, y = self._predict_batch(batch)
         self.log("val_mse", F.mse_loss(y_hat, y), sync_dist=True)
         self.log("val_mae", F.l1_loss(y_hat, y), sync_dist=True)
 
-    def test_step(self, batch, batch_idx) -> dict[str, Any]:
+    def test_step(self, batch: Sequence[torch.Tensor], batch_idx: int) -> dict[str, Any]:
         y_hat, y = self._predict_batch(batch)
         mse = F.mse_loss(y_hat, y)
         self.log("test_mse", mse, sync_dist=True)
@@ -267,7 +267,7 @@ def fit(
     ridge: float = 0.0,
     batch_size: int | None = None,
     seed: int | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> BezierSimploid:
     r"""Fits a Bézier simplex, or more generally a Bézier simploid, to data.
 
@@ -439,7 +439,7 @@ def fit_kfold(
     n_folds: int = 5,
     shuffle: bool = True,
     seed: int | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> nn.ModuleList:
     r"""Fits an ensemble of Bézier simploids by k-fold cross-validation.
 
@@ -520,7 +520,7 @@ def _fit_folds(
     values: torch.Tensor,
     degree: int | Sequence[int] | None,
     folds: Sequence[torch.Tensor],
-    **kwargs,
+    **kwargs: Any,
 ) -> nn.ModuleList:
     """Fits one model per fold, with :func:`fit`, to the samples of the other folds."""
     _check_n_samples(params, values)
@@ -580,7 +580,7 @@ def fit_simploidal_set(
     ridge: float = 0.0,
     batch_size: int | None = None,
     seed: int | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> SimploidalBezierSpace:
     r"""Fits a simploidal Bézier space to data on its simploids.
 

@@ -28,7 +28,7 @@ def _infer_device(model: nn.Module) -> torch.device:
 
 
 def suggest_next_points(
-    models: Sequence[nn.Module],
+    models: Sequence[nn.Module] | nn.ModuleList,
     n_suggestions: int = 1,
     n_candidates: int = 1000,
     method: Literal["qbc", "density"] = "qbc",
@@ -113,7 +113,7 @@ def suggest_next_points(
 
 
 def _resolve_simploid_type(
-    models: Sequence[nn.Module], simploid_type: Sequence[int] | None, n_params: int | None
+    models: Sequence[nn.Module] | nn.ModuleList, simploid_type: Sequence[int] | None, n_params: int | None
 ) -> tuple[tuple[int, ...] | None, int | None]:
     """Resolve the simploid type of the candidates and check it against ``models`` and ``n_params``.
 
@@ -149,7 +149,7 @@ def _resolve_n_params(model: nn.Module, n_params: int | None) -> int:
     return n_params
 
 
-def _check_models_consistent(models: Sequence[nn.Module], n_params: int, device: torch.device) -> None:
+def _check_models_consistent(models: Sequence[nn.Module] | nn.ModuleList, n_params: int, device: torch.device) -> None:
     """Check that ``models[1:]`` share ``n_params`` (when they expose it) and are on ``device``."""
     for i, model in enumerate(itertools.islice(models, 1, None), start=1):
         model_n_params = getattr(model, "n_params", None)
@@ -163,7 +163,7 @@ def _check_models_consistent(models: Sequence[nn.Module], n_params: int, device:
             )
 
 
-def _suggest_by_qbc(models: Sequence[nn.Module], candidates: torch.Tensor, n_suggestions: int) -> torch.Tensor:
+def _suggest_by_qbc(models: Sequence[nn.Module] | nn.ModuleList, candidates: torch.Tensor, n_suggestions: int) -> torch.Tensor:
     """Select the ``n_suggestions`` candidates on which the predictions of ``models`` vary most (Query-By-Committee)."""
     preds: list[torch.Tensor] = []
     for model in models:

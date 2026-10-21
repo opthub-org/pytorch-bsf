@@ -1,5 +1,7 @@
 """Tests for torch_bsf.splitting."""
 
+from typing import Literal
+
 import pytest
 import torch
 
@@ -290,7 +292,7 @@ def test_reparametrize_bad_part():
     """reparametrize raises ValueError for an invalid part argument."""
     t = torch.tensor([[0.5, 0.5]])
     with pytest.raises(ValueError, match="part"):
-        reparametrize(t, i=0, j=1, s=0.5, part="C")
+        reparametrize(t, i=0, j=1, s=0.5, part="C")  # type: ignore[arg-type]
 
 
 def test_reparametrize_a_domain():
@@ -512,7 +514,8 @@ def test_split_simploid_pieces_reparametrize_the_original(simploid_type, degree,
         assert piece.degree == model.degree
         assert piece.n_values == model.n_values
     t = sample_simploid(simploid_type, 200, seed=0).double()
-    for part, piece in (("A", model_A), ("B", model_B)):
+    pieces: list[tuple[Literal["A", "B"], BezierSimploid]] = [("A", model_A), ("B", model_B)]
+    for part, piece in pieces:
         u, mask = reparametrize(t, i, j, s, part, simploid_type=simploid_type, factor=factor)
         assert mask.any()
         with torch.no_grad():

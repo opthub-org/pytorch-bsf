@@ -1,5 +1,7 @@
+import functools
 import itertools
 import math
+from collections.abc import Callable
 from typing import Any
 
 import numpy as np
@@ -8,6 +10,7 @@ import torch
 
 from torch_bsf.sampling import simplex_grid
 from torch_bsf.simploidal import BezierSimploid, SimploidalBezierSpace, simploid_indices
+from torch_bsf.simploidal.combinatorics import SimploidIndex
 
 # Maximum number of sample points for the pairwise scatter plot.
 # When the combinatorial meshgrid would exceed this count, uniformly-random
@@ -31,13 +34,13 @@ def _simplex_meshgrid(model: BezierSimploid, num: int) -> tuple[torch.Tensor, to
 def plot_bezier_simplex(
     model: BezierSimploid,
     num: int = 100,
-    ax=None,
+    ax: Any = None,
     show_control_points: bool = True,
     *,
     max_control_points: int = _MAX_CONTROL_POINTS,
     max_pairwise_points: int = _MAX_PAIRWISE_POINTS,
-    **kwargs,
-):
+    **kwargs: Any,
+) -> Any:
     """Plots a Bézier simplex.
 
     For a Bézier simploid of any type, see :func:`plot_bezier_simploid`.
@@ -129,7 +132,7 @@ def plot_bezier_simplex(
     return _plot_bezier_simplex_pairwise(model, num, show_control_points, max_control_points, max_pairwise_points, **kwargs)
 
 
-def _plot_bezier_curve(model, num, ax, show_control_points, **kwargs):
+def _plot_bezier_curve(model: BezierSimploid, num: int, ax: Any, show_control_points: bool, **kwargs: Any) -> Any:
     """Plots a Bézier curve (n_params == 2).
 
     For ``model.n_values == 2``, this function produces a 2D plot using
@@ -171,8 +174,8 @@ def _plot_bezier_curve(model, num, ax, show_control_points, **kwargs):
     except ImportError as e:
         raise ImportError("matplotlib is required for plotting. Install it with: pip install matplotlib") from e
 
-    ts, xs = _simplex_meshgrid(model, num)
-    xs = xs.detach().cpu().numpy()
+    ts, xs_t = _simplex_meshgrid(model, num)
+    xs = xs_t.detach().cpu().numpy()
 
     if ax is None:
         fig = plt.figure()
@@ -195,7 +198,7 @@ def _plot_bezier_curve(model, num, ax, show_control_points, **kwargs):
     return ax
 
 
-def _plot_bezier_triangle(model, num, ax, show_control_points, **kwargs):
+def _plot_bezier_triangle(model: BezierSimploid, num: int, ax: Any, show_control_points: bool, **kwargs: Any) -> Any:
     """Plots a Bézier triangle using triangulation (n_params == 3).
 
     Depending on ``model.n_values``, this produces either:
@@ -239,8 +242,8 @@ def _plot_bezier_triangle(model, num, ax, show_control_points, **kwargs):
     except ImportError as e:
         raise ImportError("scipy is required for triangle plotting. Install it with: pip install scipy") from e
 
-    ts, xs = _simplex_meshgrid(model, num)
-    xs = xs.detach().cpu().numpy()
+    ts, xs_t = _simplex_meshgrid(model, num)
+    xs = xs_t.detach().cpu().numpy()
 
     # Project 3D simplex parameters to 2D for triangulation
     # (Using the same projection as in examples)
@@ -271,7 +274,14 @@ def _plot_bezier_triangle(model, num, ax, show_control_points, **kwargs):
     return ax
 
 
-def _plot_bezier_simplex_pairwise(model, num, show_control_points, max_control_points, max_pairwise_points, **kwargs):
+def _plot_bezier_simplex_pairwise(
+    model: BezierSimploid,
+    num: int,
+    show_control_points: bool,
+    max_control_points: int,
+    max_pairwise_points: int,
+    **kwargs: Any,
+) -> np.ndarray:
     """Plots a high-dimensional Bézier simplex as a pairwise scatter plot.
 
     For ``model.n_params >= 4``, this function generates sample points from
@@ -430,7 +440,7 @@ def _draw_pairwise_panel(
 _Cell = tuple[tuple[int, ...], ...]
 
 
-def _check_simploid_plot_args(n_values: int, num: int, ax, name: str) -> None:
+def _check_simploid_plot_args(n_values: int, num: int, ax: Any, name: str) -> None:
     """Validates the arguments shared by the simploid plotting functions."""
     if n_values not in (2, 3):
         raise ValueError(f"{name} only supports n_values of 2 or 3; got n_values = {n_values}")
@@ -444,7 +454,7 @@ def _check_simploid_plot_args(n_values: int, num: int, ax, name: str) -> None:
             raise ValueError("n_values == 2 requires a 2D axes, but a 3D axes is given")
 
 
-def _require_pyplot():
+def _require_pyplot() -> Any:
     try:
         import matplotlib.pyplot as plt
     except ImportError as e:
@@ -523,13 +533,13 @@ def _boundary_edges(triangles: np.ndarray) -> np.ndarray:
     return np.array([e for e, n in count.items() if n == 1], dtype=int).reshape(-1, 2)
 
 
-def _add_segments(ax, points: np.ndarray, edges: np.ndarray, **kwargs) -> None:
+def _add_segments(ax: Any, points: np.ndarray, edges: np.ndarray, **kwargs: Any) -> None:
     """Draws the segments ``points[edges]`` on a 2D or 3D axes."""
     if len(edges) == 0:
         return
     segments = list(points[edges])
     if points.shape[1] == 3:
-        from mpl_toolkits.mplot3d.art3d import Line3DCollection  # type: ignore
+        from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
         ax.add_collection3d(Line3DCollection(segments, **kwargs))
     else:
@@ -538,7 +548,7 @@ def _add_segments(ax, points: np.ndarray, edges: np.ndarray, **kwargs) -> None:
         ax.add_collection(LineCollection(segments, **kwargs))
 
 
-def _with_defaults(kwargs: dict, defaults: dict[tuple[str, ...], object]) -> dict:
+def _with_defaults(kwargs: dict[str, Any], defaults: dict[tuple[str, ...], object]) -> dict[str, Any]:
     """``kwargs`` plus the defaults whose keyword is given under none of its aliases.
 
     Each key of ``defaults`` is a group of Matplotlib aliases, the first one
@@ -551,7 +561,9 @@ def _with_defaults(kwargs: dict, defaults: dict[tuple[str, ...], object]) -> dic
     return result
 
 
-def _draw_cell(ax, xs: np.ndarray, coords: np.ndarray, num: int, is_triangle: bool, color, kwargs: dict) -> None:
+def _draw_cell(
+    ax: Any, xs: np.ndarray, coords: np.ndarray, num: int, is_triangle: bool, color: Any, kwargs: dict[str, Any]
+) -> None:
     """Draws the image ``xs`` of a cell grid: a point, a curve or a surface."""
     dim = coords.shape[1]
     if dim == 0:
@@ -589,7 +601,7 @@ def _draw_cell(ax, xs: np.ndarray, coords: np.ndarray, num: int, is_triangle: bo
     _add_segments(ax, xs, _boundary_edges(triangles), colors=[color], linewidths=1.0)
 
 
-def _control_net_edges(indices: list) -> np.ndarray:
+def _control_net_edges(indices: list[SimploidIndex]) -> np.ndarray:
     """The edges of a control net, as pairs of rows of shape ``(n, 2)``.
 
     Two control points are joined when their indices differ by
@@ -613,7 +625,17 @@ def _control_net_edges(indices: list) -> np.ndarray:
     return np.array(pairs, dtype=int).reshape(-1, 2)
 
 
-def _draw_simploid(ax, simploid_type, evaluate, indices, cp, num: int, show_control_points: bool, color, kwargs) -> None:
+def _draw_simploid(
+    ax: Any,
+    simploid_type: tuple[int, ...],
+    evaluate: Callable[[torch.Tensor], torch.Tensor],
+    indices: list[SimploidIndex],
+    cp: torch.Tensor,
+    num: int,
+    show_control_points: bool,
+    color: Any,
+    kwargs: dict[str, Any],
+) -> None:
     """Draws one Bézier simploid, given by its evaluation function and its control net."""
     for cell in _cells_to_draw(simploid_type):
         params, coords = _cell_grid(simploid_type, cell, num)
@@ -622,12 +644,12 @@ def _draw_simploid(ax, simploid_type, evaluate, indices, cp, num: int, show_cont
         is_triangle = any(len(verts) == 3 for verts in cell)
         _draw_cell(ax, xs, coords, num, is_triangle, color, kwargs)
     if show_control_points:
-        cp = cp.detach().cpu().numpy()
-        _add_segments(ax, cp, _control_net_edges(indices), colors="r", linestyles="--", alpha=0.3)
-        ax.scatter(*cp.T, c="r", marker="o")
+        cp_np = cp.detach().cpu().numpy()
+        _add_segments(ax, cp_np, _control_net_edges(indices), colors="r", linestyles="--", alpha=0.3)
+        ax.scatter(*cp_np.T, c="r", marker="o")
 
 
-def _prepare_axes(ax, n_values: int):
+def _prepare_axes(ax: Any, n_values: int) -> tuple[Any, Any]:
     plt = _require_pyplot()
     if ax is None:
         fig = plt.figure()
@@ -638,10 +660,10 @@ def _prepare_axes(ax, n_values: int):
 def plot_bezier_simploid(
     model: BezierSimploid,
     num: int = 20,
-    ax=None,
+    ax: Any = None,
     show_control_points: bool = True,
-    **kwargs,
-):
+    **kwargs: Any,
+) -> Any:
     r"""Plots a Bézier simploid whose values are 2- or 3-dimensional.
 
     The image of a grid on the parameter simploid is drawn: a curve for a
@@ -711,10 +733,10 @@ def plot_bezier_simploid(
 def plot_simploidal_bezier_space(
     space: SimploidalBezierSpace,
     num: int = 20,
-    ax=None,
+    ax: Any = None,
     show_control_points: bool = True,
-    **kwargs,
-):
+    **kwargs: Any,
+) -> Any:
     r"""Plots a simploidal Bézier space whose values are 2- or 3-dimensional.
 
     Every main simploid of the simploidal set (see
@@ -781,7 +803,7 @@ def plot_simploidal_bezier_space(
         _draw_simploid(
             ax,
             s.simploid_type,
-            lambda t, s=s: space.evaluate(s, t),
+            functools.partial(space.evaluate, s),
             simploid_indices(s.simploid_type, space.simploid_degree(s)),
             space.control_points(s),
             num,

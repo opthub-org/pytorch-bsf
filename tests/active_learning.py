@@ -14,16 +14,23 @@ def _make_models(n_params: int, n_values: int, degree: int, k: int = 2):
 class _SimpleLinearModel(nn.Module):
     """A minimal nn.Module that maps (batch, n_params) -> (batch, n_values)."""
 
+    # Attributes some tests set to emulate other frameworks; unset by default.
+    n_params: int
+    device: torch.device | str
+
     def __init__(self, n_params: int, n_values: int):
         super().__init__()
         self.linear = nn.Linear(n_params, n_values)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.linear(x)
+        y: torch.Tensor = self.linear(x)
+        return y
 
 
 class _BufferOnlyModel(nn.Module):
     """A minimal nn.Module with a registered buffer but no learnable parameters."""
+
+    bias: torch.Tensor
 
     def __init__(self, n_params: int):
         super().__init__()
@@ -79,7 +86,7 @@ class TestSuggestNextPointsQBC:
     def test_unknown_method_raises(self):
         models = _make_models(3, 2, 2)
         with pytest.raises(ValueError, match="Unknown method"):
-            suggest_next_points(models, method="unknown")
+            suggest_next_points(models, method="unknown")  # type: ignore[arg-type]
 
 
 class TestSuggestNextPointsDensity:
@@ -211,6 +218,7 @@ class TestSuggestNextPointsSimploid:
 
 @pytest.mark.parametrize("simploid_type", [(2,), (1, 1), None])
 def test_seed_makes_suggestions_reproducible(simploid_type):
+    models: list[nn.Module]
     if simploid_type is None:
         models = [_SimpleLinearModel(3, 2) for _ in range(2)]
     else:

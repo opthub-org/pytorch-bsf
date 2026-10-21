@@ -1,11 +1,13 @@
 from math import comb, factorial, prod
 from pathlib import Path
+from typing import Any
 
 import pytest
 import torch
 
 import torch_bsf
 from torch_bsf import fit
+from torch_bsf.preprocessing import NormalizeType
 from torch_bsf.simploidal import (
     BezierSimploid,
     Simploid,
@@ -19,7 +21,7 @@ from torch_bsf.simploidal import (
 )
 
 TYPES = [(), (1,), (2,), (3,), (1, 1), (2, 1), (1, 2), (1, 1, 1), (2, 2)]
-TRAINER_KWARGS = dict(max_epochs=5, enable_progress_bar=False, logger=False, enable_checkpointing=False)
+TRAINER_KWARGS: dict[str, Any] = dict(max_epochs=5, enable_progress_bar=False, logger=False, enable_checkpointing=False)
 
 
 def _face_param(simploid_type: tuple[int, ...], u: torch.Tensor, i: int, j: int) -> torch.Tensor:
@@ -100,7 +102,7 @@ def test_sample_simploid():
 
 def _bezier_simplex(t: torch.Tensor, points: dict[tuple[int, ...], torch.Tensor], degree: int) -> torch.Tensor:
     """The Bézier simplex of the given control points, by the textbook formula."""
-    out = 0
+    out = torch.zeros(())
     for alpha, point in points.items():
         coeff = factorial(degree) / prod(factorial(a) for a in alpha)
         out = out + coeff * prod((t[:, i : i + 1] ** a for i, a in enumerate(alpha)), start=torch.ones(len(t), 1)) * point
@@ -222,7 +224,9 @@ def test_solvers_share_one_code_path(monkeypatch):
     assert seen == [BezierSimploid, SimploidalBezierSpace]
 
 
-TRAINER_CONVERGENCE_KWARGS = dict(max_epochs=10, enable_progress_bar=False, logger=False, enable_checkpointing=False)
+TRAINER_CONVERGENCE_KWARGS: dict[str, Any] = dict(
+    max_epochs=10, enable_progress_bar=False, logger=False, enable_checkpointing=False
+)
 
 
 def test_fit_simploid_trainer_converges_to_lstsq():
@@ -1106,7 +1110,7 @@ def test_space_accepts_integer_control_points():
 @pytest.mark.parametrize("solver", ["lstsq", "trainer"])
 def test_fit_preserves_float64(solver):
     """Fitting float64 data yields a float64 model (and the trainer does not hit a dtype mismatch)."""
-    kwargs = dict(TRAINER_KWARGS, max_epochs=1, accelerator="cpu") if solver == "trainer" else {}
+    kwargs: dict[str, Any] = dict(TRAINER_KWARGS, max_epochs=1, accelerator="cpu") if solver == "trainer" else {}
     t = sample_simploid((2,), 30, seed=0).double()
     x = t[:, :1] * t[:, 1:2]
     bs = fit(t, x, 2, simploid_type=(2,), solver=solver, **kwargs)
@@ -1125,7 +1129,8 @@ def test_fit_lstsq_accepts_mps_inputs():
     """MPS does not support float64, so the exact solver must move the inputs to the CPU before promoting them."""
     t = sample_simploid((2,), 30, seed=0)
     x = t[:, :1] * t[:, 1:2]
-    for normalize in ["none", "std"]:
+    normalizations: list[NormalizeType] = ["none", "std"]
+    for normalize in normalizations:
         bs = torch_bsf.fit(t.to("mps"), x.to("mps"), 2, normalize=normalize)
         assert torch.allclose(bs(t), x, atol=1e-5)
     S = SimploidalSet()
@@ -1140,7 +1145,8 @@ def test_fit_lstsq_accepts_mps_init():
     t = sample_simploid((2,), 30, seed=0)
     x = t[:, :1] * t[:, 1:2]
     init = BezierSimploid.zeros((2,), 2, n_values=1).to("mps")
-    for normalize in ["none", "std"]:
+    normalizations: list[NormalizeType] = ["none", "std"]
+    for normalize in normalizations:
         bs = torch_bsf.fit(t, x, 2, init=init, freeze=[(2, 0, 0)], normalize=normalize)
         assert bs.control_points.device.type == "mps"
         assert torch.allclose(bs.cpu()(t), x, atol=1e-5)
@@ -1515,7 +1521,7 @@ def test_fit_simploid_freeze_keeps_init(solver, smoothness_weight):
     x = _noisy(torch.sin(3 * t[:, :2]))
     init = BezierSimploid.randn((2, 1), 2, n_values=2)
     freeze = [((2, 0, 0), (2, 0)), ((0, 1, 1), (1, 1))]
-    kwargs = dict(seed=0, **TRAINER_KWARGS) if solver == "trainer" else {}
+    kwargs: dict[str, Any] = dict(seed=0, **TRAINER_KWARGS) if solver == "trainer" else {}
     fitted = fit(
         t,
         x,
@@ -1532,7 +1538,9 @@ def test_fit_simploid_freeze_keeps_init(solver, smoothness_weight):
     assert not torch.equal(fitted.control_points, init.control_points)
     # The frozen rows are no longer masked once fitting is done.
     fitted(t).sum().backward()
-    assert fitted.control_points.grad[fitted.row(freeze[0])].abs().sum() > 0
+    grad = fitted.control_points.grad
+    assert grad is not None
+    assert grad[fitted.row(freeze[0])].abs().sum() > 0
 
 
 def test_fit_simploid_freeze_is_exact():
@@ -1635,7 +1643,7 @@ def test_fit_simploidal_set_freeze_keeps_init(solver):
     init = _random_space(S, 2, n_values=2)
     shared = t1.face(0, 0)
     freeze = [(t1, ((2, 0, 0),)), (shared, ((1, 1),)), (t2, ((1, 1, 0),))]
-    kwargs = dict(seed=0, **TRAINER_KWARGS) if solver == "trainer" else {}
+    kwargs: dict[str, Any] = dict(seed=0, **TRAINER_KWARGS) if solver == "trainer" else {}
     space = fit_simploidal_set(S, data, 2, init=init, freeze=freeze, smoothness_weight=0.01, solver=solver, **kwargs)
     for simploid, index in freeze:
         row = space.row(simploid, index)
@@ -1757,6 +1765,7 @@ def test_fit_kfold_fits_each_model_to_the_other_folds():
     models = torch_bsf.fit_kfold(t, x, 1, n_folds=4, shuffle=False, simploid_type=(2, 1))
     assert len(models) == 4
     for model, test in zip(models, torch.tensor_split(torch.arange(23), 4), strict=True):
+        assert isinstance(model, BezierSimploid)
         train = torch.ones(23, dtype=torch.bool)
         train[test] = False
         expected = torch_bsf.fit(t[train], x[train], 1, simploid_type=(2, 1))
@@ -1772,6 +1781,7 @@ def test_fit_kfold_freezes_in_every_fold_given_an_iterator():
     vertex = (1, 0, 0)
     models = torch_bsf.fit_kfold(t, x, 1, n_folds=3, seed=0, init=init, freeze=iter([vertex]))
     for model in models:
+        assert isinstance(model, BezierSimploid)
         assert model[vertex].item() == 0.0
 
 
@@ -1801,6 +1811,7 @@ def test_fit_kfold_shuffles_reproducibly_and_caps_folds():
     second = torch_bsf.fit_kfold(t, x, 1, n_folds=5, seed=0)
     assert len(first) == 3  # capped at the number of samples
     for a, b in zip(first, second, strict=True):
+        assert isinstance(a, BezierSimploid) and isinstance(b, BezierSimploid)
         assert torch.equal(a.control_points, b.control_points)
     with pytest.raises(ValueError, match="n_folds"):
         torch_bsf.fit_kfold(t, x, 1, n_folds=1)

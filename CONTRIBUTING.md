@@ -256,17 +256,23 @@ After a PR whose main purpose is a repository-wide reformat (for example, a form
 
 ### Type checking
 
-Add type hints to all public APIs. Use mypy for static analysis:
+Add type hints to all functions in `torch_bsf`, public or private. Use mypy for static analysis of both the package and the tests (as CI does):
 
 ```bash
-mypy torch_bsf/
+mypy torch_bsf tests
 ```
 
 Configuration in `pyproject.toml` (`[tool.mypy]` section):
 
 - `python_version = 3.10` (type checking targets the minimum supported version)
-- `warn_return_any = True`
-- `warn_unused_configs = True`
+- `warn_return_any`, `warn_unused_configs`, `warn_unused_ignores`, `warn_redundant_casts`
+- `disallow_untyped_defs`, `disallow_incomplete_defs`: every function in `torch_bsf` must be fully annotated
+- `check_untyped_defs`: the bodies of unannotated functions (e.g., tests) are type-checked too
+- `disallow_any_generics`: write `dict[str, Any]`, not a bare `dict`
+- `[[tool.mypy.overrides]]` for `tests.*` turns off `disallow_untyped_defs` and `disallow_incomplete_defs`, so test functions and fixtures need no annotations
+- Optional dependencies without type information (`mlflow`, `scipy`, `sklearn`, `matplotlib`, `mpl_toolkits`) use `ignore_missing_imports`
+
+Every `# type: ignore` must name its error code, e.g. `# type: ignore[arg-type]` for a test that passes an invalid value on purpose.
 
 ### Style guidelines
 

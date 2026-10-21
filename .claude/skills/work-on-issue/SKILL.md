@@ -71,7 +71,7 @@ Run all of these and fix every failure:
 "$PY" -m ruff format <changed .py files>
 "$PY" -m ruff check .
 "$PY" -m ruff format --check .
-"$PY" -m mypy torch_bsf
+"$PY" -m mypy torch_bsf tests
 "$PY" -m pytest
 "$PY" -m sphinx -b doctest docs docs/_build/doctest
 ```
@@ -127,7 +127,7 @@ Closes #<N>
 
 ## Verification
 - `python -m pytest`: <N passed>
-- `python -m mypy torch_bsf`: <result>
+- `python -m mypy torch_bsf tests`: <result>
 - `ruff check` / `ruff format --check`: <result>
 - `sphinx-build -b doctest`: <result>
 

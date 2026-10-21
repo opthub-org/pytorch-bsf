@@ -5,7 +5,7 @@ from functools import cache
 from itertools import product as iproduct
 from math import factorial
 from numbers import Integral
-from typing import TypeAlias, cast
+from typing import Any, TypeAlias, cast
 
 import torch
 
@@ -69,7 +69,7 @@ def _canonical_index(simploid_type: SimploidType, index: object) -> SimploidInde
     A Bézier simplex (a single factor) also accepts its multi-index alone, e.g. ``(2, 1, 0)`` for ``((2, 1, 0),)``.
     Raises :class:`TypeError` or :class:`ValueError` if ``index`` is not a sequence of multi-indices.
     """
-    items = tuple(cast(Sequence, index))
+    items = tuple(cast(Sequence[Any], index))
     if len(simploid_type) == 1 and items and all(isinstance(v, Integral) for v in items):
         items = (items,)
     return tuple(tuple(int(v) for v in m) for m in items)
