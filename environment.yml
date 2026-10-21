@@ -5,12 +5,11 @@ channels:
 - defaults
 dependencies:
 - python=3.14
-- "pytorch>=2,<3"
-- "lightning>=2,<3"
-- "mlflow>=3,<4"
-- "starlette<1"  # hotfix for mlflow's starlette 1.0.0 issue
+- "pytorch>=2.3,<3"
+- "lightning>=2.4,<3"
+- "numpy>=1.21.2,<3"
+- "mlflow>=3.11.1,<4"
 - "pyyaml>=6,<7"
-- "protobuf>=6,<7"
 - pip
 - pip:
   - -e .
