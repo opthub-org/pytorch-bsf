@@ -7,9 +7,10 @@ version: 2
 updates:
   - package-ecosystem: "pip" # See documentation for possible values
     directory: "/" # Location of package manifests
-    # Only widen a range when a new release falls outside it (e.g. a new major version);
-    # never raise the lower bounds, which are kept at the oldest versions tested in CI.
-    versioning-strategy: widen
+    # Leave a range alone while it still admits the new release; only update it when a
+    # release falls outside it (e.g. a new major version). The lower bounds are kept at
+    # the oldest versions tested in CI. (`widen` is not accepted for the pip ecosystem.)
+    versioning-strategy: increase-if-necessary
     schedule:
       interval: "weekly"
   - package-ecosystem: "pre-commit" # Bumps `rev` of the hooks in .pre-commit-config.yaml (Ruff)
