@@ -467,8 +467,8 @@ five trials converge.  If the loss of PSGD jumps up, decrease ``step_size``,
 use ``step_decay="sqrt"``, or enlarge ``batch_size``.
 
 The other figures show the Pareto set and front approximated by PSGD after
-100 iterations, in the trial of the median final empirical loss, with the
-control points (red) and, where known, the boundary of the true Pareto set
+100 iterations, in the trial of the median final empirical optimality gap
+(empirical loss for the skew-MMD), with the control points (red) and, where known, the boundary of the true Pareto set
 and front (dotted).  For the location problem, the Pareto set lies in
 :math:`x_4 = 0` and is drawn in :math:`(x_1, x_2, x_3)`.
 

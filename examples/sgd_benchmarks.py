@@ -26,7 +26,8 @@ Usage::
 The script writes, for every problem ``<name>`` above, ``docs/_static/sgd_benchmark_<name>_loss.png``
 (the history of the empirical and generalization losses: the mean and the range over the trials) and
 ``docs/_static/sgd_benchmark_<name>_pareto.png`` (the Pareto set and front approximated by PSGD in the
-trial of the median final empirical loss, with the control points).  It runs in less than a minute on a CPU.
+median trial, with the control points).  The median trial is the one of the median final empirical value
+in the loss figure: the optimality gap, or the loss for the skew-MMD.  It runs in less than a minute on a CPU.
 """
 
 import math
@@ -209,7 +210,8 @@ def run_problem(problem: Problem) -> dict[tuple[int, str], Any]:
     """Runs every degree, method and trial.
 
     Returns the histories of shape ``(trial, iteration)`` and the model of the median trial, i.e., the one
-    with the median final empirical loss.
+    with the median final value of the empirical history (the optimality gap for a quadratic problem, the
+    loss otherwise).
     """
     init = initial_model(problem, 1)
     test_inputs = [t.double() for t in sample_domain(init, N_TEST_SAMPLES, seed=10_000)]
