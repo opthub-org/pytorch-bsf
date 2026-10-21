@@ -365,3 +365,143 @@ and ``seed`` (default ``""``, i.e., none) are also exposed.
 The command line fits Bézier simplices with the linear scalarization only;
 for Bézier simploids, simploidal Bézier spaces or other losses, use
 :func:`torch_bsf.fit_sgd` from Python.
+
+Benchmarks: SGD vs. PSGD
+------------------------
+
+The script ``examples/sgd_benchmarks.py`` reproduces the experiments of
+Section 5 of :cite:t:`hikima2025stochastic` with :func:`~torch_bsf.fit_sgd`,
+comparing plain SGD (``preconditioner="none"``) with the preconditioned SGD
+of the paper (PSGD, ``preconditioner="gram"``).  The problems are implemented
+from their definitions in the paper:
+
+* **Bergou2020** :cite:p:`bergou2021complexity` (:math:`M = 2`, :math:`L = 2`):
+  :math:`f_1(\mathbf x) = (x_1 - 1)^2 + (x_1 - x_2)^2` and
+  :math:`f_2(\mathbf x) = (x_2 - 3)^2 + (x_1 - x_2)^2`.
+* **Scaled-MED** (:math:`M = 3`, :math:`L = 3`):
+  :math:`f_1(\mathbf x) = x_1^2 + 3(x_2 - 1)^2 + 2(x_3 - 1)^2`,
+  :math:`f_2(\mathbf x) = 2(x_1 - 1)^2 + x_2^2 + 3(x_3 - 1)^2` and
+  :math:`f_3(\mathbf x) = 3(x_1 - 1)^2 + 2(x_2 - 1)^2 + (x_3 + 1)^2`.
+* **Skew-MMD** (:math:`M = 3`, :math:`L = 3`):
+  :math:`f_i(\mathbf x) = \|A_i(\mathbf x - \mathbf e_i)\|_2^{p_i}` with
+  :math:`A_1 = \operatorname{diag}(3/5, 4/5, 4/5)`,
+  :math:`A_2 = \operatorname{diag}(4/5, 3/5, 4/5)`,
+  :math:`A_3 = \operatorname{diag}(4/5, 4/5, 3/5)` and
+  :math:`p_i = \exp(2(i - 1)/(M - 1) - 1)`.
+* **Location problem** (:math:`M = 3`, :math:`L = 4`):
+  :math:`f_i(\mathbf x) = \|\mathbf x - \mathbf e_i\|_2^2`, whose Pareto set is
+  the triangle spanned by :math:`\mathbf e_1, \mathbf e_2, \mathbf e_3`.
+
+The settings are those of the paper: :math:`P_0 = O`, :math:`n = 100` samples,
+minibatches of :math:`m = 20`, :math:`K = 100` iterations with the constant
+step size :math:`\alpha = 0.05`, the degrees :math:`D \in \{2, 3, 4\}`, and 5
+trials with different samples, SGD and PSGD sharing the samples of a trial.
+The losses are recorded with ``callback`` as in
+`Monitoring the loss and stopping early`_: the empirical loss on the
+:math:`n` samples and the generalization loss on 10,000 other samples.  The
+script plots with matplotlib and SciPy, which the ``plot`` extra installs.  In
+a clone of the repository, run
+
+.. code-block:: bash
+
+   pip install -e ".[plot]"
+   python examples/sgd_benchmarks.py
+
+to write the figures below to ``docs/_static/``; it takes less than a minute
+on a CPU.
+
+For Bergou2020, Scaled-MED and the location problem, the objectives are
+quadratic, so :math:`\mathcal L(P)` is a quadratic function of the control
+points, and the script computes its minimizer :math:`P^*` over the Bézier
+simplices of degree :math:`D` exactly (by Newton's method, on the :math:`n`
+samples for the empirical loss and on the 10,000 samples for the
+generalization loss).  The figures show the optimality gap
+:math:`\mathcal L(P^{(k)}) - \mathcal L(P^*)`, the mean over the trials as a
+line and the range as a band:
+
+.. figure:: ../_static/sgd_benchmark_bergou2020_loss.png
+   :width: 100%
+
+   Bergou2020: the optimality gap of the empirical (top) and generalization
+   (bottom) losses.
+
+.. figure:: ../_static/sgd_benchmark_scaled_med_loss.png
+   :width: 100%
+
+   Scaled-MED: the optimality gap of the empirical (top) and generalization
+   (bottom) losses.
+
+.. figure:: ../_static/sgd_benchmark_facility_location_loss.png
+   :width: 100%
+
+   Location problem: the optimality gap of the empirical (top) and
+   generalization (bottom) losses.
+
+The skew-MMD has no closed-form solution, so its figure shows the loss
+:math:`\mathcal L(P^{(k)})` itself:
+
+.. figure:: ../_static/sgd_benchmark_skew_mmd_loss.png
+   :width: 100%
+
+   Skew-MMD: the empirical (top) and generalization (bottom) losses.
+
+PSGD decreases both losses much faster than SGD on every problem, with one
+exception discussed below.  After 100 iterations, its optimality gap is two to
+five orders of magnitude smaller
+(e.g., :math:`6 \times 10^{-4}` against :math:`2 \times 10^{-1}` for
+Bergou2020 with :math:`D = 2`), and the generalization loss follows the
+empirical one.  The higher the degree, the slower SGD gets, because the
+Bernstein basis gets more ill-conditioned: the condition number of
+:math:`\Sigma` of a Bézier triangle is 15, 56 and 210 for :math:`D = 2, 3, 4`.
+PSGD removes this dependence in its first iterations, which decrease the loss
+at almost the same rate for every degree, as the paper reports.
+
+The exception is Scaled-MED with :math:`D = 4`: the gap of PSGD jumps up
+during the iterations in two of the five trials, so that its mean ends above
+that of SGD, although PSGD is ahead in the first 20 iterations and in the
+other three trials.  The paper proves the convergence of minibatch PSGD for
+step sizes up to a bound proportional to
+:math:`1 / \lambda_{\max}(\Sigma^{-1})`, which shrinks as the degree grows
+(:math:`\lambda_{\max}(\Sigma^{-1})` of a Bézier triangle is 90, 560 and 3150
+for :math:`D = 2, 3, 4`), and :math:`\alpha = 0.05` is apparently beyond it
+here: a minibatch whose samples miss part of the triangle gets its gradient
+amplified along the directions where :math:`\Sigma` is small.  With :math:`\alpha = 0.03`, all
+five trials converge.  If the loss of PSGD jumps up, decrease ``step_size``,
+use ``step_decay="sqrt"``, or enlarge ``batch_size``.
+
+The other figures show the Pareto set and front approximated by PSGD after
+100 iterations, in the trial of the median final empirical optimality gap
+(empirical loss for the skew-MMD), with the control points (red) and, where known, the boundary of the true Pareto set
+and front (dotted).  For the location problem, the Pareto set lies in
+:math:`x_4 = 0` and is drawn in :math:`(x_1, x_2, x_3)`.
+
+.. figure:: ../_static/sgd_benchmark_bergou2020_pareto.png
+   :width: 100%
+
+   Bergou2020: the approximated Pareto set (top) and front (bottom).  The
+   true ones are given by
+   :math:`x_1^*(\mathbf t) = (t_1^2 + t_1 - 3) / (t_1^2 - t_1 - 1)` and
+   :math:`x_2^*(\mathbf t) = (3t_1^2 - t_1 - 3) / (t_1^2 - t_1 - 1)`.
+
+.. figure:: ../_static/sgd_benchmark_scaled_med_pareto.png
+   :width: 100%
+
+   Scaled-MED: the approximated Pareto set (top) and front (bottom).
+
+.. figure:: ../_static/sgd_benchmark_facility_location_pareto.png
+   :width: 100%
+
+   Location problem: the approximated Pareto set (top) and front (bottom).
+
+.. figure:: ../_static/sgd_benchmark_skew_mmd_pareto.png
+   :width: 100%
+
+   Skew-MMD: the approximated Pareto set (top) and front (bottom).
+
+On Bergou2020, the end points of the curve, which correspond to the
+vertices of the simplex that uniform samples of :math:`\mathbf t` rarely
+approach, converge the slowest.  On the skew-MMD, :math:`f_1` is not convex
+(:math:`p_1 = e^{-1} < 1`), so the minimizers of the linear scalarization
+:math:`\mathbf t^\top f(\mathbf x)` need not trace the Pareto set smoothly,
+and the fitted surface is only a local minimizer of :math:`\mathcal L`; the
+paper uses this problem only for the convergence comparison.
