@@ -940,3 +940,18 @@ def test_main_sgd_logs_long_loss_history(tmp_path, monkeypatch):
     assert run is not None
     logged = mlflow.MlflowClient().get_metric_history(run.info.run_id, "batch_loss")
     assert sorted(m.step for m in logged) == list(range(1001))
+
+
+def test_main_sgd_starts_from_init(tmp_path, monkeypatch):
+    """--init alone should give the initial model: no iterations save it unchanged, and iterations start from it."""
+    import torch_bsf
+    import torch_bsf.simploidal as ts
+
+    ts.save(tmp_path / "init.csv", ts.BezierSimploid.randn((2,), 2, 3))
+    args = (*_SGD_ARGS, "--degree=2", "--init=init.csv", "--seed=0", "--loglevel=0")
+    _run_main(monkeypatch, tmp_path, "sgd", *args, "--max-iter=0", "--save=model0.csv")
+    assert (tmp_path / "model0.csv").read_text() == (tmp_path / "init.csv").read_text()
+    _run_main(monkeypatch, tmp_path, "sgd", *args, "--max-iter=5", "--save=model5.csv")
+    init = ts.load(tmp_path / "init.csv")
+    expected = torch_bsf.fit_sgd(init, ts.linear_scalarization(sgd_objective), max_iter=5, seed=0)
+    assert torch.equal(ts.load(tmp_path / "model5.csv").control_points, expected.control_points)
