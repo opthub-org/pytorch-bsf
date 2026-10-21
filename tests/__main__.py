@@ -575,6 +575,14 @@ def sgd_objective_not_differentiable(x: torch.Tensor) -> torch.Tensor:
     return sgd_objective(x).detach()
 
 
+_SGD_WEIGHT = torch.zeros(3, requires_grad=True)
+
+
+def sgd_objective_disconnected(x: torch.Tensor) -> torch.Tensor:
+    """Values that require grad through a parameter of their own, but do not depend on ``x``."""
+    return _SGD_WEIGHT.expand(len(x), 3) * 1.0
+
+
 def sgd_objective_list(x: torch.Tensor) -> list[float]:
     return [0.0, 0.0, 0.0]
 
@@ -798,6 +806,7 @@ def test_cli_sgd_error_is_clean(tmp_path):
         (["--objective=tests.__main__:sgd_objective_raises"], "--objective failed on points of shape (2, 3): RuntimeError"),
         (["--objective=tests.__main__:sgd_objective_list"], "but it returned a list"),
         (["--objective=tests.__main__:sgd_objective_not_differentiable"], "--objective must be differentiable"),
+        (["--objective=tests.__main__:sgd_objective_disconnected"], "do not depend on the points through autograd"),
         (["--n-objectives=1"], "--n-objectives must be at least 2, but 1 is given"),
         (["--n-variables=0"], "--n-variables must be at least 1, but 0 is given"),
         (["--degree=-1"], "--degree must be at least 0, but -1 is given"),

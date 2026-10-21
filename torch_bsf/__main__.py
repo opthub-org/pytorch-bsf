@@ -199,8 +199,12 @@ def _check_objective(
             f"--objective must map points of shape {tuple(x.shape)} (--n-variables) to a tensor of shape "
             f"{expected} (--n-objectives), but it returned {got}"
         )
-    if not fs.requires_grad:
-        parser.error("--objective must be differentiable with PyTorch, but its values do not require grad")
+    # The values must be connected to x in the autograd graph, not only require grad (e.g. through parameters of their own).
+    (grad,) = torch.autograd.grad(fs.sum(), x, allow_unused=True) if fs.requires_grad else (None,)
+    if grad is None:
+        parser.error(
+            "--objective must be differentiable with PyTorch, but its values do not depend on the points through autograd"
+        )
 
 
 def _sgd_params(args: Namespace) -> dict[str, Any]:
