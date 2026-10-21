@@ -239,7 +239,9 @@ Configuration in `pyproject.toml` (`[tool.ruff]` section):
 
 - `line-length = 127`
 - `target-version = "py310"`
-- `select = ["E", "F", "W", "I"]` (pycodestyle errors and warnings, Pyflakes, isort)
+- `select = ["E", "F", "W", "I", "UP", "B", "SIM"]` (pycodestyle errors and warnings, Pyflakes, isort, pyupgrade, flake8-bugbear, flake8-simplify)
+
+`B905` requires an explicit `strict=` on every `zip()`: pass `strict=True` when the iterables must have the same length, and `strict=False` only when truncation is intended.
 
 ### Ignoring bulk formatting commits in git blame
 
