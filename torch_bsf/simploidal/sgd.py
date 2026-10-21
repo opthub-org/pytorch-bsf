@@ -41,15 +41,21 @@ The Gram matrix :math:`\Sigma` (see :func:`gram_matrix`) is computed exactly:
 """
 
 import copy
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from math import lgamma
-from typing import Literal, TypeAlias, TypeVar
+from typing import Literal, TypeAlias, TypeVar, cast
 
 import torch
 
 from torch_bsf.simploidal.bezier import BezierSimploid
-from torch_bsf.simploidal.combinatorics import SimploidType, _factor_tables, sample_simploid, simploid_n_params
-from torch_bsf.simploidal.fitting import _parameter
+from torch_bsf.simploidal.combinatorics import (
+    SimploidIndex,
+    SimploidType,
+    _factor_tables,
+    sample_simploid,
+    simploid_n_params,
+)
+from torch_bsf.simploidal.fitting import _incidence, _parameter, _smoothness_penalty
 from torch_bsf.simploidal.sets import Simploid
 from torch_bsf.simploidal.space import SimploidalBezierSpace
 
@@ -58,6 +64,10 @@ from torch_bsf.simploidal.space import SimploidalBezierSpace
 #: :class:`BezierSimploid` and ``(t, simploid_ids)`` for a :class:`SimploidalBezierSpace`.
 SGDLoss: TypeAlias = Callable[..., torch.Tensor]
 
+#: Control points to freeze: indices of a :class:`BezierSimploid` (as for :func:`~torch_bsf.fit`), or pairs
+#: ``(simploid, index)`` for a :class:`SimploidalBezierSpace` (as for :func:`fit_simploidal_set`).
+FreezeSpec: TypeAlias = Iterable[SimploidIndex | Sequence[int] | tuple[Simploid, SimploidIndex]]
+
 StepDecay = Literal["constant", "sqrt"]
 Preconditioner = Literal["gram", "none"]
 
@@ -65,7 +75,7 @@ _Model = TypeVar("_Model", BezierSimploid, SimploidalBezierSpace)
 
 #: A callback ``callback(k, model, batch_loss)`` of :func:`fit_sgd`, called after the update of every iteration
 #: with the 0-based iteration number ``k``, the model being fitted and the mean loss of the minibatch at the
-#: parameters before the update.  Returning ``True`` stops the fitting.
+#: parameters before the update (without the smoothness penalty).  Returning ``True`` stops the fitting.
 SGDCallback: TypeAlias = Callable[[int, _Model, float], bool | None]
 
 
@@ -284,7 +294,9 @@ def _copy_model(model: _Model) -> _Model:
     return copy.deepcopy(model, shared)
 
 
-def _check_sgd_options(max_iter: int, step_size: float, batch_size: int | None, step_decay: str, preconditioner: str) -> None:
+def _check_sgd_options(
+    max_iter: int, step_size: float, batch_size: int | None, step_decay: str, preconditioner: str, smoothness_weight: float
+) -> None:
     if max_iter < 0:
         raise ValueError(f"max_iter must be non-negative, but {max_iter} is given.")
     if not step_size > 0:
@@ -295,6 +307,30 @@ def _check_sgd_options(max_iter: int, step_size: float, batch_size: int | None, 
         raise ValueError(f"Unknown step_decay {step_decay!r}.")
     if preconditioner not in ("gram", "none"):
         raise ValueError(f"Unknown preconditioner {preconditioner!r}.")
+    if not smoothness_weight >= 0:
+        raise ValueError(f"smoothness_weight must be non-negative, but {smoothness_weight} is given.")
+
+
+def _frozen_rows(model: BezierSimploid | SimploidalBezierSpace, freeze: FreezeSpec | None) -> list[int]:
+    """The sorted rows of the parameter of ``model`` holding the control points in ``freeze``.
+
+    The indices are resolved by :meth:`BezierSimploid.row` or :meth:`SimploidalBezierSpace.row`, as in
+    :func:`~torch_bsf.fit` and :func:`~torch_bsf.simploidal.fit_simploidal_set`.
+    """
+    if freeze is None:
+        return []
+    if isinstance(model, BezierSimploid):
+        return sorted({model.row(cast(SimploidIndex, index)) for index in freeze})
+    rows = set()
+    for item in freeze:
+        try:
+            simploid, index = cast(tuple[Simploid, SimploidIndex], item)
+        except (TypeError, ValueError):
+            raise ValueError(f"freeze of a space must give pairs (simploid, index), but {item!r} is given.") from None
+        if not isinstance(simploid, Simploid):
+            raise ValueError(f"freeze of a space must give pairs (simploid, index), but {item!r} is given.")
+        rows.add(model.row(simploid, index))
+    return sorted(rows)
 
 
 def _prepare_inputs(inputs: Sequence[torch.Tensor], parameter: torch.Tensor) -> list[torch.Tensor]:
@@ -309,6 +345,67 @@ def _prepare_inputs(inputs: Sequence[torch.Tensor], parameter: torch.Tensor) -> 
     return tensors
 
 
+class _Update:
+    r"""The step :math:`P_F \leftarrow P_F - \alpha (M_{FF} + 2 \alpha w L_{FF})^{-1} \nabla_F` on the free rows ``F``.
+
+    :math:`M` is the metric of the step (:math:`\Sigma`, or the identity for plain SGD), :math:`L` the Laplacian
+    of the adjacency graph and :math:`w` the smoothness weight; see :func:`fit_sgd`.  The matrix is factorized
+    once, or once per step size if :math:`w > 0`.  The frozen rows are never written, so they keep their values
+    bit for bit.
+    """
+
+    def __init__(
+        self,
+        model: BezierSimploid | SimploidalBezierSpace,
+        parameter: torch.Tensor,
+        frozen: Sequence[int],
+        preconditioner: str,
+        weights: Mapping[Simploid, float] | None,
+        smoothness_weight: float,
+    ) -> None:
+        n = len(parameter)
+        self.free: torch.Tensor | None = None
+        rows = torch.arange(n)
+        if frozen:
+            is_free = torch.ones(n, dtype=torch.bool)
+            is_free[list(frozen)] = False
+            rows = torch.nonzero(is_free).flatten()
+            self.free = rows.to(parameter.device)
+        self.device, self.dtype = parameter.device, parameter.dtype
+        block = (rows.unsqueeze(1), rows.unsqueeze(0))
+        self.metric: torch.Tensor | None = None
+        if preconditioner == "gram":
+            self.metric = gram_matrix(model, weights)[block]
+        self.laplacian: torch.Tensor | None = None
+        if smoothness_weight > 0:
+            d = _incidence(model.adjacency(), n)
+            self.laplacian = (2 * smoothness_weight * d.T @ d)[block]
+            if self.metric is None:
+                self.metric = torch.eye(len(rows), dtype=torch.float64)
+        self.alpha: float | None = None
+        self.inverse: torch.Tensor | None = None
+
+    def _inverse(self, alpha: float) -> torch.Tensor | None:
+        if self.metric is None:
+            return None
+        if self.inverse is None or (self.laplacian is not None and alpha != self.alpha):
+            matrix = self.metric if self.laplacian is None else self.metric + alpha * self.laplacian
+            self.inverse = torch.cholesky_inverse(torch.linalg.cholesky(matrix)).to(self.device, self.dtype)
+            self.alpha = alpha
+        return self.inverse
+
+    def __call__(self, parameter: torch.Tensor, grad: torch.Tensor, alpha: float) -> None:
+        if self.free is not None:
+            grad = grad[self.free]
+        inverse = self._inverse(alpha)
+        direction = grad if inverse is None else inverse @ grad
+        with torch.no_grad():
+            if self.free is None:
+                parameter.sub_(alpha * direction)
+            else:
+                parameter[self.free] -= alpha * direction
+
+
 def fit_sgd(
     model: _Model,
     loss: SGDLoss,
@@ -321,6 +418,8 @@ def fit_sgd(
     step_decay: StepDecay = "constant",
     preconditioner: Preconditioner = "gram",
     weights: Mapping[Simploid, float] | None = None,
+    freeze: FreezeSpec | None = None,
+    smoothness_weight: float = 0.0,
     seed: int | None = None,
     callback: SGDCallback[_Model] | None = None,
 ) -> _Model:
@@ -332,6 +431,22 @@ def fit_sgd(
     samples uniformly without replacement and updates the parameter :math:`P` of the model as
     :math:`P \leftarrow P - \alpha_k \Sigma^{-1} \nabla \mathcal L_B(P)`, where :math:`\Sigma` is
     :func:`gram_matrix` (or the identity for plain SGD).
+
+    The control points in ``freeze`` keep their values in ``model``, and only the free rows :math:`F` of
+    :math:`P` move.  With ``smoothness_weight`` :math:`w > 0`, the loss also has the smoothness penalty
+    :math:`w \sum_{(p, q)} \|P_p - P_q\|^2 = w \operatorname{tr}(P^\top L P)` over the adjacent control points
+    (see ``model.adjacency()``), as in :func:`~torch_bsf.fit`, where :math:`L` is the Laplacian of the
+    adjacency graph.  The step then minimizes the linearized loss plus the exact penalty plus the move of the
+    model over the free rows, which gives
+
+    .. math::
+
+       P_F \leftarrow P_F - \alpha_k (\Sigma_{FF} + 2 \alpha_k w L_{FF})^{-1} \nabla_F \bigl(\mathcal L_B(P)
+       + w \operatorname{tr}(P^\top L P)\bigr).
+
+    Treating the penalty exactly rather than by its gradient keeps the step stable for any :math:`w`, while
+    :math:`\Sigma^{-1} L` has eigenvalues in the thousands already for a cubic Bézier triangle.  Without
+    frozen rows and with :math:`w = 0`, this is the step above.
 
     Parameters
     ----------
@@ -360,12 +475,19 @@ def fit_sgd(
         For a space, the probability of every non-degenerate simploid, used both to sample ``inputs``
         and in :math:`\Sigma`.  Uniform over the main simploids of the space (those that are not a face of
         another) if ``None``.
+    freeze
+        Control points that keep their values in ``model``.  For a Bézier simploid, their indices as in
+        :func:`~torch_bsf.fit` (a Bézier simplex also accepts its multi-indices alone, e.g. ``(2, 0, 0)``);
+        for a space, pairs ``(simploid, index)`` as in :func:`~torch_bsf.simploidal.fit_simploidal_set`.
+    smoothness_weight
+        The weight :math:`w \ge 0` of the smoothness penalty added to the loss.
     seed
         Random seed for the samples and the minibatches.
     callback
         Called as ``callback(k, model, batch_loss)`` after the update of every iteration ``k = 0, 1, ...``
         (see :data:`SGDCallback`), where ``model`` is the model being fitted and ``batch_loss`` is the mean
-        loss of the minibatch at the parameters before the update.  If it returns ``True``, the fitting
+        loss of the minibatch at the parameters before the update, without the smoothness penalty of
+        ``smoothness_weight``.  If it returns ``True``, the fitting
         stops after this iteration.  It may evaluate ``model``, preferably under :func:`torch.no_grad`,
         but must not modify it: copy the parameters to keep a snapshot.
 
@@ -376,8 +498,8 @@ def fit_sgd(
     Raises
     ------
     ValueError
-        If an option is out of range, the inputs are empty or have different lengths, or ``loss`` does
-        not return one value per sample.
+        If an option is out of range, ``freeze`` has an invalid index, the inputs are empty or have
+        different lengths, or ``loss`` does not return one value per sample.
 
     Examples
     --------
@@ -403,8 +525,22 @@ def fit_sgd(
     >>> bs = torch_bsf.fit_sgd(init, linear_scalarization(objective), step_size=0.2, seed=0, callback=callback)
     >>> len(history) < 100  # stopped before max_iter
     True
+
+    Keep the vertices of a quadratic Bézier triangle at the known minimizers of the single objectives,
+    and smooth its control net:
+
+    >>> init = BezierSimploid.zeros((2,), 2, n_values=3)
+    >>> vertices = [(2, 0, 0), (0, 2, 0), (0, 0, 2)]
+    >>> with torch.no_grad():
+    ...     for m, vertex in enumerate(vertices):
+    ...         _ = init[vertex].copy_(torch.eye(3)[m])
+    >>> bs = torch_bsf.fit_sgd(
+    ...     init, linear_scalarization(objective), freeze=vertices, smoothness_weight=1e-3, step_size=0.2, seed=0
+    ... )
+    >>> bs[(2, 0, 0)].tolist()
+    [1.0, 0.0, 0.0]
     """
-    _check_sgd_options(max_iter, step_size, batch_size, step_decay, preconditioner)
+    _check_sgd_options(max_iter, step_size, batch_size, step_decay, preconditioner, smoothness_weight)
     model = _copy_model(model)
     parameter = _parameter(model)
     if inputs is None:
@@ -412,10 +548,8 @@ def fit_sgd(
     samples = _prepare_inputs(inputs, parameter)
     n = len(samples[0])
     m = n if batch_size is None else min(batch_size, n)
-    precondition = None
-    if preconditioner == "gram":
-        precondition = torch.cholesky_inverse(torch.linalg.cholesky(gram_matrix(model, weights)))
-        precondition = precondition.to(parameter.device, parameter.dtype)
+    update = _Update(model, parameter, _frozen_rows(model, freeze), preconditioner, weights, smoothness_weight)
+    adjacency = model.adjacency().to(parameter.device) if smoothness_weight > 0 else None
     generator = _generator(None if seed is None else seed + 1)
     for k in range(max_iter):
         rows = torch.randperm(n, generator=generator)[:m].to(parameter.device)
@@ -423,12 +557,12 @@ def fit_sgd(
         losses = loss(model(*batch), *batch)
         if losses.shape != (m,):
             raise ValueError(f"loss must return a tensor of shape ({m},), but {tuple(losses.shape)} is given.")
-        batch_loss = losses.mean()
-        (grad,) = torch.autograd.grad(batch_loss, parameter)
-        direction = grad if precondition is None else precondition @ grad
+        objective = batch_loss = losses.mean()
+        if adjacency is not None:
+            objective = objective + smoothness_weight * _smoothness_penalty(parameter, adjacency)
+        (grad,) = torch.autograd.grad(objective, parameter)
         alpha = step_size if step_decay == "constant" else step_size / (k + 1) ** 0.5
-        with torch.no_grad():
-            parameter.sub_(alpha * direction)
+        update(parameter, grad, alpha)
         if callback is not None and callback(k, model, batch_loss.item()):
             break
     return model

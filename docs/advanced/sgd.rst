@@ -173,6 +173,66 @@ Bézier simploid, ``model.proper_control_points.detach().clone()`` for a
 simploidal Bézier space).  The callback does not change the fitting: a
 callback that never returns ``True`` gives the same model as no callback.
 
+Freezing control points and smoothing
+-------------------------------------
+
+The minimizer of each single objective :math:`f_m` is often known in advance.
+It is the vertex :math:`\mathbf t = \mathbf e_m` of the Pareto set, so you can
+put it in the initial model and keep it there with ``freeze``, as in
+:func:`torch_bsf.fit`.  ``smoothness_weight`` adds the smoothness penalty
+:math:`w \sum_{(p, q)} \|P_p - P_q\|^2` over the adjacent control points to the
+loss, which keeps the control net of a high degree model from oscillating:
+
+.. testcode::
+   :pyversion: >= 3.10, < 3.15
+
+   init = BezierSimploid.zeros((2,), 3, n_values=3)  # a cubic Bézier triangle
+   vertices = [(3, 0, 0), (0, 3, 0), (0, 0, 3)]
+   with torch.no_grad():
+       for m, vertex in enumerate(vertices):
+           init[vertex].copy_(torch.eye(3)[m])  # the minimizer of f_m
+
+   bs = torch_bsf.fit_sgd(
+       init, loss, freeze=vertices, smoothness_weight=1e-4, batch_size=20, max_iter=200, step_size=0.2, seed=0
+   )
+   print(all(torch.equal(bs[v], init[v]) for v in vertices))
+   print(torch.allclose(bs(t), t, atol=1e-2))
+
+.. testoutput::
+   :pyversion: >= 3.10, < 3.15
+
+   True
+   True
+
+The frozen control points keep their values in ``init`` bit for bit.  For a
+Bézier simplex, give their multi-indices (or full indices, as
+``((3, 0, 0),)``); for a Bézier simploid, their indices; and for a
+simploidal Bézier space, pairs ``(simploid, index)`` of any simploid of the
+set and an index of its control net, as in
+:func:`~torch_bsf.simploidal.fit_simploidal_set`.
+
+With frozen rows, the step moves only the free rows :math:`F` and is
+preconditioned by the block :math:`\Sigma_{FF}` of the Gram matrix rather
+than by :math:`\Sigma`, so that it still minimizes the linearized loss plus
+the move of the surface while the frozen rows stay fixed:
+
+.. math::
+
+   P_F^{(k+1)} = P_F^{(k)} - \alpha_k (\Sigma_{FF} + 2 \alpha_k w L_{FF})^{-1}
+   \nabla_F \bigl(\mathcal L_B(P^{(k)}) + w \operatorname{tr}(P^{(k)\top} L P^{(k)})\bigr),
+
+where :math:`L` is the Laplacian of the adjacency graph of the control
+points, so that the penalty is :math:`w \operatorname{tr}(P^\top L P)`.
+The term :math:`2 \alpha_k w L_{FF}` comes from minimizing the penalty
+exactly instead of following its gradient.  The surface metric
+:math:`\Sigma` is tiny along oscillating control nets, so
+:math:`\Sigma^{-1} L` has eigenvalues in the thousands already for a cubic
+Bézier triangle, and a plain gradient step on the penalty would diverge
+unless :math:`\alpha w` were tiny; the exact treatment is stable for every
+:math:`w`.  The matrix is factorized once (once per iteration with
+``step_decay="sqrt"`` and :math:`w > 0`).  Without frozen rows and with
+:math:`w = 0`, the step is the one of the paper.
+
 Generalization to simploids and simploidal spaces
 -------------------------------------------------
 

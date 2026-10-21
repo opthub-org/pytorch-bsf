@@ -361,3 +361,231 @@ def test_space_default_weights_ignore_later_cells() -> None:
     assert torch.equal(gram_matrix(space), gram)
     _, ids = sample_domain(space, 50, seed=0)
     assert ids.max() < len(space.simploids)
+
+
+def _vertex_init(degree: int) -> tuple[BezierSimploid, list[tuple[int, ...]]]:
+    """A Bézier triangle of zeros except for its vertices, set to the minimizers e_m of the single objectives."""
+    init = BezierSimploid.zeros((2,), degree, n_values=3)
+    vertices = [tuple(degree if i == m else 0 for i in range(3)) for m in range(3)]
+    with torch.no_grad():
+        for m, vertex in enumerate(vertices):
+            init[vertex].copy_(torch.eye(3)[m])
+    return init, vertices
+
+
+@pytest.mark.parametrize("degree", [1, 2, 3])
+def test_fit_sgd_freeze_vertices_recovers_pareto_set(degree: int) -> None:
+    """Freezing the vertices at the minimizers e_m of the single objectives keeps them and recovers the Pareto set."""
+    init, vertices = _vertex_init(degree)
+    loss = linear_scalarization(_location_objective)
+    bs = fit_sgd(init, loss, freeze=vertices, batch_size=20, max_iter=200, step_size=0.2, seed=0)
+    for vertex in vertices:
+        assert torch.equal(bs[vertex], init[vertex])
+    (t,) = sample_domain(bs, 1000, seed=1)
+    with torch.no_grad():
+        assert torch.allclose(bs(t), t, atol=1e-3)
+
+
+def test_fit_sgd_freeze_is_bitwise() -> None:
+    """Frozen rows keep values that no arithmetic would reproduce, in every precision, with both preconditioners."""
+    for dtype in (torch.float32, torch.float64):
+        torch.manual_seed(0)
+        init = BezierSimploid.randn((2, 1), 2, n_values=2).to(dtype)
+        freeze = [((2, 0, 0), (1, 1)), ((0, 1, 1), (0, 2))]
+        rows = [init.row(index) for index in freeze]
+        target = BezierSimploid.randn((2, 1), 2, n_values=2).to(dtype)
+        for preconditioner in ("gram", "none"):
+            bs = fit_sgd(
+                init,
+                _squared_error(target),
+                freeze=iter(freeze),
+                smoothness_weight=0.1,
+                preconditioner=preconditioner,
+                max_iter=20,
+                step_size=0.3,
+                seed=0,
+            )
+            assert torch.equal(bs.control_points[rows], init.control_points[rows])
+            free = [r for r in range(len(init.control_points)) if r not in rows]
+            assert not torch.equal(bs.control_points[free], init.control_points[free])
+
+
+def test_fit_sgd_freeze_step_preconditions_free_rows() -> None:
+    """One step moves the free rows F by -alpha (Sigma_FF)^-1 grad_F L, not by the rows F of -alpha Sigma^-1 grad_F L."""
+    torch.manual_seed(0)
+    init = BezierSimploid.randn((2,), 3, n_values=3).double()
+    loss = linear_scalarization(_location_objective)
+    inputs = sample_domain(init, 50, seed=0)
+    freeze = [(3, 0, 0), (1, 1, 1)]
+    frozen = [init.row(index) for index in freeze]
+    free = [r for r in range(len(init.control_points)) if r not in frozen]
+    alpha = 0.1
+    bs = fit_sgd(init, loss, inputs=inputs, freeze=freeze, max_iter=1, step_size=alpha)
+
+    parameter = init.control_points.detach().clone().requires_grad_(True)
+    (t,) = [x.double() for x in inputs]
+    (grad,) = torch.autograd.grad(loss(init.design_matrix(t) @ parameter, t).mean(), parameter)
+    gram = gram_matrix(init)
+    expected = parameter.detach().clone()
+    expected[free] -= alpha * torch.linalg.solve(gram[free][:, free], grad[free])
+    assert torch.allclose(bs.control_points, expected, atol=1e-12)
+    assert torch.equal(bs.control_points[frozen], init.control_points[frozen])
+
+    # Zeroing the gradient of the frozen rows before multiplying by Sigma^-1 would move them and the free rows differently.
+    masked = grad.clone()
+    masked[frozen] = 0
+    naive = parameter.detach() - alpha * torch.linalg.solve(gram, masked)
+    assert not torch.allclose(naive[frozen], init.control_points[frozen])
+    assert not torch.allclose(naive[free], expected[free])
+
+
+def test_fit_sgd_freeze_space() -> None:
+    """Frozen control points of a space keep their values: on shared faces, given through any cell, and inside a cell."""
+    S, init, (tri, sq, edge) = _glued_space()
+    target = SimploidalBezierSpace(S, 2, 2).double()
+    torch.manual_seed(0)
+    torch.nn.init.normal_(target.proper_control_points)
+    # The vertex shared by the triangle and the edge (given twice), the middle of the edge shared by the triangle
+    # and the square, and the center of the square.
+    freeze = [(tri.vertices()[0], ()), (edge.vertices()[0], ()), (tri, ((1, 1, 0),)), (sq, ((1, 1), (1, 1)))]
+    rows = sorted({init.row(s, index) for s, index in freeze})
+    assert len(rows) == 3
+    with torch.no_grad():
+        init.proper_control_points[rows] = target.proper_control_points[rows]
+    space = fit_sgd(
+        init, _squared_error(target), freeze=freeze, n_samples=300, batch_size=100, max_iter=100, step_size=0.25, seed=0
+    )
+    assert torch.equal(space.proper_control_points[rows], target.proper_control_points[rows])
+    assert torch.allclose(space.proper_control_points, target.proper_control_points, atol=1e-6)
+
+
+def test_fit_sgd_freeze_all_rows() -> None:
+    init, _ = _vertex_init(1)
+    bs = fit_sgd(init, linear_scalarization(_location_objective), freeze=simploid_indices((2,), 1), max_iter=5, seed=0)
+    assert torch.equal(bs.control_points, init.control_points)
+
+
+def test_fit_sgd_without_freeze_and_smoothness_is_unchanged() -> None:
+    """An empty freeze and a zero smoothness weight give the very same iterates as the plain method."""
+    init = BezierSimploid.zeros((2,), 2, n_values=3)
+    loss = linear_scalarization(_location_objective)
+    plain = fit_sgd(init, loss, batch_size=10, max_iter=10, seed=1)
+    other = fit_sgd(init, loss, batch_size=10, max_iter=10, seed=1, freeze=[], smoothness_weight=0.0)
+    assert torch.equal(plain.control_points, other.control_points)
+
+
+@pytest.mark.parametrize("preconditioner, step_decay", [(pc, sd) for pc in ("gram", "none") for sd in ("constant", "sqrt")])
+def test_fit_sgd_smoothness_step(preconditioner: str, step_decay: str) -> None:
+    """Every step minimizes the linearized loss plus the exact penalty w tr(P^T L P) plus the move of the model.
+
+    On the free rows F, it is P_F <- P_F - alpha_k (M_FF + 2 alpha_k w L_FF)^-1 grad_F, where M is Sigma or I.
+    """
+    torch.manual_seed(0)
+    init = BezierSimploid.randn((1, 1), 2, n_values=2).double()
+    target = BezierSimploid.randn((1, 1), 2, n_values=2).double()
+    loss = _squared_error(target)
+    inputs = sample_domain(init, 40, seed=0)
+    freeze = [((2, 0), (1, 1))]
+    w, alpha = 0.3, 0.05
+    bs = fit_sgd(
+        init,
+        loss,
+        inputs=inputs,
+        freeze=freeze,
+        smoothness_weight=w,
+        preconditioner=preconditioner,  # type: ignore[arg-type]
+        step_decay=step_decay,  # type: ignore[arg-type]
+        max_iter=3,
+        step_size=alpha,
+    )
+
+    n = len(init.control_points)
+    free = [r for r in range(n) if r != init.row(freeze[0])]
+    laplacian = torch.zeros(n, n, dtype=torch.float64)
+    for i, j in init.adjacency().tolist():
+        laplacian[[i, j], [i, j]] += 1
+        laplacian[[i, j], [j, i]] -= 1
+    metric = torch.eye(n, dtype=torch.float64) if preconditioner == "none" else gram_matrix(init)
+    (t,) = [x.double() for x in inputs]
+    p, q = init.adjacency().T
+    expected = init.control_points.detach().clone()
+    for k in range(3):
+        parameter = expected.clone().requires_grad_(True)
+        objective = loss(init.design_matrix(t) @ parameter, t).mean() + w * ((parameter[p] - parameter[q]) ** 2).sum()
+        (grad,) = torch.autograd.grad(objective, parameter)
+        alpha_k = alpha if step_decay == "constant" else alpha / (k + 1) ** 0.5
+        matrix = (metric + 2 * alpha_k * w * laplacian)[free][:, free]
+        expected[free] -= alpha_k * torch.linalg.solve(matrix, grad[free])
+    assert torch.allclose(bs.control_points, expected, atol=1e-12)
+    assert torch.equal(bs.control_points[init.row(freeze[0])], init.control_points[init.row(freeze[0])])
+
+
+def test_fit_sgd_smoothness_smooths() -> None:
+    """A larger smoothness weight gives a smoother control net."""
+    torch.manual_seed(0)
+    init = BezierSimploid.zeros((2,), 3, n_values=2).double()
+    target = BezierSimploid.randn((2,), 3, n_values=2).double()
+    p, q = init.adjacency().T
+
+    def roughness(weight: float) -> float:
+        bs = fit_sgd(
+            init, _squared_error(target), smoothness_weight=weight, n_samples=200, max_iter=200, step_size=0.2, seed=0
+        )
+        return float(((bs.control_points[p] - bs.control_points[q]) ** 2).sum().detach())
+
+    assert roughness(1.0) < roughness(0.01) < roughness(0.0)
+
+
+@pytest.mark.parametrize(
+    "freeze, smoothness_weight, match",
+    [
+        ([(3, 0, 0)], 0.0, "not a control point index"),
+        ([(1, 0)], 0.0, "not a control point index"),
+        ([((1, 0, 0), (1, 0))], 0.0, "not a control point index"),
+        (None, -0.1, "smoothness_weight"),
+        (None, float("nan"), "smoothness_weight"),
+    ],
+)
+def test_fit_sgd_freeze_and_smoothness_errors(freeze: Any, smoothness_weight: float, match: str) -> None:
+    init = BezierSimploid.zeros((2,), 1, n_values=3)
+    with pytest.raises(ValueError, match=match):
+        fit_sgd(init, linear_scalarization(_location_objective), freeze=freeze, smoothness_weight=smoothness_weight)
+
+
+def test_fit_sgd_freeze_space_errors() -> None:
+    _, init, (tri, _, _) = _glued_space()
+    loss = _squared_error(init)
+    cases: list[tuple[Any, str]] = [
+        ([((1, 0, 0),)], "pairs"),
+        ([((1, 0, 0), (0, 1, 0))], "pairs"),
+        ([3], "pairs"),
+        ([(tri, ((3, 0, 0),))], "not a control point index"),
+        ([(SimploidalSet().add_simplex(2), ((1, 0, 0),))], "does not belong"),
+    ]
+    for freeze, match in cases:
+        with pytest.raises(ValueError, match=match):
+            fit_sgd(init, loss, freeze=freeze, n_samples=5, max_iter=1)
+
+
+def test_fit_sgd_callback_with_freeze_and_smoothness() -> None:
+    """The callback sees the updated model with its frozen rows intact, and the minibatch loss without the penalty."""
+    init, vertices = _vertex_init(2)
+    loss = linear_scalarization(_location_objective)
+    inputs = sample_domain(init, 30, seed=0)
+    rows = [init.row(v) for v in vertices]
+    records: list[tuple[torch.Tensor, float]] = []
+
+    def callback(k: int, model: BezierSimploid, batch_loss: float) -> bool:
+        assert torch.equal(model.control_points[rows], init.control_points[rows])
+        records.append((model.control_points.detach().clone(), batch_loss))
+        return k == 4
+
+    kwargs: dict[str, Any] = dict(inputs=inputs, freeze=vertices, smoothness_weight=0.1, step_size=0.2, seed=0)
+    bs = fit_sgd(init, loss, callback=callback, **kwargs)
+    assert len(records) == 5
+    assert torch.equal(bs.control_points, records[-1][0])
+    assert torch.equal(bs.control_points, fit_sgd(init, loss, max_iter=5, **kwargs).control_points)
+    # Full batch: the minibatch loss at P^(k) is the mean loss of the model before iteration k, penalty excluded.
+    before = [init.control_points] + [points for points, _ in records[:-1]]
+    for points, (_, batch_loss) in zip(before, records, strict=True):
+        assert batch_loss == pytest.approx(_mean_loss(BezierSimploid((2,), 2, points), loss, inputs), rel=1e-6)
