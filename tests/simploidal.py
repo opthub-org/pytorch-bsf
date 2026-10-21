@@ -60,7 +60,7 @@ def test_simploid_indices_count(simploid_type, degree):
     indices = simploid_indices(simploid_type, degree)
     assert len(indices) == prod(comb(a + degree, a) for a in simploid_type)
     assert len(set(indices)) == len(indices)
-    assert all(sum(m) == degree and len(m) == a + 1 for alpha in indices for m, a in zip(alpha, simploid_type))
+    assert all(sum(m) == degree and len(m) == a + 1 for alpha in indices for m, a in zip(alpha, simploid_type, strict=True))
 
 
 def test_simploid_indices_invalid():
@@ -873,7 +873,8 @@ def test_space_mixed_degrees_stores_each_control_point_once():
     S, mains = _glued_set()
     space = _random_mixed_space(S, _mixed_degrees(mains))
     expected = sum(
-        1 if s.is_vertex else prod(comb(d - 1, a) for a, d in zip(s.simploid_type, space.simploid_degree(s))) for s in S
+        1 if s.is_vertex else prod(comb(d - 1, a) for a, d in zip(s.simploid_type, space.simploid_degree(s), strict=True))
+        for s in S
     )
     assert space.n_proper_control_points == expected
     used = set()
@@ -1437,7 +1438,7 @@ def test_adjacency_of_one_factor(n_params, degree):
         (a, b)
         for a in rows
         for b in rows
-        if a < b and sorted(x - y for x, y in zip(a, b)) == [-1] + [0] * (n_params - 2) + [1]
+        if a < b and sorted(x - y for x, y in zip(a, b, strict=True)) == [-1] + [0] * (n_params - 2) + [1]
     }
     actual = {tuple(sorted((rows[p], rows[q]))) for p, q in simploid.adjacency().tolist()}
     assert actual == expected
@@ -1454,7 +1455,7 @@ def test_adjacency_of_several_factors(simploid_type, degree):
         diffs = [k for k in range(len(alpha)) if alpha[k] != beta[k]]
         if len(diffs) != 1:
             return False
-        d = [u - v for u, v in zip(alpha[diffs[0]], beta[diffs[0]])]
+        d = [u - v for u, v in zip(alpha[diffs[0]], beta[diffs[0]], strict=True)]
         return sorted(d) == [-1] + [0] * (len(d) - 2) + [1]
 
     expected = [(p, q) for p in range(len(indices)) for q in range(p + 1, len(indices)) if adjacent(indices[p], indices[q])]
@@ -1755,7 +1756,7 @@ def test_fit_kfold_fits_each_model_to_the_other_folds():
     x = t[:, :1] * t[:, 3:4] + 0.1 * torch.randn(23, 1, generator=torch.Generator().manual_seed(0))
     models = torch_bsf.fit_kfold(t, x, 1, n_folds=4, shuffle=False, simploid_type=(2, 1))
     assert len(models) == 4
-    for model, test in zip(models, torch.tensor_split(torch.arange(23), 4)):
+    for model, test in zip(models, torch.tensor_split(torch.arange(23), 4), strict=True):
         train = torch.ones(23, dtype=torch.bool)
         train[test] = False
         expected = torch_bsf.fit(t[train], x[train], 1, simploid_type=(2, 1))
@@ -1799,7 +1800,7 @@ def test_fit_kfold_shuffles_reproducibly_and_caps_folds():
     first = torch_bsf.fit_kfold(t, x, 1, n_folds=5, seed=0)
     second = torch_bsf.fit_kfold(t, x, 1, n_folds=5, seed=0)
     assert len(first) == 3  # capped at the number of samples
-    for a, b in zip(first, second):
+    for a, b in zip(first, second, strict=True):
         assert torch.equal(a.control_points, b.control_points)
     with pytest.raises(ValueError, match="n_folds"):
         torch_bsf.fit_kfold(t, x, 1, n_folds=1)

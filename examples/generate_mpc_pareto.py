@@ -70,7 +70,7 @@ def to_params(t, s):
 # and 5 initial states from x0=-1 to x0=1
 t_grid, s_grid = np.meshgrid(np.linspace(0.0, 1.0, 11), np.linspace(0.0, 1.0, 5), indexing="ij")
 t_train, s_train = t_grid.ravel(), s_grid.ravel()
-solutions = [solve(t, s) for t, s in zip(t_train, s_train)]
+solutions = [solve(t, s) for t, s in zip(t_train, s_train, strict=True)]
 params = to_params(t_train, s_train)
 U_targets = np.array([sol[0] for sol in solutions])
 y = np.array([sol[1] for sol in solutions])
@@ -85,7 +85,7 @@ with torch.no_grad():
     max_error = np.max(np.linalg.norm(front_model(params).numpy() - y, axis=1))
 print(f"Max training approximation error: {max_error:.4f}")
 t_test, s_test = (g.ravel() for g in np.meshgrid(np.linspace(0, 1, 41), np.linspace(0, 1, 21), indexing="ij"))
-test_solutions = [solve(t, s) for t, s in zip(t_test, s_test)]
+test_solutions = [solve(t, s) for t, s in zip(t_test, s_test, strict=True)]
 with torch.no_grad():
     pred_test = front_model(to_params(t_test, s_test)).numpy()
     pred_U_test = set_model(to_params(t_test, s_test)).numpy()
@@ -100,7 +100,7 @@ s_levels = np.unique(s_train)
 colors = plt.cm.viridis(np.linspace(0.0, 0.9, len(s_levels)))
 
 fig, ax = plt.subplots(figsize=(8, 6))
-for s, color in zip(s_levels, colors):
+for s, color in zip(s_levels, colors, strict=True):
     x0 = x0_min + s * (x0_max - x0_min)
     mask = s_train == s
     with torch.no_grad():
@@ -120,7 +120,7 @@ plt.savefig("docs/_static/mpc_pareto.png", dpi=150, bbox_inches="tight")
 print("Pareto front plot saved.")
 
 fig2, ax2 = plt.subplots(figsize=(8, 6))
-for s, color in zip(s_levels, colors):
+for s, color in zip(s_levels, colors, strict=True):
     x0 = x0_min + s * (x0_max - x0_min)
     mask = s_train == s
     with torch.no_grad():

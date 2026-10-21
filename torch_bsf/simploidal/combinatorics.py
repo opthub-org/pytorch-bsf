@@ -55,7 +55,7 @@ def _check_degree(degree: int | Sequence[int], length: int) -> tuple[int, ...]:
 
 @cache
 def _indices(simploid_type: SimploidType, degree: tuple[int, ...]) -> tuple[SimploidIndex, ...]:
-    return tuple(iproduct(*(tuple(_simplex_indices(a + 1, d)) for a, d in zip(simploid_type, degree))))
+    return tuple(iproduct(*(tuple(_simplex_indices(a + 1, d)) for a, d in zip(simploid_type, degree, strict=True))))
 
 
 @cache
@@ -147,7 +147,7 @@ def bernstein_basis(simploid_type: Sequence[int], degree: int | Sequence[int], t
         raise ValueError(f"t must have shape (batch, {sum(a + 1 for a in st)}), but {tuple(t.shape)} is given.")
     dtype = t.dtype if t.is_floating_point() else torch.get_default_dtype()
     t = t.to(dtype)
-    return _tensor_product_basis(t, [_factor_tensors(a, d, dtype, t.device) for a, d in zip(st, ds)])
+    return _tensor_product_basis(t, [_factor_tensors(a, d, dtype, t.device) for a, d in zip(st, ds, strict=True)])
 
 
 @cache
@@ -258,7 +258,7 @@ def _face_index(alpha: SimploidIndex, i: int, j: int) -> SimploidIndex:
 def _pullback_index(alpha: SimploidIndex, dmap: DegeneracyMap, base_length: int) -> SimploidIndex:
     """The control point index of the base simploid that equals ``alpha`` of a degenerate simploid (Property 2)."""
     beta: list[tuple[int, ...]] = [()] * base_length
-    for a, (src, g) in zip(alpha, dmap):
+    for a, (src, g) in zip(alpha, dmap, strict=True):
         if src < 0:
             continue
         b = [0] * (max(g) + 1)

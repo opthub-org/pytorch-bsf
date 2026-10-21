@@ -141,7 +141,7 @@ class TestSuggestNextPointsInteroperability:
     def test_generic_module_n_params_mismatch_raises(self):
         """Without simploid_type, n_params is checked against the n_params attributes of the models."""
         models = [_SimpleLinearModel(3, 2), _SimpleLinearModel(4, 2)]
-        for model, n in zip(models, (3, 4)):
+        for model, n in zip(models, (3, 4), strict=True):
             model.n_params = n
         with pytest.raises(ValueError, match="explicit n_params=4 but models\\[0\\].n_params=3"):
             suggest_next_points(models, n_params=4)

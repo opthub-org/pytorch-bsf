@@ -455,7 +455,7 @@ def _cell_grid(simploid_type: tuple[int, ...], cell: _Cell, num: int) -> tuple[t
 
     params = torch.zeros(1, 0)
     coords = np.zeros((1, 0), dtype=int)
-    for a, verts in zip(simploid_type, cell):
+    for a, verts in zip(simploid_type, cell, strict=True):
         g = simplex_grid(len(verts), num) if len(verts) > 1 else torch.ones(1, 1)
         t = torch.zeros(g.shape[0], a + 1)
         t[:, list(verts)] = g

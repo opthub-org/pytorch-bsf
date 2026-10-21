@@ -721,7 +721,7 @@ def _eliminate(row: list[int], pivot: list[int], c: int, modulus: int | None) ->
     if not row[c]:
         return row
     p, q = pivot[c], row[c]
-    return _reduce([p * x - q * y for x, y in zip(row, pivot)], modulus)
+    return _reduce([p * x - q * y for x, y in zip(row, pivot, strict=True)], modulus)
 
 
 def _reduce(row: list[int], modulus: int | None) -> list[int]:

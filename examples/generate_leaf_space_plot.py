@@ -162,7 +162,7 @@ def main():
         ax.axvline(x=lam, color="gray", lw=0.5, alpha=0.4, zorder=2)
 
     # Grid scatter colored by (w1, w2, w3)
-    for lam, w1 in zip(lambda_unique, unique_w1_finite):
+    for lam, w1 in zip(lambda_unique, unique_w1_finite, strict=True):
         w1_row = np.full(N_ALPHAS, w1)
         w2_row = lam * alphas_per_row / (1.0 + lam)
         w3_row = lam * (1.0 - alphas_per_row) / (1.0 + lam)

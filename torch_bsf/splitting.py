@@ -388,7 +388,8 @@ def longest_edge_criterion(model: BezierSimploid, s: float = 0.5) -> tuple[int, 
     pos = _positions(st, ds)
 
     def corner(vertices: Sequence[int]) -> torch.Tensor:
-        return cp[pos[tuple(tuple(d if m == v else 0 for m in range(a + 1)) for a, d, v in zip(st, ds, vertices))]]
+        index = tuple(tuple(d if m == v else 0 for m in range(a + 1)) for a, d, v in zip(st, ds, vertices, strict=True))
+        return cp[pos[index]]
 
     best, best_length = (0, 0, 1), -1.0
     for k, i, j in _edges(st):

@@ -28,7 +28,7 @@ def _held_out_stats(
     """The errors of each model on the fold it was not fitted to."""
     stats = []
     with torch.no_grad():
-        for model, test in zip(models, folds):
+        for model, test in zip(models, folds, strict=True):
             predicted = model(params[test])
             expected = values[test].to(predicted)
             stats.append({"val_mse": F.mse_loss(predicted, expected).item(), "val_mae": F.l1_loss(predicted, expected).item()})

@@ -97,7 +97,7 @@ class BezierSimploid(nn.Module):
         self.control_points = nn.Parameter(matrix.detach().clone())
         # Cache the powers and coefficients of the Bernstein basis of every factor.  They follow the
         # module across devices and dtypes, and are rebuilt from the type and degree when loading.
-        for k, (a, d) in enumerate(zip(st, ds)):
+        for k, (a, d) in enumerate(zip(st, ds, strict=True)):
             powers, coeffs = _factor_tensors(a, d, matrix.dtype, matrix.device)
             self.register_buffer(f"_powers{k}", powers, persistent=False)
             self.register_buffer(f"_coeffs{k}", coeffs, persistent=False)

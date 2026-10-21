@@ -112,7 +112,7 @@ class TestSelectDegreeKwargForwarding:
             with patch(self._PATCH, side_effect=fake_fit):
                 select_degree(params, values, min_degree=1, max_degree=1, num_folds=2, seed=0)
             runs.append([c[0] for c in calls])
-        for a, b in zip(*runs):
+        for a, b in zip(*runs, strict=True):
             torch.testing.assert_close(a, b)
 
     def test_simploid_type(self):
