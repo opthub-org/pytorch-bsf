@@ -248,6 +248,19 @@ def load_model_data(
     -------
     ``(params, values, simploid_type, init)``.
     """
+    _check_fit_args(parser, args)
+    params = load_table(args.params, args.header)
+    values = load_table(args.values, args.header)
+    if params.shape[0] != values.shape[0]:
+        parser.error(f"--params has {params.shape[0]} rows, but --values has {values.shape[0]} rows")
+    init = _load_init(parser, args.init)
+    st = _resolve_simploid_type(parser, args.simploid_type, init, params)
+    check_columns(parser, "--params", params, st)
+    return params, values, st, init
+
+
+def _check_fit_args(parser: ArgumentParser, args: Namespace) -> None:
+    """Reports an error if the fitting options ``--degree``, ``--ridge``, ``--solver`` and ``--freeze`` are inconsistent."""
     if args.degree is not None and args.degree < 0:
         parser.error(f"--degree must be non-negative, but {args.degree} is given")
     if args.ridge < 0:
@@ -256,26 +269,29 @@ def load_model_data(
         parser.error("--ridge is supported only with --solver=lstsq")
     if args.freeze is not None and args.init is None:
         parser.error("--freeze requires --init")
-    params = load_table(args.params, args.header)
-    values = load_table(args.values, args.header)
-    if params.shape[0] != values.shape[0]:
-        parser.error(f"--params has {params.shape[0]} rows, but --values has {values.shape[0]} rows")
-    init = None
-    if args.init is not None:
-        try:
-            init = load(args.init)
-        except (OSError, ValueError) as e:
-            parser.error(f"cannot load --init: {e}")
-    if args.simploid_type is not None:
-        st: tuple[int, ...] = args.simploid_type
-    elif init is not None:
-        st = init.simploid_type
-    elif params.shape[1] >= 2:
-        st = (params.shape[1] - 1,)
-    else:
-        parser.error(f"--params has {params.shape[1]} column; a Bezier simplex needs at least 2")
-    check_columns(parser, "--params", params, st)
-    return params, values, st, init
+
+
+def _load_init(parser: ArgumentParser, path: Path | None) -> BezierSimploid | None:
+    """Reads the initial model from ``path`` if it is given, reporting an error if it cannot be read."""
+    if path is None:
+        return None
+    try:
+        return load(path)
+    except (OSError, ValueError) as e:
+        parser.error(f"cannot load --init: {e}")
+
+
+def _resolve_simploid_type(
+    parser: ArgumentParser, simploid_type: tuple[int, ...] | None, init: BezierSimploid | None, params: torch.Tensor
+) -> tuple[int, ...]:
+    """The simploid type given by ``--simploid-type``, by the initial model, or of the simplex of the columns of ``params``."""
+    if simploid_type is not None:
+        return simploid_type
+    if init is not None:
+        return init.simploid_type
+    if params.shape[1] >= 2:
+        return (params.shape[1] - 1,)
+    parser.error(f"--params has {params.shape[1]} column; a Bezier simplex needs at least 2")
 
 
 def check_columns(parser: ArgumentParser, option: str, data: torch.Tensor, st: tuple[int, ...]) -> None:
