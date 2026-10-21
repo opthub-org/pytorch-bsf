@@ -452,27 +452,7 @@ def max_error_criterion(params: torch.Tensor, values: torch.Tensor, grid_size: i
 
     def criterion(model: BezierSimploid) -> tuple[int, int, int, float]:
         _check_splittable(model)
-        if params_t.ndim != 2:
-            raise ValueError(
-                f"`params` must be a 2D tensor of shape (N, {model.n_params}), but got shape {tuple(params_t.shape)}."
-            )
-        if values_t.ndim != 2:
-            raise ValueError(
-                f"`values` must be a 2D tensor of shape (N, {model.n_values}), but got shape {tuple(values_t.shape)}."
-            )
-        if params_t.shape[0] != values_t.shape[0]:
-            raise ValueError(
-                f"`params` and `values` must have the same number of samples N, "
-                f"but got {params_t.shape[0]} and {values_t.shape[0]}."
-            )
-        if params_t.shape[1] != model.n_params:
-            raise ValueError(
-                f"`params` must have shape (N, {model.n_params}) for the given model, but got shape {tuple(params_t.shape)}."
-            )
-        if values_t.shape[1] != model.n_values:
-            raise ValueError(
-                f"`values` must have shape (N, {model.n_values}) for the given model, but got shape {tuple(values_t.shape)}."
-            )
+        _check_split_data(params_t, values_t, model)
         # Move data to the same device and dtype as the model so that forward
         # passes and mse_loss calls don't raise device/dtype mismatch errors.
         cp = model.control_points
@@ -486,19 +466,48 @@ def max_error_criterion(params: torch.Tensor, values: torch.Tensor, grid_size: i
         s_candidates = torch.linspace(0.0, 1.0, grid_size + 2)[1:-1].tolist()
         for k, i, j in _edges(model.simploid_type):
             for s in s_candidates:
-                bs_a, bs_b = _split_core(model, k, i, j, s)
-                error = 0.0
-                with torch.no_grad():
-                    pieces: tuple[tuple[BezierSimploid, Literal["A", "B"]], ...] = ((bs_a, "A"), (bs_b, "B"))
-                    for piece, part in pieces:
-                        u, mask = reparametrize(p, i, j, s, part, simploid_type=model.simploid_type, factor=k)
-                        if mask.any():
-                            error += float(F.mse_loss(piece(u[mask]), v[mask]).item())
+                error = _split_error(model, p, v, k, i, j, s)
                 if error < best_error:
                     best, best_error = (k, i, j, s), error
         return best
 
     return criterion
+
+
+def _check_split_data(params: torch.Tensor, values: torch.Tensor, model: BezierSimploid) -> None:
+    """Check that ``params`` and ``values`` are 2D data of the same size matching ``model``."""
+    if params.ndim != 2:
+        raise ValueError(f"`params` must be a 2D tensor of shape (N, {model.n_params}), but got shape {tuple(params.shape)}.")
+    if values.ndim != 2:
+        raise ValueError(f"`values` must be a 2D tensor of shape (N, {model.n_values}), but got shape {tuple(values.shape)}.")
+    if params.shape[0] != values.shape[0]:
+        raise ValueError(
+            f"`params` and `values` must have the same number of samples N, but got {params.shape[0]} and {values.shape[0]}."
+        )
+    if params.shape[1] != model.n_params:
+        raise ValueError(
+            f"`params` must have shape (N, {model.n_params}) for the given model, but got shape {tuple(params.shape)}."
+        )
+    if values.shape[1] != model.n_values:
+        raise ValueError(
+            f"`values` must have shape (N, {model.n_values}) for the given model, but got shape {tuple(values.shape)}."
+        )
+
+
+def _split_error(model: BezierSimploid, params: torch.Tensor, values: torch.Tensor, k: int, i: int, j: int, s: float) -> float:
+    """The sum of the mean-squared errors of the two pieces of ``split(model, i, j, s, factor=k)`` on their data.
+
+    A piece that contains none of the data contributes nothing.
+    """
+    bs_a, bs_b = _split_core(model, k, i, j, s)
+    error = 0.0
+    with torch.no_grad():
+        pieces: tuple[tuple[BezierSimploid, Literal["A", "B"]], ...] = ((bs_a, "A"), (bs_b, "B"))
+        for piece, part in pieces:
+            u, mask = reparametrize(params, i, j, s, part, simploid_type=model.simploid_type, factor=k)
+            if mask.any():
+                error += float(F.mse_loss(piece(u[mask]), values[mask]).item())
+    return error
 
 
 def split_by_criterion(model: BezierSimploid, criterion: SplitCriterion) -> tuple[BezierSimploid, BezierSimploid]:
