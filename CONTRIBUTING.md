@@ -268,7 +268,7 @@ Configuration in `pyproject.toml` (`[tool.mypy]` section):
 - `warn_return_any`, `warn_unused_configs`, `warn_unused_ignores`, `warn_redundant_casts`
 - `disallow_untyped_defs`, `disallow_incomplete_defs`: every function in `torch_bsf` must be fully annotated
 - `check_untyped_defs`: the bodies of unannotated functions (e.g., tests) are type-checked too
-- `disallow_any_generics`: write `dict[str, Any]`, not a bare `dict`
+- `disallow_any_generics`: write `dict[str, Any]`, not a bare `dict`, and `npt.NDArray[Any]` (`import numpy.typing as npt`), not a bare `np.ndarray`, which older NumPy versions reject
 - `[[tool.mypy.overrides]]` for `tests.*` turns off `disallow_untyped_defs` and `disallow_incomplete_defs`, so test functions and fixtures need no annotations
 - Optional dependencies without type information (`mlflow`, `scipy`, `sklearn`, `matplotlib`, `mpl_toolkits`) use `ignore_missing_imports`
 
