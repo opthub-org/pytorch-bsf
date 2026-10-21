@@ -281,7 +281,7 @@ def _plot_bezier_simplex_pairwise(
     max_control_points: int,
     max_pairwise_points: int,
     **kwargs: Any,
-) -> np.ndarray:
+) -> npt.NDArray[Any]:
     """Plots a high-dimensional Bézier simplex as a pairwise scatter plot.
 
     For ``model.n_params >= 4``, this function generates sample points from
@@ -484,7 +484,7 @@ def _cells_to_draw(simploid_type: tuple[int, ...]) -> list[_Cell]:
     return cells
 
 
-def _cell_grid(simploid_type: tuple[int, ...], cell: _Cell, num: int) -> tuple[torch.Tensor, np.ndarray]:
+def _cell_grid(simploid_type: tuple[int, ...], cell: _Cell, num: int) -> tuple[torch.Tensor, npt.NDArray[Any]]:
     """A grid on a cell, as simploid parameters and as integer lattice coordinates.
 
     Returns
@@ -511,7 +511,7 @@ def _cell_grid(simploid_type: tuple[int, ...], cell: _Cell, num: int) -> tuple[t
     return params, coords
 
 
-def _cell_triangles(coords: np.ndarray, num: int, is_triangle: bool) -> np.ndarray:
+def _cell_triangles(coords: npt.NDArray[Any], num: int, is_triangle: bool) -> npt.NDArray[Any]:
     """Triangulates the lattice grid of a triangle or a square cell."""
     row = {(int(i), int(j)): r for r, (i, j) in enumerate(coords)}
     tris = []
@@ -523,7 +523,7 @@ def _cell_triangles(coords: np.ndarray, num: int, is_triangle: bool) -> np.ndarr
     return np.array([[row[p] for p in tri] for tri in tris], dtype=int)
 
 
-def _boundary_edges(triangles: np.ndarray) -> np.ndarray:
+def _boundary_edges(triangles: npt.NDArray[Any]) -> npt.NDArray[Any]:
     """The edges on the boundary of a triangulated cell, as pairs of rows of shape ``(n, 2)``."""
     count: dict[tuple[int, int], int] = {}
     for a, b, c in triangles.tolist():
@@ -533,7 +533,7 @@ def _boundary_edges(triangles: np.ndarray) -> np.ndarray:
     return np.array([e for e, n in count.items() if n == 1], dtype=int).reshape(-1, 2)
 
 
-def _add_segments(ax: Any, points: np.ndarray, edges: np.ndarray, **kwargs: Any) -> None:
+def _add_segments(ax: Any, points: npt.NDArray[Any], edges: npt.NDArray[Any], **kwargs: Any) -> None:
     """Draws the segments ``points[edges]`` on a 2D or 3D axes."""
     if len(edges) == 0:
         return
@@ -562,7 +562,7 @@ def _with_defaults(kwargs: dict[str, Any], defaults: dict[tuple[str, ...], objec
 
 
 def _draw_cell(
-    ax: Any, xs: np.ndarray, coords: np.ndarray, num: int, is_triangle: bool, color: Any, kwargs: dict[str, Any]
+    ax: Any, xs: npt.NDArray[Any], coords: npt.NDArray[Any], num: int, is_triangle: bool, color: Any, kwargs: dict[str, Any]
 ) -> None:
     """Draws the image ``xs`` of a cell grid: a point, a curve or a surface."""
     dim = coords.shape[1]
@@ -601,7 +601,7 @@ def _draw_cell(
     _add_segments(ax, xs, _boundary_edges(triangles), colors=[color], linewidths=1.0)
 
 
-def _control_net_edges(indices: list[SimploidIndex]) -> np.ndarray:
+def _control_net_edges(indices: list[SimploidIndex]) -> npt.NDArray[Any]:
     """The edges of a control net, as pairs of rows of shape ``(n, 2)``.
 
     Two control points are joined when their indices differ by

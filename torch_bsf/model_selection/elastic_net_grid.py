@@ -1,9 +1,11 @@
 from argparse import ArgumentParser
+from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 
 
-def reverse_logspace(num: int = 50, base: float = 10) -> np.ndarray:
+def reverse_logspace(num: int = 50, base: float = 10) -> npt.NDArray[Any]:
     """Return numbers spaced evenly on a log scale.
 
     Parameters
@@ -56,7 +58,7 @@ def reverse_logspace(num: int = 50, base: float = 10) -> np.ndarray:
         raise ValueError("base must be > 0, but given: {base}")
 
 
-def elastic_net_grid(n_lambdas: int = 102, n_alphas: int = 12, n_vertex_copies: int = 1, base: float = 10) -> np.ndarray:
+def elastic_net_grid(n_lambdas: int = 102, n_alphas: int = 12, n_vertex_copies: int = 1, base: float = 10) -> npt.NDArray[Any]:
     """Return 3D grid points on the standard 2-simplex, suitable for grid search over elastic net hyperparameters.
 
     The grid consists of ``n_lambdas - 1`` regularization-strength slices (height levels),

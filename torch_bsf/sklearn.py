@@ -2,6 +2,7 @@ from collections.abc import Iterable, Sequence
 from typing import Any, Literal, cast
 
 import numpy as np
+import numpy.typing as npt
 import torch
 
 try:
@@ -127,7 +128,7 @@ class BezierSimploidRegressor(RegressorMixin, BaseEstimator):
         self.precision = precision
         self.trainer_kwargs = trainer_kwargs
 
-    def _params(self, X: np.ndarray) -> torch.Tensor:
+    def _params(self, X: npt.NDArray[Any]) -> torch.Tensor:
         """The parameters of the fitted type: a single feature on a vertex carries no parameter."""
         if self.simploid_type_ == ():
             X = X[:, :0]
@@ -199,7 +200,7 @@ class BezierSimploidRegressor(RegressorMixin, BaseEstimator):
         self.n_outputs_ = y.shape[1]
         return self
 
-    def predict(self, X: Any) -> np.ndarray:
+    def predict(self, X: Any) -> npt.NDArray[Any]:
         """Predict using the fitted model.
 
         Parameters
@@ -224,7 +225,7 @@ class BezierSimploidRegressor(RegressorMixin, BaseEstimator):
         self.model_.eval()
         with torch.no_grad():
             ys = self.model_(self._params(X).to(device=cp.device, dtype=cp.dtype))
-        y_pred = cast(np.ndarray, ys.cpu().numpy())
+        y_pred = cast(npt.NDArray[Any], ys.cpu().numpy())
         return y_pred.ravel() if getattr(self, "_single_output", False) else y_pred
 
     def score(self, X: Any, y: Any, sample_weight: Any = None) -> float:

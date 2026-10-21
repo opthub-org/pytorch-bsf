@@ -1,6 +1,7 @@
 from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 
 pytest.importorskip("sklearn")
@@ -236,15 +237,15 @@ class TestGridSearchCVIntegration:
         assert len(gs.cv_results_["params"]) == 2
 
 
-def _random_simplex(n_samples: int, n_params: int, seed: int) -> np.ndarray:
+def _random_simplex(n_samples: int, n_params: int, seed: int) -> npt.NDArray[Any]:
     """Return float64 points sampled on the standard simplex."""
     rng = np.random.default_rng(seed)
     raw = rng.exponential(size=(n_samples, n_params))
-    points: np.ndarray = raw / raw.sum(axis=1, keepdims=True)
+    points: npt.NDArray[Any] = raw / raw.sum(axis=1, keepdims=True)
     return points
 
 
-def _fit_reference(X: np.ndarray, y: np.ndarray, degree: int, ridge: float = 0.0):
+def _fit_reference(X: npt.NDArray[Any], y: npt.NDArray[Any], degree: int, ridge: float = 0.0):
     import torch
 
     from torch_bsf import fit
