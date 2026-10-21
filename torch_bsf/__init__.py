@@ -17,6 +17,7 @@ except PackageNotFoundError:
 
 from torch_bsf.simploidal import BezierSimploid, Simploid, SimploidalBezierSpace, SimploidalSet, fit_simploidal_set
 from torch_bsf.simploidal.fitting import fit, fit_kfold
+from torch_bsf.simploidal.sgd import fit_sgd
 from torch_bsf.splitting import (
     SplitCriterion,
     longest_edge_criterion,
@@ -30,6 +31,7 @@ __all__ = [
     "BezierSimploid",
     "fit",
     "fit_kfold",
+    "fit_sgd",
     "SplitCriterion",
     "split",
     "reparametrize",

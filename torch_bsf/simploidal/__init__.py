@@ -39,6 +39,8 @@ The public names below are re-exported from the submodules:
 * ``torch_bsf.simploidal.bezier``: :class:`BezierSimploid`;
 * ``torch_bsf.simploidal.space``: :class:`SimploidalBezierSpace`;
 * ``torch_bsf.simploidal.fitting``: :func:`torch_bsf.fit`, :func:`torch_bsf.fit_kfold` and :func:`fit_simploidal_set`;
+* ``torch_bsf.simploidal.sgd``: :func:`torch_bsf.fit_sgd`, which fits either model to the minimizers of a loss,
+  e.g., to a Pareto set :cite:p:`hikima2025stochastic`;
 * ``torch_bsf.simploidal.io``: :func:`save` and :func:`load`.
 
 Both models are plain :class:`torch.nn.Module` objects that are linear in their only parameter;
@@ -82,6 +84,7 @@ from torch_bsf.simploidal.combinatorics import (
 from torch_bsf.simploidal.fitting import Solver, fit_simploidal_set
 from torch_bsf.simploidal.io import load, save
 from torch_bsf.simploidal.sets import Simploid, SimploidalSet
+from torch_bsf.simploidal.sgd import SGDLoss, fit_sgd, gram_matrix, linear_scalarization, sample_domain
 from torch_bsf.simploidal.space import DegreeAssignment, SimploidalBezierSpace
 
 __all__ = [
@@ -93,10 +96,15 @@ __all__ = [
     "SimploidalSet",
     "SimploidIndex",
     "SimploidType",
+    "SGDLoss",
     "Solver",
     "bernstein_basis",
+    "fit_sgd",
     "fit_simploidal_set",
+    "gram_matrix",
+    "linear_scalarization",
     "load",
+    "sample_domain",
     "sample_simploid",
     "save",
     "simploid_indices",

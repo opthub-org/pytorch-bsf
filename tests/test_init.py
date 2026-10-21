@@ -32,7 +32,7 @@ def test_public_api_exports():
     """torch_bsf should export the documented public symbols."""
     import torch_bsf
 
-    for name in ("BezierSimploid", "fit", "fit_kfold", "split", "SimploidalSet", "fit_simploidal_set"):
+    for name in ("BezierSimploid", "fit", "fit_kfold", "fit_sgd", "split", "SimploidalSet", "fit_simploidal_set"):
         assert hasattr(torch_bsf, name)
     assert not hasattr(torch_bsf, "fit_simploid")
 
