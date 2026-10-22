@@ -401,7 +401,8 @@ is omitted or a directory;</p></li>
 mean loss over the samples) are logged to MLflow, together with the control
 points file and the model with <code class="docutils literal notranslate"><span class="pre">--loglevel=2</span></code> (the default), and so is the
 loss <code class="docutils literal notranslate"><span class="pre">batch_loss</span></code> of the minibatch of every iteration, as a metric whose
-step is the iteration <code class="docutils literal notranslate"><span class="pre">k</span></code>.</p></li>
+step is the iteration <code class="docutils literal notranslate"><span class="pre">k</span></code>; logging requires the <code class="docutils literal notranslate"><span class="pre">mlflow</span></code> extra
+(<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;pytorch-bsf[mlflow]&quot;</span></code>), without which nothing is logged.</p></li>
 </ul>
 <p>The options of <a class="reference internal" href="#freezing-control-points-and-smoothing">Freezing control points and smoothing</a> and
 <a class="reference internal" href="#monitoring-the-loss-and-stopping-early">Monitoring the loss and stopping early</a> are also available:</p>
