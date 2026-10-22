@@ -176,7 +176,7 @@
 </section>
 <section id="can-i-use-gpu-or-multi-node-training">
 <h3>Can I use GPU or multi-node training?<a class="headerlink" href="#can-i-use-gpu-or-multi-node-training" title="Link to this heading"></a></h3>
-<p><strong>Yes.</strong> Since PyTorch-BSF is built on PyTorch and PyTorch Lightning, it supports hardware acceleration and distributed training out of the box.</p>
+<p><strong>Yes.</strong> Since PyTorch-BSF can train with PyTorch Lightning (<code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code>, installed with <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;pytorch-bsf[lightning]&quot;</span></code>), it supports hardware acceleration and distributed training.</p>
 <p>Please refer to the <a class="reference internal" href="advanced/acceleration.html"><span class="doc">Hardware Acceleration</span></a> page for detailed instructions on using GPUs (single or multiple), multi-node clusters, and mixed-precision training.</p>
 </section>
 <section id="how-do-i-save-and-load-a-trained-model">

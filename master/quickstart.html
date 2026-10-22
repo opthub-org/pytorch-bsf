@@ -277,6 +277,10 @@ logs nothing.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>pytorch-bsf
 </pre></div>
 </div>
+<p>To train with the Lightning trainer (<code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code>, see <a class="reference internal" href="advanced/acceleration.html"><span class="doc">Hardware Acceleration</span></a>), install the <code class="docutils literal notranslate"><span class="pre">lightning</span></code> extra instead:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"pytorch-bsf[lightning]"</span>
+</pre></div>
+</div>
 <p>Train a model by calling <code class="docutils literal notranslate"><span class="pre">fit()</span></code>, then call the model to predict.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch_bsf</span>

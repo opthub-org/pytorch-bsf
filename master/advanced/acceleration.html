@@ -63,6 +63,7 @@
 <li class="toctree-l2"><a class="reference internal" href="partial.html">Partial Training</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sampling.html">Advanced Sampling</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Hardware Acceleration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#installation">Installation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cli-mlflow">CLI / MLflow</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#accelerator-and-devices">Accelerator and Devices</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#precision">Precision</a></li>
@@ -120,14 +121,22 @@
              
   <section id="hardware-acceleration">
 <h1>Hardware Acceleration<a class="headerlink" href="#hardware-acceleration" title="Link to this heading"></a></h1>
-<p>PyTorch-BSF is built on top of <a class="reference external" href="https://lightning.ai/docs/pytorch/stable/">PyTorch Lightning</a>, which means it provides seamless support for hardware acceleration (GPUs, TPUs, etc.) and distributed training (multi-GPU, multi-node) out of the box.</p>
+<p>PyTorch-BSF can train with <a class="reference external" href="https://lightning.ai/docs/pytorch/stable/">PyTorch Lightning</a> (<code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code>), which provides seamless support for hardware acceleration (GPUs, TPUs, etc.) and distributed training (multi-GPU, multi-node).</p>
 <p>This page explains how to leverage these features to speed up your Bézier simplex (and simploid) fitting tasks.</p>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<p>Lightning is an optional dependency, which only <code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code> needs. Install it with the <code class="docutils literal notranslate"><span class="pre">lightning</span></code> extra:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"pytorch-bsf[lightning]"</span>
+</pre></div>
+</div>
+<p>Without Lightning, <code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code> (and <code class="docutils literal notranslate"><span class="pre">--solver=trainer</span></code> on the command line) raises an <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ImportError" title="(in Python v3.15)"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ImportError</span></code></a> that tells you to run this command; the default <code class="docutils literal notranslate"><span class="pre">solver=&quot;lstsq&quot;</span></code> and <a class="reference internal" href="../torch_bsf.html#torch_bsf.fit_sgd" title="torch_bsf.fit_sgd"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit_sgd()</span></code></a> do not need it.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>By default, <code class="docutils literal notranslate"><span class="pre">fit()</span></code> solves the least-squares problem exactly on the CPU in double precision (<code class="docutils literal notranslate"><span class="pre">solver=&quot;lstsq&quot;</span></code>), which is usually the fastest and most accurate choice, so the options on this page do not apply.
 They take effect when you train with the Lightning trainer instead: pass <code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code> to <code class="docutils literal notranslate"><span class="pre">fit()</span></code>, or <code class="docutils literal notranslate"><span class="pre">--solver=trainer</span></code> on the command line.
 Passing a trainer option without <code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code> raises a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> in the Python API; the command line ignores the trainer options unless <code class="docutils literal notranslate"><span class="pre">--solver=trainer</span></code> is given.</p>
 </div>
+</section>
 <section id="cli-mlflow">
 <h2>CLI / MLflow<a class="headerlink" href="#cli-mlflow" title="Link to this heading"></a></h2>
 <p>When using the command-line interface or MLflow with <code class="docutils literal notranslate"><span class="pre">--solver=trainer</span></code>, you can control hardware usage via several flags. These flags are passed directly to the underlying PyTorch Lightning Trainer.</p>
