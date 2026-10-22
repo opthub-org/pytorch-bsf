@@ -55,7 +55,8 @@ MLflow can run PyTorch-BSF directly from its GitHub repository without a manual 
 Installation
 ^^^^^^^^^^^^
 
-Install `Miniforge`_ (or any other conda installation).
+Install `Miniforge`_.
+Another conda installation also works, but conda 26.7 and later still add the channels in your ``.condarc`` to the environment (`conda/conda#16816`_), so remove ``defaults`` there (``conda config --remove channels defaults``) to keep it out.
 Then, install ``mlflow`` package from ``conda-forge`` channel:
 
 .. code-block:: bash
@@ -63,6 +64,7 @@ Then, install ``mlflow`` package from ``conda-forge`` channel:
    conda install -c conda-forge mlflow
 
 .. _Miniforge: https://conda-forge.org/download/
+.. _conda/conda#16816: https://github.com/conda/conda/issues/16816
 
 
 Training
