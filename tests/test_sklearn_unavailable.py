@@ -5,6 +5,8 @@ import pytest
 
 def test_sklearn_unavailable_check_sklearn_raises():
     """_check_sklearn() should raise ImportError when sklearn is not available."""
+    # Without scikit-learn, importing torch_bsf.sklearn itself fails (#409).
+    pytest.importorskip("sklearn")
     import torch_bsf.sklearn as sklearn_mod
 
     # Save original state.

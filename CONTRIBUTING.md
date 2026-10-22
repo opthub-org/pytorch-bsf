@@ -78,7 +78,7 @@ The `[develop]` extras include:
 
 With Conda, install them into the environment with `pip install -e ".[develop]"` as well.
 
-MLflow is an optional extra (`pip install -e ".[develop,mlflow]"`, also included in `all`). Without it, the CLI logs nothing and the MLflow tests are skipped; the `no-mlflow` CI job runs the tests that way.
+MLflow is an optional extra (`pip install -e ".[develop,mlflow]"`, also included in `all`). Without it, the CLI logs nothing and the MLflow tests are skipped; the `optional-deps` CI job runs the tests that way, with the configurations `minimal` (no extras), `no-lightning` and `no-mlflow`.
 
 ### Install the git hook
 

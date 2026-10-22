@@ -300,7 +300,7 @@ def test_plot_bezier_triangle_no_matplotlib(monkeypatch):
         _plot_bezier_triangle(model, 5, None, True)
 
 
-def test_plot_bezier_triangle_no_scipy(monkeypatch):
+def test_plot_bezier_triangle_no_scipy(monkeypatch, require_matplotlib):
     """_plot_bezier_triangle should raise ImportError when scipy is unavailable."""
     import builtins
 
