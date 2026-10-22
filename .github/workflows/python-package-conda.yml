@@ -29,6 +29,13 @@ jobs:
         auto-update-conda: true
         activate-environment: pytorch-bsf  # matches `name:` in environment.yml
         environment-file: environment.yml
+    - name: Avoid the broken MKL 2026.2.0 on Linux
+      # mkl 2026.2.0 on conda-forge lacks libmkl_gf_lp64.so, so numpy aborts with
+      # "Intel oneMKL FATAL ERROR" (https://github.com/conda-forge/intel_repack-feedstock/issues/145).
+      # Remove this step once that build is fixed or marked broken.
+      if: runner.os == 'Linux'
+      run: |
+        conda install "mkl<2026.2"
     - name: Test with pytest
       run: |
         conda install pytest pytest-cov
