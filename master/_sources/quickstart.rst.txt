@@ -163,6 +163,16 @@ First, install the package (requires Python 3.10 or above):
 
    pip install pytorch-bsf
 
+MLflow is an optional dependency.  To log the parameters, metrics and models of the CLI runs to MLflow
+(``--loglevel=1`` or ``2``, the default), install the ``mlflow`` extra (or ``all``) instead:
+
+.. code-block:: bash
+
+   pip install "pytorch-bsf[mlflow]"
+
+Without it, the CLI still fits the model and saves the control points and the predictions, but prints a warning and
+logs nothing.
+
 Then run ``torch_bsf`` as a CLI module:
 
 .. literalinclude:: ../examples/quickstart/run.sh

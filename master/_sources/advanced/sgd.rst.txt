@@ -335,7 +335,8 @@ command ``python -m torch_bsf``:
   mean loss over the samples) are logged to MLflow, together with the control
   points file and the model with ``--loglevel=2`` (the default), and so is the
   loss ``batch_loss`` of the minibatch of every iteration, as a metric whose
-  step is the iteration ``k``.
+  step is the iteration ``k``; logging requires the ``mlflow`` extra
+  (``pip install "pytorch-bsf[mlflow]"``), without which nothing is logged.
 
 The options of `Freezing control points and smoothing`_ and
 `Monitoring the loss and stopping early`_ are also available:
