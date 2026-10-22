@@ -425,6 +425,10 @@ from their definitions in the paper:
   :math:`A_2 = \operatorname{diag}(4/5, 3/5, 4/5)`,
   :math:`A_3 = \operatorname{diag}(4/5, 4/5, 3/5)` and
   :math:`p_i = \exp(2(i - 1)/(M - 1) - 1)`.
+* **Skew-MMD, transformed** (:math:`M = 3`, :math:`L = 3`, not in the paper):
+  :math:`g_i(\mathbf x) = f_i(\mathbf x)^{2/p_i} = \|A_i(\mathbf x - \mathbf e_i)\|_2^2`
+  with the :math:`f_i` of the skew-MMD, which has the same Pareto set (see
+  `Non-convex objectives: transforming the skew-MMD`_).
 * **Location problem** (:math:`M = 3`, :math:`L = 4`):
   :math:`f_i(\mathbf x) = \|\mathbf x - \mathbf e_i\|_2^2`, whose Pareto set is
   the triangle spanned by :math:`\mathbf e_1, \mathbf e_2, \mathbf e_3`.
@@ -447,8 +451,7 @@ a clone of the repository, run
 to write the figures below to ``docs/_static/``; it takes less than a minute
 on a CPU.
 
-For Bergou2020, Scaled-MED and the location problem, the objectives are
-quadratic, so :math:`\mathcal L(P)` is a quadratic function of the control
+For all the problems but the skew-MMD, the objectives are quadratic, so :math:`\mathcal L(P)` is a quadratic function of the control
 points, and the script computes its minimizer :math:`P^*` over the Bézier
 simplices of degree :math:`D` exactly (by Newton's method, on the :math:`n`
 samples for the empirical loss and on the 10,000 samples for the
@@ -474,8 +477,14 @@ line and the range as a band:
    Location problem: the optimality gap of the empirical (top) and
    generalization (bottom) losses.
 
-The skew-MMD has no closed-form solution, so its figure shows the loss
-:math:`\mathcal L(P^{(k)})` itself:
+.. figure:: ../_static/sgd_benchmark_skew_mmd_transformed_loss.png
+   :width: 100%
+
+   Skew-MMD, transformed: the optimality gap of the empirical (top) and
+   generalization (bottom) losses.
+
+The loss of the skew-MMD is not convex and its minimizer has no closed form,
+so its figure shows the loss :math:`\mathcal L(P^{(k)})` itself:
 
 .. figure:: ../_static/sgd_benchmark_skew_mmd_loss.png
    :width: 100%
@@ -508,8 +517,8 @@ use ``step_decay="sqrt"``, or enlarge ``batch_size``.
 
 The other figures show the Pareto set and front approximated by PSGD after
 100 iterations, in the trial of the median final empirical optimality gap
-(empirical loss for the skew-MMD), with the control points (red) and, where known, the boundary of the true Pareto set
-and front (dotted).  For the location problem, the Pareto set lies in
+(empirical loss for the skew-MMD), with the control points (red) and the
+boundary of the true Pareto set and front (dotted).  For the location problem, the Pareto set lies in
 :math:`x_4 = 0` and is drawn in :math:`(x_1, x_2, x_3)`.
 
 .. figure:: ../_static/sgd_benchmark_bergou2020_pareto.png
@@ -535,13 +544,17 @@ and front (dotted).  For the location problem, the Pareto set lies in
 
    Skew-MMD: the approximated Pareto set (top) and front (bottom).
 
+.. figure:: ../_static/sgd_benchmark_skew_mmd_transformed_pareto.png
+   :width: 100%
+
+   Skew-MMD, transformed: the approximated Pareto set (top) and front of
+   :math:`g` (bottom).
+
 On Bergou2020, the end points of the curve, which correspond to the
 vertices of the simplex that uniform samples of :math:`\mathbf t` rarely
-approach, converge the slowest.  On the skew-MMD, :math:`f_1` is not convex
-(:math:`p_1 = e^{-1} < 1`), so the minimizers of the linear scalarization
-:math:`\mathbf t^\top f(\mathbf x)` need not trace the Pareto set smoothly,
-and the fitted surface is only a local minimizer of :math:`\mathcal L`; the
-paper uses this problem only for the convergence comparison.
+approach, converge the slowest.  On the skew-MMD, the fitted surface leaves
+the true Pareto set, whereas on its transform it follows it; see
+`Non-convex objectives: transforming the skew-MMD`_.
 
 The last figures correspond to Figure 4 of :cite:t:`hikima2025stochastic`:
 they compare how close the approximated Pareto set gets to the true one, by
@@ -559,8 +572,8 @@ the generalization loss.  It is recorded at
 :math:`P^{(0)}, \dots, P^{(K)}` in the same ``callback`` under
 ``torch.no_grad()``; at :math:`P^{(0)} = O`, it is the mean of
 :math:`\|\mathbf x^*(\mathbf t_i)\|_2^2`.  The script draws the MSE of the
-location problem and Scaled-MED, as the paper does, and of Bergou2020, whose
-Pareto set is also known.  As in the other figures, the band is the range over
+location problem and Scaled-MED, as the paper does, and of Bergou2020 and the
+transformed skew-MMD, whose Pareto sets are also known.  As in the other figures, the band is the range over
 the 5 trials, whereas the paper shows a 95% confidence interval.
 
 .. figure:: ../_static/sgd_benchmark_facility_location_mse.png
@@ -577,6 +590,11 @@ the 5 trials, whereas the paper shows a 95% confidence interval.
    :width: 100%
 
    Bergou2020: the MSE to the true Pareto set.
+
+.. figure:: ../_static/sgd_benchmark_skew_mmd_transformed_mse.png
+   :width: 100%
+
+   Skew-MMD, transformed: the MSE to the true Pareto set.
 
 The MSE follows the optimality gap.  For the location problem,
 :math:`\mathbf t^\top f(\mathbf x) = \|\mathbf x - \mathbf x^*(\mathbf t)\|_2^2
@@ -597,3 +615,72 @@ above shows up in the MSE as well: the mean MSE of PSGD ends at 2.6, above
 the 0.15 of SGD, because one trial ends at 13 and another rises from
 :math:`3 \times 10^{-4}` to :math:`2 \times 10^{-3}`, whereas the other three
 trials end below :math:`10^{-3}`.
+
+Non-convex objectives: transforming the skew-MMD
+------------------------------------------------
+
+On the skew-MMD, :math:`f_1` is not convex (:math:`p_1 = e^{-1} < 1`), and
+the linear scalarization does not trace its Pareto set: the paper uses this
+problem only for the convergence comparison.  Its Pareto set is known all the
+same.  An increasing transform :math:`h_i` of each objective does not change
+which points dominate which, so the objectives :math:`h_i(f_i)` have the same
+Pareto set as :math:`f_i`.  The objectives of the skew-MMD are
+:math:`f_i = g_i^{p_i / 2}` with the strongly convex quadratics
+:math:`g_i(\mathbf x) = \|A_i(\mathbf x - \mathbf e_i)\|_2^2`, so
+:math:`h_i(y) = y^{2/p_i}` turns them into :math:`g_i`, whose linear
+scalarization has the minimizer
+
+.. math::
+
+   x_l^*(\mathbf t) = \frac{t_l a_{l,l}^2}{\sum_{i=1}^M t_i a_{i,l}^2},
+   \qquad l = 1, \ldots, L,
+
+where :math:`a_{i,l}` are the diagonal entries of :math:`A_i`.  As
+:math:`\mathbf t` moves on the simplex, :math:`\mathbf x^*(\mathbf t)` traces
+the Pareto set of both :math:`f` and :math:`g`, and the script draws it as the
+true Pareto set of both problems.  On the original objectives, the global
+minimizer of :math:`\mathbf t^\top f(\mathbf x)` collapses to the vertex
+:math:`\mathbf e_1` for 28% of the uniform weights and to :math:`\mathbf e_2`
+for 16%, so the linear scalarization reaches only part of the Pareto set and
+jumps between its parts.  With :math:`g`, the loss is quadratic in the control
+points, as for the other problems: the convergence analysis of the paper
+applies, and the optimality gap and the MSE can be computed.
+
+The two parametrizations differ, so the script compares them by the mean
+squared distance from the fitted surface to the Pareto set,
+:math:`\frac{1}{N}\sum_{i=1}^N \min_{\mathbf x \in X^*} \|b(\mathbf t_i \mid P) - \mathbf x\|_2^2`,
+on the first :math:`N = 1{,}000` samples of the generalization loss, where
+:math:`X^*` is the image of a fine grid of the simplex under
+:math:`\mathbf x^*`.  It prints the mean over the 5 trials after 100 iterations:
+
+================  ============================  ============================
+Degree            Skew-MMD, PSGD                Skew-MMD, transformed, PSGD
+================  ============================  ============================
+:math:`D = 2`     :math:`2.3 \times 10^{-3}`    :math:`9.3 \times 10^{-5}`
+:math:`D = 3`     :math:`2.0 \times 10^{-3}`    :math:`2.3 \times 10^{-4}`
+:math:`D = 4`     :math:`2.7 \times 10^{-3}`    :math:`8.1 \times 10^{-4}`
+================  ============================  ============================
+
+The transform brings the surface 3 to 25 times closer to the Pareto set; the
+higher degrees have not converged in 100 iterations yet (see the optimality
+gap above).  To fit a model to the Pareto set of objectives that are increasing
+functions of convex ones, pass the transformed objectives to
+:func:`~torch_bsf.simploidal.linear_scalarization`:
+
+.. code-block:: python
+
+   p = torch.exp(torch.arange(3.0) - 1)  # the powers p_i of the skew-MMD
+
+   def transformed(x):
+       return skew_mmd(x) ** (2 / p)  # h_i(f_i) = f_i^(2 / p_i)
+
+   loss = linear_scalarization(transformed)
+
+The model is then parametrized by the weights of :math:`h(f)` instead of those
+of :math:`f`.  Where :math:`f_i` vanishes, as at :math:`\mathbf x = \mathbf e_i`
+here, the gradient of the composition may be undefined; write :math:`g_i`
+directly instead, as the script does.  A Chebyshev scalarization
+:math:`\max_i t_i f_i(\mathbf x)` also reaches every Pareto point of a
+non-convex problem, but its minimizer stays on the boundary of the Pareto set
+for a whole band of weights near the boundary of the simplex, a kink that a
+Bézier simplex of low degree fits poorly.
