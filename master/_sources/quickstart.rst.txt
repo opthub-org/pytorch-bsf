@@ -8,7 +8,7 @@ Pick the option that best fits your setup.
 Run as a Docker Container
 --------------------------
 
-A pre-built image is available on GHCR, built on ``continuumio/miniconda3`` with PyTorch installed via the ``pytorch`` conda channel — providing Intel MKL as the BLAS backend.
+A pre-built image is available on GHCR, built on ``condaforge/miniforge3`` with PyTorch (CPU build) installed from the ``conda-forge`` channel.
 
 **Prerequisites:** `Docker`_.
 
@@ -47,7 +47,7 @@ The trained model will be saved under ``mlruns/`` in the current directory.
 Run as an MLflow Project
 ------------------------
 
-MLflow can run PyTorch-BSF directly from its GitHub repository without a manual installation step. It automatically creates a conda environment from the project's ``environment.yml``, which uses the ``pytorch`` conda channel and provides Intel MKL as the BLAS backend. This makes it the easiest way to get started with experiment tracking.
+MLflow can run PyTorch-BSF directly from its GitHub repository without a manual installation step. It automatically creates a conda environment from the project's ``environment.yml``, which installs PyTorch and the other dependencies from the ``conda-forge`` channel only. This makes it the easiest way to get started with experiment tracking.
 
 .. _MLflow: https://www.mlflow.org/docs/latest/
 
@@ -55,14 +55,16 @@ MLflow can run PyTorch-BSF directly from its GitHub repository without a manual 
 Installation
 ^^^^^^^^^^^^
 
-Install `Miniconda`_.
+Install `Miniforge`_.
+Another conda installation also works, but conda 26.7 and later still add the channels in your ``.condarc`` to the environment (`conda/conda#16816`_), so remove ``defaults`` there (``conda config --remove channels defaults``) to keep it out.
 Then, install ``mlflow`` package from ``conda-forge`` channel:
 
 .. code-block:: bash
 
    conda install -c conda-forge mlflow
 
-.. _Miniconda: https://docs.conda.io/en/latest/miniconda.html
+.. _Miniforge: https://conda-forge.org/download/
+.. _conda/conda#16816: https://github.com/conda/conda/issues/16816
 
 
 Training
