@@ -106,7 +106,7 @@
 Pick the option that best fits your setup.</p>
 <section id="run-as-a-docker-container">
 <h2>Run as a Docker Container<a class="headerlink" href="#run-as-a-docker-container" title="Link to this heading"></a></h2>
-<p>A pre-built image is available on GHCR, built on <code class="docutils literal notranslate"><span class="pre">continuumio/miniconda3</span></code> with PyTorch installed via the <code class="docutils literal notranslate"><span class="pre">pytorch</span></code> conda channel — providing Intel MKL as the BLAS backend.</p>
+<p>A pre-built image is available on GHCR, built on <code class="docutils literal notranslate"><span class="pre">condaforge/miniforge3</span></code> with PyTorch (CPU build) installed from the <code class="docutils literal notranslate"><span class="pre">conda-forge</span></code> channel.</p>
 <p><strong>Prerequisites:</strong> <a class="reference external" href="https://docs.docker.com/get-docker/">Docker</a>.</p>
 <section id="training">
 <h3>Training<a class="headerlink" href="#training" title="Link to this heading"></a></h3>
@@ -147,10 +147,11 @@ cat<span class="w"> </span><span class="s">&lt;&lt; EOS &gt; values.csv</span>
 </section>
 <section id="run-as-an-mlflow-project">
 <h2>Run as an MLflow Project<a class="headerlink" href="#run-as-an-mlflow-project" title="Link to this heading"></a></h2>
-<p>MLflow can run PyTorch-BSF directly from its GitHub repository without a manual installation step. It automatically creates a conda environment from the project’s <code class="docutils literal notranslate"><span class="pre">environment.yml</span></code>, which uses the <code class="docutils literal notranslate"><span class="pre">pytorch</span></code> conda channel and provides Intel MKL as the BLAS backend. This makes it the easiest way to get started with experiment tracking.</p>
+<p>MLflow can run PyTorch-BSF directly from its GitHub repository without a manual installation step. It automatically creates a conda environment from the project’s <code class="docutils literal notranslate"><span class="pre">environment.yml</span></code>, which installs PyTorch and the other dependencies from the <code class="docutils literal notranslate"><span class="pre">conda-forge</span></code> channel only. This makes it the easiest way to get started with experiment tracking.</p>
 <section id="installation">
 <h3>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h3>
-<p>Install <a class="reference external" href="https://docs.conda.io/en/latest/miniconda.html">Miniconda</a>.
+<p>Install <a class="reference external" href="https://conda-forge.org/download/">Miniforge</a>.
+Another conda installation also works, but conda 26.7 and later still add the channels in your <code class="docutils literal notranslate"><span class="pre">.condarc</span></code> to the environment (<a class="reference external" href="https://github.com/conda/conda/issues/16816">conda/conda#16816</a>), so remove <code class="docutils literal notranslate"><span class="pre">defaults</span></code> there (<code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">config</span> <span class="pre">--remove</span> <span class="pre">channels</span> <span class="pre">defaults</span></code>) to keep it out.
 Then, install <code class="docutils literal notranslate"><span class="pre">mlflow</span></code> package from <code class="docutils literal notranslate"><span class="pre">conda-forge</span></code> channel:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>install<span class="w"> </span>-c<span class="w"> </span>conda-forge<span class="w"> </span>mlflow
 </pre></div>
