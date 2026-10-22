@@ -77,7 +77,7 @@ docker run --rm \
 
 ### 2. via MLflow (No Installation Required)
 
-**Prerequisites:** [Miniforge](https://conda-forge.org/download/) (or any other conda installation), and `pip install mlflow`.
+**Prerequisites:** [Miniforge](https://conda-forge.org/download/), and `pip install mlflow`. Another conda installation also works, but conda 26.7 and later still add the channels in your `.condarc` to the environment ([conda/conda#16816](https://github.com/conda/conda/issues/16816)), so remove `defaults` there (`conda config --remove channels defaults`) to keep it out.
 
 MLflow creates a conda environment from the project's `environment.yml`, which installs PyTorch and the other dependencies from the `conda-forge` channel only:
 
