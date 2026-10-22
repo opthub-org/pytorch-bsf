@@ -36,6 +36,14 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         conda install "mkl<2026.2"
+    - name: Check that pip did not replace conda packages
+      # The `pip:` section of environment.yml installs pytorch-bsf only; a dependency taken from PyPI instead
+      # means pip overrode a conda-forge package because of different metadata (#405).
+      run: |
+        conda list
+        if conda list | awk '$NF == "pypi" && $1 != "pytorch-bsf" {found = 1; print} END {exit !found}'; then
+          echo "pip replaced the conda packages above" >&2; exit 1
+        fi
     - name: Test with pytest
       run: |
         conda install pytest pytest-cov
@@ -68,3 +76,11 @@ jobs:
     - name: E2E test with MLflow
       run: |
         mlflow run https://github.com/opthub-org/pytorch-bsf --version ${{ github.sha }} -P params=params.csv -P values=values.csv -P degree=3
+    - name: Check that pip did not replace conda packages in the MLflow environment
+      run: |
+        env_name=$(conda env list | awk '$1 ~ /^mlflow-/ {print $1; exit}')
+        test -n "$env_name"
+        conda list -n "$env_name"
+        if conda list -n "$env_name" | awk '$NF == "pypi" && $1 != "pytorch-bsf" {found = 1; print} END {exit !found}'; then
+          echo "pip replaced the conda packages above" >&2; exit 1
+        fi
