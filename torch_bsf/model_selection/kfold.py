@@ -2,13 +2,11 @@ from argparse import ArgumentParser, BooleanOptionalAction
 from pathlib import Path
 from typing import cast
 
-import mlflow
 import numpy as np
 import torch
-from mlflow import autolog
 from torch.nn import functional as F
 
-from torch_bsf.__main__ import _mlflow_run
+from torch_bsf.__main__ import _LOGLEVEL_HELP, _autolog, _check_loglevel, _mlflow_run
 from torch_bsf._cli_args import (
     add_common_training_args,
     add_model_args,
@@ -56,9 +54,7 @@ def main() -> None:
         help="Shuffle the dataset before splitting into folds (default: True); use --no-shuffle to disable",
     )
     add_common_training_args(parser)
-    parser.add_argument(
-        "--loglevel", type=int, choices=(0, 1, 2), default=2, help="0: nothing, 1: metrics, 2: metrics & models"
-    )
+    parser.add_argument("--loglevel", type=int, choices=(0, 1, 2), default=2, help=_LOGLEVEL_HELP)
 
     args = parser.parse_args()
     if args.split_ratio != 1.0:
@@ -68,15 +64,8 @@ def main() -> None:
     ts = load_table(meshgrid, args.header)
     check_columns(parser, "--meshgrid", ts, simploid_type)
 
-    autolog(
-        log_input_examples=(args.loglevel >= 2),
-        log_model_signatures=False,
-        log_models=False,
-        disable=(args.loglevel <= 0),
-        exclusive=False,
-        disable_for_unsupported_versions=False,
-        silent=(args.loglevel <= 0),
-    )
+    args.loglevel = _check_loglevel(args.loglevel)
+    _autolog(args.loglevel)
 
     try:
         folds = _fold_indices(len(params), args.num_folds, args.shuffle, args.seed)
@@ -90,6 +79,8 @@ def main() -> None:
     means = {f"mean_{name}": sum(s[name] for s in stats) / len(stats) for name in stats[0]}
     print("Mean: " + ", ".join(f"{name}={value:.6g}" for name, value in means.items()))
     if args.loglevel >= 1:
+        import mlflow
+
         with _mlflow_run(resume=args.solver == "trainer"):
             for k, fold_stats in enumerate(stats):
                 mlflow.log_metrics(fold_stats, step=k)

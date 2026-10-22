@@ -98,6 +98,12 @@ Installation:
 pip install pytorch-bsf
 ```
 
+MLflow is optional. To log the parameters, metrics and models of the CLI runs to MLflow (see `loglevel` below), install the `mlflow` extra (or `all`); without it, the CLI fits and saves the model but logs nothing:
+
+```bash
+pip install "pytorch-bsf[mlflow]"
+```
+
 Execution:
 
 ```bash
@@ -129,7 +135,7 @@ The MLflow `main` entry point exposes `params`, `values`, `meshgrid`, `degree`, 
 | split_ratio | float $(0 < x \le 1)$ | `1.0` | The ratio of training data against validation data. The validation error is logged as `val_mse` and `val_mae`. When set to `1.0` (the default), all data is used for training. |
 | seed | int | `None` | The random seed for splitting the data and for training. |
 | save | path | see desc. | The file to save the control points of the fitted model to (`.csv`, `.tsv`, `.json`, `.yml`, `.yaml` or `.pt`). Defaults to `<params>,<values>,control_points,t_<a_1-...-a_n>,d_<degree>.csv`. CLI only. |
-| loglevel | int $(0 \le x \le 2)$ | `2` | What objects to be logged. `0`: nothing; `1`: metrics; `2`: metrics and models. |
+| loglevel | int $(0 \le x \le 2)$ | `2` | What objects to be logged to MLflow. `0`: nothing; `1`: metrics; `2`: metrics and models. The CLI requires the `mlflow` extra (`pip install "pytorch-bsf[mlflow]"`) to log; without it, a warning is printed and nothing is logged. |
 | batch_size | int $(x \ge 1)$ | `None` | The size of minibatch for `--solver=trainer`. The default (`None`) uses all records in a single batch. |
 | max_epochs | int $(x \ge 1)$ | `2` | The number of epochs to stop training for `--solver=trainer`. |
 | accelerator | `"auto"`, `"cpu"`, `"gpu"`, etc. | `"auto"` | Accelerator to use for `--solver=trainer`. See [PyTorch Lightning documentation](https://pytorch-lightning.readthedocs.io/en/latest/extensions/accelerator.html). |
@@ -216,7 +222,7 @@ Additional parameters for k-fold (all standard parameters except `split_ratio` a
 | shuffle     | bool  | `True`  | Whether to shuffle data before splitting (`--no-shuffle` to disable). |
 | seed        | int   | `None`  | Random seed for shuffling (and for training).       |
 
-The command prints the errors of each fold model on its held-out fold (`val_mse` and `val_mae`) and their means, which are also logged to MLflow (unless `--loglevel=0`).
+The command prints the errors of each fold model on its held-out fold (`val_mse` and `val_mae`) and their means, which are also logged to MLflow (unless `--loglevel=0`, and if the `mlflow` extra is installed).
 It saves per-fold meshgrid predictions as well as an ensemble mean:
 
 - `{params},{values},{num_folds}fold,meshgrid,t_{type},d_{degree},{k}.csv` (per fold)

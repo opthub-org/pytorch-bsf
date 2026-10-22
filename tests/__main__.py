@@ -264,8 +264,6 @@ def _write_prism_data(directory: Path, n: int = 60) -> tuple[Path, Path]:
 
 def _run_main(monkeypatch, tmp_path, *args):
     """Run torch_bsf.__main__.main() in-process in ``tmp_path`` with the given arguments."""
-    import mlflow
-
     from torch_bsf.__main__ import main
 
     monkeypatch.chdir(tmp_path)
@@ -276,7 +274,9 @@ def _run_main(monkeypatch, tmp_path, *args):
     try:
         main()
     finally:
-        mlflow.end_run()  # do not leak a run started on demand into other tests
+        mlflow = sys.modules.get("mlflow")  # imported by main() only if installed and logging
+        if mlflow is not None:
+            mlflow.end_run()  # do not leak a run started on demand into other tests
 
 
 def test_cli_simploid_fits_and_saves_control_points(tmp_path):
@@ -377,7 +377,7 @@ def test_main_simploid_trainer_solver_with_logging(tmp_path, monkeypatch):
 
 def test_main_simploid_lstsq_logs_metrics(tmp_path, monkeypatch):
     """The lstsq solver should log its parameters and training error to MLflow."""
-    import mlflow
+    mlflow = pytest.importorskip("mlflow")
 
     params, values = _write_prism_data(tmp_path)
     _run_main(
@@ -392,7 +392,7 @@ def test_main_simploid_lstsq_logs_metrics(tmp_path, monkeypatch):
 
 def test_main_simploid_in_mlflow_project_run(tmp_path, monkeypatch):
     """Inside an MLflow project run, the parameters the project already logged should be kept."""
-    import mlflow
+    mlflow = pytest.importorskip("mlflow")
 
     params, values = _write_prism_data(tmp_path)
     mlflow.set_tracking_uri(f"sqlite:///{tmp_path / 'mlflow.db'}")
@@ -412,7 +412,7 @@ def test_main_simploid_in_mlflow_project_run(tmp_path, monkeypatch):
         )
         logged = mlflow.get_run(run.info.run_id).data
     finally:
-        mlflow.set_tracking_uri(None)  # type: ignore[arg-type]  # None restores the default URI at runtime
+        mlflow.set_tracking_uri(None)  # None restores the default URI at runtime
     assert logged.params == {
         "simploid_type": "2, 1",
         "degree": "2",
@@ -509,7 +509,7 @@ def test_main_simploid_init_freeze_and_smoothness(tmp_path, monkeypatch):
 
 def test_main_split_ratio_logs_validation_error(tmp_path, monkeypatch):
     """--split_ratio holds out samples for validation, and --seed makes the split reproducible."""
-    import mlflow
+    mlflow = pytest.importorskip("mlflow")
 
     params, values = _write_prism_data(tmp_path)
     args = [f"--params={params}", f"--values={values}", "--simploid-type=2,1", "--degree=2", "--split_ratio=0.5"]
@@ -523,7 +523,7 @@ def test_main_split_ratio_logs_validation_error(tmp_path, monkeypatch):
 
 def test_main_split_ratio_without_seed(tmp_path, monkeypatch):
     """Without --seed, --split_ratio splits the samples at random."""
-    import mlflow
+    mlflow = pytest.importorskip("mlflow")
 
     params, values = _write_prism_data(tmp_path)
     args = [f"--params={params}", f"--values={values}", "--simploid-type=2,1", "--degree=2", "--split_ratio=0.5"]
@@ -689,10 +689,10 @@ def test_main_sgd_accepts_underscored_options(tmp_path, monkeypatch):
 @pytest.mark.parametrize("loglevel", [1, 2])
 def test_main_sgd_logs_to_mlflow(tmp_path, monkeypatch, loglevel):
     """sgd should log its options and the final loss, and at loglevel 2 the control points and the model."""
-    import mlflow
-
     import torch_bsf.__main__ as cli
     import torch_bsf.simploidal as ts
+
+    mlflow = pytest.importorskip("mlflow")
 
     logged_models = []
     log_model = cli._log_model
@@ -724,10 +724,11 @@ def test_main_sgd_mlproject_entry_point(tmp_path, monkeypatch, init):
     """The command of the sgd entry point of MLproject should run in an MLflow project run, keeping its parameters."""
     import shlex
 
-    import mlflow
     import yaml
 
     import torch_bsf.simploidal as ts
+
+    mlflow = pytest.importorskip("mlflow")
 
     entry = yaml.safe_load((_REPO_ROOT / "MLproject").read_text())["entry_points"]["sgd"]
     given = dict(objective=_SGD_OBJECTIVE, n_objectives="3", n_variables="3", degree="1", batch_size="20", step_size="0.2")
@@ -747,7 +748,7 @@ def test_main_sgd_mlproject_entry_point(tmp_path, monkeypatch, init):
         _run_main(monkeypatch, tmp_path, *command[3:])
         logged = mlflow.get_run(run.info.run_id).data
     finally:
-        mlflow.set_tracking_uri(None)  # type: ignore[arg-type]  # None restores the default URI at runtime
+        mlflow.set_tracking_uri(None)  # None restores the default URI at runtime
     assert logged.params == {k: str(v) for k, v in parameters.items()}
     assert 0 < logged.metrics["train_loss"] < 1  # the loss of the initial model x = 0 is 1
     model = ts.load(tmp_path / "tests.__main__.sgd_objective,control_points,t_2,d_1.csv")
@@ -902,10 +903,10 @@ def test_main_sgd_init_freeze_and_smoothness(tmp_path, monkeypatch):
 @pytest.mark.parametrize("log_every", [None, 3, 0])
 def test_main_sgd_logs_loss_history(tmp_path, monkeypatch, log_every):
     """sgd should log batch_loss of every --log-every-th iteration with its step, without changing the fitted model."""
-    import mlflow
-
     import torch_bsf
     import torch_bsf.simploidal as ts
+
+    mlflow = pytest.importorskip("mlflow")
 
     options = dict(batch_size=20, max_iter=10, step_size=0.2, seed=0)
     args = [f"--{k.replace('_', '-')}={v}" for k, v in options.items()]
@@ -932,7 +933,7 @@ def test_main_sgd_logs_loss_history(tmp_path, monkeypatch, log_every):
 
 def test_main_sgd_logs_long_loss_history(tmp_path, monkeypatch):
     """A history longer than the 1,000 metrics of an MLflow batch should be logged in full."""
-    import mlflow
+    mlflow = pytest.importorskip("mlflow")
 
     args = ["--degree=1", "--n-samples=10", "--max-iter=1001", "--step-size=0.2", "--seed=0", "--loglevel=1"]
     _run_main(monkeypatch, tmp_path, "sgd", *_SGD_ARGS, *args)
@@ -955,3 +956,88 @@ def test_main_sgd_starts_from_init(tmp_path, monkeypatch):
     init = ts.load(tmp_path / "init.csv")
     expected = torch_bsf.fit_sgd(init, ts.linear_scalarization(sgd_objective), max_iter=5, seed=0)
     assert torch.equal(ts.load(tmp_path / "model5.csv").control_points, expected.control_points)
+
+
+# ---------------------------------------------------------------------------
+# Without MLflow, an optional dependency (the extra pytorch-bsf[mlflow])
+# ---------------------------------------------------------------------------
+
+_NO_MLFLOW_WARNING = (
+    "warning: MLflow is not installed, so nothing is logged (--loglevel=2 is ignored); "
+    'install it with: pip install "pytorch-bsf[mlflow]"'
+)
+
+
+def _python(code: str, cwd: Path, mlflow: bool = True) -> subprocess.CompletedProcess[str]:
+    """Runs Python ``code`` in a fresh interpreter of this checkout, where ``import mlflow`` fails unless ``mlflow``."""
+    env = os.environ.copy()
+    env["PYTHONPATH"] = os.pathsep.join(filter(None, [str(_REPO_ROOT), env.get("PYTHONPATH")]))
+    block = "" if mlflow else "sys.modules['mlflow'] = None; "
+    return subprocess.run(
+        [sys.executable, "-c", f"import sys; {block}{code}"],
+        capture_output=True,
+        text=True,
+        cwd=cwd,
+        env=env,
+        timeout=_CLI_TIMEOUT,
+    )
+
+
+def test_import_does_not_load_mlflow(tmp_path):
+    """Importing the package and its commands should not import MLflow, and should work without it."""
+    modules = "torch_bsf, torch_bsf.__main__, torch_bsf.model_selection.kfold"
+    result = _python(f"import {modules}; print('mlflow' in sys.modules)", tmp_path)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "False"
+    result = _python(f"import {modules}", tmp_path, mlflow=False)
+    assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.parametrize(
+    "module, args, saved",
+    [
+        ("torch_bsf", [f"--params={_PARAMS_CSV}", f"--values={_VALUES_CSV}", "--degree=1"], "control_points"),
+        ("torch_bsf", ["sgd", *_SGD_ARGS, "--degree=1", "--max-iter=5"], "control_points"),
+        (
+            "torch_bsf.model_selection.kfold",
+            [f"--params={_PARAMS_CSV}", f"--values={_VALUES_CSV}", "--degree=1", "--num_folds=2"],
+            "2fold,meshgrid",
+        ),
+    ],
+)
+def test_cli_without_mlflow(tmp_path, module, args, saved):
+    """Without MLflow, the commands should fit and save their files at the default loglevel, warning that nothing is logged."""
+    argv = [module, *args]
+    code = f"import runpy; sys.argv = {argv!r}; runpy.run_module({module!r}, run_name='__main__')"
+    result = _python(code, tmp_path, mlflow=False)
+    assert result.returncode == 0, result.stderr
+    assert result.stderr.count(_NO_MLFLOW_WARNING) == 1
+    assert any(saved in p.name for p in tmp_path.iterdir()), list(tmp_path.iterdir())
+    assert not (tmp_path / "mlruns").exists() and not (tmp_path / "mlflow.db").exists()
+
+
+@pytest.mark.parametrize("solver", ["lstsq", "trainer"])
+def test_main_without_mlflow(tmp_path, monkeypatch, capsys, no_mlflow, solver):
+    """Without MLflow, the fitting command should save the control points and the meshgrid, warning once."""
+    import torch_bsf.simploidal as ts
+
+    params, values = _write_prism_data(tmp_path)
+    args = [f"--params={params}", f"--values={values}", "--simploid-type=2,1", "--degree=1", f"--solver={solver}"]
+    _run_main(monkeypatch, tmp_path, *args, "--max_epochs=1", "--accelerator=cpu", "--devices=1")
+    assert ts.load(tmp_path / "prism_params.csv,prism_values.csv,control_points,t_2-1,d_1.csv").degree == (1, 1)
+    assert (tmp_path / "prism_params.csv,prism_values.csv,meshgrid,t_2-1,d_1.csv").exists()
+    assert capsys.readouterr().err.count(_NO_MLFLOW_WARNING) == 1
+    assert sys.modules["mlflow"] is None
+
+
+@pytest.mark.parametrize("loglevel", [0, 1, 2])
+def test_main_sgd_without_mlflow(tmp_path, monkeypatch, capsys, no_mlflow, loglevel):
+    """Without MLflow, sgd should save the control points, warning once unless --loglevel=0."""
+    import torch_bsf.simploidal as ts
+
+    args = ["--degree=1", "--max-iter=5", "--log-every=1", "--save=model.csv", f"--loglevel={loglevel}"]
+    _run_main(monkeypatch, tmp_path, "sgd", *_SGD_ARGS, *args)
+    assert ts.load(tmp_path / "model.csv").degree == (1,)
+    err = capsys.readouterr().err
+    assert err.count("MLflow is not installed") == (loglevel > 0)
+    assert sys.modules["mlflow"] is None

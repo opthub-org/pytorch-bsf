@@ -281,7 +281,7 @@ def test_main_reports_held_out_errors(tmp_path, monkeypatch, capsys):
 
 def test_main_logs_held_out_errors_to_mlflow(tmp_path, monkeypatch):
     """With --loglevel=1, the held-out errors of every fold and their means are logged to MLflow."""
-    import mlflow
+    mlflow = pytest.importorskip("mlflow")
     import numpy as np
 
     from torch_bsf.model_selection.kfold import main
@@ -329,3 +329,26 @@ def test_main_rejects_split_ratio(tmp_path, monkeypatch, capsys):
     with pytest.raises(SystemExit):
         main()
     assert "--split_ratio is not supported" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("solver", ["lstsq", "trainer"])
+def test_main_without_mlflow(tmp_path, monkeypatch, capsys, no_mlflow, solver):
+    """Without MLflow, main() saves the meshgrids and prints the errors, warning once that nothing is logged."""
+    import numpy as np
+
+    from torch_bsf.model_selection.kfold import main
+
+    params = np.array([[1.0, 0.0], [0.75, 0.25], [0.5, 0.5], [0.25, 0.75], [0.0, 1.0], [0.6, 0.4]])
+    np.savetxt(tmp_path / "p.csv", params, delimiter=",")
+    np.savetxt(tmp_path / "v.csv", params[:, :1] ** 2, delimiter=",")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        "sys.argv",
+        ["kfold", "--params=p.csv", "--values=v.csv", "--degree=2", "--num_folds=3", f"--solver={solver}", "--max_epochs=1"],
+    )
+    main()
+    captured = capsys.readouterr()
+    assert "Mean: mean_val_mse=" in captured.out
+    assert captured.err.count("MLflow is not installed, so nothing is logged (--loglevel=2 is ignored)") == 1
+    assert (tmp_path / "p.csv,v.csv,3fold,meshgrid,t_1,d_2.csv").exists()
+    assert sys.modules["mlflow"] is None

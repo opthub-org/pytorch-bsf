@@ -4,13 +4,10 @@ from argparse import ArgumentParser, Namespace
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import mlflow
 import numpy as np
 import torch
-from mlflow import autolog
-from mlflow.entities import Metric
 from torch.nn import functional as F
 
 from torch_bsf._cli_args import (
@@ -29,6 +26,12 @@ from torch_bsf._cli_args import (
 from torch_bsf.simploidal import BezierSimploid, save
 from torch_bsf.simploidal.fitting import fit
 from torch_bsf.simploidal.sgd import fit_sgd, linear_scalarization, sample_domain
+
+if TYPE_CHECKING:
+    from mlflow.entities import Metric
+
+# MLflow is an optional dependency (the extra ``pytorch-bsf[mlflow]``), imported only when the CLI logs to it.
+_LOGLEVEL_HELP = "Logging to MLflow, which requires pytorch-bsf[mlflow]; 0: nothing, 1: metrics, 2: metrics & models"
 
 
 def _build_parser() -> ArgumentParser:
@@ -53,10 +56,44 @@ def _build_parser() -> ArgumentParser:
             "where N lists the degree of every factor, e.g. '2-1', if they differ)"
         ),
     )
-    parser.add_argument(
-        "--loglevel", type=int, choices=(0, 1, 2), default=2, help="0: nothing, 1: metrics, 2: metrics & models"
-    )
+    parser.add_argument("--loglevel", type=int, choices=(0, 1, 2), default=2, help=_LOGLEVEL_HELP)
     return parser
+
+
+def _check_loglevel(loglevel: int) -> int:
+    """The level to log to MLflow at: ``loglevel``, or 0 with a warning if MLflow is not installed.
+
+    Without MLflow, the commands still fit the model and save their files, but log nothing.
+    """
+    if loglevel <= 0:
+        return loglevel
+    try:
+        import mlflow  # noqa: F401
+    except ImportError:
+        print(
+            f"warning: MLflow is not installed, so nothing is logged (--loglevel={loglevel} is ignored); "
+            'install it with: pip install "pytorch-bsf[mlflow]"',
+            file=sys.stderr,
+        )
+        return 0
+    return loglevel
+
+
+def _autolog(loglevel: int) -> None:
+    """Enables (or, at loglevel 0, disables) MLflow autologging of Lightning, if MLflow is installed."""
+    try:
+        from mlflow import autolog
+    except ImportError:  # nothing to log to, as _check_loglevel has warned
+        return
+    autolog(
+        log_input_examples=(loglevel >= 2),
+        log_model_signatures=False,
+        log_models=False,
+        disable=(loglevel <= 0),
+        exclusive=False,
+        disable_for_unsupported_versions=False,
+        silent=(loglevel <= 0),
+    )
 
 
 @contextmanager
@@ -65,6 +102,8 @@ def _mlflow_run(resume: bool = True) -> Iterator[None]:
 
     ``resume`` must be false when no Lightning trainer ran in this invocation, since autolog did not start a run then.
     """
+    import mlflow
+
     last_run = mlflow.last_active_run() if resume else None
     if mlflow.active_run() is not None or last_run is None:
         yield
@@ -122,13 +161,15 @@ def _log_to_mlflow(
     save_path: Path,
     loglevel: int,
     resume: bool,
-    history: Sequence[Metric] = (),
+    history: Sequence["Metric"] = (),
 ) -> None:
     """Logs the parameters, the metrics, the control points file and (loglevel 2) the model to MLflow.
 
     ``resume`` is passed to :func:`_mlflow_run`.  ``history`` gives metrics with their steps, which
     :meth:`mlflow.MlflowClient.log_batch` splits into requests within the limits of MLflow.
     """
+    import mlflow
+
     with _mlflow_run(resume=resume):
         mlflow.log_metrics(metrics)  # starts a run if none is active
         run = mlflow.active_run()
@@ -177,9 +218,7 @@ def _build_sgd_parser() -> ArgumentParser:
             "(default: '<module>.<function>,control_points,t_<M-1>,d_<N>.csv' named after --objective)"
         ),
     )
-    parser.add_argument(
-        "--loglevel", type=int, choices=(0, 1, 2), default=2, help="0: nothing, 1: metrics, 2: metrics & models"
-    )
+    parser.add_argument("--loglevel", type=int, choices=(0, 1, 2), default=2, help=_LOGLEVEL_HELP)
     return parser
 
 
@@ -221,8 +260,10 @@ def _sgd_params(args: Namespace) -> dict[str, Any]:
     return {name: getattr(args, name) for name in (*names, *options)}
 
 
-def _loss_recorder(log_every: int) -> tuple[list[Metric], Callable[[int, BezierSimploid, float], None]]:
+def _loss_recorder(log_every: int) -> tuple[list["Metric"], Callable[[int, BezierSimploid, float], None]]:
     """A callback of :func:`fit_sgd` recording ``batch_loss`` at every ``log_every``-th iteration, and its records."""
+    from mlflow.entities import Metric
+
     history: list[Metric] = []
 
     def record(k: int, model: BezierSimploid, batch_loss: float) -> None:  # reads only the loss, not the model
@@ -243,6 +284,7 @@ def sgd_main(argv: Sequence[str] | None = None) -> None:
     parser = _build_sgd_parser()
     args = parser.parse_args(sys.argv[2:] if argv is None else argv)
     check_sgd_args(parser, args)
+    args.loglevel = _check_loglevel(args.loglevel)
     objective = _load_objective(parser, args.objective)
     simploid_type = (args.n_objectives - 1,)
     ts = None
@@ -306,15 +348,8 @@ def _fit_main(argv: Sequence[str]) -> None:
     ts = load_table(meshgrid, args.header)
     check_columns(parser, "--meshgrid", ts, simploid_type)
 
-    autolog(
-        log_input_examples=(args.loglevel >= 2),
-        log_model_signatures=False,
-        log_models=False,
-        disable=(args.loglevel <= 0),
-        exclusive=False,
-        disable_for_unsupported_versions=False,
-        silent=(args.loglevel <= 0),
-    )
+    args.loglevel = _check_loglevel(args.loglevel)
+    _autolog(args.loglevel)
 
     (train_params, train_values), val = _split(params, values, args.split_ratio, args.seed)
     try:
