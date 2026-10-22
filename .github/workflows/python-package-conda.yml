@@ -79,7 +79,7 @@ jobs:
     - name: Check that pip did not replace conda packages in the MLflow environment
       run: |
         env_name=$(conda env list | awk '$1 ~ /^mlflow-/ {print $1; exit}')
-        test -n "$env_name"
+        if [ -z "$env_name" ]; then echo "mlflow run created no mlflow-* environment" >&2; exit 1; fi
         conda list -n "$env_name"
         if conda list -n "$env_name" | awk '$NF == "pypi" && $1 != "pytorch-bsf" {found = 1; print} END {exit !found}'; then
           echo "pip replaced the conda packages above" >&2; exit 1
