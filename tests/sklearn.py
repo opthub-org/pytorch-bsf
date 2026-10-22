@@ -6,6 +6,7 @@ import pytest
 
 pytest.importorskip("sklearn")
 
+from tests import requires_lightning
 from torch_bsf.preprocessing import NormalizeType
 from torch_bsf.simploidal.fitting import Solver
 from torch_bsf.sklearn import BezierSimploidRegressor
@@ -264,6 +265,7 @@ class TestLstsqSolver:
         assert params["solver"] == "lstsq"
         assert params["ridge"] == 0.0
 
+    @requires_lightning
     def test_trainer_solver_still_trains(self):
         """solver='trainer' trains through torch_bsf.fit (float32 model)."""
         import torch
@@ -280,6 +282,19 @@ class TestLstsqSolver:
         reg.fit(X, y)
         assert reg.model_.control_points.dtype == torch.float32
         assert reg.predict(X).dtype == np.float32
+
+    def test_without_lightning(self, monkeypatch):
+        """The default solver does not need Lightning; solver='trainer' tells how to install it."""
+        import sys
+
+        for name in list(sys.modules):
+            if name.split(".")[0] == "lightning" or name == "torch_bsf.simploidal._lightning":
+                monkeypatch.delitem(sys.modules, name)
+        monkeypatch.setitem(sys.modules, "lightning", None)
+        X, y = _make_data()
+        assert BezierSimploidRegressor(degree=2).fit(X, y).predict(X).shape == y.shape
+        with pytest.raises(ImportError, match=r'pip install "pytorch-bsf\[lightning\]"'):
+            BezierSimploidRegressor(degree=2, solver="trainer", max_epochs=1).fit(X, y)
 
     @pytest.mark.parametrize("n_params, degree", [(2, 0), (2, 1), (2, 5), (3, 3), (4, 2)])
     def test_matches_fit_simploid(self, n_params: int, degree: int):
@@ -333,6 +348,7 @@ class TestLstsqSolver:
         reg.fit(X, y.reshape(-1, 1))
         assert reg.predict(X_test).shape == (10, 1)
 
+    @requires_lightning
     def test_one_dimensional_target_trainer(self):
         """The trainer solver also accepts a 1-D y."""
         X, y = _make_data(n_values=1)
@@ -520,7 +536,7 @@ class TestSimploidsAndConstraints:
         with pytest.raises(ValueError, match="features"):
             reg.predict(X[:, :2])
 
-    @pytest.mark.parametrize("solver", ["lstsq", "trainer"])
+    @pytest.mark.parametrize("solver", ["lstsq", pytest.param("trainer", marks=requires_lightning)])
     def test_init_freeze_and_smoothness(self, solver: Solver):
         """init, freeze and smoothness_weight work with both solvers."""
         from torch_bsf import BezierSimploid

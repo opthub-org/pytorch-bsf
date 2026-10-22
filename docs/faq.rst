@@ -77,7 +77,7 @@ Please refer to the :doc:`advanced/normalization` page for detailed instructions
 Can I use GPU or multi-node training?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Yes.** Since PyTorch-BSF is built on PyTorch and PyTorch Lightning, it supports hardware acceleration and distributed training out of the box.
+**Yes.** Since PyTorch-BSF can train with PyTorch Lightning (``solver="trainer"``, installed with ``pip install "pytorch-bsf[lightning]"``), it supports hardware acceleration and distributed training.
 
 Please refer to the :doc:`advanced/acceleration` page for detailed instructions on using GPUs (single or multiple), multi-node clusters, and mixed-precision training.
 

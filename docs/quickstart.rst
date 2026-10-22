@@ -190,6 +190,12 @@ First, install the package (requires Python 3.10 or above):
 
    pip install pytorch-bsf
 
+To train with the Lightning trainer (``solver="trainer"``, see :doc:`advanced/acceleration`), install the ``lightning`` extra instead:
+
+.. code-block:: bash
+
+   pip install "pytorch-bsf[lightning]"
+
 Train a model by calling ``fit()``, then call the model to predict.
 
 .. testcode::

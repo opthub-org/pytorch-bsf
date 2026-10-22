@@ -26,9 +26,9 @@ for the free rows, as the stacked least-squares problem with matrix :math:`[A; \
 
 import copy
 from collections.abc import Iterable, Mapping, Sequence
+from types import ModuleType
 from typing import Any, Literal, TypeAlias, cast
 
-import lightning.pytorch as L
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
@@ -68,49 +68,24 @@ def _smoothness_penalty(parameter: torch.Tensor, adjacency: torch.Tensor) -> tor
     return (parameter[adjacency[:, 0]] - parameter[adjacency[:, 1]]).pow(2).sum()
 
 
-class _LightningWrapper(L.LightningModule):
-    """Trains a linear Bézier model with :class:`lightning.pytorch.Trainer`.
+def _lightning() -> ModuleType:
+    """Imports :mod:`lightning.pytorch`, which only the ``"trainer"`` solver needs.
 
-    The training loss is the mean squared error plus ``smoothness_weight`` times the smoothness penalty.
-    A batch is ``(*inputs, values)``, where ``inputs`` are the arguments of the model's ``forward``.
+    Raises
+    ------
+    ImportError
+        If Lightning is not installed.
     """
-
-    def __init__(self, model: nn.Module, smoothness_weight: float = 0.0):
-        super().__init__()
-        self.model = model
-        self.smoothness_weight = smoothness_weight
-        if smoothness_weight > 0:
-            self.register_buffer("adjacency", cast(_LinearBezierModel, model).adjacency(), persistent=False)
-
-    def _predict_batch(self, batch: Sequence[torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor]:
-        *inputs, y = batch
-        return self.model(*inputs), y
-
-    def training_step(self, batch: Sequence[torch.Tensor], batch_idx: int) -> dict[str, Any]:
-        y_hat, y = self._predict_batch(batch)
-        mse = F.mse_loss(y_hat, y)
-        loss = mse
-        if self.smoothness_weight > 0:
-            parameter = _parameter(cast(_LinearBezierModel, self.model))
-            loss = mse + self.smoothness_weight * _smoothness_penalty(parameter, cast(torch.Tensor, self.adjacency))
-        self.log("train_mse", mse, sync_dist=True)
-        self.log("train_loss", loss, sync_dist=True)
-        return {"loss": loss}
-
-    def validation_step(self, batch: Sequence[torch.Tensor], batch_idx: int) -> None:
-        y_hat, y = self._predict_batch(batch)
-        self.log("val_mse", F.mse_loss(y_hat, y), sync_dist=True)
-        self.log("val_mae", F.l1_loss(y_hat, y), sync_dist=True)
-
-    def test_step(self, batch: Sequence[torch.Tensor], batch_idx: int) -> dict[str, Any]:
-        y_hat, y = self._predict_batch(batch)
-        mse = F.mse_loss(y_hat, y)
-        self.log("test_mse", mse, sync_dist=True)
-        self.log("test_mae", F.l1_loss(y_hat, y), sync_dist=True)
-        return {"test_loss": mse}
-
-    def configure_optimizers(self) -> torch.optim.Optimizer:
-        return torch.optim.LBFGS(self.model.parameters())
+    try:
+        import lightning.pytorch
+    except ModuleNotFoundError as e:
+        if e.name is not None and e.name != "lightning" and not e.name.startswith("lightning."):
+            raise  # Lightning is installed, but one of its own dependencies is missing
+        raise ImportError(
+            "The 'trainer' solver requires Lightning, which is not installed. "
+            'Install it with: pip install "pytorch-bsf[lightning]"'
+        ) from e
+    return lightning.pytorch
 
 
 def _check_solver(
@@ -192,6 +167,9 @@ def _fit(
         with torch.no_grad():
             parameter.copy_(solution.to(parameter))
         return
+    L = _lightning()
+    from torch_bsf.simploidal._lightning import _LightningWrapper
+
     dataset = TensorDataset(*inputs, values.to(parameter.dtype))
     dl = DataLoader(dataset, batch_size=batch_size or len(dataset))
     mask = torch.zeros(len(parameter), 1, dtype=torch.bool)
@@ -311,7 +289,8 @@ def fit(
         how the columns of ``values`` are weighted in the objective.
     solver
         ``"lstsq"`` solves the (linear) least-squares problem exactly;
-        ``"trainer"`` trains with :class:`lightning.pytorch.Trainer`.
+        ``"trainer"`` trains with :class:`lightning.pytorch.Trainer`, which needs the ``lightning`` extra
+        (``pip install "pytorch-bsf[lightning]"``).
     ridge
         Weight of the Tikhonov penalty :math:`\mathrm{ridge}\,\|P\|^2` on the free control points,
         added to :math:`nm` times the objective (``"lstsq"`` only).
@@ -335,6 +314,8 @@ def fit(
     ValueError
         If the shapes do not match, there are no samples, ``degree`` is missing, ``freeze`` is given
         without ``init``, or an option is not supported by ``solver``.
+    ImportError
+        If ``solver="trainer"`` is given and Lightning is not installed.
 
     Examples
     --------
@@ -376,8 +357,10 @@ def fit(
     if len(params) == 0:
         raise ValueError("At least one sample is required.")
     _check_solver(solver, ridge, smoothness_weight, batch_size, kwargs)
-    if solver == "trainer" and seed is not None:
-        L.seed_everything(seed)
+    if solver == "trainer":
+        L = _lightning()  # fail before any work if Lightning is missing
+        if seed is not None:
+            L.seed_everything(seed)
     n_values = int(values.shape[1])
     if init is not None:
         model = _init_simploid(init, st, ds, n_values)
@@ -616,7 +599,8 @@ def fit_simploidal_set(
         The weight :math:`w \ge 0` of the smoothness penalty.
     solver
         ``"lstsq"`` solves the (linear) least-squares problem exactly;
-        ``"trainer"`` trains with :class:`lightning.pytorch.Trainer`.
+        ``"trainer"`` trains with :class:`lightning.pytorch.Trainer`, which needs the ``lightning`` extra
+        (``pip install "pytorch-bsf[lightning]"``).
     ridge
         Weight of the Tikhonov penalty :math:`\mathrm{ridge}\,\|P\|^2` on the free proper control points,
         added to :math:`nm` times the objective (``"lstsq"`` only).
@@ -665,13 +649,15 @@ def fit_simploidal_set(
     # Convert the space before copying ``init`` into it, so that the initial (and frozen) points are not rounded.
     space = space.to(dtype)
     _check_solver(solver, ridge, smoothness_weight, batch_size, kwargs)
+    if solver == "trainer":
+        _lightning()  # fail before any work if Lightning is missing
     if init is not None:
         _init_space(space, init)
     elif freeze is not None:
         raise ValueError("init is required when freeze is given.")
     frozen = [space.row(simploid, index) for simploid, index in freeze or ()]
     if solver == "trainer" and seed is not None:
-        L.seed_everything(seed)
+        _lightning().seed_everything(seed)
     width = max(p.shape[1] for _, p, _ in samples)
     ids = torch.cat([torch.full((len(p),), space.simploid_id(s), dtype=torch.long) for s, p, _ in samples])
     params_dtype = _floating_dtype([p for _, p, _ in samples])

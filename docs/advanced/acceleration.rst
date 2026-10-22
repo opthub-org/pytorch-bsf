@@ -1,9 +1,20 @@
 Hardware Acceleration
 =====================
 
-PyTorch-BSF is built on top of `PyTorch Lightning <https://lightning.ai/docs/pytorch/stable/>`_, which means it provides seamless support for hardware acceleration (GPUs, TPUs, etc.) and distributed training (multi-GPU, multi-node) out of the box.
+PyTorch-BSF can train with `PyTorch Lightning <https://lightning.ai/docs/pytorch/stable/>`_ (``solver="trainer"``), which provides seamless support for hardware acceleration (GPUs, TPUs, etc.) and distributed training (multi-GPU, multi-node).
 
 This page explains how to leverage these features to speed up your Bézier simplex (and simploid) fitting tasks.
+
+Installation
+------------
+
+Lightning is an optional dependency, which only ``solver="trainer"`` needs. Install it with the ``lightning`` extra:
+
+.. code-block:: bash
+
+   pip install "pytorch-bsf[lightning]"
+
+Without Lightning, ``solver="trainer"`` (and ``--solver=trainer`` on the command line) raises an :exc:`ImportError` that tells you to run this command; the default ``solver="lstsq"`` and :func:`torch_bsf.fit_sgd` do not need it.
 
 .. note::
    By default, ``fit()`` solves the least-squares problem exactly on the CPU in double precision (``solver="lstsq"``), which is usually the fastest and most accurate choice, so the options on this page do not apply.

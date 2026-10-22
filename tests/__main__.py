@@ -8,6 +8,8 @@ from pathlib import Path
 import pytest
 import torch
 
+from tests import requires_lightning
+
 _REPO_ROOT = Path(__file__).parent.parent
 _PARAMS_CSV = _REPO_ROOT / "params.csv"
 _VALUES_CSV = _REPO_ROOT / "values.csv"
@@ -351,8 +353,14 @@ def test_main_simploid_normalize_predicts_in_original_scale(tmp_path, monkeypatc
     assert np.allclose(meshgrid, np.loadtxt(values, delimiter=",", ndmin=2), atol=1e-3)
 
 
+@requires_lightning
 def test_main_simploid_trainer_solver_with_logging(tmp_path, monkeypatch):
     """--solver=trainer should train with the Lightning options, and loglevel 2 should log to MLflow."""
+    # The trainer imports Lightning lazily, i.e., after MLflow autologging has installed its import hook for
+    # Lightning.  Under pytest, which rewrites the assertions of every module (python_files = "*.py"), that hook
+    # fails to load Lightning, so import it beforehand, as importing torch_bsf did before Lightning became optional.
+    import lightning.pytorch  # noqa: F401
+
     import torch_bsf.simploidal as ts
 
     params, values = _write_prism_data(tmp_path)
@@ -1016,7 +1024,7 @@ def test_cli_without_mlflow(tmp_path, module, args, saved):
     assert not (tmp_path / "mlruns").exists() and not (tmp_path / "mlflow.db").exists()
 
 
-@pytest.mark.parametrize("solver", ["lstsq", "trainer"])
+@pytest.mark.parametrize("solver", ["lstsq", pytest.param("trainer", marks=requires_lightning)])
 def test_main_without_mlflow(tmp_path, monkeypatch, capsys, no_mlflow, solver):
     """Without MLflow, the fitting command should save the control points and the meshgrid, warning once."""
     import torch_bsf.simploidal as ts

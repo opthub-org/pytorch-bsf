@@ -23,6 +23,7 @@ if "--benchmark-only" not in sys.argv:
         allow_module_level=True,
     )
 import torch_bsf  # noqa: E402
+from tests import requires_lightning
 from torch_bsf import BezierSimploid  # noqa: E402
 from torch_bsf.sampling import simplex_grid  # noqa: E402
 
@@ -62,6 +63,7 @@ def test_benchmark_forward(n_params, n_values, degree, batch_size, benchmark):
 # ---------------------------------------------------------------------------
 
 
+@requires_lightning
 @pytest.mark.benchmark(group="fit")
 def test_benchmark_fit(benchmark):
     """Benchmark a short training run of torch_bsf.fit(solver="trainer")."""

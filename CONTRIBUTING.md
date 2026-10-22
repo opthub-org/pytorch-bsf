@@ -29,7 +29,7 @@ pytorch-bsf is a Python library for Bézier Simploid Fitting (formerly Bézier S
 
 pytorch-bsf is a library installed alongside other packages, so `[project].dependencies` in `pyproject.toml` declares the widest ranges that work, not the latest versions:
 
-- **Lower bound**: the oldest version that passes the tests. The `lowest` job of `.github/workflows/python-package.yml` installs every lower bound on Python 3.10 (`uv pip install --resolution lowest-direct '.[mlflow]'`, so the bound of the optional `mlflow` is checked too) and runs pytest, so a bound that does not work fails CI. Raise a lower bound only when the code needs a newer feature or a bug fix, and say why in the PR.
+- **Lower bound**: the oldest version that passes the tests. The `lowest` job of `.github/workflows/python-package.yml` installs every lower bound on Python 3.10 (`uv pip install --resolution lowest-direct '.[lightning,mlflow]'`, so the bounds of the optional `lightning` and `mlflow` are checked too) and runs pytest, so a bound that does not work fails CI. Raise a lower bound only when the code needs a newer feature or a bug fix, and say why in the PR.
 - **Upper bound**: below the next major version (`<3`). Widen it after checking that the new major version works.
 - **Dependabot** uses `versioning-strategy: widen`: it opens a PR only when a new release falls outside a range, and never raises a lower bound.
 - Declare only packages that `torch_bsf` imports. Do not pin transitive dependencies to work around a bug in another package; if one is unavoidable, add a comment with the upstream issue.

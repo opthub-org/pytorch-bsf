@@ -20,7 +20,7 @@
 Key features:
 
 - **Simple, Pythonic API** — fit a model in one line with `torch_bsf.fit()`, which solves the least-squares problem exactly by default, call it like any PyTorch module, and persist control points in `.pt`, `.csv`, `.tsv`, `.json`, or `.yaml` formats.
-- **Scalable Training** — fully vectorized `forward` pass, and an optional [PyTorch Lightning](https://www.pytorchlightning.ai/) trainer (`solver="trainer"`) for seamless scaling from a single CPU to multi-GPU, multi-node clusters.
+- **Scalable Training** — fully vectorized `forward` pass, and an optional [PyTorch Lightning](https://www.pytorchlightning.ai/) trainer (`solver="trainer"`, installed with `pip install "pytorch-bsf[lightning]"`) for seamless scaling from a single CPU to multi-GPU, multi-node clusters.
 - **Robust & Automatic Fitting** — built-in smoothness regularization tames noisy data, and automatic degree selection via k-fold cross-validation removes guesswork.
 - **Rich ML Ecosystem** — scikit-learn-compatible `BezierSimploidRegressor` for use in `Pipeline` and `GridSearchCV`; [MLflow](https://mlflow.org/) experiment tracking; active learning; and advanced sampling strategies (Dirichlet, Sobol).
 - **Beyond Simplices** — the same `torch_bsf.fit()` fits Bézier simploids (e.g., `simploid_type=(2, 1)` for a prism), and `torch_bsf.simploidal` fits simploidal sets, when a single simplex is not the right parameter domain.

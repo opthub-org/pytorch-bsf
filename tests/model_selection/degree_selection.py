@@ -6,6 +6,7 @@ from unittest.mock import patch
 import pytest
 import torch
 
+from tests import requires_lightning
 from torch_bsf.model_selection.degree_selection import select_degree
 
 _REPO_ROOT = Path(__file__).parent.parent.parent
@@ -37,6 +38,7 @@ def _fake_fit(mse_by_degree):
 
 
 class TestSelectDegree:
+    @requires_lightning
     def test_returns_int_in_range(self):
         params, values = _make_simplex_data(n_params=3, n_values=2, n_samples=20)
         best = select_degree(
@@ -56,6 +58,7 @@ class TestSelectDegree:
         assert isinstance(best, int)
         assert 1 <= best <= 3
 
+    @requires_lightning
     def test_min_equals_max(self):
         params, values = _make_simplex_data(n_params=3, n_values=2, n_samples=20)
         best = select_degree(

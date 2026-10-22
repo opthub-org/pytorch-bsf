@@ -42,7 +42,8 @@ class BezierSimploidRegressor(RegressorMixin, BaseEstimator):
     solver : {"lstsq", "trainer"}, default="lstsq"
         ``"lstsq"`` solves the least-squares problem exactly in double precision, and the fitted
         model keeps the floating dtype of ``y``; ``"trainer"`` trains the control points with
-        :class:`lightning.pytorch.Trainer` in single precision.
+        :class:`lightning.pytorch.Trainer` in single precision, which needs the ``lightning`` extra
+        (``pip install "pytorch-bsf[lightning]"``).
     ridge : float, default=0.0
         Weight of the Tikhonov penalty on the control points (``solver="lstsq"`` only).
     smoothness_weight : float, default=0.0

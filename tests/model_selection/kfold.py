@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from tests import requires_lightning
+
 _REPO_ROOT = Path(__file__).parent.parent.parent
 _PARAMS_CSV = _REPO_ROOT / "params.csv"
 _VALUES_CSV = _REPO_ROOT / "values.csv"
@@ -331,7 +333,7 @@ def test_main_rejects_split_ratio(tmp_path, monkeypatch, capsys):
     assert "--split_ratio is not supported" in capsys.readouterr().err
 
 
-@pytest.mark.parametrize("solver", ["lstsq", "trainer"])
+@pytest.mark.parametrize("solver", ["lstsq", pytest.param("trainer", marks=requires_lightning)])
 def test_main_without_mlflow(tmp_path, monkeypatch, capsys, no_mlflow, solver):
     """Without MLflow, main() saves the meshgrids and prints the errors, warning once that nothing is logged."""
     import numpy as np

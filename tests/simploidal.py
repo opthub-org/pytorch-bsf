@@ -1,3 +1,6 @@
+import re
+import subprocess
+import sys
 from math import comb, factorial, prod
 from pathlib import Path
 from typing import Any
@@ -6,6 +9,7 @@ import pytest
 import torch
 
 import torch_bsf
+from tests import requires_lightning
 from torch_bsf import fit
 from torch_bsf.preprocessing import NormalizeType
 from torch_bsf.simploidal import (
@@ -139,6 +143,7 @@ def test_bezier_simploid_init_errors():
         BezierSimploid((1,), 1, torch.zeros(3, 1))
 
 
+@requires_lightning
 def test_models_are_plain_modules():
     import lightning.pytorch as L
 
@@ -229,6 +234,7 @@ TRAINER_CONVERGENCE_KWARGS: dict[str, Any] = dict(
 )
 
 
+@requires_lightning
 def test_fit_simploid_trainer_converges_to_lstsq():
     n = len(simploid_indices((2, 1), 2))
     # A fixed truth: L-BFGS in float32 stalls at an error of ~5e-4, so an unlucky random truth may exceed atol.
@@ -240,6 +246,7 @@ def test_fit_simploid_trainer_converges_to_lstsq():
     assert torch.allclose(trained.control_points, exact.control_points, atol=1e-3)
 
 
+@requires_lightning
 def test_fit_simploidal_set_trainer_converges_to_lstsq():
     S = SimploidalSet()
     tri, sq = S.add_simplex(2), S.add_simploid((1, 1))
@@ -1008,6 +1015,7 @@ def test_fit_simploid_ridge_and_errors():
         fit(t, x, 3, simploid_type=(2,), ridge=-1.0)
 
 
+@requires_lightning
 def test_fit_simploid_trainer():
     truth = BezierSimploid.randn((2, 1), 1, n_values=2)
     t = sample_simploid((2, 1), 100, seed=0)
@@ -1032,7 +1040,7 @@ def test_fit_simploidal_set_recovers_space(degree):
     assert torch.allclose(fitted.proper_control_points, truth.proper_control_points, atol=1e-3)
 
 
-@pytest.mark.parametrize("solver", ["lstsq", "trainer"])
+@pytest.mark.parametrize("solver", ["lstsq", pytest.param("trainer", marks=requires_lightning)])
 def test_fit_simploidal_set_recovers_mixed_degree_space(solver):
     S, mains = _glued_set()
     degree = _mixed_degrees(mains)
@@ -1073,6 +1081,7 @@ def test_fit_simploidal_set_data_on_lower_dimensional_simploid():
     assert torch.allclose(space.evaluate(edge, t_edge), t_edge[:, :1], atol=1e-3)
 
 
+@requires_lightning
 def test_fit_simploidal_set_trainer():
     S, mains = _glued_set()
     truth = _random_space(S, 1, n_values=2)
@@ -1107,7 +1116,7 @@ def test_space_accepts_integer_control_points():
     assert torch.equal(space.proper_control_points, torch.ones(2, 2))
 
 
-@pytest.mark.parametrize("solver", ["lstsq", "trainer"])
+@pytest.mark.parametrize("solver", ["lstsq", pytest.param("trainer", marks=requires_lightning)])
 def test_fit_preserves_float64(solver):
     """Fitting float64 data yields a float64 model (and the trainer does not hit a dtype mismatch)."""
     kwargs: dict[str, Any] = dict(TRAINER_KWARGS, max_epochs=1, accelerator="cpu") if solver == "trainer" else {}
@@ -1223,11 +1232,12 @@ def test_check_detects_inconsistencies():
         S.check()
 
 
+@requires_lightning
 def test_lightning_validation_and_test_steps():
     import lightning.pytorch as L
     from torch.utils.data import DataLoader, TensorDataset
 
-    from torch_bsf.simploidal.fitting import _LightningWrapper
+    from torch_bsf.simploidal._lightning import _LightningWrapper
 
     trainer = L.Trainer(accelerator="cpu", enable_progress_bar=False, logger=False, enable_model_summary=False)
     t = sample_simploid((2, 1), 10, seed=0)
@@ -1504,6 +1514,7 @@ def test_fit_simploid_smoothness_is_exact():
     ).pow(2).sum()
 
 
+@requires_lightning
 def test_fit_simploid_smoothness_trainer_matches_lstsq():
     t = sample_simploid((2, 1), 100, seed=0)
     x = _noisy(torch.sin(3 * t[:, :2]))
@@ -1514,7 +1525,7 @@ def test_fit_simploid_smoothness_trainer_matches_lstsq():
     assert torch.allclose(trained.control_points, exact.control_points, atol=1e-3)
 
 
-@pytest.mark.parametrize("solver", ["lstsq", "trainer"])
+@pytest.mark.parametrize("solver", ["lstsq", pytest.param("trainer", marks=requires_lightning)])
 @pytest.mark.parametrize("smoothness_weight", [0.0, 0.01])
 def test_fit_simploid_freeze_keeps_init(solver, smoothness_weight):
     t = sample_simploid((2, 1), 60, seed=0)
@@ -1564,6 +1575,7 @@ def test_fit_simploid_freeze_is_exact():
     assert torch.allclose(fitted.control_points.double()[free], expected, atol=1e-5)
 
 
+@requires_lightning
 def test_fit_simploid_init_without_freeze():
     t = sample_simploid((1,), 30, seed=0)
     x = t[:, :1]
@@ -1630,6 +1642,7 @@ def test_fit_simploidal_set_smoothness_is_exact():
     assert torch.allclose(space.proper_control_points.double(), expected, atol=1e-5)
 
 
+@requires_lightning
 def test_fit_simploidal_set_smoothness_trainer_matches_lstsq():
     S, _, data = _two_triangles_with_data()
     exact = fit_simploidal_set(S, data, 2, smoothness_weight=0.01)
@@ -1637,7 +1650,7 @@ def test_fit_simploidal_set_smoothness_trainer_matches_lstsq():
     assert torch.allclose(trained.proper_control_points, exact.proper_control_points, atol=1e-3)
 
 
-@pytest.mark.parametrize("solver", ["lstsq", "trainer"])
+@pytest.mark.parametrize("solver", ["lstsq", pytest.param("trainer", marks=requires_lightning)])
 def test_fit_simploidal_set_freeze_keeps_init(solver):
     S, (t1, t2), data = _two_triangles_with_data()
     init = _random_space(S, 2, n_values=2)
@@ -1817,3 +1830,75 @@ def test_fit_kfold_shuffles_reproducibly_and_caps_folds():
         torch_bsf.fit_kfold(t, x, 1, n_folds=1)
     with pytest.raises(ValueError, match="At least 2 samples"):
         torch_bsf.fit_kfold(t[:1], x[:1], 1)
+
+
+# ---------------------------------------------------------------------------
+# Lightning is optional: only solver="trainer" imports it
+# ---------------------------------------------------------------------------
+
+_INSTALL_LIGHTNING = re.escape('pip install "pytorch-bsf[lightning]"')
+
+
+@pytest.fixture
+def no_lightning(monkeypatch):
+    """Makes ``import lightning`` fail, as if Lightning were not installed."""
+    for name in list(sys.modules):
+        if name.split(".")[0] == "lightning" or name == "torch_bsf.simploidal._lightning":
+            monkeypatch.delitem(sys.modules, name)
+    monkeypatch.setitem(sys.modules, "lightning", None)
+
+
+def test_import_does_not_import_lightning():
+    code = "import sys, torch_bsf; assert not any(m.split('.')[0] == 'lightning' for m in sys.modules)"
+    subprocess.run([sys.executable, "-c", code], check=True, cwd=Path(__file__).parent.parent)
+
+
+def test_fit_without_lightning(no_lightning):
+    """The default solver and fit_sgd do not need Lightning."""
+    from torch_bsf.simploidal import linear_scalarization
+
+    t = sample_simploid((2, 1), 30, seed=0)
+    truth = BezierSimploid.randn((2, 1), 1, n_values=2)
+    bs = fit(t, truth(t).detach(), 1, simploid_type=(2, 1))
+    assert torch.allclose(bs.control_points, truth.control_points, atol=1e-4)
+
+    S, _, data = _two_triangles_with_data()
+    assert isinstance(fit_simploidal_set(S, data, 1), SimploidalBezierSpace)
+
+    def objective(x):
+        return ((x.unsqueeze(1) - torch.eye(3)) ** 2).sum(dim=-1)
+
+    init = BezierSimploid.zeros((2,), 1, n_values=3)
+    bs = torch_bsf.fit_sgd(init, linear_scalarization(objective), batch_size=20, step_size=0.2, seed=0)
+    assert torch.allclose(bs.control_points, torch.eye(3), atol=1e-3)
+    assert sys.modules["lightning"] is None  # nothing replaced the blocked import
+
+
+def test_fit_trainer_without_lightning_raises(no_lightning):
+    t = sample_simploid((2, 1), 10, seed=0)
+    with pytest.raises(ImportError, match=_INSTALL_LIGHTNING):
+        fit(t, t[:, :1], 1, simploid_type=(2, 1), solver="trainer", max_epochs=1)
+    S, _, data = _two_triangles_with_data()
+    with pytest.raises(ImportError, match=_INSTALL_LIGHTNING):
+        fit_simploidal_set(S, data, 1, solver="trainer", max_epochs=1)
+    # The options are still validated first.
+    with pytest.raises(ValueError, match="ridge"):
+        fit(t, t[:, :1], 1, simploid_type=(2, 1), solver="trainer", ridge=1.0)
+
+
+def test_lightning_reraises_a_missing_dependency_of_lightning(monkeypatch):
+    """A module missing inside an installed Lightning is not reported as Lightning being missing."""
+    import builtins
+
+    from torch_bsf.simploidal.fitting import _lightning
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "lightning.pytorch":
+            raise ModuleNotFoundError("No module named 'lightning_utilities'", name="lightning_utilities")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    with pytest.raises(ModuleNotFoundError, match="lightning_utilities"):
+        _lightning()

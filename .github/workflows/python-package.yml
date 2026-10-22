@@ -47,8 +47,8 @@ jobs:
         echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
     - name: Install the lowest direct dependencies
       run: |
-        # mlflow is an extra, but its lower bound is checked as well
-        uv pip install --resolution lowest-direct '.[mlflow]'
+        # lightning and mlflow are extras, but their lower bounds are checked as well
+        uv pip install --resolution lowest-direct '.[lightning,mlflow]'
         # Keep the resolved versions while adding the optional dependencies and test tools
         uv pip freeze | grep -v '^pytorch-bsf' > lowest-constraints.txt
         uv pip install '.[all]' pytest pytest-cov -c lowest-constraints.txt
@@ -69,11 +69,40 @@ jobs:
     - name: Install the package and the other extras without MLflow
       run: |
         python -m pip install --upgrade pip
-        python -m pip install '.[sampling,sklearn,plot]' pytest pytest-cov
+        python -m pip install '.[lightning,sampling,sklearn,plot]' pytest pytest-cov
         if python -c "import mlflow" 2>/dev/null; then echo "mlflow must not be installed" >&2; exit 1; fi
     - name: Run the CLI without MLflow
       run: |
         python -m torch_bsf --params=params.csv --values=values.csv --degree=3
+    - name: Test with pytest
+      run: |
+        pytest
+
+  no-lightning:
+    # Lightning is an optional extra that only solver="trainer" needs: check that the package imports and
+    # works without it, and that the trainer tests are skipped rather than failing.
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.14"
+    - name: Create a virtual environment
+      run: |
+        python -m pip install uv
+        uv venv
+        echo "VIRTUAL_ENV=$PWD/.venv" >> "$GITHUB_ENV"
+        echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+    - name: Install without Lightning
+      run: |
+        uv pip install torch --index-url https://download.pytorch.org/whl/cpu
+        # Every extra except lightning
+        uv pip install '.[mlflow,sampling,sklearn,plot]' pytest pytest-cov
+        uv pip list
+        if python -c "import lightning" 2>/dev/null; then echo "Lightning must not be installed" >&2; exit 1; fi
+    - name: Check that importing torch_bsf does not import Lightning
+      run: |
+        python -c "import sys, torch_bsf; assert not any(m.startswith('lightning') for m in sys.modules)"
     - name: Test with pytest
       run: |
         pytest
@@ -104,7 +133,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install pytest pytest-cov
         python -m pip install -r docs/requirements.txt
-        python -m pip install '.[mlflow]'
+        python -m pip install '.[lightning,mlflow]'
     - name: Type check with mypy
       run: |
         python -m pip install mypy types-PyYAML types-setuptools

@@ -37,7 +37,6 @@ classifiers = [
 # (see "Dependency versions" in CONTRIBUTING.md); do not raise them without a reason.
 dependencies = [
   "torch>=2.3,<3",
-  "lightning>=2.4,<3",
   "numpy>=1.21.2,<3",
   "PyYAML>=6,<7",
 ]
@@ -46,6 +45,10 @@ dependencies = [
 Homepage = "https://github.com/opthub-org/pytorch-bsf"
 
 [project.optional-dependencies]
+# Only solver="trainer" needs Lightning; its lower bound is checked by the `lowest` job too.
+lightning = [
+  "lightning>=2.4,<3",
+]
 # Experiment tracking of the CLI (python -m torch_bsf ...); without it, the CLI logs nothing.
 # Its lower bound is checked by the `lowest` job as well.
 mlflow = [
@@ -62,6 +65,7 @@ plot = [
   "scipy",
 ]
 all = [
+  "lightning>=2.4,<3",
   "mlflow>=3.11.1,<4",
   "scipy",
   "scikit-learn",
