@@ -20,9 +20,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Miniconda
+    - name: Set up Miniforge
       uses: conda-incubator/setup-miniconda@v3
       with:
+        miniforge-version: latest
+        channels: conda-forge
+        conda-remove-defaults: "true"
         auto-update-conda: true
         activate-environment: pytorch-bsf  # matches `name:` in environment.yml
         environment-file: environment.yml
@@ -42,9 +45,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Miniconda
+    - name: Set up Miniforge
       uses: conda-incubator/setup-miniconda@v3
       with:
+        miniforge-version: latest
+        channels: conda-forge
+        conda-remove-defaults: "true"
         auto-update-conda: true
         activate-environment: test-env
         python-version: "3.14"

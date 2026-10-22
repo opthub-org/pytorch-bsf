@@ -1,6 +1,7 @@
-FROM continuumio/miniconda3:26.1.1
+FROM condaforge/miniforge3:26.7.2-0
 
-# Install pytorch-bsf with MKL-backed PyTorch from the pytorch conda channel.
+# Install pytorch-bsf with PyTorch from the conda-forge channel only
+# (Miniforge does not configure the Anaconda `defaults` channel).
 WORKDIR /opt/pytorch-bsf
 COPY environment.yml pyproject.toml ./
 COPY torch_bsf ./torch_bsf

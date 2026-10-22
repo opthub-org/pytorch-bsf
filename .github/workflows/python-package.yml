@@ -71,6 +71,9 @@ jobs:
     - name: Set up Miniconda
       uses: conda-incubator/setup-miniconda@v3
       with:
+        miniforge-version: latest
+        channels: conda-forge
+        conda-remove-defaults: "true"
         auto-update-conda: true
         python-version: ${{ matrix.python-version }}
         activate-environment: test-env

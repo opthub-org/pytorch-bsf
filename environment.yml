@@ -1,11 +1,10 @@
 name: pytorch-bsf
 channels:
-- pytorch
 - conda-forge
-- defaults
+- nodefaults
 dependencies:
 - python=3.14
-- "pytorch>=2.3,<3"
+- "pytorch>=2.6,<3"
 - "lightning>=2.4,<3"
 - "numpy>=1.21.2,<3"
 - "mlflow>=3.11.1,<4"
