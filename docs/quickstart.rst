@@ -171,7 +171,7 @@ MLflow is an optional dependency.  To log the parameters, metrics and models of 
    pip install "pytorch-bsf[mlflow]"
 
 Without it, the CLI still fits the model and saves the control points and the predictions, but prints a warning and
-logs nothing.
+logs nothing.  See :doc:`installation` for all extras.
 
 Then run ``torch_bsf`` as a CLI module:
 
@@ -195,6 +195,9 @@ To train with the Lightning trainer (``solver="trainer"``, see :doc:`advanced/ac
 .. code-block:: bash
 
    pip install "pytorch-bsf[lightning]"
+
+See :doc:`installation` for the other extras and for upgrading from a version that installed Lightning and MLflow by
+default.
 
 Train a model by calling ``fit()``, then call the model to predict.
 

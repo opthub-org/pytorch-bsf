@@ -23,7 +23,7 @@ While the best normalization method depends on your specific problem, the L1 app
 Value Normalization
 -------------------
 
-Normalizing the output ``values`` (the targets) can help the gradient-based trainer (``solver="trainer"``) converge faster by ensuring that different objectives are on a similar scale. Pass the ``normalize`` argument to ``fit()``, or use the ``--normalize`` argument in the CLI or MLflow interface.
+Normalizing the output ``values`` (the targets) can help the gradient-based trainer (``solver="trainer"``, which needs the ``lightning`` extra; see :doc:`../installation`) converge faster by ensuring that different objectives are on a similar scale. Pass the ``normalize`` argument to ``fit()``, or use the ``--normalize`` argument in the CLI or MLflow interface.
 
 Available options include:
 

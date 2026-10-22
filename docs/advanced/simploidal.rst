@@ -37,7 +37,7 @@ A Bézier simploid of type :math:`(a)` is the Bézier simplex of degree
 :class:`~torch_bsf.simploidal.BezierSimploid` is a plain :class:`torch.nn.Module`
 holding the control points, and :func:`torch_bsf.fit` fits one to data, either
 exactly by linear least squares (the default) or with a Lightning trainer
-(``solver="trainer"``).  Without ``simploid_type``, :func:`torch_bsf.fit` fits a
+(``solver="trainer"``, which needs the ``lightning`` extra; see :doc:`../installation`).  Without ``simploid_type``, :func:`torch_bsf.fit` fits a
 Bézier simplex, i.e. a Bézier simploid of type :math:`(M - 1)` for :math:`M`
 parameters; pass the type to fit any other simploid:
 

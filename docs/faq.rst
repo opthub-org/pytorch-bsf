@@ -77,7 +77,7 @@ Please refer to the :doc:`advanced/normalization` page for detailed instructions
 Can I use GPU or multi-node training?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Yes.** Since PyTorch-BSF can train with PyTorch Lightning (``solver="trainer"``, installed with ``pip install "pytorch-bsf[lightning]"``), it supports hardware acceleration and distributed training.
+**Yes.** Since PyTorch-BSF can train with PyTorch Lightning (``solver="trainer"``, installed with ``pip install "pytorch-bsf[lightning]"``; see :doc:`installation`), it supports hardware acceleration and distributed training.
 
 Please refer to the :doc:`advanced/acceleration` page for detailed instructions on using GPUs (single or multiple), multi-node clusters, and mixed-precision training.
 
@@ -148,6 +148,13 @@ See the :doc:`advanced` documentation for implementation details and examples.
 
 Troubleshooting
 ---------------
+
+Why does ``solver="trainer"`` raise ``ImportError``, or the CLI stop logging to MLflow, after upgrading?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Lightning and MLflow used to be installed with PyTorch-BSF, but are now optional extras.
+Install them with ``pip install -U "pytorch-bsf[lightning,mlflow]"``, or only the one you need.
+See :ref:`upgrading-optional-extras`.
 
 Are approximation results always reliable?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
