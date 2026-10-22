@@ -13,7 +13,8 @@ They are enough to fit a model with the default solver (``solver="lstsq"``) or w
 to predict, to save and load models, and to run the CLI (``python -m torch_bsf``) without experiment tracking.
 
 The :doc:`Docker image and the MLflow project <quickstart>` install PyTorch-BSF with Lightning and MLflow, so they
-need none of the extras below.
+need neither the ``lightning`` nor the ``mlflow`` extra below; they do not include the packages of the other extras
+(SciPy, scikit-learn and matplotlib).
 
 
 Optional extras
@@ -43,9 +44,10 @@ Pick the extras for the features you use, or ``all`` for every feature:
        Without it, ``solver="trainer"`` raises :exc:`ImportError`.
    * - ``mlflow``
      - ``mlflow``
-     - Logging the parameters, metrics and models of the CLI runs (``python -m torch_bsf`` and
-       ``python -m torch_bsf.model_selection.kfold``) to MLflow (``--loglevel``).
-       Without it, the CLI fits and saves the model but prints a warning and logs nothing.
+     - Logging the CLI runs to MLflow (``--loglevel``): ``python -m torch_bsf`` logs the parameters, metrics and
+       models, and ``python -m torch_bsf.model_selection.kfold`` logs the errors of each fold and their means.
+       Without it, the CLI still fits and saves its outputs (the control points or the predictions), but prints a
+       warning and logs nothing.
    * - ``sampling``
      - ``scipy``
      - Quasi-random Sobol sampling with :func:`torch_bsf.sampling.simplex_sobol` (see :doc:`advanced/sampling`).

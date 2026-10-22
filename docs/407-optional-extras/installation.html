@@ -101,7 +101,8 @@ Install it from PyPI:</p>
 They are enough to fit a model with the default solver (<code class="docutils literal notranslate"><span class="pre">solver=&quot;lstsq&quot;</span></code>) or with <a class="reference internal" href="torch_bsf.html#torch_bsf.fit_sgd" title="torch_bsf.fit_sgd"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit_sgd()</span></code></a>,
 to predict, to save and load models, and to run the CLI (<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">torch_bsf</span></code>) without experiment tracking.</p>
 <p>The <a class="reference internal" href="quickstart.html"><span class="doc">Docker image and the MLflow project</span></a> install PyTorch-BSF with Lightning and MLflow, so they
-need none of the extras below.</p>
+need neither the <code class="docutils literal notranslate"><span class="pre">lightning</span></code> nor the <code class="docutils literal notranslate"><span class="pre">mlflow</span></code> extra below; they do not include the packages of the other extras
+(SciPy, scikit-learn and matplotlib).</p>
 <section id="optional-extras">
 <h2>Optional extras<a class="headerlink" href="#optional-extras" title="Link to this heading"></a></h2>
 <p>Other features need more packages, which the following extras install.
@@ -133,9 +134,10 @@ Without it, <code class="docutils literal notranslate"><span class="pre">solver=
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">mlflow</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">mlflow</span></code></p></td>
-<td><p>Logging the parameters, metrics and models of the CLI runs (<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">torch_bsf</span></code> and
-<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">torch_bsf.model_selection.kfold</span></code>) to MLflow (<code class="docutils literal notranslate"><span class="pre">--loglevel</span></code>).
-Without it, the CLI fits and saves the model but prints a warning and logs nothing.</p></td>
+<td><p>Logging the CLI runs to MLflow (<code class="docutils literal notranslate"><span class="pre">--loglevel</span></code>): <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">torch_bsf</span></code> logs the parameters, metrics and
+models, and <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">torch_bsf.model_selection.kfold</span></code> logs the errors of each fold and their means.
+Without it, the CLI still fits and saves its outputs (the control points or the predictions), but prints a
+warning and logs nothing.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sampling</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">scipy</span></code></p></td>
