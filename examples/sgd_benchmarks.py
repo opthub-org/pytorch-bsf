@@ -7,6 +7,8 @@ by the preconditioned one of the paper (PSGD, ``preconditioner="gram"``):
 * ``bergou2020``: 2 objectives of 2 variables (Bergou et al., 2020);
 * ``scaled_med``: the scaled-MED problem, 3 objectives of 3 variables;
 * ``skew_mmd``: the skew-MMD problem, 3 objectives of 3 variables;
+* ``skew_mmd_transformed``: the skew-MMD with every objective ``f_i`` replaced by ``f_i^(2 / p_i)``, which
+  has the same Pareto set (not in the paper);
 * ``facility_location``: the generalized location problem, 3 objectives of 4 variables.
 
 The problem definitions are implemented from Section 5 of the paper.  The settings are those of the
@@ -14,10 +16,12 @@ paper: the initial control points ``P0 = O``, ``n = 100`` samples, minibatches o
 ``K = 100`` iterations with the step size ``alpha = 0.05``, the degrees ``D = 2, 3, 4`` and 5 trials
 with different samples.  The generalization loss is evaluated on 10,000 other samples.
 
-The loss of the scaled-MED, the location problem and Bergou2020 is quadratic in the control points, so
-its minimizer ``P*`` over the Bézier simplices of degree ``D`` is computed exactly by Newton's method,
-and the figures show the optimality gap ``L(P) - L(P*)``.  The skew-MMD has no closed form, so its
-figure shows the loss ``L(P)`` itself.
+The loss of all the problems but the skew-MMD is quadratic in the control points, so its minimizer ``P*``
+over the Bézier simplices of degree ``D`` is computed exactly by Newton's method, and the figures show the
+optimality gap ``L(P) - L(P*)``.  The loss of the skew-MMD is not convex, so its figure shows the loss
+``L(P)`` itself.  The objectives of the skew-MMD are increasing functions ``f_i = g_i^(p_i / 2)`` of the
+convex quadratics ``g_i(x) = ||A_i (x - e_i)||^2``, so ``skew_mmd_transformed`` minimizes ``t^T g(x)``
+instead: an increasing transform of each objective does not change the Pareto set.
 
 Usage (matplotlib and SciPy are required, e.g., by the ``plot`` extra)::
 
@@ -28,10 +32,13 @@ The script writes, for every problem ``<name>`` above, ``docs/_static/sgd_benchm
 (the history of the empirical and generalization losses: the mean and the range over the trials) and
 ``docs/_static/sgd_benchmark_<name>_pareto.png`` (the Pareto set and front approximated by PSGD in the
 median trial, with the control points).  The median trial is the one of the median final empirical value
-in the loss figure: the optimality gap, or the loss for the skew-MMD.  For the problems with a known Pareto
-set (all but the skew-MMD), it also writes ``docs/_static/sgd_benchmark_<name>_mse.png``: the history of the
-mean squared error ``MSE(P) = mean_i ||b(t_i | P) - x*(t_i)||^2`` to the Pareto set on the 10,000 samples of
-the generalization loss (Figure 4 of the paper).  It runs in less than a minute on a CPU.
+in the loss figure: the optimality gap, or the loss for the skew-MMD.  For the problems whose minimizer
+``x*(t)`` of ``t^T f(x)`` is known (all but the skew-MMD), it also writes
+``docs/_static/sgd_benchmark_<name>_mse.png``: the history of the mean squared error
+``MSE(P) = mean_i ||b(t_i | P) - x*(t_i)||^2`` to the Pareto set on the 10,000 samples of the
+generalization loss (Figure 4 of the paper).  For every problem, it prints the mean squared distance from
+the fitted surface to the Pareto set, which does not depend on how the surface is parametrized, so that
+the skew-MMD can be compared with its transform.  It runs in about a minute on a CPU.
 """
 
 import math
@@ -62,6 +69,7 @@ BATCH_SIZE = 20  # m
 MAX_ITER = 100  # K
 STEP_SIZE = 0.05  # alpha
 N_TEST_SAMPLES = 10_000
+N_DISTANCE_SAMPLES = 1_000  # the test samples on which the distance to the Pareto set is measured
 METHODS = {"SGD": "none", "PSGD": "gram"}
 OUT_DIR = Path(__file__).resolve().parent.parent / "docs" / "_static"
 
@@ -74,8 +82,10 @@ class Problem:
 
     ``objective`` maps points of shape ``(batch, n_variables)`` to the objective values of shape
     ``(batch, n_objectives)``.  ``pareto_set`` is the closed-form minimizer ``x*(t)`` of the linear
-    scalarization ``t^T f(x)``, if known.  ``quadratic`` tells whether the objectives are quadratic, so
-    that the loss is quadratic in the control points.
+    scalarization ``t^T f(x)``, if known.  Otherwise, ``reference_set`` may give another closed-form
+    parametrization of the Pareto set by the simplex, which is drawn and used for the distance to the
+    Pareto set but not for the MSE.  ``quadratic`` tells whether the objectives are quadratic, so that the
+    loss is quadratic in the control points.
     """
 
     name: str
@@ -85,6 +95,12 @@ class Problem:
     objective: Objective
     quadratic: bool
     pareto_set: Callable[[torch.Tensor], torch.Tensor] | None = None
+    reference_set: Callable[[torch.Tensor], torch.Tensor] | None = None
+
+    @property
+    def known_set(self) -> Callable[[torch.Tensor], torch.Tensor] | None:
+        """A closed-form parametrization of the Pareto set, if known."""
+        return self.pareto_set or self.reference_set
 
 
 def bergou2020(x: torch.Tensor) -> torch.Tensor:
@@ -129,6 +145,24 @@ def skew_mmd(x: torch.Tensor) -> torch.Tensor:
     return ((a * (x.unsqueeze(1) - c)) ** 2).sum(dim=-1).sqrt() ** p
 
 
+def skew_mmd_transformed(x: torch.Tensor) -> torch.Tensor:
+    """The objectives ``g_i = f_i^(2 / p_i) = ||A_i (x - e_i)||^2`` of the skew-MMD, strongly convex quadratics.
+
+    They are computed without the square root, so that the gradient is finite at ``x = e_i``.
+    """
+    a, c = SKEW_MMD_SCALES.to(x), torch.eye(3).to(x)
+    return ((a * (x.unsqueeze(1) - c)) ** 2).sum(dim=-1)
+
+
+def skew_mmd_pareto_set(t: torch.Tensor) -> torch.Tensor:
+    """The minimizer of ``t^T g(x)``, coordinate by coordinate since ``A_i`` is diagonal.
+
+    It is the Pareto set of both the skew-MMD and its transform.
+    """
+    a2 = SKEW_MMD_SCALES.to(t) ** 2
+    return t * torch.diagonal(a2) / (t @ a2)
+
+
 def facility_location(x: torch.Tensor) -> torch.Tensor:
     """The generalized location problem: the squared distances from ``e_1, e_2, e_3`` in ``R^4``."""
     return ((x.unsqueeze(1) - torch.eye(3, x.shape[1]).to(x)) ** 2).sum(dim=-1)
@@ -142,7 +176,8 @@ def facility_location_pareto_set(t: torch.Tensor) -> torch.Tensor:
 PROBLEMS = (
     Problem("bergou2020", "Bergou2020", 2, 2, bergou2020, True, bergou2020_pareto_set),
     Problem("scaled_med", "Scaled-MED", 3, 3, scaled_med, True, scaled_med_pareto_set),
-    Problem("skew_mmd", "Skew-MMD", 3, 3, skew_mmd, False),
+    Problem("skew_mmd", "Skew-MMD", 3, 3, skew_mmd, False, reference_set=skew_mmd_pareto_set),
+    Problem("skew_mmd_transformed", "Skew-MMD, transformed", 3, 3, skew_mmd_transformed, True, skew_mmd_pareto_set),
     Problem("facility_location", "Location problem", 3, 4, facility_location, True, facility_location_pareto_set),
 )
 
@@ -184,6 +219,26 @@ def mean_squared_error(problem: Problem, model: BezierSimploid, inputs: list[tor
     assert problem.pareto_set is not None
     with torch.no_grad():
         return float(((model(*inputs) - problem.pareto_set(*inputs)) ** 2).sum(dim=1).mean())
+
+
+def pareto_set_points(problem: Problem) -> torch.Tensor | None:
+    """Dense points of the Pareto set, if known: its parametrization on a fine grid of the simplex."""
+    if problem.known_set is None:
+        return None
+    grid = simplex_grid(n_params=problem.n_objectives, degree=10_000 if problem.n_objectives == 2 else 400)
+    return problem.known_set(grid.double())
+
+
+def distance_to_pareto_set(model: BezierSimploid, inputs: list[torch.Tensor], points: torch.Tensor) -> float:
+    """The mean of ``min_j ||b(t | P) - x_j||^2`` over the parameters ``t`` in ``inputs``.
+
+    ``x_j`` are dense points of the Pareto set, so the distance does not depend on how the model is
+    parametrized.  The grid overestimates it by about ``1e-6`` (at most ``6e-6``) on these problems.
+    """
+    with torch.no_grad():
+        values = model(*inputs)
+        chunks = [torch.cdist(chunk, points).min(dim=1).values ** 2 for chunk in values.split(100)]
+        return float(torch.cat(chunks).mean())
 
 
 def run_trial(
@@ -229,16 +284,21 @@ def run_problem(problem: Problem) -> dict[tuple[int, str], Any]:
 
     Returns the histories of shape ``(trial, iteration)`` and the model of the median trial, i.e., the one
     with the median final value of the empirical history (the optimality gap for a quadratic problem, the
-    loss otherwise).
+    loss otherwise).  If the Pareto set is known, ``"distance"`` holds the final distance to it of every
+    trial, on the first ``N_DISTANCE_SAMPLES`` test samples.
     """
     init = initial_model(problem, 1)
     test_inputs = [t.double() for t in sample_domain(init, N_TEST_SAMPLES, seed=10_000)]
+    points = pareto_set_points(problem)
     results: dict[tuple[int, str], Any] = {}
     for degree in DEGREES:
         for method, preconditioner in METHODS.items():
             models, histories = [], []
             for trial in range(N_TRIALS):
                 model, history = run_trial(problem, degree, preconditioner, trial, test_inputs)
+                if points is not None:
+                    distance_inputs = [t[:N_DISTANCE_SAMPLES] for t in test_inputs]
+                    history["distance"] = [distance_to_pareto_set(model, distance_inputs, points)]
                 models.append(model)
                 histories.append(history)
             result = {key: np.array([h[key] for h in histories]) for key in histories[0]}
@@ -334,10 +394,10 @@ def plot_pareto(problem: Problem, results: dict[tuple[int, str], Any]) -> Path:
         shown = BezierSimploid(model.simploid_type, degree, model.control_points.detach()[:, :3])
         plot_bezier_simplex(shown, num=30, ax=ax_set)
         plot_pareto_front(ax_front, problem, model)
-        if problem.pareto_set is not None:
+        if problem.known_set is not None:
             for k, t in enumerate(boundary(problem.n_objectives)):
                 label = "true Pareto set" if k == 0 else None
-                x = problem.pareto_set(t)
+                x = problem.known_set(t)
                 draw(ax_set, x, color="gray", linestyle=":", label=label)
                 draw(ax_front, problem.objective(x), color="gray", linestyle=":", label=label and "true Pareto front")
         ax_set.set_title(f"Pareto set, $D = {degree}$")
@@ -348,7 +408,7 @@ def plot_pareto(problem: Problem, results: dict[tuple[int, str], Any]) -> Path:
             ax.set_ylabel(f"${symbol}_2$")
             if ax.name == "3d":
                 ax.set_zlabel(f"${symbol}_3$")
-        if col == 0 and problem.pareto_set is not None:
+        if col == 0 and problem.known_set is not None:
             ax_set.legend()
             ax_front.legend()
     fig.suptitle(f"{problem.title}: Bézier simplices fitted by PSGD, the median of {N_TRIALS} trials (red: control points)")
@@ -366,7 +426,7 @@ def save(fig: Any, name: str) -> Path:
 
 
 def summarize(problem: Problem, results: dict[tuple[int, str], Any]) -> None:
-    """Prints the mean losses at the last iteration."""
+    """Prints the mean losses, MSE and distances to the Pareto set at the last iteration."""
     quantity = "L(P) - L(P*)" if problem.quadratic else "L(P)"
     for degree in DEGREES:
         cells = [
@@ -378,6 +438,9 @@ def summarize(problem: Problem, results: dict[tuple[int, str], Any]) -> None:
         if problem.pareto_set is not None:
             cells = [f"{method} {results[degree, method]['mse'][:, -1].mean():.2e}" for method in METHODS]
             print(f"  D = {degree}, MSE at k = {MAX_ITER}: " + ", ".join(cells))
+        if problem.known_set is not None:
+            cells = [f"{method} {results[degree, method]['distance'][:, -1].mean():.2e}" for method in METHODS]
+            print(f"  D = {degree}, squared distance to the Pareto set at k = {MAX_ITER}: " + ", ".join(cells))
 
 
 def main() -> None:
