@@ -51,6 +51,7 @@
               <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Data Normalization</a><ul>
@@ -132,7 +133,7 @@
 </section>
 <section id="value-normalization">
 <h2>Value Normalization<a class="headerlink" href="#value-normalization" title="Link to this heading"></a></h2>
-<p>Normalizing the output <code class="docutils literal notranslate"><span class="pre">values</span></code> (the targets) can help the gradient-based trainer (<code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code>) converge faster by ensuring that different objectives are on a similar scale. Pass the <code class="docutils literal notranslate"><span class="pre">normalize</span></code> argument to <code class="docutils literal notranslate"><span class="pre">fit()</span></code>, or use the <code class="docutils literal notranslate"><span class="pre">--normalize</span></code> argument in the CLI or MLflow interface.</p>
+<p>Normalizing the output <code class="docutils literal notranslate"><span class="pre">values</span></code> (the targets) can help the gradient-based trainer (<code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code>, which needs the <code class="docutils literal notranslate"><span class="pre">lightning</span></code> extra; see <a class="reference internal" href="../installation.html"><span class="doc">Installation</span></a>) converge faster by ensuring that different objectives are on a similar scale. Pass the <code class="docutils literal notranslate"><span class="pre">normalize</span></code> argument to <code class="docutils literal notranslate"><span class="pre">fit()</span></code>, or use the <code class="docutils literal notranslate"><span class="pre">--normalize</span></code> argument in the CLI or MLflow interface.</p>
 <p>Available options include:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">none</span></code> (default): Fits the values as they are.</p></li>

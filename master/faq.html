@@ -51,6 +51,7 @@
               <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a></li>
@@ -76,6 +77,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#why-does-solver-trainer-raise-importerror-or-the-cli-stop-logging-to-mlflow-after-upgrading">Why does <code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code> raise <code class="docutils literal notranslate"><span class="pre">ImportError</span></code>, or the CLI stop logging to MLflow, after upgrading?</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#are-approximation-results-always-reliable">Are approximation results always reliable?</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#how-can-i-improve-fitting-convergence-or-accuracy">How can I improve fitting convergence or accuracy?</a></li>
 </ul>
@@ -176,7 +178,7 @@
 </section>
 <section id="can-i-use-gpu-or-multi-node-training">
 <h3>Can I use GPU or multi-node training?<a class="headerlink" href="#can-i-use-gpu-or-multi-node-training" title="Link to this heading"></a></h3>
-<p><strong>Yes.</strong> Since PyTorch-BSF can train with PyTorch Lightning (<code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code>, installed with <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;pytorch-bsf[lightning]&quot;</span></code>), it supports hardware acceleration and distributed training.</p>
+<p><strong>Yes.</strong> Since PyTorch-BSF can train with PyTorch Lightning (<code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code>, installed with <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;pytorch-bsf[lightning]&quot;</span></code>; see <a class="reference internal" href="installation.html"><span class="doc">Installation</span></a>), it supports hardware acceleration and distributed training.</p>
 <p>Please refer to the <a class="reference internal" href="advanced/acceleration.html"><span class="doc">Hardware Acceleration</span></a> page for detailed instructions on using GPUs (single or multiple), multi-node clusters, and mixed-precision training.</p>
 </section>
 <section id="how-do-i-save-and-load-a-trained-model">
@@ -240,6 +242,12 @@
 </section>
 <section id="troubleshooting">
 <h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading"></a></h2>
+<section id="why-does-solver-trainer-raise-importerror-or-the-cli-stop-logging-to-mlflow-after-upgrading">
+<h3>Why does <code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code> raise <code class="docutils literal notranslate"><span class="pre">ImportError</span></code>, or the CLI stop logging to MLflow, after upgrading?<a class="headerlink" href="#why-does-solver-trainer-raise-importerror-or-the-cli-stop-logging-to-mlflow-after-upgrading" title="Link to this heading"></a></h3>
+<p>Lightning and MLflow used to be installed with PyTorch-BSF, but are now optional extras.
+Install them with <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">-U</span> <span class="pre">&quot;pytorch-bsf[lightning,mlflow]&quot;</span></code>, or only the one you need.
+See <a class="reference internal" href="installation.html#upgrading-optional-extras"><span class="std std-ref">Upgrading from a version that required Lightning and MLflow</span></a>.</p>
+</section>
 <section id="are-approximation-results-always-reliable">
 <h3>Are approximation results always reliable?<a class="headerlink" href="#are-approximation-results-always-reliable" title="Link to this heading"></a></h3>
 <p>Not necessarily. While the Universal Approximation Theorem guarantees that a Bézier simplex <em>can</em> approximate any continuous map, a model with a <strong>fixed</strong> degree might not be sufficient for highly complex or “wiggly” surfaces.</p>

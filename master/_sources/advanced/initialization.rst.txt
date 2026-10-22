@@ -2,7 +2,7 @@ Initial Control Points
 ======================
 
 By default, ``fit()`` solves the least-squares problem exactly (``solver="lstsq"``), so it needs no initial control points.
-When you train with the Lightning trainer instead (``solver="trainer"``), ``fit()`` starts from random control points unless you supply your own via the ``init`` argument, which may help the optimizer converge faster or to a better solution when you have prior knowledge about the shape of the target manifold.
+When you train with the Lightning trainer instead (``solver="trainer"``, which needs the ``lightning`` extra; see :doc:`../installation`), ``fit()`` starts from random control points unless you supply your own via the ``init`` argument, which may help the optimizer converge faster or to a better solution when you have prior knowledge about the shape of the target manifold.
 With either solver, ``init`` also gives the values of the control points held fixed by ``freeze`` (see :doc:`partial`).
 
 The ``init`` argument accepts:

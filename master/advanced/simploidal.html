@@ -51,6 +51,7 @@
               <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="normalization.html">Data Normalization</a></li>
@@ -148,7 +149,7 @@ A Bézier simploid of type <span class="math notranslate nohighlight">\((a)\)</s
 <p><a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.BezierSimploid" title="torch_bsf.simploidal.BezierSimploid"><code class="xref py py-class docutils literal notranslate"><span class="pre">BezierSimploid</span></code></a> is a plain <a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></a>
 holding the control points, and <a class="reference internal" href="../torch_bsf.html#torch_bsf.fit" title="torch_bsf.fit"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit()</span></code></a> fits one to data, either
 exactly by linear least squares (the default) or with a Lightning trainer
-(<code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code>).  Without <code class="docutils literal notranslate"><span class="pre">simploid_type</span></code>, <a class="reference internal" href="../torch_bsf.html#torch_bsf.fit" title="torch_bsf.fit"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit()</span></code></a> fits a
+(<code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code>, which needs the <code class="docutils literal notranslate"><span class="pre">lightning</span></code> extra; see <a class="reference internal" href="../installation.html"><span class="doc">Installation</span></a>).  Without <code class="docutils literal notranslate"><span class="pre">simploid_type</span></code>, <a class="reference internal" href="../torch_bsf.html#torch_bsf.fit" title="torch_bsf.fit"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit()</span></code></a> fits a
 Bézier simplex, i.e. a Bézier simploid of type <span class="math notranslate nohighlight">\((M - 1)\)</span> for <span class="math notranslate nohighlight">\(M\)</span>
 parameters; pass the type to fit any other simploid:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>

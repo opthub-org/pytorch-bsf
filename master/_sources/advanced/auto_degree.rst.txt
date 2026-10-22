@@ -60,7 +60,7 @@ Important parameters include:
 
 Any other keyword arguments are passed to ``torch_bsf.fit()``, e.g., ``smoothness_weight``, ``normalize`` or ``ridge``.
 By default, each fold is fitted exactly by the ``"lstsq"`` solver.
-To train with the Lightning trainer instead, pass ``solver="trainer"`` together with any `Trainer arguments <https://lightning.ai/docs/pytorch/stable/common/trainer.html#trainer-flags>`_, such as ``max_epochs`` (smaller is faster, but might be less accurate for selection) and ``accelerator`` / ``devices``.
+To train with the Lightning trainer instead (which needs the ``lightning`` extra; see :doc:`../installation`), pass ``solver="trainer"`` together with any `Trainer arguments <https://lightning.ai/docs/pytorch/stable/common/trainer.html#trainer-flags>`_, such as ``max_epochs`` (smaller is faster, but might be less accurate for selection) and ``accelerator`` / ``devices``.
 
 To select the degree of a Bézier simploid (see :doc:`simploidal`), pass its ``simploid_type``; every factor then gets the same degree.
 

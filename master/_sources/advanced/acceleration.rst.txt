@@ -15,6 +15,7 @@ Lightning is an optional dependency, which only ``solver="trainer"`` needs. Inst
    pip install "pytorch-bsf[lightning]"
 
 Without Lightning, ``solver="trainer"`` (and ``--solver=trainer`` on the command line) raises an :exc:`ImportError` that tells you to run this command; the default ``solver="lstsq"`` and :func:`torch_bsf.fit_sgd` do not need it.
+See :doc:`../installation` for all extras and for upgrading from a version that installed Lightning by default.
 
 .. note::
    By default, ``fit()`` solves the least-squares problem exactly on the CPU in double precision (``solver="lstsq"``), which is usually the fastest and most accurate choice, so the options on this page do not apply.

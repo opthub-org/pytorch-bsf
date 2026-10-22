@@ -50,6 +50,7 @@
               <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="normalization.html">Data Normalization</a></li>
@@ -129,7 +130,8 @@
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"pytorch-bsf[lightning]"</span>
 </pre></div>
 </div>
-<p>Without Lightning, <code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code> (and <code class="docutils literal notranslate"><span class="pre">--solver=trainer</span></code> on the command line) raises an <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ImportError" title="(in Python v3.15)"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ImportError</span></code></a> that tells you to run this command; the default <code class="docutils literal notranslate"><span class="pre">solver=&quot;lstsq&quot;</span></code> and <a class="reference internal" href="../torch_bsf.html#torch_bsf.fit_sgd" title="torch_bsf.fit_sgd"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit_sgd()</span></code></a> do not need it.</p>
+<p>Without Lightning, <code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code> (and <code class="docutils literal notranslate"><span class="pre">--solver=trainer</span></code> on the command line) raises an <a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ImportError" title="(in Python v3.15)"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ImportError</span></code></a> that tells you to run this command; the default <code class="docutils literal notranslate"><span class="pre">solver=&quot;lstsq&quot;</span></code> and <a class="reference internal" href="../torch_bsf.html#torch_bsf.fit_sgd" title="torch_bsf.fit_sgd"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit_sgd()</span></code></a> do not need it.
+See <a class="reference internal" href="../installation.html"><span class="doc">Installation</span></a> for all extras and for upgrading from a version that installed Lightning by default.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>By default, <code class="docutils literal notranslate"><span class="pre">fit()</span></code> solves the least-squares problem exactly on the CPU in double precision (<code class="docutils literal notranslate"><span class="pre">solver=&quot;lstsq&quot;</span></code>), which is usually the fastest and most accurate choice, so the options on this page do not apply.

@@ -12,7 +12,7 @@ This is useful when:
 The example below demonstrates how to freeze the two vertices of a Bézier curve while fitting its interior control points.
 
 The ``freeze`` argument takes a list of multi-indices (e.g., ``[[3, 0], [0, 3]]``), and requires ``init``, which gives the values of the frozen control points (see :doc:`initialization`).
-The default ``"lstsq"`` solver solves the least-squares problem exactly for the free control points, and ``solver="trainer"`` starts from ``init`` and excludes the frozen control points from gradient updates.
+The default ``"lstsq"`` solver solves the least-squares problem exactly for the free control points, and ``solver="trainer"`` (which needs the ``lightning`` extra; see :doc:`../installation`) starts from ``init`` and excludes the frozen control points from gradient updates.
 
 .. testcode::
    :pyversion: >= 3.10, < 3.15

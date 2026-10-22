@@ -50,6 +50,7 @@
               <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="normalization.html">Data Normalization</a></li>
@@ -117,7 +118,7 @@
 </ul>
 <p>The example below demonstrates how to freeze the two vertices of a Bézier curve while fitting its interior control points.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">freeze</span></code> argument takes a list of multi-indices (e.g., <code class="docutils literal notranslate"><span class="pre">[[3,</span> <span class="pre">0],</span> <span class="pre">[0,</span> <span class="pre">3]]</span></code>), and requires <code class="docutils literal notranslate"><span class="pre">init</span></code>, which gives the values of the frozen control points (see <a class="reference internal" href="initialization.html"><span class="doc">Initial Control Points</span></a>).
-The default <code class="docutils literal notranslate"><span class="pre">&quot;lstsq&quot;</span></code> solver solves the least-squares problem exactly for the free control points, and <code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code> starts from <code class="docutils literal notranslate"><span class="pre">init</span></code> and excludes the frozen control points from gradient updates.</p>
+The default <code class="docutils literal notranslate"><span class="pre">&quot;lstsq&quot;</span></code> solver solves the least-squares problem exactly for the free control points, and <code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code> (which needs the <code class="docutils literal notranslate"><span class="pre">lightning</span></code> extra; see <a class="reference internal" href="../installation.html"><span class="doc">Installation</span></a>) starts from <code class="docutils literal notranslate"><span class="pre">init</span></code> and excludes the frozen control points from gradient updates.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch_bsf</span>
 

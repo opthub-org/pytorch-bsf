@@ -44,6 +44,8 @@ The ``solver`` parameter selects how the control points are computed:
    Trains the control points by gradient-based optimization with ``lightning.pytorch.Trainer`` for up to
    ``max_epochs`` epochs in single precision.  Use it for minibatches and accelerators
    (``batch_size``, ``max_epochs``, ``accelerator``, ``devices``, ``precision`` and ``trainer_kwargs``).
+   It requires the ``lightning`` extra (``pip install "pytorch-bsf[lightning]"``); without it, ``fit()``
+   raises :exc:`ImportError`.  See :doc:`../installation` for all extras.
 
 .. testcode::
    :pyversion: >= 3.10, < 3.15

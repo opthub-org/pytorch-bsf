@@ -35,6 +35,7 @@ The project is on `GitHub`_.
    :caption: User guide
 
    whatis
+   installation
    quickstart
    advanced
    applications

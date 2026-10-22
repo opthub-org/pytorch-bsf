@@ -24,7 +24,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Advanced Topics" href="advanced.html" />
-    <link rel="prev" title="What is Bézier simplex fitting?" href="whatis.html" /> 
+    <link rel="prev" title="Installation" href="installation.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -50,6 +50,7 @@
               <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Quickstart</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#run-as-a-docker-container">Run as a Docker Container</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#training">Training</a></li>
@@ -262,7 +263,7 @@ cat<span class="w"> </span>test_values.json
 </pre></div>
 </div>
 <p>Without it, the CLI still fits the model and saves the control points and the predictions, but prints a warning and
-logs nothing.</p>
+logs nothing.  See <a class="reference internal" href="installation.html"><span class="doc">Installation</span></a> for all extras.</p>
 <p>Then run <code class="docutils literal notranslate"><span class="pre">torch_bsf</span></code> as a CLI module:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>torch_bsf<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--params<span class="w"> </span>params.csv<span class="w"> </span><span class="se">\</span>
@@ -281,6 +282,8 @@ logs nothing.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"pytorch-bsf[lightning]"</span>
 </pre></div>
 </div>
+<p>See <a class="reference internal" href="installation.html"><span class="doc">Installation</span></a> for the other extras and for upgrading from a version that installed Lightning and MLflow by
+default.</p>
 <p>Train a model by calling <code class="docutils literal notranslate"><span class="pre">fit()</span></code>, then call the model to predict.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch_bsf</span>
@@ -320,7 +323,7 @@ logs nothing.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="whatis.html" class="btn btn-neutral float-left" title="What is Bézier simplex fitting?" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="advanced.html" class="btn btn-neutral float-right" title="Advanced Topics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

@@ -51,6 +51,7 @@
               <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="normalization.html">Data Normalization</a></li>
@@ -116,7 +117,7 @@
   <section id="initial-control-points">
 <h1>Initial Control Points<a class="headerlink" href="#initial-control-points" title="Link to this heading"></a></h1>
 <p>By default, <code class="docutils literal notranslate"><span class="pre">fit()</span></code> solves the least-squares problem exactly (<code class="docutils literal notranslate"><span class="pre">solver=&quot;lstsq&quot;</span></code>), so it needs no initial control points.
-When you train with the Lightning trainer instead (<code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code>), <code class="docutils literal notranslate"><span class="pre">fit()</span></code> starts from random control points unless you supply your own via the <code class="docutils literal notranslate"><span class="pre">init</span></code> argument, which may help the optimizer converge faster or to a better solution when you have prior knowledge about the shape of the target manifold.
+When you train with the Lightning trainer instead (<code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code>, which needs the <code class="docutils literal notranslate"><span class="pre">lightning</span></code> extra; see <a class="reference internal" href="../installation.html"><span class="doc">Installation</span></a>), <code class="docutils literal notranslate"><span class="pre">fit()</span></code> starts from random control points unless you supply your own via the <code class="docutils literal notranslate"><span class="pre">init</span></code> argument, which may help the optimizer converge faster or to a better solution when you have prior knowledge about the shape of the target manifold.
 With either solver, <code class="docutils literal notranslate"><span class="pre">init</span></code> also gives the values of the control points held fixed by <code class="docutils literal notranslate"><span class="pre">freeze</span></code> (see <a class="reference internal" href="partial.html"><span class="doc">Partial Training</span></a>).</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">init</span></code> argument accepts:</p>
 <ul class="simple">
