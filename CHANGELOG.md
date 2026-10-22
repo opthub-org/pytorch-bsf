@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.20.0](https://github.com/opthub-org/pytorch-bsf/compare/v0.19.0...v0.20.0) (2026-10-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* **fitting:** `pip install pytorch-bsf` no longer installs Lightning. To keep using solver="trainer" (or --solver=trainer), install the extra: pip install "pytorch-bsf[lightning]".
+* **cli:** `pip install pytorch-bsf` no longer installs MLflow, so the CLI does not log to MLflow unless it is installed. To keep logging, install the extra: `pip install "pytorch-bsf[mlflow]"`.
+
+### Dependencies
+
+* **cli:** make MLflow an optional extra ([#402](https://github.com/opthub-org/pytorch-bsf/issues/402)) ([4c540ea](https://github.com/opthub-org/pytorch-bsf/commit/4c540eab90d769acf6e35961c41e63d88a97a96a))
+* **fitting:** make Lightning an optional extra ([#401](https://github.com/opthub-org/pytorch-bsf/issues/401)) ([953b944](https://github.com/opthub-org/pytorch-bsf/commit/953b9448e304330799cca8f91e1fc890cb6a201d))
+
+
+### Documentation
+
+* **sgd:** fit the skew-MMD Pareto set via a monotone transform ([#396](https://github.com/opthub-org/pytorch-bsf/issues/396)) ([b2ba147](https://github.com/opthub-org/pytorch-bsf/commit/b2ba147e3180412e636799ef29eecccfe18015c4))
+
 ## [0.19.0](https://github.com/opthub-org/pytorch-bsf/compare/v0.18.0...v0.19.0) (2026-10-21)
 
 
