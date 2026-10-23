@@ -42,7 +42,16 @@ class MatrixDiagnostics:
 
 @dataclass(frozen=True)
 class FitDiagnostics:
-    """Compute provenance and observation/system diagnostics in original units."""
+    """Compute provenance and observation/system diagnostics in original units.
+
+    ``driver`` identifies the executed backend (``gelsd`` or ``lsmr``), or is
+    ``None`` if no solve was executed. ``output_success`` and ``output_statuses``
+    record termination for each output column, in prediction-column order.
+    ``solution_available`` is false when a numerical failure left no finite
+    iterate for at least one column; see :class:`FitResult` for its placeholder.
+    Residual norms and condition estimates from LSMR concern the augmented
+    weighted, constrained system, not the unpenalized prediction MSE.
+    """
 
     solver: str
     n_samples: int
@@ -59,6 +68,10 @@ class FitDiagnostics:
     residual_norms: tuple[float, ...] = ()
     normal_residual_norms: tuple[float, ...] = ()
     condition_estimates: tuple[float, ...] = ()
+    driver: str | None = None
+    output_success: tuple[bool, ...] = ()
+    output_statuses: tuple[str, ...] = ()
+    solution_available: bool = True
 
 
 @dataclass(frozen=True)
@@ -66,6 +79,10 @@ class FitResult:
     """A model, objective metrics, diagnostics and an explicit termination state.
 
     Results are deliberately not callable. Predict with ``result.model(points)``.
+    If ``diagnostics.solution_available`` is false, the model is only a finite
+    placeholder preserving fixed controls, with free rows of unavailable output
+    columns zero. It must not be used as a fitted solution. Finite unconverged
+    LSMR iterates are retained.
     """
 
     model: BezierModel

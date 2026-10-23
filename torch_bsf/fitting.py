@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import math
+from dataclasses import replace
+
 import torch
 
 from torch_bsf._problem import LeastSquaresProblem
@@ -28,6 +31,79 @@ def _data_info(problem: LeastSquaresProblem, rcond: float | None) -> MatrixDiagn
     )
     rank = int((singular > cutoff).sum())
     return _svd_info((a.shape[0], a.shape[1]), singular, rank, rcond)
+
+
+def _dense_solve(
+    problem: LeastSquaresProblem, solver: DenseLeastSquares, diagnostics: FitDiagnostics
+) -> tuple[torch.Tensor, FitDiagnostics]:
+    a = problem.dense()
+    relative = torch.finfo(torch.float64).eps * max(a.shape) if solver.rcond is None else solver.rcond
+    solved = torch.linalg.lstsq(a, problem.rhs, rcond=relative, driver="gelsd")
+    if not torch.isfinite(solved.solution).all():
+        raise ArithmeticError("Dense SVD produced non-finite coefficients.")
+    system = _svd_info(problem.shape, solved.singular_values, int(solved.rank), solver.rcond)
+    data = diagnostics.data
+    if not problem.n_regularizers:
+        data = system
+    elif solver.diagnostics == "full":
+        data = _data_info(problem, solver.rcond)
+    return solved.solution, replace(diagnostics, data=data, system=system)
+
+
+_LSMR_STATUSES = {
+    0: "zero_solution",
+    1: "compatible_tolerance",
+    2: "least_squares_tolerance",
+    3: "condition_limit",
+    4: "compatible_machine_precision",
+    5: "least_squares_machine_precision",
+    6: "machine_condition_limit",
+    7: "iteration_limit",
+}
+
+
+def _sparse_solve(
+    problem: LeastSquaresProblem, solver: SparseLeastSquares, diagnostics: FitDiagnostics
+) -> tuple[torch.Tensor, FitDiagnostics]:
+    matrix = problem.sparse()
+    from scipy.sparse.linalg import lsmr
+
+    answers = [
+        lsmr(
+            matrix,
+            problem.rhs[:, j].numpy(),
+            atol=solver.atol,
+            btol=solver.btol,
+            conlim=solver.conlim,
+            maxiter=solver.max_iter,
+        )
+        for j in range(problem.values.shape[1])
+    ]
+    solution = torch.stack([torch.from_numpy(answer[0]) for answer in answers], dim=1)
+    codes = tuple(int(a[1]) for a in answers)
+    # A stop code alone cannot certify a result containing non-finite diagnostics.
+    available = torch.isfinite(solution).all(dim=0)
+    finite = tuple(
+        bool(valid) and all(math.isfinite(float(v)) for v in a[3:]) for valid, a in zip(available, answers, strict=True)
+    )
+    solution[:, ~available] = 0
+    conditions = tuple(float(a[6]) for a in answers)
+    system = MatrixDiagnostics(problem.shape, condition_number=max(conditions) if all(finite) else None, method="estimate")
+    return solution, replace(
+        diagnostics,
+        system=system,
+        iterations=tuple(int(a[2]) for a in answers),
+        stop_codes=codes,
+        residual_norms=tuple(float(a[3]) for a in answers),
+        normal_residual_norms=tuple(float(a[4]) for a in answers),
+        condition_estimates=conditions,
+        solution_available=bool(available.all()),
+        output_success=tuple(code in (0, 1, 2, 4, 5) and valid for code, valid in zip(codes, finite, strict=True)),
+        output_statuses=tuple(
+            _LSMR_STATUSES.get(code, "unknown_stop_code") if valid else "numerical_failure"
+            for code, valid in zip(codes, finite, strict=True)
+        ),
+    )
 
 
 def fit(
@@ -64,6 +140,10 @@ def fit(
     FitResult
         Model, metrics, diagnostics and termination state. This type never
         changes with diagnostic settings. Predict with ``result.model(...)``.
+        Numerical failures return ``success=False`` and emit ConvergenceWarning;
+        ``require_success()`` raises with the result attached. If no finite
+        iterate exists, ``diagnostics.solution_available`` is false and the
+        model contains placeholder free coefficients rather than a fit.
 
     Examples
     --------
@@ -80,71 +160,56 @@ def fit(
         raise TypeError("solver must be a typed least-squares configuration.")
     problem = LeastSquaresProblem(space, samples, penalty, fixed)
     n = problem.n_free
-    data = MatrixDiagnostics((len(samples), n))
-    system = MatrixDiagnostics(problem.shape)
-    iterations: tuple[int, ...] = ()
-    codes: tuple[int, ...] = ()
-    residuals: tuple[float, ...] = ()
-    normals: tuple[float, ...] = ()
-    conditions: tuple[float, ...] = ()
-    success, status, message = True, "solved", "Least-squares optimum computed."
-    if not n:
-        solution = torch.empty(0, problem.values.shape[1], dtype=torch.float64)
-        data = MatrixDiagnostics((len(samples), 0), rank=0, method="no_free_controls")
-        system = MatrixDiagnostics(problem.shape, rank=0, method="no_free_controls")
-        status, message = "all_fixed", "All coefficients are fixed; no factorization was needed."
-    elif isinstance(solver, DenseLeastSquares):
-        a = problem.dense()
-        relative = torch.finfo(torch.float64).eps * max(a.shape) if solver.rcond is None else solver.rcond
-        solved = torch.linalg.lstsq(a, problem.rhs, rcond=relative, driver="gelsd")
-        solution = solved.solution
-        system = _svd_info(problem.shape, solved.singular_values, int(solved.rank), solver.rcond)
-        if not problem.n_regularizers:
-            data = system
-        elif solver.diagnostics == "full":
-            data = _data_info(problem, solver.rcond)
-    else:
-        matrix = problem.sparse()
-        from scipy.sparse.linalg import lsmr
-
-        answers = [
-            lsmr(
-                matrix,
-                problem.rhs[:, j].numpy(),
-                atol=solver.atol,
-                btol=solver.btol,
-                conlim=solver.conlim,
-                maxiter=solver.max_iter,
-            )
-            for j in range(problem.values.shape[1])
-        ]
-        solution = torch.stack([torch.from_numpy(answer[0]) for answer in answers], dim=1)
-        codes = tuple(int(a[1]) for a in answers)
-        iterations = tuple(int(a[2]) for a in answers)
-        residuals = tuple(float(a[3]) for a in answers)
-        normals = tuple(float(a[4]) for a in answers)
-        conditions = tuple(float(a[6]) for a in answers)
-        success = all(code in (0, 1, 2, 4, 5) for code in codes)
-        system = MatrixDiagnostics(problem.shape, condition_number=max(conditions), method="estimate")
-        status = "converged" if success else "not_converged"
-        message = (
-            "LSMR converged for every output." if success else f"LSMR did not converge for every output; stop codes: {codes}."
-        )
-    if not torch.isfinite(solution).all():
-        raise ArithmeticError("least-squares solver produced non-finite coefficients.")
-    coefficients = problem.coefficients(solution)
-    model = BezierModel(space, coefficients)
+    outputs = problem.values.shape[1]
     diagnostics = FitDiagnostics(
         type(solver).__name__,
         len(samples),
         n,
         samples.weights.sum().item(),
-        data,
-        system,
-        iterations=iterations,
-        stop_codes=codes,
-        residual_norms=residuals,
-        normal_residual_norms=normals,
-        condition_estimates=conditions,
+        MatrixDiagnostics((len(samples), n)),
+        MatrixDiagnostics(problem.shape),
+        output_success=(True,) * outputs,
+        output_statuses=("solved",) * outputs,
     )
-    return FitResult(model, problem.metrics(coefficients), diagnostics, success, status, message).warn_if_failed()
+    success, status, message = True, "solved", "Least-squares optimum computed."
+    solution = torch.zeros(n, outputs, dtype=torch.float64)
+    try:
+        if not torch.isfinite(problem.rhs).all():
+            raise ArithmeticError("Augmented right-hand side overflowed.")
+        if not n:
+            diagnostics = replace(
+                diagnostics,
+                data=MatrixDiagnostics((len(samples), 0), rank=0, method="no_free_controls"),
+                system=MatrixDiagnostics(problem.shape, rank=0, method="no_free_controls"),
+                output_statuses=("all_fixed",) * outputs,
+            )
+            status, message = "all_fixed", "All coefficients are fixed; no factorization was needed."
+        elif isinstance(solver, DenseLeastSquares):
+            diagnostics = replace(diagnostics, driver="gelsd")
+            solution, diagnostics = _dense_solve(problem, solver, diagnostics)
+        else:
+            diagnostics = replace(diagnostics, driver="lsmr")
+            solution, diagnostics = _sparse_solve(problem, solver, diagnostics)
+            success = all(diagnostics.output_success)
+            status = "converged" if success else "not_converged"
+            if "numerical_failure" in diagnostics.output_statuses:
+                status = "numerical_failure"
+            message = (
+                "LSMR converged for every output."
+                if success
+                else f"LSMR failed for one or more outputs: {diagnostics.output_statuses}."
+            )
+    except (torch.linalg.LinAlgError, ArithmeticError) as error:
+        success, status, message = False, "numerical_failure", str(error)
+        diagnostics = replace(
+            diagnostics,
+            solution_available=False,
+            output_success=(False,) * outputs,
+            output_statuses=(status,) * outputs,
+        )
+    coefficients = problem.coefficients(solution)
+    metrics = problem.metrics(coefficients)
+    if not all(math.isfinite(value) for value in metrics.values()):
+        success, status, message = False, "numerical_failure", "Objective evaluation overflowed."
+        diagnostics = replace(diagnostics, output_success=(False,) * outputs, output_statuses=(status,) * outputs)
+    return FitResult(BezierModel(space, coefficients), metrics, diagnostics, success, status, message).warn_if_failed()

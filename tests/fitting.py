@@ -1,16 +1,48 @@
 """Numerical contracts independent of implementation details."""
 
+import math
 import sys
 from unittest.mock import patch
 
 import pytest
 import torch
 
-from torch_bsf import BezierSpace, FixedControls, Points, QuadraticPenalty, Samples, fit
+from torch_bsf import BezierSpace, FixedControls, Points, QuadraticPenalty, Samples, SimploidalSet, fit
+from torch_bsf._problem import LeastSquaresProblem
 from torch_bsf.core import BasisOperator
 from torch_bsf.results import ConvergenceError, ConvergenceWarning
 from torch_bsf.sampling import sample
 from torch_bsf.solvers import DenseLeastSquares, SparseLeastSquares
+
+
+def test_dense_driver_is_recorded():
+    result = fit(BezierSpace.simplex(1, degree=1), Samples(torch.eye(2), [[1.0], [2.0]]))
+    assert result.diagnostics.driver == "gelsd"
+    assert result.diagnostics.output_success == (True,)
+
+
+@pytest.mark.parametrize("failure", ["decomposition", "nonfinite"])
+def test_dense_numerical_failure_returns_a_failed_result(failure):
+    space = BezierSpace.simplex(1, degree=1)
+    observations = Samples(torch.eye(2), [[1.0], [2.0]])
+    fixed = FixedControls({0: [3.0]})
+    if failure == "decomposition":
+        effect = torch.linalg.LinAlgError("SVD failed to converge")
+        options = {"side_effect": effect}
+    else:
+        from types import SimpleNamespace
+
+        options = {"return_value": SimpleNamespace(solution=torch.tensor([[float("nan")]]))}
+    with patch("torch.linalg.lstsq", **options), pytest.warns(ConvergenceWarning):
+        result = fit(space, observations, fixed=fixed)
+    assert not result.success and result.status == "numerical_failure"
+    assert not result.diagnostics.solution_available
+    assert result.diagnostics.output_success == (False,)
+    assert result.model.coefficients[0, 0] == 3.0
+    assert torch.isfinite(result.model.coefficients).all()
+    with pytest.raises(ConvergenceError) as error:
+        result.require_success()
+    assert error.value.result is result
 
 
 @pytest.mark.parametrize("penalty", [QuadraticPenalty(), QuadraticPenalty(0.03, 0.07)])
@@ -54,13 +86,18 @@ def test_sparse_failure_cannot_look_successful():
     assert error.value.result is result
 
 
-def test_fixed_all_needs_no_factorization():
+@pytest.mark.parametrize("solver", [DenseLeastSquares(), SparseLeastSquares()])
+def test_fixed_all_needs_no_factorization(solver):
     space = BezierSpace.simplex(1, degree=1)
     fixed = FixedControls({0: [1.0], 1: [2.0]})
-    with patch("torch.linalg.lstsq", side_effect=AssertionError):
-        result = fit(space, Samples(torch.eye(2), [[0.0], [0.0]]), fixed=fixed)
+    with (
+        patch("torch.linalg.lstsq", side_effect=AssertionError),
+        patch.object(LeastSquaresProblem, "sparse", side_effect=AssertionError),
+    ):
+        result = fit(space, Samples(torch.eye(2), [[0.0], [0.0]]), fixed=fixed, solver=solver)
     assert result.success and result.status == "all_fixed"
     assert result.diagnostics.n_free_controls == 0
+    assert result.diagnostics.driver is None
 
 
 def test_sparse_extra_error_is_lazy(monkeypatch):
@@ -85,3 +122,309 @@ def test_fitting_autograd_inputs_is_explicitly_nondifferentiable():
     t = torch.eye(2, dtype=torch.float64, requires_grad=True)
     result = fit(BezierSpace.simplex(1, degree=1), Samples(Points(t), t[:, :1]), solver=SparseLeastSquares())
     assert result.success
+
+
+def _reference(space, samples, penalty, fixed=None):
+    """Assemble the mathematical objective independently of LeastSquaresProblem."""
+    scipy = pytest.importorskip("scipy.linalg")
+    a = space.basis(samples.points.to()).to_dense()
+    scale = (samples.weights / samples.weights.sum()).sqrt()[:, None]
+    edges = space.adjacency()
+    d = torch.zeros(len(edges), space.n_controls, dtype=torch.float64)
+    for k, (i, j) in enumerate(edges):
+        d[k, i], d[k, j] = 1, -1
+    blocks = [a * scale]
+    if penalty.ridge:
+        blocks.append(math.sqrt(penalty.ridge) * torch.eye(space.n_controls, dtype=torch.float64))
+    if penalty.smoothness:
+        blocks.append(math.sqrt(penalty.smoothness) * d)
+    augmented = torch.cat(blocks)
+    rhs = torch.cat(
+        [
+            samples.values.double() * scale,
+            torch.zeros(len(augmented) - len(samples), samples.values.shape[1], dtype=torch.float64),
+        ]
+    )
+    controls = torch.zeros(space.n_controls, samples.values.shape[1], dtype=torch.float64)
+    free = torch.ones(space.n_controls, dtype=torch.bool)
+    for row, value in (fixed.values if fixed else {}).items():
+        controls[row], free[row] = value, False
+    if free.any():
+        solved = scipy.lstsq(augmented[:, free].numpy(), (rhs - augmented @ controls).numpy(), lapack_driver="gelss")[0]
+        controls[free] = torch.from_numpy(solved)
+    return controls, augmented[:, free]
+
+
+@pytest.mark.parametrize("case", ["full_rank", "deficient", "underdetermined", "ill_conditioned"])
+@pytest.mark.parametrize("ridge", [0.0, 1e-18, 0.03])
+def test_dense_float64_reference_and_diagnostic_definitions(case, ridge):
+    space = BezierSpace.simplex(1, degree=3)
+    x = {
+        "full_rank": torch.linspace(0, 1, 15, dtype=torch.float64),
+        "deficient": torch.tensor([0.0, 0.0, 1.0, 1.0], dtype=torch.float64),
+        "underdetermined": torch.tensor([0.2, 0.8], dtype=torch.float64),
+        "ill_conditioned": torch.linspace(0, 0.001, 15, dtype=torch.float64),
+    }[case]
+    samples = Samples(torch.stack([1 - x, x], 1), torch.stack([torch.sin(x), 1 + x * x], 1))
+    penalty = QuadraticPenalty(ridge=ridge)
+    expected, augmented = _reference(space, samples, penalty)
+    result = fit(space, samples, penalty=penalty, solver=DenseLeastSquares(diagnostics="full"))
+    assert result.success
+    assert torch.allclose(result.model.coefficients, expected, atol=2e-5, rtol=2e-5)
+    assert torch.allclose(result.model(samples.points), space.basis(samples.points).matmat(expected), atol=1e-10)
+    diagnostics = result.diagnostics
+    singular = torch.linalg.svdvals(augmented)
+    threshold = torch.finfo(torch.float64).eps * max(augmented.shape) * singular[0]
+    assert diagnostics.system.rank_threshold == pytest.approx(threshold.item())
+    assert diagnostics.system.rank == int((singular > threshold).sum())
+    assert diagnostics.system.singular_values is not None
+    assert torch.allclose(diagnostics.system.singular_values, singular, atol=1e-14)
+    if case in ("deficient", "underdetermined"):
+        assert diagnostics.data.condition_number == float("inf")
+    else:
+        assert diagnostics.data.condition_number is not None
+        assert diagnostics.data.condition_number >= 1
+    assert diagnostics.model_dtype == diagnostics.compute_dtype == "float64"
+    assert diagnostics.compute_device == diagnostics.model_device == "cpu"
+
+
+def _mixed_space():
+    domain = SimploidalSet()
+    prism, cube = domain.add_simploid((2, 1)), domain.add_simploid((1, 1, 1))
+    domain.identify(prism.face(0, 0), cube.face(0, 0))
+    space = BezierSpace.on_set(domain, degree={prism: (2, 3), cube: (4, 2, 3)})
+    # Two references to the same vertex on the shared square.
+    fixed = FixedControls.from_cells(
+        space,
+        [
+            (prism, ((0, 2, 0), (3, 0)), [2.0, -1.0]),
+            (cube, ((0, 4), (2, 0), (3, 0)), [2.0, -1.0]),
+        ],
+    )
+    assert len(fixed.values) == 1
+    return space, fixed
+
+
+@pytest.mark.parametrize("backend", ["dense", "sparse"])
+@pytest.mark.parametrize("all_fixed", [False, True])
+def test_mixed_degrees_shared_fixed_weighted_penalties_reference(backend, all_fixed):
+    space, fixed = _mixed_space()
+    points = sample(space, 140, seed=42)
+    values = torch.stack([points.parameters[:, 1] ** 2, points.parameters[:, 0] + 1], 1)
+    samples = Samples(points, values, weights=torch.arange(140).remainder(9))
+    if all_fixed:
+        fixed = FixedControls({k: [k / 10, -k / 20] for k in range(space.n_controls)})
+    penalty = QuadraticPenalty(0.01, 0.03)
+    expected, _ = _reference(space, samples, penalty, fixed)
+    solver = (
+        DenseLeastSquares(diagnostics="full")
+        if backend == "dense"
+        else SparseLeastSquares(atol=1e-13, btol=1e-13, max_iter=500)
+    )
+    result = fit(space, samples, solver=solver, penalty=penalty, fixed=fixed)
+    assert result.success
+    assert torch.allclose(result.model.coefficients, expected, atol=1e-9, rtol=1e-9)
+    p = result.model.coefficients.detach()
+    residual = result.model(points) - values
+    data = (residual.square().sum(1) * samples.weights).sum() / samples.weights.sum()
+    edges = space.adjacency()
+    ridge = penalty.ridge * p.square().sum()
+    smooth = penalty.smoothness * (p[edges[:, 0]] - p[edges[:, 1]]).square().sum()
+    assert result.metrics["data_mse"] == pytest.approx(data.item() / 2)
+    assert result.metrics["objective"] == pytest.approx((data + ridge + smooth).item())
+    assert result.diagnostics.weight_sum == samples.weights.sum().item()
+    assert result.diagnostics.n_samples == 140
+    if all_fixed:
+        assert result.diagnostics.driver is None
+    for row, value in fixed.values.items():
+        assert torch.equal(p[row], value)
+
+
+@pytest.mark.parametrize("backend", ["dense", "sparse"])
+def test_weighted_replication_and_global_weight_scaling(backend):
+    pytest.importorskip("scipy")
+    space = BezierSpace.simplex(1, degree=3)
+    points = sample(space, 20, seed=5)
+    samples = Samples(points, torch.cat([points.parameters**2, points.parameters[:, :1]], 1), weights=torch.arange(20))
+    penalty, fixed = QuadraticPenalty(0.02, 0.07), FixedControls({0: [1.0, 2.0, 3.0]})
+    solver = DenseLeastSquares() if backend == "dense" else SparseLeastSquares(atol=1e-13, btol=1e-13, max_iter=100)
+    original = fit(space, samples, solver=solver, penalty=penalty, fixed=fixed)
+    for data in (
+        Samples(points.parameters.repeat(3, 1), samples.values.repeat(3, 1), weights=samples.weights.repeat(3)),
+        Samples(points, samples.values, weights=7 * samples.weights),
+    ):
+        result = fit(space, data, solver=solver, penalty=penalty, fixed=fixed)
+        assert torch.allclose(result.model.coefficients, original.model.coefficients, atol=1e-11)
+        assert result.metrics == pytest.approx(original.metrics, abs=1e-12)
+
+
+@pytest.mark.parametrize("code", range(8))
+def test_lsmr_stop_code_contract_for_each_output(code):
+    np = pytest.importorskip("numpy")
+    pytest.importorskip("scipy")
+    answer = (np.ones(2), code, 3, 0.1, 0.01, 1.0, 2.0, 1.0)
+    with patch("scipy.sparse.linalg.lsmr", return_value=answer):
+        if code in (3, 6, 7):
+            with pytest.warns(ConvergenceWarning):
+                result = fit(
+                    BezierSpace.simplex(1, degree=1), Samples(torch.eye(2), torch.ones(2, 2)), solver=SparseLeastSquares()
+                )
+        else:
+            result = fit(
+                BezierSpace.simplex(1, degree=1), Samples(torch.eye(2), torch.ones(2, 2)), solver=SparseLeastSquares()
+            )
+    assert result.success == (code in (0, 1, 2, 4, 5))
+    assert result.diagnostics.output_success == (result.success,) * 2
+    assert result.diagnostics.stop_codes == (code, code)
+    assert result.diagnostics.iterations == (3, 3)
+    assert len(set(result.diagnostics.output_statuses)) == 1
+    assert result.diagnostics.system.method == "estimate"
+    assert result.diagnostics.system.rank is None
+    assert result.diagnostics.system.singular_values is None
+
+
+def test_real_lsmr_mixed_success_and_iteration_limit():
+    pytest.importorskip("scipy")
+    space = BezierSpace.simplex(2, degree=4)
+    points = sample(space, 50, seed=9)
+    values = torch.cat([torch.zeros(50, 1), points.parameters[:, :1] ** 2], 1)
+    with pytest.warns(ConvergenceWarning):
+        result = fit(space, Samples(points, values), solver=SparseLeastSquares(max_iter=1))
+    assert result.diagnostics.stop_codes == (0, 7)
+    assert result.diagnostics.output_success == (True, False)
+    assert result.diagnostics.output_statuses == ("zero_solution", "iteration_limit")
+    assert not result.success and result.diagnostics.solution_available
+
+
+def test_real_lsmr_condition_limit_is_not_success():
+    pytest.importorskip("scipy")
+    space = BezierSpace.simplex(2, degree=4)
+    points = sample(space, 50, seed=9)
+    with pytest.warns(ConvergenceWarning):
+        result = fit(
+            space, Samples(points, points.parameters[:, :1] ** 2 + 0.1), solver=SparseLeastSquares(conlim=1.01, atol=0, btol=0)
+        )
+    assert result.diagnostics.stop_codes == (3,)
+    assert result.diagnostics.output_statuses == ("condition_limit",)
+    assert not result.success
+
+
+@pytest.mark.parametrize("inconsistent", [False, True])
+def test_real_lsmr_machine_precision_stopping(inconsistent):
+    pytest.importorskip("scipy")
+    space = BezierSpace.simplex(2, degree=4)
+    points = sample(space, 50, seed=9)
+    values = points.parameters[:, :1] ** 2 + 0.1
+    if inconsistent:
+        values = values + 0.01 * torch.arange(50, dtype=torch.float64)[:, None].sin()
+    result = fit(space, Samples(points, values), solver=SparseLeastSquares(conlim=0, atol=0, btol=0, max_iter=500))
+    assert result.success
+    assert result.diagnostics.stop_codes[0] in (4, 5)
+
+
+@pytest.mark.parametrize("nonfinite", ["coefficients", "residual", "condition"])
+def test_lsmr_nonfinite_output_cannot_be_successful(nonfinite):
+    np = pytest.importorskip("numpy")
+    pytest.importorskip("scipy")
+    good = (np.ones(2), 1, 2, 0.0, 0.0, 1.0, 1.0, 1.0)
+    bad = list(good)
+    index = {"coefficients": 0, "residual": 3, "condition": 6}[nonfinite]
+    bad[index] = np.full(2, np.nan) if index == 0 else float("nan")
+    with patch("scipy.sparse.linalg.lsmr", side_effect=[good, tuple(bad)]), pytest.warns(ConvergenceWarning):
+        result = fit(BezierSpace.simplex(1, degree=1), Samples(torch.eye(2), torch.ones(2, 2)), solver=SparseLeastSquares())
+    assert not result.success and result.status == "numerical_failure"
+    assert result.diagnostics.output_success == (True, False)
+    assert result.diagnostics.output_statuses[1] == "numerical_failure"
+    assert result.diagnostics.solution_available == (index != 0)
+    assert torch.isfinite(result.model.coefficients).all()
+
+
+@pytest.mark.parametrize("observations", [[[1.0, 0.0], [1.0, 0.0]], [[0.2, 0.8], [0.7, 0.3]]])
+def test_sparse_rank_deficient_and_underdetermined_minimum_norm(observations):
+    pytest.importorskip("scipy")
+    space = BezierSpace.simplex(1, degree=3)
+    samples = Samples(observations, [[1.0, 2.0], [2.0, -1.0]])
+    dense = fit(space, samples)
+    sparse = fit(space, samples, solver=SparseLeastSquares(atol=1e-13, btol=1e-13, max_iter=100))
+    assert sparse.success
+    assert torch.allclose(sparse.model.coefficients, dense.model.coefficients, atol=1e-10)
+    assert sparse.diagnostics.data.rank is None
+
+
+def test_sparse_many_cells_sums_identified_columns_without_densifying():
+    pytest.importorskip("scipy")
+    domain = SimploidalSet()
+    cells = [domain.add_simplex(1) for _ in range(80)]
+    for left, right in zip(cells[:-1], cells[1:], strict=True):
+        domain.identify(left.face(0, 0), right.face(0, 1))
+    # A loop identifies two local endpoint columns of the same cell.
+    domain.identify(cells[0].face(0, 0), cells[0].face(0, 1))
+    space = BezierSpace.on_set(domain, degree=2)
+    points = sample(space, 1200, seed=9)
+    samples = Samples(points, torch.full((1200, 2), 2.0))
+    reference = fit(space, samples, penalty=QuadraticPenalty(smoothness=0.01))
+    with (
+        patch.object(LeastSquaresProblem, "dense", side_effect=AssertionError("dense problem")),
+        patch.object(BasisOperator, "to_dense", side_effect=AssertionError("dense basis")),
+        patch("torch.eye", side_effect=AssertionError("dense identity")),
+    ):
+        result = fit(
+            space,
+            samples,
+            penalty=QuadraticPenalty(smoothness=0.01),
+            solver=SparseLeastSquares(atol=1e-12, btol=1e-12, max_iter=500),
+        )
+    assert result.success
+    assert torch.allclose(result.model(points), reference.model(points), atol=1e-8)
+    assert result.metrics["objective"] == pytest.approx(reference.metrics["objective"], abs=1e-14)
+
+
+def test_basic_diagnostics_reuse_decomposition_and_full_is_opt_in():
+    space = BezierSpace.simplex(1, degree=3)
+    samples = Samples(torch.eye(2), [[1.0], [2.0]])
+    penalty = QuadraticPenalty(ridge=0.1)
+    with patch("torch.linalg.svdvals", side_effect=AssertionError("extra SVD")):
+        basic = fit(space, samples, penalty=penalty)
+    assert basic.diagnostics.data.rank is None
+    assert basic.diagnostics.data.condition_number is None
+    assert basic.diagnostics.system.rank == space.n_controls
+    with patch("torch.linalg.svdvals", wraps=torch.linalg.svdvals) as svd:
+        full = fit(space, samples, penalty=penalty, solver=DenseLeastSquares(diagnostics="full"))
+    assert svd.call_count == 1
+    assert full.diagnostics.data.rank == 2
+    assert torch.equal(basic.model.coefficients, full.model.coefficients)
+
+
+def test_rcond_controls_rank_cutoff_and_minimum_norm_solution():
+    space = BezierSpace.simplex(1, degree=2)
+    samples = Samples([[1.0, 0.0], [0.999, 0.001], [0.0, 1.0]], [[1.0], [2.0], [3.0]])
+    result = fit(space, samples, solver=DenseLeastSquares(rcond=0.1))
+    a = space.basis(samples.points.to()).to_dense() / math.sqrt(3)
+    u, s, vh = torch.linalg.svd(a, full_matrices=False)
+    inverse = torch.where(s > 0.1 * s[0], 1 / s, 0)
+    reference = (vh.T * inverse) @ u.T @ (samples.values.double() / math.sqrt(3))
+    assert torch.allclose(result.model.coefficients, reference, atol=1e-12)
+    assert result.diagnostics.system.rank == 2
+    assert result.diagnostics.system.condition_number == float("inf")
+
+
+def test_objective_overflow_is_a_numerical_failure():
+    with pytest.warns(ConvergenceWarning):
+        result = fit(
+            BezierSpace.simplex(0, degree=0),
+            Samples(torch.empty(2, 0), torch.tensor([[1e308], [-1e308]], dtype=torch.float64)),
+        )
+    assert not result.success and result.status == "numerical_failure"
+    with pytest.raises(ConvergenceError):
+        result.require_success()
+
+
+@pytest.mark.parametrize("backend", ["dense", "sparse"])
+def test_constant_weighted_mean_reference(backend):
+    pytest.importorskip("scipy")
+    space = BezierSpace.simplex(0, degree=0)
+    samples = Samples(torch.empty(3, 0), [[1.0, 2.0], [3.0, 6.0], [5.0, 10.0]], weights=[1.0, 0.0, 3.0])
+    solver = DenseLeastSquares() if backend == "dense" else SparseLeastSquares()
+    result = fit(space, samples, solver=solver)
+    assert result.success
+    assert torch.allclose(result.model.coefficients, torch.tensor([[4.0, 8.0]], dtype=torch.float64))
