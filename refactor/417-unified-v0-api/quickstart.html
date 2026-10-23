@@ -162,6 +162,9 @@ minimization, and persistence using the same space and model types.</p>
 </div>
 <p>To predict a saved multi-cell model, pass <code class="docutils literal notranslate"><span class="pre">--cell-ids</span> <span class="pre">cells.csv</span></code> with one
 integer cell ID per row and pad parameter rows to the saved space width.</p>
+<p>A one-column parameter CSV denotes a constant domain when dimensions are
+inferred. The column is a dummy input and is ignored for both fitting and
+prediction of zero-dimensional models.</p>
 </section>
 </section>
 

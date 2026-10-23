@@ -130,7 +130,9 @@
 <p><code class="docutils literal notranslate"><span class="pre">loss(predicted_values,</span> <span class="pre">points)</span></code> returns one differentiable scalar per row.
 <code class="docutils literal notranslate"><span class="pre">minimize</span></code> copies the initial model. Exact domain Gram preconditioning,
 minibatches, quadratic penalties and explicit fixed controls are available.
-The method does not require Lightning.</p>
+The method does not require Lightning. Float16/bfloat16 initial models are copied
+and promoted to float32 on the same device for basis evaluation, gradients
+and metric solves. The returned model then has float32 coefficients.</p>
 <p>History records pre-update losses and gradient norms. Iteration-budget
 exhaustion and callback stops do not establish convergence. Only a checked
 full-sample gradient tolerance or all-fixed problem yields <code class="docutils literal notranslate"><span class="pre">success=True</span></code>.
