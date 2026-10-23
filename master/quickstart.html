@@ -262,8 +262,11 @@ cat<span class="w"> </span>test_values.json
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"pytorch-bsf[mlflow]"</span>
 </pre></div>
 </div>
-<p>Without it, the CLI still fits the model and saves the control points and the predictions, but prints a warning and
-logs nothing.  See <a class="reference internal" href="installation.html"><span class="doc">Installation</span></a> for all extras.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">--loglevel=0</span></code>, the CLI does not import MLflow; if it was already imported in the same Python
+process, its autologging is disabled.  At levels 1 and 2, an absent MLflow produces a warning and the
+command still fits the model and saves the control points and predictions without tracking.  A broken MLflow
+installation raises its original import error instead, so a requested tracking run is not silently discarded.
+See <a class="reference internal" href="installation.html"><span class="doc">Installation</span></a> for all extras.</p>
 <p>Then run <code class="docutils literal notranslate"><span class="pre">torch_bsf</span></code> as a CLI module:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>torch_bsf<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--params<span class="w"> </span>params.csv<span class="w"> </span><span class="se">\</span>

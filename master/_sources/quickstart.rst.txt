@@ -170,8 +170,11 @@ MLflow is an optional dependency.  To log the parameters, metrics and models of 
 
    pip install "pytorch-bsf[mlflow]"
 
-Without it, the CLI still fits the model and saves the control points and the predictions, but prints a warning and
-logs nothing.  See :doc:`installation` for all extras.
+With ``--loglevel=0``, the CLI does not import MLflow; if it was already imported in the same Python
+process, its autologging is disabled.  At levels 1 and 2, an absent MLflow produces a warning and the
+command still fits the model and saves the control points and predictions without tracking.  A broken MLflow
+installation raises its original import error instead, so a requested tracking run is not silently discarded.
+See :doc:`installation` for all extras.
 
 Then run ``torch_bsf`` as a CLI module:
 
