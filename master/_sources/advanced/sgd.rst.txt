@@ -1,12 +1,30 @@
-Pareto Set Learning by Stochastic Gradient Descent
-==================================================
+Objective minimization
+======================
 
-:func:`torch_bsf.fit` fits a model to data: Pareto-optimal solutions computed
-beforehand.  When the objective functions themselves are available,
-:func:`torch_bsf.fit_sgd` fits the model to the Pareto set directly, with the
-preconditioned stochastic gradient descent of :cite:t:`hikima2025stochastic`.
-It works with every model of ``torch_bsf.simploidal``: Bézier simplices,
-Bézier simploids and simploidal Bézier spaces (see :doc:`simploidal`).
+Regression and differentiable objective minimization are separate problems::
+
+    import torch
+    from torch_bsf import BezierSpace, BezierModel, minimize, PreconditionedSGD
+    from torch_bsf.optimization import linear_scalarization
+
+    space = BezierSpace.simplex(1, degree=2)
+    initial = BezierModel(space, torch.zeros(space.n_controls, 1, dtype=torch.float64))
+    def objectives(x):
+        return torch.cat([(x-1)**2, (x+1)**2], dim=1)
+    result = minimize(initial, linear_scalarization(objectives), seed=7,
+                      method=PreconditionedSGD(max_iter=300, gradient_tolerance=1e-6))
+
+``loss(predicted_values, points)`` returns one differentiable scalar per row.
+``minimize`` copies the initial model. Exact domain Gram preconditioning,
+minibatches, quadratic penalties and explicit fixed controls are available.
+The method does not require Lightning. Float16/bfloat16 initial models are copied
+and promoted to float32 on the same device for basis evaluation, gradients
+and metric solves. The returned model then has float32 coefficients.
+
+History records pre-update losses and gradient norms. Iteration-budget
+exhaustion and callback stops do not establish convergence. Only a checked
+full-sample gradient tolerance or all-fixed problem yields ``success=True``.
+The final objective is evaluated on the complete fixed sample set.
 
 The algorithm
 -------------
@@ -43,372 +61,22 @@ minimizes the linearized loss plus
 it measures how far the *surface* moves rather than how far its control
 points move.  The paper proves that this converges faster than plain SGD
 (:math:`\Sigma = I`), whose steps are distorted by the ill-conditioning of the
-Bernstein basis.  :func:`~torch_bsf.simploidal.gram_matrix` computes
-:math:`\Sigma` exactly, and it is factorized once.
+Bernstein basis.  :func:`~torch_bsf.optimization.gram_matrix` computes
+:math:`\Sigma` exactly, for the configured cell distribution.
 
-Fitting a Bézier simplex to a Pareto set
------------------------------------------
 
-The objectives :math:`f_m(\mathbf x) = \|\mathbf x - \mathbf e_m\|^2`
-(:math:`m = 1, 2, 3`) have the triangle spanned by
-:math:`\mathbf e_1, \mathbf e_2, \mathbf e_3` as their Pareto set, reached at
-:math:`\mathbf x = \mathbf t`.  Write the objectives for a batch of points,
-wrap them with :func:`~torch_bsf.simploidal.linear_scalarization`, and pass
-an initial model, which fixes the type, the degree and the dimension
-:math:`L`:
+Historical benchmark figures
+----------------------------
 
-.. testcode::
-   :pyversion: >= 3.10, < 3.15
-
-   import torch
-   import torch_bsf
-   from torch_bsf.simploidal import BezierSimploid, linear_scalarization, sample_domain
-
-   def objective(x):  # (batch, L) -> (batch, M)
-       return ((x.unsqueeze(1) - torch.eye(3)) ** 2).sum(dim=-1)
-
-   init = BezierSimploid.zeros((2,), 2, n_values=3)  # a quadratic Bézier triangle in R^3
-   loss = linear_scalarization(objective)
-   bs = torch_bsf.fit_sgd(init, loss, n_samples=100, batch_size=20, max_iter=100, step_size=0.2, seed=0)
-
-   (t,) = sample_domain(bs, 1000, seed=1)  # fresh samples to check generalization
-   print(torch.allclose(bs(t), t, atol=1e-3))
-
-.. testoutput::
-   :pyversion: >= 3.10, < 3.15
-
-   True
-
-The main options are:
-
-* ``batch_size`` and ``n_samples``: the minibatch size :math:`m` and the
-  number :math:`n` of fixed samples (or pass your own samples as ``inputs``);
-* ``step_size`` and ``step_decay``: a constant step :math:`\alpha`, or
-  :math:`\alpha / \sqrt{k + 1}` with ``step_decay="sqrt"``;
-* ``preconditioner="none"``: plain SGD, the baseline of the paper.
-
-The paper uses :math:`P_0 = O`, :math:`n = 100`, :math:`m = 20`, 100
-iterations and :math:`\alpha = 0.05`, which are the defaults except for the
-minibatch size (full batch by default).  The returned model is a copy, so
-``init`` can be reused.
-
-Monitoring the loss and stopping early
---------------------------------------
-
-Pass ``callback`` to watch the fitting.  After the update of every iteration
-:math:`k = 0, 1, \ldots`, :func:`~torch_bsf.fit_sgd` calls
-``callback(k, model, batch_loss)``, where ``model`` is the model being fitted
-(already updated) and ``batch_loss`` is the mean loss of the minibatch at the
-parameters *before* the update, i.e., :math:`\mathcal L_B(P^{(k)})`.  To
-compare the empirical loss on the fixed samples with the generalization loss
-on fresh ones, as the paper does, pass the samples as ``inputs`` and evaluate
-the model on both in the callback, under :func:`torch.no_grad`:
-
-.. testcode::
-   :pyversion: >= 3.10, < 3.15
-
-   inputs = sample_domain(init, 100, seed=0)  # the samples fit_sgd minimizes on
-   test_inputs = sample_domain(init, 1000, seed=1)  # fresh samples
-
-   def mean_loss(model, inputs):
-       with torch.no_grad():
-           return loss(model(*inputs), *inputs).mean().item()
-
-   history = {"minibatch": [], "empirical": [], "generalization": []}
-
-   def record(k, model, batch_loss):
-       history["minibatch"].append(batch_loss)  # at P^(k)
-       history["empirical"].append(mean_loss(model, inputs))  # at P^(k+1)
-       history["generalization"].append(mean_loss(model, test_inputs))  # at P^(k+1)
-
-   bs = torch_bsf.fit_sgd(init, loss, inputs=inputs, batch_size=20, step_size=0.2, seed=0, callback=record)
-   print(len(history["empirical"]))
-   print(history["generalization"][-1] < history["generalization"][0])
-
-.. testoutput::
-   :pyversion: >= 3.10, < 3.15
-
-   100
-   True
-
-and plot the records, e.g., with matplotlib:
-
-.. code-block:: python
-
-   import matplotlib.pyplot as plt
-
-   for name, values in history.items():
-       plt.plot(values, label=name)
-   plt.xlabel("iteration")
-   plt.ylabel("loss")
-   plt.legend()
-   plt.show()
-
-If the callback returns ``True``, the fitting stops after that iteration and
-returns the model updated so far.  There is no built-in stopping criterion;
-write one in the callback.  For example, stop once the empirical loss
-decreases by less than :math:`10^{-6}` in an iteration:
-
-.. testcode::
-   :pyversion: >= 3.10, < 3.15
-
-   losses = []
-
-   def converged(k, model, batch_loss):
-       losses.append(mean_loss(model, inputs))
-       return k > 0 and losses[-2] - losses[-1] < 1e-6
-
-   bs = torch_bsf.fit_sgd(init, loss, inputs=inputs, max_iter=1000, step_size=0.2, seed=0, callback=converged)
-   print(len(losses) < 1000)
-
-.. testoutput::
-   :pyversion: >= 3.10, < 3.15
-
-   True
-
-The callback receives the model being fitted, not a copy: it may evaluate the
-model but must not modify it.  To keep a snapshot, e.g., of the best model so
-far, copy its parameters (``model.control_points.detach().clone()`` for a
-Bézier simploid, ``model.proper_control_points.detach().clone()`` for a
-simploidal Bézier space).  The callback does not change the fitting: a
-callback that never returns ``True`` gives the same model as no callback.
-
-Freezing control points and smoothing
--------------------------------------
-
-The minimizer of each single objective :math:`f_m` is often known in advance.
-It is the vertex :math:`\mathbf t = \mathbf e_m` of the Pareto set, so you can
-put it in the initial model and keep it there with ``freeze``, as in
-:func:`torch_bsf.fit`.  ``smoothness_weight`` adds the smoothness penalty
-:math:`w \sum_{(p, q)} \|P_p - P_q\|^2` over the adjacent control points to the
-loss, which keeps the control net of a high degree model from oscillating:
-
-.. testcode::
-   :pyversion: >= 3.10, < 3.15
-
-   init = BezierSimploid.zeros((2,), 3, n_values=3)  # a cubic Bézier triangle
-   vertices = [(3, 0, 0), (0, 3, 0), (0, 0, 3)]
-   with torch.no_grad():
-       for m, vertex in enumerate(vertices):
-           init[vertex].copy_(torch.eye(3)[m])  # the minimizer of f_m
-
-   bs = torch_bsf.fit_sgd(
-       init, loss, freeze=vertices, smoothness_weight=1e-4, batch_size=20, max_iter=200, step_size=0.2, seed=0
-   )
-   print(all(torch.equal(bs[v], init[v]) for v in vertices))
-   print(torch.allclose(bs(t), t, atol=1e-2))
-
-.. testoutput::
-   :pyversion: >= 3.10, < 3.15
-
-   True
-   True
-
-The frozen control points keep their values in ``init`` bit for bit.  For a
-Bézier simplex, give their multi-indices (or full indices, as
-``((3, 0, 0),)``); for a Bézier simploid, their indices; and for a
-simploidal Bézier space, pairs ``(simploid, index)`` of any simploid of the
-set and an index of its control net, as in
-:func:`~torch_bsf.simploidal.fit_simploidal_set`.
-
-With frozen rows, the step moves only the free rows :math:`F` and is
-preconditioned by the block :math:`\Sigma_{FF}` of the Gram matrix rather
-than by :math:`\Sigma`, so that it still minimizes the linearized loss plus
-the move of the surface while the frozen rows stay fixed:
-
-.. math::
-
-   P_F^{(k+1)} = P_F^{(k)} - \alpha_k (\Sigma_{FF} + 2 \alpha_k w L_{FF})^{-1}
-   \nabla_F \bigl(\mathcal L_B(P^{(k)}) + w \operatorname{tr}(P^{(k)\top} L P^{(k)})\bigr),
-
-where :math:`L` is the Laplacian of the adjacency graph of the control
-points, so that the penalty is :math:`w \operatorname{tr}(P^\top L P)`.
-The term :math:`2 \alpha_k w L_{FF}` comes from minimizing the penalty
-exactly instead of following its gradient.  The surface metric
-:math:`\Sigma` is tiny along oscillating control nets, so
-:math:`\Sigma^{-1} L` has eigenvalues in the thousands already for a cubic
-Bézier triangle, and a plain gradient step on the penalty would diverge
-unless :math:`\alpha w` were tiny; the exact treatment is stable for every
-:math:`w`.  The matrix is factorized once (once per iteration with
-``step_decay="sqrt"`` and :math:`w > 0`).  Without frozen rows and with
-:math:`w = 0`, the step is the one of the paper.
-
-Generalization to simploids and simploidal spaces
--------------------------------------------------
-
-Every model of ``torch_bsf.simploidal`` is linear in its control points,
-``model(*inputs) == model.design_matrix(*inputs) @ P``, so the algorithm
-applies to all of them with :math:`\mathbf z(\mathbf u)` the row of the
-design matrix and :math:`\mathbf u` uniform on the domain of the model:
-
-* For a **Bézier simploid** of type :math:`(a_1, \ldots, a_n)`,
-  :math:`\mathbf u` is uniform on the product of simplices, and :math:`\Sigma`
-  is the Kronecker product of the Gram matrices of its factors.
-* For a **simploidal Bézier space**, :math:`\mathbf u` lies on the simploid
-  :math:`c` with probability :math:`w_c` and is uniform on it, so
-  :math:`\Sigma = \sum_c w_c S_c^\top \Sigma_c S_c`, where :math:`S_c` maps the
-  stored control points to the control net of :math:`c`.  By default the
-  weights are uniform over the main simploids (those that are not a face of
-  another); pass ``weights`` to change them.  They must cover every stored
-  control point, so that :math:`\Sigma` is invertible.
-
-The loss is any function ``loss(values, *inputs)`` returning one value per
-sample, where ``values`` is the output of the model and ``inputs`` are its
-arguments: ``(t,)`` for a Bézier simploid and ``(t, simploid_ids)`` for a
-space (see :func:`~torch_bsf.simploidal.sample_domain`).
-:func:`~torch_bsf.simploidal.linear_scalarization` needs one parameter per
-objective, i.e., a Bézier simplex; on other domains, choose how the
-parameters weight the objectives.  For example, on a square
-:math:`(u_0, u_1) \times (v_0, v_1)`, the weights
-:math:`(u_0 v_0, u_0 v_1, u_1 v_0, u_1 v_1)` of four objectives sweep the
-tetrahedron of weights along a bilinear patch:
-
-.. testcode::
-   :pyversion: >= 3.10, < 3.15
-
-   from torch_bsf.simploidal import gram_matrix
-
-   def objective4(x):
-       return ((x.unsqueeze(1) - torch.eye(4)) ** 2).sum(dim=-1)
-
-   def loss4(x, t):
-       w = (t[:, :2].unsqueeze(2) * t[:, 2:].unsqueeze(1)).flatten(1)  # (batch, 4)
-       return (w * objective4(x)).sum(dim=-1)
-
-   init = BezierSimploid.zeros((1, 1), 1, n_values=4)
-   patch = torch_bsf.fit_sgd(init, loss4, batch_size=20, step_size=0.2, seed=0)
-   print(torch.allclose(patch.control_points, torch.eye(4), atol=1e-3))
-   print(gram_matrix(init).shape)
-
-.. testoutput::
-   :pyversion: >= 3.10, < 3.15
-
-   True
-   torch.Size([4, 4])
-
-A simploidal Bézier space is fitted in the same way; the loss then also
-receives the index of the simploid of every sample.
-
-From the command line and MLflow
---------------------------------
-
-``python -m torch_bsf sgd`` fits a Bézier simplex to the Pareto set of
-objectives written in Python, without writing a script.  Put the objectives
-in a module that can be imported from the current directory (or from an
-installed package), e.g. ``problems.py``:
-
-.. code-block:: python
-
-   import torch
-
-   def objective(x):  # (batch, L) -> (batch, M), differentiable with PyTorch
-       return ((x.unsqueeze(1) - torch.eye(3)) ** 2).sum(dim=-1)
-
-and pass it as ``--objective=MODULE:FUNCTION`` with the number :math:`M` of
-objectives, the number :math:`L` of variables and the degree:
-
-.. code-block:: bash
-
-   python -m torch_bsf sgd \
-     --objective=problems:objective \
-     --n-objectives=3 --n-variables=3 --degree=2 \
-     --n-samples=100 --batch-size=20 --max-iter=100 --step-size=0.2 \
-     --step-decay=constant --preconditioner=gram --seed=0 \
-     --meshgrid=meshgrid.csv
-
-It starts from :math:`P_0 = O` and minimizes the linear scalarization on a
-Bézier simplex on :math:`\Delta^{M-1}`, as the first example above.  The
-options ``--n-samples``, ``--batch-size``, ``--max-iter``, ``--step-size``,
-``--step-decay``, ``--preconditioner`` and ``--seed`` are those of
-:func:`torch_bsf.fit_sgd`, with the same defaults (each one is also accepted
-with underscores, e.g. ``--batch_size``).  The outputs follow the data fitting
-command ``python -m torch_bsf``:
-
-* the control points are saved to
-  ``<module>.<function>,control_points,t_<M-1>,d_<N>.csv``, or to the file given
-  by ``--save`` in the format chosen by its extension;
-* if ``--meshgrid`` is a CSV file of parameters (:math:`M` columns), the
-  fitted model is evaluated on them and saved to
-  ``<module>.<function>,meshgrid,t_<M-1>,d_<N>.csv``; nothing is evaluated if it
-  is omitted or a directory;
-* unless ``--loglevel=0``, the options and the final loss ``train_loss`` (the
-  mean loss over the samples) are logged to MLflow, together with the control
-  points file and the model with ``--loglevel=2`` (the default), and so is the
-  loss ``batch_loss`` of the minibatch of every iteration, as a metric whose
-  step is the iteration ``k``; logging requires the ``mlflow`` extra
-  (``pip install "pytorch-bsf[mlflow]"``), without which nothing is logged.
-
-The options of `Freezing control points and smoothing`_ and
-`Monitoring the loss and stopping early`_ are also available:
-
-.. code-block:: bash
-
-   python -m torch_bsf sgd \
-     --objective=problems:objective \
-     --n-objectives=3 --n-variables=3 --degree=3 \
-     --init=control_points.csv \
-     --freeze='[[3,0,0],[0,3,0],[0,0,3]]' \
-     --smoothness-weight=0.01 \
-     --log-every=10
-
-* ``--init`` starts from the control points of a file saved by
-  :func:`torch_bsf.simploidal.save` (e.g., by ``--save`` of an earlier run)
-  instead of :math:`P_0 = O`.  It must be a Bézier simplex of dimension
-  :math:`M - 1`, the degree ``--degree`` and :math:`L` values; otherwise, the
-  command stops with an error message.
-* ``--freeze`` keeps the control points of the given multi-indices at their
-  values in ``--init``, which it requires, in the JSON-style format of
-  ``--freeze`` of ``python -m torch_bsf``.  Above, the vertices of the
-  triangle stay at the minimizers of the single objectives written in
-  ``control_points.csv``.
-* ``--smoothness-weight`` (also ``--smoothness_weight``) is
-  ``smoothness_weight`` of :func:`~torch_bsf.fit_sgd` (default ``0.0``), which
-  must be non-negative.
-* ``--log-every`` thins out ``batch_loss`` to every :math:`N`-th iteration
-  (default ``1``), and ``--log-every=0`` logs only ``train_loss``.  The loss is
-  recorded by ``callback`` and logged to MLflow in a batch after fitting; it
-  is that of the minibatch before the update, without the smoothness penalty.
-
-Before fitting, the objective is evaluated on two points to check that it
-maps ``(batch, L)`` to differentiable values of shape ``(batch, M)``; an
-objective that cannot be imported or does not match ``--n-objectives`` and
-``--n-variables`` stops the command with an error message.  Run
-``python -m torch_bsf sgd --help`` for all the options.
-
-The ``sgd`` entry point of ``MLproject`` runs the same command:
-
-.. code-block:: bash
-
-   mlflow run https://github.com/opthub-org/pytorch-bsf \
-     -e sgd \
-     -P objective=problems:objective \
-     -P n_objectives=3 \
-     -P n_variables=3 \
-     -P degree=2 \
-     -P batch_size=20 \
-     -P step_size=0.2
-
-The command runs in the directory of the project, so the module of the
-objectives must be installed in the environment of the run or found on its
-``PYTHONPATH`` (with ``--env-manager=local``, set ``PYTHONPATH`` to the
-directory of ``problems.py``).  The parameters ``meshgrid`` (default ``.``,
-i.e., no meshgrid), ``n_samples``, ``batch_size`` (default ``""``, i.e., the
-full batch), ``max_iter``, ``step_size``, ``step_decay``, ``preconditioner``,
-``seed`` (default ``""``, i.e., none), ``init`` and ``freeze`` (default ``""``,
-i.e., none), ``smoothness_weight`` and ``log_every`` are also exposed, e.g.,
-``-P init=/path/to/control_points.csv -P freeze='[[2,0,0],[0,2,0],[0,0,2]]'``
-(give ``init`` as an absolute path, since the command runs in the directory of
-the project).
-
-The command line fits Bézier simplices with the linear scalarization only;
-for Bézier simploids, simploidal Bézier spaces or other losses, use
-:func:`torch_bsf.fit_sgd` from Python.
+The figures below were generated before the unified API migration. They
+illustrate the research problems and are not performance measurements of this
+release. The migrated script can generate fresh figures and metrics.
 
 Benchmarks: SGD vs. PSGD
 ------------------------
 
 The script ``examples/sgd_benchmarks.py`` reproduces the experiments of
-Section 5 of :cite:t:`hikima2025stochastic` with :func:`~torch_bsf.fit_sgd`,
+Section 5 of :cite:t:`hikima2025stochastic` with :func:`~torch_bsf.minimize`,
 comparing plain SGD (``preconditioner="none"``) with the preconditioned SGD
 of the paper (PSGD, ``preconditioner="gram"``).  The problems are implemented
 from their definitions in the paper:
@@ -439,7 +107,7 @@ minibatches of :math:`m = 20`, :math:`K = 100` iterations with the constant
 step size :math:`\alpha = 0.05`, the degrees :math:`D \in \{2, 3, 4\}`, and 5
 trials with different samples, SGD and PSGD sharing the samples of a trial.
 The losses are recorded with ``callback`` as in
-`Monitoring the loss and stopping early`_: the empirical loss on the
+the explicit optimizer callback: the empirical loss on the
 :math:`n` samples and the generalization loss on 10,000 other samples.  The
 script plots with matplotlib and SciPy, which the ``plot`` extra installs.  In
 a clone of the repository, run

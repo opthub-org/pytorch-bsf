@@ -24,8 +24,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Pareto Set Learning by Stochastic Gradient Descent" href="sgd.html" />
-    <link rel="prev" title="Simploidal Sets" href="simploidal.html" /> 
+    <link rel="next" title="Objective minimization" href="sgd.html" />
+    <link rel="prev" title="Single and assembled domains" href="simploidal.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -53,20 +53,21 @@
 <li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="normalization.html">Data Normalization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn Integration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="initialization.html">Initial Control Points</a></li>
-<li class="toctree-l2"><a class="reference internal" href="visualization.html">Bézier Simplex and Simploid Visualization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="splitting.html">Bézier Simplex Splitting</a></li>
-<li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Automatic Degree Selection</a></li>
-<li class="toctree-l2"><a class="reference internal" href="regularization.html">Smoothness Regularization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_sampling.html">Elastic Net Grid Sampling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="partial.html">Partial Training</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sampling.html">Advanced Sampling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="acceleration.html">Hardware Acceleration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="active_learning.html">Active Learning</a></li>
-<li class="toctree-l2"><a class="reference internal" href="simploidal.html">Simploidal Sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="partial.html">Fixed controls</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l2"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="active_learning.html">Explicit ensembles and queries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">The Category of Simploidal Sets</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#the-simploid-category">The simploid category</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#simploidal-sets-as-presheaves">Simploidal sets as presheaves</a></li>
@@ -74,11 +75,11 @@
 <li class="toctree-l3"><a class="reference internal" href="#remarks">Remarks</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="sgd.html">Pareto Set Learning by Stochastic Gradient Descent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API reference</span></p>
@@ -116,7 +117,7 @@
 <p>Simplicial sets are presheaves on the simplex category <span class="math notranslate nohighlight">\(\Delta\)</span>, and a
 morphism of simplicial sets is a family of maps that commutes with all face
 and degeneracy operators.  This page sets up the same framework for the
-simploidal sets of <a class="reference internal" href="simploidal.html"><span class="doc">Simploidal Sets</span></a> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id33" title="Samuel Peltier, Laurent Fuchs, and Pascal Lienhardt. Simploidal sets: definitions, operations and comparison with simplicial sets. Discrete Applied Mathematics, 157(3):542–557, 2009.">PFL09</a>, <a class="reference internal" href="../references.html#id32" title="Samuel Peltier and Pascal Lienhardt. Simploidal sets: a data structure for handling simploidal bézier spaces. Computer Aided Geometric Design, 62:44–62, 2018. URL: https://doi.org/10.1016/j.cagd.2018.03.010.">PL18</a>]</span>
+simploidal sets of <a class="reference internal" href="simploidal.html"><span class="doc">Single and assembled domains</span></a> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id33" title="Samuel Peltier, Laurent Fuchs, and Pascal Lienhardt. Simploidal sets: definitions, operations and comparison with simplicial sets. Discrete Applied Mathematics, 157(3):542–557, 2009.">PFL09</a>, <a class="reference internal" href="../references.html#id32" title="Samuel Peltier and Pascal Lienhardt. Simploidal sets: a data structure for handling simploidal bézier spaces. Computer Aided Geometric Design, 62:44–62, 2018. URL: https://doi.org/10.1016/j.cagd.2018.03.010.">PL18</a>]</span>
 and proves that <strong>the category of simploidal sets is a topos</strong>.  The argument
 is standard topos theory <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id34" title="Saunders Mac Lane and Ieke Moerdijk. Sheaves in Geometry and Logic: A First Introduction to Topos Theory. Universitext. Springer, 1992.">MLM92</a>]</span>; the only part specific
 to simploids is the description of the indexing category.</p>
@@ -212,7 +213,7 @@ forgets the inserted coordinate.</p></li>
 <p>All other coordinates are kept.  For a presheaf <span class="math notranslate nohighlight">\(X\)</span> on
 <span class="math notranslate nohighlight">\(\mathbb S\)</span> (see below), <span class="math notranslate nohighlight">\(d^i_j = X(\delta^i_j)\)</span> and
 <span class="math notranslate nohighlight">\(s^i_j = X(\sigma^i_j)\)</span> are the face and degeneracy operators of
-<a class="reference internal" href="simploidal.html"><span class="doc">Simploidal Sets</span></a>.</p>
+<a class="reference internal" href="simploidal.html"><span class="doc">Single and assembled domains</span></a>.</p>
 </section>
 </div><p>Indeed, <span class="math notranslate nohighlight">\(d^i_j\)</span> removes vertex <span class="math notranslate nohighlight">\(j\)</span> of the <span class="math notranslate nohighlight">\(i\)</span>-th factor (an
 edge factor disappears, leaving its other vertex <span class="math notranslate nohighlight">\(1 - j\)</span>), <span class="math notranslate nohighlight">\(s^i_j\)</span>
@@ -444,8 +445,8 @@ apply to them; it concerns the category of all simploidal sets.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="simploidal.html" class="btn btn-neutral float-left" title="Simploidal Sets" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="sgd.html" class="btn btn-neutral float-right" title="Pareto Set Learning by Stochastic Gradient Descent" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="simploidal.html" class="btn btn-neutral float-left" title="Single and assembled domains" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sgd.html" class="btn btn-neutral float-right" title="Objective minimization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

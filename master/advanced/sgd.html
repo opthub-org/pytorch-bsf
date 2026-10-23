@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pareto Set Learning by Stochastic Gradient Descent &mdash; PyTorch-BSF 0.20.0 documentation</title>
+  <title>Objective minimization &mdash; PyTorch-BSF 0.20.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
@@ -53,28 +53,25 @@
 <li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="normalization.html">Data Normalization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn Integration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="initialization.html">Initial Control Points</a></li>
-<li class="toctree-l2"><a class="reference internal" href="visualization.html">Bézier Simplex and Simploid Visualization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="splitting.html">Bézier Simplex Splitting</a></li>
-<li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Automatic Degree Selection</a></li>
-<li class="toctree-l2"><a class="reference internal" href="regularization.html">Smoothness Regularization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_sampling.html">Elastic Net Grid Sampling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="partial.html">Partial Training</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sampling.html">Advanced Sampling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="acceleration.html">Hardware Acceleration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="active_learning.html">Active Learning</a></li>
-<li class="toctree-l2"><a class="reference internal" href="simploidal.html">Simploidal Sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="partial.html">Fixed controls</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l2"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="active_learning.html">Explicit ensembles and queries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
 <li class="toctree-l2"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Pareto Set Learning by Stochastic Gradient Descent</a><ul>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Objective minimization</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#the-algorithm">The algorithm</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#fitting-a-bezier-simplex-to-a-pareto-set">Fitting a Bézier simplex to a Pareto set</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#monitoring-the-loss-and-stopping-early">Monitoring the loss and stopping early</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#freezing-control-points-and-smoothing">Freezing control points and smoothing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#generalization-to-simploids-and-simploidal-spaces">Generalization to simploids and simploidal spaces</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#from-the-command-line-and-mlflow">From the command line and MLflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#historical-benchmark-figures">Historical benchmark figures</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#benchmarks-sgd-vs-psgd">Benchmarks: SGD vs. PSGD</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#non-convex-objectives-transforming-the-skew-mmd">Non-convex objectives: transforming the skew-MMD</a></li>
 </ul>
@@ -82,7 +79,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API reference</span></p>
@@ -105,7 +102,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
-      <li class="breadcrumb-item active">Pareto Set Learning by Stochastic Gradient Descent</li>
+      <li class="breadcrumb-item active">Objective minimization</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/advanced/sgd.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -115,14 +112,31 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="pareto-set-learning-by-stochastic-gradient-descent">
-<h1>Pareto Set Learning by Stochastic Gradient Descent<a class="headerlink" href="#pareto-set-learning-by-stochastic-gradient-descent" title="Link to this heading"></a></h1>
-<p><a class="reference internal" href="../torch_bsf.html#torch_bsf.fit" title="torch_bsf.fit"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit()</span></code></a> fits a model to data: Pareto-optimal solutions computed
-beforehand.  When the objective functions themselves are available,
-<a class="reference internal" href="../torch_bsf.html#torch_bsf.fit_sgd" title="torch_bsf.fit_sgd"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit_sgd()</span></code></a> fits the model to the Pareto set directly, with the
-preconditioned stochastic gradient descent of <span class="bibtex-citation" id="id1">Hikima <em>et al.</em> [<a class="reference internal" href="../references.html#id3" title="Yasunari Hikima, Ken Kobayashi, Akinori Tanaka, Akiyoshi Sannai, and Naoki Hamada. Stochastic gradient descent for bézier simplex representation of pareto set in multi-objective optimization. In Proceedings of The 28th International Conference on Artificial Intelligence and Statistics, volume 258 of Proceedings of Machine Learning Research. 2025. URL: https://proceedings.mlr.press/v258/hikima25a.html.">HKT+25</a>]</span>.
-It works with every model of <code class="docutils literal notranslate"><span class="pre">torch_bsf.simploidal</span></code>: Bézier simplices,
-Bézier simploids and simploidal Bézier spaces (see <a class="reference internal" href="simploidal.html"><span class="doc">Simploidal Sets</span></a>).</p>
+  <section id="objective-minimization">
+<h1>Objective minimization<a class="headerlink" href="#objective-minimization" title="Link to this heading"></a></h1>
+<p>Regression and differentiable objective minimization are separate problems:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">BezierModel</span><span class="p">,</span> <span class="n">minimize</span><span class="p">,</span> <span class="n">PreconditionedSGD</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">linear_scalarization</span>
+
+<span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">initial</span> <span class="o">=</span> <span class="n">BezierModel</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">space</span><span class="o">.</span><span class="n">n_controls</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">objectives</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([(</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">initial</span><span class="p">,</span> <span class="n">linear_scalarization</span><span class="p">(</span><span class="n">objectives</span><span class="p">),</span> <span class="n">seed</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+                  <span class="n">method</span><span class="o">=</span><span class="n">PreconditionedSGD</span><span class="p">(</span><span class="n">max_iter</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">gradient_tolerance</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">))</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">loss(predicted_values,</span> <span class="pre">points)</span></code> returns one differentiable scalar per row.
+<code class="docutils literal notranslate"><span class="pre">minimize</span></code> copies the initial model. Exact domain Gram preconditioning,
+minibatches, quadratic penalties and explicit fixed controls are available.
+The method does not require Lightning. Float16/bfloat16 initial models are copied
+and promoted to float32 on the same device for basis evaluation, gradients
+and metric solves. The returned model then has float32 coefficients.</p>
+<p>History records pre-update losses and gradient norms. Iteration-budget
+exhaustion and callback stops do not establish convergence. Only a checked
+full-sample gradient tolerance or all-fixed problem yields <code class="docutils literal notranslate"><span class="pre">success=True</span></code>.
+The final objective is evaluated on the complete fixed sample set.</p>
 <section id="the-algorithm">
 <h2>The algorithm<a class="headerlink" href="#the-algorithm" title="Link to this heading"></a></h2>
 <p>Let <span class="math notranslate nohighlight">\(f = (f_1, \ldots, f_M): \mathbb R^L \to \mathbb R^M\)</span> be the
@@ -150,331 +164,24 @@ minimizes the linearized loss plus
 it measures how far the <em>surface</em> moves rather than how far its control
 points move.  The paper proves that this converges faster than plain SGD
 (<span class="math notranslate nohighlight">\(\Sigma = I\)</span>), whose steps are distorted by the ill-conditioning of the
-Bernstein basis.  <a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.gram_matrix" title="torch_bsf.simploidal.gram_matrix"><code class="xref py py-func docutils literal notranslate"><span class="pre">gram_matrix()</span></code></a> computes
-<span class="math notranslate nohighlight">\(\Sigma\)</span> exactly, and it is factorized once.</p>
+Bernstein basis.  <a class="reference internal" href="../torch_bsf.html#torch_bsf.optimization.gram_matrix" title="torch_bsf.optimization.gram_matrix"><code class="xref py py-func docutils literal notranslate"><span class="pre">gram_matrix()</span></code></a> computes
+<span class="math notranslate nohighlight">\(\Sigma\)</span> exactly, for the configured cell distribution.</p>
 </section>
-<section id="fitting-a-bezier-simplex-to-a-pareto-set">
-<h2>Fitting a Bézier simplex to a Pareto set<a class="headerlink" href="#fitting-a-bezier-simplex-to-a-pareto-set" title="Link to this heading"></a></h2>
-<p>The objectives <span class="math notranslate nohighlight">\(f_m(\mathbf x) = \|\mathbf x - \mathbf e_m\|^2\)</span>
-(<span class="math notranslate nohighlight">\(m = 1, 2, 3\)</span>) have the triangle spanned by
-<span class="math notranslate nohighlight">\(\mathbf e_1, \mathbf e_2, \mathbf e_3\)</span> as their Pareto set, reached at
-<span class="math notranslate nohighlight">\(\mathbf x = \mathbf t\)</span>.  Write the objectives for a batch of points,
-wrap them with <a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.linear_scalarization" title="torch_bsf.simploidal.linear_scalarization"><code class="xref py py-func docutils literal notranslate"><span class="pre">linear_scalarization()</span></code></a>, and pass
-an initial model, which fixes the type, the degree and the dimension
-<span class="math notranslate nohighlight">\(L\)</span>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">torch_bsf</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.simploidal</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSimploid</span><span class="p">,</span> <span class="n">linear_scalarization</span><span class="p">,</span> <span class="n">sample_domain</span>
-
-<span class="k">def</span><span class="w"> </span><span class="nf">objective</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>  <span class="c1"># (batch, L) -&gt; (batch, M)</span>
-    <span class="k">return</span> <span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-
-<span class="n">init</span> <span class="o">=</span> <span class="n">BezierSimploid</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,),</span> <span class="mi">2</span><span class="p">,</span> <span class="n">n_values</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>  <span class="c1"># a quadratic Bézier triangle in R^3</span>
-<span class="n">loss</span> <span class="o">=</span> <span class="n">linear_scalarization</span><span class="p">(</span><span class="n">objective</span><span class="p">)</span>
-<span class="n">bs</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit_sgd</span><span class="p">(</span><span class="n">init</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">n_samples</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-
-<span class="p">(</span><span class="n">t</span><span class="p">,)</span> <span class="o">=</span> <span class="n">sample_domain</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># fresh samples to check generalization</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">bs</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">t</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">))</span>
-</pre></div>
-</div>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>True
-</pre></div>
-</div>
-<p>The main options are:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">batch_size</span></code> and <code class="docutils literal notranslate"><span class="pre">n_samples</span></code>: the minibatch size <span class="math notranslate nohighlight">\(m\)</span> and the
-number <span class="math notranslate nohighlight">\(n\)</span> of fixed samples (or pass your own samples as <code class="docutils literal notranslate"><span class="pre">inputs</span></code>);</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">step_size</span></code> and <code class="docutils literal notranslate"><span class="pre">step_decay</span></code>: a constant step <span class="math notranslate nohighlight">\(\alpha\)</span>, or
-<span class="math notranslate nohighlight">\(\alpha / \sqrt{k + 1}\)</span> with <code class="docutils literal notranslate"><span class="pre">step_decay=&quot;sqrt&quot;</span></code>;</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">preconditioner=&quot;none&quot;</span></code>: plain SGD, the baseline of the paper.</p></li>
-</ul>
-<p>The paper uses <span class="math notranslate nohighlight">\(P_0 = O\)</span>, <span class="math notranslate nohighlight">\(n = 100\)</span>, <span class="math notranslate nohighlight">\(m = 20\)</span>, 100
-iterations and <span class="math notranslate nohighlight">\(\alpha = 0.05\)</span>, which are the defaults except for the
-minibatch size (full batch by default).  The returned model is a copy, so
-<code class="docutils literal notranslate"><span class="pre">init</span></code> can be reused.</p>
-</section>
-<section id="monitoring-the-loss-and-stopping-early">
-<h2>Monitoring the loss and stopping early<a class="headerlink" href="#monitoring-the-loss-and-stopping-early" title="Link to this heading"></a></h2>
-<p>Pass <code class="docutils literal notranslate"><span class="pre">callback</span></code> to watch the fitting.  After the update of every iteration
-<span class="math notranslate nohighlight">\(k = 0, 1, \ldots\)</span>, <a class="reference internal" href="../torch_bsf.html#torch_bsf.fit_sgd" title="torch_bsf.fit_sgd"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_sgd()</span></code></a> calls
-<code class="docutils literal notranslate"><span class="pre">callback(k,</span> <span class="pre">model,</span> <span class="pre">batch_loss)</span></code>, where <code class="docutils literal notranslate"><span class="pre">model</span></code> is the model being fitted
-(already updated) and <code class="docutils literal notranslate"><span class="pre">batch_loss</span></code> is the mean loss of the minibatch at the
-parameters <em>before</em> the update, i.e., <span class="math notranslate nohighlight">\(\mathcal L_B(P^{(k)})\)</span>.  To
-compare the empirical loss on the fixed samples with the generalization loss
-on fresh ones, as the paper does, pass the samples as <code class="docutils literal notranslate"><span class="pre">inputs</span></code> and evaluate
-the model on both in the callback, under <code class="xref py py-func docutils literal notranslate"><span class="pre">torch.no_grad()</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">inputs</span> <span class="o">=</span> <span class="n">sample_domain</span><span class="p">(</span><span class="n">init</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># the samples fit_sgd minimizes on</span>
-<span class="n">test_inputs</span> <span class="o">=</span> <span class="n">sample_domain</span><span class="p">(</span><span class="n">init</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># fresh samples</span>
-
-<span class="k">def</span><span class="w"> </span><span class="nf">mean_loss</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
-    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-        <span class="k">return</span> <span class="n">loss</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="o">*</span><span class="n">inputs</span><span class="p">),</span> <span class="o">*</span><span class="n">inputs</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-
-<span class="n">history</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"minibatch"</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">"empirical"</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">"generalization"</span><span class="p">:</span> <span class="p">[]}</span>
-
-<span class="k">def</span><span class="w"> </span><span class="nf">record</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">batch_loss</span><span class="p">):</span>
-    <span class="n">history</span><span class="p">[</span><span class="s2">"minibatch"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch_loss</span><span class="p">)</span>  <span class="c1"># at P^(k)</span>
-    <span class="n">history</span><span class="p">[</span><span class="s2">"empirical"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mean_loss</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">inputs</span><span class="p">))</span>  <span class="c1"># at P^(k+1)</span>
-    <span class="n">history</span><span class="p">[</span><span class="s2">"generalization"</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mean_loss</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">test_inputs</span><span class="p">))</span>  <span class="c1"># at P^(k+1)</span>
-
-<span class="n">bs</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit_sgd</span><span class="p">(</span><span class="n">init</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">record</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">history</span><span class="p">[</span><span class="s2">"empirical"</span><span class="p">]))</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">history</span><span class="p">[</span><span class="s2">"generalization"</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">history</span><span class="p">[</span><span class="s2">"generalization"</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
-</pre></div>
-</div>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>100
-True
-</pre></div>
-</div>
-<p>and plot the records, e.g., with matplotlib:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
-
-<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">history</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"iteration"</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">"loss"</span><span class="p">)</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-</pre></div>
-</div>
-<p>If the callback returns <code class="docutils literal notranslate"><span class="pre">True</span></code>, the fitting stops after that iteration and
-returns the model updated so far.  There is no built-in stopping criterion;
-write one in the callback.  For example, stop once the empirical loss
-decreases by less than <span class="math notranslate nohighlight">\(10^{-6}\)</span> in an iteration:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">losses</span> <span class="o">=</span> <span class="p">[]</span>
-
-<span class="k">def</span><span class="w"> </span><span class="nf">converged</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">batch_loss</span><span class="p">):</span>
-    <span class="n">losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mean_loss</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">inputs</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">k</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">losses</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">losses</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">1e-6</span>
-
-<span class="n">bs</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit_sgd</span><span class="p">(</span><span class="n">init</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">converged</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">losses</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1000</span><span class="p">)</span>
-</pre></div>
-</div>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>True
-</pre></div>
-</div>
-<p>The callback receives the model being fitted, not a copy: it may evaluate the
-model but must not modify it.  To keep a snapshot, e.g., of the best model so
-far, copy its parameters (<code class="docutils literal notranslate"><span class="pre">model.control_points.detach().clone()</span></code> for a
-Bézier simploid, <code class="docutils literal notranslate"><span class="pre">model.proper_control_points.detach().clone()</span></code> for a
-simploidal Bézier space).  The callback does not change the fitting: a
-callback that never returns <code class="docutils literal notranslate"><span class="pre">True</span></code> gives the same model as no callback.</p>
-</section>
-<section id="freezing-control-points-and-smoothing">
-<h2>Freezing control points and smoothing<a class="headerlink" href="#freezing-control-points-and-smoothing" title="Link to this heading"></a></h2>
-<p>The minimizer of each single objective <span class="math notranslate nohighlight">\(f_m\)</span> is often known in advance.
-It is the vertex <span class="math notranslate nohighlight">\(\mathbf t = \mathbf e_m\)</span> of the Pareto set, so you can
-put it in the initial model and keep it there with <code class="docutils literal notranslate"><span class="pre">freeze</span></code>, as in
-<a class="reference internal" href="../torch_bsf.html#torch_bsf.fit" title="torch_bsf.fit"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit()</span></code></a>.  <code class="docutils literal notranslate"><span class="pre">smoothness_weight</span></code> adds the smoothness penalty
-<span class="math notranslate nohighlight">\(w \sum_{(p, q)} \|P_p - P_q\|^2\)</span> over the adjacent control points to the
-loss, which keeps the control net of a high degree model from oscillating:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">init</span> <span class="o">=</span> <span class="n">BezierSimploid</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,),</span> <span class="mi">3</span><span class="p">,</span> <span class="n">n_values</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>  <span class="c1"># a cubic Bézier triangle</span>
-<span class="n">vertices</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">)]</span>
-<span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-    <span class="k">for</span> <span class="n">m</span><span class="p">,</span> <span class="n">vertex</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">vertices</span><span class="p">):</span>
-        <span class="n">init</span><span class="p">[</span><span class="n">vertex</span><span class="p">]</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)[</span><span class="n">m</span><span class="p">])</span>  <span class="c1"># the minimizer of f_m</span>
-
-<span class="n">bs</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit_sgd</span><span class="p">(</span>
-    <span class="n">init</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">freeze</span><span class="o">=</span><span class="n">vertices</span><span class="p">,</span> <span class="n">smoothness_weight</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span>
-<span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="nb">all</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">bs</span><span class="p">[</span><span class="n">v</span><span class="p">],</span> <span class="n">init</span><span class="p">[</span><span class="n">v</span><span class="p">])</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vertices</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">bs</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">t</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">))</span>
-</pre></div>
-</div>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>True
-True
-</pre></div>
-</div>
-<p>The frozen control points keep their values in <code class="docutils literal notranslate"><span class="pre">init</span></code> bit for bit.  For a
-Bézier simplex, give their multi-indices (or full indices, as
-<code class="docutils literal notranslate"><span class="pre">((3,</span> <span class="pre">0,</span> <span class="pre">0),)</span></code>); for a Bézier simploid, their indices; and for a
-simploidal Bézier space, pairs <code class="docutils literal notranslate"><span class="pre">(simploid,</span> <span class="pre">index)</span></code> of any simploid of the
-set and an index of its control net, as in
-<a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.fit_simploidal_set" title="torch_bsf.simploidal.fit_simploidal_set"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_simploidal_set()</span></code></a>.</p>
-<p>With frozen rows, the step moves only the free rows <span class="math notranslate nohighlight">\(F\)</span> and is
-preconditioned by the block <span class="math notranslate nohighlight">\(\Sigma_{FF}\)</span> of the Gram matrix rather
-than by <span class="math notranslate nohighlight">\(\Sigma\)</span>, so that it still minimizes the linearized loss plus
-the move of the surface while the frozen rows stay fixed:</p>
-<div class="math notranslate nohighlight">
-\[P_F^{(k+1)} = P_F^{(k)} - \alpha_k (\Sigma_{FF} + 2 \alpha_k w L_{FF})^{-1}
-\nabla_F \bigl(\mathcal L_B(P^{(k)}) + w \operatorname{tr}(P^{(k)\top} L P^{(k)})\bigr),\]</div>
-<p>where <span class="math notranslate nohighlight">\(L\)</span> is the Laplacian of the adjacency graph of the control
-points, so that the penalty is <span class="math notranslate nohighlight">\(w \operatorname{tr}(P^\top L P)\)</span>.
-The term <span class="math notranslate nohighlight">\(2 \alpha_k w L_{FF}\)</span> comes from minimizing the penalty
-exactly instead of following its gradient.  The surface metric
-<span class="math notranslate nohighlight">\(\Sigma\)</span> is tiny along oscillating control nets, so
-<span class="math notranslate nohighlight">\(\Sigma^{-1} L\)</span> has eigenvalues in the thousands already for a cubic
-Bézier triangle, and a plain gradient step on the penalty would diverge
-unless <span class="math notranslate nohighlight">\(\alpha w\)</span> were tiny; the exact treatment is stable for every
-<span class="math notranslate nohighlight">\(w\)</span>.  The matrix is factorized once (once per iteration with
-<code class="docutils literal notranslate"><span class="pre">step_decay=&quot;sqrt&quot;</span></code> and <span class="math notranslate nohighlight">\(w &gt; 0\)</span>).  Without frozen rows and with
-<span class="math notranslate nohighlight">\(w = 0\)</span>, the step is the one of the paper.</p>
-</section>
-<section id="generalization-to-simploids-and-simploidal-spaces">
-<h2>Generalization to simploids and simploidal spaces<a class="headerlink" href="#generalization-to-simploids-and-simploidal-spaces" title="Link to this heading"></a></h2>
-<p>Every model of <code class="docutils literal notranslate"><span class="pre">torch_bsf.simploidal</span></code> is linear in its control points,
-<code class="docutils literal notranslate"><span class="pre">model(*inputs)</span> <span class="pre">==</span> <span class="pre">model.design_matrix(*inputs)</span> <span class="pre">&#64;</span> <span class="pre">P</span></code>, so the algorithm
-applies to all of them with <span class="math notranslate nohighlight">\(\mathbf z(\mathbf u)\)</span> the row of the
-design matrix and <span class="math notranslate nohighlight">\(\mathbf u\)</span> uniform on the domain of the model:</p>
-<ul class="simple">
-<li><p>For a <strong>Bézier simploid</strong> of type <span class="math notranslate nohighlight">\((a_1, \ldots, a_n)\)</span>,
-<span class="math notranslate nohighlight">\(\mathbf u\)</span> is uniform on the product of simplices, and <span class="math notranslate nohighlight">\(\Sigma\)</span>
-is the Kronecker product of the Gram matrices of its factors.</p></li>
-<li><p>For a <strong>simploidal Bézier space</strong>, <span class="math notranslate nohighlight">\(\mathbf u\)</span> lies on the simploid
-<span class="math notranslate nohighlight">\(c\)</span> with probability <span class="math notranslate nohighlight">\(w_c\)</span> and is uniform on it, so
-<span class="math notranslate nohighlight">\(\Sigma = \sum_c w_c S_c^\top \Sigma_c S_c\)</span>, where <span class="math notranslate nohighlight">\(S_c\)</span> maps the
-stored control points to the control net of <span class="math notranslate nohighlight">\(c\)</span>.  By default the
-weights are uniform over the main simploids (those that are not a face of
-another); pass <code class="docutils literal notranslate"><span class="pre">weights</span></code> to change them.  They must cover every stored
-control point, so that <span class="math notranslate nohighlight">\(\Sigma\)</span> is invertible.</p></li>
-</ul>
-<p>The loss is any function <code class="docutils literal notranslate"><span class="pre">loss(values,</span> <span class="pre">*inputs)</span></code> returning one value per
-sample, where <code class="docutils literal notranslate"><span class="pre">values</span></code> is the output of the model and <code class="docutils literal notranslate"><span class="pre">inputs</span></code> are its
-arguments: <code class="docutils literal notranslate"><span class="pre">(t,)</span></code> for a Bézier simploid and <code class="docutils literal notranslate"><span class="pre">(t,</span> <span class="pre">simploid_ids)</span></code> for a
-space (see <a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.sample_domain" title="torch_bsf.simploidal.sample_domain"><code class="xref py py-func docutils literal notranslate"><span class="pre">sample_domain()</span></code></a>).
-<a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.linear_scalarization" title="torch_bsf.simploidal.linear_scalarization"><code class="xref py py-func docutils literal notranslate"><span class="pre">linear_scalarization()</span></code></a> needs one parameter per
-objective, i.e., a Bézier simplex; on other domains, choose how the
-parameters weight the objectives.  For example, on a square
-<span class="math notranslate nohighlight">\((u_0, u_1) \times (v_0, v_1)\)</span>, the weights
-<span class="math notranslate nohighlight">\((u_0 v_0, u_0 v_1, u_1 v_0, u_1 v_1)\)</span> of four objectives sweep the
-tetrahedron of weights along a bilinear patch:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.simploidal</span><span class="w"> </span><span class="kn">import</span> <span class="n">gram_matrix</span>
-
-<span class="k">def</span><span class="w"> </span><span class="nf">objective4</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-    <span class="k">return</span> <span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-
-<span class="k">def</span><span class="w"> </span><span class="nf">loss4</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
-    <span class="n">w</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">t</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># (batch, 4)</span>
-    <span class="k">return</span> <span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="n">objective4</span><span class="p">(</span><span class="n">x</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-
-<span class="n">init</span> <span class="o">=</span> <span class="n">BezierSimploid</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_values</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
-<span class="n">patch</span> <span class="o">=</span> <span class="n">torch_bsf</span><span class="o">.</span><span class="n">fit_sgd</span><span class="p">(</span><span class="n">init</span><span class="p">,</span> <span class="n">loss4</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">patch</span><span class="o">.</span><span class="n">control_points</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">gram_matrix</span><span class="p">(</span><span class="n">init</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-</pre></div>
-</div>
-<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>True
-torch.Size([4, 4])
-</pre></div>
-</div>
-<p>A simploidal Bézier space is fitted in the same way; the loss then also
-receives the index of the simploid of every sample.</p>
-</section>
-<section id="from-the-command-line-and-mlflow">
-<h2>From the command line and MLflow<a class="headerlink" href="#from-the-command-line-and-mlflow" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">torch_bsf</span> <span class="pre">sgd</span></code> fits a Bézier simplex to the Pareto set of
-objectives written in Python, without writing a script.  Put the objectives
-in a module that can be imported from the current directory (or from an
-installed package), e.g. <code class="docutils literal notranslate"><span class="pre">problems.py</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
-
-<span class="k">def</span><span class="w"> </span><span class="nf">objective</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>  <span class="c1"># (batch, L) -&gt; (batch, M), differentiable with PyTorch</span>
-    <span class="k">return</span> <span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>and pass it as <code class="docutils literal notranslate"><span class="pre">--objective=MODULE:FUNCTION</span></code> with the number <span class="math notranslate nohighlight">\(M\)</span> of
-objectives, the number <span class="math notranslate nohighlight">\(L\)</span> of variables and the degree:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>torch_bsf<span class="w"> </span>sgd<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--objective<span class="o">=</span>problems:objective<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--n-objectives<span class="o">=</span><span class="m">3</span><span class="w"> </span>--n-variables<span class="o">=</span><span class="m">3</span><span class="w"> </span>--degree<span class="o">=</span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--n-samples<span class="o">=</span><span class="m">100</span><span class="w"> </span>--batch-size<span class="o">=</span><span class="m">20</span><span class="w"> </span>--max-iter<span class="o">=</span><span class="m">100</span><span class="w"> </span>--step-size<span class="o">=</span><span class="m">0</span>.2<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--step-decay<span class="o">=</span>constant<span class="w"> </span>--preconditioner<span class="o">=</span>gram<span class="w"> </span>--seed<span class="o">=</span><span class="m">0</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--meshgrid<span class="o">=</span>meshgrid.csv
-</pre></div>
-</div>
-<p>It starts from <span class="math notranslate nohighlight">\(P_0 = O\)</span> and minimizes the linear scalarization on a
-Bézier simplex on <span class="math notranslate nohighlight">\(\Delta^{M-1}\)</span>, as the first example above.  The
-options <code class="docutils literal notranslate"><span class="pre">--n-samples</span></code>, <code class="docutils literal notranslate"><span class="pre">--batch-size</span></code>, <code class="docutils literal notranslate"><span class="pre">--max-iter</span></code>, <code class="docutils literal notranslate"><span class="pre">--step-size</span></code>,
-<code class="docutils literal notranslate"><span class="pre">--step-decay</span></code>, <code class="docutils literal notranslate"><span class="pre">--preconditioner</span></code> and <code class="docutils literal notranslate"><span class="pre">--seed</span></code> are those of
-<a class="reference internal" href="../torch_bsf.html#torch_bsf.fit_sgd" title="torch_bsf.fit_sgd"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit_sgd()</span></code></a>, with the same defaults (each one is also accepted
-with underscores, e.g. <code class="docutils literal notranslate"><span class="pre">--batch_size</span></code>).  The outputs follow the data fitting
-command <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">torch_bsf</span></code>:</p>
-<ul class="simple">
-<li><p>the control points are saved to
-<code class="docutils literal notranslate"><span class="pre">&lt;module&gt;.&lt;function&gt;,control_points,t_&lt;M-1&gt;,d_&lt;N&gt;.csv</span></code>, or to the file given
-by <code class="docutils literal notranslate"><span class="pre">--save</span></code> in the format chosen by its extension;</p></li>
-<li><p>if <code class="docutils literal notranslate"><span class="pre">--meshgrid</span></code> is a CSV file of parameters (<span class="math notranslate nohighlight">\(M\)</span> columns), the
-fitted model is evaluated on them and saved to
-<code class="docutils literal notranslate"><span class="pre">&lt;module&gt;.&lt;function&gt;,meshgrid,t_&lt;M-1&gt;,d_&lt;N&gt;.csv</span></code>; nothing is evaluated if it
-is omitted or a directory;</p></li>
-<li><p>unless <code class="docutils literal notranslate"><span class="pre">--loglevel=0</span></code>, the options and the final loss <code class="docutils literal notranslate"><span class="pre">train_loss</span></code> (the
-mean loss over the samples) are logged to MLflow, together with the control
-points file and the model with <code class="docutils literal notranslate"><span class="pre">--loglevel=2</span></code> (the default), and so is the
-loss <code class="docutils literal notranslate"><span class="pre">batch_loss</span></code> of the minibatch of every iteration, as a metric whose
-step is the iteration <code class="docutils literal notranslate"><span class="pre">k</span></code>; logging requires the <code class="docutils literal notranslate"><span class="pre">mlflow</span></code> extra
-(<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">&quot;pytorch-bsf[mlflow]&quot;</span></code>), without which nothing is logged.</p></li>
-</ul>
-<p>The options of <a class="reference internal" href="#freezing-control-points-and-smoothing">Freezing control points and smoothing</a> and
-<a class="reference internal" href="#monitoring-the-loss-and-stopping-early">Monitoring the loss and stopping early</a> are also available:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>torch_bsf<span class="w"> </span>sgd<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--objective<span class="o">=</span>problems:objective<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--n-objectives<span class="o">=</span><span class="m">3</span><span class="w"> </span>--n-variables<span class="o">=</span><span class="m">3</span><span class="w"> </span>--degree<span class="o">=</span><span class="m">3</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--init<span class="o">=</span>control_points.csv<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--freeze<span class="o">=</span><span class="s1">'[[3,0,0],[0,3,0],[0,0,3]]'</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--smoothness-weight<span class="o">=</span><span class="m">0</span>.01<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--log-every<span class="o">=</span><span class="m">10</span>
-</pre></div>
-</div>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--init</span></code> starts from the control points of a file saved by
-<a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.save" title="torch_bsf.simploidal.save"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.simploidal.save()</span></code></a> (e.g., by <code class="docutils literal notranslate"><span class="pre">--save</span></code> of an earlier run)
-instead of <span class="math notranslate nohighlight">\(P_0 = O\)</span>.  It must be a Bézier simplex of dimension
-<span class="math notranslate nohighlight">\(M - 1\)</span>, the degree <code class="docutils literal notranslate"><span class="pre">--degree</span></code> and <span class="math notranslate nohighlight">\(L\)</span> values; otherwise, the
-command stops with an error message.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--freeze</span></code> keeps the control points of the given multi-indices at their
-values in <code class="docutils literal notranslate"><span class="pre">--init</span></code>, which it requires, in the JSON-style format of
-<code class="docutils literal notranslate"><span class="pre">--freeze</span></code> of <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">torch_bsf</span></code>.  Above, the vertices of the
-triangle stay at the minimizers of the single objectives written in
-<code class="docutils literal notranslate"><span class="pre">control_points.csv</span></code>.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--smoothness-weight</span></code> (also <code class="docutils literal notranslate"><span class="pre">--smoothness_weight</span></code>) is
-<code class="docutils literal notranslate"><span class="pre">smoothness_weight</span></code> of <a class="reference internal" href="../torch_bsf.html#torch_bsf.fit_sgd" title="torch_bsf.fit_sgd"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_sgd()</span></code></a> (default <code class="docutils literal notranslate"><span class="pre">0.0</span></code>), which
-must be non-negative.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--log-every</span></code> thins out <code class="docutils literal notranslate"><span class="pre">batch_loss</span></code> to every <span class="math notranslate nohighlight">\(N\)</span>-th iteration
-(default <code class="docutils literal notranslate"><span class="pre">1</span></code>), and <code class="docutils literal notranslate"><span class="pre">--log-every=0</span></code> logs only <code class="docutils literal notranslate"><span class="pre">train_loss</span></code>.  The loss is
-recorded by <code class="docutils literal notranslate"><span class="pre">callback</span></code> and logged to MLflow in a batch after fitting; it
-is that of the minibatch before the update, without the smoothness penalty.</p></li>
-</ul>
-<p>Before fitting, the objective is evaluated on two points to check that it
-maps <code class="docutils literal notranslate"><span class="pre">(batch,</span> <span class="pre">L)</span></code> to differentiable values of shape <code class="docutils literal notranslate"><span class="pre">(batch,</span> <span class="pre">M)</span></code>; an
-objective that cannot be imported or does not match <code class="docutils literal notranslate"><span class="pre">--n-objectives</span></code> and
-<code class="docutils literal notranslate"><span class="pre">--n-variables</span></code> stops the command with an error message.  Run
-<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">torch_bsf</span> <span class="pre">sgd</span> <span class="pre">--help</span></code> for all the options.</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">sgd</span></code> entry point of <code class="docutils literal notranslate"><span class="pre">MLproject</span></code> runs the same command:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mlflow<span class="w"> </span>run<span class="w"> </span>https://github.com/opthub-org/pytorch-bsf<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-e<span class="w"> </span>sgd<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-P<span class="w"> </span><span class="nv">objective</span><span class="o">=</span>problems:objective<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-P<span class="w"> </span><span class="nv">n_objectives</span><span class="o">=</span><span class="m">3</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-P<span class="w"> </span><span class="nv">n_variables</span><span class="o">=</span><span class="m">3</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-P<span class="w"> </span><span class="nv">degree</span><span class="o">=</span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-P<span class="w"> </span><span class="nv">batch_size</span><span class="o">=</span><span class="m">20</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-P<span class="w"> </span><span class="nv">step_size</span><span class="o">=</span><span class="m">0</span>.2
-</pre></div>
-</div>
-<p>The command runs in the directory of the project, so the module of the
-objectives must be installed in the environment of the run or found on its
-<code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code> (with <code class="docutils literal notranslate"><span class="pre">--env-manager=local</span></code>, set <code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code> to the
-directory of <code class="docutils literal notranslate"><span class="pre">problems.py</span></code>).  The parameters <code class="docutils literal notranslate"><span class="pre">meshgrid</span></code> (default <code class="docutils literal notranslate"><span class="pre">.</span></code>,
-i.e., no meshgrid), <code class="docutils literal notranslate"><span class="pre">n_samples</span></code>, <code class="docutils literal notranslate"><span class="pre">batch_size</span></code> (default <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>, i.e., the
-full batch), <code class="docutils literal notranslate"><span class="pre">max_iter</span></code>, <code class="docutils literal notranslate"><span class="pre">step_size</span></code>, <code class="docutils literal notranslate"><span class="pre">step_decay</span></code>, <code class="docutils literal notranslate"><span class="pre">preconditioner</span></code>,
-<code class="docutils literal notranslate"><span class="pre">seed</span></code> (default <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>, i.e., none), <code class="docutils literal notranslate"><span class="pre">init</span></code> and <code class="docutils literal notranslate"><span class="pre">freeze</span></code> (default <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>,
-i.e., none), <code class="docutils literal notranslate"><span class="pre">smoothness_weight</span></code> and <code class="docutils literal notranslate"><span class="pre">log_every</span></code> are also exposed, e.g.,
-<code class="docutils literal notranslate"><span class="pre">-P</span> <span class="pre">init=/path/to/control_points.csv</span> <span class="pre">-P</span> <span class="pre">freeze='[[2,0,0],[0,2,0],[0,0,2]]'</span></code>
-(give <code class="docutils literal notranslate"><span class="pre">init</span></code> as an absolute path, since the command runs in the directory of
-the project).</p>
-<p>The command line fits Bézier simplices with the linear scalarization only;
-for Bézier simploids, simploidal Bézier spaces or other losses, use
-<a class="reference internal" href="../torch_bsf.html#torch_bsf.fit_sgd" title="torch_bsf.fit_sgd"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit_sgd()</span></code></a> from Python.</p>
+<section id="historical-benchmark-figures">
+<h2>Historical benchmark figures<a class="headerlink" href="#historical-benchmark-figures" title="Link to this heading"></a></h2>
+<p>The figures below were generated before the unified API migration. They
+illustrate the research problems and are not performance measurements of this
+release. The migrated script can generate fresh figures and metrics.</p>
 </section>
 <section id="benchmarks-sgd-vs-psgd">
 <h2>Benchmarks: SGD vs. PSGD<a class="headerlink" href="#benchmarks-sgd-vs-psgd" title="Link to this heading"></a></h2>
 <p>The script <code class="docutils literal notranslate"><span class="pre">examples/sgd_benchmarks.py</span></code> reproduces the experiments of
-Section 5 of <span class="bibtex-citation" id="id2">Hikima <em>et al.</em> [<a class="reference internal" href="../references.html#id3" title="Yasunari Hikima, Ken Kobayashi, Akinori Tanaka, Akiyoshi Sannai, and Naoki Hamada. Stochastic gradient descent for bézier simplex representation of pareto set in multi-objective optimization. In Proceedings of The 28th International Conference on Artificial Intelligence and Statistics, volume 258 of Proceedings of Machine Learning Research. 2025. URL: https://proceedings.mlr.press/v258/hikima25a.html.">HKT+25</a>]</span> with <a class="reference internal" href="../torch_bsf.html#torch_bsf.fit_sgd" title="torch_bsf.fit_sgd"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_sgd()</span></code></a>,
+Section 5 of <span class="bibtex-citation" id="id1">Hikima <em>et al.</em> [<a class="reference internal" href="../references.html#id3" title="Yasunari Hikima, Ken Kobayashi, Akinori Tanaka, Akiyoshi Sannai, and Naoki Hamada. Stochastic gradient descent for bézier simplex representation of pareto set in multi-objective optimization. In Proceedings of The 28th International Conference on Artificial Intelligence and Statistics, volume 258 of Proceedings of Machine Learning Research. 2025. URL: https://proceedings.mlr.press/v258/hikima25a.html.">HKT+25</a>]</span> with <code class="xref py py-func docutils literal notranslate"><span class="pre">minimize()</span></code>,
 comparing plain SGD (<code class="docutils literal notranslate"><span class="pre">preconditioner=&quot;none&quot;</span></code>) with the preconditioned SGD
 of the paper (PSGD, <code class="docutils literal notranslate"><span class="pre">preconditioner=&quot;gram&quot;</span></code>).  The problems are implemented
 from their definitions in the paper:</p>
 <ul class="simple">
-<li><p><strong>Bergou2020</strong> <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../references.html#id23" title="El Houcine Bergou, Youssef Diouane, and Vyacheslav Kungurtsev. Complexity iteration analysis for strongly convex multi-objective optimization using a newton path-following procedure. Optimization Letters, 15:1215–1227, 2021. doi:10.1007/s11590-020-01623-x.">BDK21</a>]</span> (<span class="math notranslate nohighlight">\(M = 2\)</span>, <span class="math notranslate nohighlight">\(L = 2\)</span>):
+<li><p><strong>Bergou2020</strong> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id23" title="El Houcine Bergou, Youssef Diouane, and Vyacheslav Kungurtsev. Complexity iteration analysis for strongly convex multi-objective optimization using a newton path-following procedure. Optimization Letters, 15:1215–1227, 2021. doi:10.1007/s11590-020-01623-x.">BDK21</a>]</span> (<span class="math notranslate nohighlight">\(M = 2\)</span>, <span class="math notranslate nohighlight">\(L = 2\)</span>):
 <span class="math notranslate nohighlight">\(f_1(\mathbf x) = (x_1 - 1)^2 + (x_1 - x_2)^2\)</span> and
 <span class="math notranslate nohighlight">\(f_2(\mathbf x) = (x_2 - 3)^2 + (x_1 - x_2)^2\)</span>.</p></li>
 <li><p><strong>Scaled-MED</strong> (<span class="math notranslate nohighlight">\(M = 3\)</span>, <span class="math notranslate nohighlight">\(L = 3\)</span>):
@@ -500,7 +207,7 @@ minibatches of <span class="math notranslate nohighlight">\(m = 20\)</span>, <sp
 step size <span class="math notranslate nohighlight">\(\alpha = 0.05\)</span>, the degrees <span class="math notranslate nohighlight">\(D \in \{2, 3, 4\}\)</span>, and 5
 trials with different samples, SGD and PSGD sharing the samples of a trial.
 The losses are recorded with <code class="docutils literal notranslate"><span class="pre">callback</span></code> as in
-<a class="reference internal" href="#monitoring-the-loss-and-stopping-early">Monitoring the loss and stopping early</a>: the empirical loss on the
+the explicit optimizer callback: the empirical loss on the
 <span class="math notranslate nohighlight">\(n\)</span> samples and the generalization loss on 10,000 other samples.  The
 script plots with matplotlib and SciPy, which the <code class="docutils literal notranslate"><span class="pre">plot</span></code> extra installs.  In
 a clone of the repository, run</p>
@@ -517,45 +224,45 @@ samples for the empirical loss and on the 10,000 samples for the
 generalization loss).  The figures show the optimality gap
 <span class="math notranslate nohighlight">\(\mathcal L(P^{(k)}) - \mathcal L(P^*)\)</span>, the mean over the trials as a
 line and the range as a band:</p>
-<figure class="align-default" id="id5">
+<figure class="align-default" id="id4">
 <a class="reference internal image-reference" href="../_images/sgd_benchmark_bergou2020_loss.png"><img alt="../_images/sgd_benchmark_bergou2020_loss.png" src="../_images/sgd_benchmark_bergou2020_loss.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 14 </span><span class="caption-text">Bergou2020: the optimality gap of the empirical (top) and generalization
+<p><span class="caption-number">Fig. 5 </span><span class="caption-text">Bergou2020: the optimality gap of the empirical (top) and generalization
+(bottom) losses.</span><a class="headerlink" href="#id4" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id5">
+<a class="reference internal image-reference" href="../_images/sgd_benchmark_scaled_med_loss.png"><img alt="../_images/sgd_benchmark_scaled_med_loss.png" src="../_images/sgd_benchmark_scaled_med_loss.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 6 </span><span class="caption-text">Scaled-MED: the optimality gap of the empirical (top) and generalization
 (bottom) losses.</span><a class="headerlink" href="#id5" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <figure class="align-default" id="id6">
-<a class="reference internal image-reference" href="../_images/sgd_benchmark_scaled_med_loss.png"><img alt="../_images/sgd_benchmark_scaled_med_loss.png" src="../_images/sgd_benchmark_scaled_med_loss.png" style="width: 100%;" />
-</a>
-<figcaption>
-<p><span class="caption-number">Fig. 15 </span><span class="caption-text">Scaled-MED: the optimality gap of the empirical (top) and generalization
-(bottom) losses.</span><a class="headerlink" href="#id6" title="Link to this image"></a></p>
-</figcaption>
-</figure>
-<figure class="align-default" id="id7">
 <a class="reference internal image-reference" href="../_images/sgd_benchmark_facility_location_loss.png"><img alt="../_images/sgd_benchmark_facility_location_loss.png" src="../_images/sgd_benchmark_facility_location_loss.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 16 </span><span class="caption-text">Location problem: the optimality gap of the empirical (top) and
-generalization (bottom) losses.</span><a class="headerlink" href="#id7" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 7 </span><span class="caption-text">Location problem: the optimality gap of the empirical (top) and
+generalization (bottom) losses.</span><a class="headerlink" href="#id6" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id8">
+<figure class="align-default" id="id7">
 <a class="reference internal image-reference" href="../_images/sgd_benchmark_skew_mmd_transformed_loss.png"><img alt="../_images/sgd_benchmark_skew_mmd_transformed_loss.png" src="../_images/sgd_benchmark_skew_mmd_transformed_loss.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 17 </span><span class="caption-text">Skew-MMD, transformed: the optimality gap of the empirical (top) and
-generalization (bottom) losses.</span><a class="headerlink" href="#id8" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 8 </span><span class="caption-text">Skew-MMD, transformed: the optimality gap of the empirical (top) and
+generalization (bottom) losses.</span><a class="headerlink" href="#id7" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>The loss of the skew-MMD is not convex and its minimizer has no closed form,
 so its figure shows the loss <span class="math notranslate nohighlight">\(\mathcal L(P^{(k)})\)</span> itself:</p>
-<figure class="align-default" id="id9">
+<figure class="align-default" id="id8">
 <a class="reference internal image-reference" href="../_images/sgd_benchmark_skew_mmd_loss.png"><img alt="../_images/sgd_benchmark_skew_mmd_loss.png" src="../_images/sgd_benchmark_skew_mmd_loss.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 18 </span><span class="caption-text">Skew-MMD: the empirical (top) and generalization (bottom) losses.</span><a class="headerlink" href="#id9" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 9 </span><span class="caption-text">Skew-MMD: the empirical (top) and generalization (bottom) losses.</span><a class="headerlink" href="#id8" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>PSGD decreases both losses much faster than SGD on every problem, with one
@@ -585,43 +292,43 @@ use <code class="docutils literal notranslate"><span class="pre">step_decay=&quo
 (empirical loss for the skew-MMD), with the control points (red) and the
 boundary of the true Pareto set and front (dotted).  For the location problem, the Pareto set lies in
 <span class="math notranslate nohighlight">\(x_4 = 0\)</span> and is drawn in <span class="math notranslate nohighlight">\((x_1, x_2, x_3)\)</span>.</p>
-<figure class="align-default" id="id10">
+<figure class="align-default" id="id9">
 <a class="reference internal image-reference" href="../_images/sgd_benchmark_bergou2020_pareto.png"><img alt="../_images/sgd_benchmark_bergou2020_pareto.png" src="../_images/sgd_benchmark_bergou2020_pareto.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 19 </span><span class="caption-text">Bergou2020: the approximated Pareto set (top) and front (bottom).  The
+<p><span class="caption-number">Fig. 10 </span><span class="caption-text">Bergou2020: the approximated Pareto set (top) and front (bottom).  The
 true ones are given by
 <span class="math notranslate nohighlight">\(x_1^*(\mathbf t) = (t_1^2 + t_1 - 3) / (t_1^2 - t_1 - 1)\)</span> and
-<span class="math notranslate nohighlight">\(x_2^*(\mathbf t) = (3t_1^2 - t_1 - 3) / (t_1^2 - t_1 - 1)\)</span>.</span><a class="headerlink" href="#id10" title="Link to this image"></a></p>
+<span class="math notranslate nohighlight">\(x_2^*(\mathbf t) = (3t_1^2 - t_1 - 3) / (t_1^2 - t_1 - 1)\)</span>.</span><a class="headerlink" href="#id9" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id11">
+<figure class="align-default" id="id10">
 <a class="reference internal image-reference" href="../_images/sgd_benchmark_scaled_med_pareto.png"><img alt="../_images/sgd_benchmark_scaled_med_pareto.png" src="../_images/sgd_benchmark_scaled_med_pareto.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 20 </span><span class="caption-text">Scaled-MED: the approximated Pareto set (top) and front (bottom).</span><a class="headerlink" href="#id11" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 11 </span><span class="caption-text">Scaled-MED: the approximated Pareto set (top) and front (bottom).</span><a class="headerlink" href="#id10" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id12">
+<figure class="align-default" id="id11">
 <a class="reference internal image-reference" href="../_images/sgd_benchmark_facility_location_pareto.png"><img alt="../_images/sgd_benchmark_facility_location_pareto.png" src="../_images/sgd_benchmark_facility_location_pareto.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 21 </span><span class="caption-text">Location problem: the approximated Pareto set (top) and front (bottom).</span><a class="headerlink" href="#id12" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 12 </span><span class="caption-text">Location problem: the approximated Pareto set (top) and front (bottom).</span><a class="headerlink" href="#id11" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id13">
+<figure class="align-default" id="id12">
 <a class="reference internal image-reference" href="../_images/sgd_benchmark_skew_mmd_pareto.png"><img alt="../_images/sgd_benchmark_skew_mmd_pareto.png" src="../_images/sgd_benchmark_skew_mmd_pareto.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 22 </span><span class="caption-text">Skew-MMD: the approximated Pareto set (top) and front (bottom).</span><a class="headerlink" href="#id13" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 13 </span><span class="caption-text">Skew-MMD: the approximated Pareto set (top) and front (bottom).</span><a class="headerlink" href="#id12" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id14">
+<figure class="align-default" id="id13">
 <a class="reference internal image-reference" href="../_images/sgd_benchmark_skew_mmd_transformed_pareto.png"><img alt="../_images/sgd_benchmark_skew_mmd_transformed_pareto.png" src="../_images/sgd_benchmark_skew_mmd_transformed_pareto.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 23 </span><span class="caption-text">Skew-MMD, transformed: the approximated Pareto set (top) and front of
-<span class="math notranslate nohighlight">\(g\)</span> (bottom).</span><a class="headerlink" href="#id14" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 14 </span><span class="caption-text">Skew-MMD, transformed: the approximated Pareto set (top) and front of
+<span class="math notranslate nohighlight">\(g\)</span> (bottom).</span><a class="headerlink" href="#id13" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>On Bergou2020, the end points of the curve, which correspond to the
@@ -629,7 +336,7 @@ vertices of the simplex that uniform samples of <span class="math notranslate no
 approach, converge the slowest.  On the skew-MMD, the fitted surface leaves
 the true Pareto set, whereas on its transform it follows it; see
 <a class="reference internal" href="#non-convex-objectives-transforming-the-skew-mmd">Non-convex objectives: transforming the skew-MMD</a>.</p>
-<p>The last figures correspond to Figure 4 of <span class="bibtex-citation" id="id4">Hikima <em>et al.</em> [<a class="reference internal" href="../references.html#id3" title="Yasunari Hikima, Ken Kobayashi, Akinori Tanaka, Akiyoshi Sannai, and Naoki Hamada. Stochastic gradient descent for bézier simplex representation of pareto set in multi-objective optimization. In Proceedings of The 28th International Conference on Artificial Intelligence and Statistics, volume 258 of Proceedings of Machine Learning Research. 2025. URL: https://proceedings.mlr.press/v258/hikima25a.html.">HKT+25</a>]</span>:
+<p>The last figures correspond to Figure 4 of <span class="bibtex-citation" id="id3">Hikima <em>et al.</em> [<a class="reference internal" href="../references.html#id3" title="Yasunari Hikima, Ken Kobayashi, Akinori Tanaka, Akiyoshi Sannai, and Naoki Hamada. Stochastic gradient descent for bézier simplex representation of pareto set in multi-objective optimization. In Proceedings of The 28th International Conference on Artificial Intelligence and Statistics, volume 258 of Proceedings of Machine Learning Research. 2025. URL: https://proceedings.mlr.press/v258/hikima25a.html.">HKT+25</a>]</span>:
 they compare how close the approximated Pareto set gets to the true one, by
 the mean squared error of Section 5.3 of the paper,</p>
 <div class="math notranslate nohighlight">
@@ -645,32 +352,32 @@ the generalization loss.  It is recorded at
 location problem and Scaled-MED, as the paper does, and of Bergou2020 and the
 transformed skew-MMD, whose Pareto sets are also known.  As in the other figures, the band is the range over
 the 5 trials, whereas the paper shows a 95% confidence interval.</p>
-<figure class="align-default" id="id15">
+<figure class="align-default" id="id14">
 <a class="reference internal image-reference" href="../_images/sgd_benchmark_facility_location_mse.png"><img alt="../_images/sgd_benchmark_facility_location_mse.png" src="../_images/sgd_benchmark_facility_location_mse.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 24 </span><span class="caption-text">Location problem: the MSE to the true Pareto set.</span><a class="headerlink" href="#id15" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 15 </span><span class="caption-text">Location problem: the MSE to the true Pareto set.</span><a class="headerlink" href="#id14" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id16">
+<figure class="align-default" id="id15">
 <a class="reference internal image-reference" href="../_images/sgd_benchmark_scaled_med_mse.png"><img alt="../_images/sgd_benchmark_scaled_med_mse.png" src="../_images/sgd_benchmark_scaled_med_mse.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 25 </span><span class="caption-text">Scaled-MED: the MSE to the true Pareto set.</span><a class="headerlink" href="#id16" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 16 </span><span class="caption-text">Scaled-MED: the MSE to the true Pareto set.</span><a class="headerlink" href="#id15" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id17">
+<figure class="align-default" id="id16">
 <a class="reference internal image-reference" href="../_images/sgd_benchmark_bergou2020_mse.png"><img alt="../_images/sgd_benchmark_bergou2020_mse.png" src="../_images/sgd_benchmark_bergou2020_mse.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 26 </span><span class="caption-text">Bergou2020: the MSE to the true Pareto set.</span><a class="headerlink" href="#id17" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 17 </span><span class="caption-text">Bergou2020: the MSE to the true Pareto set.</span><a class="headerlink" href="#id16" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-default" id="id18">
+<figure class="align-default" id="id17">
 <a class="reference internal image-reference" href="../_images/sgd_benchmark_skew_mmd_transformed_mse.png"><img alt="../_images/sgd_benchmark_skew_mmd_transformed_mse.png" src="../_images/sgd_benchmark_skew_mmd_transformed_mse.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 27 </span><span class="caption-text">Skew-MMD, transformed: the MSE to the true Pareto set.</span><a class="headerlink" href="#id18" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 18 </span><span class="caption-text">Skew-MMD, transformed: the MSE to the true Pareto set.</span><a class="headerlink" href="#id17" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>The MSE follows the optimality gap.  For the location problem,
@@ -750,7 +457,7 @@ on the first <span class="math notranslate nohighlight">\(N = 1{,}000\)</span> s
 higher degrees have not converged in 100 iterations yet (see the optimality
 gap above).  To fit a model to the Pareto set of objectives that are increasing
 functions of convex ones, pass the transformed objectives to
-<a class="reference internal" href="../torch_bsf.html#torch_bsf.simploidal.linear_scalarization" title="torch_bsf.simploidal.linear_scalarization"><code class="xref py py-func docutils literal notranslate"><span class="pre">linear_scalarization()</span></code></a>:</p>
+<code class="xref py py-func docutils literal notranslate"><span class="pre">linear_scalarization()</span></code>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">3.0</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># the powers p_i of the skew-MMD</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">transformed</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>

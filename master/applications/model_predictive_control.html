@@ -53,6 +53,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../advanced.html">Advanced Topics</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../applications.html">Applications</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="elastic_net.html">Elastic Net Model Selection</a></li>
@@ -69,7 +70,7 @@
 <li class="toctree-l2"><a class="reference internal" href="facility_location.html">Facility Location and Continuous Approximations</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API reference</span></p>
@@ -118,7 +119,7 @@ f_{energy}(U) &amp;= \sum_{k=0}^{H-1} \|u_k\|_S^2\end{split}\]</div>
 <p>An MPC controller solves the same problem again at every sampling instant, each time from a different measured state.
 The optimal inputs therefore depend not only on the objective weights <span class="math notranslate nohighlight">\(w\)</span> but also on the initial state <span class="math notranslate nohighlight">\(x_0\)</span>.
 Their joint parameter space is the product of the weight simplex and an interval, i.e., the square <span class="math notranslate nohighlight">\(\Delta^1 \times \Delta^1\)</span>,
-which is a <em>simploid</em> rather than a simplex (see <a class="reference internal" href="../advanced/simploidal.html"><span class="doc">Simploidal Sets</span></a>).
+which is a <em>simploid</em> rather than a simplex (see <a class="reference internal" href="../advanced/simploidal.html"><span class="doc">Single and assembled domains</span></a>).
 We therefore fit a Bézier simploid of type <span class="math notranslate nohighlight">\((1, 1)\)</span> that represents, in one polynomial, the Pareto sets and fronts for all initial states — an explicit multi-objective MPC law.</p>
 <p><strong>Problem Setup:</strong></p>
 <ul class="simple">
@@ -140,7 +141,7 @@ For a fixed <span class="math notranslate nohighlight">\(w\)</span>, it is affin
 <li><p>Sample an <span class="math notranslate nohighlight">\(11 \times 5\)</span> grid on the square: 11 weight vectors from <span class="math notranslate nohighlight">\(w = (1,0)\)</span> to <span class="math notranslate nohighlight">\((0,1)\)</span> and 5 initial states from <span class="math notranslate nohighlight">\(x_0 = -1\)</span> to <span class="math notranslate nohighlight">\(1\)</span>.</p></li>
 <li><p>For each <span class="math notranslate nohighlight">\((w, x_0)\)</span>, solve <span class="math notranslate nohighlight">\(U^*(w, x_0) = \arg\min_U [w_1 f_1(U; x_0) + w_2 f_2(U)]\)</span> using L-BFGS-B.</p></li>
 <li><p>Collect the Pareto front points <span class="math notranslate nohighlight">\((f_1, f_2)\)</span> and the Pareto set points <span class="math notranslate nohighlight">\(U^*\)</span>.</p></li>
-<li><p>Fit Bézier simploids of type <span class="math notranslate nohighlight">\((1, 1)\)</span> with <a class="reference internal" href="../torch_bsf.html#torch_bsf.fit" title="torch_bsf.fit"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit()</span></code></a>: degree <span class="math notranslate nohighlight">\((6, 2)\)</span> for the Pareto front and <span class="math notranslate nohighlight">\((6, 1)\)</span> for the Pareto set.</p></li>
+<li><p>Fit Bézier simploids of type <span class="math notranslate nohighlight">\((1, 1)\)</span> with <code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit()</span></code>: degree <span class="math notranslate nohighlight">\((6, 2)\)</span> for the Pareto front and <span class="math notranslate nohighlight">\((6, 1)\)</span> for the Pareto set.</p></li>
 <li><p>Evaluate the fitted simploids on a <span class="math notranslate nohighlight">\(41 \times 21\)</span> test grid.</p></li>
 </ol>
 <p>On the test grid, the maximum error is about <span class="math notranslate nohighlight">\(0.01\)</span> on the Pareto front (0.2% of the range of <span class="math notranslate nohighlight">\(f_1\)</span>) and below <span class="math notranslate nohighlight">\(10^{-3}\)</span> on the Pareto set.

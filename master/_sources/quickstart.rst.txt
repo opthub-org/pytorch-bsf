@@ -1,243 +1,83 @@
 Quickstart
 ==========
 
-PyTorch-BSF can be used in four ways depending on your workflow: as a **Docker container** (no installation required), as a zero-install **MLflow project** (great for one-off experiments with experiment tracking), as a **CLI module** (scriptable, no Python coding required), or as a **Python library** (for full programmatic control).
-Pick the option that best fits your setup.
+Create a polynomial space, observations, and an explicit fit result::
 
+    import torch
+    from torch_bsf import BezierSpace, Samples, fit
 
-Run as a Docker Container
---------------------------
+    space = BezierSpace.simplex(dimension=1, degree=2)
+    t = torch.tensor([[1., 0.], [.5, .5], [0., 1.]])
+    result = fit(space, Samples(t, [[0.], [1.], [4.]]))
+    result.require_success()
+    predictions = result.model(t)
+    print(result.metrics)
 
-A pre-built image is available on GHCR, built on ``condaforge/miniforge3`` with PyTorch (CPU build) installed from the ``conda-forge`` channel.
+``BezierSpace`` contains immutable geometry and coefficient ordering.
+``BezierModel`` contains the learned coefficients and is a PyTorch module.
+``fit`` always returns ``FitResult``; predict through ``result.model``.
+No Lightning, MLflow or Conda installation is required for this example.
 
-**Prerequisites:** `Docker`_.
+The command line uses the same operations::
 
-.. _Docker: https://docs.docker.com/get-docker/
+    python -m torch_bsf fit --params params.csv --values values.csv --degree 2 --save model.bsf
+    python -m torch_bsf predict --model model.bsf --params params.csv --save predictions.csv
+    python -m torch_bsf cross-validate --params params.csv --values values.csv --degree 2 --folds 3
+    python -m torch_bsf select-degree --params params.csv --values values.csv --degree 1 --degrees 1 2 3 --folds 3
 
+Outputs include metrics and numerical status. An unsuccessful numerical solve
+returns a nonzero exit code. Tracking is opt-in with ``fit --track``.
+Run ``bash examples/quickstart/run.sh`` for a complete local example.
 
-Training
-^^^^^^^^
+Persistence uses one versioned, non-pickled format::
 
-Let's prepare sample parameters and values files for training:
+    from torch_bsf.io import save_model, load_model
+    save_model("model.bsf", result.model)
+    restored = load_model("model.bsf")
 
-.. literalinclude:: ../examples/quickstart/run.sh
-   :language: bash
-   :start-after: [TAG:CreateFiles]
-   :end-before: [TAG:CreateFiles_End]
+The extension does not choose a different format. CSV export is a separate
+``export_control_points`` operation and does not preserve geometry.
 
-.. warning::
-   The parameters file and the values file must have the same number of lines.
-
-Mount the current directory as ``/workspace`` inside the container and run training:
-
-.. code-block:: bash
-
-   docker run --rm \
-     --user "$(id -u)":"$(id -g)" \
-     -v "$(pwd)":/workspace \
-     ghcr.io/opthub-org/pytorch-bsf \
-     python -m torch_bsf \
-     --params=params.csv \
-     --values=values.csv \
-     --degree=3
-
-The trained model will be saved under ``mlruns/`` in the current directory.
-
-
-Run as an MLflow Project
+Verified Python workflow
 ------------------------
 
-MLflow can run PyTorch-BSF directly from its GitHub repository without a manual installation step. It automatically creates a conda environment from the project's ``environment.yml``, which installs PyTorch and the other dependencies from the ``conda-forge`` channel only. This makes it the easiest way to get started with experiment tracking.
-
-.. _MLflow: https://www.mlflow.org/docs/latest/
-
-
-Installation
-^^^^^^^^^^^^
-
-Install `Miniforge`_.
-Another conda installation also works, but conda 26.7 and later still add the channels in your ``.condarc`` to the environment (`conda/conda#16816`_), so remove ``defaults`` there (``conda config --remove channels defaults``) to keep it out.
-Then, install ``mlflow`` package from ``conda-forge`` channel:
-
-.. code-block:: bash
-
-   conda install -c conda-forge mlflow
-
-.. _Miniforge: https://conda-forge.org/download/
-.. _conda/conda#16816: https://github.com/conda/conda/issues/16816
-
-
-Training
-^^^^^^^^
-
-Let's prepare sample parameters and values files for training:
-
-.. literalinclude:: ../examples/quickstart/run.sh
-   :language: bash
-   :start-after: [TAG:CreateFiles]
-   :end-before: [TAG:CreateFiles_End]
-
-.. warning::
-   The parameters file and the values file must have the same number of lines.
-
-Now, you can fit a Bézier simplex model using the latest version of PyTorch-BSF directly from its GitHub repository:
-
-.. literalinclude:: ../examples/quickstart/run.sh
-   :language: bash
-   :start-after: [TAG:MLflowURLDefine]
-   :end-before: [TAG:MLflowURLDefine_End]
-
-.. literalinclude:: ../examples/quickstart/run.sh
-   :language: bash
-   :start-after: [TAG:RunMLflowTraining]
-   :end-before: [TAG:RunMLflowTraining_End]
-
-.. tip::
-   To fit a Bézier simploid (e.g., on a prism) instead of a Bézier simplex, add ``-P simploid_type=2,1``, or ``--simploid-type=2,1`` on the command line. See :doc:`advanced/simploidal`.
-
-After the command finishes, the trained model will be saved in ``mlruns/0`` directory.
-Note the **Run ID** automatically set to the command execution, as you will need it for prediction.
-
-
-Prediction
-^^^^^^^^^^
-
-To make predictions, MLflow may use ``virtualenv`` and ``pyenv`` to create an isolated environment for the model. Please ensure it's available in your system.
-
-First, find the **Run ID** (e.g., `47a7...`) from the previous training step.
-
-.. literalinclude:: ../examples/quickstart/run.sh
-   :language: bash
-   :start-after: [TAG:FetchLatestRunID]
-   :end-before: [TAG:FetchLatestRunID_End]
-
-
-Next, you can predict with the model and output the results to a specified file (in this example, `test_values.json`).
-
-.. literalinclude:: ../examples/quickstart/run.sh
-   :language: bash
-   :start-after: [TAG:MakePrediction]
-   :end-before: [TAG:MakePrediction_End]
-
-See https://mlflow.org/docs/latest/api_reference/cli.html#mlflow-models-predict for details.
-
-
-Serve Prediction API
-^^^^^^^^^^^^^^^^^^^^
-
-You can also serve a Web API for prediction.
-
-First, find the Run ID (e.g., `a1b2c3...`) set to the model training.
-
-.. literalinclude:: ../examples/quickstart/run.sh
-   :language: bash
-   :start-after: [TAG:FetchLatestRunID]
-   :end-before: [TAG:FetchLatestRunID_End]
-
-
-Then, start a prediction server using the Run ID.
-
-.. literalinclude:: ../examples/quickstart/run.sh
-   :language: bash
-   :start-after: [TAG:ServeAPI]
-   :end-before: [TAG:ServeAPI_End]
-
-
-Now, you can request a prediction with HTTP POST method:
-
-.. literalinclude:: ../examples/quickstart/run.sh
-   :language: bash
-   :start-after: [TAG:PredictWithHTTPPost]
-   :end-before: [TAG:PredictWithHTTPPost_End]
-
-
-See https://mlflow.org/docs/latest/genai/serving/ for details.
-
-
-Run as a Python Package
------------------------
-
-First, install the package (requires Python 3.10 or above):
-
-.. code-block:: bash
-
-   pip install pytorch-bsf
-
-MLflow is an optional dependency.  To log the parameters, metrics and models of the CLI runs to MLflow
-(``--loglevel=1`` or ``2``, the default), install the ``mlflow`` extra (or ``all``) instead:
-
-.. code-block:: bash
-
-   pip install "pytorch-bsf[mlflow]"
-
-With ``--loglevel=0``, the CLI does not import MLflow; if it was already imported in the same Python
-process, its autologging is disabled.  At levels 1 and 2, an absent MLflow produces a warning and the
-command still fits the model and saves the control points and predictions without tracking.  A broken MLflow
-installation raises its original import error instead, so a requested tracking run is not silently discarded.
-See :doc:`installation` for all extras.
-
-Then run ``torch_bsf`` as a CLI module:
-
-.. literalinclude:: ../examples/quickstart/run.sh
-   :language: bash
-   :start-after: [TAG:RunPackageTraining]
-   :end-before: [TAG:RunPackageTraining_End]
-
-
-Run as Python Code
-------------------
-
-First, install the package (requires Python 3.10 or above):
-
-.. code-block:: bash
-
-   pip install pytorch-bsf
-
-To train with the Lightning trainer (``solver="trainer"``, see :doc:`advanced/acceleration`), install the ``lightning`` extra instead:
-
-.. code-block:: bash
-
-   pip install "pytorch-bsf[lightning]"
-
-See :doc:`installation` for the other extras and for upgrading from a version that installed Lightning and MLflow by
-default.
-
-Train a model by calling ``fit()``, then call the model to predict.
+The following example exercises fixed constraints, cross-validation, objective
+minimization, and persistence using the same space and model types.
 
 .. testcode::
-   :pyversion: >= 3.10, < 3.15
 
-   import torch
-   import torch_bsf
+    import tempfile
+    from pathlib import Path
+    import torch
+    from torch_bsf import (
+        BezierSpace, FixedControls, Samples, fit, minimize, PreconditionedSGD,
+    )
+    from torch_bsf.sampling import grid
+    from torch_bsf.model_selection import KFold, cross_validate
+    from torch_bsf.io import save_model, load_model
 
-   # Prepare training parameters
-   ts = torch.tensor(  # parameters on a simplex
-      [
-         [8/8, 0/8],
-         [7/8, 1/8],
-         [6/8, 2/8],
-         [5/8, 3/8],
-         [4/8, 4/8],
-         [3/8, 5/8],
-         [2/8, 6/8],
-         [1/8, 7/8],
-         [0/8, 8/8],
-      ]
-   )
-   xs = 1 - ts * ts  # values corresponding to the parameters
+    space = BezierSpace.simplex(1, degree=2)
+    points = grid(space, resolution=12)
+    observations = Samples(points, points.parameters[:, :1] ** 2)
+    fixed = FixedControls({space.control_index((2, 0)): [1.]})
+    result = fit(space, observations, fixed=fixed)
+    assert result.success and result.metrics["data_mse"] < 1e-24
+    validation = cross_validate(space, observations, cv=KFold(3, seed=7))
+    assert validation.success and validation.metrics["pooled_mse"] < 1e-24
+    optimized = minimize(
+        result.model, lambda y, p: (y[:, 0] - p.parameters[:, 0] ** 2).square(),
+        points=points, method=PreconditionedSGD(gradient_tolerance=1e-8),
+    )
+    assert optimized.success
+    with tempfile.TemporaryDirectory() as directory:
+        destination = Path(directory) / "model.bsf"
+        save_model(destination, optimized.model)
+        restored = load_model(destination)
+        assert torch.equal(restored(points), optimized.model(points))
 
-   # Train a model
-   bs = torch_bsf.fit(params=ts, values=xs, degree=3)
+To predict a saved multi-cell model, pass ``--cell-ids cells.csv`` with one
+integer cell ID per row and pad parameter rows to the saved space width.
 
-   # Predict with the trained model
-   t = [
-      [0.2, 0.8],
-      [0.7, 0.3],
-   ]
-   x = bs(t)
-   print(x)
-
-.. testoutput::
-   :hide:
-
-   tensor([[...]], grad_fn=<...>)
+A one-column parameter CSV denotes a constant domain when dimensions are
+inferred. The column is a dummy input and is ignored for both fitting and
+prediction of zero-dimensional models.

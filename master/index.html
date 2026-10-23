@@ -51,9 +51,10 @@
 <li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a></li>
-<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently asked questions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API reference</span></p>
@@ -87,7 +88,7 @@
              
   <section id="welcome-to-pytorch-bsf">
 <h1>Welcome to PyTorch-BSF!<a class="headerlink" href="#welcome-to-pytorch-bsf" title="Link to this heading"></a></h1>
-<p><strong>Fit smooth, high-dimensional manifolds to your data — from a single GPU to a multi-node cluster.</strong></p>
+<p><strong>Fit smooth manifolds with explicit geometry and numerical evidence.</strong></p>
 <p>PyTorch-BSF brings <strong>B</strong>ézier <strong>S</strong>imploid <strong>F</strong>itting (BSF) to PyTorch.
 A Bézier simplex is a high-dimensional generalization of the Bézier curve: it can model an arbitrarily complex point cloud as a smooth parametric hyper-surface in any number of dimensions (see <a class="reference external" href="whatis.html">Bézier simplex fitting</a>).
 <a class="reference external" href="advanced/simploidal.html">Bézier simploids</a> go further: they are tensor products of Bézier simplices defined on products of simplices such as prisms and cubes, and simploidal sets glue such cells along common faces.
@@ -113,34 +114,28 @@ This makes them a natural tool for representing <strong>Pareto fronts</strong> i
 <li class="toctree-l2"><a class="reference internal" href="whatis.html#statistical-test-for-simplicial-topology">Statistical Test for Simplicial Topology</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#optional-extras">Optional extras</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#upgrading-from-a-version-that-required-lightning-and-mlflow">Upgrading from a version that required Lightning and MLflow</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#run-as-a-docker-container">Run as a Docker Container</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#run-as-an-mlflow-project">Run as an MLflow Project</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#run-as-a-python-package">Run as a Python Package</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#run-as-python-code">Run as Python Code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#verified-python-workflow">Verified Python workflow</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="advanced/normalization.html">Data Normalization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/sklearn.html">Scikit-learn Integration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/initialization.html">Initial Control Points</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/visualization.html">Bézier Simplex and Simploid Visualization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/splitting.html">Bézier Simplex Splitting</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/auto_degree.html">Automatic Degree Selection</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/regularization.html">Smoothness Regularization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/grid_sampling.html">Elastic Net Grid Sampling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/partial.html">Partial Training</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/sampling.html">Advanced Sampling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/acceleration.html">Hardware Acceleration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/active_learning.html">Active Learning</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/simploidal.html">Simploidal Sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/normalization.html">Output scaling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/initialization.html">Explicit initial models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/visualization.html">Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/auto_degree.html">Cross-validation and degree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/partial.html">Fixed controls</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/sampling.html">Sampling and grids</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/active_learning.html">Explicit ensembles and queries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/simploidal.html">Single and assembled domains</a></li>
 <li class="toctree-l2"><a class="reference internal" href="advanced/simploidal_category.html">The Category of Simploidal Sets</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/sgd.html">Pareto Set Learning by Stochastic Gradient Descent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/sgd.html">Objective minimization</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a><ul>
@@ -155,11 +150,12 @@ This makes them a natural tool for representing <strong>Pareto fronts</strong> i
 <li class="toctree-l2"><a class="reference internal" href="applications/facility_location.html">Facility Location and Continuous Approximations</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="faq.html#general-information">General Information</a></li>
-<li class="toctree-l2"><a class="reference internal" href="faq.html#mathematical-foundations">Mathematical Foundations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="faq.html#practical-usage">Practical Usage</a></li>
-<li class="toctree-l2"><a class="reference internal" href="faq.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently asked questions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="faq.html#do-i-need-conda-lightning-or-mlflow">Do I need Conda, Lightning or MLflow?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faq.html#how-do-i-predict">How do I predict?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faq.html#does-solver-success-imply-identifiable-coefficients">Does solver success imply identifiable coefficients?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faq.html#how-do-i-choose-a-degree">How do I choose a degree?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="faq.html#where-did-the-old-apis-go">Where did the old APIs go?</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
@@ -169,7 +165,7 @@ This makes them a natural tool for representing <strong>Pareto fronts</strong> i
 <p class="caption" role="heading"><span class="caption-text">API reference</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="modules.html">torch_bsf</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html">torch_bsf package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html">Python API</a></li>
 </ul>
 </li>
 </ul>

@@ -49,9 +49,10 @@
 <li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a></li>
-<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently asked questions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API reference</span></p>
@@ -94,56 +95,56 @@
  | <a href="#F"><strong>F</strong></a>
  | <a href="#G"><strong>G</strong></a>
  | <a href="#I"><strong>I</strong></a>
+ | <a href="#K"><strong>K</strong></a>
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
  | <a href="#N"><strong>N</strong></a>
+ | <a href="#O"><strong>O</strong></a>
  | <a href="#P"><strong>P</strong></a>
  | <a href="#Q"><strong>Q</strong></a>
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
  | <a href="#T"><strong>T</strong></a>
  | <a href="#V"><strong>V</strong></a>
- | <a href="#Z"><strong>Z</strong></a>
+ | <a href="#W"><strong>W</strong></a>
  
 </div>
 <h2 id="A">A</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalSet.add_simplex">add_simplex() (torch_bsf.simploidal.SimploidalSet method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.add_simplex">add_simplex() (torch_bsf.geometry.SimploidalSet method)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalSet.add_simploid">add_simploid() (torch_bsf.simploidal.SimploidalSet method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.add_simploid">add_simploid() (torch_bsf.geometry.SimploidalSet method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalSet.add_vertex">add_vertex() (torch_bsf.simploidal.SimploidalSet method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.add_vertex">add_vertex() (torch_bsf.geometry.SimploidalSet method)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.BezierSimploid.adjacency">adjacency() (torch_bsf.simploidal.BezierSimploid method)</a>
-
-      <ul>
-        <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalBezierSpace.adjacency">(torch_bsf.simploidal.SimploidalBezierSpace method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.core.BezierSpace.adjacency">adjacency() (torch_bsf.core.BezierSpace method)</a>
 </li>
-      </ul></li>
   </ul></td>
 </tr></table>
 
 <h2 id="B">B</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.Simploid.base">base (torch_bsf.simploidal.Simploid property)</a>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.Simploid.base">base (torch_bsf.geometry.Simploid property)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.bernstein_basis">bernstein_basis() (in module torch_bsf.simploidal)</a>
+      <li><a href="torch_bsf.html#torch_bsf.core.BezierSpace.basis">basis() (torch_bsf.core.BezierSpace method)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalSet.betti_numbers">betti_numbers() (torch_bsf.simploidal.SimploidalSet method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.core.BasisOperator">BasisOperator (class in torch_bsf.core)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.betti_numbers">betti_numbers() (torch_bsf.geometry.SimploidalSet method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalBezierSpace.bezier_simploid">bezier_simploid() (torch_bsf.simploidal.SimploidalBezierSpace method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.core.BezierModel">BezierModel (class in torch_bsf.core)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.BezierSimploid">BezierSimploid (class in torch_bsf.simploidal)</a>
+      <li><a href="torch_bsf.html#torch_bsf.sklearn.BezierRegressor">BezierRegressor (class in torch_bsf.sklearn)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.sklearn.BezierSimploidRegressor">BezierSimploidRegressor (class in torch_bsf.sklearn)</a>
+      <li><a href="torch_bsf.html#torch_bsf.core.BezierSpace">BezierSpace (class in torch_bsf.core)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalSet.boundary_matrix">boundary_matrix() (torch_bsf.simploidal.SimploidalSet method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.boundary_matrix">boundary_matrix() (torch_bsf.geometry.SimploidalSet method)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -151,15 +152,29 @@
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalSet.check">check() (torch_bsf.simploidal.SimploidalSet method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.core.Cell">Cell (class in torch_bsf.core)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalSet.cone">cone() (torch_bsf.simploidal.SimploidalSet method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.core.BezierSpace.cell_id">cell_id() (torch_bsf.core.BezierSpace method)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.check">check() (torch_bsf.geometry.SimploidalSet method)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.core.BezierSpace.compatible">compatible() (torch_bsf.core.BezierSpace method)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.cone">cone() (torch_bsf.geometry.SimploidalSet method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalBezierSpace.control_point_rows">control_point_rows() (torch_bsf.simploidal.SimploidalBezierSpace method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.core.BezierSpace.control_index">control_index() (torch_bsf.core.BezierSpace method)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalBezierSpace.control_points">control_points() (torch_bsf.simploidal.SimploidalBezierSpace method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.results.ConvergenceError">ConvergenceError</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.results.ConvergenceWarning">ConvergenceWarning</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.core.BezierModel.copy">copy() (torch_bsf.core.BezierModel method)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.model_selection.cross_validate">cross_validate() (in module torch_bsf.model_selection)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.model_selection.CVResult">CVResult (class in torch_bsf.model_selection)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -167,30 +182,24 @@
 <h2 id="D">D</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.Simploid.degeneracy">degeneracy() (torch_bsf.simploidal.Simploid method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.Simploid.degeneracy">degeneracy() (torch_bsf.geometry.Simploid method)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.Simploid.degeneracy_map">degeneracy_map (torch_bsf.simploidal.Simploid property)</a>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.Simploid.degeneracy_map">degeneracy_map (torch_bsf.geometry.Simploid property)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.BezierSimploid.degenerate">degenerate() (torch_bsf.simploidal.BezierSimploid method)</a>
-
-      <ul>
-        <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalSet.degenerate">(torch_bsf.simploidal.SimploidalSet method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.degenerate">degenerate() (torch_bsf.geometry.SimploidalSet method)</a>
 </li>
-      </ul></li>
+      <li><a href="torch_bsf.html#torch_bsf.model_selection.DegreeCandidate">DegreeCandidate (class in torch_bsf.model_selection)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.BezierSimploid.degree">degree (torch_bsf.simploidal.BezierSimploid property)</a>
+      <li><a href="torch_bsf.html#torch_bsf.model_selection.DegreeSearchResult">DegreeSearchResult (class in torch_bsf.model_selection)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.BezierSimploid.design_matrix">design_matrix() (torch_bsf.simploidal.BezierSimploid method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.solvers.DenseLeastSquares">DenseLeastSquares (class in torch_bsf.solvers)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.Simploid.dim">dim (torch_bsf.geometry.Simploid property)</a>
 
       <ul>
-        <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalBezierSpace.design_matrix">(torch_bsf.simploidal.SimploidalBezierSpace method)</a>
-</li>
-      </ul></li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.Simploid.dim">dim (torch_bsf.simploidal.Simploid property)</a>
-
-      <ul>
-        <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalSet.dim">(torch_bsf.simploidal.SimploidalSet property)</a>
+        <li><a href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.dim">(torch_bsf.geometry.SimploidalSet property)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -199,31 +208,27 @@
 <h2 id="E">E</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalBezierSpace.evaluate">evaluate() (torch_bsf.simploidal.SimploidalBezierSpace method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.splitting.EdgeSplit">EdgeSplit (class in torch_bsf.splitting)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.BezierSimploid.extra_repr">extra_repr() (torch_bsf.simploidal.BezierSimploid method)</a>
-
-      <ul>
-        <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalBezierSpace.extra_repr">(torch_bsf.simploidal.SimploidalBezierSpace method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.ensemble.Ensemble">Ensemble (class in torch_bsf.ensemble)</a>
 </li>
-      </ul></li>
+      <li><a href="torch_bsf.html#torch_bsf.io.export_control_points">export_control_points() (in module torch_bsf.io)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="F">F</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.BezierSimploid.face">face() (torch_bsf.simploidal.BezierSimploid method)</a>
-
-      <ul>
-        <li><a href="torch_bsf.html#torch_bsf.simploidal.Simploid.face">(torch_bsf.simploidal.Simploid method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.Simploid.face">face() (torch_bsf.geometry.Simploid method)</a>
 </li>
-      </ul></li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.Simploid.faces">faces() (torch_bsf.simploidal.Simploid method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.Simploid.faces">faces() (torch_bsf.geometry.Simploid method)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.fit">fit() (in module torch_bsf)</a>
+      <li><a href="torch_bsf.html#torch_bsf.active_learning.farthest_points">farthest_points() (in module torch_bsf.active_learning)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.fitting.fit">fit() (in module torch_bsf.fitting)</a>
 
       <ul>
         <li><a href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler.fit">(torch_bsf.preprocessing.MinMaxScaler method)</a>
@@ -236,21 +241,9 @@
 </li>
         <li><a href="torch_bsf.html#torch_bsf.preprocessing.StdScaler.fit">(torch_bsf.preprocessing.StdScaler method)</a>
 </li>
-        <li><a href="torch_bsf.html#torch_bsf.sklearn.BezierSimploidRegressor.fit">(torch_bsf.sklearn.BezierSimploidRegressor method)</a>
+        <li><a href="torch_bsf.html#torch_bsf.sklearn.BezierRegressor.fit">(torch_bsf.sklearn.BezierRegressor method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.fit_kfold">fit_kfold() (in module torch_bsf)</a>
-</li>
-      <li><a href="torch_bsf.html#torch_bsf.fit_sgd">fit_sgd() (in module torch_bsf)</a>
-
-      <ul>
-        <li><a href="torch_bsf.html#torch_bsf.simploidal.fit_sgd">(in module torch_bsf.simploidal)</a>
-</li>
-      </ul></li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.fit_simploidal_set">fit_simploidal_set() (in module torch_bsf.simploidal)</a>
-</li>
       <li><a href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler.fit_transform">fit_transform() (torch_bsf.preprocessing.MinMaxScaler method)</a>
 
       <ul>
@@ -263,19 +256,43 @@
         <li><a href="torch_bsf.html#torch_bsf.preprocessing.StdScaler.fit_transform">(torch_bsf.preprocessing.StdScaler method)</a>
 </li>
       </ul></li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.BezierSimploid.forward">forward() (torch_bsf.simploidal.BezierSimploid method)</a>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="torch_bsf.html#torch_bsf.results.FitDiagnostics">FitDiagnostics (class in torch_bsf.results)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.results.FitResult">FitResult (class in torch_bsf.results)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.core.FixedControls">FixedControls (class in torch_bsf.core)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.model_selection.FoldResult">FoldResult (class in torch_bsf.model_selection)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.core.BezierModel.forward">forward() (torch_bsf.core.BezierModel method)</a>
 
       <ul>
-        <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalBezierSpace.forward">(torch_bsf.simploidal.SimploidalBezierSpace method)</a>
+        <li><a href="torch_bsf.html#torch_bsf.ensemble.Ensemble.forward">(torch_bsf.ensemble.Ensemble method)</a>
 </li>
       </ul></li>
+      <li><a href="torch_bsf.html#torch_bsf.core.FixedControls.from_cells">from_cells() (torch_bsf.core.FixedControls class method)</a>
+
+      <ul>
+        <li><a href="torch_bsf.html#torch_bsf.core.Points.from_cells">(torch_bsf.core.Points class method)</a>
+</li>
+        <li><a href="torch_bsf.html#torch_bsf.core.Samples.from_cells">(torch_bsf.core.Samples class method)</a>
+</li>
+      </ul></li>
+      <li><a href="torch_bsf.html#torch_bsf.splitting.ParameterMap.from_parent">from_parent() (torch_bsf.splitting.ParameterMap method)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="G">G</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.gram_matrix">gram_matrix() (in module torch_bsf.simploidal)</a>
+      <li><a href="torch_bsf.html#torch_bsf.optimization.gram_matrix">gram_matrix() (in module torch_bsf.optimization)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="torch_bsf.html#torch_bsf.sampling.grid">grid() (in module torch_bsf.sampling)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -283,13 +300,7 @@
 <h2 id="I">I</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalSet.identify">identify() (torch_bsf.simploidal.SimploidalSet method)</a>
-</li>
-      <li><a href="torch_bsf.html#torch_bsf.validator.index_list">index_list() (in module torch_bsf.validator)</a>
-</li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.BezierSimploid.indices">indices() (torch_bsf.simploidal.BezierSimploid method)</a>
-</li>
-      <li><a href="torch_bsf.html#torch_bsf.validator.int_or_str">int_or_str() (in module torch_bsf.validator)</a>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.identify">identify() (torch_bsf.geometry.SimploidalSet method)</a>
 </li>
       <li><a href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler.inverse_transform">inverse_transform() (torch_bsf.preprocessing.MinMaxScaler method)</a>
 
@@ -305,9 +316,19 @@
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.Simploid.is_degenerate">is_degenerate (torch_bsf.simploidal.Simploid property)</a>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.Simploid.is_degenerate">is_degenerate (torch_bsf.geometry.Simploid property)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.Simploid.is_vertex">is_vertex (torch_bsf.simploidal.Simploid property)</a>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.Simploid.is_vertex">is_vertex (torch_bsf.geometry.Simploid property)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.optimization.Iteration">Iteration (class in torch_bsf.optimization)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="K">K</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="torch_bsf.html#torch_bsf.model_selection.KFold">KFold (class in torch_bsf.model_selection)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -315,71 +336,85 @@
 <h2 id="L">L</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.Simploid.length">length (torch_bsf.simploidal.Simploid property)</a>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.Simploid.length">length (torch_bsf.geometry.Simploid property)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.linear_scalarization">linear_scalarization() (in module torch_bsf.simploidal)</a>
+      <li><a href="torch_bsf.html#torch_bsf.optimization.linear_scalarization">linear_scalarization() (in module torch_bsf.optimization)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.load">load() (in module torch_bsf.simploidal)</a>
+      <li><a href="torch_bsf.html#torch_bsf.io.load_model">load_model() (in module torch_bsf.io)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.longest_edge_criterion">longest_edge_criterion() (in module torch_bsf)</a>
-
-      <ul>
-        <li><a href="torch_bsf.html#torch_bsf.splitting.longest_edge_criterion">(in module torch_bsf.splitting)</a>
+      <li><a href="torch_bsf.html#torch_bsf.integrations.mlflow.log_result">log_result() (in module torch_bsf.integrations.mlflow)</a>
 </li>
-      </ul></li>
+      <li><a href="torch_bsf.html#torch_bsf.splitting.LongestEdge">LongestEdge (class in torch_bsf.splitting)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="M">M</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalSet.main_simploids">main_simploids() (torch_bsf.simploidal.SimploidalSet method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.main_simploids">main_simploids() (torch_bsf.geometry.SimploidalSet method)</a>
 </li>
       <li><a href="torch_bsf.html#torch_bsf.preprocessing.make_scaler">make_scaler() (in module torch_bsf.preprocessing)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.max_error_criterion">max_error_criterion() (in module torch_bsf)</a>
-
-      <ul>
-        <li><a href="torch_bsf.html#torch_bsf.splitting.max_error_criterion">(in module torch_bsf.splitting)</a>
+      <li><a href="torch_bsf.html#torch_bsf.core.BasisOperator.matmat">matmat() (torch_bsf.core.BasisOperator method)</a>
 </li>
-      </ul></li>
-      <li><a href="torch_bsf.html#id5">means (torch_bsf.preprocessing.StdScaler attribute)</a>, <a href="torch_bsf.html#torch_bsf.preprocessing.StdScaler.means">[1]</a>
+      <li><a href="torch_bsf.html#torch_bsf.results.MatrixDiagnostics">MatrixDiagnostics (class in torch_bsf.results)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.preprocessing.StdScaler.means">means (torch_bsf.preprocessing.StdScaler attribute)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.ensemble.Ensemble.members">members() (torch_bsf.ensemble.Ensemble method)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.optimization.minimize">minimize() (in module torch_bsf.optimization)</a>
 </li>
       <li><a href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler">MinMaxScaler (class in torch_bsf.preprocessing)</a>
 </li>
-      <li><a href="torch_bsf.html#id0">mins (torch_bsf.preprocessing.MinMaxScaler attribute)</a>, <a href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler.mins">[1]</a>
+      <li><a href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler.mins">mins (torch_bsf.preprocessing.MinMaxScaler attribute)</a>
 
       <ul>
-        <li><a href="torch_bsf.html#id2">(torch_bsf.preprocessing.QuantileScaler attribute)</a>, <a href="torch_bsf.html#torch_bsf.preprocessing.QuantileScaler.mins">[1]</a>
+        <li><a href="torch_bsf.html#torch_bsf.preprocessing.QuantileScaler.mins">(torch_bsf.preprocessing.QuantileScaler attribute)</a>
 </li>
       </ul></li>
-      <li><a href="torch_bsf.html#torch_bsf.sklearn.BezierSimploidRegressor.model_">model_ (torch_bsf.sklearn.BezierSimploidRegressor attribute)</a>
+      <li><a href="torch_bsf.html#torch_bsf.model_selection.CVResult.models">models (torch_bsf.model_selection.CVResult property)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     module
 
       <ul>
-        <li><a href="torch_bsf.html#module-torch_bsf">torch_bsf</a>
-</li>
         <li><a href="torch_bsf.html#module-torch_bsf.active_learning">torch_bsf.active_learning</a>
+</li>
+        <li><a href="torch_bsf.html#module-torch_bsf.core">torch_bsf.core</a>
+</li>
+        <li><a href="torch_bsf.html#module-torch_bsf.ensemble">torch_bsf.ensemble</a>
+</li>
+        <li><a href="torch_bsf.html#module-torch_bsf.fitting">torch_bsf.fitting</a>
+</li>
+        <li><a href="torch_bsf.html#module-torch_bsf.geometry">torch_bsf.geometry</a>
+</li>
+        <li><a href="torch_bsf.html#module-torch_bsf.integrations.lightning">torch_bsf.integrations.lightning</a>
+</li>
+        <li><a href="torch_bsf.html#module-torch_bsf.integrations.mlflow">torch_bsf.integrations.mlflow</a>
+</li>
+        <li><a href="torch_bsf.html#module-torch_bsf.io">torch_bsf.io</a>
+</li>
+        <li><a href="torch_bsf.html#module-torch_bsf.model_selection">torch_bsf.model_selection</a>
+</li>
+        <li><a href="torch_bsf.html#module-torch_bsf.optimization">torch_bsf.optimization</a>
 </li>
         <li><a href="torch_bsf.html#module-torch_bsf.plotting">torch_bsf.plotting</a>
 </li>
         <li><a href="torch_bsf.html#module-torch_bsf.preprocessing">torch_bsf.preprocessing</a>
 </li>
-        <li><a href="torch_bsf.html#module-torch_bsf.sampling">torch_bsf.sampling</a>
+        <li><a href="torch_bsf.html#module-torch_bsf.results">torch_bsf.results</a>
 </li>
-        <li><a href="torch_bsf.html#module-torch_bsf.simploidal">torch_bsf.simploidal</a>
+        <li><a href="torch_bsf.html#module-torch_bsf.sampling">torch_bsf.sampling</a>
 </li>
         <li><a href="torch_bsf.html#module-torch_bsf.sklearn">torch_bsf.sklearn</a>
 </li>
-        <li><a href="torch_bsf.html#module-torch_bsf.splitting">torch_bsf.splitting</a>
+        <li><a href="torch_bsf.html#module-torch_bsf.solvers">torch_bsf.solvers</a>
 </li>
-        <li><a href="torch_bsf.html#module-torch_bsf.validator">torch_bsf.validator</a>
+        <li><a href="torch_bsf.html#module-torch_bsf.splitting">torch_bsf.splitting</a>
 </li>
       </ul></li>
   </ul></td>
@@ -388,16 +423,10 @@
 <h2 id="N">N</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.BezierSimploid.n_params">n_params (torch_bsf.simploidal.BezierSimploid property)</a>
+      <li><a href="torch_bsf.html#torch_bsf.core.BezierSpace.n_cells">n_cells (torch_bsf.core.BezierSpace property)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalBezierSpace.n_proper_control_points">n_proper_control_points (torch_bsf.simploidal.SimploidalBezierSpace property)</a>
+      <li><a href="torch_bsf.html#torch_bsf.core.BezierModel.n_outputs">n_outputs (torch_bsf.core.BezierModel property)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.BezierSimploid.n_values">n_values (torch_bsf.simploidal.BezierSimploid property)</a>
-
-      <ul>
-        <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalBezierSpace.n_values">(torch_bsf.simploidal.SimploidalBezierSpace property)</a>
-</li>
-      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="torch_bsf.html#torch_bsf.preprocessing.NoneScaler">NoneScaler (class in torch_bsf.preprocessing)</a>
@@ -407,36 +436,50 @@
   </ul></td>
 </tr></table>
 
-<h2 id="P">P</h2>
+<h2 id="O">O</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.plotting.plot_bezier_simplex">plot_bezier_simplex() (in module torch_bsf.plotting)</a>
-</li>
-      <li><a href="torch_bsf.html#torch_bsf.plotting.plot_bezier_simploid">plot_bezier_simploid() (in module torch_bsf.plotting)</a>
-</li>
-      <li><a href="torch_bsf.html#torch_bsf.plotting.plot_simploidal_bezier_space">plot_simploidal_bezier_space() (in module torch_bsf.plotting)</a>
+      <li><a href="torch_bsf.html#torch_bsf.core.BezierSpace.on_set">on_set() (torch_bsf.core.BezierSpace class method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.sklearn.BezierSimploidRegressor.predict">predict() (torch_bsf.sklearn.BezierSimploidRegressor method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.optimization.OptimizationResult">OptimizationResult (class in torch_bsf.optimization)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.BezierSimploid.product">product() (torch_bsf.simploidal.BezierSimploid method)</a>
+  </ul></td>
+</tr></table>
 
-      <ul>
-        <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalSet.product">(torch_bsf.simploidal.SimploidalSet method)</a>
+<h2 id="P">P</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="torch_bsf.html#torch_bsf.splitting.ParameterMap">ParameterMap (class in torch_bsf.splitting)</a>
 </li>
-      </ul></li>
+      <li><a href="torch_bsf.html#torch_bsf.plotting.plot_model">plot_model() (in module torch_bsf.plotting)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.core.Points">Points (class in torch_bsf.core)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="torch_bsf.html#torch_bsf.optimization.PreconditionedSGD">PreconditionedSGD (class in torch_bsf.optimization)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.sklearn.BezierRegressor.predict">predict() (torch_bsf.sklearn.BezierRegressor method)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.product">product() (torch_bsf.geometry.SimploidalSet method)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="Q">Q</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#id3">q (torch_bsf.preprocessing.QuantileScaler attribute)</a>, <a href="torch_bsf.html#torch_bsf.preprocessing.QuantileScaler.q">[1]</a>
+      <li><a href="torch_bsf.html#torch_bsf.preprocessing.QuantileScaler.q">q (torch_bsf.preprocessing.QuantileScaler attribute)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.core.QuadraticPenalty">QuadraticPenalty (class in torch_bsf.core)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="torch_bsf.html#torch_bsf.preprocessing.QuantileScaler">QuantileScaler (class in torch_bsf.preprocessing)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.active_learning.query_by_committee">query_by_committee() (in module torch_bsf.active_learning)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -444,97 +487,67 @@
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.BezierSimploid.rand">rand() (torch_bsf.simploidal.BezierSimploid class method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.integrations.lightning.regression_module">regression_module() (in module torch_bsf.integrations.lightning)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.BezierSimploid.randn">randn() (torch_bsf.simploidal.BezierSimploid class method)</a>
-</li>
-      <li><a href="torch_bsf.html#torch_bsf.reparametrize">reparametrize() (in module torch_bsf)</a>
+      <li><a href="torch_bsf.html#torch_bsf.optimization.OptimizationResult.require_success">require_success() (torch_bsf.optimization.OptimizationResult method)</a>
 
       <ul>
-        <li><a href="torch_bsf.html#torch_bsf.splitting.reparametrize">(in module torch_bsf.splitting)</a>
+        <li><a href="torch_bsf.html#torch_bsf.results.FitResult.require_success">(torch_bsf.results.FitResult method)</a>
 </li>
       </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.BezierSimploid.row">row() (torch_bsf.simploidal.BezierSimploid method)</a>
-
-      <ul>
-        <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalBezierSpace.row">(torch_bsf.simploidal.SimploidalBezierSpace method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.splitting.ResidualSplit">ResidualSplit (class in torch_bsf.splitting)</a>
 </li>
-      </ul></li>
+      <li><a href="torch_bsf.html#torch_bsf.core.BasisOperator.rmatmat">rmatmat() (torch_bsf.core.BasisOperator method)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.sample_domain">sample_domain() (in module torch_bsf.simploidal)</a>
+      <li><a href="torch_bsf.html#torch_bsf.sampling.sample">sample() (in module torch_bsf.sampling)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.sample_simploid">sample_simploid() (in module torch_bsf.simploidal)</a>
+      <li><a href="torch_bsf.html#torch_bsf.core.Samples">Samples (class in torch_bsf.core)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.save">save() (in module torch_bsf.simploidal)</a>
+      <li><a href="torch_bsf.html#torch_bsf.io.save_model">save_model() (in module torch_bsf.io)</a>
 </li>
       <li><a href="torch_bsf.html#torch_bsf.preprocessing.Scaler">Scaler (class in torch_bsf.preprocessing)</a>
 </li>
-      <li><a href="torch_bsf.html#id1">scales (torch_bsf.preprocessing.MinMaxScaler attribute)</a>, <a href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler.scales">[1]</a>
+      <li><a href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler.scales">scales (torch_bsf.preprocessing.MinMaxScaler attribute)</a>
 
       <ul>
-        <li><a href="torch_bsf.html#id4">(torch_bsf.preprocessing.QuantileScaler attribute)</a>, <a href="torch_bsf.html#torch_bsf.preprocessing.QuantileScaler.scales">[1]</a>
+        <li><a href="torch_bsf.html#torch_bsf.preprocessing.QuantileScaler.scales">(torch_bsf.preprocessing.QuantileScaler attribute)</a>
 </li>
       </ul></li>
-      <li><a href="torch_bsf.html#torch_bsf.sklearn.BezierSimploidRegressor.score">score() (torch_bsf.sklearn.BezierSimploidRegressor method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.model_selection.select_degree">select_degree() (in module torch_bsf.model_selection)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.sampling.simplex_grid">simplex_grid() (in module torch_bsf.sampling)</a>
+      <li><a href="torch_bsf.html#torch_bsf.core.BezierSpace.simplex">simplex() (torch_bsf.core.BezierSpace class method)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.sampling.simplex_random">simplex_random() (in module torch_bsf.sampling)</a>
-</li>
-      <li><a href="torch_bsf.html#torch_bsf.sampling.simplex_sobol">simplex_sobol() (in module torch_bsf.sampling)</a>
-</li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.Simploid">Simploid (class in torch_bsf.simploidal)</a>
-</li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalBezierSpace.simploid_degree">simploid_degree() (torch_bsf.simploidal.SimploidalBezierSpace method)</a>
-</li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalBezierSpace.simploid_id">simploid_id() (torch_bsf.simploidal.SimploidalBezierSpace method)</a>
-</li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.simploid_indices">simploid_indices() (in module torch_bsf.simploidal)</a>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.Simploid">Simploid (class in torch_bsf.geometry)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.simploid_n_params">simploid_n_params() (in module torch_bsf.simploidal)</a>
+      <li><a href="torch_bsf.html#torch_bsf.core.BezierSpace.simploid">simploid() (torch_bsf.core.BezierSpace class method)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.BezierSimploid.simploid_type">simploid_type (torch_bsf.simploidal.BezierSimploid property)</a>
-
-      <ul>
-        <li><a href="torch_bsf.html#torch_bsf.simploidal.Simploid.simploid_type">(torch_bsf.simploidal.Simploid property)</a>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.Simploid.simploid_type">simploid_type (torch_bsf.geometry.Simploid property)</a>
 </li>
-      </ul></li>
-      <li><a href="torch_bsf.html#torch_bsf.sklearn.BezierSimploidRegressor.simploid_type_">simploid_type_ (torch_bsf.sklearn.BezierSimploidRegressor attribute)</a>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.SimploidalSet">SimploidalSet (class in torch_bsf.geometry)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalBezierSpace">SimploidalBezierSpace (class in torch_bsf.simploidal)</a>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.simploids">simploids() (torch_bsf.geometry.SimploidalSet method)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalSet">SimploidalSet (class in torch_bsf.simploidal)</a>
+      <li><a href="torch_bsf.html#torch_bsf.solvers.SparseLeastSquares">SparseLeastSquares (class in torch_bsf.solvers)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.SimploidalSet.simploids">simploids() (torch_bsf.simploidal.SimploidalSet method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.model_selection.KFold.split">split() (torch_bsf.model_selection.KFold method)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.split">split() (in module torch_bsf)</a>
-
-      <ul>
-        <li><a href="torch_bsf.html#torch_bsf.splitting.split">(in module torch_bsf.splitting)</a>
-</li>
-      </ul></li>
-      <li><a href="torch_bsf.html#torch_bsf.split_by_criterion">split_by_criterion() (in module torch_bsf)</a>
-
-      <ul>
-        <li><a href="torch_bsf.html#torch_bsf.splitting.split_by_criterion">(in module torch_bsf.splitting)</a>
-</li>
-      </ul></li>
-      <li><a href="torch_bsf.html#torch_bsf.splitting.SplitCriterion">SplitCriterion (in module torch_bsf.splitting)</a>
-</li>
-      <li><a href="torch_bsf.html#id6">stds (torch_bsf.preprocessing.StdScaler attribute)</a>, <a href="torch_bsf.html#torch_bsf.preprocessing.StdScaler.stds">[1]</a>
+      <li><a href="torch_bsf.html#torch_bsf.preprocessing.StdScaler.stds">stds (torch_bsf.preprocessing.StdScaler attribute)</a>
 </li>
       <li><a href="torch_bsf.html#torch_bsf.preprocessing.StdScaler">StdScaler (class in torch_bsf.preprocessing)</a>
 </li>
-      <li><a href="torch_bsf.html#torch_bsf.active_learning.suggest_next_points">suggest_next_points() (in module torch_bsf.active_learning)</a>
+      <li><a href="torch_bsf.html#torch_bsf.splitting.subdivide">subdivide() (in module torch_bsf.splitting)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.splitting.SubdivisionResult">SubdivisionResult (class in torch_bsf.splitting)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -542,18 +555,88 @@
 <h2 id="T">T</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li>
-    torch_bsf
+      <li><a href="torch_bsf.html#torch_bsf.core.Points.take">take() (torch_bsf.core.Points method)</a>
 
       <ul>
-        <li><a href="torch_bsf.html#module-torch_bsf">module</a>
+        <li><a href="torch_bsf.html#torch_bsf.core.Samples.take">(torch_bsf.core.Samples method)</a>
 </li>
       </ul></li>
+      <li><a href="torch_bsf.html#torch_bsf.core.Points.to">to() (torch_bsf.core.Points method)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.core.BasisOperator.to_dense">to_dense() (torch_bsf.core.BasisOperator method)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.splitting.ParameterMap.to_parent">to_parent() (torch_bsf.splitting.ParameterMap method)</a>
+</li>
       <li>
     torch_bsf.active_learning
 
       <ul>
         <li><a href="torch_bsf.html#module-torch_bsf.active_learning">module</a>
+</li>
+      </ul></li>
+      <li>
+    torch_bsf.core
+
+      <ul>
+        <li><a href="torch_bsf.html#module-torch_bsf.core">module</a>
+</li>
+      </ul></li>
+      <li>
+    torch_bsf.ensemble
+
+      <ul>
+        <li><a href="torch_bsf.html#module-torch_bsf.ensemble">module</a>
+</li>
+      </ul></li>
+      <li>
+    torch_bsf.fitting
+
+      <ul>
+        <li><a href="torch_bsf.html#module-torch_bsf.fitting">module</a>
+</li>
+      </ul></li>
+      <li>
+    torch_bsf.geometry
+
+      <ul>
+        <li><a href="torch_bsf.html#module-torch_bsf.geometry">module</a>
+</li>
+      </ul></li>
+      <li>
+    torch_bsf.integrations.lightning
+
+      <ul>
+        <li><a href="torch_bsf.html#module-torch_bsf.integrations.lightning">module</a>
+</li>
+      </ul></li>
+      <li>
+    torch_bsf.integrations.mlflow
+
+      <ul>
+        <li><a href="torch_bsf.html#module-torch_bsf.integrations.mlflow">module</a>
+</li>
+      </ul></li>
+      <li>
+    torch_bsf.io
+
+      <ul>
+        <li><a href="torch_bsf.html#module-torch_bsf.io">module</a>
+</li>
+      </ul></li>
+      <li>
+    torch_bsf.model_selection
+
+      <ul>
+        <li><a href="torch_bsf.html#module-torch_bsf.model_selection">module</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li>
+    torch_bsf.optimization
+
+      <ul>
+        <li><a href="torch_bsf.html#module-torch_bsf.optimization">module</a>
 </li>
       </ul></li>
       <li>
@@ -571,21 +654,19 @@
 </li>
       </ul></li>
       <li>
+    torch_bsf.results
+
+      <ul>
+        <li><a href="torch_bsf.html#module-torch_bsf.results">module</a>
+</li>
+      </ul></li>
+      <li>
     torch_bsf.sampling
 
       <ul>
         <li><a href="torch_bsf.html#module-torch_bsf.sampling">module</a>
 </li>
       </ul></li>
-      <li>
-    torch_bsf.simploidal
-
-      <ul>
-        <li><a href="torch_bsf.html#module-torch_bsf.simploidal">module</a>
-</li>
-      </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     torch_bsf.sklearn
 
@@ -594,17 +675,17 @@
 </li>
       </ul></li>
       <li>
+    torch_bsf.solvers
+
+      <ul>
+        <li><a href="torch_bsf.html#module-torch_bsf.solvers">module</a>
+</li>
+      </ul></li>
+      <li>
     torch_bsf.splitting
 
       <ul>
         <li><a href="torch_bsf.html#module-torch_bsf.splitting">module</a>
-</li>
-      </ul></li>
-      <li>
-    torch_bsf.validator
-
-      <ul>
-        <li><a href="torch_bsf.html#module-torch_bsf.validator">module</a>
 </li>
       </ul></li>
       <li><a href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler.transform">transform() (torch_bsf.preprocessing.MinMaxScaler method)</a>
@@ -625,15 +706,29 @@
 <h2 id="V">V</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.Simploid.vertices">vertices() (torch_bsf.simploidal.Simploid method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.core.BezierSpace.validate">validate() (torch_bsf.core.BezierSpace method)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="torch_bsf.html#torch_bsf.geometry.Simploid.vertices">vertices() (torch_bsf.geometry.Simploid method)</a>
 </li>
   </ul></td>
 </tr></table>
 
-<h2 id="Z">Z</h2>
+<h2 id="W">W</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="torch_bsf.html#torch_bsf.simploidal.BezierSimploid.zeros">zeros() (torch_bsf.simploidal.BezierSimploid class method)</a>
+      <li><a href="torch_bsf.html#torch_bsf.results.FitResult.warn_if_failed">warn_if_failed() (torch_bsf.results.FitResult method)</a>
+</li>
+      <li><a href="torch_bsf.html#torch_bsf.core.BezierSpace.width">width (torch_bsf.core.BezierSpace property)</a>
+
+      <ul>
+        <li><a href="torch_bsf.html#torch_bsf.core.Cell.width">(torch_bsf.core.Cell property)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="torch_bsf.html#torch_bsf.core.BezierSpace.with_degree">with_degree() (torch_bsf.core.BezierSpace method)</a>
 </li>
   </ul></td>
 </tr></table>

@@ -23,8 +23,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Data Normalization" href="advanced/normalization.html" />
-    <link rel="prev" title="Quickstart" href="quickstart.html" /> 
+    <link rel="next" title="Output scaling" href="advanced/normalization.html" />
+    <link rel="prev" title="Migrating to the unified v0 API" href="migration.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -52,26 +52,27 @@
 <li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Advanced Topics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="advanced/normalization.html">Data Normalization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/sklearn.html">Scikit-learn Integration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/initialization.html">Initial Control Points</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/visualization.html">Bézier Simplex and Simploid Visualization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/splitting.html">Bézier Simplex Splitting</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/auto_degree.html">Automatic Degree Selection</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/regularization.html">Smoothness Regularization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/grid_sampling.html">Elastic Net Grid Sampling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/partial.html">Partial Training</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/sampling.html">Advanced Sampling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/acceleration.html">Hardware Acceleration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/active_learning.html">Active Learning</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/simploidal.html">Simploidal Sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/normalization.html">Output scaling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/initialization.html">Explicit initial models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/visualization.html">Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/auto_degree.html">Cross-validation and degree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/partial.html">Fixed controls</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/sampling.html">Sampling and grids</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/active_learning.html">Explicit ensembles and queries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/simploidal.html">Single and assembled domains</a></li>
 <li class="toctree-l2"><a class="reference internal" href="advanced/simploidal_category.html">The Category of Simploidal Sets</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/sgd.html">Pareto Set Learning by Stochastic Gradient Descent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced/sgd.html">Objective minimization</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a></li>
-<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently asked questions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API reference</span></p>
@@ -105,25 +106,25 @@
              
   <section id="advanced-topics">
 <h1>Advanced Topics<a class="headerlink" href="#advanced-topics" title="Link to this heading"></a></h1>
-<p>This section covers customization options beyond the basic <code class="docutils literal notranslate"><span class="pre">fit()</span></code> call.
-These features are useful for improving fitting accuracy through data normalization, incorporating prior knowledge about the Bézier simplex, or scaling your training to specialized hardware.</p>
+<p>The common space, model and observation types connect regression, optimization
+and optional integrations.</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="advanced/normalization.html">Data Normalization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="advanced/sklearn.html">Scikit-learn Integration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="advanced/initialization.html">Initial Control Points</a></li>
-<li class="toctree-l1"><a class="reference internal" href="advanced/visualization.html">Bézier Simplex and Simploid Visualization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="advanced/splitting.html">Bézier Simplex Splitting</a></li>
-<li class="toctree-l1"><a class="reference internal" href="advanced/auto_degree.html">Automatic Degree Selection</a></li>
-<li class="toctree-l1"><a class="reference internal" href="advanced/regularization.html">Smoothness Regularization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="advanced/grid_sampling.html">Elastic Net Grid Sampling</a></li>
-<li class="toctree-l1"><a class="reference internal" href="advanced/partial.html">Partial Training</a></li>
-<li class="toctree-l1"><a class="reference internal" href="advanced/sampling.html">Advanced Sampling</a></li>
-<li class="toctree-l1"><a class="reference internal" href="advanced/acceleration.html">Hardware Acceleration</a></li>
-<li class="toctree-l1"><a class="reference internal" href="advanced/active_learning.html">Active Learning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="advanced/simploidal.html">Simploidal Sets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/normalization.html">Output scaling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/initialization.html">Explicit initial models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/visualization.html">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/auto_degree.html">Cross-validation and degree search</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/partial.html">Fixed controls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/sampling.html">Sampling and grids</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/active_learning.html">Explicit ensembles and queries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/simploidal.html">Single and assembled domains</a></li>
 <li class="toctree-l1"><a class="reference internal" href="advanced/simploidal_category.html">The Category of Simploidal Sets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="advanced/sgd.html">Pareto Set Learning by Stochastic Gradient Descent</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/sgd.html">Objective minimization</a></li>
 </ul>
 </div>
 </section>
@@ -132,8 +133,8 @@ These features are useful for improving fitting accuracy through data normalizat
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="quickstart.html" class="btn btn-neutral float-left" title="Quickstart" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="advanced/normalization.html" class="btn btn-neutral float-right" title="Data Normalization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="migration.html" class="btn btn-neutral float-left" title="Migrating to the unified v0 API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="advanced/normalization.html" class="btn btn-neutral float-right" title="Output scaling" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

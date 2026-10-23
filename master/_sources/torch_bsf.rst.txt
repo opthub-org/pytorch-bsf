@@ -1,81 +1,121 @@
-torch\_bsf package
-==================
+Python API
+==========
 
-Submodules
-----------
+core
+----
 
-torch\_bsf.active\_learning module
-----------------------------------
-
-.. automodule:: torch_bsf.active_learning
+.. automodule:: torch_bsf.core
    :members:
-   :undoc-members:
    :show-inheritance:
 
-torch\_bsf.plotting module
---------------------------
+geometry
+--------
 
-.. automodule:: torch_bsf.plotting
+.. automodule:: torch_bsf.geometry
    :members:
-   :undoc-members:
    :show-inheritance:
 
-torch\_bsf.preprocessing module
--------------------------------
+fitting
+-------
 
-.. automodule:: torch_bsf.preprocessing
+.. automodule:: torch_bsf.fitting
    :members:
-   :undoc-members:
    :show-inheritance:
 
-torch\_bsf.sampling module
---------------------------
+results
+-------
+
+.. automodule:: torch_bsf.results
+   :members:
+   :show-inheritance:
+
+solvers
+-------
+
+.. automodule:: torch_bsf.solvers
+   :members:
+   :show-inheritance:
+
+optimization
+------------
+
+.. automodule:: torch_bsf.optimization
+   :members:
+   :show-inheritance:
+
+ensemble
+--------
+
+.. automodule:: torch_bsf.ensemble
+   :members:
+   :show-inheritance:
+
+io
+--
+
+.. automodule:: torch_bsf.io
+   :members:
+   :show-inheritance:
+
+sampling
+--------
 
 .. automodule:: torch_bsf.sampling
    :members:
-   :undoc-members:
    :show-inheritance:
 
-torch\_bsf.simploidal module
------------------------------
+model_selection
+---------------
 
-.. automodule:: torch_bsf.simploidal
+.. automodule:: torch_bsf.model_selection
    :members:
-   :undoc-members:
    :show-inheritance:
 
-torch\_bsf.sklearn module
--------------------------
+active_learning
+---------------
+
+.. automodule:: torch_bsf.active_learning
+   :members:
+   :show-inheritance:
+
+plotting
+--------
+
+.. automodule:: torch_bsf.plotting
+   :members:
+   :show-inheritance:
+
+sklearn
+-------
 
 .. automodule:: torch_bsf.sklearn
    :members:
-   :undoc-members:
    :show-inheritance:
 
-torch\_bsf.splitting module
----------------------------
+splitting
+---------
 
 .. automodule:: torch_bsf.splitting
    :members:
-   :undoc-members:
    :show-inheritance:
 
-torch\_bsf.validator module
----------------------------
+integrations.lightning
+----------------------
 
-.. automodule:: torch_bsf.validator
+.. automodule:: torch_bsf.integrations.lightning
    :members:
-   :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
+integrations.mlflow
+-------------------
 
-.. automodule:: torch_bsf
+.. automodule:: torch_bsf.integrations.mlflow
    :members:
-   :undoc-members:
    :show-inheritance:
-   :exclude-members: BezierSimploid, Simploid, SimploidalSet, SimploidalBezierSpace, fit_simploidal_set
 
-The Bézier simploid classes and :func:`~torch_bsf.simploidal.fit_simploidal_set` that ``torch_bsf``
-re-exports are documented in :mod:`torch_bsf.simploidal`.
+preprocessing
+-------------
+
+.. automodule:: torch_bsf.preprocessing
+   :members:
+   :show-inheritance:
