@@ -1,0 +1,209 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Frequently asked questions &mdash; PyTorch-BSF 0.20.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=b52c616d"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="References" href="references.html" />
+    <link rel="prev" title="Facility Location and Continuous Approximations" href="applications/facility_location.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Frequently asked questions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#do-i-need-conda-lightning-or-mlflow">Do I need Conda, Lightning or MLflow?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-do-i-predict">How do I predict?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#does-solver-success-imply-identifiable-coefficients">Does solver success imply identifiable coefficients?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-do-i-choose-a-degree">How do I choose a degree?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#where-did-the-old-apis-go">Where did the old APIs go?</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">torch_bsf</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Frequently asked questions</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/faq.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="frequently-asked-questions">
+<h1>Frequently asked questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this heading"></a></h1>
+<section id="do-i-need-conda-lightning-or-mlflow">
+<h2>Do I need Conda, Lightning or MLflow?<a class="headerlink" href="#do-i-need-conda-lightning-or-mlflow" title="Link to this heading"></a></h2>
+<p>No. Install the core with pip. Integrations are optional and explicit.</p>
+</section>
+<section id="how-do-i-predict">
+<h2>How do I predict?<a class="headerlink" href="#how-do-i-predict" title="Link to this heading"></a></h2>
+<p>Call <code class="docutils literal notranslate"><span class="pre">result.model(points)</span></code>. <code class="docutils literal notranslate"><span class="pre">FitResult</span></code> itself is not callable.</p>
+</section>
+<section id="does-solver-success-imply-identifiable-coefficients">
+<h2>Does solver success imply identifiable coefficients?<a class="headerlink" href="#does-solver-success-imply-identifiable-coefficients" title="Link to this heading"></a></h2>
+<p>No. Inspect data rank and condition diagnostics. Regularization can stabilize
+a system without supplying missing observational information. See
+<a class="reference internal" href="advanced/regularization.html"><span class="doc">Regularization and numerical evidence</span></a>.</p>
+</section>
+<section id="how-do-i-choose-a-degree">
+<h2>How do I choose a degree?<a class="headerlink" href="#how-do-i-choose-a-degree" title="Link to this heading"></a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">select_degree</span></code> with explicit candidates and held-out folds, then
+explicitly refit the chosen space. See <a class="reference internal" href="advanced/auto_degree.html"><span class="doc">Cross-validation and degree search</span></a>.</p>
+</section>
+<section id="where-did-the-old-apis-go">
+<h2>Where did the old APIs go?<a class="headerlink" href="#where-did-the-old-apis-go" title="Link to this heading"></a></h2>
+<p>See <a class="reference internal" href="migration.html"><span class="doc">Migrating to the unified v0 API</span></a>. The project is pre-1.0 and this release intentionally
+consolidates model classes, solvers, sampling, plotting and persistence.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="applications/facility_location.html" class="btn btn-neutral float-left" title="Facility Location and Continuous Approximations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="references.html" class="btn btn-neutral float-right" title="References" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: refactor/417-unified-v0-api
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../v0.0.1/faq.html">v0.0.1</a></dd>
+            <dd><a href="../../v0.0.2/faq.html">v0.0.2</a></dd>
+            <dd><a href="../../v0.1.0/faq.html">v0.1.0</a></dd>
+            <dd><a href="../../v0.10.0/faq.html">v0.10.0</a></dd>
+            <dd><a href="../../v0.11.0/faq.html">v0.11.0</a></dd>
+            <dd><a href="../../v0.11.1/faq.html">v0.11.1</a></dd>
+            <dd><a href="../../v0.11.2/faq.html">v0.11.2</a></dd>
+            <dd><a href="../../v0.11.3/faq.html">v0.11.3</a></dd>
+            <dd><a href="../../v0.12.0/faq.html">v0.12.0</a></dd>
+            <dd><a href="../../v0.12.1/faq.html">v0.12.1</a></dd>
+            <dd><a href="../../v0.13.0/faq.html">v0.13.0</a></dd>
+            <dd><a href="../../v0.13.1/faq.html">v0.13.1</a></dd>
+            <dd><a href="../../v0.13.2/faq.html">v0.13.2</a></dd>
+            <dd><a href="../../v0.13.3/faq.html">v0.13.3</a></dd>
+            <dd><a href="../../v0.13.4/faq.html">v0.13.4</a></dd>
+            <dd><a href="../../v0.14.0/faq.html">v0.14.0</a></dd>
+            <dd><a href="../../v0.14.1/faq.html">v0.14.1</a></dd>
+            <dd><a href="../../v0.14.2/faq.html">v0.14.2</a></dd>
+            <dd><a href="../../v0.14.3/faq.html">v0.14.3</a></dd>
+            <dd><a href="../../v0.15.0/faq.html">v0.15.0</a></dd>
+            <dd><a href="../../v0.15.1/faq.html">v0.15.1</a></dd>
+            <dd><a href="../../v0.16.0/faq.html">v0.16.0</a></dd>
+            <dd><a href="../../v0.16.1/faq.html">v0.16.1</a></dd>
+            <dd><a href="../../v0.17.0/faq.html">v0.17.0</a></dd>
+            <dd><a href="../../v0.18.0/faq.html">v0.18.0</a></dd>
+            <dd><a href="../../v0.19.0/faq.html">v0.19.0</a></dd>
+            <dd><a href="../../v0.2.0/faq.html">v0.2.0</a></dd>
+            <dd><a href="../../v0.20.0/faq.html">v0.20.0</a></dd>
+            <dd><a href="../../v0.3.0/faq.html">v0.3.0</a></dd>
+            <dd><a href="../../v0.3.1/faq.html">v0.3.1</a></dd>
+            <dd><a href="../../v0.4.0/faq.html">v0.4.0</a></dd>
+            <dd><a href="../../v0.5.0/faq.html">v0.5.0</a></dd>
+            <dd><a href="../../v0.5.1/faq.html">v0.5.1</a></dd>
+            <dd><a href="../../v0.6.0/faq.html">v0.6.0</a></dd>
+            <dd><a href="../../v0.7.0/faq.html">v0.7.0</a></dd>
+            <dd><a href="../../v0.8.0/faq.html">v0.8.0</a></dd>
+            <dd><a href="../../v0.9.0/faq.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="faq.html">refactor/417-unified-v0-api</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
