@@ -34,17 +34,17 @@ Package layout
 --------------
 The public names below are re-exported from the submodules:
 
-* ``torch_bsf.simploidal.combinatorics``: simploid types, control point indices, Bernstein bases and sampling;
-* ``torch_bsf.simploidal.sets``: :class:`Simploid` and :class:`SimploidalSet`;
-* ``torch_bsf.simploidal.bezier``: :class:`BezierSimploid`;
-* ``torch_bsf.simploidal.space``: :class:`SimploidalBezierSpace`;
-* ``torch_bsf.simploidal.fitting``: :func:`torch_bsf.fit`, :func:`torch_bsf.fit_kfold` and :func:`fit_simploidal_set`;
-* ``torch_bsf.simploidal.sgd``: :func:`torch_bsf.fit_sgd`, which fits either model to the minimizers of a loss,
+* ``torch_bsf._kernels.combinatorics``: simploid types, control point indices, Bernstein bases and sampling;
+* ``torch_bsf._kernels.sets``: :class:`Simploid` and :class:`SimploidalSet`;
+* ``torch_bsf._kernels.bezier``: :class:`BezierSimploid`;
+* ``torch_bsf._kernels.space``: :class:`SimploidalBezierSpace`;
+* ``torch_bsf._kernels.fitting``: :func:`torch_bsf.fit`, :func:`torch_bsf.fit_kfold` and :func:`fit_simploidal_set`;
+* ``torch_bsf._kernels.sgd``: :func:`torch_bsf.fit_sgd`, which fits either model to the minimizers of a loss,
   e.g., to a Pareto set :cite:p:`hikima2025stochastic`;
-* ``torch_bsf.simploidal.io``: :func:`save` and :func:`load`.
+* ``torch_bsf._kernels.io``: :func:`save` and :func:`load`.
 
 Both models are plain :class:`torch.nn.Module` objects that are linear in their only parameter;
-the solvers of ``torch_bsf.simploidal.fitting`` rely on this alone.
+the solvers of ``torch_bsf._kernels.fitting`` rely on this alone.
 
 Indexing convention
 -------------------
@@ -59,7 +59,7 @@ Examples
 Glue a triangle and a square along an edge and fit the resulting space:
 
 >>> import torch
->>> from torch_bsf.simploidal import SimploidalSet, fit_simploidal_set, sample_simploid
+>>> from torch_bsf._kernels import SimploidalSet, fit_simploidal_set, sample_simploid
 >>> S = SimploidalSet()
 >>> triangle = S.add_simplex(2)
 >>> square = S.add_simploid((1, 1))
@@ -71,8 +71,8 @@ Glue a triangle and a square along an edge and fit the resulting space:
 1
 """
 
-from torch_bsf.simploidal.bezier import BezierSimploid
-from torch_bsf.simploidal.combinatorics import (
+from torch_bsf._kernels.bezier import BezierSimploid
+from torch_bsf._kernels.combinatorics import (
     DegeneracyMap,
     SimploidIndex,
     SimploidType,
@@ -81,11 +81,11 @@ from torch_bsf.simploidal.combinatorics import (
     simploid_indices,
     simploid_n_params,
 )
-from torch_bsf.simploidal.fitting import Solver, fit_simploidal_set
-from torch_bsf.simploidal.io import load, save
-from torch_bsf.simploidal.sets import Simploid, SimploidalSet
-from torch_bsf.simploidal.sgd import SGDCallback, SGDLoss, fit_sgd, gram_matrix, linear_scalarization, sample_domain
-from torch_bsf.simploidal.space import DegreeAssignment, SimploidalBezierSpace
+from torch_bsf._kernels.fitting import Solver, fit_simploidal_set
+from torch_bsf._kernels.io import load, save
+from torch_bsf._kernels.sets import Simploid, SimploidalSet
+from torch_bsf._kernels.sgd import SGDCallback, SGDLoss, fit_sgd, gram_matrix, linear_scalarization, sample_domain
+from torch_bsf._kernels.space import DegreeAssignment, SimploidalBezierSpace
 
 __all__ = [
     "BezierSimploid",

@@ -7,7 +7,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 
-from torch_bsf.sklearn import BezierSimploidRegressor
+from torch_bsf.sklearn import BezierRegressor
 
 # 2-objective LQR: inventory state deviation vs. ordering cost and volatility
 # U = [u0, u1, u2, u3, u4] in R^5 (ordering decisions over 5 periods)
@@ -72,7 +72,7 @@ y = np.column_stack(
 )
 
 # Fit a degree-8 Bézier simplex to the Pareto front
-regressor = BezierSimploidRegressor(degree=8)
+regressor = BezierRegressor(degree=8)
 regressor.fit(X, y)
 
 # Generate smooth curve for visualization
@@ -107,7 +107,7 @@ print("Pareto front plot saved.")
 
 # Fit Bézier simplex to Pareto set (ordering decision space, showing first two periods)
 U_targets = np.array([p[1] for p in optimals])
-regressor_set = BezierSimploidRegressor(degree=8)
+regressor_set = BezierRegressor(degree=8)
 regressor_set.fit(X, U_targets)
 U_smooth = regressor_set.predict(X_smooth)
 

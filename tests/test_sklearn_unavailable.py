@@ -18,7 +18,7 @@ def test_sklearn_unavailable_check_sklearn_raises():
         with pytest.raises(ImportError, match="scikit-learn"):
             sklearn_mod._check_sklearn()
         with pytest.raises(ImportError, match="scikit-learn"):
-            sklearn_mod.BezierSimploidRegressor()
+            sklearn_mod.BezierRegressor()
     finally:
         # Restore original state.
         sklearn_mod._sklearn_available = original_available
@@ -39,4 +39,4 @@ def test_sklearn_unavailable_import_succeeds(monkeypatch):
 
     assert not module._sklearn_available
     with pytest.raises(ImportError, match="scikit-learn"):
-        module.BezierSimploidRegressor()
+        module.BezierRegressor()

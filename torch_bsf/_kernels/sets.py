@@ -7,7 +7,7 @@ from typing import Literal, cast
 
 import torch
 
-from torch_bsf.simploidal.combinatorics import DegeneracyMap, SimploidType, _check_type
+from torch_bsf._kernels.combinatorics import DegeneracyMap, SimploidType, _check_type
 
 
 def _identity_map(simploid_type: SimploidType) -> DegeneracyMap:
@@ -57,7 +57,7 @@ class Simploid:
 
     Examples
     --------
-    >>> from torch_bsf.simploidal import SimploidalSet
+    >>> from torch_bsf.geometry import SimploidalSet
     >>> S = SimploidalSet()
     >>> prism = S.add_simploid((2, 1))
     >>> prism.simploid_type, prism.dim
@@ -220,7 +220,7 @@ class SimploidalSet:
     --------
     A tetrahedron and a cube connected by a prism (Figure 1(c) of the paper):
 
-    >>> from torch_bsf.simploidal import SimploidalSet
+    >>> from torch_bsf.geometry import SimploidalSet
     >>> S = SimploidalSet()
     >>> tetra = S.add_simplex(3)
     >>> prism = S.add_simploid((2, 1))
@@ -297,7 +297,7 @@ class SimploidalSet:
 
         Examples
         --------
-        >>> from torch_bsf.simploidal import SimploidalSet
+        >>> from torch_bsf.geometry import SimploidalSet
         >>> S = SimploidalSet()
         >>> tri = S.add_simplex(2)
         >>> len(S), len(tri.vertices())
@@ -331,7 +331,7 @@ class SimploidalSet:
 
         Examples
         --------
-        >>> from torch_bsf.simploidal import SimploidalSet
+        >>> from torch_bsf.geometry import SimploidalSet
         >>> S = SimploidalSet()
         >>> square = S.add_simploid((1, 1))
         >>> len(S.simploids(0)), len(S.simploids(1)), len(S.simploids(2))
@@ -369,7 +369,7 @@ class SimploidalSet:
 
         Examples
         --------
-        >>> from torch_bsf.simploidal import SimploidalSet
+        >>> from torch_bsf.geometry import SimploidalSet
         >>> A, B = SimploidalSet(), SimploidalSet()
         >>> tri, edge = A.add_simplex(2), B.add_simplex(1)
         >>> P, pairs = A.product(B)
@@ -437,7 +437,7 @@ class SimploidalSet:
 
         Examples
         --------
-        >>> from torch_bsf.simploidal import SimploidalSet
+        >>> from torch_bsf.geometry import SimploidalSet
         >>> S = SimploidalSet()
         >>> square = S.add_simploid((1, 1))
         >>> v, cones = S.cone([square])
@@ -496,7 +496,7 @@ class SimploidalSet:
         --------
         Glue two triangles along an edge:
 
-        >>> from torch_bsf.simploidal import SimploidalSet
+        >>> from torch_bsf.geometry import SimploidalSet
         >>> S = SimploidalSet()
         >>> t1, t2 = S.add_simplex(2), S.add_simplex(2)
         >>> e = S.identify(t1.face(0, 0), t2.face(0, 2))
@@ -569,7 +569,7 @@ class SimploidalSet:
         Collapse an edge of a square into a vertex, which turns the square
         into a triangle-shaped simploid of type ``(1, 1)``:
 
-        >>> from torch_bsf.simploidal import SimploidalSet
+        >>> from torch_bsf.geometry import SimploidalSet
         >>> S = SimploidalSet()
         >>> square = S.add_simploid((1, 1))
         >>> edge = square.face(0, 0)  # an edge of type (1,)
@@ -631,7 +631,7 @@ class SimploidalSet:
 
         Examples
         --------
-        >>> from torch_bsf.simploidal import SimploidalSet
+        >>> from torch_bsf.geometry import SimploidalSet
         >>> S = SimploidalSet()
         >>> square = S.add_simploid((1, 1))
         >>> [[key for key, f in square.faces() if f is e] for e in S.simploids(1)]
@@ -687,7 +687,7 @@ class SimploidalSet:
         --------
         A torus, a square whose opposite edges are identified:
 
-        >>> from torch_bsf.simploidal import SimploidalSet
+        >>> from torch_bsf.geometry import SimploidalSet
         >>> S = SimploidalSet()
         >>> square = S.add_simploid((1, 1))
         >>> _ = S.identify(square.face(0, 0), square.face(0, 1))

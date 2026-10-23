@@ -7,7 +7,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 
-from torch_bsf.sklearn import BezierSimploidRegressor
+from torch_bsf.sklearn import BezierRegressor
 
 # Define a two-objective facility location problem in 2D
 # x represents the facility location
@@ -45,7 +45,7 @@ X = np.column_stack([w1, w2])
 y = np.column_stack([np.array([p[2] for p in optimals]), np.array([p[3] for p in optimals])])
 
 # Fit a degree-3 Bézier simplex to the Pareto front
-regressor = BezierSimploidRegressor(degree=3)
+regressor = BezierRegressor(degree=3)
 regressor.fit(X, y)
 
 # Visualize the optimization-derived Pareto points and the fitted Bézier curve
@@ -73,7 +73,7 @@ fig.savefig("docs/_static/facility_location_pareto_2obj.png", dpi=150, bbox_inch
 print("Pareto front plot saved.")
 # Visualize the Pareto set (x locations)
 x_targets = np.array([p[1] for p in optimals])  # x_opt for each w
-regressor_x = BezierSimploidRegressor(degree=3)
+regressor_x = BezierRegressor(degree=3)
 regressor_x.fit(X, x_targets)
 
 # Predict smooth x locations

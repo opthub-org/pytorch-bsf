@@ -5,125 +5,15 @@ entry_points:
     parameters:
       params: {type: path}
       values: {type: path}
-      meshgrid: {type: path, default: "."}
       degree: {type: int}
-      simploid_type: {type: str, default: ""}
-      solver: {type: str, default: "lstsq"}
-      ridge: {type: float, default: 0.0}
-      smoothness_weight: {type: float, default: 0.0}
-      normalize: {type: str, default: "none"}
-      split_ratio: {type: float, default: 1.0}
-      max_epochs: {type: int, default: 2}
+      save: {type: str, default: "model.bsf"}
     command: >-
-      python -m torch_bsf
-      --params={params}
-      --values={values}
-      --meshgrid={meshgrid}
-      --degree={degree}
-      --simploid-type={simploid_type}
-      --solver={solver}
-      --ridge={ridge}
-      --smoothness_weight={smoothness_weight}
-      --normalize={normalize}
-      --split_ratio={split_ratio}
-      --max_epochs={max_epochs}
-  sgd:
+      python -m torch_bsf fit --params={params} --values={values}
+      --degree={degree} --save={save} --track
+  predict:
     parameters:
-      objective: {type: str}
-      n_objectives: {type: int}
-      n_variables: {type: int}
-      degree: {type: int}
-      meshgrid: {type: path, default: "."}
-      n_samples: {type: int, default: 100}
-      batch_size: {type: str, default: ""}
-      max_iter: {type: int, default: 100}
-      step_size: {type: float, default: 0.05}
-      step_decay: {type: str, default: "constant"}
-      preconditioner: {type: str, default: "gram"}
-      seed: {type: str, default: ""}
-      init: {type: str, default: ""}
-      freeze: {type: str, default: ""}
-      smoothness_weight: {type: float, default: 0.0}
-      log_every: {type: int, default: 1}
-    command: >-
-      python -m torch_bsf sgd
-      --objective={objective}
-      --n-objectives={n_objectives}
-      --n-variables={n_variables}
-      --degree={degree}
-      --meshgrid={meshgrid}
-      --n-samples={n_samples}
-      --batch-size={batch_size}
-      --max-iter={max_iter}
-      --step-size={step_size}
-      --step-decay={step_decay}
-      --preconditioner={preconditioner}
-      --seed={seed}
-      --init={init}
-      --freeze={freeze}
-      --smoothness-weight={smoothness_weight}
-      --log-every={log_every}
-  kfold:
-    parameters:
+      model: {type: path}
       params: {type: path}
-      values: {type: path}
-      meshgrid: {type: path, default: "."}
-      degree: {type: int}
-      simploid_type: {type: str, default: ""}
-      num_folds: {type: int, default: 5}
-      solver: {type: str, default: "lstsq"}
-      ridge: {type: float, default: 0.0}
-      smoothness_weight: {type: float, default: 0.0}
-      normalize: {type: str, default: "none"}
-      max_epochs: {type: int, default: 2}
+      save: {type: str, default: "predictions.csv"}
     command: >-
-      python -m torch_bsf.model_selection.kfold
-      --params={params}
-      --values={values}
-      --meshgrid={meshgrid}
-      --degree={degree}
-      --simploid-type={simploid_type}
-      --num_folds={num_folds}
-      --solver={solver}
-      --ridge={ridge}
-      --smoothness_weight={smoothness_weight}
-      --normalize={normalize}
-      --max_epochs={max_epochs}
-  degree_selection:
-    parameters:
-      params: {type: path}
-      values: {type: path}
-      min_degree: {type: int, default: 1}
-      max_degree: {type: int, default: 5}
-      num_folds: {type: int, default: 5}
-      simploid_type: {type: str, default: ""}
-      solver: {type: str, default: "lstsq"}
-      max_epochs: {type: int, default: 2}
-      header: {type: int, default: 0}
-      accelerator: {type: str, default: "auto"}
-      devices: {type: str, default: "auto"}
-    command: >-
-      python -m torch_bsf.model_selection.degree_selection
-      --params={params}
-      --values={values}
-      --min_degree={min_degree}
-      --max_degree={max_degree}
-      --num_folds={num_folds}
-      --simploid-type={simploid_type}
-      --solver={solver}
-      --max_epochs={max_epochs}
-      --header={header}
-      --accelerator={accelerator}
-      --devices={devices}
-  elastic_net_grid:
-    parameters:
-      n_lambdas: {type: int}
-      n_alphas: {type: int}
-      n_vertex_copies: {type: int}
-      base: {type: int}
-    command: >-
-      python -m torch_bsf.model_selection.elastic_net_grid > weight_{n_lambdas}_{n_alphas}_{n_vertex_copies}_{base}.csv
-      --n_lambdas={n_lambdas}
-      --n_alphas={n_alphas}
-      --n_vertex_copies={n_vertex_copies}
-      --base={base}
+      python -m torch_bsf predict --model={model} --params={params} --save={save}

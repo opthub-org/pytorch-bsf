@@ -2,8 +2,8 @@ import pytest
 import torch
 import torch.nn as nn
 
-from torch_bsf import BezierSimploid
-from torch_bsf.active_learning import suggest_next_points
+from torch_bsf._kernels._active_learning import suggest_next_points
+from torch_bsf._kernels.api import BezierSimploid
 
 
 def _make_models(n_params: int, n_values: int, degree: int, k: int = 2):
@@ -191,7 +191,7 @@ class TestSuggestNextPointsInteroperability:
 class TestSuggestNextPointsSimploid:
     def test_candidates_lie_on_the_simploid(self):
         """The type of the models is used to sample the candidates."""
-        from torch_bsf.simploidal import sample_simploid
+        from torch_bsf._kernels import sample_simploid
 
         models = [BezierSimploid.randn((2, 1), 2, 2) for _ in range(3)]
         existing = sample_simploid((2, 1), 5, seed=0)

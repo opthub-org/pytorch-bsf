@@ -50,7 +50,7 @@ jobs:
         pytest
     - name: E2E test with conda
       run: |
-        python -m torch_bsf --params=params.csv --values=values.csv --degree=3
+        python -m torch_bsf fit --params=params.csv --values=values.csv --degree=3 --save=model.bsf
 
   build-mlflow:
     runs-on: ubuntu-latest

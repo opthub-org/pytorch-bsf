@@ -7,7 +7,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 
-from torch_bsf.sklearn import BezierSimploidRegressor
+from torch_bsf.sklearn import BezierRegressor
 
 
 # Define objective functions for communication routing example
@@ -54,7 +54,7 @@ f2_targets = np.array([p[3] for p in optimal_points])
 # Fit Bézier simplex (multi-output: predict f1 and f2)
 X = np.column_stack([w1_vals, w2_vals])
 y = np.column_stack([f1_targets, f2_targets])
-regressor = BezierSimploidRegressor(degree=3)
+regressor = BezierRegressor(degree=3)
 regressor.fit(X, y)
 
 # Generate smooth curve for visualization
@@ -86,7 +86,7 @@ plt.savefig("docs/_static/communication_fitting.png", dpi=150, bbox_inches="tigh
 
 # Fit Bézier simplex to Pareto set (routing allocation space)
 x_targets = np.array([p[1] for p in optimal_points])
-regressor_set = BezierSimploidRegressor(degree=3)
+regressor_set = BezierRegressor(degree=3)
 regressor_set.fit(X, x_targets)
 x_smooth = regressor_set.predict(X_smooth)
 

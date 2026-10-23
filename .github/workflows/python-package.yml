@@ -71,10 +71,10 @@ jobs:
             extras: ""
             absent: "lightning mlflow scipy sklearn matplotlib"
           - name: no-lightning  # every extra except lightning
-            extras: "mlflow,sampling,sklearn,plot"
+            extras: "mlflow,sparse,sklearn,plot"
             absent: "lightning"
           - name: no-mlflow  # every extra except mlflow
-            extras: "lightning,sampling,sklearn,plot"
+            extras: "lightning,sparse,sklearn,plot"
             absent: "mlflow"
     steps:
     - uses: actions/checkout@v4
@@ -103,7 +103,7 @@ jobs:
         python -c "import sys, torch_bsf; assert not any(m.split('.')[0] in ('lightning', 'mlflow') for m in sys.modules)"
     - name: Run the CLI
       run: |
-        python -m torch_bsf --params=params.csv --values=values.csv --degree=3
+        python -m torch_bsf fit --params=params.csv --values=values.csv --degree=3 --save=model.bsf
     - name: Test with pytest
       run: |
         pytest

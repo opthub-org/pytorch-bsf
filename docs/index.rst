@@ -6,7 +6,7 @@
 Welcome to PyTorch-BSF!
 =======================
 
-**Fit smooth, high-dimensional manifolds to your data — from a single GPU to a multi-node cluster.**
+**Fit smooth manifolds with explicit geometry and numerical evidence.**
 
 PyTorch-BSF brings **B**\ ézier **S**\ imploid **F**\ itting (BSF) to PyTorch.
 A Bézier simplex is a high-dimensional generalization of the Bézier curve: it can model an arbitrarily complex point cloud as a smooth parametric hyper-surface in any number of dimensions (see `Bézier simplex fitting`_).
@@ -37,6 +37,7 @@ The project is on `GitHub`_.
    whatis
    installation
    quickstart
+   migration
    advanced
    applications
    faq

@@ -1,7 +1,7 @@
 """Compare SGD and preconditioned SGD on the benchmark problems of Hikima et al. (AISTATS 2025).
 
 The script fits Bézier simplices to the Pareto sets of the following problems with
-:func:`torch_bsf.fit_sgd`, by plain stochastic gradient descent (SGD, ``preconditioner="none"``) and
+:func:`torch_bsf.minimize`, by plain stochastic gradient descent (SGD, ``preconditioner="none"``) and
 by the preconditioned one of the paper (PSGD, ``preconditioner="gram"``):
 
 * ``bergou2020``: 2 objectives of 2 variables (Bergou et al., 2020);
@@ -58,9 +58,9 @@ import torch  # noqa: E402
 from matplotlib.tri import Triangulation  # noqa: E402
 
 import torch_bsf  # noqa: E402
-from torch_bsf.plotting import plot_bezier_simplex  # noqa: E402
-from torch_bsf.sampling import simplex_grid  # noqa: E402
-from torch_bsf.simploidal import BezierSimploid, linear_scalarization, sample_domain  # noqa: E402
+from torch_bsf import BezierModel, BezierSpace, Points, PreconditionedSGD, linear_scalarization  # noqa: E402
+from torch_bsf.plotting import plot_model  # noqa: E402
+from torch_bsf.sampling import grid, sample  # noqa: E402
 
 DEGREES = (2, 3, 4)
 N_TRIALS = 5
@@ -182,29 +182,30 @@ PROBLEMS = (
 )
 
 
-def initial_model(problem: Problem, degree: int) -> BezierSimploid:
+def initial_model(problem: Problem, degree: int) -> BezierModel:
     """The Bézier simplex with all control points at the origin (``P0 = O``), in double precision."""
-    return BezierSimploid.zeros((problem.n_objectives - 1,), degree, n_values=problem.n_variables).double()
+    space = BezierSpace.simplex(problem.n_objectives - 1, degree=degree)
+    return BezierModel(space, torch.zeros(space.n_controls, problem.n_variables, dtype=torch.float64))
 
 
-def mean_loss(loss: Any, model: BezierSimploid, inputs: list[torch.Tensor]) -> float:
+def mean_loss(loss: Any, model: BezierModel, inputs: list[torch.Tensor]) -> float:
     """The mean loss of ``model`` on ``inputs``."""
     with torch.no_grad():
-        return float(loss(model(*inputs), *inputs).mean())
+        return float(loss(model(*inputs), Points(inputs[0])).mean())
 
 
-def optimal_loss(problem: Problem, init: BezierSimploid, inputs: list[torch.Tensor]) -> float:
+def optimal_loss(problem: Problem, init: BezierModel, inputs: list[torch.Tensor]) -> float:
     """The minimum mean loss over the Bézier simplices of the degree of ``init``, for a quadratic problem.
 
     The mean loss is quadratic in the control points, so one Newton step from any point reaches its
     minimizer; a second step removes the rounding errors.
     """
     loss = linear_scalarization(problem.objective)
-    z = init.design_matrix(*inputs)
-    shape = init.control_points.shape
+    z = init.space.basis(inputs[0]).to_dense()
+    shape = init.coefficients.shape
 
     def mean(p: torch.Tensor) -> torch.Tensor:
-        return loss(z @ p.view(shape), *inputs).mean()
+        return loss(z @ p.view(shape), Points(inputs[0])).mean()
 
     p = torch.zeros(math.prod(shape), dtype=z.dtype)
     for _ in range(2):
@@ -214,7 +215,7 @@ def optimal_loss(problem: Problem, init: BezierSimploid, inputs: list[torch.Tens
     return float(mean(p))
 
 
-def mean_squared_error(problem: Problem, model: BezierSimploid, inputs: list[torch.Tensor]) -> float:
+def mean_squared_error(problem: Problem, model: BezierModel, inputs: list[torch.Tensor]) -> float:
     """The mean of ``||b(t | P) - x*(t)||^2`` over the parameters ``t`` in ``inputs``."""
     assert problem.pareto_set is not None
     with torch.no_grad():
@@ -225,11 +226,13 @@ def pareto_set_points(problem: Problem) -> torch.Tensor | None:
     """Dense points of the Pareto set, if known: its parametrization on a fine grid of the simplex."""
     if problem.known_set is None:
         return None
-    grid = simplex_grid(n_params=problem.n_objectives, degree=10_000 if problem.n_objectives == 2 else 400)
-    return problem.known_set(grid.double())
+    lattice = grid(
+        BezierSpace.simplex(problem.n_objectives - 1, degree=1), resolution=10_000 if problem.n_objectives == 2 else 400
+    ).parameters
+    return problem.known_set(lattice)
 
 
-def distance_to_pareto_set(model: BezierSimploid, inputs: list[torch.Tensor], points: torch.Tensor) -> float:
+def distance_to_pareto_set(model: BezierModel, inputs: list[torch.Tensor], points: torch.Tensor) -> float:
     """The mean of ``min_j ||b(t | P) - x_j||^2`` over the parameters ``t`` in ``inputs``.
 
     ``x_j`` are dense points of the Pareto set, so the distance does not depend on how the model is
@@ -243,35 +246,34 @@ def distance_to_pareto_set(model: BezierSimploid, inputs: list[torch.Tensor], po
 
 def run_trial(
     problem: Problem, degree: int, preconditioner: Any, trial: int, test_inputs: list[torch.Tensor]
-) -> tuple[BezierSimploid, dict[str, list[float]]]:
+) -> tuple[BezierModel, dict[str, list[float]]]:
     """Fits a Bézier simplex once and records the losses at ``P^(0), ..., P^(K)``.
 
     If the Pareto set is known, it also records the MSE to it on ``test_inputs``.
     """
     init = initial_model(problem, degree)
     loss = linear_scalarization(problem.objective)
-    inputs = [t.double() for t in sample_domain(init, N_SAMPLES, seed=trial)]
-    history = {"empirical": [mean_loss(loss, init, inputs)], "generalization": [mean_loss(loss, init, test_inputs)]}
+    inputs = [sample(init.space, N_SAMPLES, seed=trial).parameters]
+    history = {"empirical": [], "generalization": []}
     if problem.pareto_set is not None:
-        history["mse"] = [mean_squared_error(problem, init, test_inputs)]
+        history["mse"] = []
 
-    def record(k: int, model: BezierSimploid, batch_loss: float) -> None:
+    def record(iteration: Any, model: BezierModel) -> None:
         history["empirical"].append(mean_loss(loss, model, inputs))
         history["generalization"].append(mean_loss(loss, model, test_inputs))
         if problem.pareto_set is not None:
             history["mse"].append(mean_squared_error(problem, model, test_inputs))
 
-    model = torch_bsf.fit_sgd(
+    result = torch_bsf.minimize(
         init,
         loss,
-        inputs=inputs,
-        batch_size=BATCH_SIZE,
-        max_iter=MAX_ITER,
-        step_size=STEP_SIZE,
-        preconditioner=preconditioner,
+        points=Points(inputs[0]),
+        method=PreconditionedSGD(batch_size=BATCH_SIZE, max_iter=MAX_ITER, step_size=STEP_SIZE, preconditioner=preconditioner),
         seed=trial,
         callback=record,
     )
+    model = result.model
+    record(None, model)
     if problem.quadratic:  # record the optimality gap instead of the loss
         for key, samples in (("empirical", inputs), ("generalization", test_inputs)):
             best = optimal_loss(problem, init, samples)
@@ -288,7 +290,7 @@ def run_problem(problem: Problem) -> dict[tuple[int, str], Any]:
     trial, on the first ``N_DISTANCE_SAMPLES`` test samples.
     """
     init = initial_model(problem, 1)
-    test_inputs = [t.double() for t in sample_domain(init, N_TEST_SAMPLES, seed=10_000)]
+    test_inputs = [sample(init.space, N_TEST_SAMPLES, seed=10_000).parameters]
     points = pareto_set_points(problem)
     results: dict[tuple[int, str], Any] = {}
     for degree in DEGREES:
@@ -368,9 +370,9 @@ def draw(ax: Any, points: torch.Tensor, **kwargs: Any) -> None:
     ax.plot(*points[:, : 3 if ax.name == "3d" else 2].T.numpy(), **kwargs)
 
 
-def plot_pareto_front(ax: Any, problem: Problem, model: BezierSimploid) -> None:
+def plot_pareto_front(ax: Any, problem: Problem, model: BezierModel) -> None:
     """Plots the image of the Bézier simplex under the objectives."""
-    t = simplex_grid(n_params=problem.n_objectives, degree=30).double()
+    t = grid(model.space, resolution=30).parameters
     with torch.no_grad():
         front = problem.objective(model(t)).numpy()
     if problem.n_objectives == 2:
@@ -391,8 +393,8 @@ def plot_pareto(problem: Problem, results: dict[tuple[int, str], Any]) -> Path:
         ax_set = fig.add_subplot(2, len(DEGREES), col + 1, projection="3d" if set_3d else None)
         ax_front = fig.add_subplot(2, len(DEGREES), len(DEGREES) + col + 1, projection="3d" if front_3d else None)
         # The Pareto set of the location problem lies in x_4 = 0: plot the first three coordinates.
-        shown = BezierSimploid(model.simploid_type, degree, model.control_points.detach()[:, :3])
-        plot_bezier_simplex(shown, num=30, ax=ax_set)
+        shown = BezierModel(model.space, model.coefficients.detach()[:, :3])
+        plot_model(shown, resolution=30, ax=ax_set)
         plot_pareto_front(ax_front, problem, model)
         if problem.known_set is not None:
             for k, t in enumerate(boundary(problem.n_objectives)):

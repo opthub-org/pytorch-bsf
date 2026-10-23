@@ -3,7 +3,7 @@ import warnings
 import pytest
 import torch
 
-from torch_bsf.sampling import simplex_grid, simplex_random, simplex_sobol
+from torch_bsf._kernels._sampling import simplex_grid, simplex_random, simplex_sobol
 
 # ---------------------------------------------------------------------------
 # simplex_grid
@@ -272,7 +272,7 @@ def test_simplex_sobol_scipy_import_error(monkeypatch):
     # Re-import the function from a fresh copy of the module to bypass the cached import.
     import importlib
 
-    import torch_bsf.sampling as sampling_mod
+    import torch_bsf._kernels._sampling as sampling_mod
 
     importlib.reload(sampling_mod)
 

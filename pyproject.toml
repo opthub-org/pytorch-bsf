@@ -45,7 +45,7 @@ dependencies = [
 Homepage = "https://github.com/opthub-org/pytorch-bsf"
 
 [project.optional-dependencies]
-# Only solver="trainer" needs Lightning; its lower bound is checked by the `lowest` job too.
+# Optional execution adapter; the numerical core does not require Lightning.
 lightning = [
   "lightning>=2.4,<3",
 ]
@@ -54,7 +54,7 @@ lightning = [
 mlflow = [
   "mlflow>=3.11.1,<4",
 ]
-sampling = [
+sparse = [
   "scipy",
 ]
 sklearn = [
@@ -113,6 +113,15 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "SIM", "C90"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = [
+  "torch_bsf.solvers.DenseLeastSquares",
+  "torch_bsf.core.QuadraticPenalty",
+  "torch_bsf.optimization.PreconditionedSGD",
+  "torch_bsf.model_selection._validation.KFold",
+  "torch_bsf.splitting.LongestEdge",
+]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10

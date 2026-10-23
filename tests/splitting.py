@@ -1,12 +1,12 @@
-"""Tests for torch_bsf.splitting."""
+"""Tests for torch_bsf._kernels._splitting."""
 
 from typing import Literal
 
 import pytest
 import torch
 
-from torch_bsf import BezierSimploid
-from torch_bsf.splitting import longest_edge_criterion, max_error_criterion, reparametrize, split, split_by_criterion
+from torch_bsf._kernels._splitting import longest_edge_criterion, max_error_criterion, reparametrize, split, split_by_criterion
+from torch_bsf._kernels.api import BezierSimploid
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -206,7 +206,7 @@ def test_split_reproduces_original_higher_dim(n_params, degree):
     i, j, s = 0, 1, 0.5
     bs_A, bs_B = split(bs, i=i, j=j, s=s)
 
-    from torch_bsf.sampling import simplex_random
+    from torch_bsf._kernels._sampling import simplex_random
 
     torch.manual_seed(42)
     params_all = simplex_random(n_params, n_samples=50)
@@ -327,7 +327,7 @@ def test_reparametrize_zero_face_belongs_to_both():
 def test_reparametrize_coordinates_sum_to_one():
     """Re-parameterised coordinates sum to 1 (up to floating-point error)."""
     torch.manual_seed(7)
-    from torch_bsf.sampling import simplex_random
+    from torch_bsf._kernels._sampling import simplex_random
 
     t = simplex_random(n_params=4, n_samples=50)
     for sub in ("A", "B"):
@@ -475,7 +475,7 @@ def test_split_by_criterion_longest_edge():
 
 def test_split_by_criterion_max_error():
     torch.manual_seed(1)
-    from torch_bsf.sampling import simplex_random
+    from torch_bsf._kernels._sampling import simplex_random
 
     n_params, n_values = 3, 2
     params = simplex_random(n_params, n_samples=20)
@@ -505,7 +505,7 @@ def test_split_by_criterion_max_error():
 @pytest.mark.parametrize("s", [0.3, 0.5])
 def test_split_simploid_pieces_reparametrize_the_original(simploid_type, degree, factor, i, j, s):
     """Each piece of a split simploid reproduces the original on its part of the domain."""
-    from torch_bsf.simploidal import sample_simploid
+    from torch_bsf._kernels import sample_simploid
 
     model = BezierSimploid.rand(simploid_type, degree, n_values=2).double()
     model_A, model_B = split(model, i, j, s, factor=factor)
@@ -556,7 +556,7 @@ def test_longest_edge_criterion_picks_the_longest_factor():
 
 
 def test_criteria_split_simploids():
-    from torch_bsf.simploidal import sample_simploid
+    from torch_bsf._kernels import sample_simploid
 
     model = BezierSimploid.rand((2, 1), 2, n_values=2)
     params = sample_simploid((2, 1), 30, seed=0)
@@ -574,12 +574,8 @@ def test_criteria_split_simploids():
 
 
 def test_public_api_accessible_from_top_level():
-    """Splitting symbols are accessible from the torch_bsf package."""
-    import torch_bsf
+    """Only the unified subdivision entry point is public."""
+    from torch_bsf.splitting import EdgeSplit, LongestEdge, subdivide
 
-    assert hasattr(torch_bsf, "split")
-    assert hasattr(torch_bsf, "reparametrize")
-    assert hasattr(torch_bsf, "longest_edge_criterion")
-    assert hasattr(torch_bsf, "max_error_criterion")
-    assert hasattr(torch_bsf, "split_by_criterion")
-    assert hasattr(torch_bsf, "SplitCriterion")
+    assert callable(subdivide)
+    assert EdgeSplit(0, 1).fraction == LongestEdge().fraction

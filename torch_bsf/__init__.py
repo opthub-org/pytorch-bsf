@@ -1,11 +1,4 @@
-"""torch_bsf: PyTorch implementation of Bézier simploid fitting.
-
-BSF stands for Bézier Simploid Fitting (formerly Bézier Simplex Fitting).
-It fits Bézier simplices and, more generally, Bézier simploids, i.e., tensor
-products of Bézier simplices, and simploidal sets glued from them.
-A Bézier simplex is the Bézier simploid of a single factor, so both are
-:class:`BezierSimploid` models fitted by :func:`fit`.
-"""
+"""Bézier fitting with explicit spaces, observations, models and numerical results."""
 
 from importlib.metadata import PackageNotFoundError, version
 
@@ -15,31 +8,31 @@ except PackageNotFoundError:
     # Package is not installed (e.g., running from source without pip install)
     __version__ = "unknown"
 
-from torch_bsf.simploidal import BezierSimploid, Simploid, SimploidalBezierSpace, SimploidalSet, fit_simploidal_set
-from torch_bsf.simploidal.fitting import fit, fit_kfold
-from torch_bsf.simploidal.sgd import fit_sgd
-from torch_bsf.splitting import (
-    SplitCriterion,
-    longest_edge_criterion,
-    max_error_criterion,
-    reparametrize,
-    split,
-    split_by_criterion,
-)
+from torch_bsf.core import BezierModel, BezierSpace, FixedControls, Points, QuadraticPenalty, Samples
+from torch_bsf.ensemble import Ensemble
+from torch_bsf.fitting import fit
+from torch_bsf.geometry import Simploid, SimploidalSet
+from torch_bsf.optimization import OptimizationResult, PreconditionedSGD, linear_scalarization, minimize
+from torch_bsf.results import ConvergenceError, ConvergenceWarning, FitDiagnostics, FitResult, MatrixDiagnostics
 
 __all__ = [
-    "BezierSimploid",
-    "fit",
-    "fit_kfold",
-    "fit_sgd",
-    "SplitCriterion",
-    "split",
-    "reparametrize",
-    "longest_edge_criterion",
-    "max_error_criterion",
-    "split_by_criterion",
+    "BezierSpace",
+    "BezierModel",
+    "Points",
+    "Samples",
+    "FixedControls",
+    "QuadraticPenalty",
     "Simploid",
     "SimploidalSet",
-    "SimploidalBezierSpace",
-    "fit_simploidal_set",
+    "fit",
+    "FitResult",
+    "FitDiagnostics",
+    "MatrixDiagnostics",
+    "ConvergenceError",
+    "ConvergenceWarning",
+    "Ensemble",
+    "OptimizationResult",
+    "PreconditionedSGD",
+    "linear_scalarization",
+    "minimize",
 ]

@@ -1,4 +1,4 @@
-"""The Lightning module behind the ``"trainer"`` solver of :mod:`torch_bsf.simploidal.fitting`.
+"""The Lightning module behind the ``"trainer"`` solver of :mod:`torch_bsf._kernels.fitting`.
 
 This module imports :mod:`lightning.pytorch` at the top level, so the solver imports it only when it runs;
 install Lightning with ``pip install "pytorch-bsf[lightning]"``.
@@ -12,7 +12,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-from torch_bsf.simploidal.fitting import _LinearBezierModel, _parameter, _smoothness_penalty
+from torch_bsf._kernels.fitting import _LinearBezierModel, _parameter, _smoothness_penalty
 
 
 class _LightningWrapper(L.LightningModule):

@@ -95,7 +95,7 @@ def simploid_indices(simploid_type: Sequence[int], degree: int | Sequence[int]) 
 
     Examples
     --------
-    >>> from torch_bsf.simploidal import simploid_indices
+    >>> from torch_bsf._kernels import simploid_indices
     >>> simploid_indices((1, 1), 1)
     [((1, 0), (1, 0)), ((1, 0), (0, 1)), ((0, 1), (1, 0)), ((0, 1), (0, 1))]
     >>> simploid_indices((), 3)
@@ -110,7 +110,7 @@ def simploid_n_params(simploid_type: Sequence[int]) -> int:
 
     Examples
     --------
-    >>> from torch_bsf.simploidal import simploid_n_params
+    >>> from torch_bsf._kernels import simploid_n_params
     >>> simploid_n_params((2, 1))
     5
     """
@@ -137,7 +137,7 @@ def bernstein_basis(simploid_type: Sequence[int], degree: int | Sequence[int], t
     Examples
     --------
     >>> import torch
-    >>> from torch_bsf.simploidal import bernstein_basis
+    >>> from torch_bsf._kernels import bernstein_basis
     >>> bernstein_basis((1, 1), 1, torch.tensor([[0.5, 0.5, 1.0, 0.0]]))
     tensor([[0.5000, 0.0000, 0.5000, 0.0000]])
     """
@@ -225,7 +225,7 @@ def sample_simploid(simploid_type: Sequence[int], n_samples: int, seed: int | No
 
     Examples
     --------
-    >>> from torch_bsf.simploidal import sample_simploid
+    >>> from torch_bsf._kernels import sample_simploid
     >>> t = sample_simploid((2, 1), 4, seed=0)
     >>> t.shape
     torch.Size([4, 5])

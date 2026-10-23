@@ -20,7 +20,7 @@ This document is a guide for contributing to pytorch-bsf.
 pytorch-bsf is a Python library for Bézier Simploid Fitting (formerly Bézier Simplex Fitting). Development follows these principles:
 
 - **Simple API**: Keep the API minimal so users can get started with a single call to `torch_bsf.fit()`.
-- **Backward compatibility**: Do not break existing public APIs in minor releases. Reserve breaking changes for major version bumps.
+- **Backward compatibility**: Before 1.0, deliberate API consolidation may break compatibility in a minor release. Document migrations and use a breaking Conventional Commit. After 1.0, reserve breaking changes for major releases.
 - **Type safety**: Add type hints to all public APIs (PEP 561 compliant; `py.typed` marker is included).
 - **Test coverage**: Every new feature or bug fix must be accompanied by tests.
 - **Documentation sync**: Changes to the public API must include updates to the Sphinx docs and docstrings.
@@ -208,7 +208,7 @@ This project follows the [Conventional Commits](https://www.conventionalcommits.
 
 ### Breaking changes
 
-For changes that break backward compatibility, add `BREAKING CHANGE:` to the commit body or footer. This triggers a major version bump automatically.
+For changes that break backward compatibility, add `BREAKING CHANGE:` to the commit body or footer. Before 1.0 this triggers a minor version bump; after 1.0 it triggers a major version bump.
 
 ```
 feat!: remove deprecated normalize parameter

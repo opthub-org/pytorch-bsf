@@ -7,7 +7,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 
-from torch_bsf.sklearn import BezierSimploidRegressor
+from torch_bsf.sklearn import BezierRegressor
 
 # Define three convex objective functions for a simplified routing problem
 # x = [x1, x2] representing routing allocations
@@ -60,7 +60,7 @@ optimal_values = np.array([[p[2], p[3], p[4]] for p in optimals])
 # Fit a Bézier simplex to the weight-objective mapping
 X = w_list
 y = optimal_values
-regressor = BezierSimploidRegressor(degree=3)
+regressor = BezierRegressor(degree=3)
 regressor.fit(X, y)
 
 # Generate a smooth set of weights across the simplex edge for visualization
@@ -100,7 +100,7 @@ plt.savefig("docs/_static/communication_pareto_3obj.png", dpi=150, bbox_inches="
 
 # Fit Bézier simplex to Pareto set (routing allocation space)
 x_targets = np.array([p[1] for p in optimals])
-regressor_set = BezierSimploidRegressor(degree=3)
+regressor_set = BezierRegressor(degree=3)
 regressor_set.fit(X, x_targets)
 x_smooth = regressor_set.predict(weights_smooth)
 

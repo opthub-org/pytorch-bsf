@@ -9,7 +9,7 @@ import torch
 from matplotlib.collections import LineCollection
 from scipy.optimize import minimize
 
-from torch_bsf import fit
+from torch_bsf import BezierSpace, Samples, fit
 
 # CT reconstruction: fidelity vs. regularization (L-curve experiment)
 # 2D image: 16x16 pixels for realistic 2D reconstruction
@@ -121,7 +121,7 @@ def fit_bezier_simplex(X, Y, degree):
     The control points enter the model linearly, so ``fit`` solves for them exactly, which
     is more accurate than gradient-based training for the 256-dimensional Pareto set.
     """
-    model = fit(torch.tensor(X), torch.tensor(Y), degree=degree)
+    model = fit(BezierSpace.simplex(1, degree=degree), Samples(torch.tensor(X), torch.tensor(Y))).model
 
     def predict(X_new):
         with torch.no_grad():

@@ -6,7 +6,7 @@ Run with::
 
 These benchmarks are intentionally skipped in the normal ``pytest`` run so
 they do not slow down the unit-test suite.  They are useful for detecting
-performance regressions in the forward pass and in :func:`torch_bsf.fit`.
+performance regressions in the forward pass and in :func:`engine_api.fit`.
 """
 
 import sys
@@ -22,10 +22,10 @@ if "--benchmark-only" not in sys.argv:
         "Benchmarks are only run when --benchmark-only is specified.",
         allow_module_level=True,
     )
-import torch_bsf  # noqa: E402
+import torch_bsf._kernels.api as engine_api  # noqa: E402
 from tests import requires_lightning
-from torch_bsf import BezierSimploid  # noqa: E402
-from torch_bsf.sampling import simplex_grid  # noqa: E402
+from torch_bsf._kernels._sampling import simplex_grid  # noqa: E402
+from torch_bsf._kernels.api import BezierSimploid  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Forward-pass benchmarks
@@ -66,7 +66,7 @@ def test_benchmark_forward(n_params, n_values, degree, batch_size, benchmark):
 @requires_lightning
 @pytest.mark.benchmark(group="fit")
 def test_benchmark_fit(benchmark):
-    """Benchmark a short training run of torch_bsf.fit(solver="trainer")."""
+    """Benchmark a short training run of engine_api.fit(solver="trainer")."""
     params = simplex_grid(n_params=3, degree=3)
     values = params.pow(2).sum(dim=1, keepdim=True)
 
@@ -79,14 +79,14 @@ def test_benchmark_fit(benchmark):
     )
 
     def _fit():
-        return torch_bsf.fit(params=params, values=values, degree=2, **fast)
+        return engine_api.fit(params=params, values=values, degree=2, **fast)
 
     benchmark(_fit)
 
 
 @pytest.mark.benchmark(group="fit")
 def test_benchmark_fit_lstsq(benchmark):
-    """Benchmark the exact least-squares solver of torch_bsf.fit()."""
+    """Benchmark the exact least-squares solver of engine_api.fit()."""
     params = simplex_grid(n_params=3, degree=10)
     values = params.pow(2).sum(dim=1, keepdim=True)
-    benchmark(lambda: torch_bsf.fit(params=params, values=values, degree=4))
+    benchmark(lambda: engine_api.fit(params=params, values=values, degree=4))

@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from torch_bsf.plotting import plot_bezier_simplex, plot_bezier_simploid, plot_simploidal_bezier_space
-from torch_bsf.simploidal import BezierSimploid, SimploidalBezierSpace, SimploidalSet, simploid_indices
+from torch_bsf._kernels import BezierSimploid, SimploidalBezierSpace, SimploidalSet, simploid_indices
+from torch_bsf._kernels._plotting import plot_bezier_simplex, plot_bezier_simploid, plot_simploidal_bezier_space
 
 
 def _simplex(n_params: int, degree: int, n_values: int) -> BezierSimploid:
@@ -142,7 +142,7 @@ def test_plot_bezier_simplex_pairwise_sampling_cap(require_matplotlib):
 
     import matplotlib.pyplot as plt
 
-    import torch_bsf.plotting as plotting_module
+    import torch_bsf._kernels._plotting as plotting_module
 
     # n_params=4, num=30 => binom(33, 3) = 5456, which exceeds _MAX_PAIRWISE_POINTS
     n_params, num = 4, 30
@@ -159,7 +159,7 @@ def test_plot_bezier_simplex_pairwise_max_control_points_default(require_matplot
     """Control points exceeding _MAX_CONTROL_POINTS are subsampled by default."""
     import matplotlib.pyplot as plt
 
-    import torch_bsf.plotting as plotting_module
+    import torch_bsf._kernels._plotting as plotting_module
 
     # degree=20, n_params=4 => comb(23,3) = 1771 control points > _MAX_CONTROL_POINTS (500)
     degree = 20
@@ -215,7 +215,7 @@ def test_plot_bezier_simplex_pairwise_max_pairwise_points_default(require_matplo
     """Default max_pairwise_points matches _MAX_PAIRWISE_POINTS and returns correct shape."""
     import matplotlib.pyplot as plt
 
-    import torch_bsf.plotting as plotting_module
+    import torch_bsf._kernels._plotting as plotting_module
 
     model = _simplex(4, 1, 2)
     result = plot_bezier_simplex(model, num=3, max_pairwise_points=plotting_module._MAX_PAIRWISE_POINTS)
@@ -266,7 +266,7 @@ def test_plot_bezier_curve_no_matplotlib(monkeypatch):
     """plot_bezier_simplex should raise ImportError when matplotlib is unavailable (curve)."""
     import builtins
 
-    from torch_bsf.plotting import _plot_bezier_curve
+    from torch_bsf._kernels._plotting import _plot_bezier_curve
 
     model = _simplex(2, 1, 2)
     real_import = builtins.__import__
@@ -285,7 +285,7 @@ def test_plot_bezier_triangle_no_matplotlib(monkeypatch):
     """plot_bezier_simplex should raise ImportError when matplotlib is unavailable (triangle)."""
     import builtins
 
-    from torch_bsf.plotting import _plot_bezier_triangle
+    from torch_bsf._kernels._plotting import _plot_bezier_triangle
 
     model = _simplex(3, 1, 3)
     real_import = builtins.__import__
@@ -304,7 +304,7 @@ def test_plot_bezier_triangle_no_scipy(monkeypatch, require_matplotlib):
     """_plot_bezier_triangle should raise ImportError when scipy is unavailable."""
     import builtins
 
-    from torch_bsf.plotting import _plot_bezier_triangle
+    from torch_bsf._kernels._plotting import _plot_bezier_triangle
 
     model = _simplex(3, 1, 3)
     real_import = builtins.__import__
@@ -323,7 +323,7 @@ def test_plot_pairwise_no_matplotlib(monkeypatch):
     """_plot_bezier_simplex_pairwise should raise ImportError when matplotlib is unavailable."""
     import builtins
 
-    from torch_bsf.plotting import _plot_bezier_simplex_pairwise
+    from torch_bsf._kernels._plotting import _plot_bezier_simplex_pairwise
 
     model = _simplex(4, 1, 2)
     real_import = builtins.__import__
@@ -430,7 +430,7 @@ def test_plot_bezier_simploid_other_dimensions(require_matplotlib, simploid_type
 
 
 def test_cells_to_draw():
-    from torch_bsf.plotting import _cells_to_draw
+    from torch_bsf._kernels._plotting import _cells_to_draw
 
     assert _cells_to_draw(()) == [()]
     assert _cells_to_draw((1,)) == [((0, 1),)]
@@ -443,7 +443,7 @@ def test_cells_to_draw():
 
 
 def test_cell_triangles():
-    from torch_bsf.plotting import _cell_grid, _cell_triangles
+    from torch_bsf._kernels._plotting import _cell_grid, _cell_triangles
 
     _, coords = _cell_grid((2,), ((0, 1, 2),), 5)
     assert len(coords) == 21
@@ -458,7 +458,7 @@ def test_plot_bezier_simploid_surface_matches_model(require_matplotlib):
     import matplotlib.pyplot as plt
     import numpy as np
 
-    from torch_bsf.sampling import simplex_grid
+    from torch_bsf._kernels._sampling import simplex_grid
 
     model = BezierSimploid.randn((1, 1), 2, 2)
     ax = plot_bezier_simploid(model, num=4, show_control_points=False)
@@ -475,7 +475,7 @@ def test_plot_bezier_simploid_surface_matches_model(require_matplotlib):
 
 
 def test_control_net_edges():
-    from torch_bsf.plotting import _control_net_edges
+    from torch_bsf._kernels._plotting import _control_net_edges
 
     # Bilinear patch: the 4 sides of the square, no diagonal.
     edges = _control_net_edges(simploid_indices((1, 1), 1))

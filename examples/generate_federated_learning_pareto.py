@@ -7,7 +7,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 
-from torch_bsf.sklearn import BezierSimploidRegressor
+from torch_bsf.sklearn import BezierRegressor
 
 # Two-task federated learning with quadratic losses
 # theta in R^2: shared model parameters
@@ -57,7 +57,7 @@ y = np.column_stack(
 )
 
 # Fit a degree-3 Bézier simplex to the Pareto front
-regressor = BezierSimploidRegressor(degree=3)
+regressor = BezierRegressor(degree=3)
 regressor.fit(X, y)
 
 # Generate smooth curve for visualization
@@ -85,7 +85,7 @@ print("Pareto front plot saved.")
 
 # Fit Bézier simplex to Pareto set (model parameter space)
 theta_targets = np.array([p[1] for p in optimals])
-regressor_set = BezierSimploidRegressor(degree=3)
+regressor_set = BezierRegressor(degree=3)
 regressor_set.fit(X, theta_targets)
 theta_smooth = regressor_set.predict(X_smooth)
 

@@ -1,7 +1,7 @@
 r"""Fitting Bézier simploids and simploidal Bézier spaces to Pareto sets by stochastic gradient descent.
 
 This module implements the preconditioned stochastic gradient descent of :cite:t:`hikima2025stochastic`,
-generalized from Bézier simplices to every model of :mod:`torch_bsf.simploidal`.
+generalized from Bézier simplices to every model of :mod:`torch_bsf._kernels`.
 
 Instead of fitting a model to data, :func:`fit_sgd` minimizes the expected loss
 
@@ -47,17 +47,17 @@ from typing import Literal, TypeAlias, TypeVar, cast
 
 import torch
 
-from torch_bsf.simploidal.bezier import BezierSimploid
-from torch_bsf.simploidal.combinatorics import (
+from torch_bsf._kernels.bezier import BezierSimploid
+from torch_bsf._kernels.combinatorics import (
     SimploidIndex,
     SimploidType,
     _factor_tables,
     sample_simploid,
     simploid_n_params,
 )
-from torch_bsf.simploidal.fitting import _incidence, _parameter, _smoothness_penalty
-from torch_bsf.simploidal.sets import Simploid
-from torch_bsf.simploidal.space import SimploidalBezierSpace
+from torch_bsf._kernels.fitting import _incidence, _parameter, _smoothness_penalty
+from torch_bsf._kernels.sets import Simploid
+from torch_bsf._kernels.space import SimploidalBezierSpace
 
 #: A loss ``loss(values, *inputs)`` returning the loss of every sample, of shape ``(batch,)``, where ``values``
 #: is the output of the model and ``inputs`` are the arguments of its ``forward``: ``(t,)`` for a
@@ -121,7 +121,7 @@ def gram_matrix(
 
     :math:`\mathbf z(\mathbf u)` is the row of ``model.design_matrix`` at :math:`\mathbf u`, which is uniform on
     the domain of the model (see :func:`sample_domain`).  The matrix is computed exactly (see
-    :mod:`torch_bsf.simploidal.sgd`).
+    :mod:`torch_bsf._kernels.sgd`).
 
     Parameters
     ----------
@@ -147,7 +147,7 @@ def gram_matrix(
     --------
     The Gram matrix of the linear Bézier curve (the paper's closed form for :math:`M = 2`, :math:`D = 1`):
 
-    >>> from torch_bsf.simploidal import BezierSimploid, gram_matrix
+    >>> from torch_bsf._kernels import BezierSimploid, gram_matrix
     >>> import torch
     >>> gram = gram_matrix(BezierSimploid.zeros((1,), 1, n_values=1))
     >>> torch.allclose(gram * 6, torch.tensor([[2.0, 1.0], [1.0, 2.0]], dtype=torch.float64))
@@ -217,7 +217,7 @@ def sample_domain(
 
     Examples
     --------
-    >>> from torch_bsf.simploidal import SimploidalSet, SimploidalBezierSpace, sample_domain
+    >>> from torch_bsf._kernels import SimploidalSet, SimploidalBezierSpace, sample_domain
     >>> S = SimploidalSet()
     >>> tri, sq = S.add_simplex(2), S.add_simploid((1, 1))
     >>> space = SimploidalBezierSpace(S, degree=2, n_values=1)
@@ -263,7 +263,7 @@ def linear_scalarization(objective: Callable[[torch.Tensor], torch.Tensor]) -> S
     Examples
     --------
     >>> import torch
-    >>> from torch_bsf.simploidal import linear_scalarization
+    >>> from torch_bsf._kernels import linear_scalarization
     >>> loss = linear_scalarization(lambda x: torch.stack([x[:, 0] ** 2, (x[:, 0] - 1) ** 2], dim=1))
     >>> loss(torch.tensor([[0.5]]), torch.tensor([[0.25, 0.75]]))
     tensor([0.2500])
@@ -315,7 +315,7 @@ def _frozen_rows(model: BezierSimploid | SimploidalBezierSpace, freeze: FreezeSp
     """The sorted rows of the parameter of ``model`` holding the control points in ``freeze``.
 
     The indices are resolved by :meth:`BezierSimploid.row` or :meth:`SimploidalBezierSpace.row`, as in
-    :func:`~torch_bsf.fit` and :func:`~torch_bsf.simploidal.fit_simploidal_set`.
+    :func:`~torch_bsf.fit` and :func:`~torch_bsf._kernels.fit_simploidal_set`.
     """
     if freeze is None:
         return []
@@ -426,7 +426,7 @@ def fit_sgd(
     r"""Fits a model to the minimizers of a loss by (preconditioned) stochastic gradient descent.
 
     This is Algorithm 1 of :cite:t:`hikima2025stochastic`, generalized to Bézier simploids and simploidal
-    Bézier spaces (see :mod:`torch_bsf.simploidal.sgd`).  It minimizes the mean of ``loss`` over fixed
+    Bézier spaces (see :mod:`torch_bsf._kernels.sgd`).  It minimizes the mean of ``loss`` over fixed
     samples ``inputs`` of the domain: at every iteration ``k``, it draws a minibatch of ``batch_size``
     samples uniformly without replacement and updates the parameter :math:`P` of the model as
     :math:`P \leftarrow P - \alpha_k \Sigma^{-1} \nabla \mathcal L_B(P)`, where :math:`\Sigma` is
@@ -478,7 +478,7 @@ def fit_sgd(
     freeze
         Control points that keep their values in ``model``.  For a Bézier simploid, their indices as in
         :func:`~torch_bsf.fit` (a Bézier simplex also accepts its multi-indices alone, e.g. ``(2, 0, 0)``);
-        for a space, pairs ``(simploid, index)`` as in :func:`~torch_bsf.simploidal.fit_simploidal_set`.
+        for a space, pairs ``(simploid, index)`` as in :func:`~torch_bsf._kernels.fit_simploidal_set`.
     smoothness_weight
         The weight :math:`w \ge 0` of the smoothness penalty added to the loss.
     seed
@@ -508,7 +508,7 @@ def fit_sgd(
 
     >>> import torch
     >>> import torch_bsf
-    >>> from torch_bsf.simploidal import BezierSimploid, linear_scalarization
+    >>> from torch_bsf._kernels import BezierSimploid, linear_scalarization
     >>> def objective(x):
     ...     return ((x.unsqueeze(1) - torch.eye(3)) ** 2).sum(dim=-1)
     >>> init = BezierSimploid.zeros((2,), 1, n_values=3)

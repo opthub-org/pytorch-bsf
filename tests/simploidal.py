@@ -9,10 +9,9 @@ import pytest
 import torch
 
 import torch_bsf
+import torch_bsf._kernels.api as engine_api
 from tests import requires_lightning
-from torch_bsf import fit
-from torch_bsf.preprocessing import NormalizeType
-from torch_bsf.simploidal import (
+from torch_bsf._kernels import (
     BezierSimploid,
     Simploid,
     SimploidalBezierSpace,
@@ -23,6 +22,8 @@ from torch_bsf.simploidal import (
     simploid_indices,
     simploid_n_params,
 )
+from torch_bsf._kernels.api import fit
+from torch_bsf.preprocessing import NormalizeType
 
 TYPES = [(), (1,), (2,), (3,), (1, 1), (2, 1), (1, 2), (1, 1, 1), (2, 2)]
 TRAINER_KWARGS: dict[str, Any] = dict(max_epochs=5, enable_progress_bar=False, logger=False, enable_checkpointing=False)
@@ -165,7 +166,7 @@ def test_bezier_simploid_state_dict_rebuild():
 
 def test_bezier_simploid_forward_uses_cached_basis(monkeypatch):
     """forward rebuilds neither the multi-indices nor the multinomial coefficients."""
-    import torch_bsf.simploidal.combinatorics as comb_module
+    import torch_bsf._kernels.combinatorics as comb_module
 
     bsd = BezierSimploid.randn((2, 1), 3, n_values=2)
     t = sample_simploid((2, 1), 5, seed=0)
@@ -211,7 +212,7 @@ def test_space_design_matrix_matches_forward():
 
 def test_solvers_share_one_code_path(monkeypatch):
     """fit_simploid and fit_simploidal_set hand every model to the same solver function."""
-    import torch_bsf.simploidal.fitting as fitting
+    import torch_bsf._kernels.fitting as fitting
 
     seen = []
     original = fitting._fit
@@ -413,7 +414,7 @@ def test_degenerate_simploids_are_canonical():
 
 
 def test_degenerate_simploids_satisfy_commutation():
-    from torch_bsf.simploidal.sets import _check_commutation
+    from torch_bsf._kernels.sets import _check_commutation
 
     S = SimploidalSet()
     prism = S.add_simploid((2, 1))
@@ -698,7 +699,7 @@ def test_homology_errors():
 
 
 def test_rank_is_exact():
-    from torch_bsf.simploidal.sets import _rank
+    from torch_bsf._kernels.sets import _rank
 
     m = torch.tensor([[2, 4, 6], [1, 2, 3], [0, 0, 0], [3, 1, 2]])
     assert _rank(m, None) == 2
@@ -1140,7 +1141,7 @@ def test_fit_lstsq_accepts_mps_inputs():
     x = t[:, :1] * t[:, 1:2]
     normalizations: list[NormalizeType] = ["none", "std"]
     for normalize in normalizations:
-        bs = torch_bsf.fit(t.to("mps"), x.to("mps"), 2, normalize=normalize)
+        bs = engine_api.fit(t.to("mps"), x.to("mps"), 2, normalize=normalize)
         assert torch.allclose(bs(t), x, atol=1e-5)
     S = SimploidalSet()
     tri = S.add_simplex(2)
@@ -1156,7 +1157,7 @@ def test_fit_lstsq_accepts_mps_init():
     init = BezierSimploid.zeros((2,), 2, n_values=1).to("mps")
     normalizations: list[NormalizeType] = ["none", "std"]
     for normalize in normalizations:
-        bs = torch_bsf.fit(t, x, 2, init=init, freeze=[(2, 0, 0)], normalize=normalize)
+        bs = engine_api.fit(t, x, 2, init=init, freeze=[(2, 0, 0)], normalize=normalize)
         assert bs.control_points.device.type == "mps"
         assert torch.allclose(bs.cpu()(t), x, atol=1e-5)
 
@@ -1171,7 +1172,7 @@ def test_public_exports():
         "fit_kfold",
         "fit_simploidal_set",
     ]:
-        assert hasattr(torch_bsf, name)
+        assert hasattr(engine_api, name)
 
 
 # ---------------------------------------------------------------------------
@@ -1237,7 +1238,7 @@ def test_lightning_validation_and_test_steps():
     import lightning.pytorch as L
     from torch.utils.data import DataLoader, TensorDataset
 
-    from torch_bsf.simploidal._lightning import _LightningWrapper
+    from torch_bsf._kernels._lightning import _LightningWrapper
 
     trainer = L.Trainer(accelerator="cpu", enable_progress_bar=False, logger=False, enable_model_summary=False)
     t = sample_simploid((2, 1), 10, seed=0)
@@ -1290,8 +1291,8 @@ def test_save_load_roundtrip(tmp_path, suffix, simploid_type, degree):
     torch.manual_seed(0)
     bs = BezierSimploid.randn(simploid_type, degree, 3)
     path = tmp_path / f"model{suffix}"
-    torch_bsf.simploidal.save(path, bs)
-    loaded = torch_bsf.simploidal.load(path)
+    torch_bsf._kernels.save(path, bs)
+    loaded = torch_bsf._kernels.load(path)
     assert loaded.simploid_type == bs.simploid_type
     assert loaded.degree == bs.degree
     assert loaded.indices() == bs.indices()
@@ -1305,14 +1306,14 @@ def test_save_load_fitted_model_and_float64(tmp_path):
     t = sample_simploid((2, 1), 50, seed=0).double()
     bs = fit(t, t[:, :3] * t[:, 3:4], degree=(1, 2), simploid_type=(2, 1))
     for suffix in (".csv", ".pt"):
-        loaded = torch_bsf.simploidal.load(_saved(tmp_path, bs, suffix))
+        loaded = torch_bsf._kernels.load(_saved(tmp_path, bs, suffix))
         assert torch.allclose(loaded(t).double(), bs(t), atol=1e-6)
-    assert torch_bsf.simploidal.load(tmp_path / "model.pt").control_points.dtype == torch.float64
+    assert torch_bsf._kernels.load(tmp_path / "model.pt").control_points.dtype == torch.float64
 
 
 def _saved(tmp_path, bs, suffix):
     path = tmp_path / f"model{suffix}"
-    torch_bsf.simploidal.save(path, bs)
+    torch_bsf._kernels.save(path, bs)
     return path
 
 
@@ -1358,13 +1359,13 @@ def test_load_errors(tmp_path, suffix, content, match):
     path = tmp_path / f"model{suffix}"
     path.write_text(content)
     with pytest.raises(ValueError, match=match):
-        torch_bsf.simploidal.load(path)
+        torch_bsf._kernels.load(path)
 
 
 @pytest.mark.parametrize("suffix", [".csv", ".tsv", ".json", ".yml"])
 def test_load_flat_keys(suffix):
     """Files with flat keys such as "(2, 0)" hold a Bézier simplex."""
-    loaded = torch_bsf.simploidal.load(Path(__file__).parent / "data" / f"bezier_simplex{suffix}")
+    loaded = torch_bsf._kernels.load(Path(__file__).parent / "data" / f"bezier_simplex{suffix}")
     assert (loaded.simploid_type, loaded.degree, loaded.n_values) == ((1,), (2,), 3)
     assert loaded[(1, 1)].tolist() == pytest.approx([0.5890220403671265, -0.5538082122802734, 2.7124223709106445])
 
@@ -1381,7 +1382,7 @@ def test_save_one_factor_writes_flat_keys_and_loads_nested_keys(tmp_path, suffix
         "".join(line.replace("(", "((", 1).replace(")", "),)", 1) if "(" in line else line for line in text.splitlines(True))
     )
     assert "((2, 0, 0),)" in nested.read_text()
-    for loaded in (torch_bsf.simploidal.load(path), torch_bsf.simploidal.load(nested)):
+    for loaded in (torch_bsf._kernels.load(path), torch_bsf._kernels.load(nested)):
         assert (loaded.simploid_type, loaded.degree) == ((2,), (2,))
         assert torch.equal(loaded.control_points, bs.control_points.detach())
 
@@ -1391,7 +1392,7 @@ def test_load_one_coordinate_flat_key_as_vertex(tmp_path, suffix):
     """A flat key with one coordinate, written by earlier versions for one parameter, loads as a vertex."""
     path = tmp_path / f"legacy{suffix}"
     path.write_text({".csv": '"(3,)",1.0,2.0\n', ".json": '{"(3,)": [1.0, 2.0]}', ".yml": '"(3,)": [1.0, 2.0]\n'}[suffix])
-    loaded = torch_bsf.simploidal.load(path)
+    loaded = torch_bsf._kernels.load(path)
     assert (loaded.simploid_type, loaded.degree) == ((), ())
     assert loaded(torch.empty(4, 0)).tolist() == [[1.0, 2.0]] * 4
 
@@ -1404,22 +1405,22 @@ def test_load_pt_requires_a_dictionary(tmp_path):
     assert torch.equal(data["control_points"], bs.control_points.detach())
     torch.save({"control_points": torch.zeros(1, 1)}, tmp_path / "dict.pt")
     with pytest.raises(ValueError, match="must contain a dictionary"):
-        torch_bsf.simploidal.load(tmp_path / "dict.pt")
+        torch_bsf._kernels.load(tmp_path / "dict.pt")
     torch.save(torch.nn.Linear(1, 1), tmp_path / "module.pt")  # a pickled module, e.g. of an old version
     with pytest.raises(ValueError, match="must contain a dictionary"):
-        torch_bsf.simploidal.load(tmp_path / "module.pt")
+        torch_bsf._kernels.load(tmp_path / "module.pt")
 
 
 def test_save_unknown_file_type(tmp_path):
     with pytest.raises(ValueError, match="Unknown file type"):
-        torch_bsf.simploidal.save(tmp_path / "model.txt", BezierSimploid.zeros((1,), 1, 1))
+        torch_bsf._kernels.save(tmp_path / "model.txt", BezierSimploid.zeros((1,), 1, 1))
 
 
 def test_bezier_simploid_pickles_under_public_path():
     import pickle
 
     bsd = BezierSimploid.randn((2, 1), 2, n_values=2)
-    assert type(bsd).__module__ == "torch_bsf.simploidal"
+    assert type(bsd).__module__ == "torch_bsf._kernels"
     restored = pickle.loads(pickle.dumps(bsd))
     t = sample_simploid((2, 1), 5, seed=0)
     assert torch.equal(restored(t), bsd(t))
@@ -1700,11 +1701,11 @@ def test_fit_simploidal_set_smoothness_and_freeze_errors():
 
 
 def test_fit_infers_a_simplex():
-    from torch_bsf.sampling import simplex_grid
+    from torch_bsf._kernels._sampling import simplex_grid
 
     t = simplex_grid(3, 4)
     x = t**2
-    bs = torch_bsf.fit(t, x, degree=2)
+    bs = engine_api.fit(t, x, degree=2)
     assert isinstance(bs, BezierSimploid)
     assert (bs.simploid_type, bs.degree) == ((2,), (2,))
     assert torch.allclose(bs(t), x, atol=1e-5)
@@ -1712,20 +1713,20 @@ def test_fit_infers_a_simplex():
 
 def test_fit_needs_a_type_for_fewer_than_two_columns():
     with pytest.raises(ValueError, match="simploid_type"):
-        torch_bsf.fit(torch.ones(3, 1), torch.zeros(3, 1), degree=1)
-    constant = torch_bsf.fit(torch.ones(3, 0), torch.tensor([[1.0], [2.0], [3.0]]), degree=1, simploid_type=())
+        engine_api.fit(torch.ones(3, 1), torch.zeros(3, 1), degree=1)
+    constant = engine_api.fit(torch.ones(3, 0), torch.tensor([[1.0], [2.0], [3.0]]), degree=1, simploid_type=())
     assert constant.control_points.tolist() == [[2.0]]
 
 
 def test_fit_takes_type_and_degree_from_init():
     t = sample_simploid((2, 1), 40, seed=0)
     init = BezierSimploid.zeros((2, 1), (2, 1), n_values=1)
-    bs = torch_bsf.fit(t, t[:, :1] * t[:, 3:4], init=init)
+    bs = engine_api.fit(t, t[:, :1] * t[:, 3:4], init=init)
     assert (bs.simploid_type, bs.degree) == ((2, 1), (2, 1))
     with pytest.raises(ValueError, match="degree is required"):
-        torch_bsf.fit(t, t[:, :1], init=torch.zeros(9, 1), simploid_type=(2, 1))
+        engine_api.fit(t, t[:, :1], init=torch.zeros(9, 1), simploid_type=(2, 1))
     with pytest.raises(ValueError, match="init has type"):
-        torch_bsf.fit(t, t[:, :1], degree=3, init=init)
+        engine_api.fit(t, t[:, :1], degree=3, init=init)
 
 
 @pytest.mark.parametrize("normalize", ["none", "max", "std", "quantile"])
@@ -1733,7 +1734,7 @@ def test_fit_takes_type_and_degree_from_init():
 def test_fit_normalize_predicts_in_original_scale(normalize, smoothness_weight):
     t = sample_simploid((2, 1), 60, seed=0).double()
     x = torch.cat([1000 * t[:, :1] * t[:, 3:4] + 50, -0.01 * t[:, 1:2]], dim=1)
-    bs = torch_bsf.fit(t, x, 2, simploid_type=(2, 1), normalize=normalize)
+    bs = engine_api.fit(t, x, 2, simploid_type=(2, 1), normalize=normalize)
     assert torch.allclose(bs(t), x, atol=1e-8 * 1000)
     if smoothness_weight:
         # The normalization weights the columns of the objective: the model of the normalized values,
@@ -1741,8 +1742,8 @@ def test_fit_normalize_predicts_in_original_scale(normalize, smoothness_weight):
         from torch_bsf.preprocessing import make_scaler
 
         scaler = make_scaler(normalize)
-        scaled = torch_bsf.fit(t, scaler.fit_transform(x), 2, simploid_type=(2, 1), smoothness_weight=smoothness_weight)
-        bs = torch_bsf.fit(t, x, 2, simploid_type=(2, 1), normalize=normalize, smoothness_weight=smoothness_weight)
+        scaled = engine_api.fit(t, scaler.fit_transform(x), 2, simploid_type=(2, 1), smoothness_weight=smoothness_weight)
+        bs = engine_api.fit(t, x, 2, simploid_type=(2, 1), normalize=normalize, smoothness_weight=smoothness_weight)
         assert torch.allclose(bs.control_points, scaler.inverse_transform(scaled.control_points.detach()), atol=1e-9)
 
 
@@ -1750,18 +1751,18 @@ def test_fit_normalize_keeps_frozen_rows_exactly():
     t = sample_simploid((2,), 30, seed=0)
     x = 1e3 * t[:, :2] + 7.0
     init = BezierSimploid.randn((2,), 2, n_values=2)
-    fitted = torch_bsf.fit(t, x, init=init, freeze=[(2, 0, 0)], normalize="std", smoothness_weight=0.1)
+    fitted = engine_api.fit(t, x, init=init, freeze=[(2, 0, 0)], normalize="std", smoothness_weight=0.1)
     assert torch.equal(fitted[(2, 0, 0)], init[(2, 0, 0)])
 
 
 def test_fit_rejects_trainer_options_with_lstsq():
     t = sample_simploid((1,), 5, seed=0)
     with pytest.raises(ValueError, match="max_epochs is supported only by the 'trainer' solver"):
-        torch_bsf.fit(t, t, 1, max_epochs=3)
+        engine_api.fit(t, t, 1, max_epochs=3)
     with pytest.raises(ValueError, match="batch_size, logger are supported only"):
-        torch_bsf.fit(t, t, 1, batch_size=2, logger=False)
+        engine_api.fit(t, t, 1, batch_size=2, logger=False)
     with pytest.raises(ValueError, match="normalize"):
-        torch_bsf.fit(t, t, 1, normalize="unknown")  # type: ignore[arg-type]
+        engine_api.fit(t, t, 1, normalize="unknown")  # type: ignore[arg-type]
 
 
 def test_bezier_simplex_accepts_flat_indices():
@@ -1775,24 +1776,24 @@ def test_bezier_simplex_accepts_flat_indices():
 def test_fit_kfold_fits_each_model_to_the_other_folds():
     t = sample_simploid((2, 1), 23, seed=0)
     x = t[:, :1] * t[:, 3:4] + 0.1 * torch.randn(23, 1, generator=torch.Generator().manual_seed(0))
-    models = torch_bsf.fit_kfold(t, x, 1, n_folds=4, shuffle=False, simploid_type=(2, 1))
+    models = engine_api.fit_kfold(t, x, 1, n_folds=4, shuffle=False, simploid_type=(2, 1))
     assert len(models) == 4
     for model, test in zip(models, torch.tensor_split(torch.arange(23), 4), strict=True):
         assert isinstance(model, BezierSimploid)
         train = torch.ones(23, dtype=torch.bool)
         train[test] = False
-        expected = torch_bsf.fit(t[train], x[train], 1, simploid_type=(2, 1))
+        expected = engine_api.fit(t[train], x[train], 1, simploid_type=(2, 1))
         assert torch.allclose(model.control_points, expected.control_points)
 
 
 def test_fit_kfold_freezes_in_every_fold_given_an_iterator():
-    from torch_bsf.sampling import simplex_grid
+    from torch_bsf._kernels._sampling import simplex_grid
 
     t = simplex_grid(3, 3)
     x = t[:, :1]
     init = BezierSimploid.zeros((2,), 1, n_values=1)
     vertex = (1, 0, 0)
-    models = torch_bsf.fit_kfold(t, x, 1, n_folds=3, seed=0, init=init, freeze=iter([vertex]))
+    models = engine_api.fit_kfold(t, x, 1, n_folds=3, seed=0, init=init, freeze=iter([vertex]))
     for model in models:
         assert isinstance(model, BezierSimploid)
         assert model[vertex].item() == 0.0
@@ -1801,35 +1802,35 @@ def test_fit_kfold_freezes_in_every_fold_given_an_iterator():
 def test_fit_kfold_rejects_mismatched_sample_counts():
     t = sample_simploid((2,), 6, seed=0)
     with pytest.raises(ValueError, match="params has 6 samples, but values has 7 samples"):
-        torch_bsf.fit_kfold(t, torch.zeros(7, 1), 1, n_folds=3)
+        engine_api.fit_kfold(t, torch.zeros(7, 1), 1, n_folds=3)
 
 
 def test_fit_rejects_empty_data():
     with pytest.raises(ValueError, match="At least one sample"):
-        torch_bsf.fit(torch.zeros(0, 3), torch.zeros(0, 1), 1)
+        engine_api.fit(torch.zeros(0, 3), torch.zeros(0, 1), 1)
 
 
 def test_fit_std_normalization_with_a_single_sample():
     t = torch.tensor([[0.2, 0.3, 0.5]])
-    bs = torch_bsf.fit(t, torch.tensor([[1.5]]), 0, normalize="std")
+    bs = engine_api.fit(t, torch.tensor([[1.5]]), 0, normalize="std")
     assert torch.allclose(bs(t), torch.tensor([[1.5]]))
 
 
 def test_fit_kfold_shuffles_reproducibly_and_caps_folds():
-    from torch_bsf.sampling import simplex_grid
+    from torch_bsf._kernels._sampling import simplex_grid
 
     t = simplex_grid(2, 2)
     x = t[:, :1]
-    first = torch_bsf.fit_kfold(t, x, 1, n_folds=5, seed=0)
-    second = torch_bsf.fit_kfold(t, x, 1, n_folds=5, seed=0)
+    first = engine_api.fit_kfold(t, x, 1, n_folds=5, seed=0)
+    second = engine_api.fit_kfold(t, x, 1, n_folds=5, seed=0)
     assert len(first) == 3  # capped at the number of samples
     for a, b in zip(first, second, strict=True):
         assert isinstance(a, BezierSimploid) and isinstance(b, BezierSimploid)
         assert torch.equal(a.control_points, b.control_points)
     with pytest.raises(ValueError, match="n_folds"):
-        torch_bsf.fit_kfold(t, x, 1, n_folds=1)
+        engine_api.fit_kfold(t, x, 1, n_folds=1)
     with pytest.raises(ValueError, match="At least 2 samples"):
-        torch_bsf.fit_kfold(t[:1], x[:1], 1)
+        engine_api.fit_kfold(t[:1], x[:1], 1)
 
 
 # ---------------------------------------------------------------------------
@@ -1843,7 +1844,7 @@ _INSTALL_LIGHTNING = re.escape('pip install "pytorch-bsf[lightning]"')
 def no_lightning(monkeypatch):
     """Makes ``import lightning`` fail, as if Lightning were not installed."""
     for name in list(sys.modules):
-        if name.split(".")[0] == "lightning" or name == "torch_bsf.simploidal._lightning":
+        if name.split(".")[0] == "lightning" or name == "torch_bsf._kernels._lightning":
             monkeypatch.delitem(sys.modules, name)
     monkeypatch.setitem(sys.modules, "lightning", None)
 
@@ -1855,7 +1856,7 @@ def test_import_does_not_import_lightning():
 
 def test_fit_without_lightning(no_lightning):
     """The default solver and fit_sgd do not need Lightning."""
-    from torch_bsf.simploidal import linear_scalarization
+    from torch_bsf._kernels import linear_scalarization
 
     t = sample_simploid((2, 1), 30, seed=0)
     truth = BezierSimploid.randn((2, 1), 1, n_values=2)
@@ -1869,7 +1870,7 @@ def test_fit_without_lightning(no_lightning):
         return ((x.unsqueeze(1) - torch.eye(3)) ** 2).sum(dim=-1)
 
     init = BezierSimploid.zeros((2,), 1, n_values=3)
-    bs = torch_bsf.fit_sgd(init, linear_scalarization(objective), batch_size=20, step_size=0.2, seed=0)
+    bs = engine_api.fit_sgd(init, linear_scalarization(objective), batch_size=20, step_size=0.2, seed=0)
     assert torch.allclose(bs.control_points, torch.eye(3), atol=1e-3)
     assert sys.modules["lightning"] is None  # nothing replaced the blocked import
 
@@ -1890,7 +1891,7 @@ def test_lightning_reraises_a_missing_dependency_of_lightning(monkeypatch):
     """A module missing inside an installed Lightning is not reported as Lightning being missing."""
     import builtins
 
-    from torch_bsf.simploidal.fitting import _lightning
+    from torch_bsf._kernels.fitting import _lightning
 
     real_import = builtins.__import__
 

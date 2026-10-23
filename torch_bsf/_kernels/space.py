@@ -6,8 +6,8 @@ from typing import TypeAlias, cast
 import torch
 import torch.nn as nn
 
-from torch_bsf.simploidal.bezier import BezierSimploid
-from torch_bsf.simploidal.combinatorics import (
+from torch_bsf._kernels.bezier import BezierSimploid
+from torch_bsf._kernels.combinatorics import (
     SimploidIndex,
     SimploidType,
     _adjacent_pairs,
@@ -20,7 +20,7 @@ from torch_bsf.simploidal.combinatorics import (
     bernstein_basis,
     simploid_n_params,
 )
-from torch_bsf.simploidal.sets import Simploid, SimploidalSet
+from torch_bsf._kernels.sets import Simploid, SimploidalSet
 
 #: The degree assignment of a :class:`SimploidalBezierSpace`: one degree for every factor of every simploid,
 #: or the degrees of some non-degenerate simploids (an integer for all their factors, or one per factor).
@@ -166,7 +166,7 @@ class SimploidalBezierSpace(nn.Module):
     Two triangles sharing an edge share the control points of that edge:
 
     >>> import torch
-    >>> from torch_bsf.simploidal import SimploidalSet, SimploidalBezierSpace
+    >>> from torch_bsf._kernels import SimploidalSet, SimploidalBezierSpace
     >>> S = SimploidalSet()
     >>> t1, t2 = S.add_simplex(2), S.add_simplex(2)
     >>> e = S.identify(t1.face(0, 0), t2.face(0, 0))
@@ -266,7 +266,7 @@ class SimploidalBezierSpace(nn.Module):
 
         Examples
         --------
-        >>> from torch_bsf.simploidal import SimploidalSet, SimploidalBezierSpace
+        >>> from torch_bsf._kernels import SimploidalSet, SimploidalBezierSpace
         >>> S = SimploidalSet()
         >>> square = S.add_simploid((1, 1))
         >>> space = SimploidalBezierSpace(S, {square: (2, 3)}, n_values=1)
@@ -368,7 +368,7 @@ class SimploidalBezierSpace(nn.Module):
         --------
         Two segments glued at a vertex form a path of 5 control points with 4 adjacent pairs:
 
-        >>> from torch_bsf.simploidal import SimploidalSet, SimploidalBezierSpace
+        >>> from torch_bsf._kernels import SimploidalSet, SimploidalBezierSpace
         >>> S = SimploidalSet()
         >>> e1, e2 = S.add_simplex(1), S.add_simplex(1)
         >>> _ = S.identify(e1.face(0, 0), e2.face(0, 1))
@@ -455,7 +455,7 @@ class SimploidalBezierSpace(nn.Module):
         Examples
         --------
         >>> import torch
-        >>> from torch_bsf.simploidal import SimploidalSet, SimploidalBezierSpace
+        >>> from torch_bsf._kernels import SimploidalSet, SimploidalBezierSpace
         >>> S = SimploidalSet()
         >>> tri = S.add_simplex(2)
         >>> space = SimploidalBezierSpace(S, degree=2, n_values=1)

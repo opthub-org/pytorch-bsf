@@ -4,8 +4,8 @@ from typing import Any
 import pytest
 import torch
 
-import torch_bsf
-from torch_bsf.simploidal import (
+import torch_bsf._kernels.api as engine_api
+from torch_bsf._kernels import (
     BezierSimploid,
     Simploid,
     SimploidalBezierSpace,
@@ -208,7 +208,7 @@ def test_fit_sgd_is_reproducible_and_copies() -> None:
     b = fit_sgd(init, loss, batch_size=10, max_iter=10, seed=1)
     assert torch.equal(a.control_points, b.control_points)
     assert (init.control_points == 0).all()
-    assert torch_bsf.fit_sgd is fit_sgd
+    assert engine_api.fit_sgd is fit_sgd
 
 
 def test_fit_sgd_zero_iterations() -> None:

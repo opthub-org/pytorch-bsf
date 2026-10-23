@@ -6,7 +6,7 @@ from typing import Any, TypeAlias
 import torch
 import torch.nn as nn
 
-from torch_bsf.simploidal.combinatorics import (
+from torch_bsf._kernels.combinatorics import (
     SimploidIndex,
     SimploidType,
     _adjacent_pairs,
@@ -21,9 +21,9 @@ from torch_bsf.simploidal.combinatorics import (
     simploid_indices,
     simploid_n_params,
 )
-from torch_bsf.simploidal.sets import _identity_map
+from torch_bsf._kernels.sets import _identity_map
 
-#: Control points: a tensor whose rows follow :func:`~torch_bsf.simploidal.simploid_indices`,
+#: Control points: a tensor whose rows follow :func:`~torch_bsf._kernels.simploid_indices`,
 #: or a mapping from control point indices to values.
 ControlPointData: TypeAlias = torch.Tensor | Mapping[Any, Sequence[float] | torch.Tensor]
 
@@ -53,7 +53,7 @@ class BezierSimploid(nn.Module):
     A bilinear patch (a simploid of type ``(1, 1)``):
 
     >>> import torch
-    >>> from torch_bsf.simploidal import BezierSimploid
+    >>> from torch_bsf._kernels import BezierSimploid
     >>> patch = BezierSimploid((1, 1), 1, {
     ...     ((1, 0), (1, 0)): [0.0, 0.0, 0.0],
     ...     ((1, 0), (0, 1)): [0.0, 1.0, 0.0],
@@ -180,7 +180,7 @@ class BezierSimploid(nn.Module):
         Examples
         --------
         >>> import torch
-        >>> from torch_bsf.simploidal import BezierSimploid
+        >>> from torch_bsf._kernels import BezierSimploid
         >>> bs = BezierSimploid.randn((2, 1), 2, n_values=3)
         >>> t = torch.tensor([[0.2, 0.3, 0.5, 0.4, 0.6]])
         >>> torch.allclose(bs.design_matrix(t) @ bs.control_points, bs(t))
@@ -225,7 +225,7 @@ class BezierSimploid(nn.Module):
 
         Examples
         --------
-        >>> from torch_bsf.simploidal import BezierSimploid
+        >>> from torch_bsf._kernels import BezierSimploid
         >>> BezierSimploid.zeros((1,), 2, n_values=1).adjacency()
         tensor([[0, 1],
                 [1, 2]])
@@ -251,7 +251,7 @@ class BezierSimploid(nn.Module):
         Examples
         --------
         >>> import torch
-        >>> from torch_bsf.simploidal import BezierSimploid
+        >>> from torch_bsf._kernels import BezierSimploid
         >>> _ = torch.manual_seed(0)
         >>> prism = BezierSimploid.randn((2, 1), 3, n_values=2)
         >>> bottom = prism.face(1, 1)  # the triangle at u^2 = (1, 0)
@@ -293,7 +293,7 @@ class BezierSimploid(nn.Module):
         Examples
         --------
         >>> import torch
-        >>> from torch_bsf.simploidal import BezierSimploid
+        >>> from torch_bsf._kernels import BezierSimploid
         >>> _ = torch.manual_seed(0)
         >>> curve = BezierSimploid.randn((1,), 3, n_values=2)
         >>> triangle = curve.degenerate(0, 1)  # repeat vertex 1: (v0, v1, v1)
@@ -329,7 +329,7 @@ class BezierSimploid(nn.Module):
         Examples
         --------
         >>> import torch
-        >>> from torch_bsf.simploidal import BezierSimploid
+        >>> from torch_bsf._kernels import BezierSimploid
         >>> _ = torch.manual_seed(0)
         >>> b1, b2 = BezierSimploid.randn((2,), 2, n_values=3), BezierSimploid.randn((1,), 3, n_values=3)
         >>> u, v = torch.tensor([[0.2, 0.3, 0.5]]), torch.tensor([[0.4, 0.6]])

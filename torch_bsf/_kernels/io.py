@@ -11,8 +11,8 @@ from typing import Any, cast
 import torch
 import yaml
 
-from torch_bsf.simploidal.bezier import BezierSimploid
-from torch_bsf.simploidal.combinatorics import SimploidIndex
+from torch_bsf._kernels.bezier import BezierSimploid
+from torch_bsf._kernels.combinatorics import SimploidIndex
 
 
 def _index_key(index: SimploidIndex) -> str:
@@ -108,7 +108,7 @@ def save(path: str | Path, data: BezierSimploid) -> None:
     >>> import tempfile
     >>> from pathlib import Path
     >>> import torch
-    >>> from torch_bsf.simploidal import BezierSimploid, save
+    >>> from torch_bsf._kernels import BezierSimploid, save
     >>> bs = BezierSimploid((1, 1), 1, torch.arange(8.0).reshape(4, 2))
     >>> with tempfile.TemporaryDirectory() as d:
     ...     save(Path(d) / "simploid.csv", bs)
@@ -193,7 +193,7 @@ def load(path: str | Path) -> BezierSimploid:
     >>> from pathlib import Path
     >>> import torch
     >>> import torch_bsf
-    >>> from torch_bsf.simploidal import load, sample_simploid, save
+    >>> from torch_bsf._kernels import load, sample_simploid, save
     >>> t = sample_simploid((2, 1), 50, seed=0)
     >>> bs = torch_bsf.fit(t, t[:, :3] * t[:, 3:4], degree=1, simploid_type=(2, 1))
     >>> with tempfile.TemporaryDirectory() as d:

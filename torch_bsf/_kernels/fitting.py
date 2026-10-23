@@ -34,11 +34,11 @@ import torch.nn as nn
 from torch.nn import functional as F
 from torch.utils.data import DataLoader, TensorDataset
 
+from torch_bsf._kernels.bezier import BezierSimploid, ControlPointData
+from torch_bsf._kernels.combinatorics import SimploidIndex, SimploidType, _check_degree, _check_type, simploid_n_params
+from torch_bsf._kernels.sets import Simploid, SimploidalSet
+from torch_bsf._kernels.space import DegreeAssignment, SimploidalBezierSpace
 from torch_bsf.preprocessing import NormalizeType, make_scaler
-from torch_bsf.simploidal.bezier import BezierSimploid, ControlPointData
-from torch_bsf.simploidal.combinatorics import SimploidIndex, SimploidType, _check_degree, _check_type, simploid_n_params
-from torch_bsf.simploidal.sets import Simploid, SimploidalSet
-from torch_bsf.simploidal.space import DegreeAssignment, SimploidalBezierSpace
 
 Solver = Literal["lstsq", "trainer"]
 
@@ -168,7 +168,7 @@ def _fit(
             parameter.copy_(solution.to(parameter))
         return
     L = _lightning()
-    from torch_bsf.simploidal._lightning import _LightningWrapper
+    from torch_bsf._kernels._lightning import _LightningWrapper
 
     dataset = TensorDataset(*inputs, values.to(parameter.dtype))
     dl = DataLoader(dataset, batch_size=batch_size or len(dataset))
@@ -256,7 +256,7 @@ def fit(
     :math:`\frac{1}{nm} \sum_k \|B(\mathbf t_k) - \mathbf x_k\|^2` plus ``smoothness_weight`` times
     the sum of :math:`\|P_p - P_q\|^2` over the adjacent control points (see
     :meth:`BezierSimploid.adjacency`), where ``n`` is the number of samples and ``m`` that of values.
-    Both solvers minimize this objective; ``"lstsq"`` does so exactly (see :mod:`torch_bsf.simploidal.fitting`).
+    Both solvers minimize this objective; ``"lstsq"`` does so exactly (see :mod:`torch_bsf._kernels.fitting`).
 
     Parameters
     ----------
@@ -323,7 +323,7 @@ def fit(
 
     >>> import torch
     >>> import torch_bsf
-    >>> from torch_bsf.sampling import simplex_grid
+    >>> from torch_bsf._kernels._sampling import simplex_grid
     >>> ts = simplex_grid(n_params=3, degree=3)  # parameters on a triangle
     >>> xs = 1 - ts * ts  # values corresponding to the parameters
     >>> bs = torch_bsf.fit(ts, xs, degree=2)
@@ -334,7 +334,7 @@ def fit(
 
     Fit a Bézier simploid on a prism, the product of a triangle and an edge:
 
-    >>> from torch_bsf.simploidal import sample_simploid
+    >>> from torch_bsf._kernels import sample_simploid
     >>> t = sample_simploid((2, 1), 100, seed=0)
     >>> x = t[:, :3] * t[:, 3:4]
     >>> bs = torch_bsf.fit(t, x, degree=(1, 1), simploid_type=(2, 1))
@@ -428,7 +428,7 @@ def fit_kfold(
 
     Splits the samples into ``n_folds`` folds and fits one model per fold, with :func:`fit`,
     to the samples of the other folds.  The resulting :class:`~torch.nn.ModuleList` can be
-    passed directly to :func:`torch_bsf.active_learning.suggest_next_points` to drive a
+    passed directly to :func:`torch_bsf._kernels._active_learning.suggest_next_points` to drive a
     Query-By-Committee active learning loop.
 
     If ``len(params) < n_folds``, the number of folds is capped at ``len(params)``.
@@ -466,8 +466,8 @@ def fit_kfold(
     --------
     >>> import torch
     >>> import torch_bsf
-    >>> from torch_bsf.active_learning import suggest_next_points
-    >>> from torch_bsf.sampling import simplex_grid
+    >>> from torch_bsf._kernels._active_learning import suggest_next_points
+    >>> from torch_bsf._kernels._sampling import simplex_grid
 
     Prepare training data
 
@@ -486,7 +486,7 @@ def fit_kfold(
     See Also
     --------
     fit : Fit a single model.
-    torch_bsf.active_learning.suggest_next_points : Use the ensemble for active learning.
+    torch_bsf._kernels._active_learning.suggest_next_points : Use the ensemble for active learning.
     """
     params, values = torch.as_tensor(params), torch.as_tensor(values)
     folds = _fold_indices(len(params), n_folds, shuffle, seed)
@@ -622,7 +622,7 @@ def fit_simploidal_set(
     continuous across the shared edge:
 
     >>> import torch
-    >>> from torch_bsf.simploidal import SimploidalSet, fit_simploidal_set, sample_simploid
+    >>> from torch_bsf._kernels import SimploidalSet, fit_simploidal_set, sample_simploid
     >>> S = SimploidalSet()
     >>> tri, sq = S.add_simplex(2), S.add_simploid((1, 1))
     >>> _ = S.identify(tri.face(0, 2), sq.face(1, 1))
