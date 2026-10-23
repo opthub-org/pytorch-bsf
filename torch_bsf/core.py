@@ -373,6 +373,12 @@ class FixedControls:
             checked[index] = tensor.clone()
         object.__setattr__(self, "values", MappingProxyType(checked))
 
+    def __deepcopy__(self, memo: dict[int, Any]) -> FixedControls:
+        """Copy constraint tensors for independent estimator cloning."""
+        copied = FixedControls({row: value.detach() for row, value in self.values.items()})
+        memo[id(self)] = copied
+        return copied
+
     @classmethod
     def from_cells(cls, space: BezierSpace, values: Sequence[tuple[int | Simploid, Sequence[Any], Any]]) -> FixedControls:
         """Resolve local references and reject contradictory shared values."""

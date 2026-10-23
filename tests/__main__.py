@@ -196,3 +196,17 @@ def test_python_module_entrypoint_help(monkeypatch, capsys):
         runpy.run_path(cli.__file__, run_name="__main__")
     assert error.value.code == 0
     assert "cross-validate" in capsys.readouterr().out
+
+
+def test_constant_cli_fit_and_prediction(tmp_path, capsys):
+    parameters = tmp_path / "dummy.csv"
+    values = tmp_path / "values.csv"
+    saved = tmp_path / "model.bsf"
+    predicted = tmp_path / "predicted.csv"
+    np.savetxt(parameters, np.arange(5), delimiter=",")
+    np.savetxt(values, np.arange(5), delimiter=",")
+    main(["fit", "--params", str(parameters), "--values", str(values), "--degree", "3", "--save", str(saved)])
+    assert json.loads(capsys.readouterr().out)["success"]
+    assert load_model(saved).space.width == 0
+    main(["predict", "--model", str(saved), "--params", str(parameters), "--save", str(predicted)])
+    assert np.allclose(np.loadtxt(predicted), 2)

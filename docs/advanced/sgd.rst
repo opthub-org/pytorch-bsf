@@ -17,7 +17,9 @@ Regression and differentiable objective minimization are separate problems::
 ``loss(predicted_values, points)`` returns one differentiable scalar per row.
 ``minimize`` copies the initial model. Exact domain Gram preconditioning,
 minibatches, quadratic penalties and explicit fixed controls are available.
-The method does not require Lightning.
+The method does not require Lightning. Float16/bfloat16 initial models are copied
+and promoted to float32 on the same device for basis evaluation, gradients
+and metric solves. The returned model then has float32 coefficients.
 
 History records pre-update losses and gradient norms. Iteration-budget
 exhaustion and callback stops do not establish convergence. Only a checked

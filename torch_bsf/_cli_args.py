@@ -58,6 +58,8 @@ def regression_options(args: Namespace) -> tuple[BezierSpace, Samples, LeastSqua
     t, y = load_table(args.params, args.header), load_table(args.values, args.header)
     dimensions = args.dimensions if args.dimensions is not None else ((t.shape[1] - 1,) if t.shape[1] > 1 else ())
     space = BezierSpace.simploid(dimensions, degree=args.degree)
+    if space.width == 0 and t.shape[1] == 1:
+        t = t[:, :0]
     if t.shape[1] != space.width:
         raise ValueError("parameter CSV columns do not match the domain.")
     weights = load_table(args.weights, args.header).flatten() if args.weights else None

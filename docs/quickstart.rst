@@ -77,3 +77,7 @@ minimization, and persistence using the same space and model types.
 
 To predict a saved multi-cell model, pass ``--cell-ids cells.csv`` with one
 integer cell ID per row and pad parameter rows to the saved space width.
+
+A one-column parameter CSV denotes a constant domain when dimensions are
+inferred. The column is a dummy input and is ignored for both fitting and
+prediction of zero-dimensional models.

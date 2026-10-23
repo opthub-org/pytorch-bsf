@@ -131,6 +131,13 @@ def _fix_controls(model: BezierModel, fixed: FixedControls | None) -> torch.Tens
     return free
 
 
+def _model_for_optimization(model: BezierModel) -> BezierModel:
+    fitted = model.copy()
+    if fitted.coefficients.dtype in (torch.float16, torch.bfloat16):
+        fitted = fitted.to(dtype=torch.float32)
+    return fitted
+
+
 def minimize(
     model: BezierModel,
     loss: Loss,
@@ -153,7 +160,10 @@ def minimize(
     loss
         ``loss(predicted_values, points)`` returning one loss per sample.
     method
-        Typed preconditioned SGD settings, independent of Lightning.
+        Typed preconditioned SGD settings, independent of Lightning. Float16
+        and bfloat16 initial models are copied and promoted to float32 on the
+        same device for basis evaluation, gradients and supported metric solves.
+        The returned model then has float32 coefficients.
     points
         Fixed samples. Otherwise draw ``n_samples`` with the stated cell weights.
     n_samples, seed, cell_weights
@@ -168,7 +178,7 @@ def minimize(
     OptimizationResult
         Copied model, pre-update history, final full-sample objective and stopping state.
     """
-    fitted = model.copy()
+    fitted = _model_for_optimization(model)
     p = fitted.coefficients
     batch = sample(model.space, n_samples, seed=seed, cell_weights=cell_weights) if points is None else points
     batch = batch.to(device=p.device, dtype=p.dtype)

@@ -50,3 +50,16 @@ def test_regressor_rejects_inconsistent_feature_shapes():
     fitted = BezierRegressor(degree=1).fit(x, [1.0, 2.0])
     with pytest.raises(ValueError):
         fitted.predict([[1.0, 0.0, 0.0]])
+
+
+def test_constrained_estimator_can_be_cloned_independently():
+    from torch_bsf import FixedControls
+
+    fixed = FixedControls({0: [3.0]})
+    original = BezierRegressor(degree=1, fixed=fixed)
+    copied = clone(original)
+    fixed.values[0][0] = 7
+    assert copied.fixed is not None and original.fixed is not None
+    assert copied.fixed.values[0].item() == 3
+    assert original.fixed.values[0].item() == 7
+    assert copied.fit(np.eye(2), [0.0, 0.0]).result_.success

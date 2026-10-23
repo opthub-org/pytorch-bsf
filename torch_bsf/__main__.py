@@ -97,6 +97,8 @@ def main(argv: Sequence[str] | None = None) -> None:
         if args.command == "predict":
             model = load_model(args.model)
             parameters = load_table(args.params)
+            if model.space.width == 0 and parameters.shape[1] == 1:
+                parameters = parameters[:, :0]
             points: Points | torch.Tensor = parameters
             if args.cell_ids is not None:
                 identifiers = load_table(args.cell_ids)
