@@ -10,7 +10,7 @@ from typing import Any
 import numpy as np
 import torch
 
-from torch_bsf import fit
+from torch_bsf import Points, fit
 from torch_bsf._cli_args import add_data, import_callable, load_table, regression_options
 from torch_bsf.io import load_model, save_model
 from torch_bsf.model_selection import KFold, cross_validate, select_degree
@@ -35,6 +35,7 @@ def _build_parser() -> ArgumentParser:
     prediction = commands.add_parser("predict")
     prediction.add_argument("--model", type=Path, required=True)
     prediction.add_argument("--params", type=Path, required=True)
+    prediction.add_argument("--cell-ids", type=Path, help="One integer cell ID per CSV row for a multi-cell model")
     prediction.add_argument("--save", type=Path, required=True)
     optimization = commands.add_parser("minimize")
     optimization.add_argument("--init", type=Path, required=True, help="Explicit initial model in .bsf format")
@@ -95,8 +96,19 @@ def main(argv: Sequence[str] | None = None) -> None:
     try:
         if args.command == "predict":
             model = load_model(args.model)
+            parameters = load_table(args.params)
+            points: Points | torch.Tensor = parameters
+            if args.cell_ids is not None:
+                identifiers = load_table(args.cell_ids)
+                if (
+                    identifiers.shape != (len(parameters), 1)
+                    or not torch.isfinite(identifiers).all()
+                    or not torch.equal(identifiers, identifiers.round())
+                ):
+                    raise ValueError("--cell-ids must have one integer per parameter row")
+                points = Points(parameters, identifiers[:, 0].long())
             with torch.no_grad():
-                np.savetxt(args.save, model(load_table(args.params)).cpu().numpy(), delimiter=",")
+                np.savetxt(args.save, model(points).cpu().numpy(), delimiter=",")
             return
         if args.command == "minimize":
             result = minimize(

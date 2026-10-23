@@ -67,15 +67,20 @@ class ParameterMap:
     def from_parent(self, points: Points) -> tuple[Points, torch.Tensor]:
         """Return child coordinates and a mask selecting parent rows in this piece."""
         s = self.split
-        _, mask = reparametrize(
-            points.parameters, s.i, s.j, s.fraction, self.part, simploid_type=self.dimensions, factor=s.factor
+        eligible = torch.nonzero(points.cell_ids == self.parent_cell).flatten()
+        width = sum(d + 1 for d in self.dimensions)
+        transformed, local_mask = reparametrize(
+            points.parameters[eligible, :width],
+            s.i,
+            s.j,
+            s.fraction,
+            self.part,
+            simploid_type=self.dimensions,
+            factor=s.factor,
         )
-        mask = mask & (points.cell_ids == self.parent_cell)
-        # Return only rows belonging to the selected parent cell and child region.
-        transformed, _ = reparametrize(
-            points.parameters[mask], s.i, s.j, s.fraction, self.part, simploid_type=self.dimensions, factor=s.factor
-        )
-        return Points(transformed), mask
+        mask = torch.zeros(len(points), device=points.cell_ids.device, dtype=torch.bool)
+        mask[eligible] = local_mask
+        return Points(transformed[local_mask]), mask
 
 
 @dataclass(frozen=True)

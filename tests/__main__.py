@@ -81,3 +81,118 @@ assert torch.allclose(load_model(sys.argv[1])(points),result.model(points))
 """
     run = subprocess.run([sys.executable, "-c", script, str(tmp_path / "model.bsf")], capture_output=True, text=True)
     assert run.returncode == 0, run.stderr
+
+
+def test_predict_multi_cell_model_with_explicit_ids(tmp_path):
+    import torch
+
+    from torch_bsf import BezierModel, BezierSpace, Points, SimploidalSet
+    from torch_bsf.io import save_model
+
+    domain = SimploidalSet()
+    a, b = domain.add_simplex(2), domain.add_simploid((1, 1))
+    space = BezierSpace.on_set(domain, degree=2)
+    model = BezierModel(space, torch.arange(space.n_controls, dtype=torch.float64)[:, None])
+    points = Points.from_cells(space, [(a, [[0.2, 0.3, 0.5]]), (b, [[0.1, 0.9, 0.4, 0.6]])])
+    saved, parameters, ids, output = [tmp_path / name for name in ("model.bsf", "params.csv", "ids.csv", "predicted.csv")]
+    save_model(saved, model)
+    np.savetxt(parameters, points.parameters.numpy(), delimiter=",")
+    np.savetxt(ids, points.cell_ids.numpy(), delimiter=",", fmt="%d")
+    main(["predict", "--model", str(saved), "--params", str(parameters), "--cell-ids", str(ids), "--save", str(output)])
+    assert np.allclose(np.loadtxt(output), model(points).detach().numpy().flatten())
+
+
+@pytest.mark.parametrize(
+    "options",
+    [["--dimensions", "2"], ["--solver", "sparse", "--diagnostics", "full"], ["--tracking-uri", "sqlite:///unrequested"]],
+)
+def test_fit_invalid_options(tmp_path, options):
+    with pytest.raises(SystemExit) as error:
+        main(["fit", *data(tmp_path), "--save", str(tmp_path / "out"), *options])
+    assert error.value.code == 2
+
+
+def test_sparse_cli_and_explicit_weights(tmp_path, capsys):
+    pytest.importorskip("scipy")
+    weights = tmp_path / "weights.csv"
+    np.savetxt(weights, np.arange(1, 13), delimiter=",")
+    main(["fit", *data(tmp_path), "--solver", "sparse", "--weights", str(weights), "--save", str(tmp_path / "model")])
+    assert json.loads(capsys.readouterr().out)["success"]
+
+
+def test_minimize_cli_and_failure_status(tmp_path, capsys):
+    from torch_bsf import BezierModel, BezierSpace
+    from torch_bsf.io import save_model
+
+    model = BezierModel(BezierSpace.simplex(1, degree=1), [[0.0], [0.0]])
+    saved = tmp_path / "initial"
+    save_model(saved, model)
+    objective = tmp_path / "objective_for_cli.py"
+    objective.write_text("import torch\ndef objective(x):\n return torch.cat([(x-1).square(),(x+1).square()],1)\n")
+    sys.path.insert(0, str(tmp_path))
+    try:
+        with pytest.warns(UserWarning), pytest.raises(SystemExit) as error:
+            main(
+                [
+                    "minimize",
+                    "--init",
+                    str(saved),
+                    "--objective",
+                    "objective_for_cli:objective",
+                    "--max-iter",
+                    "1",
+                    "--save",
+                    str(tmp_path / "result"),
+                ]
+            )
+        assert error.value.code == 1
+        assert json.loads(capsys.readouterr().out)["status"] == "iteration_limit"
+    finally:
+        sys.path.remove(str(tmp_path))
+        sys.modules.pop("objective_for_cli", None)
+
+
+def test_explicit_tracking_adapter_is_invoked(tmp_path):
+    from unittest.mock import patch
+
+    with patch("torch_bsf.integrations.mlflow.log_result") as record:
+        main(["fit", *data(tmp_path), "--track", "--save", str(tmp_path / "model")])
+    assert record.call_count == 1
+
+
+def test_invalid_prediction_cell_identifiers(tmp_path):
+    from torch_bsf import BezierModel, BezierSpace
+    from torch_bsf.io import save_model
+
+    options = data(tmp_path)
+    model_path = tmp_path / "model"
+    save_model(model_path, BezierModel(BezierSpace.simplex(1, degree=1), [[0.0], [1.0]]))
+    ids = tmp_path / "ids"
+    np.savetxt(ids, np.full(12, 0.5))
+    with pytest.raises(SystemExit):
+        main(
+            [
+                "predict",
+                "--model",
+                str(model_path),
+                "--params",
+                options[1],
+                "--cell-ids",
+                str(ids),
+                "--save",
+                str(tmp_path / "predicted"),
+            ]
+        )
+
+
+def test_python_module_entrypoint_help(monkeypatch, capsys):
+    import runpy
+
+    import torch_bsf.__main__ as cli
+
+    assert cli.__file__ is not None
+    monkeypatch.setattr(sys, "argv", ["torch_bsf", "--help"])
+    with pytest.raises(SystemExit) as error:
+        runpy.run_path(cli.__file__, run_name="__main__")
+    assert error.value.code == 0
+    assert "cross-validate" in capsys.readouterr().out

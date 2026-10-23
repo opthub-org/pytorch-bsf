@@ -52,5 +52,55 @@ def test_mlflow_explicit_recording(tmp_path):
         assert run.data.tags["bsf.success"] == "True"
         assert {a.path for a in mlflow.MlflowClient().list_artifacts(run_id)} == {"diagnostics.json", "model.bsf"}
         assert mlflow.active_run() is None
+        with mlflow.start_run() as active:
+            assert log_result(result) == active.info.run_id
+            assert mlflow.active_run() is active
     finally:
         mlflow.set_tracking_uri(previous)
+
+
+@pytest.mark.parametrize("adapter,package", [("lightning", "lightning"), ("mlflow", "mlflow"), ("sparse", "scipy")])
+@pytest.mark.parametrize("missing_dependency", [False, True])
+def test_optional_execution_import_errors(monkeypatch, adapter, package, missing_dependency):
+    import builtins
+
+    from torch_bsf._problem import scipy_sparse
+
+    original = builtins.__import__
+
+    def intercept(name, *args, **kwargs):
+        if name.split(".")[0] == package:
+            raise ModuleNotFoundError("unavailable", name="broken_transitive_dependency" if missing_dependency else package)
+        return original(name, *args, **kwargs)
+
+    model = BezierModel(BezierSpace.simplex(1, degree=1), [[0.0], [0.0]])
+    observations = Samples(torch.eye(2), [[1.0], [2.0]])
+    result = fit(model.space, observations)
+    monkeypatch.setattr(builtins, "__import__", intercept)
+    with pytest.raises(ModuleNotFoundError if missing_dependency else ImportError) as error:
+        if adapter == "lightning":
+            regression_module(model, observations)
+        elif adapter == "mlflow":
+            log_result(result)
+        else:
+            scipy_sparse()
+    if missing_dependency:
+        assert error.value.name == "broken_transitive_dependency"
+    else:
+        assert "pytorch-bsf[" in str(error.value)
+
+
+def test_lightning_rejects_invalid_execution_modes():
+    from types import SimpleNamespace
+
+    model = BezierModel(BezierSpace.simplex(1, degree=1), [[0.0], [0.0]])
+    observations = Samples(torch.eye(2), [[1.0], [2.0]])
+    with pytest.raises(ValueError):
+        regression_module(model, observations, learning_rate=0)
+    pytest.importorskip("lightning")
+    with pytest.raises(ValueError):
+        regression_module(model, observations, fixed=FixedControls({0: [0.0], 1: [0.0]}))
+    module = regression_module(model, observations)
+    module._trainer = SimpleNamespace(world_size=2)
+    with pytest.raises(ValueError, match="single device"):
+        module.on_fit_start()

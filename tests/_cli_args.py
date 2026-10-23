@@ -25,3 +25,8 @@ def test_callable():
     assert callable(import_callable("torch:sin"))
     with pytest.raises(ValueError):
         import_callable("torch:__version__")
+
+
+def test_callable_import_error_is_explanatory():
+    with pytest.raises(ValueError, match="cannot import"):
+        import_callable("missing_package:not_available")

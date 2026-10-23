@@ -72,12 +72,20 @@ class BezierRegressor(RegressorMixin, BaseEstimator):
 
         x, target = check_X_y(X, y, multi_output=True, y_numeric=True)
         self._single_output = target.ndim == 1
-        dimensions = (x.shape[1] - 1,) if self.dimensions is None else self.dimensions
+        dimensions = ((x.shape[1] - 1,) if x.shape[1] > 1 else ()) if self.dimensions is None else self.dimensions
         space = BezierSpace.simploid(dimensions, degree=self.degree)
-        if x.shape[1] != space.width:
+        self._constant = not space.cells[0].dimensions
+        if self._constant and x.shape[1] != 1:
+            raise ValueError("constant regression requires one dummy feature column.")
+        coordinates = x[:, :0] if self._constant else x
+        if coordinates.shape[1] != space.width:
             raise ValueError("X columns must match the space's barycentric coordinate width.")
         self.result_ = fit(
-            space, Samples(x, target, weights=sample_weight), solver=self.solver, penalty=self.penalty, fixed=self.fixed
+            space,
+            Samples(coordinates, target, weights=sample_weight),
+            solver=self.solver,
+            penalty=self.penalty,
+            fixed=self.fixed,
         ).require_success()
         self.model_ = self.result_.model
         self.diagnostics_ = self.result_.diagnostics
@@ -93,5 +101,5 @@ class BezierRegressor(RegressorMixin, BaseEstimator):
         if x.shape[1] != self.n_features_in_:
             raise ValueError("X has a different number of features from training.")
         with torch.no_grad():
-            values = cast(npt.NDArray[Any], self.model_(torch.as_tensor(x)).cpu().numpy())
+            values = cast(npt.NDArray[Any], self.model_(torch.as_tensor(x[:, :0] if self._constant else x)).cpu().numpy())
         return values.ravel() if self._single_output else values

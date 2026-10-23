@@ -14,3 +14,7 @@ Install ``pytorch-bsf[sklearn]`` and use the single estimator::
 Constructor arguments support cloning and GridSearchCV. Product domains use
 ``dimensions=(2, 1)``. Every row of X contains the concatenated barycentric
 coordinates. Use the Python Points API for mixed-cell observations.
+
+A single input feature defaults to a constant model: the feature is a dummy
+column and its numeric value is ignored. The fitted coefficient is the
+weighted output mean for unregularized regression.

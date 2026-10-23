@@ -7,14 +7,6 @@ A Bézier simplex is the Bézier simploid of a single factor, so both are
 :class:`BezierSimploid` models fitted by :func:`fit`.
 """
 
-from importlib.metadata import PackageNotFoundError, version
-
-try:
-    __version__ = version("pytorch-bsf")
-except PackageNotFoundError:
-    # Package is not installed (e.g., running from source without pip install)
-    __version__ = "unknown"
-
 from torch_bsf._kernels import BezierSimploid, Simploid, SimploidalBezierSpace, SimploidalSet, fit_simploidal_set
 from torch_bsf._kernels._splitting import (
     SplitCriterion,

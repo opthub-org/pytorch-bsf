@@ -31,3 +31,22 @@ def test_weighted_and_multioutput():
     fitted = BezierRegressor(degree=1).fit(x, x, sample_weight=[1, 2])
     assert fitted.predict(x).shape == (2, 2)
     assert fitted.diagnostics_.weight_sum == 3
+
+
+def test_one_feature_constant_regression():
+    x = np.arange(6).reshape(-1, 1)
+    y = np.arange(6.0)
+    fitted = BezierRegressor().fit(x, y, sample_weight=[1, 1, 1, 1, 1, 2])
+    assert fitted.model_.space.cells[0].dimensions == ()
+    assert np.allclose(fitted.predict([[100.0], [-20.0]]), 20 / 7)
+
+
+def test_regressor_rejects_inconsistent_feature_shapes():
+    x = np.eye(2)
+    with pytest.raises(ValueError):
+        BezierRegressor(dimensions=()).fit(x, [1.0, 2.0])
+    with pytest.raises(ValueError):
+        BezierRegressor(dimensions=(2,)).fit(x, [1.0, 2.0])
+    fitted = BezierRegressor(degree=1).fit(x, [1.0, 2.0])
+    with pytest.raises(ValueError):
+        fitted.predict([[1.0, 0.0, 0.0]])

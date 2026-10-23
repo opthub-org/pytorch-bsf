@@ -40,3 +40,24 @@ def test_sklearn_unavailable_import_succeeds(monkeypatch):
     assert not module._sklearn_available
     with pytest.raises(ImportError, match="scikit-learn"):
         module.BezierRegressor()
+
+
+def test_broken_sklearn_installation_is_not_treated_as_absence(monkeypatch):
+    import builtins
+
+    import torch_bsf.sklearn as sklearn_mod
+
+    original = builtins.__import__
+
+    def intercept(name, *args, **kwargs):
+        if name == "sklearn.base":
+            raise ModuleNotFoundError("missing transitive dependency", name="broken_dependency")
+        return original(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", intercept)
+    spec = importlib.util.spec_from_file_location("_bsf_broken_sklearn", sklearn_mod.__file__)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    with pytest.raises(ModuleNotFoundError) as error:
+        spec.loader.exec_module(module)
+    assert error.value.name == "broken_dependency"

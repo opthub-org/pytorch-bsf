@@ -55,3 +55,18 @@ def test_unified_plot_and_active_queries():
     ax = plot_model(a, show_controls=False)
     assert len(ax.lines) == 1
     plt.close(ax.figure)
+
+
+def test_inverse_subdivision_on_padded_mixed_cell_batch():
+    from torch_bsf import Points, SimploidalSet
+
+    domain = SimploidalSet()
+    triangle, square = domain.add_simplex(2), domain.add_simploid((1, 1))
+    space = BezierSpace.on_set(domain, degree=2)
+    model = BezierModel(space, torch.randn(space.n_controls, 2, dtype=torch.float64))
+    pieces = subdivide(model, cell=space.cell_id(triangle), policy=EdgeSplit(0, 1, 0.4))
+    points = Points.from_cells(space, [(square, [[0.2, 0.8, 0.5, 0.5]]), (triangle, [[0.7, 0.1, 0.2], [0.1, 0.7, 0.2]])])
+    for child, mapping in zip(pieces.models, pieces.maps, strict=True):
+        local, mask = mapping.from_parent(points)
+        assert mask.shape == (3,) and not mask[0]
+        assert torch.allclose(child(local), model(points.take(torch.nonzero(mask).flatten())), atol=1e-12)
