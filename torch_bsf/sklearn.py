@@ -10,8 +10,13 @@ try:
 
     _sklearn_available = True
 except ImportError:
-    BaseEstimator = object
-    RegressorMixin = object
+    # Distinct placeholder bases: two ``object`` bases would make the class definition below fail.
+    class BaseEstimator:  # type: ignore[no-redef]
+        pass
+
+    class RegressorMixin:  # type: ignore[no-redef]
+        pass
+
     _sklearn_available = False
 
 from torch_bsf.preprocessing import NormalizeType
