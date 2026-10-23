@@ -74,3 +74,6 @@ minimization, and persistence using the same space and model types.
         save_model(destination, optimized.model)
         restored = load_model(destination)
         assert torch.equal(restored(points), optimized.model(points))
+
+To predict a saved multi-cell model, pass ``--cell-ids cells.csv`` with one
+integer cell ID per row and pad parameter rows to the saved space width.
