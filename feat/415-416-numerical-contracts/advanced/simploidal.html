@@ -1,0 +1,286 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Single and assembled domains &mdash; PyTorch-BSF 0.20.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=b52c616d"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="The Category of Simploidal Sets" href="simploidal_category.html" />
+    <link rel="prev" title="Explicit ensembles and queries" href="active_learning.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
+<li class="toctree-l2"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="partial.html">Fixed controls</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l2"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="active_learning.html">Explicit ensembles and queries</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Single and assembled domains</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#homology">Homology</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">torch_bsf</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Single and assembled domains</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/simploidal.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="single-and-assembled-domains">
+<h1>Single and assembled domains<a class="headerlink" href="#single-and-assembled-domains" title="Link to this heading"></a></h1>
+<p>The same model and fitting API handles simplices, products and glued cells:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">Samples</span><span class="p">,</span> <span class="n">SimploidalSet</span><span class="p">,</span> <span class="n">fit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.sampling</span><span class="w"> </span><span class="kn">import</span> <span class="n">sample</span>
+
+<span class="n">triangle_space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">prism_space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simploid</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+
+<span class="n">domain</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">triangle</span> <span class="o">=</span> <span class="n">domain</span><span class="o">.</span><span class="n">add_simplex</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">square</span> <span class="o">=</span> <span class="n">domain</span><span class="o">.</span><span class="n">add_simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">domain</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">triangle</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+<span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">on_set</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">t1</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">triangle_space</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span>
+<span class="n">t2</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">BezierSpace</span><span class="o">.</span><span class="n">simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="mi">30</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span>
+<span class="n">observations</span> <span class="o">=</span> <span class="n">Samples</span><span class="o">.</span><span class="n">from_cells</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="p">[</span>
+    <span class="p">(</span><span class="n">triangle</span><span class="p">,</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t1</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">]),</span> <span class="p">(</span><span class="n">square</span><span class="p">,</span> <span class="n">t2</span><span class="p">,</span> <span class="n">t2</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">])])</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">observations</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Shared face coefficients are stored once and ensure C0 continuity. The space
+snapshots the topology builder; subsequent builder mutations do not alter it.
+<code class="docutils literal notranslate"><span class="pre">space.cell_id(handle)</span></code> resolves original builder handles to stable IDs.
+<code class="docutils literal notranslate"><span class="pre">space.control_index(index,</span> <span class="pre">cell=handle)</span></code> resolves local indices to shared rows.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Points(parameters,</span> <span class="pre">cell_ids)</span></code> preserves mixed-cell prediction order.
+Coordinates are padded to <code class="docutils literal notranslate"><span class="pre">space.width</span></code>; only each cell’s active coordinates
+are used. Each simplex factor has nonnegative barycentric coordinates summing
+to one. Saved models preserve stable IDs rather than mutable builder handles.</p>
+<section id="homology">
+<h2>Homology<a class="headerlink" href="#homology" title="Link to this heading"></a></h2>
+<p>The topology of a simploidal set can be checked after it is built by
+computing its homology (Section 4.4 of <span class="bibtex-citation" id="id1">Peltier and Lienhardt [<a class="reference internal" href="../references.html#id32" title="Samuel Peltier and Pascal Lienhardt. Simploidal sets: a data structure for handling simploidal bézier spaces. Computer Aided Geometric Design, 62:44–62, 2018. URL: https://doi.org/10.1016/j.cagd.2018.03.010.">PL18</a>]</span>).  The
+chain group <span class="math notranslate nohighlight">\(C_k\)</span> is spanned by the <strong>non-degenerate</strong> simploids of
+dimension <span class="math notranslate nohighlight">\(k\)</span>, and the boundary of a simploid <span class="math notranslate nohighlight">\(\sigma\)</span> of type
+<span class="math notranslate nohighlight">\((a_1, \ldots, a_n)\)</span> follows the sign rule of a product of simplices:</p>
+<div class="math notranslate nohighlight">
+\[\partial \sigma = \sum_{i=1}^n \sum_{j=0}^{a_i} (-1)^{a_1 + \cdots + a_{i-1} + j} d^i_j \sigma,\]</div>
+<p>where the terms whose face <span class="math notranslate nohighlight">\(d^i_j \sigma\)</span> is degenerate are dropped.</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="../torch_bsf.html#torch_bsf.geometry.SimploidalSet.boundary_matrix" title="torch_bsf.geometry.SimploidalSet.boundary_matrix"><code class="xref py py-meth docutils literal notranslate"><span class="pre">boundary_matrix()</span></code></a> returns the
+integer matrix of <span class="math notranslate nohighlight">\(\partial_k\)</span>, with rows <code class="docutils literal notranslate"><span class="pre">simploids(k</span> <span class="pre">-</span> <span class="pre">1)</span></code> and
+columns <code class="docutils literal notranslate"><span class="pre">simploids(k)</span></code>; it satisfies
+<code class="docutils literal notranslate"><span class="pre">boundary_matrix(k)</span> <span class="pre">&#64;</span> <span class="pre">boundary_matrix(k</span> <span class="pre">+</span> <span class="pre">1)</span> <span class="pre">==</span> <span class="pre">0</span></code>.</p></li>
+<li><p><a class="reference internal" href="../torch_bsf.html#torch_bsf.geometry.SimploidalSet.betti_numbers" title="torch_bsf.geometry.SimploidalSet.betti_numbers"><code class="xref py py-meth docutils literal notranslate"><span class="pre">betti_numbers()</span></code></a> returns the Betti
+numbers <span class="math notranslate nohighlight">\(\beta_0, \ldots, \beta_{\dim}\)</span>, the ranks of the homology
+groups.  The ranks are computed exactly by integer elimination, over the
+rationals (<code class="docutils literal notranslate"><span class="pre">field=&quot;Q&quot;</span></code>, default) or over <span class="math notranslate nohighlight">\(\mathbb Z / 2\)</span>
+(<code class="docutils literal notranslate"><span class="pre">field=&quot;Z2&quot;</span></code>); the two differ only for spaces whose integral homology has
+torsion, such as non-orientable surfaces.</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.geometry</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimploidalSet</span>
+
+<span class="c1"># A torus: a square whose opposite edges are identified</span>
+<span class="n">torus</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">square</span> <span class="o">=</span> <span class="n">torus</span><span class="o">.</span><span class="n">add_simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">torus</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">torus</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">torus</span><span class="o">.</span><span class="n">betti_numbers</span><span class="p">())</span>
+
+<span class="c1"># A sphere: a square whose two edges face(1, *) are collapsed into</span>
+<span class="c1"># vertices and whose two other edges are identified</span>
+<span class="n">sphere</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">square</span> <span class="o">=</span> <span class="n">sphere</span><span class="o">.</span><span class="n">add_simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+    <span class="n">edge</span> <span class="o">=</span> <span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+    <span class="n">sphere</span><span class="o">.</span><span class="n">degenerate</span><span class="p">(</span><span class="n">edge</span><span class="p">,</span> <span class="n">edge</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">sphere</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">sphere</span><span class="o">.</span><span class="n">betti_numbers</span><span class="p">())</span>
+
+<span class="c1"># A projective plane: two triangles glued along their edges</span>
+<span class="n">rp2</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">t1</span><span class="p">,</span> <span class="n">t2</span> <span class="o">=</span> <span class="n">rp2</span><span class="o">.</span><span class="n">add_simplex</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">rp2</span><span class="o">.</span><span class="n">add_simplex</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">rp2</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">t1</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">t2</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+<span class="n">rp2</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">t1</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">t2</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="n">rp2</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">t1</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">t2</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">rp2</span><span class="o">.</span><span class="n">betti_numbers</span><span class="p">(),</span> <span class="n">rp2</span><span class="o">.</span><span class="n">betti_numbers</span><span class="p">(</span><span class="n">field</span><span class="o">=</span><span class="s2">"Z2"</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[1, 2, 1]
+[1, 0, 1]
+[1, 0, 0] [1, 1, 1]
+</pre></div>
+</div>
+<p>Use <code class="docutils literal notranslate"><span class="pre">Points.from_cells(space,</span> <span class="pre">[(cell,</span> <span class="pre">parameters),</span> <span class="pre">...])</span></code> to pack mixed-cell
+prediction batches without padding. Multi-cell models require explicit Points
+and never infer a cell from an untagged tensor.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="active_learning.html" class="btn btn-neutral float-left" title="Explicit ensembles and queries" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="simploidal_category.html" class="btn btn-neutral float-right" title="The Category of Simploidal Sets" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: feat/415-416-numerical-contracts
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/advanced/simploidal.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/advanced/simploidal.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="simploidal.html">feat/415-416-numerical-contracts</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
