@@ -1,5 +1,6 @@
 """Tests for torch_bsf.__main__ (the CLI entry point)."""
 
+import builtins
 import os
 import subprocess
 import sys
@@ -999,6 +1000,70 @@ def test_import_does_not_load_mlflow(tmp_path):
     assert result.stdout.strip() == "False"
     result = _python(f"import {modules}", tmp_path, mlflow=False)
     assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.parametrize("helper", ["_check_loglevel", "_autolog"])
+@pytest.mark.parametrize(
+    "error",
+    [
+        ModuleNotFoundError("No module named 'sqlalchemy'", name="sqlalchemy"),
+        ModuleNotFoundError("No module named 'mlflow.tracking'", name="mlflow.tracking"),
+        ImportError("cannot import name 'incompatible_api'"),
+    ],
+)
+def test_broken_mlflow_is_not_reported_as_uninstalled(monkeypatch, capsys, helper, error):
+    """Only absence of MLflow itself may disable requested tracking; broken installations must fail visibly."""
+    import torch_bsf.__main__ as cli
+
+    real_import = builtins.__import__
+
+    def broken_import(name, *args, **kwargs):
+        if name == "mlflow":
+            raise error
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", broken_import)
+    with pytest.raises(type(error)) as caught:
+        getattr(cli, helper)(2)
+    assert caught.value is error
+    assert "MLflow is not installed" not in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("module", ["torch_bsf", "torch_bsf.model_selection.kfold"])
+def test_cli_logging_disabled_does_not_import_mlflow(tmp_path, module):
+    """A cold CLI with --loglevel=0 must work even if importing the unused MLflow would fail."""
+    argv = [module, f"--params={_PARAMS_CSV}", f"--values={_VALUES_CSV}", "--degree=1", "--loglevel=0"]
+    if module.endswith("kfold"):
+        argv.append("--num_folds=2")
+    code = f"""
+import builtins
+import runpy
+real_import = builtins.__import__
+def reject_mlflow(name, *args, **kwargs):
+    if name == 'mlflow' or name.startswith('mlflow.'):
+        raise AssertionError('MLflow must not be imported with logging disabled')
+    return real_import(name, *args, **kwargs)
+builtins.__import__ = reject_mlflow
+sys.argv = {argv!r}
+runpy.run_module({module!r}, run_name='__main__')
+assert 'mlflow' not in sys.modules
+"""
+    result = _python(code, tmp_path)
+    assert result.returncode == 0, result.stderr
+    assert "saved:" in result.stdout
+
+
+def test_disabled_logging_disables_existing_autolog(monkeypatch):
+    """An already imported MLflow still needs its autologging disabled for repeated in-process CLI calls."""
+    from types import SimpleNamespace
+
+    from torch_bsf.__main__ import _autolog
+
+    calls = []
+    monkeypatch.setitem(sys.modules, "mlflow", SimpleNamespace(autolog=lambda **kwargs: calls.append(kwargs)))
+    _autolog(0)
+    assert len(calls) == 1
+    assert calls[0]["disable"] is True
 
 
 @pytest.mark.parametrize(

@@ -69,7 +69,9 @@ def _check_loglevel(loglevel: int) -> int:
         return loglevel
     try:
         import mlflow  # noqa: F401
-    except ImportError:
+    except ModuleNotFoundError as e:
+        if e.name != "mlflow":
+            raise  # MLflow is installed, but its installation or one of its dependencies is broken.
         print(
             f"warning: MLflow is not installed, so nothing is logged (--loglevel={loglevel} is ignored); "
             'install it with: pip install "pytorch-bsf[mlflow]"',
@@ -80,10 +82,15 @@ def _check_loglevel(loglevel: int) -> int:
 
 
 def _autolog(loglevel: int) -> None:
-    """Enables (or, at loglevel 0, disables) MLflow autologging of Lightning, if MLflow is installed."""
+    """Enables MLflow autologging, or disables existing autologging without loading an unused MLflow."""
+    if loglevel <= 0 and sys.modules.get("mlflow") is None:
+        return
     try:
         from mlflow import autolog
-    except ImportError:  # nothing to log to, as _check_loglevel has warned
+    except ModuleNotFoundError as e:
+        if e.name != "mlflow":
+            raise
+        # Nothing to log to, as _check_loglevel has warned.
         return
     autolog(
         log_input_examples=(loglevel >= 2),
