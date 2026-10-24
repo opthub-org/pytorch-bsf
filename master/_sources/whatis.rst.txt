@@ -40,7 +40,12 @@ Assume we have a finite dataset :math:`B\subset\Delta^{M-1}\times\mathbb R^N` an
 
 .. math:: \arg\min_{\mathbf p} \sum_{(\mathbf t,\mathbf x)\in B}\|\mathbf b(\mathbf t\mid\mathbf p)-\mathbf x\|^2.
 
-PyTorch-BSF provides an algorithm for solving this optimization problem with the L-BFGS algorithm.
+For fixed parameter locations, the predictions are linear in the control
+points. PyTorch-BSF solves this linear least-squares problem with a dense
+solver by default, with an optional sparse iterative solver for larger
+systems. The solve uses CPU float64. This is separate from using
+``minimize`` to optimize a differentiable application objective; see
+:doc:`advanced/sgd`.
 
 .. figure:: _static/bezier-simplex-fitting.png
    :width: 66%
@@ -69,6 +74,66 @@ Beyond Simplices: Bézier Simploids
 A single simplex is not always the right parameter domain. A *simploid* of type :math:`(a_1, \ldots, a_n)` is the product :math:`\Delta^{a_1} \times \cdots \times \Delta^{a_n}` of simplices, e.g., a prism :math:`\Delta^2 \times \Delta^1` or a square :math:`\Delta^1 \times \Delta^1`, and a simplex is the simploid of type :math:`(M-1)`. A *Bézier simploid* is the tensor product of Bézier simplices, one per factor, and is fitted by the same least-squares formulation as above with :math:`\Delta^{M-1}` replaced by the simploid. Since the fitting problem is linear in the control points, :func:`torch_bsf.fit` solves it exactly by default, for Bézier simplices and simploids alike.
 
 The approximation theorem carries over: polynomials are dense in the continuous maps on a compact product of simplices (Stone–Weierstrass), and every polynomial of degree at most :math:`d_i` in the :math:`i`-th factor is a Bézier simploid of degree :math:`(d_1, \ldots, d_n)`. *Simploidal sets* go further and glue several simploids along common faces. See :doc:`advanced/simploidal` for details.
+
+Build a geometric picture before choosing a domain
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Start with a segment :math:`\Delta^1`. Choosing one point on it takes one
+number, such as :math:`u\in[0,1]`. Choosing points on two independent segments
+takes two numbers :math:`(u,v)`: all their combinations fill a square.
+Likewise, choosing a point in a triangle and an independent height fills a
+triangular prism. This is what the word *product* means here. The type lists
+the dimensions of the factors, so a square has type :math:`(1,1)` and a prism
+has type :math:`(2,1)`. These are dimensions, not polynomial degrees.
+
+.. figure:: _static/simploidal_bezier_space.png
+   :name: simploidal-space-overview
+   :width: 100%
+   :alt: A curved square with its control net, a twisted triangular prism shown through its boundary faces, and a triangle joined to a square along an edge.
+
+   Left: the image of a square-domain Bézier simploid. Center: the boundary
+   images of a prism-domain Bézier simploid. Right: two different domain
+   cells, a triangle and a square, fitted with a shared edge. Red points and
+   dashed lines show control nets; the colored patches show model images.
+
+Read the panels as three distinct constructions:
+
+* **Left, two independent intervals.** The domain is a flat square, but
+  its image in three output coordinates is a curved saddle. Holding one
+  interval coordinate fixed gives a Bézier curve as the other varies.
+  Its biquadratic degree :math:`(2,2)` gives :math:`3\times3=9` controls.
+  Interior controls generally lie away from the fitted surface.
+* **Center, a triangle and a height.** At a fixed height, the domain slice
+  is a triangle. Sweeping height creates a three-dimensional prism. Its
+  boundary has two triangular and three square faces; these are what the
+  renderer displays. The twisted output image does not change the domain
+  type :math:`(2,1)`. Degree :math:`(2,2)` gives :math:`6\times3=18` controls.
+* **Right, gluing rather than taking a product.** A triangle and a square
+  are placed side by side and their selected edges are identified. Each
+  keeps its own local coordinates. Shared edge controls make predictions
+  agree along the whole seam (C0 continuity). They do not require matching
+  tangents across it. This is an assembled simploidal domain rather than
+  one larger product cell.
+
+The distinction matters for data. Three competing priorities use a triangle:
+their three nonnegative weights share one sum-to-one constraint. Two
+priorities and an independent operating condition use a square: the trade-off
+and the condition can vary independently. Three priorities and an operating
+condition use a prism. Joining neighboring experimental regions calls for
+gluing charts if the response must agree at their common boundary.
+
+In the API these choices are ``BezierSpace.simplex(2, degree=...)``,
+``BezierSpace.simploid((1, 1), degree=...)`` and
+``BezierSpace.simploid((2, 1), degree=...)``. For the right panel, build a
+``SimploidalSet`` and compile it with ``BezierSpace.on_set``. Each product
+factor has its own barycentric block: a square row is
+``[1-u, u, 1-v, v]`` and sums to two, while a triangle row sums to one.
+
+Reproduce the three panels with
+``python examples/generate_simploidal_plot.py``. Continue to
+:doc:`advanced/simploidal` for runnable fitting and gluing examples, or
+:doc:`applications/model_predictive_control` for an operating-condition
+parameter that makes a product domain useful.
 
 
 Relation to Multi-Objective Optimization

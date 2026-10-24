@@ -115,3 +115,43 @@ optimized copy and excludes them from updates; the initial model is preserved.
 Thus fixed values are constraints on the result, not requests to initialize
 some rows and then let them move. See :doc:`initialization` and :doc:`sgd` for
 how initial guesses and optimizer tolerances serve different purposes.
+
+Prescribe a complete quadratic edge
+-----------------------------------
+
+On a triangle, fixing an edge requires its interior coefficient as well as
+its endpoints. The example sets the edge ``t2=0`` to the scalar response
+:math:`t_1^2` and lets the remaining controls fit observations.
+
+.. testcode:: fixed-edge
+
+    import torch
+    from torch_bsf import BezierSpace, Samples, FixedControls, fit
+    from torch_bsf.sampling import sample
+
+    space = BezierSpace.simplex(2, degree=2)
+    points = sample(space, 40, seed=7)
+    t = points.parameters
+    values = (t[:, 1].square() + torch.sin(t[:, 2]))[:, None]
+    fixed = FixedControls.from_cells(space, [
+        (0, (2, 0, 0), [0.]),
+        (0, (1, 1, 0), [0.]),
+        (0, (0, 2, 0), [1.]),
+    ])
+    result = fit(space, Samples(points, values), fixed=fixed).require_success()
+    u = torch.linspace(0, 1, 31, dtype=torch.float64)
+    edge = torch.stack([1 - u, u, torch.zeros_like(u)], dim=1)
+    assert torch.allclose(result.model(edge)[:, 0], u.square(), atol=1e-12)
+    assert result.diagnostics.n_free_controls == 3
+
+The zero final component selects controls lying on that triangle edge.
+The other three controls remain free. Testing multiple edge locations
+checks the whole prescribed quadratic rather than merely its endpoint
+values. At a different degree, the same edge polynomial needs its
+representation in that degree; reusing these multi-indices is invalid.
+
+For a vector response, prescribe every output component of each fixed row.
+For an assembled space, resolve the local edge references through its cell
+handle so neighboring charts use the shared global rows. A fixed boundary
+can coexist with interior approximation error, which should be assessed
+on independent points using the original output units.

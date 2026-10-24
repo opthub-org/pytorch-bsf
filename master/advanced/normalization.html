@@ -55,28 +55,33 @@
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Output scaling</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#when-and-why-to-change-output-coordinates">When and why to change output coordinates</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#a-complete-explicit-transformation">A complete explicit transformation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#choose-a-scaler">Choose a scaler</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#what-changes-mathematically">What changes mathematically?</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#validation-without-leakage">Validation without leakage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#follow-a-fit-through-the-guides">Follow a fit through the guides</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Output scaling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#when-and-why-to-change-output-coordinates">When and why to change output coordinates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#a-complete-explicit-transformation">A complete explicit transformation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#choose-a-scaler">Choose a scaler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#what-changes-mathematically">What changes mathematically?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#validation-without-leakage">Validation without leakage</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="visualization.html">Visualization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
-<li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
-<li class="toctree-l2"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="partial.html">Fixed controls</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
-<li class="toctree-l2"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
-<li class="toctree-l2"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
-<li class="toctree-l2"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
-<li class="toctree-l2"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="partial.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
@@ -85,7 +90,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../modules.html">torch_bsf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
 </ul>
 
         </div>
@@ -170,7 +175,7 @@ normalization has been inferred or remembered.</p>
 <section id="choose-a-scaler">
 <h2>Choose a scaler<a class="headerlink" href="#choose-a-scaler" title="Link to this heading"></a></h2>
 <table class="docutils align-default" id="id1">
-<caption><span class="caption-number">Table 2 </span><span class="caption-text">Available output transforms</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<caption><span class="caption-number">Table 3 </span><span class="caption-text">Available output transforms</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 22.0%" />
 <col style="width: 42.0%" />
@@ -256,7 +261,7 @@ conditions. See <a class="reference internal" href="partial.html"><span class="d
 <a class="reference internal image-reference" href="../_images/scaling.png"><img alt="Two output columns with different units before scaling and comparable standardized ranges afterward." src="../_images/scaling.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 6 </span><span class="caption-text">Before: the larger output offset hides the smaller response. After:
+<p><span class="caption-number">Fig. 7 </span><span class="caption-text">Before: the larger output offset hides the smaller response. After:
 explicit standardization makes both variations visible. This display
 change does not claim improved unregularized fitting accuracy: the
 generator verifies that inverse-transformed and direct predictions agree.</span><a class="headerlink" href="#id2" title="Link to this image"></a></p>

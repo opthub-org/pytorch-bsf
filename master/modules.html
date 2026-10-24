@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>torch_bsf &mdash; PyTorch-BSF 0.20.0 documentation</title>
+  <title>API reference guide &mdash; PyTorch-BSF 0.20.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/proof.css" />
@@ -60,7 +60,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API reference</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">torch_bsf</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API reference guide</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="torch_bsf.html">Python API</a></li>
 </ul>
 </li>
@@ -80,7 +80,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">torch_bsf</li>
+      <li class="breadcrumb-item active">API reference guide</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/modules.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -90,12 +90,29 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="torch-bsf">
-<h1>torch_bsf<a class="headerlink" href="#torch-bsf" title="Link to this heading"></a></h1>
+  <section id="api-reference-guide">
+<h1>API reference guide<a class="headerlink" href="#api-reference-guide" title="Link to this heading"></a></h1>
+<p>The Python reference describes the public objects and their arguments.
+Begin with <a class="reference internal" href="quickstart.html"><span class="doc">Quickstart</span></a> for a complete fit, or <a class="reference internal" href="advanced.html"><span class="doc">Advanced Topics</span></a> for
+practical choices and interpretation. The API pages supply exact signatures
+once you know which operation you need.</p>
+<p>Most workflows start with <code class="docutils literal notranslate"><span class="pre">BezierSpace</span></code>, <code class="docutils literal notranslate"><span class="pre">Samples</span></code> and <code class="docutils literal notranslate"><span class="pre">fit</span></code>. Use
+<code class="docutils literal notranslate"><span class="pre">Points</span></code> when cell identity must travel with coordinates, and use the
+returned <code class="docutils literal notranslate"><span class="pre">FitResult.model</span></code> for prediction. The common types live in
+<code class="docutils literal notranslate"><span class="pre">torch_bsf.core</span></code> and are also available from the package root.</p>
+<p>For numerical methods, consult <code class="docutils literal notranslate"><span class="pre">fitting</span></code> and <code class="docutils literal notranslate"><span class="pre">solvers</span></code> for regression,
+or <code class="docutils literal notranslate"><span class="pre">optimization</span></code> for differentiable costs. Sampling, validation and
+active learning build on the same space and model. Plotting, scikit-learn,
+Lightning and MLflow integrations are optional; install the relevant extra
+before executing their examples.</p>
+<p><code class="docutils literal notranslate"><span class="pre">geometry</span></code> describes mutable topology construction, while a compiled
+<code class="docutils literal notranslate"><span class="pre">BezierSpace</span></code> records immutable geometry and coefficient layout. The
+archive interface in <code class="docutils literal notranslate"><span class="pre">io</span></code> preserves that layout with model coefficients.
+Private modules beginning with an underscore are implementation details.</p>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="torch_bsf.html">Python API</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.core">core</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#core">core</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BasisOperator"><code class="docutils literal notranslate"><span class="pre">BasisOperator</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BasisOperator.matmat"><code class="docutils literal notranslate"><span class="pre">BasisOperator.matmat()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BasisOperator.rmatmat"><code class="docutils literal notranslate"><span class="pre">BasisOperator.rmatmat()</span></code></a></li>
@@ -145,7 +162,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.geometry">geometry</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#geometry">geometry</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.Simploid"><code class="docutils literal notranslate"><span class="pre">Simploid</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.Simploid.base"><code class="docutils literal notranslate"><span class="pre">Simploid.base</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.Simploid.degeneracy"><code class="docutils literal notranslate"><span class="pre">Simploid.degeneracy()</span></code></a></li>
@@ -178,11 +195,11 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.fitting">fitting</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#fitting">fitting</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.fitting.fit"><code class="docutils literal notranslate"><span class="pre">fit()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.results">results</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#results">results</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.results.ConvergenceError"><code class="docutils literal notranslate"><span class="pre">ConvergenceError</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.results.ConvergenceWarning"><code class="docutils literal notranslate"><span class="pre">ConvergenceWarning</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.results.FitDiagnostics"><code class="docutils literal notranslate"><span class="pre">FitDiagnostics</span></code></a></li>
@@ -194,12 +211,12 @@
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.results.MatrixDiagnostics"><code class="docutils literal notranslate"><span class="pre">MatrixDiagnostics</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.solvers">solvers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#solvers">solvers</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.solvers.DenseLeastSquares"><code class="docutils literal notranslate"><span class="pre">DenseLeastSquares</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.solvers.SparseLeastSquares"><code class="docutils literal notranslate"><span class="pre">SparseLeastSquares</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.optimization">optimization</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#optimization">optimization</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.optimization.Iteration"><code class="docutils literal notranslate"><span class="pre">Iteration</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.optimization.OptimizationResult"><code class="docutils literal notranslate"><span class="pre">OptimizationResult</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.optimization.OptimizationResult.require_success"><code class="docutils literal notranslate"><span class="pre">OptimizationResult.require_success()</span></code></a></li>
@@ -211,7 +228,7 @@
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.optimization.minimize"><code class="docutils literal notranslate"><span class="pre">minimize()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.ensemble">ensemble</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#ensemble">ensemble</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.ensemble.Ensemble"><code class="docutils literal notranslate"><span class="pre">Ensemble</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.ensemble.Ensemble.forward"><code class="docutils literal notranslate"><span class="pre">Ensemble.forward()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.ensemble.Ensemble.members"><code class="docutils literal notranslate"><span class="pre">Ensemble.members()</span></code></a></li>
@@ -219,18 +236,18 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.io">io</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#io">io</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.io.export_control_points"><code class="docutils literal notranslate"><span class="pre">export_control_points()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.io.load_model"><code class="docutils literal notranslate"><span class="pre">load_model()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.io.save_model"><code class="docutils literal notranslate"><span class="pre">save_model()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.sampling">sampling</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#sampling">sampling</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.sampling.grid"><code class="docutils literal notranslate"><span class="pre">grid()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.sampling.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.model_selection">model_selection</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#model-selection">model_selection</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.model_selection.CVResult"><code class="docutils literal notranslate"><span class="pre">CVResult</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.model_selection.CVResult.models"><code class="docutils literal notranslate"><span class="pre">CVResult.models</span></code></a></li>
 </ul>
@@ -246,16 +263,16 @@
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.model_selection.select_degree"><code class="docutils literal notranslate"><span class="pre">select_degree()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.active_learning">active_learning</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#active-learning">active_learning</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.active_learning.farthest_points"><code class="docutils literal notranslate"><span class="pre">farthest_points()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.active_learning.query_by_committee"><code class="docutils literal notranslate"><span class="pre">query_by_committee()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.plotting">plotting</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#plotting">plotting</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.plotting.plot_model"><code class="docutils literal notranslate"><span class="pre">plot_model()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.sklearn">sklearn</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#sklearn">sklearn</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.sklearn.BezierRegressor"><code class="docutils literal notranslate"><span class="pre">BezierRegressor</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.sklearn.BezierRegressor.fit"><code class="docutils literal notranslate"><span class="pre">BezierRegressor.fit()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.sklearn.BezierRegressor.predict"><code class="docutils literal notranslate"><span class="pre">BezierRegressor.predict()</span></code></a></li>
@@ -263,7 +280,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.splitting">splitting</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#splitting">splitting</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.splitting.EdgeSplit"><code class="docutils literal notranslate"><span class="pre">EdgeSplit</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.splitting.LongestEdge"><code class="docutils literal notranslate"><span class="pre">LongestEdge</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.splitting.ParameterMap"><code class="docutils literal notranslate"><span class="pre">ParameterMap</span></code></a><ul>
@@ -276,15 +293,15 @@
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.splitting.subdivide"><code class="docutils literal notranslate"><span class="pre">subdivide()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.integrations.lightning">integrations.lightning</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#integrations-lightning">integrations.lightning</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.integrations.lightning.regression_module"><code class="docutils literal notranslate"><span class="pre">regression_module()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.integrations.mlflow">integrations.mlflow</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#integrations-mlflow">integrations.mlflow</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.integrations.mlflow.log_result"><code class="docutils literal notranslate"><span class="pre">log_result()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#module-torch_bsf.preprocessing">preprocessing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#preprocessing">preprocessing</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler.mins"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler.mins</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler.scales"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler.scales</span></code></a></li>

@@ -54,27 +54,33 @@
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="normalization.html">Output scaling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Visualization</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#what-to-inspect-before-trusting-a-fit">What to inspect before trusting a fit</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#plot-observations-and-fitted-image">Plot observations and fitted image</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#tune-display-settings">Tune display settings</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#residuals-boundaries-and-assembled-domains">Residuals, boundaries and assembled domains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#follow-a-fit-through-the-guides">Follow a fit through the guides</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Visualization</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#what-to-inspect-before-trusting-a-fit">What to inspect before trusting a fit</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#plot-observations-and-fitted-image">Plot observations and fitted image</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#tune-display-settings">Tune display settings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#residuals-boundaries-and-assembled-domains">Residuals, boundaries and assembled domains</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#add-a-parameter-space-residual-view">Add a parameter-space residual view</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
-<li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
-<li class="toctree-l2"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="partial.html">Fixed controls</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
-<li class="toctree-l2"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
-<li class="toctree-l2"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
-<li class="toctree-l2"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
-<li class="toctree-l2"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="partial.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
@@ -83,7 +89,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../modules.html">torch_bsf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
 </ul>
 
         </div>
@@ -163,7 +169,7 @@ projections can hide different errors, so check omitted outputs numerically.</p>
 <section id="tune-display-settings">
 <h2>Tune display settings<a class="headerlink" href="#tune-display-settings" title="Link to this heading"></a></h2>
 <table class="docutils align-default" id="id1">
-<caption><span class="caption-number">Table 3 </span><span class="caption-text">Plot options and their effects</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<caption><span class="caption-number">Table 4 </span><span class="caption-text">Plot options and their effects</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 23.0%" />
 <col style="width: 42.0%" />
@@ -204,7 +210,7 @@ and report which units are being shown.</p>
 <a class="reference internal image-reference" href="../_images/fit_comparison.svg"><img alt="Four fits of the same observations with different regularization or fixed endpoints." src="../_images/fit_comparison.svg" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 9 </span><span class="caption-text">The same degree-five space and 18 noisy observations before and after
+<p><span class="caption-number">Fig. 10 </span><span class="caption-text">The same degree-five space and 18 noisy observations before and after
 ridge, smoothness or endpoint constraints. Blue curves show model images;
 orange polygons show controls. Common axes make shrinkage and endpoint
 changes comparable. See <a class="reference internal" href="regularization.html"><span class="doc">Regularization and numerical evidence</span></a> for the objective and weights.</span><a class="headerlink" href="#id2" title="Link to this image"></a></p>
@@ -243,6 +249,32 @@ errors are retained in <a class="reference download internal" download="" href="
 The figures are synthetic illustrations of specific settings, not general
 accuracy or hardware performance claims. Keep numerical status and held-out
 errors alongside visual evidence when assessing a model for deployment.</p>
+</section>
+<section id="add-a-parameter-space-residual-view">
+<h2>Add a parameter-space residual view<a class="headerlink" href="#add-a-parameter-space-residual-view" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">residuals</span> <span class="o">=</span> <span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">-</span> <span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">residuals</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="s2">"o"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"first output"</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">residuals</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="s2">"o"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"second output"</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"black"</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">.5</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s2">"segment parameter"</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s2">"signed residual"</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">residuals</span><span class="o">.</span><span class="n">square</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(),</span> <span class="s2">"o"</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s2">"segment parameter"</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s2">"output-vector error norm"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>These are training residuals, so a small graph does not establish
+generalization. Repeat the calculation on independent parameter-response
+pairs to assess prediction. Signed residuals distinguish systematic
+underprediction from overprediction; the vector norm summarizes magnitude
+but can be dominated by an output with larger physical units.</p>
+<p>For a product domain, plot residuals against each factor or take slices at
+fixed operating conditions. The <a class="reference internal" href="../whatis.html#simploidal-space-overview"><span class="std std-ref">simploid figure</span></a>
+shows why one surface view cannot reveal every slice of a prism. For an
+assembled domain, label residuals by cell and explicitly compare paired
+boundary coordinates. A projected seam can look closed while an omitted
+output disagrees or a parameter orientation is reversed.</p>
 </section>
 </section>
 

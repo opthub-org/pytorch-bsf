@@ -55,34 +55,40 @@
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="normalization.html">Output scaling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="visualization.html">Visualization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
-<li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
-<li class="toctree-l2"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="partial.html">Fixed controls</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
-<li class="toctree-l2"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
-<li class="toctree-l2"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Single and assembled domains</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#choose-the-domain-before-the-degree">Choose the domain before the degree</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#single-simplices-and-products">Single simplices and products</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#build-a-connected-two-patch-domain">Build a connected two-patch domain</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#mix-cell-types-and-preserve-row-identity">Mix cell types and preserve row identity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#degree-propagation-across-shared-faces">Degree propagation across shared faces</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#continuity-and-exact-constraints">Continuity and exact constraints</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#sampling-and-visual-checks">Sampling and visual checks</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#persistence-and-troubleshooting">Persistence and troubleshooting</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#homology">Homology</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#topological-checks-complement-numerical-checks">Topological checks complement numerical checks</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#plan-an-assembled-experiment-from-end-to-end">Plan an assembled experiment from end to end</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#follow-a-fit-through-the-guides">Follow a fit through the guides</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="partial.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Single and assembled domains</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#choose-the-domain-before-the-degree">Choose the domain before the degree</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#read-the-square-prism-and-glued-patch-picture">Read the square, prism and glued-patch picture</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#single-simplices-and-products">Single simplices and products</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#build-a-connected-two-patch-domain">Build a connected two-patch domain</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#mix-cell-types-and-preserve-row-identity">Mix cell types and preserve row identity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#degree-propagation-across-shared-faces">Degree propagation across shared faces</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#continuity-and-exact-constraints">Continuity and exact constraints</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sampling-and-visual-checks">Sampling and visual checks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#persistence-and-troubleshooting">Persistence and troubleshooting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#homology">Homology</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#topological-checks-complement-numerical-checks">Topological checks complement numerical checks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#plan-an-assembled-experiment-from-end-to-end">Plan an assembled experiment from end to end</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
@@ -91,7 +97,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../modules.html">torch_bsf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
 </ul>
 
         </div>
@@ -143,6 +149,67 @@ layout. <code class="docutils literal notranslate"><span class="pre">Samples</sp
 <code class="docutils literal notranslate"><span class="pre">BezierModel</span></code> contains learned output coefficients in that space. <code class="docutils literal notranslate"><span class="pre">fit</span></code>
 uses those objects and always returns <code class="docutils literal notranslate"><span class="pre">FitResult</span></code>. No separate regression
 entry point is needed for products or assembled domains.</p>
+</section>
+<section id="read-the-square-prism-and-glued-patch-picture">
+<h2>Read the square, prism and glued-patch picture<a class="headerlink" href="#read-the-square-prism-and-glued-patch-picture" title="Link to this heading"></a></h2>
+<p>The <a class="reference internal" href="../whatis.html#simploidal-space-overview"><span class="std std-ref">three-panel overview</span></a> gives a concrete
+picture of the domains used below. In its left panel, choosing one location
+on each of two intervals gives a square; the Bézier map bends that square
+into a saddle. In the middle, each triangle location can be combined with
+any height, giving a prism. Only its two-dimensional boundary faces are
+rendered. In the right panel, the triangle and square have separate charts
+and meet through an identified edge. Gluing does not introduce an independent
+parameter, whereas taking a product does.</p>
+<p>Keep three quantities separate when reading the figure. The <strong>type</strong> gives
+factor dimensions, the <strong>degree</strong> gives polynomial capacity per factor, and
+the <strong>output count</strong> gives the ambient dimension in which the image lies.
+A type <code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">1)</span></code> model with three outputs is a surface in three-dimensional
+space; a type <code class="docutils literal notranslate"><span class="pre">(2,</span> <span class="pre">1)</span></code> model has a three-dimensional parameter domain even
+when the renderer shows only surfaces. Red controls describe the polynomial
+and are not necessarily measured points or points on the image.</p>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-number">Table 10 </span><span class="caption-text">Domain choices and parameter rows</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 30.0%" />
+<col style="width: 25.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Domain</p></th>
+<th class="head"><p>Type and dimension</p></th>
+<th class="head"><p>Active row</p></th>
+<th class="head"><p>Example interpretation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Triangle</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(2,)</span></code>, dimension 2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[w0,</span> <span class="pre">w1,</span> <span class="pre">w2]</span></code>, sum 1</p></td>
+<td><p>Three competing priorities</p></td>
+</tr>
+<tr class="row-odd"><td><p>Square</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">1)</span></code>, dimension 2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[1-u,</span> <span class="pre">u,</span> <span class="pre">1-v,</span> <span class="pre">v]</span></code></p></td>
+<td><p>Two priorities and a condition</p></td>
+</tr>
+<tr class="row-even"><td><p>Prism</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(2,</span> <span class="pre">1)</span></code>, dimension 3</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[w0,</span> <span class="pre">w1,</span> <span class="pre">w2,</span> <span class="pre">1-h,</span> <span class="pre">h]</span></code></p></td>
+<td><p>Three priorities and a condition</p></td>
+</tr>
+<tr class="row-odd"><td><p>Triangle glued to square</p></td>
+<td><p>Two maximal cells, each dimension 2</p></td>
+<td><p>Cell ID plus its local row</p></td>
+<td><p>Neighboring response regions</p></td>
+</tr>
+</tbody>
+</table>
+<p>The square allows <code class="docutils literal notranslate"><span class="pre">u</span></code> and <code class="docutils literal notranslate"><span class="pre">v</span></code> both to reach one. Replacing its four
+columns by one sum-to-one row would change the domain, not merely its
+encoding. Conversely, using a prism for three coupled priority weights and
+a height preserves both the triangular priority constraint and independent
+height variation.</p>
 </section>
 <section id="single-simplices-and-products">
 <h2>Single simplices and products<a class="headerlink" href="#single-simplices-and-products" title="Link to this heading"></a></h2>
@@ -233,14 +300,14 @@ coordinate <code class="docutils literal notranslate"><span class="pre">u=0</spa
 on the left. The cell ID carries that distinction. Never concatenate local
 parameter arrays and discard their IDs: equal coordinates do not mean equal
 physical locations across charts.</p>
-<figure class="align-default" id="id2">
+<figure class="align-default" id="id3">
 <a class="reference internal image-reference" href="../_images/topology.png"><img alt="Independent curve patches disagree at their seam before gluing, while a shared endpoint enforces agreement afterward." src="../_images/topology.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 17 </span><span class="caption-text">Before: independent cubic patches fit offset observations and disagree
+<p><span class="caption-number">Fig. 18 </span><span class="caption-text">Before: independent cubic patches fit offset observations and disagree
 at the common physical endpoint. After: one compiled space shares that
 endpoint coefficient. Interior residuals may increase because continuity
-is an exact modeling requirement. The same observations are used throughout.</span><a class="headerlink" href="#id2" title="Link to this image"></a></p>
+is an exact modeling requirement. The same observations are used throughout.</span><a class="headerlink" href="#id3" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>Reproduce the figure with <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">examples/generate_guide_figures.py</span></code>.
@@ -392,7 +459,7 @@ required global connectivity, then tune its degree with validation.</p>
 <section id="homology">
 <h2>Homology<a class="headerlink" href="#homology" title="Link to this heading"></a></h2>
 <p>The topology of a simploidal set can be checked after it is built by
-computing its homology (Section 4.4 of <span class="bibtex-citation" id="id1">Peltier and Lienhardt [<a class="reference internal" href="../references.html#id32" title="Samuel Peltier and Pascal Lienhardt. Simploidal sets: a data structure for handling simploidal bézier spaces. Computer Aided Geometric Design, 62:44–62, 2018. URL: https://doi.org/10.1016/j.cagd.2018.03.010.">PL18</a>]</span>).  The
+computing its homology (Section 4.4 of <span class="bibtex-citation" id="id1">Peltier and Lienhardt [<a class="reference internal" href="../references.html#id39" title="Samuel Peltier and Pascal Lienhardt. Simploidal sets: a data structure for handling simploidal bézier spaces. Computer Aided Geometric Design, 62:44–62, 2018. URL: https://doi.org/10.1016/j.cagd.2018.03.010.">PL18</a>]</span>).  The
 chain group <span class="math notranslate nohighlight">\(C_k\)</span> is spanned by the <strong>non-degenerate</strong> simploids of
 dimension <span class="math notranslate nohighlight">\(k\)</span>, and the boundary of a simploid <span class="math notranslate nohighlight">\(\sigma\)</span> of type
 <span class="math notranslate nohighlight">\((a_1, \ldots, a_n)\)</span> follows the sign rule of a product of simplices:</p>

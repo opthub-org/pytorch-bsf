@@ -27,6 +27,57 @@ layout. ``Samples`` contains observations with parameter rows and cell IDs.
 uses those objects and always returns ``FitResult``. No separate regression
 entry point is needed for products or assembled domains.
 
+Read the square, prism and glued-patch picture
+----------------------------------------------
+
+The :ref:`three-panel overview <simploidal-space-overview>` gives a concrete
+picture of the domains used below. In its left panel, choosing one location
+on each of two intervals gives a square; the Bézier map bends that square
+into a saddle. In the middle, each triangle location can be combined with
+any height, giving a prism. Only its two-dimensional boundary faces are
+rendered. In the right panel, the triangle and square have separate charts
+and meet through an identified edge. Gluing does not introduce an independent
+parameter, whereas taking a product does.
+
+Keep three quantities separate when reading the figure. The **type** gives
+factor dimensions, the **degree** gives polynomial capacity per factor, and
+the **output count** gives the ambient dimension in which the image lies.
+A type ``(1, 1)`` model with three outputs is a surface in three-dimensional
+space; a type ``(2, 1)`` model has a three-dimensional parameter domain even
+when the renderer shows only surfaces. Red controls describe the polynomial
+and are not necessarily measured points or points on the image.
+
+.. list-table:: Domain choices and parameter rows
+   :header-rows: 1
+   :widths: 20 25 30 25
+
+   * - Domain
+     - Type and dimension
+     - Active row
+     - Example interpretation
+   * - Triangle
+     - ``(2,)``, dimension 2
+     - ``[w0, w1, w2]``, sum 1
+     - Three competing priorities
+   * - Square
+     - ``(1, 1)``, dimension 2
+     - ``[1-u, u, 1-v, v]``
+     - Two priorities and a condition
+   * - Prism
+     - ``(2, 1)``, dimension 3
+     - ``[w0, w1, w2, 1-h, h]``
+     - Three priorities and a condition
+   * - Triangle glued to square
+     - Two maximal cells, each dimension 2
+     - Cell ID plus its local row
+     - Neighboring response regions
+
+The square allows ``u`` and ``v`` both to reach one. Replacing its four
+columns by one sum-to-one row would change the domain, not merely its
+encoding. Conversely, using a prism for three coupled priority weights and
+a height preserves both the triangular priority constraint and independent
+height variation.
+
 Single simplices and products
 -----------------------------
 

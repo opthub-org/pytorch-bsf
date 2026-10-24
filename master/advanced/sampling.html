@@ -54,27 +54,33 @@
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="normalization.html">Output scaling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="visualization.html">Visualization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
-<li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
-<li class="toctree-l2"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="partial.html">Fixed controls</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Sampling and grids</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#choose-points-for-the-task">Choose points for the task</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#generate-observations-and-evaluation-points">Generate observations and evaluation points</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#distribution-and-cell-weights">Distribution and cell weights</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#adjust-counts-methods-and-seeds">Adjust counts, methods and seeds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#follow-a-fit-through-the-guides">Follow a fit through the guides</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="partial.html">Fixed controls</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Sampling and grids</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#choose-points-for-the-task">Choose points for the task</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#generate-observations-and-evaluation-points">Generate observations and evaluation points</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#distribution-and-cell-weights">Distribution and cell weights</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#adjust-counts-methods-and-seeds">Adjust counts, methods and seeds</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sample-a-product-without-mixing-its-factors">Sample a product without mixing its factors</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
-<li class="toctree-l2"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
-<li class="toctree-l2"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
-<li class="toctree-l2"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
@@ -83,7 +89,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../modules.html">torch_bsf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
 </ul>
 
         </div>
@@ -159,7 +165,7 @@ but cannot establish its accuracy without independent true responses.</p>
 <a class="reference internal image-reference" href="../_images/sampling.png"><img alt="Random, Sobol-derived and barycentric grid points on the same triangular domain." src="../_images/sampling.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 15 </span><span class="caption-text">Three ways to evaluate the same triangle: 64 random points, 64 Sobol-derived
+<p><span class="caption-number">Fig. 16 </span><span class="caption-text">Three ways to evaluate the same triangle: 64 random points, 64 Sobol-derived
 points, and a resolution-ten lattice with 66 points. The scatter plots
 show coverage rather than regression accuracy. Grid points include edges
 and vertices; interior random draws almost surely do not.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
@@ -231,6 +237,28 @@ check degree using <a class="reference internal" href="auto_degree.html"><span c
 set stays fixed across iterations; increasing iteration count alone does not
 improve approximation of the continuous-domain expectation. Draw a larger
 fixed set, then assess the final model on independent points.</p>
+</section>
+<section id="sample-a-product-without-mixing-its-factors">
+<h2>Sample a product without mixing its factors<a class="headerlink" href="#sample-a-product-without-mixing-its-factors" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">prism</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simploid</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">prism_points</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">prism</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">prism_points</span><span class="o">.</span><span class="n">parameters</span>
+<span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">80</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">p</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">80</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
+<span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">p</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">:]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">80</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>The first block selects a triangle location and the second an independent
+interval location. Together they fill the prism in the
+<a class="reference internal" href="../whatis.html#simploidal-space-overview"><span class="std std-ref">geometric overview</span></a>. Normalizing the
+five-column row to one would move both blocks outside their valid simplex
+constraints. Uniform product sampling is useful for joint exploration, but
+it does not guarantee repeated observations at particular interval slices.</p>
+<p>If the experiment requires the same triangle locations at several fixed
+operating conditions, explicitly combine those locations with chosen
+interval blocks. This structured design answers a different question from
+independent random pairs. Keep a separate validation design so repeating
+slices does not conceal interpolation error between operating conditions.</p>
 </section>
 </section>
 

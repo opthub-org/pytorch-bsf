@@ -56,18 +56,26 @@
 <li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../advanced.html">Advanced Topics</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../applications.html">Applications</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="elastic_net.html">Elastic Net Model Selection</a></li>
-<li class="toctree-l2"><a class="reference internal" href="portfolio.html">Robust Portfolio Management</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Distributed Smart Grids and Energy Operations</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#numerical-experiments">Numerical Experiments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../applications.html#what-is-fitted-in-each-application">What is fitted in each application?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../applications.html#a-common-reproduction-and-validation-workflow">A common reproduction and validation workflow</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../applications.html#choosing-a-domain-and-a-next-guide">Choosing a domain and a next guide</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="elastic_net.html">Elastic Net Model Selection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="portfolio.html">Robust Portfolio Management</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Distributed Smart Grids and Energy Operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#numerical-experiments">Numerical Experiments</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#separate-priorities-from-generator-shares">Separate priorities from generator shares</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#what-the-plots-and-error-measure">What the plots and error measure</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#demand-variation-and-operating-limits">Demand variation and operating limits</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="federated_learning.html">Multi-Task and Federated Learning</a></li>
-<li class="toctree-l2"><a class="reference internal" href="model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
-<li class="toctree-l2"><a class="reference internal" href="communications.html">Communication Systems and Routing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="supply_chain.html">Supply Chain and Logistics Optimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="medical_imaging.html">Medical Imaging and Radiation Therapy</a></li>
-<li class="toctree-l2"><a class="reference internal" href="facility_location.html">Facility Location and Continuous Approximations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="federated_learning.html">Multi-Task and Federated Learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="communications.html">Communication Systems and Routing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="supply_chain.html">Supply Chain and Logistics Optimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="medical_imaging.html">Medical Imaging and Radiation Therapy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="facility_location.html">Facility Location and Continuous Approximations</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
@@ -75,7 +83,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../modules.html">torch_bsf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
 </ul>
 
         </div>
@@ -109,12 +117,17 @@
 <p>For traditional generators, the expected fuel and operating cost across an interconnected network is naturally modeled as a strongly convex quadratic function of power output <span class="math notranslate nohighlight">\(P_i\)</span>:</p>
 <div class="math notranslate nohighlight">
 \[C_i(P_i) = a_i P_i^2 + b_i P_i + c_i \quad (a_i &gt; 0)\]</div>
-<p>Equally, in multi-agent microgrids integrating photovoltaic systems (PV), energy storage batteries, and Electric Vehicle (EV) charging stations, researchers utilize game-theoretic models to continuously distribute power allocations. To stabilize the energy demand across multiple EV chargers, the network actively minimizes the demand mismatch penalty against a target demand <span class="math notranslate nohighlight">\(p_k^*\)</span> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id27" title="Dongxiang Yan, He Yin, Tao Li, and Chengbin Ma. A two-stage scheme for both power allocation and ev charging coordination in a grid tied pv-battery charging station. IEEE Transactions on Industrial Informatics, 2021. doi:10.1109/TII.2021.3054417.">YYLM21</a>]</span>. Evaluated as an independent utility function for each node <span class="math notranslate nohighlight">\(l\)</span>, this forms:</p>
+<p>Equally, in multi-agent microgrids integrating photovoltaic systems (PV), energy storage batteries, and Electric Vehicle (EV) charging stations, researchers utilize game-theoretic models to continuously distribute power allocations. To stabilize the energy demand across multiple EV chargers, the network actively minimizes the demand mismatch penalty against a target demand <span class="math notranslate nohighlight">\(p_k^*\)</span> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id34" title="Dongxiang Yan, He Yin, Tao Li, and Chengbin Ma. A two-stage scheme for both power allocation and ev charging coordination in a grid tied pv-battery charging station. IEEE Transactions on Industrial Informatics, 2021. doi:10.1109/TII.2021.3054417.">YYLM21</a>]</span>. Evaluated as an independent utility function for each node <span class="math notranslate nohighlight">\(l\)</span>, this forms:</p>
 <div class="math notranslate nohighlight">
 \[u_l = -\frac{1}{2}(p_l - p_l^*)^2\]</div>
 <p>From a mathematical perspective, modifying the power allocations to maximize the utility <span class="math notranslate nohighlight">\(u_l\)</span> is mathematically identical to minimizing the positive-definite squared deviation between allocated and requested charge. Because the error metrics natively employ bounded quadratic structures (with the positive coefficient <span class="math notranslate nohighlight">\(a_i &gt; 0\)</span>), the resulting system cost matrix is structurally strongly convex across the sub-groups.</p>
-<p>These strongly convex definitions enable massive decentralized networking algorithms—like accelerated Alternating Direction Method of Multipliers (ADMM)—to secure linear convergence uniformly across geographically vast nodes.</p>
-<p>Additionally, as weather profiles and market electricity pricing constantly fluctuate, network operators must instantaneously reroute their balance policies. Equipping a distributed smart grid operator with a pre-computed Bézier simplex mapping allows the grid to frictionlessly evaluate these high-dimensional, competitive variables in real-time, executing continuous equilibrium adjustments across millions of endpoints securely.</p>
+<p>Positive quadratic curvature can support efficient convex dispatch solvers.
+Convergence rates for a distributed method additionally depend on the
+constraints, coupling and algorithm settings. Convex generator costs alone
+do not make nonlinear AC power-flow constraints convex.</p>
+<p>A fitted Bézier map can reduce the cost of exploring priorities for a fixed
+dispatch problem. Demand, weather and prices must be represented explicitly
+or held fixed; changing the priority weights does not update those inputs.</p>
 <section id="numerical-experiments">
 <h2>Numerical Experiments<a class="headerlink" href="#numerical-experiments" title="Link to this heading"></a></h2>
 <p>We illustrate Bézier simplex fitting on a three-generator economic–emission dispatch problem balancing generation cost against emissions under a fixed demand.</p>
@@ -161,6 +174,60 @@ The Pareto set lies on the plane <span class="math notranslate nohighlight">\(P_
 </tbody>
 </table>
 <p>The complete example script is available at <code class="file docutils literal notranslate"><span class="pre">examples/generate_smart_grids_pareto.py</span></code>.</p>
+</section>
+<section id="separate-priorities-from-generator-shares">
+<h2>Separate priorities from generator shares<a class="headerlink" href="#separate-priorities-from-generator-shares" title="Link to this heading"></a></h2>
+<p>The model input <code class="docutils literal notranslate"><span class="pre">[w1,</span> <span class="pre">w2]</span></code> specifies cost versus emissions, not power shares.
+It is a point on a one-dimensional simplex. The decision map has three
+outputs <code class="docutils literal notranslate"><span class="pre">[P1,</span> <span class="pre">P2,</span> <span class="pre">P3]</span></code> and the objective map has two. Although generator
+shares also satisfy a sum constraint, they are responses of this optimization,
+not additional coordinates in the weight segment.</p>
+<p>Every reference solve enforces demand balance and nonnegative generation.
+The two quadratic objective Hessians are positive definite, so their convex
+combinations remain positive definite, including at the endpoints. On the
+fixed convex feasible set, this gives a unique dispatch for each weight.
+It does not make the polynomial surrogate an exact dispatch solver.</p>
+</section>
+<section id="what-the-plots-and-error-measure">
+<h2>What the plots and error measure<a class="headerlink" href="#what-the-plots-and-error-measure" title="Link to this heading"></a></h2>
+<p>The left panel projects a three-output map to <code class="docutils literal notranslate"><span class="pre">(P1,</span> <span class="pre">P2)</span></code>. Recovering the
+third output from balance is possible for the reference solutions, but the
+fit should still be checked in all three columns. The right panel describes
+the corresponding cost and emissions. A close front fit does not prove that
+a separately fitted generation vector satisfies balance or operating limits.</p>
+<p>Reproduce the figures from the repository root with
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">examples/generate_smart_grids_pareto.py</span></code> after installing the plot,
+SciPy and scikit-learn dependencies used by the script. It uses 10 training
+weights and evaluates 101 weights. Distinguish training points from new
+weights when interpreting the reported maximum error; also check each
+objective rather than normalizing both by only the cost range.</p>
+<p>For the decision surrogate, measure
+<span class="math notranslate nohighlight">\(|\sum_i\widehat P_i-D|\)</span> and
+<span class="math notranslate nohighlight">\(\max(0,-\min_i\widehat P_i)\)</span> across the evaluation set. If capacity
+bounds are added, inspect those too. Exact reference feasibility at sampled
+weights does not establish feasibility everywhere between them. Validate
+objective values by recomputing them from the predicted dispatch.</p>
+</section>
+<section id="demand-variation-and-operating-limits">
+<h2>Demand variation and operating limits<a class="headerlink" href="#demand-variation-and-operating-limits" title="Link to this heading"></a></h2>
+<p>The example keeps <span class="math notranslate nohighlight">\(D=5\)</span> fixed. For demand in a bounded interval,
+normalize it to a second barycentric block and use a square of type
+<code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">1)</span></code>: one factor for priorities and one for demand. Then a parameter
+row can be <code class="docutils literal notranslate"><span class="pre">[1-u,</span> <span class="pre">u,</span> <span class="pre">1-v,</span> <span class="pre">v]</span></code> with
+<span class="math notranslate nohighlight">\(D=(1-v)D_{\min}+vD_{\max}\)</span>. Each block sums to one independently.
+The <a class="reference internal" href="../whatis.html#simploidal-space-overview"><span class="std std-ref">simploid figure</span></a> illustrates this
+independent-factor construction.</p>
+<p>Capacity constraints can change which generators saturate as priorities or
+demand vary. Such transitions can create derivative changes in an otherwise
+continuous solution map. Add reference solves near them and compare held-out
+errors before increasing degree. Multiple local patches may be appropriate
+if a single polynomial needs too much capacity; their coordinate conventions
+and continuity requirements must then be explicit.</p>
+<p>This experiment covers an economic-emission dispatch model. It does not
+include voltage constraints, line limits, AC network equations or a
+closed-loop grid controller. Those conditions belong in the reference
+problem and in the validation of any proposed extension. For fitting
+mechanics, see <a class="reference internal" href="../quickstart.html"><span class="doc">Quickstart</span></a> and <a class="reference internal" href="../advanced/simploidal.html"><span class="doc">Single and assembled domains</span></a>.</p>
 </section>
 </section>
 

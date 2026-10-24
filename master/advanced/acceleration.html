@@ -54,28 +54,33 @@
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="normalization.html">Output scaling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="visualization.html">Visualization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
-<li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
-<li class="toctree-l2"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="partial.html">Fixed controls</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Solvers and optional execution</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#choosing-a-solver">Choosing a solver</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#lsmr-settings-and-termination">LSMR settings and termination</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#measured-scaling-on-a-connected-cell-chain">Measured scaling on a connected cell chain</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#optional-execution-and-recording">Optional execution and recording</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#a-complete-single-device-lightning-example">A complete single-device Lightning example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#follow-a-fit-through-the-guides">Follow a fit through the guides</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="partial.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Solvers and optional execution</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#choosing-a-solver">Choosing a solver</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lsmr-settings-and-termination">LSMR settings and termination</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#measured-scaling-on-a-connected-cell-chain">Measured scaling on a connected cell chain</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#optional-execution-and-recording">Optional execution and recording</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#a-complete-single-device-lightning-example">A complete single-device Lightning example</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
-<li class="toctree-l2"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
-<li class="toctree-l2"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
@@ -84,7 +89,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../modules.html">torch_bsf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
 </ul>
 
         </div>
@@ -161,7 +166,7 @@ examining why an earlier run stopped. There is no automatic dense fallback.</p>
 Ridge is represented by explicit augmented rows shared with the dense solver;
 an additional LSMR damping term is not applied.</p>
 <table class="docutils align-default" id="id1">
-<caption><span class="caption-number">Table 6 </span><span class="caption-text">LSMR termination reported for every output column</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<caption><span class="caption-number">Table 7 </span><span class="caption-text">LSMR termination reported for every output column</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 15.0%" />
 <col style="width: 60.0%" />
@@ -241,7 +246,7 @@ has degree 3, two outputs and 20 observations per cell, with ridge <code class="
 and smoothness <code class="docutils literal notranslate"><span class="pre">1e-3</span></code>. Sparse tolerances were <code class="docutils literal notranslate"><span class="pre">atol=btol=1e-10</span></code> and the
 per-output iteration budget was 2000.</p>
 <table class="docutils align-default" id="id2">
-<caption><span class="caption-number">Table 7 </span><span class="caption-text">Median of three fresh-process trials</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<caption><span class="caption-number">Table 8 </span><span class="caption-text">Median of three fresh-process trials</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Cells</p></th>
 <th class="head"><p>Observations</p></th>

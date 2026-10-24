@@ -56,18 +56,26 @@
 <li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../advanced.html">Advanced Topics</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../applications.html">Applications</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="elastic_net.html">Elastic Net Model Selection</a></li>
-<li class="toctree-l2"><a class="reference internal" href="portfolio.html">Robust Portfolio Management</a></li>
-<li class="toctree-l2"><a class="reference internal" href="smart_grids.html">Distributed Smart Grids and Energy Operations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="federated_learning.html">Multi-Task and Federated Learning</a></li>
-<li class="toctree-l2"><a class="reference internal" href="model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
-<li class="toctree-l2"><a class="reference internal" href="communications.html">Communication Systems and Routing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="supply_chain.html">Supply Chain and Logistics Optimization</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Medical Imaging and Radiation Therapy</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#numerical-experiments">Numerical Experiments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../applications.html#what-is-fitted-in-each-application">What is fitted in each application?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../applications.html#a-common-reproduction-and-validation-workflow">A common reproduction and validation workflow</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../applications.html#choosing-a-domain-and-a-next-guide">Choosing a domain and a next guide</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="elastic_net.html">Elastic Net Model Selection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="portfolio.html">Robust Portfolio Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="smart_grids.html">Distributed Smart Grids and Energy Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="federated_learning.html">Multi-Task and Federated Learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="communications.html">Communication Systems and Routing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="supply_chain.html">Supply Chain and Logistics Optimization</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Medical Imaging and Radiation Therapy</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#numerical-experiments">Numerical Experiments</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#distinguish-the-fit-parameter-from-objective-weights">Distinguish the fit parameter from objective weights</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#construct-and-compare-the-two-models">Construct and compare the two models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#read-error-in-image-space-as-well-as-loss-space">Read error in image space as well as loss space</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="facility_location.html">Facility Location and Continuous Approximations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="facility_location.html">Facility Location and Continuous Approximations</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
@@ -75,7 +83,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../modules.html">torch_bsf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
 </ul>
 
         </div>
@@ -106,16 +114,24 @@
   <section id="medical-imaging-and-radiation-therapy">
 <h1>Medical Imaging and Radiation Therapy<a class="headerlink" href="#medical-imaging-and-radiation-therapy" title="Link to this heading"></a></h1>
 <p>Optimizing diagnostic clarity and therapeutic safety simultaneously is paramount in medical fields, making multi-objective optimization frameworks indispensable.</p>
-<p>For instance, Computed Tomography (CT) image reconstruction represents an ill-posed multi-objective inverse problem where doctors must minimize a data fidelity term (noise residual) against a regularization term safeguarding spatial continuity. Utilizing the L-Curve method <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id26" title="Per Christian Hansen and Dianne Prost O'Leary. The use of the l-curve in the regularization of discrete ill-posed problems. SIAM Journal on Scientific Computing, 14(6):1487–1503, 1993. doi:10.1137/0914086.">HOLeary93</a>]</span>, this is routinely formulated mathematically as balancing:</p>
+<p>For instance, Computed Tomography (CT) image reconstruction represents an ill-posed multi-objective inverse problem where doctors must minimize a data fidelity term (noise residual) against a regularization term safeguarding spatial continuity. Utilizing the L-Curve method <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id33" title="Per Christian Hansen and Dianne Prost O'Leary. The use of the l-curve in the regularization of discrete ill-posed problems. SIAM Journal on Scientific Computing, 14(6):1487–1503, 1993. doi:10.1137/0914086.">HOLeary93</a>]</span>, this is routinely formulated mathematically as balancing:</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}f_1(x) &amp;= \|Kx - y\|_2^2 \quad \text{(Fidelity)} \\
 f_2(x) &amp;= \|Lx\|_2^2     \quad \text{(Regularization)}\end{split}\]</div>
-<p>Similarly, Intensity-Modulated Radiation Therapy (IMRT) requires treating patients via highly constrained inverse planning <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id25" title="S Breedveld, P Storchi, M Keijzer, A Heemink, and B Heijmen. A novel approach to multi-criteria inverse planning for imrt. Physics in Medicine and Biology, 2007.">BSK+07</a>]</span>. Planners must aggressively deliver prescriptive radiation doses to tumors while strictly repressing the doses affecting adjacent healthy Organs At Risk (OAR). The optimization minimizes heavily competing quadratic objectives:</p>
+<p>Similarly, Intensity-Modulated Radiation Therapy (IMRT) requires treating patients via highly constrained inverse planning <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id32" title="S Breedveld, P Storchi, M Keijzer, A Heemink, and B Heijmen. A novel approach to multi-criteria inverse planning for imrt. Physics in Medicine and Biology, 2007.">BSK+07</a>]</span>. Planners must aggressively deliver prescriptive radiation doses to tumors while strictly repressing the doses affecting adjacent healthy Organs At Risk (OAR). The optimization minimizes heavily competing quadratic objectives:</p>
 <div class="math notranslate nohighlight">
 \[s(f) = \sum_{v \in V} \xi_v (Hf - d_v^p)^T \tilde{\eta}_v (Hf - d_v^p) + \kappa (Mf)^T (Mf)\]</div>
 <p>where the first component penalizes dose errors via beamlet fluence <span class="math notranslate nohighlight">\(f\)</span>, and the second component applies spatial smoothing.</p>
-<p>In both clinical environments, strong convexity critically anchors the computation. For CT reconstructions, the explicit <span class="math notranslate nohighlight">\(L_2\)</span> regularizations (via the parameter <span class="math notranslate nohighlight">\(\lambda^2 \|Lx\|^2_2\)</span>) stabilize singular projection matrices, resulting in a definitively positive-definite system matrix <span class="math notranslate nohighlight">\(\nabla^2 f \succeq \lambda I\)</span>. Correspondingly, in IMRT, smoothing parameters (like <span class="math notranslate nohighlight">\(\kappa\)</span>) combined with dense beamlet mappings force the objective Hessian <span class="math notranslate nohighlight">\(2(H^T \tilde{\eta} H + \kappa M^T M)\)</span> to remain strictly positive definite.</p>
-<p>In traditional practices, resolving the exact trade-offs requires hours of discrete algorithmic recalculations, delaying urgent therapies. However, by substituting the Pareto front mapping with a Bézier simplex, radiation oncologists and radiologists are granted an interactive, fully continuous digital slider. They can instantaneously sweep through the entire geometric space—trading off tumor destruction versus organ preservation precisely—in real-time without recalculating a single QP iteration.</p>
+<p>For CT, the quadratic Hessian is
+<span class="math notranslate nohighlight">\(2(K^T K+\lambda^2L^T L)\)</span>. For <span class="math notranslate nohighlight">\(\lambda&gt;0\)</span>, it is positive
+definite precisely when <span class="math notranslate nohighlight">\(\ker K\cap\ker L=\{0\}\)</span>. A smoothing
+penalty alone need not remove all null directions. The analogous nullspace
+check is needed for the IMRT Hessian. The numerical experiment below instead
+adds an explicit positive ridge to each objective, ensuring positive
+curvature in all pixel directions.</p>
+<p>A surrogate can make exploration of a fixed inverse problem less expensive.
+The experiment here evaluates that approximation on a synthetic CT phantom;
+it does not evaluate treatment plans or clinical decisions.</p>
 <section id="numerical-experiments">
 <h2>Numerical Experiments<a class="headerlink" href="#numerical-experiments" title="Link to this heading"></a></h2>
 <p>We illustrate Bézier simplex fitting on a small CT reconstruction problem, tracing the L-curve between data fidelity and spatial smoothness.</p>
@@ -123,7 +139,8 @@ f_2(x) &amp;= \|Lx\|_2^2     \quad \text{(Regularization)}\end{split}\]</div>
 <ul class="simple">
 <li><p>Image: <span class="math notranslate nohighlight">\(x \in \mathbb{R}^{256}\)</span> (flattened 16×16 circular phantom)</p></li>
 <li><p>Forward operator: <span class="math notranslate nohighlight">\(K \in \mathbb{R}^{128 \times 256}\)</span> (simplified 2D Radon transform, 8 angles × 16 rays per angle)</p></li>
-<li><p>Finite-difference operator: <span class="math notranslate nohighlight">\(L\)</span> (2D anisotropic total variation, horizontal and vertical differences)</p></li>
+<li><p>Finite-difference operator: <span class="math notranslate nohighlight">\(L\)</span> (horizontal and vertical differences;
+the squared norm below is quadratic smoothing, rather than total variation)</p></li>
 <li><p>Noisy measurement: <span class="math notranslate nohighlight">\(y = Kx^* + \epsilon\)</span> (<span class="math notranslate nohighlight">\(\epsilon \sim \mathcal{N}(0, 0.05^2)\)</span>)</p></li>
 <li><p>Regularized objectives:</p></li>
 </ul>
@@ -168,10 +185,64 @@ As in the classical L-curve analysis, we therefore sweep <span class="math notra
 <a class="reference internal image-reference" href="../_images/medical_imaging_pareto_samples.png"><img alt="Reconstructions predicted by the fitted Bézier simplex" src="../_images/medical_imaging_pareto_samples.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 44 </span><span class="caption-text">Reconstructions predicted by the Bézier simplex fitted to the Pareto set, from weak (left) to strong (right) smoothing.</span><a class="headerlink" href="#id3" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 45 </span><span class="caption-text">Reconstructions predicted by the Bézier simplex fitted to the Pareto set, from weak (left) to strong (right) smoothing.</span><a class="headerlink" href="#id3" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>The complete example script is available at <code class="file docutils literal notranslate"><span class="pre">examples/generate_medical_imaging_pareto.py</span></code>.</p>
+</section>
+<section id="distinguish-the-fit-parameter-from-objective-weights">
+<h2>Distinguish the fit parameter from objective weights<a class="headerlink" href="#distinguish-the-fit-parameter-from-objective-weights" title="Link to this heading"></a></h2>
+<p>The input to the fitted curve is <code class="docutils literal notranslate"><span class="pre">[1-t,</span> <span class="pre">t]</span></code>, not <code class="docutils literal notranslate"><span class="pre">[w1(t),</span> <span class="pre">w2(t)]</span></code>.
+The logarithmic transform spreads the selected regularization range across
+the segment. At <code class="docutils literal notranslate"><span class="pre">t=0</span></code> the ratio is <span class="math notranslate nohighlight">\(10^{-2}\)</span>; at <code class="docutils literal notranslate"><span class="pre">t=1</span></code> it is
+<span class="math notranslate nohighlight">\(10\)</span>. Neither endpoint represents a pure single-objective optimum.
+Record this transform alongside the fitted model so a requested
+regularization value is converted consistently.</p>
+<p>For a requested <span class="math notranslate nohighlight">\(\lambda\)</span> in that range, use</p>
+<div class="math notranslate nohighlight">
+\[t=\frac{\log_{10}\lambda+2}{3}.\]</div>
+<p>Changing the logarithmic range changes the function being approximated and
+requires a new fit. Passing the normalized objective weights directly to
+the existing model would query a different location and give the wrong
+reconstruction even though that row is a valid simplex point.</p>
+</section>
+<section id="construct-and-compare-the-two-models">
+<h2>Construct and compare the two models<a class="headerlink" href="#construct-and-compare-the-two-models" title="Link to this heading"></a></h2>
+<p>The front model has two output columns, while the reconstruction model has
+256, one per flattened pixel. Both use
+<code class="docutils literal notranslate"><span class="pre">BezierSpace.simplex(1,</span> <span class="pre">degree=10)</span></code> and 11 controls. The same 41 parameter
+rows are paired with the corresponding objectives or reconstructed images.
+The core least-squares solve handles all columns with the same design
+matrix; the large pixel count does not increase the domain dimension.</p>
+<p>For an independent reconstruction at a new parameter, the exact quadratic
+stationarity equation is</p>
+<div class="math notranslate nohighlight">
+\[\left(w_1K^TK+w_2L^TL+0.01I\right)x=w_1K^Ty.\]</div>
+<p>The ridge stays <span class="math notranslate nohighlight">\(0.01I\)</span> because the two objective weights sum to one.
+This system supplies a reference for the stated unconstrained example.
+Use its residual or the original solver’s convergence evidence to separate
+reference-solve error from surrogate approximation error.</p>
+</section>
+<section id="read-error-in-image-space-as-well-as-loss-space">
+<h2>Read error in image space as well as loss space<a class="headerlink" href="#read-error-in-image-space-as-well-as-loss-space" title="Link to this heading"></a></h2>
+<p>The Pareto-set projection shows only two pixel coordinates. It cannot show
+the quality of a whole 16-by-16 image. Compare full reconstructed images,
+per-pixel errors and their maximum over the held-out parameters. Inspect
+edges and low-contrast regions separately, since a mean over background
+pixels can conceal a localized defect.</p>
+<p>Recompute fidelity and smoothness on predicted images and compare them
+with both the reference values and the independently fitted front. A close
+front prediction does not determine an image uniquely in a general inverse
+problem. The quoted errors describe this phantom, noise realization,
+operators and regularization interval. They do not establish performance
+on another acquisition geometry or a clinical image population.</p>
+<p>The surrogate assumes fixed measurements <span class="math notranslate nohighlight">\(y\)</span> and fixed operators.
+New measurements generally require new reference reconstructions and a
+new fit; the segment parameter changes regularization, not the patient or
+the data. If nonnegative pixels or other constraints are introduced, check
+their satisfaction after prediction. See <a class="reference internal" href="../advanced/normalization.html"><span class="doc">Output scaling</span></a>
+for preserving output units and <a class="reference internal" href="../advanced/auto_degree.html"><span class="doc">Cross-validation and degree search</span></a> for choosing
+capacity using held-out responses.</p>
 </section>
 </section>
 

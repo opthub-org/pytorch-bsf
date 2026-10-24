@@ -24,7 +24,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="torch_bsf" href="modules.html" /> 
+    <link rel="prev" title="API reference guide" href="modules.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -60,9 +60,9 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API reference</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="modules.html">torch_bsf</a><ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">API reference guide</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Python API</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#module-torch_bsf.core">core</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#core">core</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.core.BasisOperator"><code class="docutils literal notranslate"><span class="pre">BasisOperator</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.core.BezierModel"><code class="docutils literal notranslate"><span class="pre">BezierModel</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.core.BezierSpace"><code class="docutils literal notranslate"><span class="pre">BezierSpace</span></code></a></li>
@@ -73,16 +73,16 @@
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.core.Samples"><code class="docutils literal notranslate"><span class="pre">Samples</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#module-torch_bsf.geometry">geometry</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#geometry">geometry</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.geometry.Simploid"><code class="docutils literal notranslate"><span class="pre">Simploid</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.geometry.SimploidalSet"><code class="docutils literal notranslate"><span class="pre">SimploidalSet</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#module-torch_bsf.fitting">fitting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#fitting">fitting</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.fitting.fit"><code class="docutils literal notranslate"><span class="pre">fit()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#module-torch_bsf.results">results</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#results">results</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.results.ConvergenceError"><code class="docutils literal notranslate"><span class="pre">ConvergenceError</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.results.ConvergenceWarning"><code class="docutils literal notranslate"><span class="pre">ConvergenceWarning</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.results.FitDiagnostics"><code class="docutils literal notranslate"><span class="pre">FitDiagnostics</span></code></a></li>
@@ -90,12 +90,12 @@
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.results.MatrixDiagnostics"><code class="docutils literal notranslate"><span class="pre">MatrixDiagnostics</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#module-torch_bsf.solvers">solvers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#solvers">solvers</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.solvers.DenseLeastSquares"><code class="docutils literal notranslate"><span class="pre">DenseLeastSquares</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.solvers.SparseLeastSquares"><code class="docutils literal notranslate"><span class="pre">SparseLeastSquares</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#module-torch_bsf.optimization">optimization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#optimization">optimization</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.optimization.Iteration"><code class="docutils literal notranslate"><span class="pre">Iteration</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.optimization.OptimizationResult"><code class="docutils literal notranslate"><span class="pre">OptimizationResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.optimization.PreconditionedSGD"><code class="docutils literal notranslate"><span class="pre">PreconditionedSGD</span></code></a></li>
@@ -104,22 +104,22 @@
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.optimization.minimize"><code class="docutils literal notranslate"><span class="pre">minimize()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#module-torch_bsf.ensemble">ensemble</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ensemble">ensemble</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.ensemble.Ensemble"><code class="docutils literal notranslate"><span class="pre">Ensemble</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#module-torch_bsf.io">io</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#io">io</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.io.export_control_points"><code class="docutils literal notranslate"><span class="pre">export_control_points()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.io.load_model"><code class="docutils literal notranslate"><span class="pre">load_model()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.io.save_model"><code class="docutils literal notranslate"><span class="pre">save_model()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#module-torch_bsf.sampling">sampling</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sampling">sampling</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.sampling.grid"><code class="docutils literal notranslate"><span class="pre">grid()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.sampling.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#module-torch_bsf.model_selection">model_selection</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#model-selection">model_selection</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.model_selection.CVResult"><code class="docutils literal notranslate"><span class="pre">CVResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.model_selection.DegreeCandidate"><code class="docutils literal notranslate"><span class="pre">DegreeCandidate</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.model_selection.DegreeSearchResult"><code class="docutils literal notranslate"><span class="pre">DegreeSearchResult</span></code></a></li>
@@ -129,20 +129,20 @@
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.model_selection.select_degree"><code class="docutils literal notranslate"><span class="pre">select_degree()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#module-torch_bsf.active_learning">active_learning</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#active-learning">active_learning</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.active_learning.farthest_points"><code class="docutils literal notranslate"><span class="pre">farthest_points()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.active_learning.query_by_committee"><code class="docutils literal notranslate"><span class="pre">query_by_committee()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#module-torch_bsf.plotting">plotting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#plotting">plotting</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.plotting.plot_model"><code class="docutils literal notranslate"><span class="pre">plot_model()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#module-torch_bsf.sklearn">sklearn</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sklearn">sklearn</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.sklearn.BezierRegressor"><code class="docutils literal notranslate"><span class="pre">BezierRegressor</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#module-torch_bsf.splitting">splitting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#splitting">splitting</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.splitting.EdgeSplit"><code class="docutils literal notranslate"><span class="pre">EdgeSplit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.splitting.LongestEdge"><code class="docutils literal notranslate"><span class="pre">LongestEdge</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.splitting.ParameterMap"><code class="docutils literal notranslate"><span class="pre">ParameterMap</span></code></a></li>
@@ -151,15 +151,15 @@
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.splitting.subdivide"><code class="docutils literal notranslate"><span class="pre">subdivide()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#module-torch_bsf.integrations.lightning">integrations.lightning</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#integrations-lightning">integrations.lightning</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.integrations.lightning.regression_module"><code class="docutils literal notranslate"><span class="pre">regression_module()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#module-torch_bsf.integrations.mlflow">integrations.mlflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#integrations-mlflow">integrations.mlflow</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.integrations.mlflow.log_result"><code class="docutils literal notranslate"><span class="pre">log_result()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#module-torch_bsf.preprocessing">preprocessing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#preprocessing">preprocessing</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.preprocessing.MinMaxScaler"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.preprocessing.NoneScaler"><code class="docutils literal notranslate"><span class="pre">NoneScaler</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.preprocessing.NormalizeType"><code class="docutils literal notranslate"><span class="pre">NormalizeType</span></code></a></li>
@@ -189,7 +189,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="modules.html">torch_bsf</a></li>
+          <li class="breadcrumb-item"><a href="modules.html">API reference guide</a></li>
       <li class="breadcrumb-item active">Python API</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/torch_bsf.rst.txt" rel="nofollow"> View page source</a>
@@ -202,9 +202,18 @@
              
   <section id="python-api">
 <h1>Python API<a class="headerlink" href="#python-api" title="Link to this heading"></a></h1>
-<section id="module-torch_bsf.core">
-<span id="core"></span><h2>core<a class="headerlink" href="#module-torch_bsf.core" title="Link to this heading"></a></h2>
-<p>Spaces, observations and differentiable models shared by every fitting backend.</p>
+<p>This reference follows a model through geometry construction, numerical
+fitting, evaluation and optional integrations. The public types are shared
+across these operations. For runnable end-to-end examples and numerical
+interpretation, start with <a class="reference internal" href="quickstart.html"><span class="doc">Quickstart</span></a> and the <a class="reference internal" href="advanced.html"><span class="doc">Advanced Topics</span></a> guides.</p>
+<section id="core">
+<h2>core<a class="headerlink" href="#core" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">BezierSpace</span></code> defines the domain and global control layout. <code class="docutils literal notranslate"><span class="pre">Points</span></code>
+carries coordinates and cell IDs, <code class="docutils literal notranslate"><span class="pre">Samples</span></code> adds observed values and
+weights, and <code class="docutils literal notranslate"><span class="pre">BezierModel</span></code> adds output coefficients to a space. Geometry
+does not depend on output count. Use these types to make data alignment
+and model state explicit.</p>
+<p id="module-torch_bsf.core">Spaces, observations and differentiable models shared by every fitting backend.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="torch_bsf.core.BasisOperator">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torch_bsf.core.</span></span><span class="sig-name descname"><span class="pre">BasisOperator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">space</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.core.BezierSpace" title="torch_bsf.core.BezierSpace"><span class="pre">BezierSpace</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">points</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.core.Points" title="torch_bsf.core.Points"><span class="pre">Points</span></a></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/core.py#L395-L430"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.core.BasisOperator" title="Link to this definition"></a></dt>
@@ -439,9 +448,13 @@ subsequent changes to the builder cannot change its basis or layout.</p>
 </dd></dl>
 
 </section>
-<section id="module-torch_bsf.geometry">
-<span id="geometry"></span><h2>geometry<a class="headerlink" href="#module-torch_bsf.geometry" title="Link to this heading"></a></h2>
-<p>Topology builders for simplex products and their glued parameter domains.</p>
+<section id="geometry">
+<h2>geometry<a class="headerlink" href="#geometry" title="Link to this heading"></a></h2>
+<p>Build an assembled domain with <code class="docutils literal notranslate"><span class="pre">SimploidalSet</span></code> and identify the faces
+that must share coefficients. Compile it into <code class="docutils literal notranslate"><span class="pre">BezierSpace</span></code> before
+fitting. Builder mutations do not alter an existing compiled space.
+See <a class="reference internal" href="advanced/simploidal.html"><span class="doc">Single and assembled domains</span></a> for chart orientation and continuity.</p>
+<p id="module-torch_bsf.geometry">Topology builders for simplex products and their glued parameter domains.</p>
 <p>Compile a builder with <code class="docutils literal notranslate"><span class="pre">BezierSpace.on_set</span></code> before fitting. A compiled space
 snapshots the topology; subsequent builder mutations cannot change its basis.</p>
 <dl class="py class">
@@ -565,7 +578,7 @@ degenerate simploids are the same object.</p>
 <dt class="sig sig-object py" id="torch_bsf.geometry.SimploidalSet">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torch_bsf.geometry.</span></span><span class="sig-name descname"><span class="pre">SimploidalSet</span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/geometry.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.geometry.SimploidalSet" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>A simploidal set <span class="bibtex-citation" id="id1">[<a class="reference internal" href="references.html#id32" title="Samuel Peltier and Pascal Lienhardt. Simploidal sets: a data structure for handling simploidal bézier spaces. Computer Aided Geometric Design, 62:44–62, 2018. URL: https://doi.org/10.1016/j.cagd.2018.03.010.">PL18</a>]</span>.</p>
+<p>A simploidal set <span class="bibtex-citation" id="id1">[<a class="reference internal" href="references.html#id39" title="Samuel Peltier and Pascal Lienhardt. Simploidal sets: a data structure for handling simploidal bézier spaces. Computer Aided Geometric Design, 62:44–62, 2018. URL: https://doi.org/10.1016/j.cagd.2018.03.010.">PL18</a>]</span>.</p>
 <p>A simploidal set is a set of simploids equipped with face and degeneracy
 operators satisfying the commutation relations of Definition 1 of the
 paper.  Only non-degenerate simploids are stored; degenerate simploids are
@@ -691,7 +704,7 @@ torsion, e.g., for non-orientable spaces.</p>
 <dt class="sig sig-object py" id="torch_bsf.geometry.SimploidalSet.boundary_matrix">
 <span class="sig-name descname"><span class="pre">boundary_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.14)"><span class="pre">Tensor</span></a></span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/_kernels/sets.py#L601-L659"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.geometry.SimploidalSet.boundary_matrix" title="Link to this definition"></a></dt>
 <dd><p>The matrix of the boundary operator <span class="math notranslate nohighlight">\(\partial_{\mathrm{dim}}\)</span> of the normalized chain complex.</p>
-<p>Following Section 4.4 of <span class="bibtex-citation" id="id2">Peltier and Lienhardt [<a class="reference internal" href="references.html#id32" title="Samuel Peltier and Pascal Lienhardt. Simploidal sets: a data structure for handling simploidal bézier spaces. Computer Aided Geometric Design, 62:44–62, 2018. URL: https://doi.org/10.1016/j.cagd.2018.03.010.">PL18</a>]</span>, the chain
+<p>Following Section 4.4 of <span class="bibtex-citation" id="id2">Peltier and Lienhardt [<a class="reference internal" href="references.html#id39" title="Samuel Peltier and Pascal Lienhardt. Simploidal sets: a data structure for handling simploidal bézier spaces. Computer Aided Geometric Design, 62:44–62, 2018. URL: https://doi.org/10.1016/j.cagd.2018.03.010.">PL18</a>]</span>, the chain
 group <span class="math notranslate nohighlight">\(C_k\)</span> is spanned by the non-degenerate simploids of
 dimension <span class="math notranslate nohighlight">\(k\)</span>, and the boundary of a simploid <span class="math notranslate nohighlight">\(\sigma\)</span> of
 type <span class="math notranslate nohighlight">\((a_1, \ldots, a_n)\)</span> is</p>
@@ -907,9 +920,13 @@ returned simploid and the faces of the surviving simploids instead.</p>
 </dd></dl>
 
 </section>
-<section id="module-torch_bsf.fitting">
-<span id="fitting"></span><h2>fitting<a class="headerlink" href="#module-torch_bsf.fitting" title="Link to this heading"></a></h2>
-<p>One supervised fitting entry point for every space and numerical solver.</p>
+<section id="fitting">
+<h2>fitting<a class="headerlink" href="#fitting" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">fit</span></code> solves regression on known parameter-response pairs and returns
+<code class="docutils literal notranslate"><span class="pre">FitResult</span></code>. Fixed controls and quadratic penalties participate in the
+same solve. Evaluate <code class="docutils literal notranslate"><span class="pre">result.model(points)</span></code> after checking the numerical
+status; there is no initial guess for this linear least-squares operation.</p>
+<p id="module-torch_bsf.fitting">One supervised fitting entry point for every space and numerical solver.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="torch_bsf.fitting.fit">
 <span class="sig-prename descclassname"><span class="pre">torch_bsf.fitting.</span></span><span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">space</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.core.BezierSpace" title="torch_bsf.core.BezierSpace"><span class="pre">BezierSpace</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.core.Samples" title="torch_bsf.core.Samples"><span class="pre">Samples</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">solver</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.solvers.DenseLeastSquares" title="torch_bsf.solvers.DenseLeastSquares"><span class="pre">DenseLeastSquares</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#torch_bsf.solvers.SparseLeastSquares" title="torch_bsf.solvers.SparseLeastSquares"><span class="pre">SparseLeastSquares</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">DenseLeastSquares(rcond=None,</span> <span class="pre">diagnostics='basic')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.core.QuadraticPenalty" title="torch_bsf.core.QuadraticPenalty"><span class="pre">QuadraticPenalty</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">QuadraticPenalty(ridge=0.0,</span> <span class="pre">smoothness=0.0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.core.FixedControls" title="torch_bsf.core.FixedControls"><span class="pre">FixedControls</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#torch_bsf.results.FitResult" title="torch_bsf.results.FitResult"><span class="pre">FitResult</span></a></span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/fitting.py#L176-L289"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.fitting.fit" title="Link to this definition"></a></dt>
@@ -953,9 +970,14 @@ model contains placeholder free coefficients rather than a fit.</p>
 </dd></dl>
 
 </section>
-<section id="module-torch_bsf.results">
-<span id="results"></span><h2>results<a class="headerlink" href="#module-torch_bsf.results" title="Link to this heading"></a></h2>
-<p>Explicit numerical results: a computed model is not a convergence certificate.</p>
+<section id="results">
+<h2>results<a class="headerlink" href="#results" title="Link to this heading"></a></h2>
+<p>Results separate a computed model from evidence about the computation.
+<code class="docutils literal notranslate"><span class="pre">require_success</span></code> raises on unsuccessful termination. Data diagnostics
+describe observation identifiability, whereas system diagnostics can also
+include penalty rows. Successful termination is distinct from held-out
+prediction accuracy.</p>
+<p id="module-torch_bsf.results">Explicit numerical results: a computed model is not a convergence certificate.</p>
 <dl class="py exception">
 <dt class="sig sig-object py" id="torch_bsf.results.ConvergenceError">
 <em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torch_bsf.results.</span></span><span class="sig-name descname"><span class="pre">ConvergenceError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.results.FitResult" title="torch_bsf.results.FitResult"><span class="pre">FitResult</span></a></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/results.py#L18-L23"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.results.ConvergenceError" title="Link to this definition"></a></dt>
@@ -1023,9 +1045,13 @@ below the number of free columns has infinite coefficient condition number.</p>
 </dd></dl>
 
 </section>
-<section id="module-torch_bsf.solvers">
-<span id="solvers"></span><h2>solvers<a class="headerlink" href="#module-torch_bsf.solvers" title="Link to this heading"></a></h2>
-<p>Typed numerical solver configurations; importing this module does not load SciPy.</p>
+<section id="solvers">
+<h2>solvers<a class="headerlink" href="#solvers" title="Link to this heading"></a></h2>
+<p>Choose a typed dense or sparse least-squares configuration. Both compute
+CPU float64 models; sparse solving uses the optional SciPy dependency.
+Tolerances and iteration limits concern the numerical solve rather than
+polynomial capacity. See <a class="reference internal" href="advanced/acceleration.html"><span class="doc">Solvers and optional execution</span></a>.</p>
+<p id="module-torch_bsf.solvers">Typed numerical solver configurations; importing this module does not load SciPy.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="torch_bsf.solvers.DenseLeastSquares">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torch_bsf.solvers.</span></span><span class="sig-name descname"><span class="pre">DenseLeastSquares</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rcond</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">diagnostics</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.15)"><span class="pre">Literal</span></a><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'basic'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'full'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'basic'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/solvers.py#L14-L35"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.solvers.DenseLeastSquares" title="Link to this definition"></a></dt>
@@ -1062,9 +1088,13 @@ Condition or iteration limits are failures, not successful convergence.</p></li>
 </dd></dl>
 
 </section>
-<section id="module-torch_bsf.optimization">
-<span id="optimization"></span><h2>optimization<a class="headerlink" href="#module-torch_bsf.optimization" title="Link to this heading"></a></h2>
-<p>Objective minimization, separate from supervised least-squares regression.</p>
+<section id="optimization">
+<h2>optimization<a class="headerlink" href="#optimization" title="Link to this heading"></a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">minimize</span></code> when evaluating a differentiable cost instead of observing
+target responses. Supply an initial model, loss and typed method. Check
+objective and stopping evidence in the optimization result. Sampling and
+minibatch settings are explained in <a class="reference internal" href="advanced/sgd.html"><span class="doc">Objective minimization</span></a>.</p>
+<p id="module-torch_bsf.optimization">Objective minimization, separate from supervised least-squares regression.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="torch_bsf.optimization.Iteration">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torch_bsf.optimization.</span></span><span class="sig-name descname"><span class="pre">Iteration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iteration</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">gradient_norm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/optimization.py#L45-L51"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.optimization.Iteration" title="Link to this definition"></a></dt>
@@ -1138,9 +1168,13 @@ The returned model then has float32 coefficients.</p></li>
 </dd></dl>
 
 </section>
-<section id="module-torch_bsf.ensemble">
-<span id="ensemble"></span><h2>ensemble<a class="headerlink" href="#module-torch_bsf.ensemble" title="Link to this heading"></a></h2>
-<p>Explicit ensembling, independent of cross-validation and model selection.</p>
+<section id="ensemble">
+<h2>ensemble<a class="headerlink" href="#ensemble" title="Link to this heading"></a></h2>
+<p>An ensemble combines explicitly selected compatible models for prediction.
+It is a deliberate modeling choice, not an automatic consequence of
+cross-validation. Compare its validation behavior with a single model
+refitted on all available training observations.</p>
+<p id="module-torch_bsf.ensemble">Explicit ensembling, independent of cross-validation and model selection.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="torch_bsf.ensemble.Ensemble">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torch_bsf.ensemble.</span></span><span class="sig-name descname"><span class="pre">Ensemble</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">models</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence" title="(in Python v3.15)"><span class="pre">Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#torch_bsf.core.BezierModel" title="torch_bsf.core.BezierModel"><span class="pre">BezierModel</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/ensemble.py#L13-L35"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.ensemble.Ensemble" title="Link to this definition"></a></dt>
@@ -1161,9 +1195,13 @@ The returned model then has float32 coefficients.</p></li>
 </dd></dl>
 
 </section>
-<section id="module-torch_bsf.io">
-<span id="io"></span><h2>io<a class="headerlink" href="#module-torch_bsf.io" title="Link to this heading"></a></h2>
-<p>Versioned model persistence for both single-cell and glued-cell spaces.</p>
+<section id="io">
+<h2>io<a class="headerlink" href="#io" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">save_model</span></code> and <code class="docutils literal notranslate"><span class="pre">load_model</span></code> preserve compiled geometry and coefficients
+in a versioned archive independent of filename extension. Control-point
+export is a data export rather than a replacement for topology-aware
+persistence. Store application parameter transforms alongside the archive.</p>
+<p id="module-torch_bsf.io">Versioned model persistence for both single-cell and glued-cell spaces.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="torch_bsf.io.export_control_points">
 <span class="sig-prename descclassname"><span class="pre">torch_bsf.io.</span></span><span class="sig-name descname"><span class="pre">export_control_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><span class="pre">Path</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.core.BezierModel" title="torch_bsf.core.BezierModel"><span class="pre">BezierModel</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/io.py#L103-L108"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.io.export_control_points" title="Link to this definition"></a></dt>
@@ -1195,9 +1233,13 @@ independent of the filename extension and Python class import paths.</p>
 </dd></dl>
 
 </section>
-<section id="module-torch_bsf.sampling">
-<span id="sampling"></span><h2>sampling<a class="headerlink" href="#module-torch_bsf.sampling" title="Link to this heading"></a></h2>
-<p>Domain-aware random and deterministic sampling, using local random generators.</p>
+<section id="sampling">
+<h2>sampling<a class="headerlink" href="#sampling" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">sample</span></code> returns seeded parameter draws and <code class="docutils literal notranslate"><span class="pre">grid</span></code> returns deterministic
+lattices. Neither obtains response measurements. Product factors retain
+independent barycentric normalization, and assembled samples retain cell
+IDs. See <a class="reference internal" href="advanced/sampling.html"><span class="doc">Sampling and grids</span></a> and <a class="reference internal" href="advanced/grid_sampling.html"><span class="doc">Grid sampling</span></a>.</p>
+<p id="module-torch_bsf.sampling">Domain-aware random and deterministic sampling, using local random generators.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="torch_bsf.sampling.grid">
 <span class="sig-prename descclassname"><span class="pre">torch_bsf.sampling.</span></span><span class="sig-name descname"><span class="pre">grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">space</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.core.BezierSpace" title="torch_bsf.core.BezierSpace"><span class="pre">BezierSpace</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolution</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">cells</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence" title="(in Python v3.15)"><span class="pre">Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#torch_bsf.geometry.Simploid" title="torch_bsf.geometry.Simploid"><span class="pre">Simploid</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#torch_bsf.core.Points" title="torch_bsf.core.Points"><span class="pre">Points</span></a></span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/sampling.py#L90-L111"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.sampling.grid" title="Link to this definition"></a></dt>
@@ -1224,9 +1266,13 @@ categorical random sampling. Neither method resets global random state.</p>
 </dd></dl>
 
 </section>
-<section id="module-torch_bsf.model_selection">
-<span id="model-selection"></span><h2>model_selection<a class="headerlink" href="#module-torch_bsf.model_selection" title="Link to this heading"></a></h2>
-<p>Validation and degree search return explicit evidence rather than bare models.</p>
+<section id="model-selection">
+<h2>model_selection<a class="headerlink" href="#model-selection" title="Link to this heading"></a></h2>
+<p>Validation operations compare predictions on withheld observations and
+retain fold results. Degree selection changes capacity and requires an
+explicit final refit when using the core selection API. Learn output
+preprocessing inside each fold to prevent validation leakage.</p>
+<p id="module-torch_bsf.model_selection">Validation and degree search return explicit evidence rather than bare models.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="torch_bsf.model_selection.CVResult">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torch_bsf.model_selection.</span></span><span class="sig-name descname"><span class="pre">CVResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">folds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.15)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#torch_bsf.model_selection.FoldResult" title="torch_bsf.model_selection._validation.FoldResult"><span class="pre">FoldResult</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.15)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">success</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/model_selection/_validation.py#L48-L59"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.model_selection.CVResult" title="Link to this definition"></a></dt>
@@ -1292,9 +1338,13 @@ win. To refit, explicitly call <code class="docutils literal notranslate"><span 
 </dd></dl>
 
 </section>
-<section id="module-torch_bsf.active_learning">
-<span id="active-learning"></span><h2>active_learning<a class="headerlink" href="#module-torch_bsf.active_learning" title="Link to this heading"></a></h2>
-<p>Acquisition functions with explicit, mathematically relevant inputs.</p>
+<section id="active-learning">
+<h2>active_learning<a class="headerlink" href="#active-learning" title="Link to this heading"></a></h2>
+<p>Active learning selects additional parameter locations from a candidate
+pool. The application still obtains the responses and appends observations.
+Assess progress on an external validation set rather than only the
+adaptively selected training rows. See <a class="reference internal" href="advanced/active_learning.html"><span class="doc">Explicit ensembles and active learning</span></a>.</p>
+<p id="module-torch_bsf.active_learning">Acquisition functions with explicit, mathematically relevant inputs.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="torch_bsf.active_learning.farthest_points">
 <span class="sig-prename descclassname"><span class="pre">torch_bsf.active_learning.</span></span><span class="sig-name descname"><span class="pre">farthest_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">candidates</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.core.Points" title="torch_bsf.core.Points"><span class="pre">Points</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">observed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.core.Points" title="torch_bsf.core.Points"><span class="pre">Points</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#torch_bsf.core.Points" title="torch_bsf.core.Points"><span class="pre">Points</span></a></span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/active_learning.py#L21-L46"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.active_learning.farthest_points" title="Link to this definition"></a></dt>
@@ -1310,9 +1360,13 @@ geometry/dimension arguments are required for this density acquisition.</p>
 </dd></dl>
 
 </section>
-<section id="module-torch_bsf.plotting">
-<span id="plotting"></span><h2>plotting<a class="headerlink" href="#module-torch_bsf.plotting" title="Link to this heading"></a></h2>
-<p>A single plotting entry point for single- and multiple-cell models.</p>
+<section id="plotting">
+<h2>plotting<a class="headerlink" href="#plotting" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">plot_model</span></code> displays selected output coordinates and optional control
+nets. Rendering density changes the evaluated mesh, not the fitted
+coefficients. Higher-dimensional cells are shown through two-dimensional
+faces; inspect interior residuals separately.</p>
+<p id="module-torch_bsf.plotting">A single plotting entry point for single- and multiple-cell models.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="torch_bsf.plotting.plot_model">
 <span class="sig-prename descclassname"><span class="pre">torch_bsf.plotting.</span></span><span class="sig-name descname"><span class="pre">plot_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.core.BezierModel" title="torch_bsf.core.BezierModel"><span class="pre">BezierModel</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolution</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordinates</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence" title="(in Python v3.15)"><span class="pre">Sequence</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><span class="pre">Any</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_controls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><span class="pre">Any</span></a></span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/plotting.py#L13-L54"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.plotting.plot_model" title="Link to this definition"></a></dt>
@@ -1323,9 +1377,13 @@ Returns the axes. Matplotlib is imported only when plotting.</p>
 </dd></dl>
 
 </section>
-<section id="module-torch_bsf.sklearn">
-<span id="sklearn"></span><h2>sklearn<a class="headerlink" href="#module-torch_bsf.sklearn" title="Link to this heading"></a></h2>
-<p>Scikit-learn integration using the same numerical problem and results.</p>
+<section id="sklearn">
+<h2>sklearn<a class="headerlink" href="#sklearn" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">BezierRegressor</span></code> adapts the common fit to NumPy arrays and estimator
+workflows. Features must encode valid barycentric blocks. Generic feature
+standardization generally violates those constraints. See
+<a class="reference internal" href="advanced/sklearn.html"><span class="doc">Scikit-learn integration</span></a> for degree searches and output shapes.</p>
+<p id="module-torch_bsf.sklearn">Scikit-learn integration using the same numerical problem and results.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="torch_bsf.sklearn.BezierRegressor">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torch_bsf.sklearn.</span></span><span class="sig-name descname"><span class="pre">BezierRegressor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/sklearn.py#L35-L105"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.sklearn.BezierRegressor" title="Link to this definition"></a></dt>
@@ -1363,9 +1421,13 @@ Returns the axes. Matplotlib is imported only when plotting.</p>
 </dd></dl>
 
 </section>
-<section id="module-torch_bsf.splitting">
-<span id="splitting"></span><h2>splitting<a class="headerlink" href="#module-torch_bsf.splitting" title="Link to this heading"></a></h2>
-<p>Exact local subdivision with explicit maps back to the parent domain.</p>
+<section id="splitting">
+<h2>splitting<a class="headerlink" href="#splitting" title="Link to this heading"></a></h2>
+<p>Subdivision reparameterizes a model on smaller cells while preserving its
+represented function. Keep the child-to-parent coordinate maps when
+comparing values. Refitting child models is a separate operation that can
+change the function; see <a class="reference internal" href="advanced/splitting.html"><span class="doc">Exact local subdivision</span></a>.</p>
+<p id="module-torch_bsf.splitting">Exact local subdivision with explicit maps back to the parent domain.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="torch_bsf.splitting.EdgeSplit">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torch_bsf.splitting.</span></span><span class="sig-name descname"><span class="pre">EdgeSplit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">j</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">fraction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">factor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/splitting.py#L13-L20"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.splitting.EdgeSplit" title="Link to this definition"></a></dt>
@@ -1423,9 +1485,13 @@ residual grouping; it does not refit the children or guarantee error reduction.<
 </dd></dl>
 
 </section>
-<section id="module-torch_bsf.integrations.lightning">
-<span id="integrations-lightning"></span><h2>integrations.lightning<a class="headerlink" href="#module-torch_bsf.integrations.lightning" title="Link to this heading"></a></h2>
-<p>Opt-in Lightning execution for the common weighted regression objective.</p>
+<section id="integrations-lightning">
+<h2>integrations.lightning<a class="headerlink" href="#integrations-lightning" title="Link to this heading"></a></h2>
+<p>The optional Lightning adapter exposes the common model to a training
+framework. It does not select a different core regression algorithm.
+Use the core fit when solving the stated linear least-squares problem;
+see <a class="reference internal" href="advanced/sgd.html"><span class="doc">Objective minimization</span></a> for framework-based objective optimization.</p>
+<p id="module-torch_bsf.integrations.lightning">Opt-in Lightning execution for the common weighted regression objective.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="torch_bsf.integrations.lightning.regression_module">
 <span class="sig-prename descclassname"><span class="pre">torch_bsf.integrations.lightning.</span></span><span class="sig-name descname"><span class="pre">regression_module</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.core.BezierModel" title="torch_bsf.core.BezierModel"><span class="pre">BezierModel</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">samples</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.core.Samples" title="torch_bsf.core.Samples"><span class="pre">Samples</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">penalty</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.core.QuadraticPenalty" title="torch_bsf.core.QuadraticPenalty"><span class="pre">QuadraticPenalty</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">QuadraticPenalty(ridge=0.0,</span> <span class="pre">smoothness=0.0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.core.FixedControls" title="torch_bsf.core.FixedControls"><span class="pre">FixedControls</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><span class="pre">Any</span></a></span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/integrations/lightning.py#L17-L69"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.integrations.lightning.regression_module" title="Link to this definition"></a></dt>
@@ -1438,9 +1504,13 @@ Its <code class="docutils literal notranslate"><span class="pre">bezier_model()<
 </dd></dl>
 
 </section>
-<section id="module-torch_bsf.integrations.mlflow">
-<span id="integrations-mlflow"></span><h2>integrations.mlflow<a class="headerlink" href="#module-torch_bsf.integrations.mlflow" title="Link to this heading"></a></h2>
-<p>Explicit MLflow recording, independent of core numerical execution.</p>
+<section id="integrations-mlflow">
+<h2>integrations.mlflow<a class="headerlink" href="#integrations-mlflow" title="Link to this heading"></a></h2>
+<p>The optional MLflow integration records experiments without making the
+numerical core depend on a tracking service. Retain the parameter schema,
+units and reference-problem definition with recorded metrics so that
+artifacts can be interpreted outside their original run.</p>
+<p id="module-torch_bsf.integrations.mlflow">Explicit MLflow recording, independent of core numerical execution.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="torch_bsf.integrations.mlflow.log_result">
 <span class="sig-prename descclassname"><span class="pre">torch_bsf.integrations.mlflow.</span></span><span class="sig-name descname"><span class="pre">log_result</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.results.FitResult" title="torch_bsf.results.FitResult"><span class="pre">FitResult</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">tracking_uri</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.15)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><span class="pre">str</span></a></span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/integrations/mlflow.py#L13-L33"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.integrations.mlflow.log_result" title="Link to this definition"></a></dt>
@@ -1452,9 +1522,13 @@ diagnostics are still recorded with <code class="docutils literal notranslate"><
 </dd></dl>
 
 </section>
-<section id="module-torch_bsf.preprocessing">
-<span id="preprocessing"></span><h2>preprocessing<a class="headerlink" href="#module-torch_bsf.preprocessing" title="Link to this heading"></a></h2>
-<dl class="py class">
+<section id="preprocessing">
+<h2>preprocessing<a class="headerlink" href="#preprocessing" title="Link to this heading"></a></h2>
+<p>Explicit output transforms make scaling visible in training and inference.
+Fit statistics on training responses, transform exact fixed values in the
+same way, and invert predictions before reporting original-unit errors.
+See <a class="reference internal" href="advanced/normalization.html"><span class="doc">Output scaling</span></a> for penalty and validation implications.</p>
+<dl class="py class" id="module-torch_bsf.preprocessing">
 <dt class="sig sig-object py" id="torch_bsf.preprocessing.MinMaxScaler">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torch_bsf.preprocessing.</span></span><span class="sig-name descname"><span class="pre">MinMaxScaler</span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/preprocessing.py#L35-L112"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.preprocessing.MinMaxScaler" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
@@ -1905,7 +1979,7 @@ points transforms the values of the model.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="modules.html" class="btn btn-neutral float-left" title="torch_bsf" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="modules.html" class="btn btn-neutral float-left" title="API reference guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>

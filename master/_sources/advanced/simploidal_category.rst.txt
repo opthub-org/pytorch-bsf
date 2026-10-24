@@ -12,6 +12,15 @@ to simploids is the description of the indexing category.
 Throughout, :math:`[k] = \{0, 1, \ldots, k\}`, and :math:`\Delta` is the
 category of the ordered sets :math:`[k]` (:math:`k \ge 0`) and monotone maps.
 
+For the geometric intuition, first read the
+:ref:`square, prism and glued-patch figure <simploidal-space-overview>`.
+This page describes the bookkeeping behind those pictures: a type names a
+product cell, face maps select its boundaries, and degeneracies describe
+collapsed directions. A presheaf records cells of every type together with
+consistent face and degeneracy operations. The topos statement concerns
+that category of combinatorial objects; it does not assert smoothness,
+injectivity or a regression accuracy guarantee for a fitted Bézier model.
+
 The simploid category
 ---------------------
 

@@ -56,18 +56,26 @@
 <li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../advanced.html">Advanced Topics</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../applications.html">Applications</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="elastic_net.html">Elastic Net Model Selection</a></li>
-<li class="toctree-l2"><a class="reference internal" href="portfolio.html">Robust Portfolio Management</a></li>
-<li class="toctree-l2"><a class="reference internal" href="smart_grids.html">Distributed Smart Grids and Energy Operations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="federated_learning.html">Multi-Task and Federated Learning</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Multi-Objective Model Predictive Control</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#numerical-experiments">Numerical Experiments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../applications.html#what-is-fitted-in-each-application">What is fitted in each application?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../applications.html#a-common-reproduction-and-validation-workflow">A common reproduction and validation workflow</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../applications.html#choosing-a-domain-and-a-next-guide">Choosing a domain and a next guide</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="elastic_net.html">Elastic Net Model Selection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="portfolio.html">Robust Portfolio Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="smart_grids.html">Distributed Smart Grids and Energy Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="federated_learning.html">Multi-Task and Federated Learning</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Multi-Objective Model Predictive Control</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#numerical-experiments">Numerical Experiments</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#read-the-simploid-as-a-family-of-trade-off-curves">Read the simploid as a family of trade-off curves</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#represent-the-two-output-maps-explicitly">Represent the two output maps explicitly</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#assess-a-policy-rather-than-only-a-front">Assess a policy rather than only a front</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="communications.html">Communication Systems and Routing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="supply_chain.html">Supply Chain and Logistics Optimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="medical_imaging.html">Medical Imaging and Radiation Therapy</a></li>
-<li class="toctree-l2"><a class="reference internal" href="facility_location.html">Facility Location and Continuous Approximations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="communications.html">Communication Systems and Routing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="supply_chain.html">Supply Chain and Logistics Optimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="medical_imaging.html">Medical Imaging and Radiation Therapy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="facility_location.html">Facility Location and Continuous Approximations</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
@@ -75,7 +83,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../modules.html">torch_bsf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
 </ul>
 
         </div>
@@ -112,8 +120,17 @@
 f_{smooth}(U) &amp;= \sum_{k=0}^{H-1} \|\Delta u_k\|_R^2 \\
 f_{energy}(U) &amp;= \sum_{k=0}^{H-1} \|u_k\|_S^2\end{split}\]</div>
 <p>where <span class="math notranslate nohighlight">\(y_k\)</span> denotes system states/outputs, <span class="math notranslate nohighlight">\(r_k\)</span> the target setpoints, <span class="math notranslate nohighlight">\(u_k\)</span> the operational inputs, and <span class="math notranslate nohighlight">\(\Delta u_k\)</span> the input change rates.</p>
-<p>Crucially, as long as the weighting matrices (e.g., <span class="math notranslate nohighlight">\(R\)</span>) acting on the independent control inputs are uniformly positive definite (<span class="math notranslate nohighlight">\(R \succ 0\)</span>), the resulting multi-objective performance stage cost is strongly convex with respect to the continuous input decisions <span class="math notranslate nohighlight">\(U\)</span>. Even in complex scenarios where discrete mode switching (like robot friction statuses) transforms the formulation into a Mixed-Integer Quadratic Program (MIQP), the continuous sub-component remains undeniably strongly convex, stabilizing bounded-node optimization searches.</p>
-<p>In practice, resolving these multi-objective QP or MIQP problems during an active millisecond control loop requires prohibitive amounts of computational power. Since the strong convexity naturally spans a continuous simplicial Pareto front, controllers equipped with a Bézier simplex representation can bypass the online QP solver entirely. The polynomial evaluation provides an analytic, instantaneous multi-objective control response, enabling ultra-fast, high-frequency continuous re-optimization in highly unstable physical environments.</p>
+<p>For linear dynamics, eliminating states produces quadratic objectives in
+the control sequence. A positive-definite penalty on every independent
+input gives strong convexity of that objective. Tracking and input-difference
+terms require their own rank checks. In a mixed-integer problem, curvature
+within each fixed mode does not establish a continuous solution map across
+mode changes.</p>
+<p>An offline polynomial surrogate can reduce online evaluation cost over a
+specified parameter range. Its use in a controller also requires checking
+input and state constraints, closed-loop behavior and evaluation latency.
+Strong convexity of the reference problem alone gives none of those
+guarantees for an approximate control law.</p>
 <section id="numerical-experiments">
 <h2>Numerical Experiments<a class="headerlink" href="#numerical-experiments" title="Link to this heading"></a></h2>
 <p>An MPC controller solves the same problem again at every sampling instant, each time from a different measured state.
@@ -165,6 +182,59 @@ The figures show the curves of the fitted simploids for the five sampled initial
 </tbody>
 </table>
 <p>The complete example script is available at <code class="file docutils literal notranslate"><span class="pre">examples/generate_mpc_pareto.py</span></code>.</p>
+</section>
+<section id="read-the-simploid-as-a-family-of-trade-off-curves">
+<h2>Read the simploid as a family of trade-off curves<a class="headerlink" href="#read-the-simploid-as-a-family-of-trade-off-curves" title="Link to this heading"></a></h2>
+<p>The <a class="reference internal" href="../whatis.html#simploidal-space-overview"><span class="std std-ref">left panel of the simploid overview</span></a>
+shows a square-domain map. Here its first interval controls objective
+priorities and its second controls initial state. Fixing the second factor
+selects one Pareto curve; sweeping it gives a family of curves. Fixing the
+first factor instead shows how the preferred policy changes with initial
+state at one chosen priority.</p>
+<p>For a requested state, compute <span class="math notranslate nohighlight">\(v_2=(x_0+1)/2\)</span> and
+<span class="math notranslate nohighlight">\(v_1=1-v_2\)</span>. A row <code class="docutils literal notranslate"><span class="pre">[w1,</span> <span class="pre">w2,</span> <span class="pre">v1,</span> <span class="pre">v2]</span></code> contains two independently
+normalized blocks. At <span class="math notranslate nohighlight">\(x_0=0\)</span>, the second block is <code class="docutils literal notranslate"><span class="pre">[0.5,</span> <span class="pre">0.5]</span></code>.
+The row sums to two; normalizing it globally would invalidate the domain.
+The model covers <span class="math notranslate nohighlight">\(-1\le x_0\le1\)</span>. A state outside that interval
+requires another modeled range or a different controller policy.</p>
+</section>
+<section id="represent-the-two-output-maps-explicitly">
+<h2>Represent the two output maps explicitly<a class="headerlink" href="#represent-the-two-output-maps-explicitly" title="Link to this heading"></a></h2>
+<p>The decision map uses <code class="docutils literal notranslate"><span class="pre">BezierSpace.simploid((1,</span> <span class="pre">1),</span> <span class="pre">degree=(6,</span> <span class="pre">1))</span></code> and
+returns five control inputs. It has <span class="math notranslate nohighlight">\(7\times2=14\)</span> global controls,
+each with five output coefficients. The front map uses degree <code class="docutils literal notranslate"><span class="pre">(6,</span> <span class="pre">2)</span></code>
+and two outputs, with <span class="math notranslate nohighlight">\(7\times3=21\)</span> controls. Their domain type is
+identical even though capacity and output width differ.</p>
+<p>The unequal degrees reflect the reference solution: at fixed priority the
+optimal input sequence is affine in initial state, while its quadratic
+costs depend quadratically on that state. Dependence on the priority factor
+is generally rational and is only approximated by degree six. Increasing
+state degree cannot compensate for insufficient priority degree; compare
+errors along each factor before adding controls.</p>
+<p>To build the data, keep all 55 parameter rows aligned with the five-column
+control array and two-column objective array. Fit each array separately with
+<code class="docutils literal notranslate"><span class="pre">Samples</span></code> and inspect the returned solve diagnostics. The same row order
+must be used for both factors and every output. Product grids and their
+growth are explained in <a class="reference internal" href="../advanced/grid_sampling.html"><span class="doc">Grid sampling</span></a>.</p>
+</section>
+<section id="assess-a-policy-rather-than-only-a-front">
+<h2>Assess a policy rather than only a front<a class="headerlink" href="#assess-a-policy-rather-than-only-a-front" title="Link to this heading"></a></h2>
+<p>Use new combinations of priorities and initial states for validation,
+including corners and edges of the square. The stated test grid includes
+training locations as well as new ones; report errors on the new locations
+separately when estimating interpolation accuracy. Compare all five
+predicted controls, roll out the system, and recompute tracking and effort.
+A close two-output front prediction need not imply a good first action.</p>
+<p>In receding-horizon use, apply only the first predicted input, measure the
+new state and query the model again. Open-loop sequence accuracy does not
+certify this feedback loop. The example has no actuator saturation or state
+constraints, so it provides no evidence that a constrained extension remains
+feasible or stable. Such an extension needs its own reference solves,
+trajectory checks and closed-loop evaluation.</p>
+<p>Run <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">examples/generate_mpc_pareto.py</span></code> to regenerate the experiment.
+Keep horizon, dynamics, target and parameter bounds with the saved model:
+changing them changes the target map. For construction and persistence of
+product-domain models, continue to <a class="reference internal" href="../advanced/simploidal.html"><span class="doc">Single and assembled domains</span></a>.</p>
 </section>
 </section>
 

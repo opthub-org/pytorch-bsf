@@ -106,3 +106,33 @@ iteration budget is not convergence; a low-looking curve can still have a
 large full-sample gradient. A callback stop also does not certify convergence.
 Set a justified ``gradient_tolerance`` and compare multiple starts on nonconvex
 problems. See :doc:`sgd` for step size, minibatches, preconditioners and stopping.
+
+Use a known polynomial as a starting model
+------------------------------------------
+
+For a quadratic segment, the coefficients below represent :math:`u^2`
+exactly. Resolve all three Bernstein indices so the construction does not
+depend on implementation row order.
+
+.. testcode:: initialization
+
+    exact_coefficients = torch.empty(space.n_controls, 1, dtype=torch.float64)
+    for index, value in [((2, 0), 0.), ((1, 1), 0.), ((0, 2), 1.)]:
+        exact_coefficients[space.control_index(index, cell=0)] = value
+    exact_start = BezierModel(space, exact_coefficients)
+    assert torch.allclose(exact_start(points)[:, 0], points.parameters[:, 1].square())
+
+This construction is useful when a simpler analytic model captures much of
+the desired response before a more complex cost is optimized. The middle
+coefficient is zero, although the curve's value at ``u=0.5`` is ``0.25``:
+an interior control value is not the response at a corresponding lattice
+location. Fitting measured responses is usually safer than assigning them
+directly to interior coefficient rows.
+
+For a controlled initialization experiment, keep space, points, constraints,
+loss and method identical while changing only the initial coefficients.
+Compare initial predictions, final full-sample objectives and termination
+statuses. If results differ materially, determine whether one run stopped
+early or whether the nonconvex loss admits different stationary points.
+If a supposedly feasible start becomes infeasible during updates, remember
+that an initial guess is not a persistent inequality constraint.

@@ -56,18 +56,26 @@
 <li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../advanced.html">Advanced Topics</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../applications.html">Applications</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="elastic_net.html">Elastic Net Model Selection</a></li>
-<li class="toctree-l2"><a class="reference internal" href="portfolio.html">Robust Portfolio Management</a></li>
-<li class="toctree-l2"><a class="reference internal" href="smart_grids.html">Distributed Smart Grids and Energy Operations</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Multi-Task and Federated Learning</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#numerical-experiments">Numerical Experiments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../applications.html#what-is-fitted-in-each-application">What is fitted in each application?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../applications.html#a-common-reproduction-and-validation-workflow">A common reproduction and validation workflow</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../applications.html#choosing-a-domain-and-a-next-guide">Choosing a domain and a next guide</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="elastic_net.html">Elastic Net Model Selection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="portfolio.html">Robust Portfolio Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="smart_grids.html">Distributed Smart Grids and Energy Operations</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Multi-Task and Federated Learning</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#numerical-experiments">Numerical Experiments</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#what-the-two-fitted-maps-represent">What the two fitted maps represent</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#generate-and-assess-a-surrogate">Generate and assess a surrogate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#changing-the-model-and-interpreting-the-scope">Changing the model and interpreting the scope</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
-<li class="toctree-l2"><a class="reference internal" href="communications.html">Communication Systems and Routing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="supply_chain.html">Supply Chain and Logistics Optimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="medical_imaging.html">Medical Imaging and Radiation Therapy</a></li>
-<li class="toctree-l2"><a class="reference internal" href="facility_location.html">Facility Location and Continuous Approximations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="communications.html">Communication Systems and Routing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="supply_chain.html">Supply Chain and Logistics Optimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="medical_imaging.html">Medical Imaging and Radiation Therapy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="facility_location.html">Facility Location and Continuous Approximations</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
@@ -75,7 +83,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../modules.html">torch_bsf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
 </ul>
 
         </div>
@@ -113,8 +121,17 @@
 f_2(\theta) &amp;= \mathcal{L}_2(\theta) + \lambda\|\theta\|^2 \\
             &amp;\vdots \\
 f_m(\theta) &amp;= \mathcal{L}_m(\theta) + \lambda\|\theta\|^2\end{split}\]</div>
-<p>The <span class="math notranslate nohighlight">\(L_2\)</span> regularization penalty <span class="math notranslate nohighlight">\(\lambda\|\theta\|^2\)</span> ensures that the Hessian incorporates a positive definite matrix <span class="math notranslate nohighlight">\(2\lambda I \succ 0\)</span>. This global penalty forcefully transforms the generic convex loss landscapes (common in logistic/ridge regressions or SVMs) into strictly strongly convex objectives. Under strong convexity, algorithms like the Stochastic Multi-Gradient (SMG) descent achieve dramatic convergence accelerations, improving from sub-linear to linear <span class="math notranslate nohighlight">\(O(1/n)\)</span> or <span class="math notranslate nohighlight">\(O(\exp(-\mu T))\)</span> convergence rates <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id18" title="Suyun Liu and Luís N Vicente. The stochastic multi-gradient algorithm for multi-objective optimization and its application to supervised machine learning. Annals of Operations Research, 339(3):1119–1148, 2024. doi:10.1007/s10479-021-04033-z.">LV24</a>]</span>.</p>
-<p>Rather than computing single compromised aggregations, the global model’s Pareto front is modeled as a continuous Bézier simplex. This facilitates a “train once, customize anywhere” paradigm. A global Bézier simplex allows individual edge devices or network nodes to download the analytic continuous trade-off surface, enabling them to instantly select an optimal model variant tailored precisely to their local power limits, fairness constraints, or inference needs, simply by navigating the simplex variables—representing a drastic improvement over constant network-wide retraining.</p>
+<p>For convex task losses and <span class="math notranslate nohighlight">\(\lambda&gt;0\)</span>, adding this penalty makes each
+objective strongly convex. For twice differentiable losses, its Hessian
+contribution is <span class="math notranslate nohighlight">\(2\lambda I\)</span>. This argument applies to convex models
+such as linear or logistic regression. Adding ridge to a general neural
+network does not by itself establish global strong convexity. Optimization
+rates also depend on the algorithm and its additional assumptions.</p>
+<p>A Bézier decision map can approximate model parameters across task
+priorities, allowing repeated queries without a new reference solve each
+time. A front map instead predicts task losses. Either map assumes the
+same tasks and fixed training problem; introducing power or fairness
+constraints requires those conditions to be modeled explicitly.</p>
 <section id="numerical-experiments">
 <h2>Numerical Experiments<a class="headerlink" href="#numerical-experiments" title="Link to this heading"></a></h2>
 <p>We demonstrate Bézier simplex fitting on a two-task federated learning problem with quadratic losses and Tikhonov regularization.</p>
@@ -154,6 +171,58 @@ f_2(\theta) &amp;= \|\theta - \theta_2^*\|^2 + 0.1\|\theta\|^2\end{split}\]</div
 </tbody>
 </table>
 <p>The complete example script is available at <code class="file docutils literal notranslate"><span class="pre">examples/generate_federated_learning_pareto.py</span></code>.</p>
+</section>
+<section id="what-the-two-fitted-maps-represent">
+<h2>What the two fitted maps represent<a class="headerlink" href="#what-the-two-fitted-maps-represent" title="Link to this heading"></a></h2>
+<p>The input is a task-priority vector, not a client’s feature vector. With two
+tasks, <code class="docutils literal notranslate"><span class="pre">BezierSpace.simplex(1,</span> <span class="pre">degree=3)</span></code> takes rows <code class="docutils literal notranslate"><span class="pre">[w1,</span> <span class="pre">w2]</span></code> whose
+entries sum to one. A parameter-space fit returns two columns for
+<code class="docutils literal notranslate"><span class="pre">theta</span></code>; a front fit returns two loss columns. The first could supply
+parameters to a downstream predictor, while the second supports comparison
+of trade-offs. A loss-space prediction alone cannot reconstruct a predictor.</p>
+<p>For this quadratic example, the weighted optimizer has a closed form:</p>
+<div class="math notranslate nohighlight">
+\[\theta^*(w)=\frac{w_1\theta_1^*+w_2\theta_2^*}{1.1}.\]</div>
+<p>The parameter map is affine in the weights, and the losses evaluated on it
+are quadratic. Thus a cubic has sufficient capacity for both in exact
+arithmetic. Small errors here demonstrate a simple representable target;
+they do not measure accuracy on a heterogeneous neural-network federation.
+The endpoints minimize one regularized task each, and interior weights
+interpolate priorities rather than client data.</p>
+</section>
+<section id="generate-and-assess-a-surrogate">
+<h2>Generate and assess a surrogate<a class="headerlink" href="#generate-and-assess-a-surrogate" title="Link to this heading"></a></h2>
+<p>Obtain one converged task-weighted solution at each training weight and keep
+its parameters and all task losses together. Fit <code class="docutils literal notranslate"><span class="pre">Samples(weights,</span> <span class="pre">values)</span></code>
+with <code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit()</span></code>, retaining the returned diagnostics. Generate
+additional weights between training locations and solve the original task
+problem there for an independent comparison. Include the endpoints because
+minority-task performance can deteriorate near an extreme priority.</p>
+<p>Assess parameter error and each task’s loss separately. Also recompute task
+losses at the predicted parameters: an independently fitted loss map need
+not equal losses evaluated on the parameter map. For a deployment with many
+parameter columns, aggregate parameter MSE can hide errors in a small but
+influential subset of coefficients. Prediction quality on held-out client
+examples is the relevant downstream check.</p>
+</section>
+<section id="changing-the-model-and-interpreting-the-scope">
+<h2>Changing the model and interpreting the scope<a class="headerlink" href="#changing-the-model-and-interpreting-the-scope" title="Link to this heading"></a></h2>
+<p>Increasing task count changes the input simplex dimension, while increasing
+predictor size changes only the number of output columns. Increasing degree
+adds controls and requires broader priority coverage. Increasing ridge in
+the original task objectives shrinks their optima and changes the target
+map. <code class="docutils literal notranslate"><span class="pre">QuadraticPenalty</span></code> in the surrogate fit instead regularizes Bézier
+controls; these are different operations with different units.</p>
+<p>The example optimizes two centralized quadratic losses. It does not implement
+client communication, secure aggregation, privacy accounting or a federated
+training protocol. For real client data, keep client evaluation local where
+required and define how a consistent parameter vector is obtained. Different
+neural solutions can have incompatible hidden-unit permutations, making
+direct parameter interpolation unreliable even when their losses are similar.</p>
+<p>If a separate operating variable such as a regularization level varies
+independently of task priorities, encode it as another simplex factor; see
+<a class="reference internal" href="../advanced/simploidal.html"><span class="doc">Single and assembled domains</span></a>. For fitting choices, use
+<a class="reference internal" href="../advanced/auto_degree.html"><span class="doc">Cross-validation and degree search</span></a> and <a class="reference internal" href="../advanced/regularization.html"><span class="doc">Regularization and numerical evidence</span></a>.</p>
 </section>
 </section>
 

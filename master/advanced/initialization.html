@@ -20,6 +20,7 @@
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -54,26 +55,32 @@
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="normalization.html">Output scaling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Explicit initial models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#which-operations-need-a-starting-point">Which operations need a starting point?</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#construct-a-model-with-explicit-coefficients">Construct a model with explicit coefficients</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#how-to-adjust-the-start-and-optimizer-together">How to adjust the start and optimizer together</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#follow-a-fit-through-the-guides">Follow a fit through the guides</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Explicit initial models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#which-operations-need-a-starting-point">Which operations need a starting point?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#construct-a-model-with-explicit-coefficients">Construct a model with explicit coefficients</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#how-to-adjust-the-start-and-optimizer-together">How to adjust the start and optimizer together</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#use-a-known-polynomial-as-a-starting-model">Use a known polynomial as a starting model</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="visualization.html">Visualization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
-<li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
-<li class="toctree-l2"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="partial.html">Fixed controls</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
-<li class="toctree-l2"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
-<li class="toctree-l2"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
-<li class="toctree-l2"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
-<li class="toctree-l2"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="partial.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
@@ -82,7 +89,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../modules.html">torch_bsf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
 </ul>
 
         </div>
@@ -167,7 +174,7 @@ does not ensure that two different topologies use the same ordering.</p>
 <a class="reference internal image-reference" href="../_images/initialization.png"><img alt="Two constant initial curves approach the same quadratic target, with their loss histories." src="../_images/initialization.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 8 </span><span class="caption-text">Before: constant starts at zero and two. After: both minimize the same
+<p><span class="caption-number">Fig. 9 </span><span class="caption-text">Before: constant starts at zero and two. After: both minimize the same
 full-batch convex quadratic response loss. Right: pre-update losses versus
 iteration. Different initial losses and iteration counts need not imply
 different final solutions.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
@@ -206,6 +213,32 @@ iteration budget is not convergence; a low-looking curve can still have a
 large full-sample gradient. A callback stop also does not certify convergence.
 Set a justified <code class="docutils literal notranslate"><span class="pre">gradient_tolerance</span></code> and compare multiple starts on nonconvex
 problems. See <a class="reference internal" href="sgd.html"><span class="doc">Objective minimization</span></a> for step size, minibatches, preconditioners and stopping.</p>
+</section>
+<section id="use-a-known-polynomial-as-a-starting-model">
+<h2>Use a known polynomial as a starting model<a class="headerlink" href="#use-a-known-polynomial-as-a-starting-model" title="Link to this heading"></a></h2>
+<p>For a quadratic segment, the coefficients below represent <span class="math notranslate nohighlight">\(u^2\)</span>
+exactly. Resolve all three Bernstein indices so the construction does not
+depend on implementation row order.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">exact_coefficients</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">space</span><span class="o">.</span><span class="n">n_controls</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">[((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="mf">0.</span><span class="p">),</span> <span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mf">0.</span><span class="p">),</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="mf">1.</span><span class="p">)]:</span>
+    <span class="n">exact_coefficients</span><span class="p">[</span><span class="n">space</span><span class="o">.</span><span class="n">control_index</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">cell</span><span class="o">=</span><span class="mi">0</span><span class="p">)]</span> <span class="o">=</span> <span class="n">value</span>
+<span class="n">exact_start</span> <span class="o">=</span> <span class="n">BezierModel</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">exact_coefficients</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">exact_start</span><span class="p">(</span><span class="n">points</span><span class="p">)[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">points</span><span class="o">.</span><span class="n">parameters</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">square</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>This construction is useful when a simpler analytic model captures much of
+the desired response before a more complex cost is optimized. The middle
+coefficient is zero, although the curve’s value at <code class="docutils literal notranslate"><span class="pre">u=0.5</span></code> is <code class="docutils literal notranslate"><span class="pre">0.25</span></code>:
+an interior control value is not the response at a corresponding lattice
+location. Fitting measured responses is usually safer than assigning them
+directly to interior coefficient rows.</p>
+<p>For a controlled initialization experiment, keep space, points, constraints,
+loss and method identical while changing only the initial coefficients.
+Compare initial predictions, final full-sample objectives and termination
+statuses. If results differ materially, determine whether one run stopped
+early or whether the nonconvex loss admits different stationary points.
+If a supposedly feasible start becomes infeasible during updates, remember
+that an initial guess is not a persistent inequality constraint.</p>
 </section>
 </section>
 

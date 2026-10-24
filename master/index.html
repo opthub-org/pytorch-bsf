@@ -59,7 +59,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="modules.html">torch_bsf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">API reference guide</a></li>
 </ul>
 
         </div>
@@ -129,35 +129,23 @@ interpretation of numerical evidence for the unified API.</p>
 <li class="toctree-l2"><a class="reference internal" href="quickstart.html#next-steps-and-reproducibility">Next steps and reproducibility</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="migration.html#separate-geometry-observations-and-fitted-state">Separate geometry, observations and fitted state</a></li>
+<li class="toctree-l2"><a class="reference internal" href="migration.html#translate-penalties-and-constraints-deliberately">Translate penalties and constraints deliberately</a></li>
+<li class="toctree-l2"><a class="reference internal" href="migration.html#replace-implicit-preprocessing-and-model-storage">Replace implicit preprocessing and model storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="migration.html#validation-and-integration-changes">Validation and integration changes</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="advanced/normalization.html">Output scaling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/sklearn.html">Scikit-learn integration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/initialization.html">Explicit initial models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/visualization.html">Visualization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/splitting.html">Exact local subdivision</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/auto_degree.html">Cross-validation and degree search</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/regularization.html">Regularization and numerical evidence</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/grid_sampling.html">Grid sampling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/partial.html">Fixed controls</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/sampling.html">Sampling and grids</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/acceleration.html">Solvers and optional execution</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/active_learning.html">Explicit ensembles and active learning</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/simploidal.html">Single and assembled domains</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/simploidal_category.html">The Category of Simploidal Sets</a></li>
-<li class="toctree-l2"><a class="reference internal" href="advanced/sgd.html">Objective minimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced.html#follow-a-fit-through-the-guides">Follow a fit through the guides</a></li>
+<li class="toctree-l2"><a class="reference internal" href="advanced.html#guide-chapters">Guide chapters</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="applications/elastic_net.html">Elastic Net Model Selection</a></li>
-<li class="toctree-l2"><a class="reference internal" href="applications/portfolio.html">Robust Portfolio Management</a></li>
-<li class="toctree-l2"><a class="reference internal" href="applications/smart_grids.html">Distributed Smart Grids and Energy Operations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="applications/federated_learning.html">Multi-Task and Federated Learning</a></li>
-<li class="toctree-l2"><a class="reference internal" href="applications/model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
-<li class="toctree-l2"><a class="reference internal" href="applications/communications.html">Communication Systems and Routing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="applications/supply_chain.html">Supply Chain and Logistics Optimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="applications/medical_imaging.html">Medical Imaging and Radiation Therapy</a></li>
-<li class="toctree-l2"><a class="reference internal" href="applications/facility_location.html">Facility Location and Continuous Approximations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="applications.html#what-is-fitted-in-each-application">What is fitted in each application?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="applications.html#a-common-reproduction-and-validation-workflow">A common reproduction and validation workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="applications.html#choosing-a-domain-and-a-next-guide">Choosing a domain and a next guide</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently asked questions</a><ul>
@@ -183,13 +171,19 @@ interpretation of numerical evidence for the unified API.</p>
 <li class="toctree-l2"><a class="reference internal" href="faq.html#can-i-compare-before-after-runs-with-different-evaluation-points">Can I compare before/after runs with different evaluation points?</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="references.html#fitting-approximation-and-statistical-behavior">Fitting, approximation and statistical behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="references.html#topology-and-domain-construction">Topology and domain construction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="references.html#application-sources-and-reproducible-examples">Application sources and reproducible examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="references.html#bibliography">Bibliography</a></li>
+</ul>
+</li>
 </ul>
 </div>
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">API reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="modules.html">torch_bsf</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">API reference guide</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="torch_bsf.html">Python API</a></li>
 </ul>
 </li>

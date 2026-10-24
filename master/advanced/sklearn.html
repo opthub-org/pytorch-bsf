@@ -54,27 +54,33 @@
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="normalization.html">Output scaling</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Scikit-learn integration</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#when-to-use-the-estimator">When to use the estimator</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#prepare-barycentric-features">Prepare barycentric features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#choose-degree-and-penalty-through-validation">Choose degree and penalty through validation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#weights-outputs-and-evidence">Weights, outputs and evidence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#follow-a-fit-through-the-guides">Follow a fit through the guides</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Scikit-learn integration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#when-to-use-the-estimator">When to use the estimator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#prepare-barycentric-features">Prepare barycentric features</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#choose-degree-and-penalty-through-validation">Choose degree and penalty through validation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#weights-outputs-and-evidence">Weights, outputs and evidence</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#fit-independent-input-blocks-as-a-product">Fit independent input blocks as a product</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="visualization.html">Visualization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
-<li class="toctree-l2"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
-<li class="toctree-l2"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
-<li class="toctree-l2"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
-<li class="toctree-l2"><a class="reference internal" href="partial.html">Fixed controls</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
-<li class="toctree-l2"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
-<li class="toctree-l2"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
-<li class="toctree-l2"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
-<li class="toctree-l2"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="partial.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
@@ -83,7 +89,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../modules.html">torch_bsf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
 </ul>
 
         </div>
@@ -183,7 +189,7 @@ not a nested scikit-learn estimator. See <a class="reference internal" href="reg
 <a class="reference internal image-reference" href="../_images/degree.png"><img alt="Candidate curve fits and their cross-validation errors." src="../_images/degree.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 7 </span><span class="caption-text">The numerical core’s degree comparison illustrates the same capacity
+<p><span class="caption-number">Fig. 8 </span><span class="caption-text">The numerical core’s degree comparison illustrates the same capacity
 trade-off used by the estimator. The figure is generated by the core
 three-fold search; it is not the output of the separate GridSearchCV
 example above, whose scoring and refit policy should be recorded separately.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
@@ -217,6 +223,31 @@ changes degree, fixed global row numbers cannot be reused blindly: resolve
 constraints for each space in a manual core validation loop. Save
 <code class="docutils literal notranslate"><span class="pre">best.model_</span></code> with <code class="docutils literal notranslate"><span class="pre">io.save_model</span></code> when only the common numerical model is
 needed; store preprocessing and feature schemas alongside it in the application.</p>
+</section>
+<section id="fit-independent-input-blocks-as-a-product">
+<h2>Fit independent input blocks as a product<a class="headerlink" href="#fit-independent-input-blocks-as-a-product" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">),</span> <span class="n">indexing</span><span class="o">=</span><span class="s2">"ij"</span><span class="p">)</span>
+<span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">v</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+<span class="n">product_X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="mi">1</span> <span class="o">-</span> <span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">v</span><span class="p">,</span> <span class="n">v</span><span class="p">])</span>
+<span class="n">product_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="o">+</span> <span class="n">v</span>
+<span class="n">product</span> <span class="o">=</span> <span class="n">BezierRegressor</span><span class="p">(</span><span class="n">dimensions</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">product</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">product_X</span><span class="p">,</span> <span class="n">product_y</span><span class="p">)</span>
+<span class="n">test_u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">.13</span><span class="p">,</span> <span class="mf">.47</span><span class="p">,</span> <span class="mf">.81</span><span class="p">])</span>
+<span class="n">test_v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">.22</span><span class="p">,</span> <span class="mf">.56</span><span class="p">,</span> <span class="mf">.73</span><span class="p">])</span>
+<span class="n">test_X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="mi">1</span> <span class="o">-</span> <span class="n">test_u</span><span class="p">,</span> <span class="n">test_u</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">test_v</span><span class="p">,</span> <span class="n">test_v</span><span class="p">])</span>
+<span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">product</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_X</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">test_u</span><span class="p">)</span> <span class="o">+</span> <span class="n">test_v</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The domain is the square pictured in the
+<a class="reference internal" href="../whatis.html#simploidal-space-overview"><span class="std std-ref">simploid overview</span></a>. Its two factors have
+different degrees because the target is quadratic in <code class="docutils literal notranslate"><span class="pre">u</span></code> and linear in
+<code class="docutils literal notranslate"><span class="pre">v</span></code>. Without explicit <code class="docutils literal notranslate"><span class="pre">dimensions</span></code>, four columns would imply one
+three-dimensional simplex, whose sum-to-one constraint these rows violate.</p>
+<p>Random row folds assess interpolation among the sampled combinations. If
+the intended task is prediction at entirely unseen operating conditions,
+hold out complete <code class="docutils literal notranslate"><span class="pre">v</span></code> slices or use an appropriate grouped split instead.
+Choose a validation design that matches the use of the fitted model rather
+than relying on a default splitter to define that use implicitly.</p>
 </section>
 </section>
 
