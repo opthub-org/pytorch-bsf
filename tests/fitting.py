@@ -83,6 +83,53 @@ def test_augmented_rhs_overflow_is_reported_before_executing_a_solver():
 
 
 @pytest.mark.parametrize("solver", [DenseLeastSquares(), SparseLeastSquares()])
+@pytest.mark.parametrize("bad_column", [0, 1])
+def test_rhs_overflow_preserves_independently_solvable_columns(solver, bad_column):
+    if isinstance(solver, SparseLeastSquares):
+        pytest.importorskip("scipy")
+    space = BezierSpace.simplex(1, degree=1)
+    good_column = 1 - bad_column
+    values = torch.zeros(2, 2, dtype=torch.float64)
+    values[:, good_column] = torch.tensor([1.0, 2.0], dtype=torch.float64)
+    fixed_values = torch.ones(2, dtype=torch.float64)
+    fixed_values[bad_column] = 1e308
+    samples = Samples(torch.eye(2), values)
+    fixed = FixedControls({0: fixed_values})
+    penalty = QuadraticPenalty(ridge=4.0)
+    reference = fit(
+        space, Samples(torch.eye(2), [[1.0], [2.0]]), fixed=FixedControls({0: [1.0]}), penalty=penalty, solver=solver
+    )
+    with pytest.warns(ConvergenceWarning):
+        result = fit(space, samples, fixed=fixed, penalty=penalty, solver=solver)
+    assert not result.success and not result.diagnostics.solution_available
+    assert result.diagnostics.output_success[good_column]
+    assert not result.diagnostics.output_success[bad_column]
+    assert result.diagnostics.output_statuses[bad_column] == "rhs_overflow"
+    assert torch.allclose(result.model.coefficients[:, good_column], reference.model.coefficients[:, 0], atol=1e-12)
+    assert result.model.coefficients[0, bad_column] == 1e308
+    assert result.model.coefficients[1, bad_column] == 0
+    if isinstance(solver, SparseLeastSquares):
+        assert result.diagnostics.stop_codes[bad_column] is None
+        assert result.diagnostics.iterations[bad_column] is None
+        assert result.diagnostics.residual_norms[bad_column] is None
+        assert result.diagnostics.stop_codes[good_column] == reference.diagnostics.stop_codes[0]
+
+
+def test_all_fixed_rhs_overflow_retains_the_complete_model():
+    space = BezierSpace.simplex(0, degree=0)
+    samples = Samples(torch.empty(1, 0), torch.tensor([[-1e308]], dtype=torch.float64))
+    fixed = FixedControls({0: torch.tensor([1e308], dtype=torch.float64)})
+    with patch("torch.linalg.lstsq", side_effect=AssertionError("unnecessary solve")), pytest.warns(ConvergenceWarning):
+        result = fit(space, samples, fixed=fixed)
+    assert not result.success  # Its objective exceeds float64 range.
+    assert result.diagnostics.solution_available
+    assert result.diagnostics.output_success == (True,)
+    assert result.diagnostics.output_statuses == ("all_fixed",)
+    assert result.diagnostics.driver is None
+    assert result.model.coefficients.item() == 1e308
+
+
+@pytest.mark.parametrize("solver", [DenseLeastSquares(), SparseLeastSquares()])
 def test_zero_weight_observation_does_not_overflow_metrics(solver):
     if isinstance(solver, SparseLeastSquares):
         pytest.importorskip("scipy")
@@ -100,6 +147,14 @@ def test_small_positive_weight_is_applied_before_squaring_residuals():
     result = fit(space, Samples(torch.empty(2, 0), values, weights=[1.0, 1e-200]), fixed=FixedControls({0: [0.0]}))
     assert result.success
     assert result.metrics["data_loss"] == pytest.approx(1e200)
+
+
+def test_extreme_weight_ratio_preserves_representable_weighted_error():
+    space = BezierSpace.simplex(0, degree=0)
+    values = torch.tensor([[0.0], [1e200]], dtype=torch.float64)
+    result = fit(space, Samples(torch.empty(2, 0), values, weights=[1e308, 1e-100]), fixed=FixedControls({0: [0.0]}))
+    assert result.success
+    assert result.metrics["data_loss"] == pytest.approx(1e-8)
 
 
 def test_small_weight_prevents_overflow_in_the_residual_difference():

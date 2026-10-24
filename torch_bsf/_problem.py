@@ -37,7 +37,8 @@ class LeastSquaresProblem:
         self.space, self.samples, self.penalty = space, samples, penalty
         self.basis = space.basis(Points(samples.points.parameters.detach(), samples.points.cell_ids).to())
         self.values = samples.values.detach().cpu().double()
-        self.scale = (samples.weights.detach() / samples.weights.detach().sum()).sqrt()
+        weights = samples.weights.detach()
+        self.scale = weights.sqrt() / weights.sum().sqrt()
         self.fixed = torch.zeros(space.n_controls, self.values.shape[1], dtype=torch.float64)
         self.free = torch.ones(space.n_controls, dtype=torch.bool)
         for row, value in (fixed.values if fixed is not None else {}).items():

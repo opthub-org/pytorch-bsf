@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import replace
+from typing import TypeVar
 
 import torch
 
@@ -34,11 +35,11 @@ def _data_info(problem: LeastSquaresProblem, rcond: float | None) -> MatrixDiagn
 
 
 def _dense_solve(
-    problem: LeastSquaresProblem, solver: DenseLeastSquares, diagnostics: FitDiagnostics
+    problem: LeastSquaresProblem, rhs: torch.Tensor, solver: DenseLeastSquares, diagnostics: FitDiagnostics
 ) -> tuple[torch.Tensor, FitDiagnostics]:
     a = problem.dense()
     relative = torch.finfo(torch.float64).eps * max(a.shape) if solver.rcond is None else solver.rcond
-    solved = torch.linalg.lstsq(a, problem.rhs, rcond=relative, driver="gelsd")
+    solved = torch.linalg.lstsq(a, rhs, rcond=relative, driver="gelsd")
     solution = solved.solution.clone()
     available = torch.isfinite(solution).all(dim=0)
     solution[:, ~available] = 0
@@ -85,7 +86,7 @@ _LSMR_STATUSES = {
 
 
 def _sparse_solve(
-    problem: LeastSquaresProblem, solver: SparseLeastSquares, diagnostics: FitDiagnostics
+    problem: LeastSquaresProblem, rhs: torch.Tensor, solver: SparseLeastSquares, diagnostics: FitDiagnostics
 ) -> tuple[torch.Tensor, FitDiagnostics]:
     matrix = problem.sparse()
     from scipy.sparse.linalg import lsmr
@@ -93,13 +94,13 @@ def _sparse_solve(
     answers = [
         lsmr(
             matrix,
-            problem.rhs[:, j].numpy(),
+            rhs[:, j].numpy(),
             atol=solver.atol,
             btol=solver.btol,
             conlim=solver.conlim,
             maxiter=solver.max_iter,
         )
-        for j in range(problem.values.shape[1])
+        for j in range(rhs.shape[1])
     ]
     solution = torch.stack([torch.from_numpy(answer[0]) for answer in answers], dim=1)
     codes = tuple(int(a[1]) for a in answers)
@@ -108,6 +109,7 @@ def _sparse_solve(
     finite = tuple(
         bool(valid) and all(math.isfinite(float(v)) for v in a[3:]) for valid, a in zip(available, answers, strict=True)
     )
+
     solution[:, ~available] = 0
     conditions = tuple(float(a[6]) for a in answers)
     system = MatrixDiagnostics(problem.shape, condition_number=max(conditions) if all(finite) else None, method="estimate")
@@ -125,6 +127,49 @@ def _sparse_solve(
             _LSMR_STATUSES.get(code, "unknown_stop_code") if valid else "numerical_failure"
             for code, valid in zip(codes, finite, strict=True)
         ),
+    )
+
+
+_DiagnosticValue = TypeVar("_DiagnosticValue")
+
+
+def _expand_columns(values: tuple[_DiagnosticValue, ...], usable: torch.Tensor) -> tuple[_DiagnosticValue | None, ...]:
+    if not values:
+        return ()
+    remaining = iter(values)
+    return tuple(next(remaining) if valid else None for valid in usable)
+
+
+def _solve_finite_rhs(
+    problem: LeastSquaresProblem, solver: LeastSquaresSolver, diagnostics: FitDiagnostics
+) -> tuple[torch.Tensor, FitDiagnostics]:
+    usable = torch.isfinite(problem.rhs).all(dim=0)
+    outputs = len(usable)
+    solution = torch.zeros(problem.n_free, outputs, dtype=torch.float64)
+    success, statuses = [False] * outputs, ["rhs_overflow"] * outputs
+    if not usable.any():
+        return solution, replace(
+            diagnostics, driver=None, solution_available=False, output_success=tuple(success), output_statuses=tuple(statuses)
+        )
+    rhs = problem.rhs[:, usable]
+    if isinstance(solver, DenseLeastSquares):
+        computed, evidence = _dense_solve(problem, rhs, solver, diagnostics)
+    else:
+        computed, evidence = _sparse_solve(problem, rhs, solver, diagnostics)
+    solution[:, usable] = computed
+    for reduced, original in enumerate(torch.nonzero(usable).flatten().tolist()):
+        success[original] = evidence.output_success[reduced]
+        statuses[original] = evidence.output_statuses[reduced]
+    return solution, replace(
+        evidence,
+        solution_available=evidence.solution_available and bool(usable.all()),
+        output_success=tuple(success),
+        output_statuses=tuple(statuses),
+        iterations=_expand_columns(evidence.iterations, usable),
+        stop_codes=_expand_columns(evidence.stop_codes, usable),
+        residual_norms=_expand_columns(evidence.residual_norms, usable),
+        normal_residual_norms=_expand_columns(evidence.normal_residual_norms, usable),
+        condition_estimates=_expand_columns(evidence.condition_estimates, usable),
     )
 
 
@@ -196,8 +241,6 @@ def fit(
     success, status, message = True, "solved", "Least-squares optimum computed."
     solution = torch.zeros(n, outputs, dtype=torch.float64)
     try:
-        if not torch.isfinite(problem.rhs).all():
-            raise ArithmeticError("Augmented right-hand side overflowed.")
         if not n:
             diagnostics = replace(
                 diagnostics,
@@ -208,16 +251,20 @@ def fit(
             status, message = "all_fixed", "All coefficients are fixed; no factorization was needed."
         elif isinstance(solver, DenseLeastSquares):
             diagnostics = replace(diagnostics, driver="gelsd")
-            solution, diagnostics = _dense_solve(problem, solver, diagnostics)
+            solution, diagnostics = _solve_finite_rhs(problem, solver, diagnostics)
             success = all(diagnostics.output_success)
             status = "solved" if success else "numerical_failure"
-            message = "Least-squares optimum computed." if success else "Dense SVD produced non-finite output columns."
+            message = (
+                "Least-squares optimum computed."
+                if success
+                else f"Dense solve unavailable for one or more outputs: {diagnostics.output_statuses}."
+            )
         else:
             diagnostics = replace(diagnostics, driver="lsmr")
-            solution, diagnostics = _sparse_solve(problem, solver, diagnostics)
+            solution, diagnostics = _solve_finite_rhs(problem, solver, diagnostics)
             success = all(diagnostics.output_success)
             status = "converged" if success else "not_converged"
-            if "numerical_failure" in diagnostics.output_statuses:
+            if any(s in ("numerical_failure", "rhs_overflow") for s in diagnostics.output_statuses):
                 status = "numerical_failure"
             message = (
                 "LSMR converged for every output."
@@ -239,5 +286,4 @@ def fit(
     metrics = problem.metrics(coefficients)
     if not all(math.isfinite(value) for value in metrics.values()):
         success, status, message = False, "numerical_failure", "Objective evaluation overflowed."
-        diagnostics = replace(diagnostics, output_success=(False,) * outputs, output_statuses=(status,) * outputs)
     return FitResult(BezierModel(space, coefficients), metrics, diagnostics, success, status, message).warn_if_failed()

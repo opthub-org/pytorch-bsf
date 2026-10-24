@@ -51,6 +51,10 @@ class FitDiagnostics:
     iterate for at least one column; see :class:`FitResult` for its placeholder.
     Residual norms and condition estimates from LSMR concern the augmented
     weighted, constrained system, not the unpenalized prediction MSE.
+    Iterative fields use ``None`` for a column whose RHS overflowed and was not
+    solved, or empty tuples if no iterative solve ran at all. Overall success
+    can still be false after successful solves if objective evaluation or
+    optional diagnostics fail; these failures do not erase solver termination.
     """
 
     solver: str
@@ -63,11 +67,11 @@ class FitDiagnostics:
     compute_device: str = "cpu"
     model_dtype: str = "float64"
     model_device: str = "cpu"
-    iterations: tuple[int, ...] = ()
-    stop_codes: tuple[int, ...] = ()
-    residual_norms: tuple[float, ...] = ()
-    normal_residual_norms: tuple[float, ...] = ()
-    condition_estimates: tuple[float, ...] = ()
+    iterations: tuple[int | None, ...] = ()
+    stop_codes: tuple[int | None, ...] = ()
+    residual_norms: tuple[float | None, ...] = ()
+    normal_residual_norms: tuple[float | None, ...] = ()
+    condition_estimates: tuple[float | None, ...] = ()
     driver: str | None = None
     output_success: tuple[bool, ...] = ()
     output_statuses: tuple[str, ...] = ()
