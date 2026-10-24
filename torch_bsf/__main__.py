@@ -54,7 +54,8 @@ def _regression(args: Namespace) -> tuple[dict[str, Any], bool]:
         if args.tracking_uri and not args.track:
             raise ValueError("--tracking-uri requires --track")
         result = fit(space, samples, solver=solver, penalty=penalty)
-        save_model(args.save, result.model)
+        if result.diagnostics.solution_available:
+            save_model(args.save, result.model)
         if args.track:
             from torch_bsf.integrations.mlflow import log_result
 
@@ -62,6 +63,8 @@ def _regression(args: Namespace) -> tuple[dict[str, Any], bool]:
         return {
             "success": result.success,
             "status": result.status,
+            "message": result.message,
+            "model_saved": result.diagnostics.solution_available,
             "metrics": result.metrics,
             "diagnostics": asdict(result.diagnostics),
         }, result.success

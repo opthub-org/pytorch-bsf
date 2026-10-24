@@ -15,6 +15,8 @@ def log_result(result: FitResult, *, tracking_uri: str | None = None) -> str:
 
     Reuse an active run; otherwise start and finish one. Requires the mlflow extra.
     Returns the run ID. No autologging or pickled Python models are used.
+    Unavailable placeholder models are never written; failure metrics and
+    diagnostics are still recorded with ``bsf.solution_available=False``.
     """
     try:
         import mlflow
@@ -33,10 +35,18 @@ def log_result(result: FitResult, *, tracking_uri: str | None = None) -> str:
 
 def _record(mlflow: Any, result: FitResult, run_id: str) -> str:
     mlflow.log_metrics(result.metrics)
-    mlflow.set_tags({"bsf.success": str(result.success), "bsf.status": result.status})
+    mlflow.set_tags(
+        {
+            "bsf.success": str(result.success),
+            "bsf.status": result.status,
+            "bsf.solution_available": str(result.diagnostics.solution_available),
+        }
+    )
     mlflow.log_dict(
         json.loads(json.dumps(asdict(result.diagnostics), default=lambda value: value.tolist())), "diagnostics.json"
     )
+    if not result.diagnostics.solution_available:
+        return run_id
     with tempfile.TemporaryDirectory() as directory:
         path = Path(directory) / "model.bsf"
         save_model(path, result.model)

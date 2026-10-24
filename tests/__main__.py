@@ -25,9 +25,61 @@ def test_fit_predict(tmp_path, capsys):
     main(["fit", *options, "--save", str(path)])
     report = json.loads(capsys.readouterr().out)
     assert report["success"] and report["metrics"]["data_mse"] < 1e-25
+    assert report["model_saved"]
     output = tmp_path / "predictions.csv"
     main(["predict", "--model", str(path), "--params", options[1], "--save", str(output)])
     assert np.allclose(np.loadtxt(output, delimiter=","), np.loadtxt(options[3], delimiter=","))
+    assert load_model(path).n_outputs == 2
+
+
+@pytest.mark.parametrize("existing", [False, True])
+@pytest.mark.parametrize("tracking", [False, True])
+def test_unavailable_fit_never_creates_or_overwrites_artifacts(tmp_path, capsys, existing, tracking):
+    from unittest.mock import patch
+
+    import torch
+
+    from torch_bsf import BezierModel, BezierSpace
+    from torch_bsf.io import save_model
+    from torch_bsf.results import ConvergenceWarning
+
+    path = tmp_path / "model.bsf"
+    previous = None
+    if existing:
+        save_model(path, BezierModel(BezierSpace.simplex(1, degree=1), [[3.0, 4.0], [5.0, 6.0]]))
+        previous = path.read_bytes()
+    with (
+        patch("torch.linalg.lstsq", side_effect=torch.linalg.LinAlgError("decomposition failed")),
+        patch("torch_bsf.integrations.mlflow.log_result") as record,
+        pytest.warns(ConvergenceWarning),
+        pytest.raises(SystemExit) as error,
+    ):
+        main(["fit", *data(tmp_path), "--save", str(path), *(["--track"] if tracking else [])])
+    assert error.value.code == 1
+    report = json.loads(capsys.readouterr().out)
+    assert not report["success"] and not report["model_saved"]
+    assert not report["diagnostics"]["solution_available"]
+    assert (path.read_bytes() if path.exists() else None) == previous
+    assert record.call_count == int(tracking)
+
+
+def test_diagnostic_failure_keeps_available_cli_artifact(tmp_path, capsys):
+    from unittest.mock import patch
+
+    import torch
+
+    from torch_bsf.results import ConvergenceWarning
+
+    path = tmp_path / "model.bsf"
+    with (
+        patch("torch.linalg.svdvals", side_effect=torch.linalg.LinAlgError("data diagnostics failed")),
+        pytest.warns(ConvergenceWarning),
+        pytest.raises(SystemExit) as error,
+    ):
+        main(["fit", *data(tmp_path), "--save", str(path), "--ridge", ".1", "--diagnostics", "full"])
+    assert error.value.code == 1
+    report = json.loads(capsys.readouterr().out)
+    assert report["model_saved"] and report["status"] == "diagnostic_failure"
     assert load_model(path).n_outputs == 2
 
 

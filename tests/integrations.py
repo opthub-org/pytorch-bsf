@@ -10,6 +10,23 @@ from torch_bsf.integrations.lightning import regression_module
 from torch_bsf.integrations.mlflow import log_result
 
 
+def test_mlflow_records_unavailable_failure_without_writing_a_model():
+    from unittest.mock import Mock
+
+    from torch_bsf.integrations.mlflow import _record
+    from torch_bsf.results import ConvergenceWarning
+
+    with patch("torch.linalg.lstsq", side_effect=torch.linalg.LinAlgError("failed")), pytest.warns(ConvergenceWarning):
+        result = fit(BezierSpace.simplex(1, degree=1), Samples(torch.eye(2), [[1.0], [2.0]]))
+    recording = Mock()
+    with patch("torch_bsf.integrations.mlflow.save_model", side_effect=AssertionError("placeholder saved")):
+        assert _record(recording, result, "failure-run") == "failure-run"
+    recording.log_metrics.assert_called_once_with(result.metrics)
+    recording.log_dict.assert_called_once()
+    recording.log_artifact.assert_not_called()
+    assert recording.set_tags.call_args.args[0]["bsf.solution_available"] == "False"
+
+
 def test_lightning_complete_objective(tmp_path):
     lightning = pytest.importorskip("lightning.pytorch")
     space = BezierSpace.simplex(1, degree=1)
