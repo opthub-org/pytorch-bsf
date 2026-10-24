@@ -53,6 +53,9 @@
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Quickstart</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#verified-python-workflow">Verified Python workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#prepare-your-own-observations">Prepare your own observations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#read-results-before-choosing-a-more-complicated-model">Read results before choosing a more complicated model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#next-steps-and-reproducibility">Next steps and reproducibility</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
@@ -165,6 +168,85 @@ integer cell ID per row and pad parameter rows to the saved space width.</p>
 <p>A one-column parameter CSV denotes a constant domain when dimensions are
 inferred. The column is a dummy input and is ignored for both fitting and
 prediction of zero-dimensional models.</p>
+</section>
+<section id="prepare-your-own-observations">
+<h2>Prepare your own observations<a class="headerlink" href="#prepare-your-own-observations" title="Link to this heading"></a></h2>
+<p>Use regression when you know response values at parameter locations and want
+a continuous surrogate between them. For a segment, write each normalized
+setting <code class="docutils literal notranslate"><span class="pre">x</span></code> as two coordinates <code class="docutils literal notranslate"><span class="pre">[1-x,</span> <span class="pre">x]</span></code>. The two input columns sum to one;
+they are not independent predictors. On a triangle, use three nonnegative
+coordinates summing to one. Product domains concatenate one such block per
+factor; see <a class="reference internal" href="advanced/simploidal.html"><span class="doc">Single and assembled domains</span></a> before preparing product data.</p>
+<p>Parameter and value files must contain the same number of rows in corresponding
+order. Each value row contains one or more output columns. An input location
+without a measured response is a prediction request, not a training row.
+The following files fit the quadratic example at the top of this page:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cat<span class="w"> </span>&gt;<span class="w"> </span>params.csv<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<span class="s">1.0,0.0</span>
+<span class="s">0.5,0.5</span>
+<span class="s">0.0,1.0</span>
+<span class="s">EOF</span>
+cat<span class="w"> </span>&gt;<span class="w"> </span>values.csv<span class="w"> </span><span class="s">&lt;&lt;'EOF'</span>
+<span class="s">0.0</span>
+<span class="s">1.0</span>
+<span class="s">4.0</span>
+<span class="s">EOF</span>
+python<span class="w"> </span>-m<span class="w"> </span>torch_bsf<span class="w"> </span>fit<span class="w"> </span>--params<span class="w"> </span>params.csv<span class="w"> </span>--values<span class="w"> </span>values.csv<span class="w"> </span>--degree<span class="w"> </span><span class="m">2</span><span class="w"> </span>--save<span class="w"> </span>model.bsf
+python<span class="w"> </span>-m<span class="w"> </span>torch_bsf<span class="w"> </span>predict<span class="w"> </span>--model<span class="w"> </span>model.bsf<span class="w"> </span>--params<span class="w"> </span>params.csv<span class="w"> </span>--save<span class="w"> </span>predictions.csv
+</pre></div>
+</div>
+<p>These commands explicitly choose a model destination and a prediction
+destination. The saved model includes its polynomial space, so prediction
+needs no degree argument. Predict at a different file of valid parameter rows
+to evaluate interpolation. Keep predicted values separate from original
+observations; appending predictions as if they were new measurements does not
+add information.</p>
+</section>
+<section id="read-results-before-choosing-a-more-complicated-model">
+<h2>Read results before choosing a more complicated model<a class="headerlink" href="#read-results-before-choosing-a-more-complicated-model" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">result.metrics[&quot;data_mse&quot;]</span></code> describes weighted squared error averaged over
+output columns. <code class="docutils literal notranslate"><span class="pre">objective</span></code> additionally includes any ridge and smoothness
+penalties. Check numerical success first, then evaluate prediction quality.
+Even an exact training interpolation can behave poorly between noisy or sparse
+observations. A successful solve can also have unidentified coefficient
+directions; inspect diagnostics if data are scarce relative to controls.</p>
+<p>Start with a low degree and no penalties. Increase degree only when held-out
+errors and plotted residuals support additional variation. If noise causes
+oscillation, compare lower degree, ridge or smoothness on the same folds.
+If an endpoint is known exactly, use fixed controls rather than a very large
+observation weight. The corresponding tutorials explain which settings change
+the polynomial space and which only choose coefficients within it.</p>
+<figure class="align-default" id="id1">
+<a class="reference internal image-reference" href="_images/degree.png"><img alt="Candidate polynomial curves before degree selection and validation errors used to select a final degree." src="_images/degree.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 5 </span><span class="caption-text">A separate noisy-response example shows why training a higher-degree
+curve is not automatically an improvement. Choose with held-out error,
+then explicitly refit. See <a class="reference internal" href="advanced/auto_degree.html"><span class="doc">Cross-validation and degree search</span></a> for the exact data,
+seed, candidate list and executable search.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</section>
+<section id="next-steps-and-reproducibility">
+<h2>Next steps and reproducibility<a class="headerlink" href="#next-steps-and-reproducibility" title="Link to this heading"></a></h2>
+<p>Use <a class="reference internal" href="advanced/visualization.html"><span class="doc">Visualization</span></a> to overlay observations and fitted images,
+<a class="reference internal" href="advanced/normalization.html"><span class="doc">Output scaling</span></a> when output units differ, and
+<a class="reference internal" href="advanced/sampling.html"><span class="doc">Sampling and grids</span></a> to choose additional evaluation or measurement points.
+For an expensive experiment, <a class="reference internal" href="advanced/active_learning.html"><span class="doc">Explicit ensembles and active learning</span></a> shows how to
+query new true responses, append them and refit. For a cost defined by
+objectives rather than measured targets, use <a class="reference internal" href="advanced/sgd.html"><span class="doc">Objective minimization</span></a>.</p>
+<p>The CLI exposes operation-specific help, for example
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">torch_bsf</span> <span class="pre">fit</span> <span class="pre">--help</span></code>. Tracking is explicit and requires the MLflow
+extra. Docker users can run the same subcommands inside the repository image
+with their working directory mounted. The repository’s <code class="docutils literal notranslate"><span class="pre">MLproject</span></code> describes
+MLflow project entry points, while the core Python examples require neither
+that service nor a Trainer.</p>
+<p>To reproduce the current tutorial figures in a checkout, install the plot
+extra and run <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">examples/generate_guide_figures.py</span></code>. The script records
+local seeds, settings and measured errors alongside its images. Save the raw
+observations, chosen space, validation settings and preprocessing statistics
+with each real experiment; the model archive preserves the predictor but does
+not automatically preserve every decision that led to it.</p>
 </section>
 </section>
 

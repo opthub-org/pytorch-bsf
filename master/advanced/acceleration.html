@@ -23,7 +23,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Explicit ensembles and queries" href="active_learning.html" />
+    <link rel="next" title="Explicit ensembles and active learning" href="active_learning.html" />
     <link rel="prev" title="Sampling and grids" href="sampling.html" /> 
 </head>
 
@@ -69,9 +69,10 @@
 <li class="toctree-l3"><a class="reference internal" href="#lsmr-settings-and-termination">LSMR settings and termination</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#measured-scaling-on-a-connected-cell-chain">Measured scaling on a connected cell chain</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#optional-execution-and-recording">Optional execution and recording</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#a-complete-single-device-lightning-example">A complete single-device Lightning example</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="active_learning.html">Explicit ensembles and queries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
 <li class="toctree-l2"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
 <li class="toctree-l2"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
@@ -160,7 +161,7 @@ examining why an earlier run stopped. There is no automatic dense fallback.</p>
 Ridge is represented by explicit augmented rows shared with the dense solver;
 an additional LSMR damping term is not applied.</p>
 <table class="docutils align-default" id="id1">
-<caption><span class="caption-number">Table 1 </span><span class="caption-text">LSMR termination reported for every output column</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<caption><span class="caption-number">Table 6 </span><span class="caption-text">LSMR termination reported for every output column</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 15.0%" />
 <col style="width: 60.0%" />
@@ -240,7 +241,7 @@ has degree 3, two outputs and 20 observations per cell, with ridge <code class="
 and smoothness <code class="docutils literal notranslate"><span class="pre">1e-3</span></code>. Sparse tolerances were <code class="docutils literal notranslate"><span class="pre">atol=btol=1e-10</span></code> and the
 per-output iteration budget was 2000.</p>
 <table class="docutils align-default" id="id2">
-<caption><span class="caption-number">Table 2 </span><span class="caption-text">Median of three fresh-process trials</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<caption><span class="caption-number">Table 7 </span><span class="caption-text">Median of three fresh-process trials</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Cells</p></th>
 <th class="head"><p>Observations</p></th>
@@ -310,6 +311,44 @@ The adapter rejects distributed execution rather than silently changing weights.
 <p>Metrics, diagnostics and the versioned model artifact are recorded. Importing
 or executing core fitting never enables autologging or starts an experiment.</p>
 </section>
+<section id="a-complete-single-device-lightning-example">
+<h2>A complete single-device Lightning example<a class="headerlink" href="#a-complete-single-device-lightning-example" title="Link to this heading"></a></h2>
+<p>Use this adapter when an application already owns a Trainer and needs its
+execution lifecycle. A one-item loader triggers one complete-objective update
+per epoch; it does not split observation weights into independently normalized
+minibatches. Keep a direct least-squares fit as a reference when assessing an
+iterative run’s convergence.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataLoader</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lightning.pytorch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Trainer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">BezierModel</span><span class="p">,</span> <span class="n">Samples</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.integrations.lightning</span><span class="w"> </span><span class="kn">import</span> <span class="n">regression_module</span>
+
+<span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">initial</span> <span class="o">=</span> <span class="n">BezierModel</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">space</span><span class="o">.</span><span class="n">n_controls</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
+<span class="n">samples</span> <span class="o">=</span> <span class="n">Samples</span><span class="p">([[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">]],</span> <span class="p">[[</span><span class="mf">1.</span><span class="p">],</span> <span class="p">[</span><span class="mf">2.</span><span class="p">]])</span>
+<span class="n">module</span> <span class="o">=</span> <span class="n">regression_module</span><span class="p">(</span><span class="n">initial</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">learning_rate</span><span class="o">=</span><span class="mf">.01</span><span class="p">)</span>
+<span class="n">trainer</span> <span class="o">=</span> <span class="n">Trainer</span><span class="p">(</span><span class="n">accelerator</span><span class="o">=</span><span class="s2">"cpu"</span><span class="p">,</span> <span class="n">devices</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_epochs</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                  <span class="n">logger</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">enable_checkpointing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                  <span class="n">enable_progress_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">enable_model_summary</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">train_dataloaders</span><span class="o">=</span><span class="n">DataLoader</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+<span class="n">trained</span> <span class="o">=</span> <span class="n">module</span><span class="o">.</span><span class="n">bezier_model</span><span class="p">()</span>
+<span class="k">assert</span> <span class="n">trained</span><span class="o">.</span><span class="n">coefficients</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">float64</span>
+<span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">initial</span><span class="o">.</span><span class="n">coefficients</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">initial</span><span class="o">.</span><span class="n">coefficients</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>This is an execution smoke example, not a claim of convergence in three
+updates. <code class="docutils literal notranslate"><span class="pre">learning_rate</span></code> controls Adam’s update scale: increasing it can
+accelerate early progress but overshoot; decreasing it can improve late-stage
+stability while requiring more updates. <code class="docutils literal notranslate"><span class="pre">max_epochs</span></code> changes the number of
+updates with this loader. Compare the full objective and predictions with
+the direct regression reference before declaring an iterative fit complete.</p>
+<p>Increasing devices does not distribute this adapter’s objective; distributed
+execution is rejected. Changing precision changes numerical execution and may
+reduce attainable accuracy. Benchmark the actual problem, including transfer
+and setup costs, before choosing a device for speed. These settings belong
+to the application Trainer rather than the core <code class="docutils literal notranslate"><span class="pre">fit</span></code> operation.</p>
+</section>
 </section>
 
 
@@ -317,7 +356,7 @@ or executing core fitting never enables autologging or starts an experiment.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="sampling.html" class="btn btn-neutral float-left" title="Sampling and grids" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="active_learning.html" class="btn btn-neutral float-right" title="Explicit ensembles and queries" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="active_learning.html" class="btn btn-neutral float-right" title="Explicit ensembles and active learning" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

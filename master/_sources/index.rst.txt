@@ -30,6 +30,9 @@ The project is on `GitHub`_.
    :width: 49%
    :alt: A Bézier simplex that fits to a dataset
 
+Practical guides include reproducible comparisons, parameter tuning and
+interpretation of numerical evidence for the unified API.
+
 .. toctree::
    :maxdepth: 2
    :caption: User guide
