@@ -353,3 +353,261 @@ directly instead, as the script does.  A Chebyshev scalarization
 non-convex problem, but its minimizer stays on the boundary of the Pareto set
 for a whole band of weights near the boundary of the simplex, a kink that a
 Bézier simplex of low degree fits poorly.
+
+A practical optimization workflow
+---------------------------------
+
+Use objective minimization when the desired response is defined by a
+differentiable cost rather than paired input/output observations. For example,
+a model may map preference weights to decision vectors, and the cost is the
+weighted sum of several decision objectives. If you already have target output
+values and want ordinary quadratic regression, use ``fit`` instead. Direct
+least squares avoids learning-rate tuning for that linear problem.
+
+Before running a long optimization, evaluate the loss at a small point batch
+and verify its output shape. ``loss(values, points)`` must return one finite
+scalar per point, not a mean over the whole batch or one loss per output.
+Retaining row losses allows the optimizer to sample minibatches consistently.
+Use PyTorch operations throughout; converting predicted values to NumPy or
+calling ``.item()`` inside the loss detaches the gradient path.
+
+The following scalarized problem has an analytic solution. Its decision
+variable is one-dimensional and its two objectives are squared distances to
+one and minus one. At barycentric preference ``[t0, t1]``, the minimizing
+decision is ``t0-t1``. This provides a useful diagnostic before introducing
+an expensive application-specific objective.
+
+.. testcode:: optimization-tutorial
+
+    import torch
+    from torch_bsf import BezierSpace, BezierModel, PreconditionedSGD, minimize
+    from torch_bsf.optimization import linear_scalarization
+    from torch_bsf.sampling import grid
+
+    space = BezierSpace.simplex(1, degree=2)
+    initial = BezierModel(space, torch.zeros(space.n_controls, 1, dtype=torch.float64))
+    points = grid(space, resolution=40)
+
+    def objectives(decisions):
+        return torch.cat([(decisions - 1).square(), (decisions + 1).square()], dim=1)
+
+    optimized = minimize(
+        initial, linear_scalarization(objectives), points=points, seed=7,
+        method=PreconditionedSGD(max_iter=400, step_size=.1,
+                                 gradient_tolerance=1e-8),
+    ).require_success()
+    exact = points.parameters[:, :1] - points.parameters[:, 1:2]
+    assert torch.allclose(optimized.model(points), exact, atol=1e-7)
+    assert torch.equal(initial.coefficients, torch.zeros_like(initial.coefficients))
+
+``linear_scalarization`` requires one simplex weight per objective. Its
+objective tensor must match the point parameter tensor's shape, and the
+weights must sum to one. A concatenated product-domain row generally sums
+to more than one and is not automatically a valid scalarization. On product
+or mixed-cell domains, define an explicit loss that selects and interprets
+the appropriate parameter blocks.
+
+Adjust settings in a controlled order
+-------------------------------------
+
+Start with a small model, full batches and recorded points. Confirm that
+objective values decrease and that analytic or physical invariants hold.
+Then change one numerical setting at a time. This separates a broken loss
+or coordinate map from an aggressive learning rate or noisy minibatch history.
+
+.. list-table:: Optimizer controls and their effects
+   :header-rows: 1
+   :widths: 23 42 35
+
+   * - Setting
+     - Increasing or changing it does this
+     - What to inspect
+   * - ``step_size``
+     - Moves farther per update; can accelerate progress or cause oscillation.
+     - Full-sample objective and finite gradients.
+   * - ``max_iter``
+     - Allows more parameter updates.
+     - Whether the stopping criterion is reached rather than just the budget.
+   * - ``batch_size``
+     - Uses more fixed sample rows per update, reducing gradient variability.
+     - Work per update and sensitivity to minibatch order.
+   * - ``n_samples``
+     - Uses a larger fixed empirical domain sample when ``points`` is omitted.
+     - Independent evaluation error, not just training objective.
+   * - ``gradient_tolerance``
+     - A larger value permits earlier convergence with a larger gradient.
+     - Application accuracy and the units of the gradient.
+   * - ``preconditioner``
+     - ``gram`` measures functional movement; ``none`` uses coefficient geometry.
+     - Loss decrease under comparable sample sets and budgets.
+   * - ``step_decay``
+     - ``sqrt`` reduces the step over time; ``constant`` keeps it fixed.
+     - Initial progress versus late-stage fluctuations.
+
+A reasonable learning-rate experiment compares several orders of magnitude
+on the same initial model and points. If the loss becomes non-finite, examine
+loss domain restrictions and coefficient magnitude as well as reducing the
+step. If progress is slow and gradients remain large, a larger step may help,
+but strong curvature can limit how far it can be raised. There is no universal
+step size independent of objective units and model degree.
+
+``step_decay="sqrt"`` uses ``step_size/sqrt(k+1)`` at iteration ``k``. It can
+reduce late minibatch fluctuations but also slow movement toward the optimum.
+Increasing ``max_iter`` with a decaying schedule adds progressively smaller
+steps; doubling the iteration budget does not mean doubling effective movement.
+Record the schedule with the initial step size when comparing histories.
+
+``batch_size=None`` uses all fixed points in every update. A finite batch size
+uses a uniformly shuffled subset, with no repeated row inside that update.
+A requested size larger than the point count still selects at most the full
+set. Smaller batches can reduce update cost and introduce stochastic variation,
+but a jagged minibatch curve does not necessarily imply that the full objective
+is increasing. For final comparisons, evaluate all fixed points and a separate
+independent point set.
+
+Fixed samples and the continuous-domain goal
+--------------------------------------------
+
+If ``points`` is omitted, ``minimize`` draws ``n_samples`` once using its local
+seed and cell probabilities. Those samples stay fixed through every update.
+It does not redraw new integration points each iteration. Raising ``max_iter``
+can solve that empirical objective more accurately without improving how well
+it represents the continuous domain. Increase sample count or change the
+sampling design to assess discretization error.
+
+When ``points`` is provided, it defines the actual empirical loss locations.
+``n_samples`` no longer chooses their count. ``seed`` still controls minibatch
+selection. Record both sampling and optimizer seeds if the points were drawn
+separately. For fair SGD versus preconditioned-SGD comparisons, pass the same
+point object rather than relying on superficially similar independent draws.
+
+``cell_weights`` specifies the domain distribution used by the exact Gram
+metric and by automatic sampling. With explicit points, ensure their intended
+cell frequencies agree with the metric interpretation. The empirical loss is
+an ordinary mean of supplied point losses; arbitrary physical quadrature
+weights are not inferred from a grid or from cell volumes. Incorporate custom
+row weighting into the loss explicitly if that is the intended objective.
+
+Every coefficient must be covered by the configured Gram distribution.
+Assigning zero probability to an isolated cell while retaining its controls
+can make the metric invalid. Either give that cell positive probability or
+construct an appropriate smaller space. More samples cannot fix a metric
+whose declared distribution omits entire coefficient directions.
+
+Preconditioning, penalties and exact controls
+---------------------------------------------
+
+The Gram metric reflects how coefficient changes alter the model in parameter
+space. High-degree Bernstein coefficients can be poorly conditioned in the
+ordinary Euclidean metric; the exact Gram preconditioner compensates for that
+representation. It is not a new statistical prior or a different polynomial
+space. A successful comparison should hold geometry, loss, points and initial
+coefficients fixed while changing only the preconditioner.
+
+``QuadraticPenalty`` adds ridge and adjacent-control smoothness to the loss.
+Ridge favors the chosen output origin; smoothness discourages neighboring
+coefficient differences. They can also improve numerical behavior, but they
+change the optimization problem. Do not compare a penalized run's total
+objective directly with an unpenalized run and interpret their difference as
+algorithmic speed. Evaluate a common application metric alongside each run's
+own complete objective.
+
+``FixedControls`` sets exact coefficient rows in the optimized copy and
+excludes them from updates. This is appropriate for a known endpoint or
+boundary polynomial, not an uncertain initialization. Penalty terms retain
+the contributions involving fixed rows. If every row is fixed, no update is
+needed and the result reports ``all_fixed`` with the evaluated objective.
+The original initial model remains unchanged in every case.
+
+Memory and device behavior also matter. Gram preconditioning currently forms
+a global control-by-control matrix and solves the free metric system during
+updates. A sparse observation structure does not make that optimizer metric
+sparse automatically. For a large assembled space, estimate control count and
+memory before assuming the scaling measured for sparse regression also applies
+to differentiable minimization.
+
+Read histories and termination honestly
+---------------------------------------
+
+Each history entry records a zero-based iteration, the pre-update minibatch
+loss including penalties, and the norm of the free coefficient gradient. A
+callback sees that record and the current model before the update. Returning
+``True`` stops with ``status="callback_stop"`` and does not claim convergence.
+Do not label callback iteration ``k`` as the model after update ``k`` when
+building an animation or convergence figure.
+
+A configured ``gradient_tolerance`` triggers a full-sample gradient check
+before an update. Reaching it yields success. The norm is the ordinary free
+coefficient gradient norm, not a normalized relative error or a guarantee
+about test performance. Its magnitude depends on objective units and degree;
+choose it according to required accuracy rather than copying a number between
+unrelated applications.
+
+Budget exhaustion produces ``status="iteration_limit"`` and a convergence
+warning. A useful approximate model is still returned for inspection, but
+``require_success`` raises because no convergence criterion was established.
+With no gradient tolerance configured, exhausting even a long budget does
+not become success simply because the history looks flat. A smaller tolerance
+may need more iterations; a larger one trades accuracy for earlier stopping.
+
+The final ``objective`` is evaluated on the complete fixed sample set after
+the stopping event. It need not equal the last minibatch history loss, both
+because the latter is pre-update and because its rows may differ. Use the
+final full objective for final-state reporting and history for optimization
+dynamics. Compute held-out losses separately; they are not automatically
+included in ``OptimizationResult``.
+
+.. figure:: ../_static/guides/initialization.png
+   :width: 100%
+   :alt: Initial constant curves, optimized quadratic curves and their full-batch loss histories.
+
+   A current-API before/after experiment with the same convex scalar response
+   loss and two initial constants. Both reach the checked full-sample gradient
+   tolerance. Unlike the historical research figures above, this figure is
+   regenerated by the guide script and records its own termination evidence.
+
+Run ``python examples/generate_guide_figures.py`` to reproduce this comparison.
+The generated JSON includes final objectives, iteration counts and statuses.
+The example uses a supervised-looking custom scalar loss only to provide an
+analytic reference for the optimizer; direct ``fit`` is the simpler operation
+for that particular quadratic regression task.
+
+For a nonconvex application, repeat under several initial models and seeds,
+inspect feasibility across the domain, and compare independent evaluation
+objectives. No optimizer status certifies that a local stationary point is a
+global optimum or that linear scalarization covers unsupported nonconvex
+Pareto regions. Preserve the loss definition and units with the model archive
+so that later users can reproduce what was actually minimized.
+
+A checklist for a new objective
+-------------------------------
+
+First establish a baseline that can be evaluated without optimization. Predict
+from the initial model over a small independent grid, compute the row losses,
+and check that all decision vectors are feasible for the objective. If there
+is an analytic solution for a simplified case, test that case before increasing
+degree or adding a complicated simulator-derived cost. A complicated loss can
+produce plausible-looking curves even when objective columns or preference
+weights have been swapped.
+
+Next check differentiation at an ordinary interior parameter point. The loss
+should depend on predicted values through finite PyTorch operations. A
+piecewise formula can be differentiable almost everywhere while having
+unhelpful gradients at a chosen constant start. Move the start or reformulate
+the smooth approximation deliberately, and record the choice. Increasing an
+iteration budget will not repair a detached graph or a gradient that is
+identically zero for an unintended reason.
+
+Then separate algorithmic error from representation error. A converged
+low-degree model may still approximate the desired decision map poorly.
+Increase degree only after checking the same objective and independent
+points. Conversely, a flexible model with a large gradient may simply need a
+better numerical configuration before more controls are justified. Compare
+both final loss and convergence status rather than using either in isolation.
+
+Finally retain enough evidence to reproduce the result: initial coefficients,
+space geometry, fixed controls, loss definition, penalties, point coordinates,
+seeds and complete method settings. The saved numerical model predicts outputs,
+but it does not serialize the Python callable defining the optimization task.
+A later user needs that callable and its objective units to interpret the
+reported final objective or continue an experiment reliably.

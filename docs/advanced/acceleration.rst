@@ -194,3 +194,46 @@ MLflow recording is explicit::
 
 Metrics, diagnostics and the versioned model artifact are recorded. Importing
 or executing core fitting never enables autologging or starts an experiment.
+
+A complete single-device Lightning example
+------------------------------------------
+
+Use this adapter when an application already owns a Trainer and needs its
+execution lifecycle. A one-item loader triggers one complete-objective update
+per epoch; it does not split observation weights into independently normalized
+minibatches. Keep a direct least-squares fit as a reference when assessing an
+iterative run's convergence.
+
+.. testcode:: lightning-guide
+    :skipif: __import__("importlib.util").util.find_spec("lightning") is None
+
+    import torch
+    from torch.utils.data import DataLoader
+    from lightning.pytorch import Trainer
+    from torch_bsf import BezierSpace, BezierModel, Samples
+    from torch_bsf.integrations.lightning import regression_module
+
+    space = BezierSpace.simplex(1, degree=1)
+    initial = BezierModel(space, torch.zeros(space.n_controls, 1, dtype=torch.float64))
+    samples = Samples([[1., 0.], [0., 1.]], [[1.], [2.]])
+    module = regression_module(initial, samples, learning_rate=.01)
+    trainer = Trainer(accelerator="cpu", devices=1, max_epochs=3,
+                      logger=False, enable_checkpointing=False,
+                      enable_progress_bar=False, enable_model_summary=False)
+    trainer.fit(module, train_dataloaders=DataLoader([0], batch_size=1))
+    trained = module.bezier_model()
+    assert trained.coefficients.dtype == torch.float64
+    assert torch.equal(initial.coefficients, torch.zeros_like(initial.coefficients))
+
+This is an execution smoke example, not a claim of convergence in three
+updates. ``learning_rate`` controls Adam's update scale: increasing it can
+accelerate early progress but overshoot; decreasing it can improve late-stage
+stability while requiring more updates. ``max_epochs`` changes the number of
+updates with this loader. Compare the full objective and predictions with
+the direct regression reference before declaring an iterative fit complete.
+
+Increasing devices does not distribute this adapter's objective; distributed
+execution is rejected. Changing precision changes numerical execution and may
+reduce attainable accuracy. Benchmark the actual problem, including transfer
+and setup costs, before choosing a device for speed. These settings belong
+to the application Trainer rather than the core ``fit`` operation.
