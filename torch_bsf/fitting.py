@@ -39,13 +39,21 @@ def _dense_solve(
     a = problem.dense()
     relative = torch.finfo(torch.float64).eps * max(a.shape) if solver.rcond is None else solver.rcond
     solved = torch.linalg.lstsq(a, problem.rhs, rcond=relative, driver="gelsd")
-    if not torch.isfinite(solved.solution).all():
-        raise ArithmeticError("Dense SVD produced non-finite coefficients.")
+    solution = solved.solution.clone()
+    available = torch.isfinite(solution).all(dim=0)
+    solution[:, ~available] = 0
     system = _svd_info(problem.shape, solved.singular_values, int(solved.rank), solver.rcond)
     data = diagnostics.data
     if not problem.n_regularizers:
         data = system
-    return solved.solution, replace(diagnostics, data=data, system=system)
+    return solution, replace(
+        diagnostics,
+        data=data,
+        system=system,
+        solution_available=bool(available.all()),
+        output_success=tuple(bool(valid) for valid in available),
+        output_statuses=tuple("solved" if valid else "numerical_failure" for valid in available),
+    )
 
 
 def _complete_diagnostics(
@@ -201,6 +209,9 @@ def fit(
         elif isinstance(solver, DenseLeastSquares):
             diagnostics = replace(diagnostics, driver="gelsd")
             solution, diagnostics = _dense_solve(problem, solver, diagnostics)
+            success = all(diagnostics.output_success)
+            status = "solved" if success else "numerical_failure"
+            message = "Least-squares optimum computed." if success else "Dense SVD produced non-finite output columns."
         else:
             diagnostics = replace(diagnostics, driver="lsmr")
             solution, diagnostics = _sparse_solve(problem, solver, diagnostics)
@@ -223,7 +234,7 @@ def fit(
         )
     coefficients = problem.coefficients(solution)
     diagnostics, diagnostic_error = _complete_diagnostics(problem, solver, diagnostics)
-    if diagnostic_error is not None:
+    if diagnostic_error is not None and success:
         success, status, message = False, "diagnostic_failure", diagnostic_error
     metrics = problem.metrics(coefficients)
     if not all(math.isfinite(value) for value in metrics.values()):

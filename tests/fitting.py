@@ -21,6 +21,26 @@ def test_dense_driver_is_recorded():
     assert result.diagnostics.output_success == (True,)
 
 
+def test_dense_nonfinite_output_preserves_other_columns_and_fixed_values():
+    from types import SimpleNamespace
+
+    space = BezierSpace.simplex(1, degree=1)
+    samples = Samples(torch.eye(2), [[1.0, 2.0], [3.0, 4.0]])
+    answer = SimpleNamespace(
+        solution=torch.tensor([[5.0, float("nan")]], dtype=torch.float64),
+        singular_values=torch.ones(1, dtype=torch.float64),
+        rank=torch.tensor(1),
+    )
+    with patch("torch.linalg.lstsq", return_value=answer), pytest.warns(ConvergenceWarning):
+        result = fit(space, samples, fixed=FixedControls({0: [1.0, 2.0]}))
+    assert not result.success and result.status == "numerical_failure"
+    assert result.diagnostics.output_success == (True, False)
+    assert result.diagnostics.output_statuses == ("solved", "numerical_failure")
+    assert not result.diagnostics.solution_available
+    assert result.diagnostics.system.method == "svd"
+    assert torch.equal(result.model.coefficients, torch.tensor([[1.0, 2.0], [5.0, 0.0]], dtype=torch.float64))
+
+
 def test_optional_data_diagnostic_failure_preserves_the_computed_fit():
     space = BezierSpace.simplex(1, degree=2)
     samples = Samples(torch.eye(2), [[1.0], [2.0]])
@@ -115,7 +135,13 @@ def test_dense_numerical_failure_returns_a_failed_result(failure):
     else:
         from types import SimpleNamespace
 
-        options = {"return_value": SimpleNamespace(solution=torch.tensor([[float("nan")]]))}
+        options = {
+            "return_value": SimpleNamespace(
+                solution=torch.tensor([[float("nan")]], dtype=torch.float64),
+                singular_values=torch.ones(1, dtype=torch.float64),
+                rank=torch.tensor(1),
+            )
+        }
     with patch("torch.linalg.lstsq", **options), pytest.warns(ConvergenceWarning):
         result = fit(space, observations, fixed=fixed)
     assert not result.success and result.status == "numerical_failure"
