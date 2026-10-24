@@ -161,6 +161,14 @@ metrics and diagnostics, with ``bsf.solution_available=False``, but does not wri
 a model artifact. A finite iterate or a model with failed optional diagnostics
 remains available for explicit inspection and persistence.
 
+An overflowing augmented RHS is rejected per output (``rhs_overflow``); other
+output columns are still solved and retained. Iterative evidence for a column
+that was not attempted is ``None``, rather than a fabricated stop code or zero
+iterations. With all controls fixed, the finite model is already completely
+known and stays available even if its objective exceeds float64 range. Overall
+``success`` is then false for the metric failure, while per-output termination
+still records ``all_fixed``.
+
 .. testcode::
 
     import torch
