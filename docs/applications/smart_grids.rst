@@ -13,9 +13,14 @@ Equally, in multi-agent microgrids integrating photovoltaic systems (PV), energy
 
 From a mathematical perspective, modifying the power allocations to maximize the utility :math:`u_l` is mathematically identical to minimizing the positive-definite squared deviation between allocated and requested charge. Because the error metrics natively employ bounded quadratic structures (with the positive coefficient :math:`a_i > 0`), the resulting system cost matrix is structurally strongly convex across the sub-groups.
 
-These strongly convex definitions enable massive decentralized networking algorithms—like accelerated Alternating Direction Method of Multipliers (ADMM)—to secure linear convergence uniformly across geographically vast nodes.
+Positive quadratic curvature can support efficient convex dispatch solvers.
+Convergence rates for a distributed method additionally depend on the
+constraints, coupling and algorithm settings. Convex generator costs alone
+do not make nonlinear AC power-flow constraints convex.
 
-Additionally, as weather profiles and market electricity pricing constantly fluctuate, network operators must instantaneously reroute their balance policies. Equipping a distributed smart grid operator with a pre-computed Bézier simplex mapping allows the grid to frictionlessly evaluate these high-dimensional, competitive variables in real-time, executing continuous equilibrium adjustments across millions of endpoints securely.
+A fitted Bézier map can reduce the cost of exploring priorities for a fixed
+dispatch problem. Demand, weather and prices must be represented explicitly
+or held fixed; changing the priority weights does not update those inputs.
 
 Numerical Experiments
 ---------------------
@@ -65,3 +70,65 @@ The Pareto set lies on the plane :math:`P_1 + P_2 + P_3 = 5` and is shown by its
      - Pareto front.
 
 The complete example script is available at :file:`examples/generate_smart_grids_pareto.py`.
+
+Separate priorities from generator shares
+-----------------------------------------
+
+The model input ``[w1, w2]`` specifies cost versus emissions, not power shares.
+It is a point on a one-dimensional simplex. The decision map has three
+outputs ``[P1, P2, P3]`` and the objective map has two. Although generator
+shares also satisfy a sum constraint, they are responses of this optimization,
+not additional coordinates in the weight segment.
+
+Every reference solve enforces demand balance and nonnegative generation.
+The two quadratic objective Hessians are positive definite, so their convex
+combinations remain positive definite, including at the endpoints. On the
+fixed convex feasible set, this gives a unique dispatch for each weight.
+It does not make the polynomial surrogate an exact dispatch solver.
+
+What the plots and error measure
+--------------------------------
+
+The left panel projects a three-output map to ``(P1, P2)``. Recovering the
+third output from balance is possible for the reference solutions, but the
+fit should still be checked in all three columns. The right panel describes
+the corresponding cost and emissions. A close front fit does not prove that
+a separately fitted generation vector satisfies balance or operating limits.
+
+Reproduce the figures from the repository root with
+``python examples/generate_smart_grids_pareto.py`` after installing the plot,
+SciPy and scikit-learn dependencies used by the script. It uses 10 training
+weights and evaluates 101 weights. Distinguish training points from new
+weights when interpreting the reported maximum error; also check each
+objective rather than normalizing both by only the cost range.
+
+For the decision surrogate, measure
+:math:`|\sum_i\widehat P_i-D|` and
+:math:`\max(0,-\min_i\widehat P_i)` across the evaluation set. If capacity
+bounds are added, inspect those too. Exact reference feasibility at sampled
+weights does not establish feasibility everywhere between them. Validate
+objective values by recomputing them from the predicted dispatch.
+
+Demand variation and operating limits
+-------------------------------------
+
+The example keeps :math:`D=5` fixed. For demand in a bounded interval,
+normalize it to a second barycentric block and use a square of type
+``(1, 1)``: one factor for priorities and one for demand. Then a parameter
+row can be ``[1-u, u, 1-v, v]`` with
+:math:`D=(1-v)D_{\min}+vD_{\max}`. Each block sums to one independently.
+The :ref:`simploid figure <simploidal-space-overview>` illustrates this
+independent-factor construction.
+
+Capacity constraints can change which generators saturate as priorities or
+demand vary. Such transitions can create derivative changes in an otherwise
+continuous solution map. Add reference solves near them and compare held-out
+errors before increasing degree. Multiple local patches may be appropriate
+if a single polynomial needs too much capacity; their coordinate conventions
+and continuity requirements must then be explicit.
+
+This experiment covers an economic-emission dispatch model. It does not
+include voltage constraints, line limits, AC network equations or a
+closed-loop grid controller. Those conditions belong in the reference
+problem and in the validation of any proposed extension. For fitting
+mechanics, see :doc:`../quickstart` and :doc:`../advanced/simploidal`.

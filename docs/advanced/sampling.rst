@@ -133,3 +133,28 @@ For deterministic point counts and product-grid growth, continue to
 set stays fixed across iterations; increasing iteration count alone does not
 improve approximation of the continuous-domain expectation. Draw a larger
 fixed set, then assess the final model on independent points.
+
+Sample a product without mixing its factors
+-------------------------------------------
+
+.. testcode:: sampling
+
+    prism = BezierSpace.simploid((2, 1), degree=(2, 1))
+    prism_points = sample(prism, 80, seed=9)
+    p = prism_points.parameters
+    assert p.shape == (80, 5)
+    assert torch.allclose(p[:, :3].sum(1), torch.ones(80, dtype=torch.float64))
+    assert torch.allclose(p[:, 3:].sum(1), torch.ones(80, dtype=torch.float64))
+
+The first block selects a triangle location and the second an independent
+interval location. Together they fill the prism in the
+:ref:`geometric overview <simploidal-space-overview>`. Normalizing the
+five-column row to one would move both blocks outside their valid simplex
+constraints. Uniform product sampling is useful for joint exploration, but
+it does not guarantee repeated observations at particular interval slices.
+
+If the experiment requires the same triangle locations at several fixed
+operating conditions, explicitly combine those locations with chosen
+interval blocks. This structured design answers a different question from
+independent random pairs. Keep a separate validation design so repeating
+slices does not conceal interpolation error between operating conditions.

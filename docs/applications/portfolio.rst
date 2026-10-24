@@ -15,10 +15,20 @@ This formulation effectively creates a three-objective optimization problem over
 
 Subject to classical constraints such as the budget constraint :math:`\mathbf{1}^T x = 1` and long-only constraints :math:`x \ge 0`.
 
-Because the regularization term is strongly convex, the resulting scalarized objective function becomes strictly strongly convex. Even if the covariance matrix :math:`\Sigma` is only positive semi-definite, the addition of the turnover penalty guarantees that the Hessian :math:`\nabla^2 f(x) \succeq 2\lambda I` is strictly positive definite. According to the theorems in :cite:p:`mizota2021unconstrained`, this strongly convex problem is guaranteed to be weakly simplicial. 
+For weights :math:`w`, the scalarized Hessian is
+:math:`2w_2\Sigma+2w_3\lambda I`. A positive turnover weight guarantees
+strong convexity, but that guarantee can disappear on the face
+:math:`w_3=0`; the return objective alone is linear. The unconstrained
+strongly convex theorem in :doc:`../whatis` therefore cannot be applied to
+this entire constrained three-objective formulation without further work.
 
-Fitting a Bézier simplex to this problem allows practitioners to continuously map the entire robust Pareto front—namely, the continuous efficient frontier—guaranteeing unique solutions. Instead of computing disconnected discrete point clouds using weighted sums, analysts obtain a functionally continuous mapping of allocations versus risk. Utilizing sensitivity-based Newton path-following, the full Pareto front can be computed with an extremely efficient iteration complexity of :math:`O(p \log(1/\varepsilon))` :cite:p:`bergou2021complexity`. 
-Solvers like MOSEK, Gurobi, and OSQP are widely used to efficiently compute these strongly convex QP subproblems. Modern extensions also include CVaR (Conditional Value-at-Risk) portfolio optimization and robust multi-objective portfolio frameworks under data uncertainty.
+Fitting a Bézier simplex gives a continuous approximation of sampled
+trade-offs. Uniqueness comes from the reference problem's assumptions,
+rather than the surrogate representation. Weighted quadratic subproblems
+can be solved offline, with their decisions and objective values retained
+as training responses. Extensions such as CVaR or uncertain market inputs
+change the reference problem and require their own parameterization and
+validation.
 
 Numerical Experiments
 ---------------------
@@ -62,3 +72,69 @@ The regularization weight of :math:`f_1` matters: the weighted-sum solution :mat
      - Pareto front.
 
 The complete example script is available at :file:`examples/generate_portfolio_pareto.py`.
+
+Inputs, allocations and objective values
+----------------------------------------
+
+The numerical example uses two regularized objectives, so its input is a
+segment of priority weights ``[w1, w2]``. It differs from the three-objective,
+budget-constrained formulation above: it has no budget or nonnegativity
+constraints, and its first objective includes an allocation penalty. Its
+three decision outputs are unconstrained coefficients rather than guaranteed
+portfolio percentages. The figure illustrates surrogate construction for
+that stated toy problem.
+
+For a diagonal covariance with entries :math:`s_j`, stationarity gives
+
+.. math::
+
+   x_j^*(w)=\frac{w_1\mu_j}
+       {2\left(0.2w_1+(s_j+0.05)w_2\right)}.
+
+The denominator stays positive on the weight segment, but the solution is
+rational rather than polynomial. A cubic fit approximates this map. It does
+not become exact merely because the optimization objectives are quadratic.
+Reducing the regularization can make the map vary sharply near an endpoint,
+which explains why the same degree and sample count can then perform worse.
+
+Fit and validate the decision map
+---------------------------------
+
+Store one row of weights and three allocation outputs for each reference
+solve. Fit them with ``BezierSpace.simplex(1, degree=3)`` and
+``Samples(weights, allocations)``. A separate two-output fit gives the front.
+Keep objective scaling explicit: variance and return have different units,
+and changing their scales changes the interpretation of the input weights.
+See :doc:`../advanced/normalization` for output transformations.
+
+At held-out weights, compare the predicted allocations with the reference
+optimizer, then evaluate the original objectives on those allocations.
+Report the maximum error in each output in addition to average error. The
+quoted test-grid result describes these constants and this parameter range;
+it is not a guarantee for another covariance estimate or asset universe.
+
+For a constrained extension, check the budget residual, minimum holding and
+any turnover or exposure limits. Least squares does not automatically
+preserve such inequalities between training rows. Projecting a prediction
+onto a feasible set can restore feasibility but changes its objectives;
+evaluate the projected allocation as well.
+
+Choosing capacity and updating the model
+----------------------------------------
+
+Increasing degree gives more flexibility, while adding samples improves
+coverage of the same chosen function class. Select them using fresh
+reference solves, especially near active-set transitions in a constrained
+portfolio. Adding ridge to the Bézier fit shrinks its controls; it does not
+replace the allocation regularization in the original portfolio objective.
+
+The fitted map assumes fixed expected returns, covariance and objective
+definitions. When those inputs change, the old surrogate represents the
+old problem. Refit it, or introduce a bounded independent scenario parameter
+as a product factor when an explicit scenario model is available. Arbitrary
+market changes are not represented by moving along the priority segment.
+
+The workflow is a numerical approximation example. Evidence for a practical
+allocation model also requires evaluation under the intended data and
+constraints. See :doc:`../advanced/sampling` for boundary coverage and
+:doc:`../advanced/auto_degree` for validation-based capacity selection.

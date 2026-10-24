@@ -17,9 +17,16 @@ Where :math:`X_k` represents the aggregate cash and inventory states, constraine
 
 For manufacturing processes and logistics, abrupt disruptions in financing inputs or delivery capacities incur massive overheads, making the penalization of policy volatility (:math:`\|\Delta U_k\|_S^2`) practically vital for securing stable operational margins. 
 
-Because the entire LQR overarching formulation relies exclusively on positive definite penalty matrices (:math:`Q, R, S \succ 0`), the extensive supply chain network optimization mathematically remains entirely and globally strongly convex.
+With linear dynamics, eliminating the states gives quadratic objectives in
+the control sequence. A positive-definite input penalty gives positive
+curvature in every control direction. A state or difference penalty does so
+only when its map from controls has full column rank. Convexity of the
+feasible set must also be checked if inventory or ordering limits are added.
 
-When corporate managers visualize these strategic relationships statically, they often suffer from disjointed discrete scenario planning. Implementing a Bézier simplex surrogate that models the multi-objective continuous terrain flawlessly allows disparate corporate departments—ranging from financial officers to warehouse managers—to visually navigate through a single, continuous interactive Pareto topology in boardroom meetings, instantly resolving the optimal, stable path for navigating market supply shocks without requiring live, intensive QP solver re-computations.
+A Bézier surrogate makes it possible to explore the modeled priorities
+continuously after offline reference solves. It approximates the decisions
+for fixed demand and dynamics; a new supply shock is a change of problem
+data unless it is included explicitly in the surrogate's parameter domain.
 
 Numerical Experiments
 ---------------------
@@ -39,7 +46,11 @@ We demonstrate Bézier simplex fitting on a two-objective inventory LQR problem 
    f_2(U) &= \sum_{k=0}^{4} u_k^2 + 0.5 \sum_{k=0}^{4} (u_k - u_{k-1})^2 \quad \text{(ordering cost and policy volatility)}
 
 Both objectives are strongly convex quadratics with comparable curvature, so the weighted-sum solution :math:`U^*(w)` is a smooth rational function of :math:`w` without poles near the weight simplex.
-A volatility-only objective :math:`\sum_k (u_k - u_{k-1})^2` would not be strongly convex (it vanishes on constant orders), and the Pareto set would then change abruptly near :math:`w = (0, 1)`.
+Here the difference penalty includes the fixed previous order
+:math:`u_{-1}=0`. Its difference matrix is invertible, so even that penalty
+alone is positive definite. If the initial difference were omitted, constant
+order sequences would instead form a nullspace. Boundary conventions matter
+when reasoning about curvature and endpoint solutions.
 
 **Experiment Procedure:**
 
@@ -65,3 +76,76 @@ The maximum error on the test weights is about :math:`0.03`, i.e., 0.2% of the r
      - Pareto front.
 
 The complete example script is available at :file:`examples/generate_supply_chain_pareto.py`.
+
+Encode a horizon as multiple outputs
+------------------------------------
+
+One input row is a pair of priority weights ``[w1, w2]``. One decision output
+row is the complete five-period order sequence. Time is an output index in
+this experiment, rather than another input coordinate. Fitting each period
+as a separate observation at the same weight would lose the intended
+vector-valued response. ``Samples(weights, orders)`` should have shapes
+``(n, 2)`` and ``(n, 5)``.
+
+The state trajectory follows by rolling out the inventory dynamics from the
+fixed initial stock. The first objective rewards sufficient inventory, while
+the second rewards small, slowly changing orders. At the state-priority
+endpoint, matching the target requires replenishment; at the order-cost
+endpoint, zero orders minimize the cost even though inventory then falls
+below its target. Negative inventory is permitted by this unconstrained toy
+model and can be read as backlog, not a hard stock-availability guarantee.
+
+Why a higher degree is used
+---------------------------
+
+After eliminating states, write the objectives as
+
+.. math::
+
+   f_i(U)=U^T H_iU+2g_i^TU+c_i.
+
+For a nonsingular weighted Hessian, the reference solution is
+
+.. math::
+
+   U^*(w)=-(w_1H_1+w_2H_2)^{-1}(w_1g_1+w_2g_2).
+
+This is generally rational in the weights. A degree-eight curve is an
+approximation choice for the stated horizon and dynamics, rather than an
+exact consequence of the quadratic objectives. It has nine controls per
+output. Fifteen training weights provide more rows than controls, but their
+placement and numerical rank still matter. Inspect the data diagnostics and
+compare a lower degree on held-out weights before using the larger model.
+
+Check orders and reconstructed inventories
+------------------------------------------
+
+Run ``python examples/generate_supply_chain_pareto.py`` to reproduce the
+reference solves and plots. Evaluate the decision map at new weights,
+roll out all five states, and recompute both objectives from those states
+and orders. Check each period's error; a projection onto two order columns
+can conceal an error later in the horizon. A separately fitted objective
+map can disagree with objectives recomputed from the decision map.
+
+If the reference model is extended with nonnegative orders, storage limits
+or shortage bounds, measure their violations on predicted trajectories.
+These constraints are not imposed by unconstrained Bézier regression.
+Exact endpoint controls can preserve a known extreme policy, but do not
+guarantee interior feasibility. See :doc:`../advanced/partial` for what
+fixed controls actually constrain.
+
+Changing demand, horizon and initial stock
+------------------------------------------
+
+The fitted model assumes the specified demand, spoilage rate, initial stock
+and horizon. A new horizon changes output width and requires a new model.
+A varying scalar initial stock or demand level can be encoded as an
+independent interval factor, producing a square-domain simploid. Several
+independent uncertain inputs need separate factors and corresponding
+training coverage; adding factors increases the control count multiplicatively.
+
+Keep surrogate regularization separate from ordering and volatility costs.
+The former changes the fitted coefficient estimate, while the latter
+define the reference decisions being approximated. See
+:doc:`../advanced/regularization` and :doc:`model_predictive_control` for
+the related finite-horizon workflow with a varying initial state.

@@ -130,3 +130,33 @@ errors are retained in :download:`the metrics JSON <../_static/guides/metrics.js
 The figures are synthetic illustrations of specific settings, not general
 accuracy or hardware performance claims. Keep numerical status and held-out
 errors alongside visual evidence when assessing a model for deployment.
+
+Add a parameter-space residual view
+-----------------------------------
+
+.. testcode:: visualization
+    :skipif: __import__("importlib.util").util.find_spec("matplotlib") is None
+
+    residuals = (result.model(t) - values).detach().cpu()
+    fig, axes = plt.subplots(1, 2, figsize=(9, 3))
+    axes[0].plot(x, residuals[:, 0], "o", label="first output")
+    axes[0].plot(x, residuals[:, 1], "o", label="second output")
+    axes[0].axhline(0, color="black", linewidth=.5)
+    axes[0].set(xlabel="segment parameter", ylabel="signed residual")
+    axes[0].legend()
+    axes[1].plot(x, residuals.square().sum(1).sqrt(), "o")
+    axes[1].set(xlabel="segment parameter", ylabel="output-vector error norm")
+    plt.close(fig)
+
+These are training residuals, so a small graph does not establish
+generalization. Repeat the calculation on independent parameter-response
+pairs to assess prediction. Signed residuals distinguish systematic
+underprediction from overprediction; the vector norm summarizes magnitude
+but can be dominated by an output with larger physical units.
+
+For a product domain, plot residuals against each factor or take slices at
+fixed operating conditions. The :ref:`simploid figure <simploidal-space-overview>`
+shows why one surface view cannot reveal every slice of a prism. For an
+assembled domain, label residuals by cell and explicitly compare paired
+boundary coordinates. A projected seam can look closed while an omitted
+output disagrees or a parameter orientation is reversed.

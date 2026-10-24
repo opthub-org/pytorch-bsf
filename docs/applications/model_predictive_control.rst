@@ -13,9 +13,18 @@ Similarly, omnidirectional mobile robots traversing complex environments (e.g., 
 
 where :math:`y_k` denotes system states/outputs, :math:`r_k` the target setpoints, :math:`u_k` the operational inputs, and :math:`\Delta u_k` the input change rates.
 
-Crucially, as long as the weighting matrices (e.g., :math:`R`) acting on the independent control inputs are uniformly positive definite (:math:`R \succ 0`), the resulting multi-objective performance stage cost is strongly convex with respect to the continuous input decisions :math:`U`. Even in complex scenarios where discrete mode switching (like robot friction statuses) transforms the formulation into a Mixed-Integer Quadratic Program (MIQP), the continuous sub-component remains undeniably strongly convex, stabilizing bounded-node optimization searches.
+For linear dynamics, eliminating states produces quadratic objectives in
+the control sequence. A positive-definite penalty on every independent
+input gives strong convexity of that objective. Tracking and input-difference
+terms require their own rank checks. In a mixed-integer problem, curvature
+within each fixed mode does not establish a continuous solution map across
+mode changes.
 
-In practice, resolving these multi-objective QP or MIQP problems during an active millisecond control loop requires prohibitive amounts of computational power. Since the strong convexity naturally spans a continuous simplicial Pareto front, controllers equipped with a Bézier simplex representation can bypass the online QP solver entirely. The polynomial evaluation provides an analytic, instantaneous multi-objective control response, enabling ultra-fast, high-frequency continuous re-optimization in highly unstable physical environments.
+An offline polynomial surrogate can reduce online evaluation cost over a
+specified parameter range. Its use in a controller also requires checking
+input and state constraints, closed-loop behavior and evaluation latency.
+Strong convexity of the reference problem alone gives none of those
+guarantees for an approximate control law.
 
 Numerical Experiments
 ---------------------
@@ -68,3 +77,64 @@ The figures show the curves of the fitted simploids for the five sampled initial
      - Pareto fronts.
 
 The complete example script is available at :file:`examples/generate_mpc_pareto.py`.
+
+Read the simploid as a family of trade-off curves
+-------------------------------------------------
+
+The :ref:`left panel of the simploid overview <simploidal-space-overview>`
+shows a square-domain map. Here its first interval controls objective
+priorities and its second controls initial state. Fixing the second factor
+selects one Pareto curve; sweeping it gives a family of curves. Fixing the
+first factor instead shows how the preferred policy changes with initial
+state at one chosen priority.
+
+For a requested state, compute :math:`v_2=(x_0+1)/2` and
+:math:`v_1=1-v_2`. A row ``[w1, w2, v1, v2]`` contains two independently
+normalized blocks. At :math:`x_0=0`, the second block is ``[0.5, 0.5]``.
+The row sums to two; normalizing it globally would invalidate the domain.
+The model covers :math:`-1\le x_0\le1`. A state outside that interval
+requires another modeled range or a different controller policy.
+
+Represent the two output maps explicitly
+----------------------------------------
+
+The decision map uses ``BezierSpace.simploid((1, 1), degree=(6, 1))`` and
+returns five control inputs. It has :math:`7\times2=14` global controls,
+each with five output coefficients. The front map uses degree ``(6, 2)``
+and two outputs, with :math:`7\times3=21` controls. Their domain type is
+identical even though capacity and output width differ.
+
+The unequal degrees reflect the reference solution: at fixed priority the
+optimal input sequence is affine in initial state, while its quadratic
+costs depend quadratically on that state. Dependence on the priority factor
+is generally rational and is only approximated by degree six. Increasing
+state degree cannot compensate for insufficient priority degree; compare
+errors along each factor before adding controls.
+
+To build the data, keep all 55 parameter rows aligned with the five-column
+control array and two-column objective array. Fit each array separately with
+``Samples`` and inspect the returned solve diagnostics. The same row order
+must be used for both factors and every output. Product grids and their
+growth are explained in :doc:`../advanced/grid_sampling`.
+
+Assess a policy rather than only a front
+----------------------------------------
+
+Use new combinations of priorities and initial states for validation,
+including corners and edges of the square. The stated test grid includes
+training locations as well as new ones; report errors on the new locations
+separately when estimating interpolation accuracy. Compare all five
+predicted controls, roll out the system, and recompute tracking and effort.
+A close two-output front prediction need not imply a good first action.
+
+In receding-horizon use, apply only the first predicted input, measure the
+new state and query the model again. Open-loop sequence accuracy does not
+certify this feedback loop. The example has no actuator saturation or state
+constraints, so it provides no evidence that a constrained extension remains
+feasible or stable. Such an extension needs its own reference solves,
+trajectory checks and closed-loop evaluation.
+
+Run ``python examples/generate_mpc_pareto.py`` to regenerate the experiment.
+Keep horizon, dynamics, target and parameter bounds with the saved model:
+changing them changes the target map. For construction and persistence of
+product-domain models, continue to :doc:`../advanced/simploidal`.

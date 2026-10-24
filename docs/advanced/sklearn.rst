@@ -118,3 +118,32 @@ changes degree, fixed global row numbers cannot be reused blindly: resolve
 constraints for each space in a manual core validation loop. Save
 ``best.model_`` with ``io.save_model`` when only the common numerical model is
 needed; store preprocessing and feature schemas alongside it in the application.
+
+Fit independent input blocks as a product
+-----------------------------------------
+
+.. testcode:: sklearn
+    :skipif: __import__("importlib.util").util.find_spec("sklearn") is None
+
+    u, v = np.meshgrid(np.linspace(0, 1, 8), np.linspace(0, 1, 7), indexing="ij")
+    u, v = u.ravel(), v.ravel()
+    product_X = np.column_stack([1 - u, u, 1 - v, v])
+    product_y = np.square(u) + v
+    product = BezierRegressor(dimensions=(1, 1), degree=(2, 1))
+    product.fit(product_X, product_y)
+    test_u = np.array([.13, .47, .81])
+    test_v = np.array([.22, .56, .73])
+    test_X = np.column_stack([1 - test_u, test_u, 1 - test_v, test_v])
+    assert np.allclose(product.predict(test_X), np.square(test_u) + test_v)
+
+The domain is the square pictured in the
+:ref:`simploid overview <simploidal-space-overview>`. Its two factors have
+different degrees because the target is quadratic in ``u`` and linear in
+``v``. Without explicit ``dimensions``, four columns would imply one
+three-dimensional simplex, whose sum-to-one constraint these rows violate.
+
+Random row folds assess interpolation among the sampled combinations. If
+the intended task is prediction at entirely unseen operating conditions,
+hold out complete ``v`` slices or use an appropriate grouped split instead.
+Choose a validation design that matches the use of the fitted model rather
+than relying on a default splitter to define that use implicitly.

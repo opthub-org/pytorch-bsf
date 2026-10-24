@@ -12,9 +12,17 @@ This routing challenge is frequently framed as a strongly convex multi-objective
 
 Where :math:`R(k)` is the routing allocation matrix at time step :math:`k`, :math:`\zeta(k)` represents the bandwidth excess above target capacity, and :math:`\Delta R(k)` denotes the modifications applied to the traffic routing.
 
-Simultaneously minimizing both objectives heavily relies on strong convexity. Even if the network flow constraints are piece-wise linear or broadly just convex, the explicit :math:`L_2` penalty on the route changes (:math:`\|\Delta R(k)\|_2^2`) injects a mathematically strict positive-definite curvature into the optimization landscape. This uniformly bounds the Hessian away from zero, enforcing the strong convexity of the routing matrix modifications. 
+An input-change penalty gives positive curvature only in directions seen
+by the difference operator. With the previous route fixed and all initial
+changes included, that operator can have full column rank. Omitting the
+initial change leaves constant route sequences unpenalized. The scalarized
+problem's curvature also depends on the chosen objective weights.
 
-For real-time network controllers, instantly reacting to traffic bursts while balancing these trade-offs using standard Quadratic Programming solvers at every microsecond is computationally prohibitive. By fitting a Bézier simplex to the Pareto front of the sub-games, operators unlock an instantaneous, purely arithmetic continuous mapping of the exact trade-offs between congestion and routing modifications. The network can then dynamically, and safely, slide along the Pareto front using continuous polynomial evaluations instead of repeatedly executing heavy optimization loops, ensuring uninterrupted low-latency services.
+A Bézier surrogate can approximate decisions or objective values for a fixed
+network scenario using polynomial evaluation. Whether that reduces control
+latency enough is an empirical question. Feasibility of routes and capacity
+constraints must be assessed on predicted decisions; fitting a front alone
+does not provide a routing policy.
 
 Numerical Experiments
 ---------------------
@@ -74,6 +82,71 @@ The weighted objective :math:`f(x, w) = w_1 f_1(x) + w_2 f_2(x) + w_3 f_3(x)` is
    * - Pareto set.
      - Pareto front.
 
-The fit achieves nearly zero training error on the sampled Pareto points, demonstrating that Bézier simplex fitting can accurately approximate three-objective trade-offs from actual optimization.
+The fit achieves nearly zero error at the sampled Pareto points. A cubic
+triangle has ten controls, equal to this example's ten training rows, so
+training agreement alone is insufficient evidence of accuracy elsewhere.
 
 The complete code for the two-objective and three-objective experiments is available in :file:`examples/generate_communication_pareto.py` and :file:`examples/generate_communication_pareto_3obj.py`, respectively.
+
+Choose inputs and outputs from the intended use
+-----------------------------------------------
+
+The experiments use two continuous decision variables and squared distances
+to preferred allocations. They contain no flow-conservation equations,
+traffic matrix or link capacities. Their role is to demonstrate the
+weight-to-solution and weight-to-objective fitting workflow in a small
+quadratic problem. The interpretation as routing allocations does not add
+physical network constraints to that problem.
+
+For two objectives the input is ``[w1, w2]`` on a segment. For three it is
+``[w1, w2, w3]`` on a triangle. The number of objectives determines this
+priority-domain dimension; the number of routing decision variables
+determines the decision output width. A front surrogate has one output
+per objective. Keep these roles separate when adapting the example to a
+larger network.
+
+Why the toy targets are easy to fit
+-----------------------------------
+
+Both experiments have objectives of the form
+:math:`f_k(x)=c_k\|x-a_k\|^2` with :math:`c_k>0`. Their optimizer is
+
+.. math::
+
+   x^*(w)=\frac{\sum_k w_kc_ka_k}{\sum_k w_kc_k}.
+
+In the two-objective example all :math:`c_k=1`, so the denominator equals
+one. The decision map is affine and its objective map is quadratic in the
+weights. A cubic can represent both. The third objective in the extension
+has :math:`c_3=0.8`; its denominator then varies, producing a rational map
+that the polynomial fit approximates.
+
+This gives a useful independent validation target. Generate fresh weights,
+evaluate the closed-form optimizer, and compare every predicted decision
+and objective. Include triangle edges and vertices so that the three-way
+fit is checked against its two-way subproblems. Inspect the data matrix
+rank as well as training MSE when the row count equals the control count.
+
+Extending to a network model
+----------------------------
+
+A reference routing problem should explicitly define feasible flow splits,
+the traffic scenario and how congestion is measured. Solve it at each
+training priority and preserve solver status with the data. On predicted
+routes, measure flow-conservation residuals, negative allocations, link
+overloads and route-change cost. A small objective-space residual can hide
+a constraint violation in the decision space.
+
+If traffic volume varies independently over an interval, combine the
+priority simplex with that interval. Three objectives and one traffic
+parameter give type ``(2, 1)``, the prism in the
+:ref:`simploid overview <simploidal-space-overview>`. A fixed-traffic
+priority triangle cannot represent a different traffic matrix simply by
+changing its weights. Discrete route availability changes can require
+separate models or explicit chart design.
+
+Increase degree only after measuring interpolation error, and add samples
+near sharp changes in active capacity constraints. Use
+:doc:`../advanced/active_learning` for acquiring informative reference
+solves and :doc:`../advanced/visualization` for inspecting residuals beyond
+one projected front.

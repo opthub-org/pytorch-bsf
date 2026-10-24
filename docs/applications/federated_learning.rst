@@ -14,9 +14,18 @@ By imposing strongly convex regularizations (e.g., Tikhonov/Ridge) on the model 
                &\vdots \\
    f_m(\theta) &= \mathcal{L}_m(\theta) + \lambda\|\theta\|^2
 
-The :math:`L_2` regularization penalty :math:`\lambda\|\theta\|^2` ensures that the Hessian incorporates a positive definite matrix :math:`2\lambda I \succ 0`. This global penalty forcefully transforms the generic convex loss landscapes (common in logistic/ridge regressions or SVMs) into strictly strongly convex objectives. Under strong convexity, algorithms like the Stochastic Multi-Gradient (SMG) descent achieve dramatic convergence accelerations, improving from sub-linear to linear :math:`O(1/n)` or :math:`O(\exp(-\mu T))` convergence rates :cite:p:`liu2024stochastic`.
+For convex task losses and :math:`\lambda>0`, adding this penalty makes each
+objective strongly convex. For twice differentiable losses, its Hessian
+contribution is :math:`2\lambda I`. This argument applies to convex models
+such as linear or logistic regression. Adding ridge to a general neural
+network does not by itself establish global strong convexity. Optimization
+rates also depend on the algorithm and its additional assumptions.
 
-Rather than computing single compromised aggregations, the global model's Pareto front is modeled as a continuous Bézier simplex. This facilitates a "train once, customize anywhere" paradigm. A global Bézier simplex allows individual edge devices or network nodes to download the analytic continuous trade-off surface, enabling them to instantly select an optimal model variant tailored precisely to their local power limits, fairness constraints, or inference needs, simply by navigating the simplex variables—representing a drastic improvement over constant network-wide retraining.
+A Bézier decision map can approximate model parameters across task
+priorities, allowing repeated queries without a new reference solve each
+time. A front map instead predicts task losses. Either map assumes the
+same tasks and fixed training problem; introducing power or fairness
+constraints requires those conditions to be modeled explicitly.
 
 Numerical Experiments
 ---------------------
@@ -56,3 +65,65 @@ We demonstrate Bézier simplex fitting on a two-task federated learning problem 
      - Pareto front.
 
 The complete example script is available at :file:`examples/generate_federated_learning_pareto.py`.
+
+What the two fitted maps represent
+----------------------------------
+
+The input is a task-priority vector, not a client's feature vector. With two
+tasks, ``BezierSpace.simplex(1, degree=3)`` takes rows ``[w1, w2]`` whose
+entries sum to one. A parameter-space fit returns two columns for
+``theta``; a front fit returns two loss columns. The first could supply
+parameters to a downstream predictor, while the second supports comparison
+of trade-offs. A loss-space prediction alone cannot reconstruct a predictor.
+
+For this quadratic example, the weighted optimizer has a closed form:
+
+.. math::
+
+   \theta^*(w)=\frac{w_1\theta_1^*+w_2\theta_2^*}{1.1}.
+
+The parameter map is affine in the weights, and the losses evaluated on it
+are quadratic. Thus a cubic has sufficient capacity for both in exact
+arithmetic. Small errors here demonstrate a simple representable target;
+they do not measure accuracy on a heterogeneous neural-network federation.
+The endpoints minimize one regularized task each, and interior weights
+interpolate priorities rather than client data.
+
+Generate and assess a surrogate
+-------------------------------
+
+Obtain one converged task-weighted solution at each training weight and keep
+its parameters and all task losses together. Fit ``Samples(weights, values)``
+with :func:`torch_bsf.fit`, retaining the returned diagnostics. Generate
+additional weights between training locations and solve the original task
+problem there for an independent comparison. Include the endpoints because
+minority-task performance can deteriorate near an extreme priority.
+
+Assess parameter error and each task's loss separately. Also recompute task
+losses at the predicted parameters: an independently fitted loss map need
+not equal losses evaluated on the parameter map. For a deployment with many
+parameter columns, aggregate parameter MSE can hide errors in a small but
+influential subset of coefficients. Prediction quality on held-out client
+examples is the relevant downstream check.
+
+Changing the model and interpreting the scope
+---------------------------------------------
+
+Increasing task count changes the input simplex dimension, while increasing
+predictor size changes only the number of output columns. Increasing degree
+adds controls and requires broader priority coverage. Increasing ridge in
+the original task objectives shrinks their optima and changes the target
+map. ``QuadraticPenalty`` in the surrogate fit instead regularizes Bézier
+controls; these are different operations with different units.
+
+The example optimizes two centralized quadratic losses. It does not implement
+client communication, secure aggregation, privacy accounting or a federated
+training protocol. For real client data, keep client evaluation local where
+required and define how a consistent parameter vector is obtained. Different
+neural solutions can have incompatible hidden-unit permutations, making
+direct parameter interpolation unreliable even when their losses are similar.
+
+If a separate operating variable such as a regularization level varies
+independently of task priorities, encode it as another simplex factor; see
+:doc:`../advanced/simploidal`. For fitting choices, use
+:doc:`../advanced/auto_degree` and :doc:`../advanced/regularization`.
