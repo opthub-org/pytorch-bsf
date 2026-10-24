@@ -244,6 +244,12 @@ iteration or condition limits remain available, but are not certified solutions.
 system diagnostics remain available; data diagnostics stay uncomputed. Per-output
 solver success remains true, while overall <code class="docutils literal notranslate"><span class="pre">success</span></code> is false because the
 requested diagnostics could not be completed.</p>
+<p>The CLI returns exit status 1 for failed results and includes <code class="docutils literal notranslate"><span class="pre">model_saved</span></code>
+in its JSON report. When <code class="docutils literal notranslate"><span class="pre">solution_available</span></code> is false it leaves the destination
+untouched, including an existing model file. MLflow likewise records failure
+metrics and diagnostics, with <code class="docutils literal notranslate"><span class="pre">bsf.solution_available=False</span></code>, but does not write
+a model artifact. A finite iterate or a model with failed optional diagnostics
+remains available for explicit inspection and persistence.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">Samples</span><span class="p">,</span> <span class="n">QuadraticPenalty</span><span class="p">,</span> <span class="n">fit</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.solvers</span><span class="w"> </span><span class="kn">import</span> <span class="n">DenseLeastSquares</span>

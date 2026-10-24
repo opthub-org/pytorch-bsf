@@ -154,6 +154,13 @@ system diagnostics remain available; data diagnostics stay uncomputed. Per-outpu
 solver success remains true, while overall ``success`` is false because the
 requested diagnostics could not be completed.
 
+The CLI returns exit status 1 for failed results and includes ``model_saved``
+in its JSON report. When ``solution_available`` is false it leaves the destination
+untouched, including an existing model file. MLflow likewise records failure
+metrics and diagnostics, with ``bsf.solution_available=False``, but does not write
+a model artifact. A finite iterate or a model with failed optional diagnostics
+remains available for explicit inspection and persistence.
+
 .. testcode::
 
     import torch
