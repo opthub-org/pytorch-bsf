@@ -148,6 +148,12 @@ output columns as a finite placeholder. Its metrics describe that placeholder,
 not an optimum; do not use it for prediction. Finite LSMR iterates stopped by
 iteration or condition limits remain available, but are not certified solutions.
 
+Failure of the optional data-only SVD instead produces
+``status="diagnostic_failure"``. The successfully computed model, objective and
+system diagnostics remain available; data diagnostics stay uncomputed. Per-output
+solver success remains true, while overall ``success`` is false because the
+requested diagnostics could not be completed.
+
 .. testcode::
 
     import torch
