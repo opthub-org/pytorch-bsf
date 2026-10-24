@@ -193,6 +193,52 @@ def test_large_equal_fixed_controls_have_zero_smoothness_penalty():
     assert all(value == 0 for value in result.metrics.values())
 
 
+def test_weighted_metrics_preserve_adjacent_large_value_differences():
+    point = torch.tensor(1e150, dtype=torch.float64)
+    adjacent = torch.nextafter(point, torch.zeros_like(point))
+    scale = 0.85003
+    samples = Samples(torch.empty(2, 0), torch.stack([adjacent, point])[:, None], weights=[scale**2, 1 - scale**2])
+    result = fit(BezierSpace.simplex(0, degree=0), samples, fixed=FixedControls({0: point.reshape(1)}))
+    assert result.success
+    expected = ((point - adjacent) * scale).square().item()
+    assert result.metrics["data_loss"] == pytest.approx(expected)
+
+
+def test_diminishing_smoothness_preserves_adjacent_controls_and_rhs():
+    point = torch.tensor(1e308, dtype=torch.float64)
+    adjacent = torch.nextafter(point, torch.zeros_like(point))
+    values = torch.stack([point, adjacent])[:, None]
+    space = BezierSpace.simplex(1, degree=1)
+    samples = Samples(torch.eye(2), values)
+    fixed = FixedControls({0: values[0], 1: values[1]})
+    penalty = QuadraticPenalty(smoothness=5.026395887680219e-297)
+    expected_row = (point - adjacent) * math.sqrt(penalty.smoothness)
+    result = fit(space, samples, fixed=fixed, penalty=penalty)
+    assert result.success
+    assert result.metrics["smoothness_penalty"] == pytest.approx(expected_row.square().item())
+    problem = LeastSquaresProblem(space, samples, penalty, fixed)
+    assert problem.rhs[len(samples), 0].item() == pytest.approx(-expected_row.item())
+
+
+def test_fixed_control_data_rhs_preserves_a_small_solvable_difference():
+    point = torch.tensor(1e150, dtype=torch.float64)
+    observed = torch.nextafter(point / 2, torch.zeros_like(point))
+    scale = 0.85003
+    samples = Samples([[0.5, 0.5], [1.0, 0.0]], torch.stack([observed, point])[:, None], weights=[scale**2, 1 - scale**2])
+    result = fit(BezierSpace.simplex(1, degree=1), samples, fixed=FixedControls({0: point.reshape(1)}))
+    assert result.success
+    assert result.model.coefficients[1, 0].item() == pytest.approx(2 * (observed - point / 2).item())
+
+
+def test_scaled_difference_fallback_keeps_finite_penalty_gradients():
+    space = BezierSpace.simplex(1, degree=1)
+    problem = LeastSquaresProblem(space, Samples(torch.eye(2), [[0.0], [0.0]]), QuadraticPenalty(smoothness=1e-320), None)
+    coefficients = torch.tensor([[1e308], [-1e308]], dtype=torch.float64, requires_grad=True)
+    problem.full_matmat(coefficients)[2:].square().sum().backward()
+    assert coefficients.grad is not None
+    assert torch.allclose(coefficients.grad[:, 0], torch.tensor([4e-12, -4e-12], dtype=torch.float64), atol=0, rtol=2e-5)
+
+
 @pytest.mark.parametrize("solver", [DenseLeastSquares(), SparseLeastSquares()])
 def test_large_fixed_component_does_not_overflow_a_free_component_rhs(solver):
     if isinstance(solver, SparseLeastSquares):
