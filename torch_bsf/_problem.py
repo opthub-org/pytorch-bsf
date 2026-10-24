@@ -108,9 +108,11 @@ class LeastSquaresProblem:
     def metrics(self, coefficients: torch.Tensor) -> dict[str, float]:
         residual = self.basis.matmat(coefficients) - self.values
         data_loss = (residual.square() * self.scale[:, None].square()).sum().item()
-        ridge = self.penalty.ridge * coefficients.square().sum().item()
+        ridge = self.penalty.ridge * coefficients.square().sum().item() if self.penalty.ridge else 0.0
         smoothness = (
             self.penalty.smoothness * (coefficients[self.edges[:, 0]] - coefficients[self.edges[:, 1]]).square().sum().item()
+            if self.penalty.smoothness
+            else 0.0
         )
         return {
             "data_mse": data_loss / self.values.shape[1],

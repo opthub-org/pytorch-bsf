@@ -45,9 +45,23 @@ def _dense_solve(
     data = diagnostics.data
     if not problem.n_regularizers:
         data = system
-    elif solver.diagnostics == "full":
-        data = _data_info(problem, solver.rcond)
     return solved.solution, replace(diagnostics, data=data, system=system)
+
+
+def _complete_diagnostics(
+    problem: LeastSquaresProblem, solver: LeastSquaresSolver, diagnostics: FitDiagnostics
+) -> tuple[FitDiagnostics, str | None]:
+    if (
+        isinstance(solver, DenseLeastSquares)
+        and solver.diagnostics == "full"
+        and problem.n_regularizers
+        and diagnostics.system.method == "svd"
+    ):
+        try:
+            return replace(diagnostics, data=_data_info(problem, solver.rcond)), None
+        except (torch.linalg.LinAlgError, ArithmeticError) as error:
+            return diagnostics, f"Additional data diagnostics failed: {error}"
+    return diagnostics, None
 
 
 _LSMR_STATUSES = {
@@ -208,6 +222,9 @@ def fit(
             output_statuses=(status,) * outputs,
         )
     coefficients = problem.coefficients(solution)
+    diagnostics, diagnostic_error = _complete_diagnostics(problem, solver, diagnostics)
+    if diagnostic_error is not None:
+        success, status, message = False, "diagnostic_failure", diagnostic_error
     metrics = problem.metrics(coefficients)
     if not all(math.isfinite(value) for value in metrics.values()):
         success, status, message = False, "numerical_failure", "Objective evaluation overflowed."

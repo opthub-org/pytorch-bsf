@@ -21,6 +21,47 @@ def test_dense_driver_is_recorded():
     assert result.diagnostics.output_success == (True,)
 
 
+def test_optional_data_diagnostic_failure_preserves_the_computed_fit():
+    space = BezierSpace.simplex(1, degree=2)
+    samples = Samples(torch.eye(2), [[1.0], [2.0]])
+    penalty = QuadraticPenalty(ridge=0.1)
+    reference = fit(space, samples, penalty=penalty)
+    with (
+        patch("torch.linalg.svdvals", side_effect=torch.linalg.LinAlgError("data SVD failed")),
+        pytest.warns(ConvergenceWarning),
+    ):
+        result = fit(space, samples, penalty=penalty, solver=DenseLeastSquares(diagnostics="full"))
+    assert not result.success and result.status == "diagnostic_failure"
+    assert result.diagnostics.solution_available
+    assert result.diagnostics.output_success == (True,)
+    assert result.diagnostics.data.method == "not_computed"
+    assert result.diagnostics.system.method == "svd"
+    assert torch.equal(result.model.coefficients, reference.model.coefficients)
+    assert result.metrics == reference.metrics
+
+
+def test_disabled_penalties_do_not_overflow_on_exact_large_fixed_values():
+    space = BezierSpace.simplex(1, degree=1)
+    values = torch.tensor([[1e200], [-1e200]], dtype=torch.float64)
+    result = fit(space, Samples(torch.eye(2), values), fixed=FixedControls({0: values[0], 1: values[1]}))
+    assert result.success and result.status == "all_fixed"
+    assert all(value == 0 for value in result.metrics.values())
+
+
+def test_augmented_rhs_overflow_is_reported_before_executing_a_solver():
+    space = BezierSpace.simplex(1, degree=1)
+    with pytest.warns(ConvergenceWarning):
+        result = fit(
+            space,
+            Samples(torch.eye(2), [[0.0], [0.0]]),
+            fixed=FixedControls({0: torch.tensor([1e200], dtype=torch.float64)}),
+            penalty=QuadraticPenalty(ridge=1e300),
+        )
+    assert not result.success and result.status == "numerical_failure"
+    assert not result.diagnostics.solution_available
+    assert result.diagnostics.driver is None
+
+
 @pytest.mark.parametrize("failure", ["decomposition", "nonfinite"])
 def test_dense_numerical_failure_returns_a_failed_result(failure):
     space = BezierSpace.simplex(1, degree=1)
