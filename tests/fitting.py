@@ -62,6 +62,48 @@ def test_augmented_rhs_overflow_is_reported_before_executing_a_solver():
     assert result.diagnostics.driver is None
 
 
+@pytest.mark.parametrize("solver", [DenseLeastSquares(), SparseLeastSquares()])
+def test_zero_weight_observation_does_not_overflow_metrics(solver):
+    if isinstance(solver, SparseLeastSquares):
+        pytest.importorskip("scipy")
+    space = BezierSpace.simplex(0, degree=0)
+    values = torch.tensor([[2.0], [1e200]], dtype=torch.float64)
+    result = fit(space, Samples(torch.empty(2, 0), values, weights=[1.0, 0.0]), solver=solver)
+    assert result.success
+    assert result.model.coefficients.item() == pytest.approx(2.0)
+    assert result.metrics["objective"] == pytest.approx(0.0, abs=1e-24)
+
+
+def test_small_positive_weight_is_applied_before_squaring_residuals():
+    space = BezierSpace.simplex(0, degree=0)
+    values = torch.tensor([[0.0], [1e200]], dtype=torch.float64)
+    result = fit(space, Samples(torch.empty(2, 0), values, weights=[1.0, 1e-200]), fixed=FixedControls({0: [0.0]}))
+    assert result.success
+    assert result.metrics["data_loss"] == pytest.approx(1e200)
+
+
+def test_small_weight_prevents_overflow_in_the_residual_difference():
+    space = BezierSpace.simplex(0, degree=0)
+    values = torch.tensor([[1e308], [-1e308]], dtype=torch.float64)
+    result = fit(space, Samples(torch.empty(2, 0), values, weights=[1.0, 1e-320]), fixed=FixedControls({0: values[0]}))
+    assert result.success
+    assert result.metrics["data_loss"] == pytest.approx(4e296, rel=2e-5)
+
+
+def test_small_positive_penalties_are_applied_before_squaring_controls():
+    space = BezierSpace.simplex(1, degree=1)
+    values = torch.tensor([[1e200], [-1e200]], dtype=torch.float64)
+    result = fit(
+        space,
+        Samples(torch.eye(2), values),
+        fixed=FixedControls({0: values[0], 1: values[1]}),
+        penalty=QuadraticPenalty(ridge=1e-300, smoothness=1e-300),
+    )
+    assert result.success
+    assert result.metrics["ridge_penalty"] == pytest.approx(2e100)
+    assert result.metrics["smoothness_penalty"] == pytest.approx(4e100)
+
+
 @pytest.mark.parametrize("failure", ["decomposition", "nonfinite"])
 def test_dense_numerical_failure_returns_a_failed_result(failure):
     space = BezierSpace.simplex(1, degree=1)
