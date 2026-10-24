@@ -124,6 +124,38 @@ def test_small_positive_penalties_are_applied_before_squaring_controls():
     assert result.metrics["smoothness_penalty"] == pytest.approx(4e100)
 
 
+def test_large_equal_fixed_controls_have_zero_smoothness_penalty():
+    space = BezierSpace.simplex(1, degree=1)
+    values = torch.full((2, 1), 1e308, dtype=torch.float64)
+    result = fit(
+        space,
+        Samples(torch.eye(2), values),
+        fixed=FixedControls({0: values[0], 1: values[1]}),
+        penalty=QuadraticPenalty(smoothness=4.0),
+    )
+    assert result.success and result.status == "all_fixed"
+    assert result.diagnostics.solution_available
+    assert all(value == 0 for value in result.metrics.values())
+
+
+@pytest.mark.parametrize("solver", [DenseLeastSquares(), SparseLeastSquares()])
+def test_large_fixed_component_does_not_overflow_a_free_component_rhs(solver):
+    if isinstance(solver, SparseLeastSquares):
+        pytest.importorskip("scipy")
+    domain = SimploidalSet()
+    a, b = domain.add_simplex(1), domain.add_simplex(1)
+    space = BezierSpace.on_set(domain, degree=1)
+    samples = Samples.from_cells(
+        space, [(a, torch.eye(2), torch.full((2, 1), 1e308, dtype=torch.float64)), (b, torch.eye(2), [[1.0], [2.0]])]
+    )
+    large = torch.tensor([1e308], dtype=torch.float64)
+    fixed = FixedControls.from_cells(space, [(a, (1, 0), large), (a, (0, 1), large)])
+    result = fit(space, samples, fixed=fixed, penalty=QuadraticPenalty(smoothness=4.0), solver=solver)
+    assert result.success
+    assert torch.isfinite(result.model.coefficients).all()
+    assert all(math.isfinite(value) for value in result.metrics.values())
+
+
 @pytest.mark.parametrize("failure", ["decomposition", "nonfinite"])
 def test_dense_numerical_failure_returns_a_failed_result(failure):
     space = BezierSpace.simplex(1, degree=1)

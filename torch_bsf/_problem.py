@@ -22,6 +22,14 @@ def scipy_sparse() -> Any:
     return sparse
 
 
+def _scaled_differences(coefficients: torch.Tensor, edges: torch.Tensor, scale: float) -> torch.Tensor:
+    """Avoid overflowing either large common offsets or unscaled differences."""
+    left, right = coefficients[edges[:, 0]], coefficients[edges[:, 1]]
+    if scale < 1:
+        return left * scale - right * scale
+    return (left - right) * scale
+
+
 class LeastSquaresProblem:
     """Linear operator for normalized observations and the exact penalty rows."""
 
@@ -68,9 +76,12 @@ class LeastSquaresProblem:
 
     def full_matmat(self, coefficients: torch.Tensor) -> torch.Tensor:
         data = self.basis.matmat(coefficients) * self.scale[:, None]
-        reg = coefficients.new_zeros(self.n_regularizers, coefficients.shape[1])
-        reg = reg.index_add(0, self.reg_rows, self.reg_values[:, None] * coefficients[self.reg_columns])
-        return torch.cat([data, reg])
+        blocks = [data]
+        if self.penalty.smoothness:
+            blocks.append(_scaled_differences(coefficients, self.edges, self.penalty.smoothness**0.5))
+        if self.penalty.ridge:
+            blocks.append(coefficients * self.penalty.ridge**0.5)
+        return torch.cat(blocks)
 
     def matmat(self, free_coefficients: torch.Tensor) -> torch.Tensor:
         full = free_coefficients.new_zeros(self.space.n_controls, free_coefficients.shape[1])
@@ -113,8 +124,7 @@ class LeastSquaresProblem:
         ridge = (coefficients * self.penalty.ridge**0.5).square().sum().item() if self.penalty.ridge else 0.0
         smoothness = 0.0
         if self.penalty.smoothness:
-            scaled = coefficients * self.penalty.smoothness**0.5
-            smoothness = (scaled[self.edges[:, 0]] - scaled[self.edges[:, 1]]).square().sum().item()
+            smoothness = _scaled_differences(coefficients, self.edges, self.penalty.smoothness**0.5).square().sum().item()
         return {
             "data_mse": data_loss / self.values.shape[1],
             "data_loss": data_loss,
