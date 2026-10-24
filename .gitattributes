@@ -3,3 +3,7 @@
 *.png filter=lfs diff=lfs merge=lfs -text
 *.jpg filter=lfs diff=lfs merge=lfs -text
 *.jpeg filter=lfs diff=lfs merge=lfs -text
+
+# sphinx-multiversion exports sources with git archive, without LFS smudging.
+# Keep the small, reproducible guide figures available in those archives.
+docs/_static/guides/*.png -filter -diff -merge -text
