@@ -43,6 +43,19 @@ status; there is no initial guess for this linear least-squares operation.
    :members:
    :show-inheritance:
 
+point_cloud
+-----------
+
+``fit_point_cloud`` fits observations whose parameter coordinates are
+unknown, alternating inferred coordinates and controls. ``fit_skeleton``
+fits faces inductively while preserving their boundaries. These nonlinear
+methods return explicit local convergence states. See
+:doc:`advanced/point_cloud` for assumptions, initialization and examples.
+
+.. automodule:: torch_bsf.point_cloud
+   :members:
+   :show-inheritance:
+
 results
 -------
 

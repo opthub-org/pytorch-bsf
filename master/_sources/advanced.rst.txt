@@ -86,6 +86,7 @@ Guide chapters
    :maxdepth: 1
 
    advanced/normalization
+   advanced/point_cloud
    advanced/sklearn
    advanced/initialization
    advanced/visualization
