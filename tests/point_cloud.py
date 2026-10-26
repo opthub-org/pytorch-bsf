@@ -1,5 +1,6 @@
 """Value-only fitting: geometric recovery, constraints and stopping evidence."""
 
+from dataclasses import replace
 from itertools import combinations
 
 import pytest
@@ -10,6 +11,8 @@ from torch_bsf import (
     BezierSpace,
     ConvergenceWarning,
     FixedControls,
+    Samples,
+    fit,
     fit_point_cloud,
     fit_skeleton,
 )
@@ -220,3 +223,75 @@ def test_skeleton_arbitrary_embedding_with_supplied_faces():
     initial = BezierModel(space, y[[0, -1]])
     result = fit_skeleton(space, y, initial=initial, face_values={(0,): y[:1], (1,): y[-1:]}).require_success()
     torch.testing.assert_close(result.model.coefficients, y[[0, -1]])
+
+
+def test_invalid_space_initial_and_constraint_types():
+    space = BezierSpace.simplex(1, degree=2)
+    with pytest.raises(TypeError, match="BezierSpace"):
+        fit_point_cloud(None, curve())  # type: ignore[arg-type]
+    with pytest.raises(TypeError, match="FixedControls"):
+        fit_point_cloud(space, curve(), fixed={})  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="initial"):
+        fit_point_cloud(space, curve(), initial=BezierModel(space, torch.zeros(3, 3)))
+
+
+def test_skeleton_constant_and_embedding_validation():
+    result = fit_skeleton(BezierSpace.simplex(0, degree=0), [[1.0, 2.0], [3.0, 4.0]]).require_success()
+    torch.testing.assert_close(result.model.coefficients, torch.tensor([[2.0, 3.0]], dtype=torch.float64))
+    space = BezierSpace.simplex(1, degree=1)
+    initial = BezierModel(space, torch.zeros(2, 3))
+    with pytest.raises(ValueError, match="face_values"):
+        fit_skeleton(space, torch.zeros(3, 3), initial=initial)
+    with pytest.raises(ValueError, match="full observed output"):
+        fit_skeleton(space, curve(), face_values={(0,): [[0.0]], (1,): [[1.0]]})
+
+
+def test_parameter_iteration_exhaustion_preserves_descent():
+    space = BezierSpace.simplex(1, degree=2)
+    model = BezierModel(space, torch.tensor([[0.0, 1.0], [0.0, 0.0], [1.0, 0.0]], dtype=torch.float64))
+    y = curve()
+    start = torch.full((len(y), 2), 0.5, dtype=torch.float64)
+    t, converged = _parameters(model, y, start, 1, 1e-12)
+    assert not converged
+    assert ((model(t) - y).square().sum(1) <= (model(start) - y).square().sum(1)).all()
+    torch.testing.assert_close(t.sum(1), torch.ones(len(y), dtype=torch.float64))
+
+
+def test_derivative_overflow_preserves_initial_model():
+    space = BezierSpace.simplex(1, degree=1)
+    initial = BezierModel(space, torch.tensor([[1e200, 0.0], [-1e200, 0.0]], dtype=torch.float64))
+    with pytest.warns(ConvergenceWarning, match="derivatives"):
+        result = fit_point_cloud(space, [[0.0, 0.0]], initial=initial)
+    assert not result.success
+    assert result.status == "numerical_failure"
+    assert result.control_result is None
+    torch.testing.assert_close(result.model.coefficients, initial.coefficients)
+
+
+def test_control_solver_failure_retains_last_surface(monkeypatch):
+    def failed_solve(*args, **kwargs):
+        raise torch.linalg.LinAlgError("injected SVD failure")
+
+    monkeypatch.setattr(torch.linalg, "lstsq", failed_solve)
+    with pytest.warns(ConvergenceWarning, match="SVD failure"):
+        result = fit_point_cloud(BezierSpace.simplex(1, degree=2), curve())
+    assert not result.success
+    assert result.status == "control_failure"
+    assert result.control_result is not None and not result.control_result.success
+    assert torch.isfinite(result.model.coefficients).all()
+    assert result.n_iterations == 0
+
+
+def test_overflow_after_control_update_rejects_candidate(monkeypatch):
+    space = BezierSpace.simplex(1, degree=1)
+    initial = BezierModel(space, torch.eye(2, dtype=torch.float64))
+    # A finite candidate may still have a non-finite squared-distance metric.
+    solved = fit(space, Samples(torch.eye(2, dtype=torch.float64), torch.eye(2, dtype=torch.float64)))
+    candidate = BezierModel(space, torch.full((2, 2), 1e200, dtype=torch.float64))
+    monkeypatch.setattr("torch_bsf.point_cloud.fit", lambda *args, **kwargs: replace(solved, model=candidate))
+    with pytest.warns(ConvergenceWarning, match="objective overflowed"):
+        result = fit_point_cloud(space, torch.eye(2, dtype=torch.float64), initial=initial)
+    assert result.status == "numerical_failure"
+    assert not result.success
+    torch.testing.assert_close(result.model.coefficients, initial.coefficients)
+    assert len(result.objective_history) == 1
