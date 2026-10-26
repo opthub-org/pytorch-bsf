@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.21.0](https://github.com/opthub-org/pytorch-bsf/compare/v0.20.0...v0.21.0) (2026-10-26)
+
+
+### ⚠ BREAKING CHANGES
+
+* **fitting:** numerical failures return unsuccessful FitResult values with ConvergenceWarning. Call require_success() for an exception retaining the result.
+* **api:** remove legacy public models, fitting entry points, CLI flags, sampling and persistence aliases. Regression returns FitResult and solves the normalized original-unit objective in CPU float64. See docs/migration.rst.
+
+### Features
+
+* add value-only Bezier simplex fitting ([#422](https://github.com/opthub-org/pytorch-bsf/issues/422)) ([90c0f45](https://github.com/opthub-org/pytorch-bsf/commit/90c0f45d2d5250c969c390aa3edee8bad9f33446))
+* **fitting:** complete dense and sparse numerical contracts ([e12a67c](https://github.com/opthub-org/pytorch-bsf/commit/e12a67c469c3cc285b208b492f6e5afc6104a021))
+
+
+### Bug Fixes
+
+* **cli:** isolate optional MLflow import failures ([#414](https://github.com/opthub-org/pytorch-bsf/issues/414)) ([23dbe03](https://github.com/opthub-org/pytorch-bsf/commit/23dbe03ac3202a04afd1b85c8c84c3dc3fd2d494))
+* **sklearn:** import torch_bsf.sklearn without scikit-learn ([#412](https://github.com/opthub-org/pytorch-bsf/issues/412)) ([71fc7eb](https://github.com/opthub-org/pytorch-bsf/commit/71fc7eb7ac93794e6a0b1af2e3b88dfc35300d16))
+
+
+### Documentation
+
+* expand guides and explain simploid geometry ([#421](https://github.com/opthub-org/pytorch-bsf/issues/421)) ([eea187e](https://github.com/opthub-org/pytorch-bsf/commit/eea187e3e6b54ef9b5d8250d1a84c69357576912))
+* restore detailed guides for the unified API ([#420](https://github.com/opthub-org/pytorch-bsf/issues/420)) ([3eef67d](https://github.com/opthub-org/pytorch-bsf/commit/3eef67d6fa3b271aabdf39ce4b1b098e28105f92))
+
+
+### Code Refactoring
+
+* **api:** unify spaces, models and numerical results ([#418](https://github.com/opthub-org/pytorch-bsf/issues/418)) ([cc6ec20](https://github.com/opthub-org/pytorch-bsf/commit/cc6ec20fd161a4587c36955f00ce720cd80217f6))
+
 ## [0.20.0](https://github.com/opthub-org/pytorch-bsf/compare/v0.19.0...v0.20.0) (2026-10-22)
 
 
