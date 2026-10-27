@@ -40,6 +40,11 @@ introduction in :doc:`advanced/simploidal`. The mathematical continuation
 in :doc:`advanced/simploidal_category` uses the category-theory background
 of :cite:t:`maclane1998categories,maclane1992sheaves`.
 
+Shape-preserving interpolation on simplicial meshes
+(:doc:`advanced/interpolation`) generalizes the monotone piecewise cubic
+interpolation of :cite:t:`fritsch1980monotone`. Its face controls use the
+degree elevation of Bézier triangles described by :cite:t:`farin2002curves`.
+
 Application sources and reproducible examples
 ---------------------------------------------
 

@@ -78,6 +78,13 @@
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.geometry.SimploidalSet"><code class="docutils literal notranslate"><span class="pre">SimploidalSet</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#interpolation">interpolation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#torch_bsf.interpolation.SimplicialMesh"><code class="docutils literal notranslate"><span class="pre">SimplicialMesh</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#torch_bsf.interpolation.estimate_gradients"><code class="docutils literal notranslate"><span class="pre">estimate_gradients()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#torch_bsf.interpolation.hermite_interpolant"><code class="docutils literal notranslate"><span class="pre">hermite_interpolant()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#torch_bsf.interpolation.refinement_indicator"><code class="docutils literal notranslate"><span class="pre">refinement_indicator()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#fitting">fitting</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#torch_bsf.fitting.fit"><code class="docutils literal notranslate"><span class="pre">fit()</span></code></a></li>
 </ul>
@@ -585,7 +592,7 @@ degenerate simploids are the same object.</p>
 <dt class="sig sig-object py" id="torch_bsf.geometry.SimploidalSet">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torch_bsf.geometry.</span></span><span class="sig-name descname"><span class="pre">SimploidalSet</span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/geometry.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.geometry.SimploidalSet" title="Link to this definition"></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>A simploidal set <span class="bibtex-citation" id="id1">[<a class="reference internal" href="references.html#id39" title="Samuel Peltier and Pascal Lienhardt. Simploidal sets: a data structure for handling simploidal bézier spaces. Computer Aided Geometric Design, 62:44–62, 2018. URL: https://doi.org/10.1016/j.cagd.2018.03.010.">PL18</a>]</span>.</p>
+<p>A simploidal set <span class="bibtex-citation" id="id1">[<a class="reference internal" href="references.html#id41" title="Samuel Peltier and Pascal Lienhardt. Simploidal sets: a data structure for handling simploidal bézier spaces. Computer Aided Geometric Design, 62:44–62, 2018. URL: https://doi.org/10.1016/j.cagd.2018.03.010.">PL18</a>]</span>.</p>
 <p>A simploidal set is a set of simploids equipped with face and degeneracy
 operators satisfying the commutation relations of Definition 1 of the
 paper.  Only non-degenerate simploids are stored; degenerate simploids are
@@ -711,7 +718,7 @@ torsion, e.g., for non-orientable spaces.</p>
 <dt class="sig sig-object py" id="torch_bsf.geometry.SimploidalSet.boundary_matrix">
 <span class="sig-name descname"><span class="pre">boundary_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.14)"><span class="pre">Tensor</span></a></span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/_kernels/sets.py#L601-L659"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.geometry.SimploidalSet.boundary_matrix" title="Link to this definition"></a></dt>
 <dd><p>The matrix of the boundary operator <span class="math notranslate nohighlight">\(\partial_{\mathrm{dim}}\)</span> of the normalized chain complex.</p>
-<p>Following Section 4.4 of <span class="bibtex-citation" id="id2">Peltier and Lienhardt [<a class="reference internal" href="references.html#id39" title="Samuel Peltier and Pascal Lienhardt. Simploidal sets: a data structure for handling simploidal bézier spaces. Computer Aided Geometric Design, 62:44–62, 2018. URL: https://doi.org/10.1016/j.cagd.2018.03.010.">PL18</a>]</span>, the chain
+<p>Following Section 4.4 of <span class="bibtex-citation" id="id2">Peltier and Lienhardt [<a class="reference internal" href="references.html#id41" title="Samuel Peltier and Pascal Lienhardt. Simploidal sets: a data structure for handling simploidal bézier spaces. Computer Aided Geometric Design, 62:44–62, 2018. URL: https://doi.org/10.1016/j.cagd.2018.03.010.">PL18</a>]</span>, the chain
 group <span class="math notranslate nohighlight">\(C_k\)</span> is spanned by the non-degenerate simploids of
 dimension <span class="math notranslate nohighlight">\(k\)</span>, and the boundary of a simploid <span class="math notranslate nohighlight">\(\sigma\)</span> of
 type <span class="math notranslate nohighlight">\((a_1, \ldots, a_n)\)</span> is</p>
@@ -924,6 +931,275 @@ returned simploid and the faces of the surviving simploids instead.</p>
 <dd><p>The non-degenerate simploids, optionally only those of a given dimension.</p>
 </dd></dl>
 
+</dd></dl>
+
+</section>
+<section id="interpolation">
+<h2>interpolation<a class="headerlink" href="#interpolation" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">SimplicialMesh</span></code> compiles user-supplied simplices into a cubic
+<code class="docutils literal notranslate"><span class="pre">BezierSpace</span></code> whose shared faces share controls, and locates points in it.
+<code class="docutils literal notranslate"><span class="pre">hermite_interpolant</span></code> returns a continuous piecewise cubic <code class="docutils literal notranslate"><span class="pre">BezierModel</span></code>
+through vertex data that, when clamped, stays within the data range of each
+simplex. See <a class="reference internal" href="advanced/interpolation.html"><span class="doc">Shape-preserving interpolation on simplicial meshes</span></a> for the construction and its
+error bound.</p>
+<p id="module-torch_bsf.interpolation">Shape-preserving cubic Bézier interpolation on simplicial complexes (“simplicial PCHIP”).</p>
+<p>A <a class="reference internal" href="#torch_bsf.interpolation.SimplicialMesh" title="torch_bsf.interpolation.SimplicialMesh"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimplicialMesh</span></code></a> glues user-supplied simplices of <span class="math notranslate nohighlight">\(\mathbb{R}^d\)</span> into one
+<a class="reference internal" href="#torch_bsf.core.BezierSpace" title="torch_bsf.core.BezierSpace"><code class="xref py py-class docutils literal notranslate"><span class="pre">BezierSpace</span></code></a>, so that simplices sharing a face share the controls on it.
+<a class="reference internal" href="#torch_bsf.interpolation.hermite_interpolant" title="torch_bsf.interpolation.hermite_interpolant"><code class="xref py py-func docutils literal notranslate"><span class="pre">hermite_interpolant()</span></code></a> fills that space with a cubic Bézier model that interpolates vertex data:</p>
+<ul class="simple">
+<li><p>a vertex control is the datum <span class="math notranslate nohighlight">\(f_i\)</span>;</p></li>
+<li><p>the control on edge <span class="math notranslate nohighlight">\(i \to j\)</span> next to vertex <span class="math notranslate nohighlight">\(i\)</span> is <span class="math notranslate nohighlight">\(f_i + g_i \cdot (x_j - x_i) / 3\)</span>,
+with a vertex gradient <span class="math notranslate nohighlight">\(g_i\)</span>;</p></li>
+<li><p>the control at the centre of face <span class="math notranslate nohighlight">\((i, j, l)\)</span> is the sum of the six edge controls of the face
+divided by four, minus <span class="math notranslate nohighlight">\((f_i + f_j + f_l) / 6\)</span>, which reproduces quadratic data exactly.</p></li>
+</ul>
+<p>Every control depends only on the data of the edge or face it lies on, so the interpolant is
+continuous across shared faces. With <code class="docutils literal notranslate"><span class="pre">clamp=True</span></code> every edge (face) control is clipped into the
+range of the data at the vertices of that edge (face). By the convex-hull property, the prediction
+on each simplex then stays within the range of its vertex data, which bounds the sup error by the
+modulus of continuity of the data at the mesh size. In one dimension this is the range limiter of
+piecewise cubic Hermite interpolation (PCHIP) <span class="bibtex-citation" id="id3">[<a class="reference internal" href="references.html#id47" title="Frederick N. Fritsch and Ralph E. Carlson. Monotone piecewise cubic interpolation. SIAM Journal on Numerical Analysis, 17(2):238–246, 1980.">FC80</a>]</span>.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="torch_bsf.interpolation.SimplicialMesh">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torch_bsf.interpolation.</span></span><span class="sig-name descname"><span class="pre">SimplicialMesh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vertices</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><span class="pre">Any</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">simplices</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/interpolation.py#L64-L235"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.interpolation.SimplicialMesh" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#object" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A conforming simplicial complex in <span class="math notranslate nohighlight">\(\mathbb{R}^d\)</span> compiled into a cubic <a class="reference internal" href="#torch_bsf.core.BezierSpace" title="torch_bsf.core.BezierSpace"><code class="xref py py-class docutils literal notranslate"><span class="pre">BezierSpace</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vertices</strong> – Vertex coordinates of shape <code class="docutils literal notranslate"><span class="pre">(n_vertices,</span> <span class="pre">d)</span></code>, <code class="docutils literal notranslate"><span class="pre">d</span> <span class="pre">&gt;=</span> <span class="pre">1</span></code>.</p></li>
+<li><p><strong>simplices</strong> – Vertex numbers of shape <code class="docutils literal notranslate"><span class="pre">(n_simplices,</span> <span class="pre">d</span> <span class="pre">+</span> <span class="pre">1)</span></code>. The simplices must be non-degenerate and meet
+face to face (as in a Delaunay triangulation); the mesh is not generated here.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="torch_bsf.interpolation.SimplicialMesh.vertices">
+<span class="sig-name descname"><span class="pre">vertices</span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/interpolation.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.interpolation.SimplicialMesh.vertices" title="Link to this definition"></a></dt>
+<dd><p>Float64 copy of the vertex coordinates.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="torch_bsf.interpolation.SimplicialMesh.simplices">
+<span class="sig-name descname"><span class="pre">simplices</span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/interpolation.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.interpolation.SimplicialMesh.simplices" title="Link to this definition"></a></dt>
+<dd><p>Each simplex with its vertex numbers sorted in ascending order. The barycentric coordinates of
+cell <code class="docutils literal notranslate"><span class="pre">k</span></code> (as returned by <a class="reference internal" href="#torch_bsf.interpolation.SimplicialMesh.locate" title="torch_bsf.interpolation.SimplicialMesh.locate"><code class="xref py py-meth docutils literal notranslate"><span class="pre">locate()</span></code></a>) refer to the vertices <code class="docutils literal notranslate"><span class="pre">simplices[k]</span></code> in this order.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="torch_bsf.interpolation.SimplicialMesh.space">
+<span class="sig-name descname"><span class="pre">space</span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/interpolation.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.interpolation.SimplicialMesh.space" title="Link to this definition"></a></dt>
+<dd><p>The compiled degree-3 space, in which simplices sharing a face share the controls on it.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="torch_bsf.interpolation.SimplicialMesh.cell_ids">
+<span class="sig-name descname"><span class="pre">cell_ids</span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/interpolation.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.interpolation.SimplicialMesh.cell_ids" title="Link to this definition"></a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">cell_ids[k]</span></code> is the cell ID of simplex <code class="docutils literal notranslate"><span class="pre">k</span></code> in <a class="reference internal" href="#torch_bsf.interpolation.SimplicialMesh.space" title="torch_bsf.interpolation.SimplicialMesh.space"><code class="xref py py-attr docutils literal notranslate"><span class="pre">space</span></code></a>.</p>
+</dd></dl>
+
+<p class="rubric">Examples</p>
+<p>Two triangles sharing the diagonal of the unit square:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.interpolation</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimplicialMesh</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mesh</span> <span class="o">=</span> <span class="n">SimplicialMesh</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]],</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mesh</span><span class="o">.</span><span class="n">simplices</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+<span class="go">[[0, 1, 2], [1, 2, 3]]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">points</span> <span class="o">=</span> <span class="n">mesh</span><span class="o">.</span><span class="n">locate</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">]]))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">points</span><span class="o">.</span><span class="n">cell_ids</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="o">==</span> <span class="n">mesh</span><span class="o">.</span><span class="n">cell_ids</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">points</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+<span class="go">[0.5, 0.25, 0.25]</span>
+</pre></div>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="torch_bsf.interpolation.SimplicialMesh.barycentric">
+<span class="sig-name descname"><span class="pre">barycentric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.14)"><span class="pre">Tensor</span></a></span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/interpolation.py#L165-L182"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.interpolation.SimplicialMesh.barycentric" title="Link to this definition"></a></dt>
+<dd><p>Barycentric coordinates of points with respect to every simplex.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> – Points of shape <code class="docutils literal notranslate"><span class="pre">(n_points,</span> <span class="pre">d)</span></code>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Coordinates of shape <code class="docutils literal notranslate"><span class="pre">(n_points,</span> <span class="pre">n_simplices,</span> <span class="pre">d</span> <span class="pre">+</span> <span class="pre">1)</span></code>, in the vertex order of <a class="reference internal" href="#torch_bsf.interpolation.SimplicialMesh.simplices" title="torch_bsf.interpolation.SimplicialMesh.simplices"><code class="xref py py-attr docutils literal notranslate"><span class="pre">simplices</span></code></a>.
+They sum to one and are all nonnegative exactly when the point lies in the simplex.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.14)">torch.Tensor</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="torch_bsf.interpolation.SimplicialMesh.dimension">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dimension</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></em><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/interpolation.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.interpolation.SimplicialMesh.dimension" title="Link to this definition"></a></dt>
+<dd><p>Dimension <code class="docutils literal notranslate"><span class="pre">d</span></code> of the ambient space and of every simplex.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="torch_bsf.interpolation.SimplicialMesh.locate">
+<span class="sig-name descname"><span class="pre">locate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><span class="pre">Any</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.15)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1e-08</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1024</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#torch_bsf.core.Points" title="torch_bsf.core.Points"><span class="pre">Points</span></a></span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/interpolation.py#L184-L221"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.interpolation.SimplicialMesh.locate" title="Link to this definition"></a></dt>
+<dd><p>Find the simplex containing each point and its barycentric coordinates there.</p>
+<p>Every simplex is tested (brute force). A point on a shared face is assigned to one of the simplices
+containing it; the prediction does not depend on that choice because the interpolant is continuous.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – Points of shape <code class="docutils literal notranslate"><span class="pre">(n_points,</span> <span class="pre">d)</span></code>.</p></li>
+<li><p><strong>tol</strong> – Points whose barycentric coordinates are at least <code class="docutils literal notranslate"><span class="pre">-tol</span></code> in some simplex are accepted. Their
+coordinates are clipped to be nonnegative and renormalized, which moves points just outside the
+mesh onto its boundary.</p></li>
+<li><p><strong>batch_size</strong> – Number of points tested at a time, which bounds the memory to <code class="docutils literal notranslate"><span class="pre">batch_size</span> <span class="pre">*</span> <span class="pre">n_simplices</span> <span class="pre">*</span> <span class="pre">(d</span> <span class="pre">+</span> <span class="pre">1)</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Barycentric coordinates and cell IDs in <a class="reference internal" href="#torch_bsf.interpolation.SimplicialMesh.space" title="torch_bsf.interpolation.SimplicialMesh.space"><code class="xref py py-attr docutils literal notranslate"><span class="pre">space</span></code></a>, in the order of <code class="docutils literal notranslate"><span class="pre">x</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#torch_bsf.core.Points" title="torch_bsf.core.Points">Points</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.15)"><strong>ValueError</strong></a> – If a point lies outside the mesh by more than <code class="docutils literal notranslate"><span class="pre">tol</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="torch_bsf.interpolation.SimplicialMesh.n_simplices">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">n_simplices</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></em><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/interpolation.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.interpolation.SimplicialMesh.n_simplices" title="Link to this definition"></a></dt>
+<dd><p>Number of simplices.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="torch_bsf.interpolation.SimplicialMesh.n_vertices">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">n_vertices</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></em><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/interpolation.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.interpolation.SimplicialMesh.n_vertices" title="Link to this definition"></a></dt>
+<dd><p>Number of vertices.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="torch_bsf.interpolation.SimplicialMesh.neighbors">
+<span class="sig-name descname"><span class="pre">neighbors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.15)"><span class="pre">list</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/interpolation.py#L156-L163"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.interpolation.SimplicialMesh.neighbors" title="Link to this definition"></a></dt>
+<dd><p>The vertices sharing an edge with each vertex (its one-ring), in ascending order.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="torch_bsf.interpolation.SimplicialMesh.volumes">
+<span class="sig-name descname"><span class="pre">volumes</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.14)"><span class="pre">Tensor</span></a></span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/interpolation.py#L152-L154"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.interpolation.SimplicialMesh.volumes" title="Link to this definition"></a></dt>
+<dd><p>Volumes of the simplices, of shape <code class="docutils literal notranslate"><span class="pre">(n_simplices,)</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="torch_bsf.interpolation.estimate_gradients">
+<span class="sig-prename descclassname"><span class="pre">torch_bsf.interpolation.</span></span><span class="sig-name descname"><span class="pre">estimate_gradients</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mesh</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.interpolation.SimplicialMesh" title="torch_bsf.interpolation.SimplicialMesh"><span class="pre">SimplicialMesh</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><span class="pre">Any</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.14)"><span class="pre">Tensor</span></a></span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/interpolation.py#L262-L303"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.interpolation.estimate_gradients" title="Link to this definition"></a></dt>
+<dd><p>Estimate the gradient of vertex data at every vertex from its mesh neighbours.</p>
+<p>At each vertex, a quadratic polynomial is fitted by least squares with weights
+<span class="math notranslate nohighlight">\(1 / |x_w - x_v|^2\)</span> to the data on the smallest <span class="math notranslate nohighlight">\(k\)</span>-ring neighbourhood
+(<span class="math notranslate nohighlight">\(2 \le k \le\)</span> <code class="docutils literal notranslate"><span class="pre">max_rings</span></code>) that contains at least two more points than the quadratic has
+unknowns. If no such neighbourhood exists, a linear polynomial is fitted on the one-ring instead.
+The quadratic fit reproduces the gradient of quadratic data exactly, and either fit reproduces that
+of linear data. Vertices that belong to no simplex get a zero gradient.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mesh</strong> – The mesh.</p></li>
+<li><p><strong>values</strong> – Vertex data of shape <code class="docutils literal notranslate"><span class="pre">(n_vertices,</span> <span class="pre">n_outputs)</span></code> or <code class="docutils literal notranslate"><span class="pre">(n_vertices,)</span></code>.</p></li>
+<li><p><strong>max_rings</strong> – The largest neighbourhood to try.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Float64 gradients of shape <code class="docutils literal notranslate"><span class="pre">(n_vertices,</span> <span class="pre">d,</span> <span class="pre">n_outputs)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.14)">torch.Tensor</a></p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.interpolation</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimplicialMesh</span><span class="p">,</span> <span class="n">estimate_gradients</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mesh</span> <span class="o">=</span> <span class="n">SimplicialMesh</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[[</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span> <span class="o">=</span> <span class="n">estimate_gradients</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">square</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">g</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">x</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">double</span><span class="p">())</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="torch_bsf.interpolation.hermite_interpolant">
+<span class="sig-prename descclassname"><span class="pre">torch_bsf.interpolation.</span></span><span class="sig-name descname"><span class="pre">hermite_interpolant</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mesh</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.interpolation.SimplicialMesh" title="torch_bsf.interpolation.SimplicialMesh"><span class="pre">SimplicialMesh</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><span class="pre">Any</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">gradients</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><span class="pre">Any</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clamp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#torch_bsf.core.BezierModel" title="torch_bsf.core.BezierModel"><span class="pre">BezierModel</span></a></span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/interpolation.py#L334-L386"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.interpolation.hermite_interpolant" title="Link to this definition"></a></dt>
+<dd><p>Interpolate vertex data by a continuous piecewise cubic Bézier model on a simplicial mesh.</p>
+<p>The model reproduces the data at the vertices. Without clamping, it reproduces quadratic data
+exactly when the gradients do (for example, with enough neighbours for <a class="reference internal" href="#torch_bsf.interpolation.estimate_gradients" title="torch_bsf.interpolation.estimate_gradients"><code class="xref py py-func docutils literal notranslate"><span class="pre">estimate_gradients()</span></code></a>).
+With <code class="docutils literal notranslate"><span class="pre">clamp=True</span></code>, on every simplex and for every output, the prediction lies between the smallest
+and largest data at the vertices of that simplex; in one dimension, monotone data then give a
+monotone interpolant.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mesh</strong> – The mesh.</p></li>
+<li><p><strong>values</strong> – Vertex data of shape <code class="docutils literal notranslate"><span class="pre">(n_vertices,</span> <span class="pre">n_outputs)</span></code> or <code class="docutils literal notranslate"><span class="pre">(n_vertices,)</span></code>.</p></li>
+<li><p><strong>gradients</strong> – Vertex gradients of shape <code class="docutils literal notranslate"><span class="pre">(n_vertices,</span> <span class="pre">d,</span> <span class="pre">n_outputs)</span></code>. Estimated with
+<a class="reference internal" href="#torch_bsf.interpolation.estimate_gradients" title="torch_bsf.interpolation.estimate_gradients"><code class="xref py py-func docutils literal notranslate"><span class="pre">estimate_gradients()</span></code></a> if <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><strong>clamp</strong> – Whether to clip edge and face controls into the range of their vertex data (shape preservation).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A float64 model on <code class="docutils literal notranslate"><span class="pre">mesh.space</span></code>. Evaluate it at <code class="docutils literal notranslate"><span class="pre">mesh.locate(x)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#torch_bsf.core.BezierModel" title="torch_bsf.core.BezierModel">BezierModel</a></p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.interpolation</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimplicialMesh</span><span class="p">,</span> <span class="n">hermite_interpolant</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">2.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">3.0</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mesh</span> <span class="o">=</span> <span class="n">SimplicialMesh</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">hermite_interpolant</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">mesh</span><span class="o">.</span><span class="n">locate</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">31</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">bool</span><span class="p">((</span><span class="n">y</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="ow">and</span> <span class="n">y</span><span class="o">.</span><span class="n">min</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">y</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="torch_bsf.interpolation.refinement_indicator">
+<span class="sig-prename descclassname"><span class="pre">torch_bsf.interpolation.</span></span><span class="sig-name descname"><span class="pre">refinement_indicator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mesh</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#torch_bsf.interpolation.SimplicialMesh" title="torch_bsf.interpolation.SimplicialMesh"><span class="pre">SimplicialMesh</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">values</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><span class="pre">Any</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">gradients</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.15)"><span class="pre">Any</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clamp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.14)"><span class="pre">Tensor</span></a></span></span><a class="reference external" href="https://github.com/opthub-org/pytorch-bsf/blob/master/torch_bsf/interpolation.py#L389-L430"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torch_bsf.interpolation.refinement_indicator" title="Link to this definition"></a></dt>
+<dd><p>Score simplices for refinement by the cubic correction to linear interpolation.</p>
+<p>The score of a simplex is its volume times the mean over outputs of the absolute difference between
+<a class="reference internal" href="#torch_bsf.interpolation.hermite_interpolant" title="torch_bsf.interpolation.hermite_interpolant"><code class="xref py py-func docutils literal notranslate"><span class="pre">hermite_interpolant()</span></code></a> and linear interpolation at its centroid. It is large where the data bend
+within a large simplex. Refine the highest-scoring simplices first, for example by evaluating the
+response at the midpoint of their longest edge and remeshing (<code class="docutils literal notranslate"><span class="pre">LongestEdge</span></code> in
+<a class="reference internal" href="#module-torch_bsf.splitting" title="torch_bsf.splitting"><code class="xref py py-mod docutils literal notranslate"><span class="pre">torch_bsf.splitting</span></code></a> selects that edge on a single cell).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mesh</strong> – The mesh.</p></li>
+<li><p><strong>values</strong> – Vertex data of shape <code class="docutils literal notranslate"><span class="pre">(n_vertices,</span> <span class="pre">n_outputs)</span></code> or <code class="docutils literal notranslate"><span class="pre">(n_vertices,)</span></code>.</p></li>
+<li><p><strong>gradients</strong> – Vertex gradients, as in <a class="reference internal" href="#torch_bsf.interpolation.hermite_interpolant" title="torch_bsf.interpolation.hermite_interpolant"><code class="xref py py-func docutils literal notranslate"><span class="pre">hermite_interpolant()</span></code></a>.</p></li>
+<li><p><strong>clamp</strong> – Whether the cubic interpolant is clamped, as in <a class="reference internal" href="#torch_bsf.interpolation.hermite_interpolant" title="torch_bsf.interpolation.hermite_interpolant"><code class="xref py py-func docutils literal notranslate"><span class="pre">hermite_interpolant()</span></code></a>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Nonnegative float64 scores of shape <code class="docutils literal notranslate"><span class="pre">(n_simplices,)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.14)">torch.Tensor</a></p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.interpolation</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimplicialMesh</span><span class="p">,</span> <span class="n">refinement_indicator</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">6.0</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mesh</span> <span class="o">=</span> <span class="n">SimplicialMesh</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[[</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">[</span><span class="nb">round</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">refinement_indicator</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">square</span><span class="p">())</span><span class="o">.</span><span class="n">tolist</span><span class="p">()]</span>
+<span class="go">[0.25, 0.25, 0.25, 0.25, 0.25]</span>
+</pre></div>
+</div>
 </dd></dl>
 
 </section>
@@ -2127,6 +2403,7 @@ points transforms the values of the model.</p>
             <dd><a href="../v0.19.0/torch_bsf.html">v0.19.0</a></dd>
             <dd><a href="../v0.2.0/torch_bsf.html">v0.2.0</a></dd>
             <dd><a href="../v0.20.0/torch_bsf.html">v0.20.0</a></dd>
+            <dd><a href="../v0.21.0/torch_bsf.html">v0.21.0</a></dd>
             <dd><a href="../v0.3.0/torch_bsf.html">v0.3.0</a></dd>
             <dd><a href="../v0.3.1/torch_bsf.html">v0.3.1</a></dd>
             <dd><a href="../v0.4.0/torch_bsf.html">v0.4.0</a></dd>
