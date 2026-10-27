@@ -168,6 +168,18 @@ def _difference_times_power_of_two(a: torch.Tensor, b: torch.Tensor, exponent: t
     )
 
 
+def _split_difference(a: torch.Tensor, b: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    """``a - b`` as ``mantissa * 2**exponent`` (:func:`torch.frexp`, long exponents), also where it overflows.
+
+    Where the difference overflows, that of the halves is taken, which is exact: both ends then exceed ``2**970``
+    in magnitude.
+    """
+    difference = a - b
+    overflow = ~torch.isfinite(difference)
+    mantissa, exponent = torch.frexp(torch.where(overflow, a / 2 - b / 2, difference))
+    return mantissa, exponent.to(torch.long) + overflow
+
+
 def _pair_exponents(f: torch.Tensor, g: torch.Tensor, axis_exponent: torch.Tensor) -> torch.Tensor:
     """Per pair of faces ``f`` and ``g`` (p, d, d) and axis, the power of two that scales the pair to order one.
 
@@ -705,14 +717,16 @@ def _gradient_at(v: int, x: torch.Tensor, f: torch.Tensor, ring: list[list[int]]
     quadratic = len(near) >= n_quadratic + 2
     # The one-ring of a vertex of a non-degenerate simplex spans R^d, for the linear fallback.
     rows = torch.tensor(sorted(near) if quadratic else ring[v], dtype=torch.long)
-    offsets = x[rows] - x[v]
     # The fit is solved in the coordinates q = H^{-1} offsets, H = diag(extent of each axis), with the rows
     # weighted by 1 / |q|: each weighted linear row is the unit vector q / |q| and its right-hand side the slope
     # (f_w - f_v) / |q|. They are computed from the mantissas and exponents of the offsets, so that nothing
-    # overflows or underflows on the way however the axes and the neighbours differ in scale.
-    mantissa, exponent = torch.frexp(offsets)
-    extent_mantissa, extent_exponent = torch.frexp(offsets.abs().amax(dim=0))  # H_j = extent_mantissa_j * 2**...
-    exponent = torch.where(mantissa == 0, -(2**20), exponent.to(torch.long) - extent_exponent.to(torch.long))
+    # overflows or underflows on the way however the axes and the neighbours differ in scale, even where the
+    # offsets themselves overflow, between vertices two rings apart near opposite ends of the float64 range.
+    mantissa, exponent = _split_difference(x[rows], x[v])
+    exponent = torch.where(mantissa == 0, -(2**20), exponent)  # zeros never set the extent
+    extent_exponent = exponent.amax(dim=0)  # H_j = extent_mantissa_j * 2**extent_exponent_j
+    extent_mantissa = torch.where(exponent == extent_exponent, mantissa.abs(), 0.0).amax(dim=0)
+    exponent = torch.where(mantissa == 0, -(2**20), exponent - extent_exponent)
     row_exponent = exponent.amax(dim=1, keepdim=True)  # q_k = 2**row_exponent_k * p_k, at most 0
     p = torch.where(mantissa == 0, 0.0, _times_power_of_two(mantissa / extent_mantissa, exponent - row_exponent))
     length = p.norm(dim=1, keepdim=True)  # in [1/2, 2 sqrt(d)]
@@ -723,15 +737,15 @@ def _gradient_at(v: int, x: torch.Tensor, f: torch.Tensor, ring: list[list[int]]
     else:
         design = unit
     # Slopes as mantissa * 2**exponent, scaled by one power of two per output so that the largest is near one.
-    slope_mantissa, slope_exponent = torch.frexp(f[rows] - f[v])
+    slope_mantissa, slope_exponent = _split_difference(f[rows], f[v])
     slope_mantissa = slope_mantissa / length
-    slope_exponent = torch.where(slope_mantissa == 0, -(2**20), slope_exponent.to(torch.long) - row_exponent)
+    slope_exponent = torch.where(slope_mantissa == 0, -(2**20), slope_exponent - row_exponent)
     top = slope_exponent.amax(dim=0)  # (n_outputs,)
     top = torch.where(top < -(2**19), 0, top)  # data constant on the neighbourhood
     rhs = _times_power_of_two(slope_mantissa, slope_exponent - top)
     solution: torch.Tensor = torch.linalg.lstsq(design, rhs, driver="gelsd").solution
     # The linear coefficients are the gradient times H, divided by 2**top.
-    shift = top[None, :] - extent_exponent.to(torch.long)[:, None]
+    shift = top[None, :] - extent_exponent[:, None]
     return _times_power_of_two(solution[:d] / extent_mantissa[:, None], shift)
 
 
@@ -796,7 +810,12 @@ def _control_values(x: torch.Tensor, f: torch.Tensor, g: torch.Tensor, alpha: tu
     """
 
     def edge(i: int, j: int) -> torch.Tensor:
-        c = f[:, i] + torch.einsum("md,mdk->mk", x[:, j] - x[:, i], g[:, i]) / 3
+        # Only the edges from the first vertex of a simplex are known not to overflow: the others are halved where
+        # they do, and the correction doubled after the division.
+        step = x[:, j] - x[:, i]
+        halved = ~torch.isfinite(step).all(dim=1, keepdim=True)
+        third = torch.einsum("md,mdk->mk", torch.where(halved, x[:, j] / 2 - x[:, i] / 2, step), g[:, i]) / 3
+        c = f[:, i] + torch.where(halved, third * 2, third)
         return _clip(c, f[:, [i, j]], clamp)
 
     support = [i for i, a in enumerate(alpha) if a]

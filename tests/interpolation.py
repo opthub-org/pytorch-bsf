@@ -959,6 +959,45 @@ def test_mesh_rejects_vertices_whose_differences_overflow():
         SimplicialMesh([[-FLOAT64_MAX], [FLOAT64_MAX]], [[0, 1]])
 
 
+def test_interpolant_where_differences_of_vertices_overflow():
+    """Regression test (#444): the differences of vertices two rings apart, and of those of a simplex other than
+    from its first vertex, overflowed to inf, and lstsq failed with an internal assert."""
+    x = torch.tensor([[0.0, 1e308], [0.0, -1e308], [-1e308, 0.0], [1e308, 0.0]], dtype=torch.float64)
+    mesh = SimplicialMesh(x, [[0, 2, 3], [1, 2, 3]])
+    scores = refinement_indicator(mesh, torch.tensor([0.0, 1.0, 2.0, 3.0], dtype=torch.float64))
+    assert (scores >= 0).all()
+    c = torch.tensor([0.5, -0.25], dtype=torch.float64)
+    torch.testing.assert_close(estimate_gradients(mesh, x @ c)[:, :, 0], c.expand(4, 2))
+    model = hermite_interpolant(mesh, x @ c, clamp=False)
+    points = mesh.locate(torch.tensor([[0.0, 5e307], [2.5e307, -2.5e307]], dtype=torch.float64))
+    torch.testing.assert_close(model(points)[:, 0], _global_positions(mesh, points) @ c, rtol=1e-12, atol=0)
+    line = torch.tensor([[-1e308], [-5e307], [0.0], [5e307], [1e308]], dtype=torch.float64)
+    g = estimate_gradients(SimplicialMesh(line, [[k, k + 1] for k in range(4)]), 0.5 * line)
+    torch.testing.assert_close(g[:, 0, 0], torch.full((5,), 0.5, dtype=torch.float64))
+
+
+@given(data=st.data())
+def test_interpolant_is_exactly_invariant_when_stretched_over_the_float64_range(data):
+    """Stretched over [-2**1023, 2**1023] per axis, where differences of vertices overflow, the gradients and the
+    interpolant are those at scale one, scaled exactly (#444). Data are scaled by 2**1000, gradients by 2**-23."""
+    x, simplices = data.draw(kuhn_meshes(quantum=2.0**-10), label="mesh")
+    x = 2 * x - 1
+    n_outputs = data.draw(st.integers(1, 2), label="n_outputs")
+    entries = st.lists(st.integers(-8, 8), min_size=len(x) * n_outputs, max_size=len(x) * n_outputs)
+    f = torch.tensor(data.draw(entries, label="f"), dtype=torch.float64).reshape(len(x), n_outputs)
+    clamp = data.draw(st.booleans(), label="clamp")
+    try:
+        stretched = SimplicialMesh(x * 2.0**1023, simplices)
+    except ValueError as error:
+        assert "too far apart" in str(error)
+        return
+    mesh = SimplicialMesh(x, simplices)
+    assert torch.equal(estimate_gradients(stretched, f * 2.0**1000), estimate_gradients(mesh, f) * 2.0**-23)
+    expected = hermite_interpolant(mesh, f, clamp=clamp).coefficients.detach() * 2.0**1000
+    assert torch.equal(hermite_interpolant(stretched, f * 2.0**1000, clamp=clamp).coefficients.detach(), expected)
+    assert (refinement_indicator(stretched, f * 2.0**1000, clamp=clamp) >= 0).all()
+
+
 def _hadamard_ratio_squared(rows: list[list[Fraction]]) -> Fraction:
     """``(det / product of row lengths)**2`` of an upper triangular matrix, exactly."""
     det = math.prod((rows[k][k] for k in range(len(rows))), start=Fraction(1))
