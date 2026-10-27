@@ -281,7 +281,8 @@ leaves cells that split a flat polygon in different ways on its two sides:
 the mesh is not conforming. For the degree-``k`` lattice of a simplex, use
 :func:`~torch_bsf.interpolation.lattice_mesh` instead. It returns the Kuhn
 (Freudenthal) triangulation :cite:p:`kuhn1960combinatorial`: ``k ** d``
-congruent simplices whose vertices are the lattice points, in the order of
+simplices of equal volume (not congruent for ``d >= 3``) whose vertices are
+the lattice points, in the order of
 :func:`~torch_bsf.sampling.grid` with ``resolution=k``, given by their first
 ``d`` barycentric coordinates.
 

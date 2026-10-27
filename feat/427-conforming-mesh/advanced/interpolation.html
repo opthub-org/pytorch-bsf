@@ -371,7 +371,8 @@ leaves cells that split a flat polygon in different ways on its two sides:
 the mesh is not conforming. For the degree-<code class="docutils literal notranslate"><span class="pre">k</span></code> lattice of a simplex, use
 <a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.lattice_mesh" title="torch_bsf.interpolation.lattice_mesh"><code class="xref py py-func docutils literal notranslate"><span class="pre">lattice_mesh()</span></code></a> instead. It returns the Kuhn
 (Freudenthal) triangulation <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../references.html#id49" title="Harold W. Kuhn. Some combinatorial lemmas in topology. IBM Journal of Research and Development, 4(5):518–524, 1960.">Kuh60</a>]</span>: <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">**</span> <span class="pre">d</span></code>
-congruent simplices whose vertices are the lattice points, in the order of
+simplices of equal volume (not congruent for <code class="docutils literal notranslate"><span class="pre">d</span> <span class="pre">&gt;=</span> <span class="pre">3</span></code>) whose vertices are
+the lattice points, in the order of
 <a class="reference internal" href="../torch_bsf.html#torch_bsf.sampling.grid" title="torch_bsf.sampling.grid"><code class="xref py py-func docutils literal notranslate"><span class="pre">grid()</span></code></a> with <code class="docutils literal notranslate"><span class="pre">resolution=k</span></code>, given by their first
 <code class="docutils literal notranslate"><span class="pre">d</span></code> barycentric coordinates.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">mixtures</span> <span class="o">=</span> <span class="n">lattice_mesh</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
