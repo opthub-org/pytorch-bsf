@@ -152,7 +152,7 @@ class SpaceSubdivision:
         For every cell of the refined space, the cell of the original space whose relative interior contains it
         (``0`` for a single-cell space, whose faces are not cells).
     split
-        The split applied to the selected cell, with ``i < j``.
+        The split of the selected cell chosen by the policy.
     """
 
     model: BezierModel
@@ -238,11 +238,14 @@ def subdivide_space(
     info = space.cells[cid]
     _check_edge(info.dimensions, chosen.factor, chosen.i, chosen.j)
     _check_s(chosen.fraction)
-    if chosen.i > chosen.j:
-        chosen = EdgeSplit(chosen.j, chosen.i, 1 - chosen.fraction, chosen.factor)
+    # The refinement orients every edge from its lower to its higher vertex; the fraction along that
+    # orientation is kept exact, since 1 - s rounds to one for tiny s.
+    reverse = chosen.i > chosen.j
+    low, high = sorted((chosen.i, chosen.j))
+    fraction = 1 - Fraction(chosen.fraction) if reverse else Fraction(chosen.fraction)
     nodes, ids = nodes_of([c.dimensions for c in space.cells], space._topology)
     cells = tuple(sorted(ids, key=ids.__getitem__))
-    refinement = Refinement(nodes, (cells[cid], chosen.factor, chosen.i, chosen.j), Fraction(chosen.fraction))
+    refinement = Refinement(nodes, (cells[cid], chosen.factor, low, high), fraction)
     degrees = {top: space.cells[k].degree for node, k in ids.items() for top in refinement.tops[node]}
     refined = BezierSpace.on_set(refinement.domain, degree=degrees)
     coefficients = torch.full(
@@ -254,7 +257,7 @@ def subdivide_space(
         local = BezierSimploid(cell_info.dimensions, cell_info.degree, model.coefficients.detach()[list(cell_info.controls)])
         marks = refinement.marks.get(node, [])
         paths = [path for _, path in refinement.pieces(node)]
-        for top, net in zip(refinement.tops[node], split_nets(local, marks, chosen.fraction, paths), strict=True):
+        for top, net in zip(refinement.tops[node], split_nets(local, marks, chosen.fraction, paths, reverse), strict=True):
             rows = list(refined.cells[refined.cell_id(top)].controls)
             coefficients[rows] = net.to(coefficients.dtype)
     # Only a single-cell space has simploids (the faces of its cell) that are not cells.

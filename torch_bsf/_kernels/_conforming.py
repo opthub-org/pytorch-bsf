@@ -243,17 +243,27 @@ def _subsequence(d: tuple[Point, ...], piece: tuple[Point, ...]) -> bool:
 
 
 def split_nets(
-    net: BezierSimploid, marks: Sequence[tuple[int, int, int]], s: float, paths: Sequence[list[int]]
+    net: BezierSimploid,
+    marks: Sequence[tuple[int, int, int]],
+    s: float,
+    paths: Sequence[list[int]],
+    reverse: bool = False,
 ) -> list[torch.Tensor]:
-    """Control nets of the pieces of a Bézier simploid, following the bisection paths of :func:`_bisect`."""
+    """Control nets of the pieces of a Bézier simploid, following the bisection paths of :func:`_bisect`.
+
+    Each marked edge ``(k, i, j)`` is split at ``s`` from ``i`` to ``j``, or from ``j`` to ``i`` if ``reverse``.
+    The reversed split is computed as such rather than as a split at ``1 - s``, which rounds to one for tiny ``s``.
+    """
     nets: dict[tuple[int, ...], BezierSimploid] = {(): net}
     for depth, (k, i, j) in enumerate(marks):
         out: dict[tuple[int, ...], BezierSimploid] = {}
         for path, piece in nets.items():
-            if any(p[depth] >= 0 for p in paths if tuple(p[:depth]) == path):
-                out[path + (0,)], out[path + (1,)] = split(piece, i, j, s, factor=k)
-            else:
+            if not any(p[depth] >= 0 for p in paths if tuple(p[:depth]) == path):
                 out[path + (-1,)] = piece
+            elif reverse:
+                out[path + (1,)], out[path + (0,)] = split(piece, j, i, s, factor=k)
+            else:
+                out[path + (0,)], out[path + (1,)] = split(piece, i, j, s, factor=k)
         nets = out
     return [nets[tuple(p)].control_points for p in paths]
 

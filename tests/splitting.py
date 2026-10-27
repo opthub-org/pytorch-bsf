@@ -675,7 +675,7 @@ def test_subdivide_space_is_exact_on_every_cell_and_edge(name, fraction):
         for factor, a in enumerate(cell.dimensions):
             for i, j in permutations(range(a + 1), 2):
                 result = subdivide_space(model, cell=cid, policy=EdgeSplit(i, j, fraction, factor))
-                assert result.split.i < result.split.j
+                assert result.split == EdgeSplit(i, j, fraction, factor)
                 assert len(result.parents) == result.model.space.n_cells
                 assert len(result.model.space.main_cells) > len(space.main_cells)
                 torch.testing.assert_close(result.model(result.transfer(points)), expected, rtol=0, atol=1e-10)
@@ -744,7 +744,7 @@ def test_subdivide_space_on_a_single_cell_matches_subdivide():
     policy = EdgeSplit(2, 0, 0.25, 0)
     children = subdivide(model, policy=policy).models
     result = subdivide_space(model, policy=policy)
-    assert result.split == EdgeSplit(0, 2, 0.75, 0)
+    assert result.split == policy
     pieces = [result.model.space.cells[k] for k in result.model.space.main_cells]
     nets = {tuple(map(tuple, result.model.coefficients[list(c.controls)].tolist())) for c in pieces}
     assert nets == {tuple(map(tuple, child.coefficients.tolist())) for child in children}
@@ -801,3 +801,33 @@ def test_subdivide_space_on_simplices_bisects_exactly_the_simplices_of_the_edge(
     assert parents == sorted([space.cell_id(t) for t in fan] * 2 + [space.cell_id(other)])
     # 6 + 1 vertices and 9 + 1 (split) + 3 (new interior) edges: every shared quadratic row appears once.
     assert refined.n_controls == 7 + 13
+
+
+@pytest.mark.parametrize("fraction", [1e-300, 1e-12, 1 - 1e-12])
+def test_subdivide_space_with_extreme_fractions(fraction):
+    """Reversed edges are split at ``fraction`` exactly, even where ``1 - fraction`` rounds to one."""
+    from torch_bsf.core import BezierModel, BezierSpace
+    from torch_bsf.splitting import EdgeSplit, subdivide_space
+
+    space = BezierSpace.on_set(_glued(), degree=2)
+    torch.manual_seed(3)
+    model = BezierModel(space, torch.randn(space.n_controls, 1, dtype=torch.float64))
+    points = _uniform_points(space)
+    expected = model(points)
+    for i, j in [(0, 1), (1, 0)]:
+        result = subdivide_space(model, cell=space.main_cells[0], policy=EdgeSplit(i, j, fraction))
+        torch.testing.assert_close(result.model(result.transfer(points)), expected, rtol=0, atol=1e-12)
+
+
+@pytest.mark.parametrize("scale", [1e-300, 1e300])
+def test_subdivide_space_with_extreme_coefficients(scale):
+    """Subdivision is linear in the coefficients, so it neither underflows nor overflows at the float64 limits."""
+    from torch_bsf.core import BezierModel, BezierSpace
+    from torch_bsf.splitting import EdgeSplit, subdivide_space
+
+    space = BezierSpace.on_set(_glued(), degree=3)
+    torch.manual_seed(4)
+    model = BezierModel(space, torch.rand(space.n_controls, 1, dtype=torch.float64) * scale)
+    points = _uniform_points(space)
+    result = subdivide_space(model, cell=space.main_cells[1], policy=EdgeSplit(0, 2, 0.3))
+    torch.testing.assert_close(result.model(result.transfer(points)), model(points), rtol=1e-13, atol=0)
