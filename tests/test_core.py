@@ -152,3 +152,67 @@ def test_shared_fixed_references_reject_conflicts():
     assert len(fixed.values) == 1
     points = bsf.Points.from_cells(space, [(a, [[0.0, 1.0]]), (b, [[1.0, 0.0]])])
     assert points.cell_ids.tolist() == [space.cell_id(a), space.cell_id(b)]
+
+
+@pytest.mark.parametrize("default_dtype", [torch.float32, torch.float64])
+@pytest.mark.parametrize("kind", ["list", "tuple", "numpy32", "numpy64", "tensor32", "tensor64", "integer"])
+def test_fixed_controls_parse_non_tensor_floats_without_default_dtype_rounding(default_dtype, kind):
+    import numpy as np
+
+    inputs = {
+        "list": [0.2],
+        "tuple": (0.2,),
+        "numpy32": np.array([0.2], dtype=np.float32),
+        "numpy64": np.array([0.2], dtype=np.float64),
+        "tensor32": torch.tensor([0.2], dtype=torch.float32),
+        "tensor64": torch.tensor([0.2], dtype=torch.float64),
+        "integer": [2],
+    }
+    value = inputs[kind]
+    previous = torch.get_default_dtype()
+    try:
+        torch.set_default_dtype(default_dtype)
+        actual = bsf.FixedControls({0: value}).values[0]
+    finally:
+        torch.set_default_dtype(previous)
+    expected = torch.as_tensor(value, dtype=torch.float64)
+    assert actual.dtype == torch.float64
+    assert actual.device.type == "cpu"
+    assert torch.equal(actual, expected)
+
+
+@pytest.mark.parametrize("value", [[0.2j], (0.2j,), torch.tensor([0.2j])])
+def test_fixed_controls_reject_complex_inputs_before_conversion(value):
+    with pytest.raises(ValueError, match="real"):
+        bsf.FixedControls({0: value})
+
+
+@pytest.mark.parametrize("default_dtype", [torch.float32, torch.float64])
+@pytest.mark.parametrize("kind", ["list", "numpy32", "numpy64", "tensor32", "tensor64", "integer"])
+def test_core_containers_preserve_existing_dtype_inference(default_dtype, kind):
+    import numpy as np
+
+    inputs = {
+        "list": [[0.2, 0.8]],
+        "numpy32": np.array([[0.2, 0.8]], dtype=np.float32),
+        "numpy64": np.array([[0.2, 0.8]], dtype=np.float64),
+        "tensor32": torch.tensor([[0.2, 0.8]], dtype=torch.float32),
+        "tensor64": torch.tensor([[0.2, 0.8]], dtype=torch.float64),
+        "integer": [[0, 1]],
+    }
+    value = inputs[kind]
+    previous = torch.get_default_dtype()
+    try:
+        torch.set_default_dtype(default_dtype)
+        inferred = torch.as_tensor(value)
+        expected = inferred if inferred.is_floating_point() else inferred.double()
+        points = bsf.Points(value)
+        samples = bsf.Samples(value, value)
+        model = bsf.BezierModel(bsf.BezierSpace.simplex(0, degree=0), value)
+    finally:
+        torch.set_default_dtype(previous)
+    for actual in (points.parameters, samples.points.parameters, model.coefficients):
+        assert actual.dtype == expected.dtype
+        assert torch.equal(actual, expected)
+    assert samples.values.dtype == inferred.dtype
+    assert torch.equal(samples.values, inferred)

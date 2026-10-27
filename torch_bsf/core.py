@@ -230,7 +230,12 @@ class BezierSpace:
 
 @dataclass(frozen=True, init=False)
 class Points:
-    """Barycentric coordinate rows and their cell IDs, in prediction order."""
+    """Barycentric coordinate rows and their cell IDs, in prediction order.
+
+    Floating tensors and NumPy arrays retain their dtype. Python float lists
+    use ``torch.get_default_dtype()``; integer coordinates become float64.
+    Pass float64 tensors or arrays to preserve double-precision coordinates.
+    """
 
     parameters: torch.Tensor
     cell_ids: torch.Tensor
@@ -284,7 +289,14 @@ class Points:
 
 @dataclass(frozen=True, init=False)
 class Samples:
-    """Points with finite observed outputs and optional nonnegative weights."""
+    """Points with finite observed outputs and optional nonnegative weights.
+
+    Coordinates follow :class:`Points`. Observed values use
+    ``torch.as_tensor`` dtype inference: tensors and NumPy arrays retain
+    their dtype, Python float lists use ``torch.get_default_dtype()``, and
+    integer values remain integers. For double precision, pass float64
+    tensors or arrays. Weights are stored as CPU float64 tensors.
+    """
 
     points: Points
     values: torch.Tensor
@@ -356,7 +368,19 @@ class QuadraticPenalty:
 
 @dataclass(frozen=True, init=False)
 class FixedControls:
-    """Explicit fixed values keyed by globally shared coefficient row."""
+    """Explicit fixed values keyed by globally shared coefficient row.
+
+    Values are copied to CPU float64 tensors. Non-tensor floating inputs
+    are read directly as float64, independently of PyTorch's default dtype;
+    tensor inputs retain their existing precision before conversion.
+    Complex inputs are rejected.
+
+    Examples
+    --------
+    >>> from torch_bsf import FixedControls
+    >>> FixedControls({0: [0.2]}).values[0].item()
+    0.2
+    """
 
     values: Mapping[int, torch.Tensor]
 
@@ -367,6 +391,8 @@ class FixedControls:
             tensor = torch.as_tensor(value)
             if tensor.is_complex():
                 raise ValueError("fixed control values must be real.")
+            if not isinstance(value, torch.Tensor) and tensor.is_floating_point():
+                tensor = torch.as_tensor(value, dtype=torch.float64)
             tensor = tensor.to(dtype=torch.float64, device="cpu")
             if tensor.ndim != 1 or not torch.isfinite(tensor).all():
                 raise ValueError("fixed control values must be finite output vectors.")
@@ -439,6 +465,9 @@ class BezierModel(nn.Module):
         Geometry, degrees and coefficient ordering.
     coefficients
         Matrix of shape ``(space.n_controls, n_outputs)``. Copied on construction.
+        Floating tensors and NumPy arrays retain their dtype. Python float
+        lists use ``torch.get_default_dtype()``; integer inputs become
+        float64. Pass float64 tensors or arrays for double precision.
 
     Examples
     --------
