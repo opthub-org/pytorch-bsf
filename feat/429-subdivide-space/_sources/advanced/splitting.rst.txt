@@ -283,9 +283,9 @@ same function, and it can be subdivided again.
 whose relative interior contains it, and ``transfer`` maps original
 ``Points`` to the refined space in the same order. A point on an interface
 between pieces goes to one of them; since the model is continuous there,
-the choice does not affect the value. ``split`` reports the edge actually
-split, normalized to ``i < j`` (``EdgeSplit(j, i, s)`` is the same split as
-``EdgeSplit(i, j, 1 - s)``). The policies are those of ``subdivide``,
+the choice does not affect the value. ``split`` reports the split of the selected
+cell chosen by the policy; ``EdgeSplit(j, i, s)`` is the same split as
+``EdgeSplit(i, j, 1 - s)``, computed without rounding ``1 - s``. The policies are those of ``subdivide``,
 evaluated on the selected cell.
 
 Keep comparisons in the same physical coordinates

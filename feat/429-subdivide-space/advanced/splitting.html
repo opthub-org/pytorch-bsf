@@ -380,9 +380,9 @@ True
 whose relative interior contains it, and <code class="docutils literal notranslate"><span class="pre">transfer</span></code> maps original
 <code class="docutils literal notranslate"><span class="pre">Points</span></code> to the refined space in the same order. A point on an interface
 between pieces goes to one of them; since the model is continuous there,
-the choice does not affect the value. <code class="docutils literal notranslate"><span class="pre">split</span></code> reports the edge actually
-split, normalized to <code class="docutils literal notranslate"><span class="pre">i</span> <span class="pre">&lt;</span> <span class="pre">j</span></code> (<code class="docutils literal notranslate"><span class="pre">EdgeSplit(j,</span> <span class="pre">i,</span> <span class="pre">s)</span></code> is the same split as
-<code class="docutils literal notranslate"><span class="pre">EdgeSplit(i,</span> <span class="pre">j,</span> <span class="pre">1</span> <span class="pre">-</span> <span class="pre">s)</span></code>). The policies are those of <code class="docutils literal notranslate"><span class="pre">subdivide</span></code>,
+the choice does not affect the value. <code class="docutils literal notranslate"><span class="pre">split</span></code> reports the split of the selected
+cell chosen by the policy; <code class="docutils literal notranslate"><span class="pre">EdgeSplit(j,</span> <span class="pre">i,</span> <span class="pre">s)</span></code> is the same split as
+<code class="docutils literal notranslate"><span class="pre">EdgeSplit(i,</span> <span class="pre">j,</span> <span class="pre">1</span> <span class="pre">-</span> <span class="pre">s)</span></code>, computed without rounding <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">s</span></code>. The policies are those of <code class="docutils literal notranslate"><span class="pre">subdivide</span></code>,
 evaluated on the selected cell.</p>
 </section>
 <section id="keep-comparisons-in-the-same-physical-coordinates">

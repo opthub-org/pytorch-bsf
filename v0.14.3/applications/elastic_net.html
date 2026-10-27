@@ -136,35 +136,35 @@ f_{smooth}(\beta) &amp;= \frac{1+\epsilon}{2}\|\beta\|_2^2\end{split}\]</div>
 w_2 &amp;= \frac{\lambda \alpha}{1 + \lambda} \\
 w_3 &amp;= \frac{\lambda (1-\alpha)}{1 + \lambda}\end{split}\]</div>
 <p>By training the model on a sparse subset of weight vectors <span class="math notranslate nohighlight">\(w\)</span> and fitting a Bézier simplex, we obtain a continuous <strong>solution map</strong> <span class="math notranslate nohighlight">\((x^*, f \circ x^*): \Delta^{M-1} \to G^*(f)\)</span> that maps any weight <span class="math notranslate nohighlight">\(w\)</span> to the optimal weights <span class="math notranslate nohighlight">\(\beta\)</span> and the corresponding objective values.</p>
-<table class="docutils align-default" id="id46">
-<caption><span class="caption-number">Table 2 </span><span class="caption-text">Regularization map of the elastic net.</span><a class="headerlink" href="#id46" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id44">
+<caption><span class="caption-number">Table 2 </span><span class="caption-text">Regularization map of the elastic net.</span><a class="headerlink" href="#id44" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 33.3%" />
 <col style="width: 33.3%" />
 <col style="width: 33.3%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><figure class="align-default" id="id47">
+<tr class="row-odd"><td><figure class="align-default" id="id45">
 <a class="reference internal image-reference" href="../_images/wine,weight_102_102_1_1000,W.png"><img alt="../_images/wine%2Cweight_102_102_1_1000%2CW.png" src="../_images/wine%2Cweight_102_102_1_1000%2CW.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 6 </span><span class="caption-text">Weight space <span class="math notranslate nohighlight">\(\Delta^{2}\)</span></span><a class="headerlink" href="#id47" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 6 </span><span class="caption-text">Weight space <span class="math notranslate nohighlight">\(\Delta^{2}\)</span></span><a class="headerlink" href="#id45" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </td>
-<td><figure class="align-default" id="id48">
+<td><figure class="align-default" id="id46">
 <a class="reference internal image-reference" href="../_images/wine,weight_102_102_1_1000,X123.png"><img alt="../_images/wine%2Cweight_102_102_1_1000%2CX123.png" src="../_images/wine%2Cweight_102_102_1_1000%2CX123.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 7 </span><span class="caption-text">Parameter space <span class="math notranslate nohighlight">\(\Theta^*(f)\)</span></span><a class="headerlink" href="#id48" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 7 </span><span class="caption-text">Parameter space <span class="math notranslate nohighlight">\(\Theta^*(f)\)</span></span><a class="headerlink" href="#id46" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </td>
-<td><figure class="align-default" id="id49">
+<td><figure class="align-default" id="id47">
 <a class="reference internal image-reference" href="../_images/wine,weight_102_102_1_1000,F.png"><img alt="../_images/wine%2Cweight_102_102_1_1000%2CF.png" src="../_images/wine%2Cweight_102_102_1_1000%2CF.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 8 </span><span class="caption-text">Objective space <span class="math notranslate nohighlight">\(f(\Theta^*(f))\)</span></span><a class="headerlink" href="#id49" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 8 </span><span class="caption-text">Objective space <span class="math notranslate nohighlight">\(f(\Theta^*(f))\)</span></span><a class="headerlink" href="#id47" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </td>
@@ -194,86 +194,86 @@ w_3 &amp;= \frac{\lambda (1-\alpha)}{1 + \lambda}\end{split}\]</div>
 <h2>Empirical Evaluation<a class="headerlink" href="#empirical-evaluation" title="Link to this heading"></a></h2>
 <p>The effectiveness of PyTorch-BSF for Elastic Net is demonstrated using the <strong>Wine</strong> dataset from the UCI Machine Learning Repository. Experiments show that even with a limited number of training points (e.g., 51 points for a degree-6 simplex), the Bézier simplex accurately approximates the entire solution map, maintaining low Mean Squared Error (MSE) across the continuous hyperparameter space.</p>
 <p>The following tables compare the results obtained through an exhaustive grid search (ground truth) and the Bézier simplex approximation. The high similarity between the performance surfaces confirms the fidelity of the surrogate model.</p>
-<table class="docutils align-default" id="id50">
-<caption><span class="caption-number">Table 3 </span><span class="caption-text">Ground truth results from exhaustive grid search (102x102 grid).</span><a class="headerlink" href="#id50" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id48">
+<caption><span class="caption-number">Table 3 </span><span class="caption-text">Ground truth results from exhaustive grid search (102x102 grid).</span><a class="headerlink" href="#id48" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 50.0%" />
 <col style="width: 50.0%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><figure class="align-default" id="id51">
+<tr class="row-odd"><td><figure class="align-default" id="id49">
 <a class="reference internal image-reference" href="../_images/wine,weight_102_102_1_1000,mean,F.png"><img alt="../_images/wine%2Cweight_102_102_1_1000%2Cmean%2CF.png" src="../_images/wine%2Cweight_102_102_1_1000%2Cmean%2CF.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 9 </span><span class="caption-text">Mean CV error</span><a class="headerlink" href="#id51" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 9 </span><span class="caption-text">Mean CV error</span><a class="headerlink" href="#id49" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </td>
-<td><figure class="align-default" id="id52">
+<td><figure class="align-default" id="id50">
 <a class="reference internal image-reference" href="../_images/wine,weight_102_102_1_1000,std,F.png"><img alt="../_images/wine%2Cweight_102_102_1_1000%2Cstd%2CF.png" src="../_images/wine%2Cweight_102_102_1_1000%2Cstd%2CF.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 10 </span><span class="caption-text">Std dev of CV error</span><a class="headerlink" href="#id52" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 10 </span><span class="caption-text">Std dev of CV error</span><a class="headerlink" href="#id50" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </td>
 </tr>
-<tr class="row-even"><td><figure class="align-default" id="id53">
+<tr class="row-even"><td><figure class="align-default" id="id51">
 <a class="reference internal image-reference" href="../_images/wine,weight_102_102_1_1000,aicc,F.png"><img alt="../_images/wine%2Cweight_102_102_1_1000%2Caicc%2CF.png" src="../_images/wine%2Cweight_102_102_1_1000%2Caicc%2CF.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 11 </span><span class="caption-text">AICc</span><a class="headerlink" href="#id53" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 11 </span><span class="caption-text">AICc</span><a class="headerlink" href="#id51" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </td>
-<td><figure class="align-default" id="id54">
+<td><figure class="align-default" id="id52">
 <a class="reference internal image-reference" href="../_images/wine,weight_102_102_1_1000,nonzero,F.png"><img alt="../_images/wine%2Cweight_102_102_1_1000%2Cnonzero%2CF.png" src="../_images/wine%2Cweight_102_102_1_1000%2Cnonzero%2CF.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 12 </span><span class="caption-text">Number of nonzero coefficients</span><a class="headerlink" href="#id54" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 12 </span><span class="caption-text">Number of nonzero coefficients</span><a class="headerlink" href="#id52" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </td>
 </tr>
 </tbody>
 </table>
-<table class="docutils align-default" id="id55">
-<caption><span class="caption-number">Table 4 </span><span class="caption-text">Approximation results for the Wine dataset with a Bézier simplex of degree <span class="math notranslate nohighlight">\(d = 6\)</span>.</span><a class="headerlink" href="#id55" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id53">
+<caption><span class="caption-number">Table 4 </span><span class="caption-text">Approximation results for the Wine dataset with a Bézier simplex of degree <span class="math notranslate nohighlight">\(d = 6\)</span>.</span><a class="headerlink" href="#id53" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 50.0%" />
 <col style="width: 50.0%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><figure class="align-default" id="id56">
+<tr class="row-odd"><td><figure class="align-default" id="id54">
 <a class="reference internal image-reference" href="../_images/wine,weight_7_7_1_1000,meshgrid,d_6,f,mean,std,nonzero,aicc,x1-6.tsv,mean,F.png"><img alt="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Cmean%2CF.png" src="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Cmean%2CF.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 13 </span><span class="caption-text">Mean CV error</span><a class="headerlink" href="#id56" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 13 </span><span class="caption-text">Mean CV error</span><a class="headerlink" href="#id54" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </td>
-<td><figure class="align-default" id="id57">
+<td><figure class="align-default" id="id55">
 <a class="reference internal image-reference" href="../_images/wine,weight_7_7_1_1000,meshgrid,d_6,f,mean,std,nonzero,aicc,x1-6.tsv,std,F.png"><img alt="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Cstd%2CF.png" src="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Cstd%2CF.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 14 </span><span class="caption-text">Std dev of CV error</span><a class="headerlink" href="#id57" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 14 </span><span class="caption-text">Std dev of CV error</span><a class="headerlink" href="#id55" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </td>
 </tr>
-<tr class="row-even"><td><figure class="align-default" id="id58">
+<tr class="row-even"><td><figure class="align-default" id="id56">
 <a class="reference internal image-reference" href="../_images/wine,weight_7_7_1_1000,meshgrid,d_6,f,mean,std,nonzero,aicc,x1-6.tsv,aicc,F.png"><img alt="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Caicc%2CF.png" src="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Caicc%2CF.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 15 </span><span class="caption-text">AICc</span><a class="headerlink" href="#id58" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 15 </span><span class="caption-text">AICc</span><a class="headerlink" href="#id56" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </td>
-<td><figure class="align-default" id="id59">
+<td><figure class="align-default" id="id57">
 <a class="reference internal image-reference" href="../_images/wine,weight_7_7_1_1000,meshgrid,d_6,f,mean,std,nonzero,aicc,x1-6.tsv,nonzero,F.png"><img alt="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Cnonzero%2CF.png" src="../_images/wine%2Cweight_7_7_1_1000%2Cmeshgrid%2Cd_6%2Cf%2Cmean%2Cstd%2Cnonzero%2Caicc%2Cx1-6.tsv%2Cnonzero%2CF.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 16 </span><span class="caption-text">Nonzero coefficients</span><a class="headerlink" href="#id59" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 16 </span><span class="caption-text">Nonzero coefficients</span><a class="headerlink" href="#id57" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </td>
@@ -434,7 +434,7 @@ w_3 &amp;= \frac{\lambda (1-\alpha)}{1 + \lambda}\end{split}\]</div>
         </dl>
         <dl>
             <dt>Branches</dt>
-            <dd><a href="../../feat/427-conforming-mesh/applications/elastic_net.html">feat/427-conforming-mesh</a></dd>
+            <dd><a href="../../feat/429-subdivide-space/applications/elastic_net.html">feat/429-subdivide-space</a></dd>
         </dl>
     </div>
 </div><script>
