@@ -2,6 +2,7 @@
 
 import itertools
 import math
+import warnings
 from collections import Counter
 from fractions import Fraction
 from typing import Any
@@ -1161,3 +1162,38 @@ def test_refine_keeps_the_mesh_conforming_and_commutes_with_scaling(data):
     scaled = refine(SimplicialMesh(x * scale, simplices), chosen)
     assert torch.equal(scaled.vertices, fine.vertices * scale)
     assert torch.equal(scaled.simplices, fine.simplices)
+
+
+@pytest.mark.parametrize(
+    "vertices, simplices",
+    [
+        ([[0.0], [1.0], [3.0]], [[0, 1], [1, 2], [0, 2]]),
+        ([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [2.0, 3.0]], [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]),
+    ],
+)
+def test_mesh_without_boundary_faces_is_not_conforming(vertices, simplices):
+    """Regression test (Codex review of #430): with every face in two simplices, the overlapping simplices left no
+    boundary face to compare, and indexing the empty face list raised IndexError."""
+    with pytest.raises(ValueError, match="not conforming"):
+        SimplicialMesh(vertices, simplices)
+    with pytest.warns(UserWarning, match="not conforming"):
+        mesh = SimplicialMesh(vertices, simplices, strict=False)
+    assert mesh.unmatched_faces == len(simplices) * (len(vertices[0]) + 1) // 2  # every face, each in two simplices
+
+
+@given(data=st.data())
+def test_any_simplex_list_is_accepted_or_rejected_with_value_error(data):
+    """Arbitrary simplices on a few points, overlapping or not, give a mesh or a ValueError, never another error."""
+    d = data.draw(st.integers(1, 3), label="d")
+    n = data.draw(st.integers(d + 1, d + 4), label="n_vertices")
+    coordinate = st.integers(-4, 4).map(float)
+    x = data.draw(st.lists(st.lists(coordinate, min_size=d, max_size=d), min_size=n, max_size=n), label="vertices")
+    all_simplices = [list(c) for c in itertools.combinations(range(n), d + 1)]
+    simplices = data.draw(st.lists(st.sampled_from(all_simplices), min_size=1, unique_by=tuple), label="simplices")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        try:
+            mesh = SimplicialMesh(x, simplices, strict=False)
+        except ValueError:
+            return
+    assert mesh.unmatched_faces >= 0

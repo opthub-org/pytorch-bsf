@@ -269,6 +269,8 @@ class SimplicialMesh:
         same simplex are never compared. Faces on the
         meshed domain are not counted, even when another part of the mesh lies close to them or touches
         them at a lower-dimensional face. Overlapping simplices that share no face are not detected.
+        A mesh without boundary faces (every face in two or more simplices, which only overlapping simplices
+        allow) has all its faces counted.
         """
         return self._unmatched
 
@@ -279,7 +281,9 @@ class SimplicialMesh:
             for i in range(d + 1):
                 owners.setdefault(tuple(simplex[:i] + simplex[i + 1 :]), []).append(k)
         crowded = sum(1 for o in owners.values() if len(o) > 2)
-        single = [(face, o[0]) for face, o in owners.items() if len(o) == 1]  # never empty: the mesh is bounded
+        single = [(face, o[0]) for face, o in owners.items() if len(o) == 1]
+        if not single:  # a bounded domain has a boundary, so overlapping simplices close up the mesh
+            return len(owners)
         faces = self._scaled[torch.tensor([face for face, _ in single])]  # (n, d, d)
         own = torch.tensor([k for _, k in single])
         # In a conforming mesh the faces of one simplex only are boundary faces, and no two of them overlap.
