@@ -123,6 +123,41 @@ def _check_simplices(simplices: Any, n_vertices: int, d: int) -> torch.Tensor:
     return s
 
 
+def _overlapping_boxes(
+    low: torch.Tensor, high: torch.Tensor, slack: torch.Tensor, own: torch.Tensor
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Pairs of boxes ``[low, high]`` (n, d) of different owners that meet when grown by the larger slack of the two.
+
+    The boxes are swept in the order of their lower bounds along the first axis, so that only boxes overlapping
+    along it are compared, not all pairs; each pair is returned once.
+    """
+    if not len(low):
+        return torch.zeros(0, dtype=torch.long), torch.zeros(0, dtype=torch.long)
+    order = torch.argsort(low[:, 0])
+    start = low[order, 0]
+    # Every box that a box meets along the first axis starts before its end plus the largest slack.
+    end = torch.searchsorted(start, (high[order, 0] + slack.max()).contiguous(), right=True)
+    position = torch.arange(len(order))
+    counts = (end - position - 1).clamp_min(0)
+    pairs = []
+    for chunk in torch.split(position, max(1, 2**16)):
+        repeats = counts[chunk]
+        i = torch.repeat_interleave(chunk, repeats)
+        if not len(i):
+            continue
+        # The k-th later box of each run, for k = 1, 2, ...
+        run_start = torch.repeat_interleave(torch.cumsum(repeats, dim=0) - repeats, repeats)
+        j = i + 1 + torch.arange(len(i)) - run_start
+        a, b = order[i], order[j]
+        pad = torch.maximum(slack[a], slack[b])[:, None]
+        meet = ((low[a] <= high[b] + pad) & (low[b] <= high[a] + pad)).all(dim=1) & (own[a] != own[b])
+        pairs.append(torch.stack([a[meet], b[meet]]))
+    if not pairs:
+        return torch.zeros(0, dtype=torch.long), torch.zeros(0, dtype=torch.long)
+    first, second = torch.cat(pairs, dim=1)
+    return first, second
+
+
 def _difference_times_power_of_two(a: torch.Tensor, b: torch.Tensor, exponent: torch.Tensor) -> torch.Tensor:
     """``(a - b) * 2**exponent``, also where ``a - b`` itself overflows, as for the opposite ends of a long face."""
     difference = a - b
@@ -339,15 +374,7 @@ class SimplicialMesh:
         # The diameter is at most sqrt(d) times the largest side of the box, which bounds the slack from above.
         # Halves are subtracted, since the extent of a face may overflow although its vertices do not.
         slack = (2 * math.sqrt(d) * unit) * (high / 2 - low / 2).amax(dim=1) + unit * faces.abs().amax(dim=(1, 2))
-        everything = torch.arange(len(single))
-        pairs = []
-        for rows in torch.split(everything, max(1, 2**20 // (len(single) * d))):
-            pad = torch.maximum(slack[rows, None], slack[None])[..., None]  # (b, n, 1)
-            near = ((low[rows, None] <= high[None] + pad) & (low[None] <= high[rows, None] + pad)).all(dim=2)
-            near &= (rows[:, None] < everything[None]) & (own[rows, None] != own[None])
-            at, other = near.nonzero(as_tuple=True)
-            pairs.append(torch.stack([rows[at], other]))
-        first, second = torch.cat(pairs, dim=1)
+        first, second = _overlapping_boxes(low, high, slack, own)
         overlap = torch.ones(len(first), dtype=torch.bool)  # in 1-D, the candidates coincide
         if d > 1 and len(first):
             axis_exponent = torch.frexp(self.vertices.abs().amax(dim=0)).exponent.to(torch.long)

@@ -34,6 +34,7 @@ from torch_bsf.geometry import SimploidalSet
 from torch_bsf.interpolation import (
     SimplicialMesh,
     _Bisection,
+    _overlapping_boxes,
     estimate_gradients,
     hermite_interpolant,
     lattice_mesh,
@@ -1299,3 +1300,27 @@ def test_mesh_helpers_are_exported_from_the_package():
 
     assert torch_bsf.lattice_mesh is lattice_mesh and torch_bsf.refine is refine
     assert {"lattice_mesh", "refine"} <= set(torch_bsf.__all__)
+
+
+@given(data=st.data())
+def test_box_sweep_finds_exactly_the_meeting_pairs(data):
+    """The sweep along the first axis returns the same pairs as comparing all of them (Codex review of #430: the
+    comparison of all pairs took quadratic time for meshes of many separate components)."""
+    d = data.draw(st.integers(1, 3), label="d")
+    n = data.draw(st.integers(0, 30), label="n")
+    coordinate = st.integers(-6, 6).map(float)
+    corners = data.draw(st.lists(st.lists(coordinate, min_size=2 * d, max_size=2 * d), min_size=n, max_size=n))
+    box = torch.tensor(corners, dtype=torch.float64).reshape(n, 2, d)
+    low, high = box.amin(dim=1), box.amax(dim=1)
+    slack = torch.tensor(data.draw(st.lists(st.sampled_from([0.0, 0.5, 1.0]), min_size=n, max_size=n)), dtype=torch.float64)
+    own = torch.tensor(data.draw(st.lists(st.integers(0, 3), min_size=n, max_size=n)), dtype=torch.long)
+    first, second = _overlapping_boxes(low, high, slack, own)
+    found = {frozenset(p) for p in zip(first.tolist(), second.tolist(), strict=True)}
+    assert len(found) == len(first)  # each pair once
+    expected = {
+        frozenset((a, b))
+        for a, b in itertools.combinations(range(n), 2)
+        if own[a] != own[b]
+        and bool(((low[a] <= high[b] + max(slack[a], slack[b])) & (low[b] <= high[a] + max(slack[a], slack[b]))).all())
+    }
+    assert found == expected
