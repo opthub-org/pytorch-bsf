@@ -1291,3 +1291,11 @@ def test_refine_midpoints_are_correctly_rounded():
     bisection.bisect((0, 1))
     # The midpoint 4.5 units rounds to 4 (to even); halving 3 first gives 2 (to even), so the sum of halves is 5.
     assert bisection.x[2].item() == 4 * 2.0**-1074
+
+
+def test_mesh_helpers_are_exported_from_the_package():
+    """Regression test (Codex review of #430): the new helpers were missing from the package root."""
+    import torch_bsf
+
+    assert torch_bsf.lattice_mesh is lattice_mesh and torch_bsf.refine is refine
+    assert {"lattice_mesh", "refine"} <= set(torch_bsf.__all__)

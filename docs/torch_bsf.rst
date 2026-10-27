@@ -52,8 +52,9 @@ interpolation
 ``BezierSpace`` whose shared faces share controls, and locates points in it.
 ``hermite_interpolant`` returns a continuous piecewise cubic ``BezierModel``
 through vertex data that, when clamped, stays within the data range of each
-simplex. See :doc:`advanced/interpolation` for the construction and its
-error bound.
+simplex. ``lattice_mesh`` triangulates a simplex lattice conformingly, and
+``refine`` bisects simplices while keeping the mesh conforming. See
+:doc:`advanced/interpolation` for the construction and its error bound.
 
 .. automodule:: torch_bsf.interpolation
    :members:
