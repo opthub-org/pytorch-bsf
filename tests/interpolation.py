@@ -999,6 +999,25 @@ def test_control_is_computed_where_the_product_of_an_edge_and_a_gradient_overflo
     torch.testing.assert_close(model.coefficients.detach().max(), torch.tensor(1e308 / 3 * 4, dtype=torch.float64))
 
 
+@pytest.mark.parametrize(
+    "x, vertex, gradient",
+    [
+        ([[0.0, 0.0, 0.0], [1e308, 0.0, 0.0], [0.0, 1e308, 0.0], [1e308, 1e308, 1e-308]], 0, [1.0, -1.0, 1.0]),
+        ([[0.0, 0.0, 0.0], [-1e308, 0.0, 0.0], [0.0, 1e308, 0.0], [1e308, 5e307, 1e-308]], 1, [1.0, -4.0, 1.0]),
+    ],
+)
+def test_edge_control_keeps_the_residual_of_cancelling_terms(x, vertex, gradient):
+    """Regression test (Codex review of #445): terms of the correction on the edge to the last vertex of about
+    +-1e308 (or +-2e308, beyond the float64 range) cancel, leaving 1e-308. Scaling all terms by the largest power of
+    two flushed the residual to zero."""
+    mesh = SimplicialMesh(x, [[0, 1, 2, 3]])
+    g = torch.zeros(4, 3, 1, dtype=torch.float64)
+    g[vertex, :, 0] = torch.tensor(gradient, dtype=torch.float64)
+    model = hermite_interpolant(mesh, torch.zeros(4, dtype=torch.float64), gradients=g, clamp=False)
+    expected = float(Fraction(1e-308) / 3)
+    assert expected in model.coefficients.detach()[:, 0].tolist()
+
+
 @given(data=st.data())
 def test_interpolant_is_exactly_invariant_when_stretched_over_the_float64_range(data):
     """Stretched over [-2**1023, 2**1023] per axis, where differences of vertices overflow, the gradients and the

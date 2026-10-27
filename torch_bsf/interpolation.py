@@ -22,6 +22,7 @@ import math
 import operator
 import warnings
 from collections.abc import Sequence
+from fractions import Fraction
 from itertools import accumulate, combinations, combinations_with_replacement
 from math import factorial
 from typing import Any
@@ -802,6 +803,14 @@ def _clip(c: torch.Tensor, corners: torch.Tensor, clamp: bool) -> torch.Tensor:
     return torch.clamp(c, corners.amin(dim=1), corners.amax(dim=1)) if clamp else c
 
 
+def _rounded(value: Fraction) -> float:
+    """``value`` rounded to the nearest float64, or an infinity of its sign beyond the float64 range."""
+    try:
+        return float(value)
+    except OverflowError:
+        return math.copysign(math.inf, value)
+
+
 def _control_values(x: torch.Tensor, f: torch.Tensor, g: torch.Tensor, alpha: tuple[int, ...], clamp: bool) -> torch.Tensor:
     """Values (m, M) of the control with multi-index ``alpha`` of every simplex.
 
@@ -810,16 +819,14 @@ def _control_values(x: torch.Tensor, f: torch.Tensor, g: torch.Tensor, alpha: tu
     """
 
     def edge(i: int, j: int) -> torch.Tensor:
-        # The correction (x_j - x_i) . g_i / 3 is summed from the products of mantissas, scaled by the largest power
-        # of two among its terms, which is applied once at the end. Neither a difference of vertices (only those
-        # from the first vertex of a simplex are known to be finite) nor a product then overflows on the way.
-        step_mantissa, step_exponent = _split_difference(x[:, j], x[:, i])  # (m, d)
-        g_mantissa, g_exponent = torch.frexp(g[:, i])  # (m, d, M)
-        mantissa = step_mantissa[:, :, None] * g_mantissa
-        exponent = torch.where(mantissa == 0, -(2**20), step_exponent[:, :, None] + g_exponent.to(torch.long))
-        top = exponent.amax(dim=1)  # (m, M)
-        total = _times_power_of_two(mantissa, exponent - top[:, None]).sum(dim=1)
-        c = f[:, i] + _times_power_of_two(total / 3, top)
+        third = torch.einsum("md,mdk->mk", x[:, j] - x[:, i], g[:, i]) / 3
+        c = f[:, i] + third
+        # Only the differences from the first vertex of a simplex are known to be finite. Where the correction
+        # overflows, in a difference, a product or their sum, the control is computed exactly and rounded once.
+        for r, o in (~torch.isfinite(third)).nonzero().tolist():
+            terms = zip(x[r, j].tolist(), x[r, i].tolist(), g[r, i, :, o].tolist(), strict=True)
+            correction = sum(((Fraction(b) - Fraction(a)) * Fraction(h) for b, a, h in terms), Fraction(0))
+            c[r, o] = _rounded(Fraction(f[r, i, o].item()) + correction / 3)
         return _clip(c, f[:, [i, j]], clamp)
 
     support = [i for i, a in enumerate(alpha) if a]
@@ -830,13 +837,15 @@ def _control_values(x: torch.Tensor, f: torch.Tensor, g: torch.Tensor, alpha: tu
         return edge(i, j)
     i, j, k = support
     edges = [edge(i, j), edge(j, i), edge(i, k), edge(k, i), edge(j, k), edge(k, j)]
-    corners = f[:, i] + f[:, j] + f[:, k]
-    # Where a sum overflows, its parts are scaled first: the controls of a face spanning the float64 range may
-    # add up beyond it although the face control itself does not.
-    total = sum(edges[1:], edges[0])
-    quarter = torch.where(torch.isfinite(total), total / 4, sum((e / 4 for e in edges[1:]), edges[0] / 4))
-    sixth = torch.where(torch.isfinite(corners), corners / 6, (f[:, i] / 2 + f[:, j] / 2 + f[:, k] / 2) / 3)
-    c = quarter - sixth
+    total = edges[0] + edges[1] + edges[2] + edges[3] + edges[4] + edges[5]
+    c = total / 4 - (f[:, i] + f[:, j] + f[:, k]) / 6
+    # The controls of a face spanning the float64 range may add up beyond it although the face control does not:
+    # where a sum overflows, the control is computed exactly from finite edge controls and rounded once.
+    stacked = torch.stack(edges)
+    for r, o in (~torch.isfinite(c) & torch.isfinite(stacked).all(dim=0)).nonzero().tolist():
+        edge_sum = sum(map(Fraction, stacked[:, r, o].tolist()), Fraction(0))
+        corner_sum = sum(map(Fraction, f[r, [i, j, k], o].tolist()), Fraction(0))
+        c[r, o] = _rounded(edge_sum / 4 - corner_sum / 6)
     return _clip(c, f[:, [i, j, k]], clamp)
 
 
