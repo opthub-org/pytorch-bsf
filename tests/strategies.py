@@ -6,7 +6,8 @@ The strategies generate the inputs on which numerical code tends to break, not o
   translations (:func:`translations`, up to ``1e12``) and scalings (:func:`scalings`, ``1e-6`` to ``1e6``)
   are exercised at every scale rather than mostly near the largest value;
 * :func:`extreme_scalings` multiplies data of order one by powers of two up to the float64 limits, which
-  is exact, so that a property can compare with the unscaled result without a rounding allowance;
+  is exact, so that a property can compare with the unscaled result without a rounding allowance, and
+  :func:`axis_scalings` scales each axis independently (anisotropic scaling);
 * :func:`split_fractions` includes split ratios ``s`` within ``1e-12`` of ``0`` and ``1``;
 * :func:`simplex_points` includes vertices, points on faces and coordinates that are tiny but not zero.
 
@@ -67,6 +68,16 @@ def extreme_scalings(max_exponent: int = 1000) -> st.SearchStrategy[float]:
     """
     edges = st.sampled_from([-max_exponent, max_exponent])
     return (edges | st.integers(-max_exponent, max_exponent)).map(lambda k: math.ldexp(1.0, k))
+
+
+def axis_scalings(dimension: int, scale: st.SearchStrategy[float] | None = None) -> st.SearchStrategy[torch.Tensor]:
+    """Float64 vectors of one scale factor per axis, drawn independently from ``scale`` (default :func:`extreme_scalings`).
+
+    Axes then differ in scale by up to ``2**2000`` by default, as when coordinates mix units, e.g. ``1e200`` and
+    ``1e-200``. With the default, the scaled coordinates of data of order one are exact.
+    """
+    factor = extreme_scalings() if scale is None else scale
+    return st.lists(factor, min_size=dimension, max_size=dimension).map(lambda v: torch.tensor(v, dtype=torch.float64))
 
 
 def split_fractions(min_value: float = 1e-12) -> st.SearchStrategy[float]:

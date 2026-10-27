@@ -61,6 +61,17 @@ def _simplicial_set(simplices: Sequence[Sequence[int]]) -> tuple[SimploidalSet, 
     return domain, tops
 
 
+def _power_of_two_scale(x: torch.Tensor) -> torch.Tensor:
+    """The powers of two ``2**k`` with ``x / 2**k`` in ``[1, 2)`` for ``x > 0``, and ``0.5`` for ``x = 0``."""
+    return torch.pow(2.0, (torch.frexp(x).exponent - 1).to(x.dtype))
+
+
+def _times_power_of_two(x: torch.Tensor, exponent: torch.Tensor) -> torch.Tensor:
+    """``x * 2**exponent`` for integer-valued ``exponent``, without overflowing in ``2**exponent`` alone."""
+    half = torch.div(exponent, 2, rounding_mode="floor")
+    return x * torch.pow(2.0, half) * torch.pow(2.0, exponent - half)
+
+
 def _as_real_tensor(x: Any) -> torch.Tensor:
     """Read ``x`` as a tensor, parsing non-tensor floating-point input in float64 rather than the default dtype."""
     t = torch.as_tensor(x)
@@ -126,21 +137,29 @@ class SimplicialMesh:
             raise ValueError("a simplex repeats a vertex.")
         if len(torch.unique(s, dim=0)) != len(s):
             raise ValueError("simplices must be distinct.")
-        edges = x[s[:, 1:]] - x[s[:, :1]]  # (m, d, d)
+        edges = x[s[:, 1:]] - x[s[:, :1]]  # (m, d, d): row k is the edge from vertex 0 to vertex k + 1
         if not torch.isfinite(edges).all():
             raise ValueError("the vertices of a simplex are too far apart: their differences overflow float64.")
-        # The determinant and the edge lengths overflow or underflow beyond coordinates of about 1e+-150 (in 2-D),
-        # so the scale-invariant tests below use the edges divided by their largest entry.
-        size = edges.abs().amax(dim=(1, 2))
-        unit = edges / torch.where(size > 0, size, 1.0)[:, None, None]
+        # The edges are E = diag(edge_scale) @ unit @ diag(axis_scale), with powers of two that bring the largest
+        # entry of every axis, then of every edge, of `unit` into [1, 2). The determinant, the edge lengths and
+        # the inverse of E itself overflow or underflow for coordinates beyond about 1e+-150, or for axes or edges
+        # of very different lengths; those of `unit` do not, and dividing by powers of two is exact.
+        self._axis_scale = _power_of_two_scale(edges.abs().amax(dim=1))  # (m, d)
+        unit = edges / self._axis_scale[:, None, :]
+        self._edge_scale = _power_of_two_scale(unit.abs().amax(dim=2))  # (m, d)
+        unit = unit / self._edge_scale[:, :, None]
         det = torch.linalg.det(unit)
         if (det.abs() <= 1e-12 * unit.norm(dim=2).prod(dim=1)).any():
             raise ValueError("a simplex is degenerate (zero volume).")
         self.vertices = x
         self.simplices = s
-        # Maps x - x_0 to barycentric coordinates 1..d.
-        self._inverse = torch.linalg.inv(unit.transpose(1, 2)) / size[:, None, None]
-        self._volumes: torch.Tensor = det.abs() * size**d / factorial(d)
+        # Maps (x - x_0) / axis_scale to barycentric coordinates 1..d times edge_scale.
+        self._inverse = torch.linalg.inv(unit.transpose(1, 2))
+        # Volumes are kept as mantissa * 2**exponent too, so that a product with a volume beyond the float64 range
+        # (e.g. a refinement score) can still be finite.
+        self._volume_mantissa = det.abs() / factorial(d)
+        self._volume_exponent = (torch.log2(self._axis_scale) + torch.log2(self._edge_scale)).sum(dim=1)  # integers
+        self._volumes: torch.Tensor = _times_power_of_two(self._volume_mantissa, self._volume_exponent)
         domain, tops = _simplicial_set(s.tolist())
         self.space = BezierSpace.on_set(domain, degree=_DEGREE)
         self.cell_ids = torch.tensor([self.space.cell_id(t) for t in tops], dtype=torch.long)
@@ -192,7 +211,8 @@ class SimplicialMesh:
         """
         p = self._check_points(x)
         origin = self.vertices[self.simplices[:, 0]]  # (m, d)
-        rest = torch.einsum("mij,nmj->nmi", self._inverse, p[:, None, :] - origin[None])
+        offset = (p[:, None, :] - origin[None]) / self._axis_scale[None]
+        rest = torch.einsum("mij,nmj->nmi", self._inverse, offset) / self._edge_scale[None]
         return torch.cat([1 - rest.sum(dim=2, keepdim=True), rest], dim=2)
 
     def locate(self, x: Any, *, tol: float = 1e-8, batch_size: int = 1024) -> Points:
@@ -264,26 +284,46 @@ def _gradient_at(v: int, x: torch.Tensor, f: torch.Tensor, ring: list[list[int]]
     quadratic = len(near) >= n_quadratic + 2
     # The one-ring of a vertex of a non-degenerate simplex spans R^d, for the linear fallback.
     rows = torch.tensor(sorted(near) if quadratic else ring[v], dtype=torch.long)
-    # Offsets are divided by their largest entry h, so that their squares and products neither overflow nor
-    # underflow at any scale of the coordinates; the gradient with respect to x is that with respect to x / h over h.
     offsets = x[rows] - x[v]
-    h = offsets.abs().max()
-    offsets = offsets / h
-    design = torch.cat([offsets, offsets[:, iu[0]] * offsets[:, iu[1]]], dim=1) if quadratic else offsets
-    weight = offsets.square().sum(dim=1).clamp_min(1e-300).rsqrt()[:, None]  # square root of 1 / |x_w - x_v|^2
+    # Fit in coordinates divided by a power of two per axis, so that the offsets, their squares and their products
+    # neither overflow nor underflow at any scale of any axis; the gradient is then divided by the same scales.
+    axis = _power_of_two_scale(offsets.abs().amax(dim=0))
+    u = offsets / axis
+    design = torch.cat([u, u[:, iu[0]] * u[:, iu[1]]], dim=1) if quadratic else u
+    # Distances are measured with every axis divided by the extent of the neighbourhood along it, so that the
+    # weights, and the gradient in the units of each axis, do not depend on the units or scale of any axis.
+    weight = _inverse_distance_weights(offsets / offsets.abs().amax(dim=0))
     solution: torch.Tensor = torch.linalg.lstsq(design * weight, (f[rows] - f[v]) * weight, driver="gelsd").solution
-    return solution[:d] / h
+    return solution[:d] / axis[:, None]
+
+
+def _inverse_distance_weights(offsets: torch.Tensor) -> torch.Tensor:
+    """Weights ``(n, 1)`` proportional to ``1 / |offset|``, scaled to at most one, at any magnitude of the offsets.
+
+    Each length is a power of two near the largest entry of its row times the norm of the row divided by that power,
+    which lies in ``[1, 2 sqrt(d))``, so that no square overflows or underflows.
+    """
+    largest = _power_of_two_scale(offsets.abs().amax(dim=1))
+    norm = (offsets / largest[:, None]).norm(dim=1)
+    length = (largest / largest.max()) * norm  # relative to the largest power of two, at most 2 sqrt(d)
+    length = length.clamp_min(torch.finfo(offsets.dtype).tiny)  # lengths smaller by more than 1e308 underflow
+    weights: torch.Tensor = length.min() / length
+    return weights[:, None]
 
 
 def estimate_gradients(mesh: SimplicialMesh, values: Any, *, max_rings: int = 4) -> torch.Tensor:
     r"""Estimate the gradient of vertex data at every vertex from its mesh neighbours.
 
     At each vertex, a quadratic polynomial is fitted by least squares with weights
-    :math:`1 / |x_w - x_v|^2` to the data on the smallest :math:`k`-ring neighbourhood
+    :math:`1 / |H^{-1}(x_w - x_v)|^2` to the data on the smallest :math:`k`-ring neighbourhood
     (:math:`2 \le k \le` ``max_rings``) that contains at least two more points than the quadratic has
     unknowns. If no such neighbourhood exists, a linear polynomial is fitted on the one-ring instead.
     The quadratic fit reproduces the gradient of quadratic data exactly, and either fit reproduces that
     of linear data. Vertices that belong to no simplex get a zero gradient.
+
+    :math:`H` is the diagonal matrix of the largest :math:`|x_w - x_v|` along each axis over the
+    neighbourhood, so that the estimate does not depend on the units of the axes: scaling an axis by
+    :math:`c` divides that component of the gradient by :math:`c`, even for axes of very different scales.
 
     Parameters
     ----------
@@ -443,4 +483,8 @@ def refinement_indicator(mesh: SimplicialMesh, values: Any, *, gradients: Any = 
     with torch.no_grad():
         cubic: torch.Tensor = model(centroid)
     linear = f[mesh.simplices].mean(dim=1)
-    return (cubic - linear).abs().mean(dim=1) * mesh.volumes()
+    correction = (cubic - linear).abs().mean(dim=1)
+    # Multiplied by the volume as mantissa * 2**exponent: a volume beyond the float64 range may still give a finite
+    # score, and a simplex without correction scores zero rather than 0 * inf = NaN.
+    score = _times_power_of_two(correction * mesh._volume_mantissa, mesh._volume_exponent)
+    return torch.where(correction > 0, score, 0.0)

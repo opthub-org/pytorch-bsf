@@ -1,6 +1,7 @@
 """Tests for torch_bsf.interpolation (shape-preserving cubic interpolation on simplicial complexes)."""
 
 import itertools
+import math
 from collections import Counter
 
 import pytest
@@ -12,6 +13,7 @@ from tests.strategies import (
     FLOAT64_MAX,
     FLOAT64_TINY,
     U,
+    axis_scalings,
     extreme_scalings,
     kuhn_meshes,
     log_uniform,
@@ -498,14 +500,69 @@ def test_mesh_is_exactly_translation_invariant_for_exact_translations(data):
     assert torch.equal(moved.barycentric(p + t), mesh.barycentric(p))
 
 
-@given(data=st.data(), scale=scalings())
-def test_mesh_is_scale_invariant(data, scale):
-    """Scaling vertices and points by 1e-6 to 1e6 changes neither validity nor location beyond rounding."""
+@given(data=st.data())
+def test_mesh_is_scale_invariant(data):
+    """Scaling each axis by its own factor from 1e-6 to 1e6 changes neither validity nor location beyond rounding."""
     x, simplices = data.draw(kuhn_meshes(), label="mesh")
+    scale = data.draw(axis_scalings(x.shape[1], scalings()), label="scale")
     _, _, p = data.draw(points_in_cells(x, simplices, 8), label="points")
     mesh, scaled = SimplicialMesh(x, simplices), SimplicialMesh(x * scale, simplices)
-    # Scaling rounds each coordinate once more, relative to its magnitude: offset 0 bounds that as well.
+    # Scaling rounds each coordinate once more, relative to its magnitude, i.e. by at most 2u in the unscaled units
+    # of its axis: offset 0 bounds that as well.
     _check_same_location(mesh, scaled, p, p * scale, 2 * _barycentric_tolerance(mesh, 0.0))
+
+
+def _times_power_of_two(x: float, exponent: int) -> float:
+    """``x * 2**exponent``, correctly rounded, or infinity if it overflows."""
+    try:
+        return math.ldexp(x, exponent)
+    except OverflowError:
+        return math.inf
+
+
+@given(data=st.data())
+def test_mesh_is_exactly_invariant_under_power_of_two_axis_scalings(data):
+    """Scaling each axis by its own power of two up to 2**±1000 (1e±301) scales every result exactly.
+
+    Barycentric coordinates, cells and interpolants do not change, gradients are divided by the scales, and volumes
+    and refinement scores are multiplied by their product, rounded once (or inf when it overflows). Axes then differ
+    in scale by up to 2**2000, which overflows any determinant, norm or product of coordinates computed directly.
+    Points lie on a grid of 2**-30, so that their scaled coordinates are exact as well.
+    """
+    x, simplices = data.draw(kuhn_meshes(), label="mesh")
+    scale = data.draw(axis_scalings(x.shape[1]), label="scale")
+    _, _, p = data.draw(points_in_cells(x, simplices, 8), label="points")
+    p = torch.round(p * 2.0**30) / 2.0**30
+    f = data.draw(matrices(len(x), 2), label="f")
+    mesh, scaled = SimplicialMesh(x, simplices), SimplicialMesh(x * scale, simplices)
+    assert torch.equal(scaled.barycentric(p * scale), mesh.barycentric(p))
+    found, refound = mesh.locate(p), scaled.locate(p * scale)
+    assert torch.equal(refound.cell_ids, found.cell_ids) and torch.equal(refound.parameters, found.parameters)
+    # Gradients may be subnormal after scaling, where dividing g by the scale of the axis and dividing the fitted
+    # solution by its scaled axis (what estimate_gradients does) can round differently, by one subnormal ulp.
+    g, g_scaled = estimate_gradients(mesh, f), estimate_gradients(scaled, f)
+    torch.testing.assert_close(g_scaled, g / scale[None, :, None], rtol=0, atol=2.0**-1073)
+    # The edge controls f_i + g . (x_j - x_i) / 3 multiply each gradient component by an offset scaled inversely, which
+    # is exact except for that subnormal ulp of g / scale times an offset of at most 2**1000: 2**-74 in all.
+    torch.testing.assert_close(
+        hermite_interpolant(scaled, f, gradients=g_scaled).coefficients,
+        hermite_interpolant(mesh, f).coefficients,
+        rtol=2 * U,
+        atol=2.0**-70,
+    )
+    exponent = int(torch.log2(scale).sum())
+    for actual, volume in zip(scaled.volumes().tolist(), mesh.volumes().tolist(), strict=True):
+        expected = _times_power_of_two(volume, exponent)
+        if expected == math.inf or expected >= FLOAT64_TINY:
+            assert actual == expected
+        else:  # a subnormal result, rounded twice
+            assert abs(actual - expected) <= 2.0**-1074
+    # A score is a correction, which may differ by the 2**-70 of the controls above, times the volume.
+    expected_scores = refinement_indicator(mesh, f).tolist()
+    volumes = scaled.volumes().tolist()
+    for actual, score, volume in zip(refinement_indicator(scaled, f).tolist(), expected_scores, volumes, strict=True):
+        expected = _times_power_of_two(score, exponent)
+        assert actual == expected or abs(actual - expected) <= 2 * U * abs(expected) + 2.0**-70 * volume + 2.0**-1073
 
 
 @given(data=st.data(), scale=extreme_scalings())
@@ -652,3 +709,40 @@ def test_locate_rejects_a_point_whose_coordinates_overflow():
 def test_mesh_rejects_vertices_whose_differences_overflow():
     with pytest.raises(ValueError, match="overflow"):
         SimplicialMesh([[-FLOAT64_MAX], [FLOAT64_MAX]], [[0, 1]])
+
+
+def test_volume_of_an_anisotropic_simplex():
+    """Regression test (Codex review of #440): edges diag(1e200, 1e-100) gave a volume of inf instead of 5e99.
+
+    The largest entry of the edges, 1e200, was squared before multiplying by the determinant of the scaled edges.
+    """
+    mesh = SimplicialMesh([[0.0, 0.0], [1e200, 0.0], [0.0, 1e-100]], [[0, 1, 2]])
+    torch.testing.assert_close(mesh.volumes(), torch.tensor([5e99], dtype=torch.float64), rtol=4 * U, atol=0)
+    assert torch.isfinite(refinement_indicator(mesh, [0.0, 1.0, 4.0])).all()
+    assert mesh.locate([[2.5e199, 2.5e-101]]).parameters.tolist() == [[0.5, 0.25, 0.25]]
+
+
+def test_gradients_of_axes_of_very_different_scales():
+    """With axes of scales 1e200 and 1e-200, Euclidean weights differed by more than 1e308 and underflowed."""
+    x, simplices = torch.tensor([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]], dtype=torch.float64), [[0, 1, 2], [1, 2, 3]]
+    scale = torch.tensor([1e200, 1e-200], dtype=torch.float64)
+    f = x[:, :1] - 2 * x[:, 1:]  # linear in the unscaled coordinates
+    g = estimate_gradients(SimplicialMesh(x * scale, simplices), f)
+    torch.testing.assert_close(g[:, :, 0] * scale, torch.tensor([[1.0, -2.0]] * 4, dtype=torch.float64))
+
+
+def test_refinement_score_without_correction_on_a_huge_simplex_is_zero():
+    """A volume beyond the float64 range is inf, and 0 * inf gave a NaN score to a simplex with linear data."""
+    mesh = SimplicialMesh([[0.0, 0.0], [2.0**1000, 0.0], [0.0, 2.0**25]], [[0, 1, 2]])
+    assert mesh.volumes().item() == math.inf
+    assert refinement_indicator(mesh, [1.0, 1.0, 1.0]).tolist() == [0.0]
+
+
+def test_refinement_score_of_a_simplex_whose_volume_overflows():
+    """The score is the correction times the volume, which may be finite although the volume itself is not."""
+    big = SimplicialMesh([[0.0, 0.0], [2.0**1000, 0.0], [0.0, 2.0**25]], [[0, 1, 2]])
+    unit = SimplicialMesh([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]], [[0, 1, 2]])
+    assert big.volumes().item() == math.inf
+    expected = refinement_indicator(unit, [0.0, 0.0, 1.0], gradients=[[[0.0], [0.0]], [[0.0], [0.0]], [[0.0], [3.0]]])
+    actual = refinement_indicator(big, [0.0, 0.0, 1.0], gradients=[[[0.0], [0.0]], [[0.0], [0.0]], [[0.0], [3.0 * 2.0**-25]]])
+    assert 0 < expected.item() < 0.5 and actual.tolist() == [math.ldexp(expected.item(), 1025)]
