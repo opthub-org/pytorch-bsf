@@ -594,7 +594,11 @@ class _Bisection:
     def bisect(self, e: tuple[int, int]) -> None:
         """Split every simplex containing edge ``e`` at its midpoint, which keeps the mesh conforming."""
         m = len(self.x)
-        self.x.append(self.x[e[0]] / 2 + self.x[e[1]] / 2)  # without overflow of the sum
+        a, b = self.x[e[0]], self.x[e[1]]
+        # The halved sum is correctly rounded (halving is exact for normal numbers and rounds only once for
+        # subnormal ones); the sum of the halves is used only where the sum overflows.
+        total = a + b
+        self.x.append(torch.where(torch.isfinite(total), total / 2, a / 2 + b / 2))
         for cell in sorted(self.cells_of[e]):
             self.remove(cell)
             for v in e:

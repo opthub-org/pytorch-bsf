@@ -1282,3 +1282,12 @@ def test_conformity_of_meshes_spanning_the_float64_range(data):
             assert "too far apart" in str(error)
             return
     assert mesh.unmatched_faces == expected
+
+
+def test_refine_midpoints_are_correctly_rounded():
+    """Halving both ends before adding rounded twice among subnormal numbers (Codex review of #430)."""
+    x = [torch.tensor([v], dtype=torch.float64) for v in (3 * 2.0**-1074, 6 * 2.0**-1074)]
+    bisection = _Bisection(x, [(0, 1)])
+    bisection.bisect((0, 1))
+    # The midpoint 4.5 units rounds to 4 (to even); halving 3 first gives 2 (to even), so the sum of halves is 5.
+    assert bisection.x[2].item() == 4 * 2.0**-1074
