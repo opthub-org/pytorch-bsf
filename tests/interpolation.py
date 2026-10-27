@@ -999,6 +999,19 @@ def test_control_is_computed_where_the_product_of_an_edge_and_a_gradient_overflo
     torch.testing.assert_close(model.coefficients.detach().max(), torch.tensor(1e308 / 3 * 4, dtype=torch.float64))
 
 
+def test_control_beyond_the_float64_range_is_clipped():
+    """Regression test (Codex review of #445): an exact edge correction beyond the float64 range raised OverflowError
+    when its sign was taken, instead of giving an infinite control for clamping to clip."""
+    mesh = SimplicialMesh([[0.0, 0.0], [-1e308, 0.0], [1e308, 1e308]], [[0, 1, 2]])
+    g = torch.zeros(3, 2, 1, dtype=torch.float64)
+    g[1, 0, 0], g[2, 0, 0] = 1e308, 1e308
+    f = torch.tensor([0.0, -1.0, 1.0], dtype=torch.float64)
+    coefficients = hermite_interpolant(mesh, f, gradients=g).coefficients.detach()
+    assert coefficients.min() == -1.0 and coefficients.max() == 1.0
+    with pytest.raises(ValueError, match="coefficients must be finite"):
+        hermite_interpolant(mesh, f, gradients=g, clamp=False)
+
+
 @pytest.mark.parametrize(
     "x, vertex, gradient",
     [

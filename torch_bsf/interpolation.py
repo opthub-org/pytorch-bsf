@@ -808,7 +808,7 @@ def _rounded(value: Fraction) -> float:
     try:
         return float(value)
     except OverflowError:
-        return math.copysign(math.inf, value)
+        return math.inf if value > 0 else -math.inf
 
 
 def _control_values(x: torch.Tensor, f: torch.Tensor, g: torch.Tensor, alpha: tuple[int, ...], clamp: bool) -> torch.Tensor:
