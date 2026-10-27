@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.0](https://github.com/opthub-org/pytorch-bsf/compare/v0.21.0...v0.22.0) (2026-10-27)
+
+
+### Features
+
+* **interpolation:** add shape-preserving simplicial cubic interpolation ([#425](https://github.com/opthub-org/pytorch-bsf/issues/425)) ([93ec870](https://github.com/opthub-org/pytorch-bsf/commit/93ec87057f3571828b93f14fa4458f7ff3400db7))
+
 ## [0.21.0](https://github.com/opthub-org/pytorch-bsf/compare/v0.20.0...v0.21.0) (2026-10-26)
 
 
