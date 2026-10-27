@@ -171,12 +171,14 @@ class SpaceSubdivision:
         self._original.validate(points)
         parameters = torch.zeros(len(points), self.model.space.width, dtype=points.parameters.dtype)
         cell_ids = torch.zeros(len(points), dtype=torch.long)
-        for cid in torch.unique(points.cell_ids).tolist():
-            rows = torch.nonzero(points.cell_ids == cid).flatten()
+        # The pieces are located on the CPU in float64; the result is moved back to the input's device.
+        ids_cpu = points.cell_ids.cpu()
+        for cid in torch.unique(ids_cpu).tolist():
+            rows = torch.nonzero(ids_cpu == cid).flatten()
             info = self._original.cells[cid]
             node = self._nodes[cid]
             pieces = [lists for lists, _ in self._refinement.pieces(node)]
-            t = points.parameters[rows, : info.width].cpu().double()
+            t = points.parameters.cpu()[rows, : info.width].double()
             which, local = locate(t, info.dimensions, pieces)
             tops = self._refinement.tops[node]
             ids = torch.tensor([self.model.space.cell_id(tops[k]) for k in which.tolist()], dtype=torch.long)

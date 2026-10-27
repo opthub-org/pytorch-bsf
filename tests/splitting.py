@@ -770,14 +770,18 @@ def test_subdivide_space_rejects_bad_edges_and_points():
         result.transfer(Points(torch.tensor([[1.5, -0.5, 0.0]], dtype=torch.float64)))
 
 
-def test_locate_rejects_points_outside_their_cell():
-    from fractions import Fraction
+def test_transfer_accepts_points_within_validation_drift():
+    """Points that validation accepts (within 1e-6 of the simplex) are transferred, even onto tiny pieces."""
+    from torch_bsf.core import BezierModel, BezierSpace, Points
+    from torch_bsf.splitting import EdgeSplit, subdivide_space
 
-    from torch_bsf._kernels._conforming import locate
-
-    piece = (((Fraction(1), Fraction(0)), (Fraction(1, 2), Fraction(1, 2))),)
-    with pytest.raises(ValueError, match="outside"):
-        locate(torch.tensor([[0.0, 1.0]], dtype=torch.float64), (1,), [piece])
+    model = BezierModel(BezierSpace.simplex(1, degree=3), torch.tensor([[0.0], [1.0], [-2.0], [3.0]], dtype=torch.float64))
+    points = Points(torch.tensor([[-1e-7, 1.0000001], [1.0000001, -1e-7], [0.5, 0.5]], dtype=torch.float64))
+    for fraction in (0.5, 1e-12):
+        result = subdivide_space(model, policy=EdgeSplit(0, 1, fraction))
+        moved = result.transfer(points)
+        clean = Points(points.parameters.clamp_min(0) / points.parameters.clamp_min(0).sum(1, keepdim=True))
+        torch.testing.assert_close(result.model(moved), model(clean), rtol=0, atol=1e-12)
 
 
 def test_subdivide_space_on_simplices_bisects_exactly_the_simplices_of_the_edge():
@@ -831,3 +835,22 @@ def test_subdivide_space_with_extreme_coefficients(scale):
     points = _uniform_points(space)
     result = subdivide_space(model, cell=space.main_cells[1], policy=EdgeSplit(0, 2, 0.3))
     torch.testing.assert_close(result.model(result.transfer(points)), model(points), rtol=1e-13, atol=0)
+
+
+_ACCELERATORS = [d for d, ok in (("cuda", torch.cuda.is_available()), ("mps", torch.backends.mps.is_available())) if ok]
+
+
+@pytest.mark.skipif(not _ACCELERATORS, reason="no accelerator available")
+def test_transfer_keeps_points_on_their_device():
+    from torch_bsf.core import BezierModel, BezierSpace, Points
+    from torch_bsf.splitting import EdgeSplit, subdivide_space
+
+    model = BezierModel(BezierSpace.simplex(2, degree=2), torch.randn(6, 1, dtype=torch.float64))
+    result = subdivide_space(model, policy=EdgeSplit(0, 1))
+    device = _ACCELERATORS[0]
+    points = Points(torch.tensor([[0.2, 0.3, 0.5]], dtype=torch.float32, device=device), torch.tensor([0], device=device))
+    moved = result.transfer(points)
+    assert moved.parameters.device == points.parameters.device and moved.cell_ids.device == points.cell_ids.device
+    cpu = Points(moved.parameters.cpu(), moved.cell_ids.cpu())
+    original = Points(points.parameters.cpu(), points.cell_ids.cpu())
+    torch.testing.assert_close(result.model(cpu.to()), model(original.to()), rtol=0, atol=1e-6)

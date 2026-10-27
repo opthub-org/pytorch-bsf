@@ -268,12 +268,27 @@ def split_nets(
     return [nets[tuple(p)].control_points for p in paths]
 
 
-def locate(
-    points: torch.Tensor, simploid_type: Sequence[int], pieces: Sequence[Lists], tol: float = 1e-9
-) -> tuple[torch.Tensor, torch.Tensor]:
-    """The piece containing each point (barycentric rows of a simploid) and its coordinates there."""
+def _project(points: torch.Tensor, simploid_type: Sequence[int]) -> torch.Tensor:
+    """Clamp barycentric rows to be nonnegative and to sum to one on every factor."""
+    out = points.clamp_min(0)
+    offset = 0
+    for a in simploid_type:
+        block = out[:, offset : offset + a + 1]
+        out[:, offset : offset + a + 1] = block / block.sum(dim=1, keepdim=True)
+        offset += a + 1
+    return out
+
+
+def locate(points: torch.Tensor, simploid_type: Sequence[int], pieces: Sequence[Lists]) -> tuple[torch.Tensor, torch.Tensor]:
+    """The piece containing each point (barycentric rows of a simploid) and its coordinates there.
+
+    The points are first projected onto the simploid, so a point within the drift that point validation accepts
+    is located too.  The pieces cover the simploid, so the piece whose smallest coordinate is largest contains the
+    point up to rounding; its coordinates are projected as well.
+    """
+    points = _project(points, simploid_type)
     n = len(points)
-    best = torch.full((n,), -1, dtype=torch.long)
+    best = torch.zeros(n, dtype=torch.long)
     coords = torch.zeros_like(points)
     margin = torch.full((n,), -float("inf"), dtype=points.dtype)
     for k, lists in enumerate(pieces):
@@ -288,15 +303,7 @@ def locate(
         margin = torch.where(better, worst, margin)
         best[better] = k
         coords[better] = torch.cat(blocks, dim=1)[better]
-    if (margin < -tol).any():
-        raise ValueError("a point lies outside its cell.")
-    clipped = coords.clamp_min(0)
-    offset = 0
-    for a in simploid_type:
-        block = clipped[:, offset : offset + a + 1]
-        clipped[:, offset : offset + a + 1] = block / block.sum(dim=1, keepdim=True)
-        offset += a + 1
-    return best, clipped
+    return best, _project(coords, simploid_type)
 
 
 def nodes_of(
