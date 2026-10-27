@@ -1,5 +1,5 @@
 Fitting from values alone
-========================
+=========================
 
 Use ``fit_point_cloud`` when each observation is a point on a curve or
 surface and its domain coordinate is unknown. The existing ``fit`` solves
