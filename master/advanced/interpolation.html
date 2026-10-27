@@ -79,6 +79,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#how-the-cubic-pieces-are-built">How the cubic pieces are built</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#range-limiting-and-its-error-guarantee">Range limiting and its error guarantee</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#choose-where-to-add-design-points">Choose where to add design points</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#conforming-meshes">Conforming meshes</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#limitations">Limitations</a></li>
 </ul>
 </li>
@@ -149,8 +150,10 @@ noise.</p>
 <p>A <a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.SimplicialMesh" title="torch_bsf.interpolation.SimplicialMesh"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimplicialMesh</span></code></a> takes vertex coordinates
 of shape <code class="docutils literal notranslate"><span class="pre">(n_vertices,</span> <span class="pre">d)</span></code> and simplices of shape <code class="docutils literal notranslate"><span class="pre">(n_simplices,</span> <span class="pre">d</span> <span class="pre">+</span> <span class="pre">1)</span></code>
 given by vertex numbers. The simplices must not be degenerate and must meet
-face to face. The example triangulates a jittered grid of the unit square and
-interpolates a function with a kink along a diagonal.</p>
+face to face (the mesh must be <em>conforming</em>); <code class="docutils literal notranslate"><span class="pre">SimplicialMesh</span></code> checks this
+and raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> otherwise (see <a class="reference internal" href="#conforming-meshes">Conforming meshes</a>). The example
+triangulates a jittered grid of the unit square and interpolates a function
+with a kink along a diagonal.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.interpolation</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimplicialMesh</span><span class="p">,</span> <span class="n">hermite_interpolant</span>
 
@@ -320,10 +323,38 @@ refines a one-dimensional kink, where remeshing is just sorting.</p>
 <span class="k">assert</span> <span class="n">last</span> <span class="o">&lt;</span> <span class="n">first</span> <span class="o">/</span> <span class="mi">4</span>
 </pre></div>
 </div>
-<p>In higher dimensions, <code class="docutils literal notranslate"><span class="pre">LongestEdge</span></code> in <a class="reference internal" href="../torch_bsf.html#module-torch_bsf.splitting" title="torch_bsf.splitting"><code class="xref py py-mod docutils literal notranslate"><span class="pre">torch_bsf.splitting</span></code></a> selects
-the longest edge of a cell, and a triangulation library rebuilds the mesh.
-With the optional SciPy dependency (the <code class="docutils literal notranslate"><span class="pre">sparse</span></code> extra), a Delaunay
-triangulation can be passed directly:</p>
+<p>In higher dimensions, <a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.refine" title="torch_bsf.interpolation.refine"><code class="xref py py-func docutils literal notranslate"><span class="pre">refine()</span></code></a> bisects the
+selected simplices at the midpoint of their longest edge and returns a new
+mesh. The new vertices are appended after the old ones, so the data already
+observed keep their rows; evaluate the response only at the new vertices.
+The example starts from the lattice mesh of the triangle described below.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.interpolation</span><span class="w"> </span><span class="kn">import</span> <span class="n">lattice_mesh</span><span class="p">,</span> <span class="n">refine</span>
+
+<span class="n">adaptive</span> <span class="o">=</span> <span class="n">lattice_mesh</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">observed</span> <span class="o">=</span> <span class="n">response</span><span class="p">(</span><span class="n">adaptive</span><span class="o">.</span><span class="n">vertices</span><span class="p">)</span>
+<span class="k">while</span> <span class="n">adaptive</span><span class="o">.</span><span class="n">n_vertices</span> <span class="o">&lt;</span> <span class="mi">20</span><span class="p">:</span>
+    <span class="n">worst</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">refinement_indicator</span><span class="p">(</span><span class="n">adaptive</span><span class="p">,</span> <span class="n">observed</span><span class="p">)</span><span class="o">.</span><span class="n">argmax</span><span class="p">())</span>
+    <span class="n">old</span> <span class="o">=</span> <span class="n">adaptive</span><span class="o">.</span><span class="n">n_vertices</span>
+    <span class="n">adaptive</span> <span class="o">=</span> <span class="n">refine</span><span class="p">(</span><span class="n">adaptive</span><span class="p">,</span> <span class="p">[</span><span class="n">worst</span><span class="p">])</span>
+    <span class="n">observed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">observed</span><span class="p">,</span> <span class="n">response</span><span class="p">(</span><span class="n">adaptive</span><span class="o">.</span><span class="n">vertices</span><span class="p">[</span><span class="n">old</span><span class="p">:])])</span>
+<span class="k">assert</span> <span class="n">adaptive</span><span class="o">.</span><span class="n">unmatched_faces</span> <span class="o">==</span> <span class="mi">0</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">hermite_interpolant</span><span class="p">(</span><span class="n">adaptive</span><span class="p">,</span> <span class="n">observed</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="conforming-meshes">
+<h2>Conforming meshes<a class="headerlink" href="#conforming-meshes" title="Link to this heading"></a></h2>
+<p>Two simplices of a conforming mesh meet in a common face or not at all. The
+interpolant is continuous only on such meshes, because a control on a face is
+shared only by simplices that both have that whole face. <code class="docutils literal notranslate"><span class="pre">SimplicialMesh</span></code>
+counts the faces that break this rule, those shared by more than two
+simplices and those across which the mesh continues without a matching face
+(a hanging vertex, or two cells splitting a common square along different
+diagonals), in <code class="docutils literal notranslate"><span class="pre">unmatched_faces</span></code>. It raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> if there are any,
+or warns with <code class="docutils literal notranslate"><span class="pre">strict=False</span></code>. Faces on the boundary of the meshed domain
+are fine.</p>
+<p>With the optional SciPy dependency (the <code class="docutils literal notranslate"><span class="pre">sparse</span></code> extra), a Delaunay
+triangulation of points in general position can be passed directly:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.spatial</span><span class="w"> </span><span class="kn">import</span> <span class="n">Delaunay</span>
 
 <span class="n">scattered</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">]]),</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span> <span class="mi">2</span><span class="p">)])</span><span class="o">.</span><span class="n">double</span><span class="p">()</span>
@@ -333,14 +364,41 @@ triangulation can be passed directly:</p>
 <span class="k">assert</span> <span class="n">score</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">delaunay</span><span class="o">.</span><span class="n">n_simplices</span><span class="p">,)</span>
 </pre></div>
 </div>
+<p>Points of a lattice, such as a grid of mixture weights, are co-spherical, so
+their Delaunay triangulation is not unique. Qhull then returns flat
+simplices, which <code class="docutils literal notranslate"><span class="pre">SimplicialMesh</span></code> rejects as degenerate, and removing them
+leaves cells that split a flat polygon in different ways on its two sides:
+the mesh is not conforming. For the degree-<code class="docutils literal notranslate"><span class="pre">k</span></code> lattice of a simplex, use
+<a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.lattice_mesh" title="torch_bsf.interpolation.lattice_mesh"><code class="xref py py-func docutils literal notranslate"><span class="pre">lattice_mesh()</span></code></a> instead. It returns the Kuhn
+(Freudenthal) triangulation <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../references.html#id49" title="Harold W. Kuhn. Some combinatorial lemmas in topology. IBM Journal of Research and Development, 4(5):518–524, 1960.">Kuh60</a>]</span>: <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">**</span> <span class="pre">d</span></code>
+simplices of equal volume (not congruent for <code class="docutils literal notranslate"><span class="pre">d</span> <span class="pre">&gt;=</span> <span class="pre">3</span></code>) whose vertices are
+the lattice points, in the order of
+<a class="reference internal" href="../torch_bsf.html#torch_bsf.sampling.grid" title="torch_bsf.sampling.grid"><code class="xref py py-func docutils literal notranslate"><span class="pre">grid()</span></code></a> with <code class="docutils literal notranslate"><span class="pre">resolution=k</span></code>, given by their first
+<code class="docutils literal notranslate"><span class="pre">d</span></code> barycentric coordinates.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">mixtures</span> <span class="o">=</span> <span class="n">lattice_mesh</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">mixtures</span><span class="o">.</span><span class="n">n_vertices</span><span class="p">,</span> <span class="n">mixtures</span><span class="o">.</span><span class="n">n_simplices</span><span class="p">,</span> <span class="n">mixtures</span><span class="o">.</span><span class="n">unmatched_faces</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>35 64 0
+</pre></div>
+</div>
+<p>Refinement by <a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.refine" title="torch_bsf.interpolation.refine"><code class="xref py py-func docutils literal notranslate"><span class="pre">refine()</span></code></a> keeps a mesh
+conforming. It bisects an edge in every simplex containing it, and before
+that it refines each of those simplices whose longest edge is another one,
+recursively, which is the longest-edge bisection of Rivara
+<span class="bibtex-citation" id="id4">[<a class="reference internal" href="../references.html#id50" title="Maria-Cecilia Rivara. Algorithms for refining triangular grids suitable for adaptive and multigrid techniques. International Journal for Numerical Methods in Engineering, 20(4):745–756, 1984.">Riv84</a>]</span>. Refining one simplex can therefore add more
+than one vertex. Ties between edges of equal length, common on lattices, are
+broken by vertex numbers in the same way everywhere. Starting from a lattice
+mesh, every new vertex is a lattice point of a finer lattice (degree <code class="docutils literal notranslate"><span class="pre">2k</span></code>,
+then <code class="docutils literal notranslate"><span class="pre">4k</span></code>, and so on).</p>
 </section>
 <section id="limitations">
 <h2>Limitations<a class="headerlink" href="#limitations" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p>The mesh is not generated here; the simplices must be full-dimensional,
-non-degenerate and conforming (two simplices meet in a common face or not
-at all). Otherwise shared controls are not shared and the interpolant is
-discontinuous.</p></li>
+<li><p>Meshes of arbitrary point sets are not generated here; only lattice meshes
+and their refinements are. The simplices must be full-dimensional,
+non-degenerate and conforming. The conformity check does not detect
+simplices that overlap without sharing a face.</p></li>
 <li><p>The interpolant is cubic and C0. C1 macro-elements (Clough–Tocher,
 Powell–Sabin) and non-simplicial cells such as prisms are not provided.</p></li>
 <li><p>Quadratic reproduction requires enough neighbours around each vertex for
