@@ -3,6 +3,7 @@
 import itertools
 import math
 from collections import Counter
+from fractions import Fraction
 
 import pytest
 import torch
@@ -538,10 +539,11 @@ def test_mesh_is_exactly_invariant_under_power_of_two_axis_scalings(data):
     assert torch.equal(scaled.barycentric(p * scale), mesh.barycentric(p))
     found, refound = mesh.locate(p), scaled.locate(p * scale)
     assert torch.equal(refound.cell_ids, found.cell_ids) and torch.equal(refound.parameters, found.parameters)
-    # Gradients may be subnormal after scaling, where dividing g by the scale of the axis and dividing the fitted
-    # solution by its scaled axis (what estimate_gradients does) can round differently, by one subnormal ulp.
+    # Both fits are the same up to the final power of two, applied with one rounding. A gradient that is subnormal
+    # in one of the meshes loses bits there, so it is compared after scaling the other one onto it.
     g, g_scaled = estimate_gradients(mesh, f), estimate_gradients(scaled, f)
-    torch.testing.assert_close(g_scaled, g / scale[None, :, None], rtol=0, atol=2.0**-1073)
+    s = scale[None, :, None]
+    assert ((g_scaled * s == g) | (g / s == g_scaled)).all()
     # The edge controls f_i + g . (x_j - x_i) / 3 multiply each gradient component by an offset scaled inversely, which
     # is exact except for that subnormal ulp of g / scale times an offset of at most 2**1000: 2**-74 in all.
     torch.testing.assert_close(
@@ -709,6 +711,77 @@ def test_locate_rejects_a_point_whose_coordinates_overflow():
 def test_mesh_rejects_vertices_whose_differences_overflow():
     with pytest.raises(ValueError, match="overflow"):
         SimplicialMesh([[-FLOAT64_MAX], [FLOAT64_MAX]], [[0, 1]])
+
+
+def _hadamard_ratio_squared(rows: list[list[Fraction]]) -> Fraction:
+    """``(det / product of row lengths)**2`` of an upper triangular matrix, exactly."""
+    det = math.prod((rows[k][k] for k in range(len(rows))), start=Fraction(1))
+    return det**2 / math.prod((sum((v**2 for v in row), start=Fraction(0)) for row in rows), start=Fraction(1))
+
+
+@given(data=st.data())
+def test_simplex_with_edges_and_axes_of_extreme_scales(data: st.DataObject):
+    """Edges diag(2**a) T diag(2**b), T upper triangular with integer entries, against exact rational arithmetic.
+
+    Edges and axes then differ in scale by up to 2**2000, as in the triangle [0, 0], [1e308, 1e308],
+    [1e-300, -1e-300]. A simplex is degenerate when its volume is at most 1e-12 times the product of its edge
+    lengths both as given (Euclidean) and with each axis divided by the power of two 2**floor(log2(extent))
+    below twice its extent over the simplex. Ratios within a factor of two of 1e-12 may go either way, as the
+    determinant is rounded. Otherwise the volume must have a relative error of at most 2 (d**2 + 1) U: the
+    equilibrated edges stay triangular, so LU factorization perturbs only their diagonal, each entry by at most
+    gamma_d ~ d U, and dividing by d! rounds once (plus the subnormal spacing 2**-1074 for a subnormal volume).
+    """
+    d = data.draw(st.integers(1, 3), label="d")
+    t = [[0] * d for _ in range(d)]
+    for k in range(d):
+        t[k][k] = data.draw(st.integers(1, 2**10), label="diagonal")
+        for j in range(k + 1, d):
+            t[k][j] = data.draw(st.integers(-(2**10), 2**10), label="off-diagonal")
+    a = data.draw(st.lists(st.integers(-1000, 1000), min_size=d, max_size=d), label="edge exponents")
+    b = data.draw(st.lists(st.integers(-1000, 1000), min_size=d, max_size=d), label="axis exponents")
+    exact = [[Fraction(t[k][j]) * Fraction(2) ** (a[k] + b[j]) for j in range(d)] for k in range(d)]
+    # Only simplices whose edges are float64 values are drawn, so that T gives the exact simplex.
+    if any(v != 0 and not (FLOAT64_TINY <= abs(v) <= FLOAT64_MAX) for row in exact for v in row):
+        return
+    vertices = torch.tensor([[0.0] * d] + [[float(v) for v in row] for row in exact], dtype=torch.float64)
+    axis = [Fraction(2) ** math.frexp(float(max(abs(row[j]) for row in exact)))[1] for j in range(d)]
+    normalized = [[v / axis[j] for j, v in enumerate(row)] for row in exact]
+    ratio = max(_hadamard_ratio_squared(exact), _hadamard_ratio_squared(normalized))
+    if ratio <= Fraction(1, 2 * 10**12) ** 2:
+        with pytest.raises(ValueError, match="degenerate"):
+            SimplicialMesh(vertices, [list(range(d + 1))])
+        return
+    if ratio < Fraction(2, 10**12) ** 2:
+        return
+    mesh = SimplicialMesh(vertices, [list(range(d + 1))])
+    volume = abs(math.prod((exact[k][k] for k in range(d)), start=Fraction(1))) / math.factorial(d)
+    actual = mesh.volumes().item()
+    if volume > Fraction(FLOAT64_MAX):
+        assert actual >= FLOAT64_MAX * (1 - 2 * (d**2 + 1) * U)
+    else:
+        assert abs(Fraction(actual) - volume) <= 2 * (d**2 + 1) * Fraction(U) * volume + Fraction(2) ** -1074
+    # Linear data that varies by about one along every axis of the simplex, i.e. with gradient 1 / axis. Least
+    # squares is accurate relative to the largest variation, so a gradient component whose variation is far
+    # smaller could be lost in rounding, and its value relative to a tiny axis could then overflow.
+    f = torch.tensor([0.0] + [float(sum(normalized[k])) for k in range(d)], dtype=torch.float64)
+    assert torch.isfinite(estimate_gradients(mesh, f)).all()
+    assert not refinement_indicator(mesh, f).isnan().any()
+
+
+def test_mesh_with_edges_of_very_different_lengths():
+    """Regression test (Codex review of #440): for the triangle [0, 0], [1e308, 1e308], [1e-300, -1e-300] (volume
+    1e8), dividing the edges by the largest entry of each axis first made the short edge 0, and the constructor
+    said "degenerate". The gradient of linear data also lost the short edge and was 0 at the vertices it joins.
+    """
+    mesh = SimplicialMesh([[0.0, 0.0], [1e308, 1e308], [1e-300, -1e-300]], [[0, 1, 2]])
+    torch.testing.assert_close(mesh.volumes(), torch.tensor([1e8], dtype=torch.float64), rtol=4 * U, atol=0)
+    torch.testing.assert_close(
+        mesh.locate([[1e-301, 0.0]]).parameters, torch.tensor([[0.95, 0.0, 0.05]], dtype=torch.float64), rtol=0, atol=8 * U
+    )
+    # f = x - y. At vertex 1, the offsets to vertices 0 and 2 round to the same float64 vector, so its gradient
+    # cannot be determined; the other two vertices see both edges.
+    g = estimate_gradients(mesh, [0.0, 0.0, 2e-300])
+    torch.testing.assert_close(g[[0, 2], :, 0], torch.tensor([[1.0, -1.0]] * 2, dtype=torch.float64), rtol=8 * U, atol=0)
 
 
 def test_volume_of_an_anisotropic_simplex():
