@@ -388,3 +388,37 @@ def test_invalid_values_and_gradients():
         estimate_gradients(mesh, torch.zeros(3), max_rings=1)
     with pytest.raises(ValueError, match="points"):
         mesh.locate(torch.zeros(3, 2))
+
+
+def test_list_inputs_are_read_as_float64():
+    """Regression test for #431: Python floats must not be rounded to float32 on the way in."""
+    vertices = [[0.0, 0.0], [1.0, 0.0], [0.5, 0.2]]
+    mesh = SimplicialMesh(vertices, [[0, 1, 2]])
+    assert mesh.vertices[2, 1].item() == 0.2
+    points = [[0.5, 0.1]]
+    exact = SimplicialMesh(torch.tensor(vertices, dtype=torch.float64), [[0, 1, 2]])
+    expected = exact.locate(torch.tensor(points, dtype=torch.float64))
+    assert torch.equal(mesh.locate(points).parameters, expected.parameters)
+    assert torch.equal(mesh.barycentric(points), exact.barycentric(torch.tensor(points, dtype=torch.float64)))
+    values = [0.1, 0.2, 0.3]
+    gradients = [[[0.1], [0.2]], [[0.3], [0.4]], [[0.5], [0.7]]]
+    model = hermite_interpolant(mesh, values, gradients=gradients, clamp=False)
+    reference = hermite_interpolant(
+        exact,
+        torch.tensor(values, dtype=torch.float64),
+        gradients=torch.tensor(gradients, dtype=torch.float64),
+        clamp=False,
+    )
+    assert torch.equal(model.coefficients, reference.coefficients)
+
+
+def test_complex_inputs_are_rejected():
+    with pytest.raises(ValueError, match="vertices"):
+        SimplicialMesh([[0.0], [1j]], [[0, 1]])
+    mesh = SimplicialMesh([[0.0], [1.0]], [[0, 1]])
+    with pytest.raises(ValueError, match="points"):
+        mesh.locate([[0.5j]])
+    with pytest.raises(ValueError, match="values"):
+        hermite_interpolant(mesh, [0.0, 1j])
+    with pytest.raises(ValueError, match="gradients"):
+        hermite_interpolant(mesh, [0.0, 1.0], gradients=[[[0.0]], [[1j]]])

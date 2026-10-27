@@ -61,6 +61,14 @@ def _simplicial_set(simplices: Sequence[Sequence[int]]) -> tuple[SimploidalSet, 
     return domain, tops
 
 
+def _as_real_tensor(x: Any) -> torch.Tensor:
+    """Read ``x`` as a tensor, parsing non-tensor floating-point input in float64 rather than the default dtype."""
+    t = torch.as_tensor(x)
+    if not isinstance(x, torch.Tensor) and t.is_floating_point():
+        t = torch.as_tensor(x, dtype=torch.float64)
+    return t
+
+
 class SimplicialMesh:
     r"""A conforming simplicial complex in :math:`\mathbb{R}^d` compiled into a cubic :class:`~torch_bsf.core.BezierSpace`.
 
@@ -101,7 +109,7 @@ class SimplicialMesh:
     """
 
     def __init__(self, vertices: Any, simplices: Any):
-        x = torch.as_tensor(vertices)
+        x = _as_real_tensor(vertices)
         if x.ndim != 2 or x.shape[1] < 1 or not len(x) or x.is_complex() or not torch.isfinite(x).all():
             raise ValueError("vertices must be finite and real with shape (n_vertices, d), d >= 1.")
         x = x.to(dtype=torch.float64, device="cpu")
@@ -221,13 +229,13 @@ class SimplicialMesh:
         return Points(torch.cat(coordinates), torch.cat(ids))
 
     def _check_points(self, x: Any) -> torch.Tensor:
-        p = torch.as_tensor(x)
+        p = _as_real_tensor(x)
         if p.ndim != 2 or p.shape[1] != self.dimension or p.is_complex() or not torch.isfinite(p).all():
             raise ValueError(f"points must be finite and real with shape (n_points, {self.dimension}).")
         return p.to(dtype=torch.float64, device="cpu")
 
     def _check_values(self, values: Any) -> torch.Tensor:
-        f = torch.as_tensor(values)
+        f = _as_real_tensor(values)
         if f.ndim == 1:
             f = f[:, None]
         if f.ndim != 2 or len(f) != self.n_vertices or f.shape[1] < 1 or f.is_complex() or not torch.isfinite(f).all():
@@ -372,7 +380,7 @@ def hermite_interpolant(mesh: SimplicialMesh, values: Any, *, gradients: Any = N
     if gradients is None:
         g = estimate_gradients(mesh, f)
     else:
-        g = torch.as_tensor(gradients)
+        g = _as_real_tensor(gradients)
         if g.shape != (mesh.n_vertices, mesh.dimension, f.shape[1]) or g.is_complex() or not torch.isfinite(g).all():
             raise ValueError("gradients must be finite and real with shape (n_vertices, d, n_outputs).")
         g = g.to(dtype=torch.float64, device="cpu")
