@@ -1009,7 +1009,23 @@ def test_infinite_estimated_gradients_are_clipped():
     assert coefficients.min() == 0.0 and coefficients.max() == 1.0
 
 
-def test_control_beyond_the_float64_range_is_clipped():
+@pytest.mark.parametrize("interpolate", [hermite_interpolant, refinement_indicator])
+def test_overflowing_vertex_data_reports_interpolant_overflow(interpolate):
+    """Regression #446: finite data can give infinite estimates and an unrepresentable interpolant."""
+    mesh = SimplicialMesh(torch.arange(5.0, dtype=torch.float64)[:, None], [[k, k + 1] for k in range(4)])
+    f = torch.tensor([1e308, -1e308, 1e308, -1e308, 1e308], dtype=torch.float64)
+    g = estimate_gradients(mesh, f)
+    assert torch.isneginf(g[0, 0, 0])
+    assert torch.isposinf(g[-1, 0, 0])
+    assert torch.isfinite(g[1:-1]).all()
+    with pytest.raises(ValueError, match="interpolant.*overflow float64"):
+        interpolate(mesh, f, clamp=False)
+    assert torch.isfinite(hermite_interpolant(mesh, f).coefficients).all()
+    assert torch.isfinite(refinement_indicator(mesh, f)).all()
+
+
+@pytest.mark.parametrize("interpolate", [hermite_interpolant, refinement_indicator])
+def test_control_beyond_the_float64_range_is_clipped(interpolate):
     """Regression test (Codex review of #445): an exact edge correction beyond the float64 range raised OverflowError
     when its sign was taken, instead of giving an infinite control for clamping to clip."""
     mesh = SimplicialMesh([[0.0, 0.0], [-1e308, 0.0], [1e308, 1e308]], [[0, 1, 2]])
@@ -1018,8 +1034,8 @@ def test_control_beyond_the_float64_range_is_clipped():
     f = torch.tensor([0.0, -1.0, 1.0], dtype=torch.float64)
     coefficients = hermite_interpolant(mesh, f, gradients=g).coefficients.detach()
     assert coefficients.min() == -1.0 and coefficients.max() == 1.0
-    with pytest.raises(ValueError, match="coefficients must be finite"):
-        hermite_interpolant(mesh, f, gradients=g, clamp=False)
+    with pytest.raises(ValueError, match="interpolant.*overflow float64"):
+        interpolate(mesh, f, gradients=g, clamp=False)
 
 
 @pytest.mark.parametrize(

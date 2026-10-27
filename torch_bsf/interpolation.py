@@ -777,6 +777,8 @@ def estimate_gradients(mesh: SimplicialMesh, values: Any, *, max_rings: int = 4)
     -------
     torch.Tensor
         Float64 gradients of shape ``(n_vertices, d, n_outputs)``.
+        Components beyond the float64 range are returned as signed infinity, without a warning.
+        Finite vertex data can produce such gradients, for example on very short edges.
 
     Examples
     --------
@@ -877,6 +879,13 @@ def hermite_interpolant(mesh: SimplicialMesh, values: Any, *, gradients: Any = N
     BezierModel
         A float64 model on ``mesh.space``. Evaluate it at ``mesh.locate(x)``.
 
+    Raises
+    ------
+    ValueError
+        If the data or supplied gradients are invalid, or the interpolant's control values are
+        non-finite because the data or estimated gradients cause float64 overflow. Clamping can
+        clip infinite controls into the data range, but cannot repair NaN controls.
+
     Examples
     --------
     >>> import torch
@@ -903,6 +912,8 @@ def hermite_interpolant(mesh: SimplicialMesh, values: Any, *, gradients: Any = N
     for k, (alpha,) in enumerate(_indices((mesh.dimension,), (_DEGREE,))):
         # A shared control gets bitwise equal values from every simplex, so duplicate rows are harmless.
         coefficients[controls[:, k]] = _control_values(xs, fs, gs, alpha, bool(clamp))
+    if not torch.isfinite(coefficients).all():
+        raise ValueError("the interpolant is not finite: the vertex data or gradients cause its controls to overflow float64.")
     return BezierModel(mesh.space, coefficients)
 
 
@@ -929,6 +940,12 @@ def refinement_indicator(mesh: SimplicialMesh, values: Any, *, gradients: Any = 
     -------
     torch.Tensor
         Nonnegative float64 scores of shape ``(n_simplices,)``.
+
+    Raises
+    ------
+    ValueError
+        If :func:`hermite_interpolant` cannot construct a finite interpolant, including when the
+        vertex data or gradients cause its controls to overflow float64.
 
     Examples
     --------
