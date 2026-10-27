@@ -1,0 +1,368 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Visualization &mdash; PyTorch-BSF 0.21.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=c4f92b34"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Exact local subdivision" href="splitting.html" />
+    <link rel="prev" title="Explicit initial models" href="initialization.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#follow-a-fit-through-the-guides">Follow a fit through the guides</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Visualization</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#what-to-inspect-before-trusting-a-fit">What to inspect before trusting a fit</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#plot-observations-and-fitted-image">Plot observations and fitted image</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#tune-display-settings">Tune display settings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#residuals-boundaries-and-assembled-domains">Residuals, boundaries and assembled domains</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#add-a-parameter-space-residual-view">Add a parameter-space residual view</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="partial.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Visualization</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/visualization.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="visualization">
+<h1>Visualization<a class="headerlink" href="#visualization" title="Link to this heading"></a></h1>
+<section id="what-to-inspect-before-trusting-a-fit">
+<h2>What to inspect before trusting a fit<a class="headerlink" href="#what-to-inspect-before-trusting-a-fit" title="Link to this heading"></a></h2>
+<p>Plot observations, predicted images and residuals before reducing a result to
+one MSE. A low mean error can hide endpoint bias, oscillation between sparse
+measurements or an outlier in one response. A control net can reveal how a
+penalty changes the fitted geometry, while a parameter-space error graph
+shows where additional observations are needed.</p>
+<p>Install <code class="docutils literal notranslate"><span class="pre">pytorch-bsf[plot]</span></code> for plotting. <code class="docutils literal notranslate"><span class="pre">plot_model</span></code> draws the image of a
+model using two or three selected output coordinates. For one scalar output
+against a parameter, evaluate the model on <code class="docutils literal notranslate"><span class="pre">grid</span></code> points and use ordinary
+Matplotlib lines. These views answer different questions; label axes so that
+a reader knows whether the horizontal coordinate is a parameter or a response.</p>
+</section>
+<section id="plot-observations-and-fitted-image">
+<h2>Plot observations and fitted image<a class="headerlink" href="#plot-observations-and-fitted-image" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib</span>
+<span class="n">matplotlib</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s2">"Agg"</span><span class="p">)</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">Samples</span><span class="p">,</span> <span class="n">fit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.plotting</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_model</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">x</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span><span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">),</span> <span class="n">Samples</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">values</span><span class="p">))</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">values</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">values</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s2">"black"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"observations"</span><span class="p">)</span>
+<span class="n">plot_model</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">coordinates</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+           <span class="n">show_controls</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"C0"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s2">"first output"</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s2">"second output"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The example chooses a graph-shaped image by fitting both <code class="docutils literal notranslate"><span class="pre">x</span></code> and its
+response. <code class="docutils literal notranslate"><span class="pre">plot_model</span></code> does not automatically append an input coordinate to
+a scalar model’s output. For an existing scalar model, explicitly plot
+<code class="docutils literal notranslate"><span class="pre">points.parameters[:,</span> <span class="pre">1]</span></code> against <code class="docutils literal notranslate"><span class="pre">model(points)[:,</span> <span class="pre">0]</span></code> instead of trying
+to request a nonexistent second output.</p>
+<p><code class="docutils literal notranslate"><span class="pre">plot_model</span></code> returns the axes. Pass <code class="docutils literal notranslate"><span class="pre">ax</span></code> to overlay models, observations,
+or an analytic reference, and call <code class="docutils literal notranslate"><span class="pre">ax.figure.savefig(...)</span></code> to export.
+Use a three-dimensional axes object for three selected outputs. With more
+than three outputs, select a meaningful pair or triple via <code class="docutils literal notranslate"><span class="pre">coordinates</span></code>;
+indices must be distinct, in range, and have length two or three. Different
+projections can hide different errors, so check omitted outputs numerically.</p>
+</section>
+<section id="tune-display-settings">
+<h2>Tune display settings<a class="headerlink" href="#tune-display-settings" title="Link to this heading"></a></h2>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-number">Table 4 </span><span class="caption-text">Plot options and their effects</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 23.0%" />
+<col style="width: 42.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Setting</p></th>
+<th class="head"><p>Increasing or changing it does this</p></th>
+<th class="head"><p>Interpretation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">resolution</span></code></p></td>
+<td><p>Evaluates a denser mesh inside each plotted cell or face.</p></td>
+<td><p>Smoother rendering, greater evaluation cost; coefficients stay fixed.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">coordinates</span></code></p></td>
+<td><p>Selects another two- or three-output projection.</p></td>
+<td><p>Can expose features hidden by the previous projection.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">show_controls</span></code></p></td>
+<td><p>Displays or hides the coefficient net.</p></td>
+<td><p>Controls explain representation, but interior controls are not observations.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">color</span></code> and plotting keywords</p></td>
+<td><p>Changes visual styling on the supplied axes.</p></td>
+<td><p>Use consistent styles when comparing conditions.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Choose common axis limits for before/after panels; autoscaling each panel
+independently can make a small change look dramatic or hide large shrinkage.
+Show the same observation markers and identify which settings changed. Do
+not smooth a residual plot so aggressively that localized errors disappear.
+When output units differ greatly, use separate axes or explicit scaled views,
+and report which units are being shown.</p>
+<figure class="align-default" id="id2">
+<a class="reference internal image-reference" href="../_images/fit_comparison.svg"><img alt="Four fits of the same observations with different regularization or fixed endpoints." src="../_images/fit_comparison.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 10 </span><span class="caption-text">The same degree-five space and 18 noisy observations before and after
+ridge, smoothness or endpoint constraints. Blue curves show model images;
+orange polygons show controls. Common axes make shrinkage and endpoint
+changes comparable. See <a class="reference internal" href="regularization.html"><span class="doc">Regularization and numerical evidence</span></a> for the objective and weights.</span><a class="headerlink" href="#id2" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>This existing figure is regenerated by
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">examples/generate_regularization_comparison.py</span></code> with plot and sparse
+extras. Dense/sparse prediction agreement is checked before rendering. The
+figure shows a real change of fitted coefficients; the resolution comparison
+in <a class="reference internal" href="grid_sampling.html"><span class="doc">Grid sampling</span></a> shows a change of display density only.</p>
+</section>
+<section id="residuals-boundaries-and-assembled-domains">
+<h2>Residuals, boundaries and assembled domains<a class="headerlink" href="#residuals-boundaries-and-assembled-domains" title="Link to this heading"></a></h2>
+<p>For observed points, compute <code class="docutils literal notranslate"><span class="pre">prediction</span> <span class="pre">-</span> <span class="pre">samples.values</span></code> and plot it
+against the relevant parameter coordinate. Inspect signed residuals to detect
+systematic bias and absolute or squared residuals to identify large local
+errors. For weighted observations, show which points have large weights;
+a tiny weighted MSE can coexist with large errors at nearly ignored rows.
+For independent test responses, use the same coordinates and units in both
+before/after plots.</p>
+<p><code class="docutils literal notranslate"><span class="pre">plot_model</span></code> draws maximal cells on shared axes. Shared face controls encode
+C0 agreement, so overlapping boundaries can be visually indistinguishable.
+Check explicit face predictions numerically when testing continuity. Domains
+above dimension two are displayed through their two-dimensional faces, not
+as filled high-dimensional interiors. An attractive boundary view does not
+establish that the interior is accurate or non-self-intersecting.</p>
+<p>A control net illustrates coefficient locations and adjacency; it is not the
+surface itself. Ridge can move controls toward zero, and smoothness can bring
+neighbors together, without changing degree or topology. Exact subdivision
+changes local control nets while preserving the image. Compare actual model
+values on parent-mapped points when investigating a split, as shown in
+<a class="reference internal" href="splitting.html"><span class="doc">Exact local subdivision</span></a>.</p>
+<p>Every new guide figure can be reproduced with
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">examples/generate_guide_figures.py</span></code>. Seeds, sample counts and measured
+errors are retained in <a class="reference download internal" download="" href="../_downloads/84af9d5d5260b756f659bd39d1ec8602/metrics.json"><code class="xref download docutils literal notranslate"><span class="pre">the</span> <span class="pre">metrics</span> <span class="pre">JSON</span></code></a>.
+The figures are synthetic illustrations of specific settings, not general
+accuracy or hardware performance claims. Keep numerical status and held-out
+errors alongside visual evidence when assessing a model for deployment.</p>
+</section>
+<section id="add-a-parameter-space-residual-view">
+<h2>Add a parameter-space residual view<a class="headerlink" href="#add-a-parameter-space-residual-view" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">residuals</span> <span class="o">=</span> <span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">-</span> <span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">residuals</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="s2">"o"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"first output"</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">residuals</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="s2">"o"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"second output"</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"black"</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">.5</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s2">"segment parameter"</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s2">"signed residual"</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">residuals</span><span class="o">.</span><span class="n">square</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(),</span> <span class="s2">"o"</span><span class="p">)</span>
+<span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s2">"segment parameter"</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s2">"output-vector error norm"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>These are training residuals, so a small graph does not establish
+generalization. Repeat the calculation on independent parameter-response
+pairs to assess prediction. Signed residuals distinguish systematic
+underprediction from overprediction; the vector norm summarizes magnitude
+but can be dominated by an output with larger physical units.</p>
+<p>For a product domain, plot residuals against each factor or take slices at
+fixed operating conditions. The <a class="reference internal" href="../whatis.html#simploidal-space-overview"><span class="std std-ref">simploid figure</span></a>
+shows why one surface view cannot reveal every slice of a prism. For an
+assembled domain, label residuals by cell and explicitly compare paired
+boundary coordinates. A projected seam can look closed while an omitted
+output disagrees or a parameter orientation is reversed.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="initialization.html" class="btn btn-neutral float-left" title="Explicit initial models" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="splitting.html" class="btn btn-neutral float-right" title="Exact local subdivision" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: feat/424-simplicial-pchip
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/advanced/visualization.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/advanced/visualization.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/advanced/visualization.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/advanced/visualization.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/advanced/visualization.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/advanced/visualization.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/advanced/visualization.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/advanced/visualization.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/advanced/visualization.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="visualization.html">feat/424-simplicial-pchip</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
