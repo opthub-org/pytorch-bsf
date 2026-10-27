@@ -989,6 +989,16 @@ def test_finite_components_of_an_overflowing_edge_are_kept():
     torch.testing.assert_close(model(Points(parameters, mesh.cell_ids.expand(3)))[:, 0], expected, rtol=1e-12, atol=0)
 
 
+def test_control_is_computed_where_the_product_of_an_edge_and_a_gradient_overflows():
+    """Regression test (Codex review of #445): the halved edge from [-1e308, 0] to [1e308, 1e308] times the gradient
+    [2, 0] overflowed before the division by 3, although the control, about 1.33e308, is representable."""
+    mesh = SimplicialMesh([[0.0, 0.0], [-1e308, 0.0], [1e308, 1e308]], [[0, 1, 2]])
+    g = torch.zeros(3, 2, 1, dtype=torch.float64)
+    g[1, 0, 0] = 2.0
+    model = hermite_interpolant(mesh, torch.zeros(3, dtype=torch.float64), gradients=g, clamp=False)
+    torch.testing.assert_close(model.coefficients.detach().max(), torch.tensor(1e308 / 3 * 4, dtype=torch.float64))
+
+
 @given(data=st.data())
 def test_interpolant_is_exactly_invariant_when_stretched_over_the_float64_range(data):
     """Stretched over [-2**1023, 2**1023] per axis, where differences of vertices overflow, the gradients and the

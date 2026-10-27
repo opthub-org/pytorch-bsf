@@ -810,16 +810,16 @@ def _control_values(x: torch.Tensor, f: torch.Tensor, g: torch.Tensor, alpha: tu
     """
 
     def edge(i: int, j: int) -> torch.Tensor:
-        # Only the edges from the first vertex of a simplex are known not to overflow. Where another overflows, half
-        # the correction is summed, from the halves of the overflowing components and the halved products of the
-        # others (halving a tiny component itself could round it to zero), and doubled after the division.
-        step = x[:, j] - x[:, i]
-        overflow = ~torch.isfinite(step)
-        halved = overflow.any(dim=1, keepdim=True)
-        third = torch.einsum("md,mdk->mk", step, g[:, i]) / 3
-        terms = torch.where(overflow, x[:, j] / 2 - x[:, i] / 2, step)[:, :, None] * g[:, i]
-        half_third = torch.where(overflow[:, :, None], terms, terms / 2).sum(dim=1) / 3
-        c = f[:, i] + torch.where(halved, half_third * 2, third)
+        # The correction (x_j - x_i) . g_i / 3 is summed from the products of mantissas, scaled by the largest power
+        # of two among its terms, which is applied once at the end. Neither a difference of vertices (only those
+        # from the first vertex of a simplex are known to be finite) nor a product then overflows on the way.
+        step_mantissa, step_exponent = _split_difference(x[:, j], x[:, i])  # (m, d)
+        g_mantissa, g_exponent = torch.frexp(g[:, i])  # (m, d, M)
+        mantissa = step_mantissa[:, :, None] * g_mantissa
+        exponent = torch.where(mantissa == 0, -(2**20), step_exponent[:, :, None] + g_exponent.to(torch.long))
+        top = exponent.amax(dim=1)  # (m, M)
+        total = _times_power_of_two(mantissa, exponent - top[:, None]).sum(dim=1)
+        c = f[:, i] + _times_power_of_two(total / 3, top)
         return _clip(c, f[:, [i, j]], clamp)
 
     support = [i for i, a in enumerate(alpha) if a]
@@ -829,8 +829,14 @@ def _control_values(x: torch.Tensor, f: torch.Tensor, g: torch.Tensor, alpha: tu
         i, j = support if alpha[support[0]] == 2 else support[::-1]
         return edge(i, j)
     i, j, k = support
-    total = edge(i, j) + edge(j, i) + edge(i, k) + edge(k, i) + edge(j, k) + edge(k, j)
-    c = total / 4 - (f[:, i] + f[:, j] + f[:, k]) / 6
+    edges = [edge(i, j), edge(j, i), edge(i, k), edge(k, i), edge(j, k), edge(k, j)]
+    corners = f[:, i] + f[:, j] + f[:, k]
+    # Where a sum overflows, its parts are scaled first: the controls of a face spanning the float64 range may
+    # add up beyond it although the face control itself does not.
+    total = sum(edges[1:], edges[0])
+    quarter = torch.where(torch.isfinite(total), total / 4, sum((e / 4 for e in edges[1:]), edges[0] / 4))
+    sixth = torch.where(torch.isfinite(corners), corners / 6, (f[:, i] / 2 + f[:, j] / 2 + f[:, k] / 2) / 3)
+    c = quarter - sixth
     return _clip(c, f[:, [i, j, k]], clamp)
 
 
