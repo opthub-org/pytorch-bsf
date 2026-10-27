@@ -977,8 +977,9 @@ returned simploid and the faces of the surviving simploids instead.</p>
 <code class="docutils literal notranslate"><span class="pre">BezierSpace</span></code> whose shared faces share controls, and locates points in it.
 <code class="docutils literal notranslate"><span class="pre">hermite_interpolant</span></code> returns a continuous piecewise cubic <code class="docutils literal notranslate"><span class="pre">BezierModel</span></code>
 through vertex data that, when clamped, stays within the data range of each
-simplex. See <a class="reference internal" href="advanced/interpolation.html"><span class="doc">Shape-preserving interpolation on simplicial meshes</span></a> for the construction and its
-error bound.</p>
+simplex. <code class="docutils literal notranslate"><span class="pre">lattice_mesh</span></code> triangulates a simplex lattice conformingly, and
+<code class="docutils literal notranslate"><span class="pre">refine</span></code> bisects simplices while keeping the mesh conforming. See
+<a class="reference internal" href="advanced/interpolation.html"><span class="doc">Shape-preserving interpolation on simplicial meshes</span></a> for the construction and its error bound.</p>
 <p id="module-torch_bsf.interpolation">Shape-preserving cubic Bézier interpolation on simplicial complexes (“simplicial PCHIP”).</p>
 <p>A <a class="reference internal" href="#torch_bsf.interpolation.SimplicialMesh" title="torch_bsf.interpolation.SimplicialMesh"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimplicialMesh</span></code></a> glues user-supplied simplices of <span class="math notranslate nohighlight">\(\mathbb{R}^d\)</span> into one
 <a class="reference internal" href="#torch_bsf.core.BezierSpace" title="torch_bsf.core.BezierSpace"><code class="xref py py-class docutils literal notranslate"><span class="pre">BezierSpace</span></code></a>, so that simplices sharing a face share the controls on it.
