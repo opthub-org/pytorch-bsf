@@ -1,0 +1,476 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API reference guide &mdash; PyTorch-BSF 0.22.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5686f5df"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Python API" href="torch_bsf.html" />
+    <link rel="prev" title="References" href="references.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently asked questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API reference guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html">Python API</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">API reference guide</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/modules.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="api-reference-guide">
+<h1>API reference guide<a class="headerlink" href="#api-reference-guide" title="Link to this heading"></a></h1>
+<p>The Python reference describes the public objects and their arguments.
+Begin with <a class="reference internal" href="quickstart.html"><span class="doc">Quickstart</span></a> for a complete fit, or <a class="reference internal" href="advanced.html"><span class="doc">Advanced Topics</span></a> for
+practical choices and interpretation. The API pages supply exact signatures
+once you know which operation you need.</p>
+<p>Most workflows start with <code class="docutils literal notranslate"><span class="pre">BezierSpace</span></code>, <code class="docutils literal notranslate"><span class="pre">Samples</span></code> and <code class="docutils literal notranslate"><span class="pre">fit</span></code>. Use
+<code class="docutils literal notranslate"><span class="pre">Points</span></code> when cell identity must travel with coordinates, and use the
+returned <code class="docutils literal notranslate"><span class="pre">FitResult.model</span></code> for prediction. The common types live in
+<code class="docutils literal notranslate"><span class="pre">torch_bsf.core</span></code> and are also available from the package root.</p>
+<p>For numerical methods, consult <code class="docutils literal notranslate"><span class="pre">fitting</span></code> and <code class="docutils literal notranslate"><span class="pre">solvers</span></code> for regression,
+or <code class="docutils literal notranslate"><span class="pre">optimization</span></code> for differentiable costs. Sampling, validation and
+active learning build on the same space and model. Plotting, scikit-learn,
+Lightning and MLflow integrations are optional; install the relevant extra
+before executing their examples.</p>
+<p><code class="docutils literal notranslate"><span class="pre">geometry</span></code> describes mutable topology construction, while a compiled
+<code class="docutils literal notranslate"><span class="pre">BezierSpace</span></code> records immutable geometry and coefficient layout. The
+archive interface in <code class="docutils literal notranslate"><span class="pre">io</span></code> preserves that layout with model coefficients.
+Private modules beginning with an underscore are implementation details.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="torch_bsf.html">Python API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#core">core</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BasisOperator"><code class="docutils literal notranslate"><span class="pre">BasisOperator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BasisOperator.matmat"><code class="docutils literal notranslate"><span class="pre">BasisOperator.matmat()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BasisOperator.rmatmat"><code class="docutils literal notranslate"><span class="pre">BasisOperator.rmatmat()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BasisOperator.to_dense"><code class="docutils literal notranslate"><span class="pre">BasisOperator.to_dense()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BezierModel"><code class="docutils literal notranslate"><span class="pre">BezierModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BezierModel.copy"><code class="docutils literal notranslate"><span class="pre">BezierModel.copy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BezierModel.forward"><code class="docutils literal notranslate"><span class="pre">BezierModel.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BezierModel.n_outputs"><code class="docutils literal notranslate"><span class="pre">BezierModel.n_outputs</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BezierSpace"><code class="docutils literal notranslate"><span class="pre">BezierSpace</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BezierSpace.adjacency"><code class="docutils literal notranslate"><span class="pre">BezierSpace.adjacency()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BezierSpace.basis"><code class="docutils literal notranslate"><span class="pre">BezierSpace.basis()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BezierSpace.cell_id"><code class="docutils literal notranslate"><span class="pre">BezierSpace.cell_id()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BezierSpace.compatible"><code class="docutils literal notranslate"><span class="pre">BezierSpace.compatible()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BezierSpace.control_index"><code class="docutils literal notranslate"><span class="pre">BezierSpace.control_index()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BezierSpace.n_cells"><code class="docutils literal notranslate"><span class="pre">BezierSpace.n_cells</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BezierSpace.on_set"><code class="docutils literal notranslate"><span class="pre">BezierSpace.on_set()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BezierSpace.simplex"><code class="docutils literal notranslate"><span class="pre">BezierSpace.simplex()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BezierSpace.simploid"><code class="docutils literal notranslate"><span class="pre">BezierSpace.simploid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BezierSpace.validate"><code class="docutils literal notranslate"><span class="pre">BezierSpace.validate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BezierSpace.width"><code class="docutils literal notranslate"><span class="pre">BezierSpace.width</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.BezierSpace.with_degree"><code class="docutils literal notranslate"><span class="pre">BezierSpace.with_degree()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.Cell"><code class="docutils literal notranslate"><span class="pre">Cell</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.Cell.width"><code class="docutils literal notranslate"><span class="pre">Cell.width</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.FixedControls"><code class="docutils literal notranslate"><span class="pre">FixedControls</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.FixedControls.from_cells"><code class="docutils literal notranslate"><span class="pre">FixedControls.from_cells()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.Points"><code class="docutils literal notranslate"><span class="pre">Points</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.Points.from_cells"><code class="docutils literal notranslate"><span class="pre">Points.from_cells()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.Points.take"><code class="docutils literal notranslate"><span class="pre">Points.take()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.Points.to"><code class="docutils literal notranslate"><span class="pre">Points.to()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.QuadraticPenalty"><code class="docutils literal notranslate"><span class="pre">QuadraticPenalty</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.Samples"><code class="docutils literal notranslate"><span class="pre">Samples</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.Samples.from_cells"><code class="docutils literal notranslate"><span class="pre">Samples.from_cells()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.core.Samples.take"><code class="docutils literal notranslate"><span class="pre">Samples.take()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#geometry">geometry</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.Simploid"><code class="docutils literal notranslate"><span class="pre">Simploid</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.Simploid.base"><code class="docutils literal notranslate"><span class="pre">Simploid.base</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.Simploid.degeneracy"><code class="docutils literal notranslate"><span class="pre">Simploid.degeneracy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.Simploid.degeneracy_map"><code class="docutils literal notranslate"><span class="pre">Simploid.degeneracy_map</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.Simploid.dim"><code class="docutils literal notranslate"><span class="pre">Simploid.dim</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.Simploid.face"><code class="docutils literal notranslate"><span class="pre">Simploid.face()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.Simploid.faces"><code class="docutils literal notranslate"><span class="pre">Simploid.faces()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.Simploid.is_degenerate"><code class="docutils literal notranslate"><span class="pre">Simploid.is_degenerate</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.Simploid.is_vertex"><code class="docutils literal notranslate"><span class="pre">Simploid.is_vertex</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.Simploid.length"><code class="docutils literal notranslate"><span class="pre">Simploid.length</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.Simploid.simploid_type"><code class="docutils literal notranslate"><span class="pre">Simploid.simploid_type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.Simploid.vertices"><code class="docutils literal notranslate"><span class="pre">Simploid.vertices()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.SimploidalSet"><code class="docutils literal notranslate"><span class="pre">SimploidalSet</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.add_simplex"><code class="docutils literal notranslate"><span class="pre">SimploidalSet.add_simplex()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.add_simploid"><code class="docutils literal notranslate"><span class="pre">SimploidalSet.add_simploid()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.add_vertex"><code class="docutils literal notranslate"><span class="pre">SimploidalSet.add_vertex()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.betti_numbers"><code class="docutils literal notranslate"><span class="pre">SimploidalSet.betti_numbers()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.boundary_matrix"><code class="docutils literal notranslate"><span class="pre">SimploidalSet.boundary_matrix()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.check"><code class="docutils literal notranslate"><span class="pre">SimploidalSet.check()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.cone"><code class="docutils literal notranslate"><span class="pre">SimploidalSet.cone()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.degenerate"><code class="docutils literal notranslate"><span class="pre">SimploidalSet.degenerate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.dim"><code class="docutils literal notranslate"><span class="pre">SimploidalSet.dim</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.identify"><code class="docutils literal notranslate"><span class="pre">SimploidalSet.identify()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.main_simploids"><code class="docutils literal notranslate"><span class="pre">SimploidalSet.main_simploids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.product"><code class="docutils literal notranslate"><span class="pre">SimploidalSet.product()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.geometry.SimploidalSet.simploids"><code class="docutils literal notranslate"><span class="pre">SimploidalSet.simploids()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#interpolation">interpolation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.interpolation.SimplicialMesh"><code class="docutils literal notranslate"><span class="pre">SimplicialMesh</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.interpolation.SimplicialMesh.vertices"><code class="docutils literal notranslate"><span class="pre">SimplicialMesh.vertices</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.interpolation.SimplicialMesh.simplices"><code class="docutils literal notranslate"><span class="pre">SimplicialMesh.simplices</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.interpolation.SimplicialMesh.space"><code class="docutils literal notranslate"><span class="pre">SimplicialMesh.space</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.interpolation.SimplicialMesh.cell_ids"><code class="docutils literal notranslate"><span class="pre">SimplicialMesh.cell_ids</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.interpolation.SimplicialMesh.barycentric"><code class="docutils literal notranslate"><span class="pre">SimplicialMesh.barycentric()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.interpolation.SimplicialMesh.dimension"><code class="docutils literal notranslate"><span class="pre">SimplicialMesh.dimension</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.interpolation.SimplicialMesh.locate"><code class="docutils literal notranslate"><span class="pre">SimplicialMesh.locate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.interpolation.SimplicialMesh.n_simplices"><code class="docutils literal notranslate"><span class="pre">SimplicialMesh.n_simplices</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.interpolation.SimplicialMesh.n_vertices"><code class="docutils literal notranslate"><span class="pre">SimplicialMesh.n_vertices</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.interpolation.SimplicialMesh.neighbors"><code class="docutils literal notranslate"><span class="pre">SimplicialMesh.neighbors()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.interpolation.SimplicialMesh.volumes"><code class="docutils literal notranslate"><span class="pre">SimplicialMesh.volumes()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.interpolation.estimate_gradients"><code class="docutils literal notranslate"><span class="pre">estimate_gradients()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.interpolation.hermite_interpolant"><code class="docutils literal notranslate"><span class="pre">hermite_interpolant()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.interpolation.refinement_indicator"><code class="docutils literal notranslate"><span class="pre">refinement_indicator()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#fitting">fitting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.fitting.fit"><code class="docutils literal notranslate"><span class="pre">fit()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#point-cloud">point_cloud</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.point_cloud.PointCloudFitResult"><code class="docutils literal notranslate"><span class="pre">PointCloudFitResult</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.point_cloud.PointCloudFitResult.require_success"><code class="docutils literal notranslate"><span class="pre">PointCloudFitResult.require_success()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.point_cloud.SkeletonFitResult"><code class="docutils literal notranslate"><span class="pre">SkeletonFitResult</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.point_cloud.SkeletonFitResult.require_success"><code class="docutils literal notranslate"><span class="pre">SkeletonFitResult.require_success()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.point_cloud.fit_point_cloud"><code class="docutils literal notranslate"><span class="pre">fit_point_cloud()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.point_cloud.fit_skeleton"><code class="docutils literal notranslate"><span class="pre">fit_skeleton()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#results">results</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.results.ConvergenceError"><code class="docutils literal notranslate"><span class="pre">ConvergenceError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.results.ConvergenceWarning"><code class="docutils literal notranslate"><span class="pre">ConvergenceWarning</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.results.FitDiagnostics"><code class="docutils literal notranslate"><span class="pre">FitDiagnostics</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.results.FitResult"><code class="docutils literal notranslate"><span class="pre">FitResult</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.results.FitResult.require_success"><code class="docutils literal notranslate"><span class="pre">FitResult.require_success()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.results.FitResult.warn_if_failed"><code class="docutils literal notranslate"><span class="pre">FitResult.warn_if_failed()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.results.MatrixDiagnostics"><code class="docutils literal notranslate"><span class="pre">MatrixDiagnostics</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#solvers">solvers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.solvers.DenseLeastSquares"><code class="docutils literal notranslate"><span class="pre">DenseLeastSquares</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.solvers.SparseLeastSquares"><code class="docutils literal notranslate"><span class="pre">SparseLeastSquares</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#optimization">optimization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.optimization.Iteration"><code class="docutils literal notranslate"><span class="pre">Iteration</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.optimization.OptimizationResult"><code class="docutils literal notranslate"><span class="pre">OptimizationResult</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.optimization.OptimizationResult.require_success"><code class="docutils literal notranslate"><span class="pre">OptimizationResult.require_success()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.optimization.PreconditionedSGD"><code class="docutils literal notranslate"><span class="pre">PreconditionedSGD</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.optimization.gram_matrix"><code class="docutils literal notranslate"><span class="pre">gram_matrix()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.optimization.linear_scalarization"><code class="docutils literal notranslate"><span class="pre">linear_scalarization()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.optimization.minimize"><code class="docutils literal notranslate"><span class="pre">minimize()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#ensemble">ensemble</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.ensemble.Ensemble"><code class="docutils literal notranslate"><span class="pre">Ensemble</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.ensemble.Ensemble.forward"><code class="docutils literal notranslate"><span class="pre">Ensemble.forward()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.ensemble.Ensemble.members"><code class="docutils literal notranslate"><span class="pre">Ensemble.members()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#io">io</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.io.export_control_points"><code class="docutils literal notranslate"><span class="pre">export_control_points()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.io.load_model"><code class="docutils literal notranslate"><span class="pre">load_model()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.io.save_model"><code class="docutils literal notranslate"><span class="pre">save_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#sampling">sampling</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.sampling.grid"><code class="docutils literal notranslate"><span class="pre">grid()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.sampling.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#model-selection">model_selection</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.model_selection.CVResult"><code class="docutils literal notranslate"><span class="pre">CVResult</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.model_selection.CVResult.models"><code class="docutils literal notranslate"><span class="pre">CVResult.models</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.model_selection.DegreeCandidate"><code class="docutils literal notranslate"><span class="pre">DegreeCandidate</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.model_selection.DegreeSearchResult"><code class="docutils literal notranslate"><span class="pre">DegreeSearchResult</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.model_selection.FoldResult"><code class="docutils literal notranslate"><span class="pre">FoldResult</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.model_selection.KFold"><code class="docutils literal notranslate"><span class="pre">KFold</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.model_selection.KFold.split"><code class="docutils literal notranslate"><span class="pre">KFold.split()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.model_selection.cross_validate"><code class="docutils literal notranslate"><span class="pre">cross_validate()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.model_selection.select_degree"><code class="docutils literal notranslate"><span class="pre">select_degree()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#active-learning">active_learning</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.active_learning.farthest_points"><code class="docutils literal notranslate"><span class="pre">farthest_points()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.active_learning.query_by_committee"><code class="docutils literal notranslate"><span class="pre">query_by_committee()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#plotting">plotting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.plotting.plot_model"><code class="docutils literal notranslate"><span class="pre">plot_model()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#sklearn">sklearn</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.sklearn.BezierRegressor"><code class="docutils literal notranslate"><span class="pre">BezierRegressor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.sklearn.BezierRegressor.fit"><code class="docutils literal notranslate"><span class="pre">BezierRegressor.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.sklearn.BezierRegressor.predict"><code class="docutils literal notranslate"><span class="pre">BezierRegressor.predict()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#splitting">splitting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.splitting.EdgeSplit"><code class="docutils literal notranslate"><span class="pre">EdgeSplit</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.splitting.LongestEdge"><code class="docutils literal notranslate"><span class="pre">LongestEdge</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.splitting.ParameterMap"><code class="docutils literal notranslate"><span class="pre">ParameterMap</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.splitting.ParameterMap.from_parent"><code class="docutils literal notranslate"><span class="pre">ParameterMap.from_parent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.splitting.ParameterMap.to_parent"><code class="docutils literal notranslate"><span class="pre">ParameterMap.to_parent()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.splitting.ResidualSplit"><code class="docutils literal notranslate"><span class="pre">ResidualSplit</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.splitting.SubdivisionResult"><code class="docutils literal notranslate"><span class="pre">SubdivisionResult</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.splitting.subdivide"><code class="docutils literal notranslate"><span class="pre">subdivide()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#integrations-lightning">integrations.lightning</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.integrations.lightning.regression_module"><code class="docutils literal notranslate"><span class="pre">regression_module()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#integrations-mlflow">integrations.mlflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.integrations.mlflow.log_result"><code class="docutils literal notranslate"><span class="pre">log_result()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="torch_bsf.html#preprocessing">preprocessing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler.mins"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler.mins</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler.scales"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler.scales</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler.fit"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler.fit_transform"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler.fit_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler.inverse_transform"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler.inverse_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.MinMaxScaler.transform"><code class="docutils literal notranslate"><span class="pre">MinMaxScaler.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.NoneScaler"><code class="docutils literal notranslate"><span class="pre">NoneScaler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.NoneScaler.fit"><code class="docutils literal notranslate"><span class="pre">NoneScaler.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.NoneScaler.fit_transform"><code class="docutils literal notranslate"><span class="pre">NoneScaler.fit_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.NoneScaler.inverse_transform"><code class="docutils literal notranslate"><span class="pre">NoneScaler.inverse_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.NoneScaler.transform"><code class="docutils literal notranslate"><span class="pre">NoneScaler.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.NormalizeType"><code class="docutils literal notranslate"><span class="pre">NormalizeType</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.QuantileScaler"><code class="docutils literal notranslate"><span class="pre">QuantileScaler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.QuantileScaler.q"><code class="docutils literal notranslate"><span class="pre">QuantileScaler.q</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.QuantileScaler.mins"><code class="docutils literal notranslate"><span class="pre">QuantileScaler.mins</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.QuantileScaler.scales"><code class="docutils literal notranslate"><span class="pre">QuantileScaler.scales</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.QuantileScaler.fit"><code class="docutils literal notranslate"><span class="pre">QuantileScaler.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.QuantileScaler.fit_transform"><code class="docutils literal notranslate"><span class="pre">QuantileScaler.fit_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.QuantileScaler.inverse_transform"><code class="docutils literal notranslate"><span class="pre">QuantileScaler.inverse_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.QuantileScaler.transform"><code class="docutils literal notranslate"><span class="pre">QuantileScaler.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.Scaler"><code class="docutils literal notranslate"><span class="pre">Scaler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.Scaler.fit"><code class="docutils literal notranslate"><span class="pre">Scaler.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.Scaler.fit_transform"><code class="docutils literal notranslate"><span class="pre">Scaler.fit_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.Scaler.inverse_transform"><code class="docutils literal notranslate"><span class="pre">Scaler.inverse_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.Scaler.transform"><code class="docutils literal notranslate"><span class="pre">Scaler.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.StdScaler"><code class="docutils literal notranslate"><span class="pre">StdScaler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.StdScaler.means"><code class="docutils literal notranslate"><span class="pre">StdScaler.means</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.StdScaler.stds"><code class="docutils literal notranslate"><span class="pre">StdScaler.stds</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.StdScaler.fit"><code class="docutils literal notranslate"><span class="pre">StdScaler.fit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.StdScaler.fit_transform"><code class="docutils literal notranslate"><span class="pre">StdScaler.fit_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.StdScaler.inverse_transform"><code class="docutils literal notranslate"><span class="pre">StdScaler.inverse_transform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.StdScaler.transform"><code class="docutils literal notranslate"><span class="pre">StdScaler.transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_bsf.html#torch_bsf.preprocessing.make_scaler"><code class="docutils literal notranslate"><span class="pre">make_scaler()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="references.html" class="btn btn-neutral float-left" title="References" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="torch_bsf.html" class="btn btn-neutral float-right" title="Python API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: v0.22.0
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../v0.0.1/modules.html">v0.0.1</a></dd>
+            <dd><a href="../v0.0.2/modules.html">v0.0.2</a></dd>
+            <dd><a href="../v0.1.0/modules.html">v0.1.0</a></dd>
+            <dd><a href="../v0.10.0/modules.html">v0.10.0</a></dd>
+            <dd><a href="../v0.11.0/modules.html">v0.11.0</a></dd>
+            <dd><a href="../v0.11.1/modules.html">v0.11.1</a></dd>
+            <dd><a href="../v0.11.2/modules.html">v0.11.2</a></dd>
+            <dd><a href="../v0.11.3/modules.html">v0.11.3</a></dd>
+            <dd><a href="../v0.12.0/modules.html">v0.12.0</a></dd>
+            <dd><a href="../v0.12.1/modules.html">v0.12.1</a></dd>
+            <dd><a href="../v0.13.0/modules.html">v0.13.0</a></dd>
+            <dd><a href="../v0.13.1/modules.html">v0.13.1</a></dd>
+            <dd><a href="../v0.13.2/modules.html">v0.13.2</a></dd>
+            <dd><a href="../v0.13.3/modules.html">v0.13.3</a></dd>
+            <dd><a href="../v0.13.4/modules.html">v0.13.4</a></dd>
+            <dd><a href="../v0.14.0/modules.html">v0.14.0</a></dd>
+            <dd><a href="../v0.14.1/modules.html">v0.14.1</a></dd>
+            <dd><a href="../v0.14.2/modules.html">v0.14.2</a></dd>
+            <dd><a href="../v0.14.3/modules.html">v0.14.3</a></dd>
+            <dd><a href="../v0.15.0/modules.html">v0.15.0</a></dd>
+            <dd><a href="../v0.15.1/modules.html">v0.15.1</a></dd>
+            <dd><a href="../v0.16.0/modules.html">v0.16.0</a></dd>
+            <dd><a href="../v0.16.1/modules.html">v0.16.1</a></dd>
+            <dd><a href="../v0.17.0/modules.html">v0.17.0</a></dd>
+            <dd><a href="../v0.18.0/modules.html">v0.18.0</a></dd>
+            <dd><a href="../v0.19.0/modules.html">v0.19.0</a></dd>
+            <dd><a href="../v0.2.0/modules.html">v0.2.0</a></dd>
+            <dd><a href="../v0.20.0/modules.html">v0.20.0</a></dd>
+            <dd><a href="../v0.21.0/modules.html">v0.21.0</a></dd>
+            <dd><a href="modules.html">v0.22.0</a></dd>
+            <dd><a href="../v0.3.0/modules.html">v0.3.0</a></dd>
+            <dd><a href="../v0.3.1/modules.html">v0.3.1</a></dd>
+            <dd><a href="../v0.4.0/modules.html">v0.4.0</a></dd>
+            <dd><a href="../v0.5.0/modules.html">v0.5.0</a></dd>
+            <dd><a href="../v0.5.1/modules.html">v0.5.1</a></dd>
+            <dd><a href="../v0.6.0/modules.html">v0.6.0</a></dd>
+            <dd><a href="../v0.7.0/modules.html">v0.7.0</a></dd>
+            <dd><a href="../v0.8.0/modules.html">v0.8.0</a></dd>
+            <dd><a href="../v0.9.0/modules.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="../feat/427-conforming-mesh/modules.html">feat/427-conforming-mesh</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
