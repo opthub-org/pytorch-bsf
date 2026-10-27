@@ -1,5 +1,6 @@
 """Tests for torch_bsf._kernels._splitting."""
 
+from fractions import Fraction
 from typing import Literal
 
 import pytest
@@ -8,10 +9,12 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from tests.strategies import (
+    FLOAT64_TINY,
     U,
     degrees,
     extreme_scalings,
     factor_edges,
+    log_uniform,
     matrices,
     scalings,
     simploid_points,
@@ -979,3 +982,38 @@ def test_reparametrize_point_next_to_the_cut_of_a_thin_piece(part: Literal["A", 
     t = t / t.sum(dim=1, keepdim=True)
     u, mask = reparametrize(t, 2, 0, 0.999999999999, part)
     assert (u[mask] >= -4 * U).all()
+
+
+# Edge coordinates down to the smallest subnormal float64, and zero.
+_edge_coordinates = st.one_of(st.just(0.0), log_uniform(5e-324, 1.0))
+
+
+@given(t_i=_edge_coordinates, t_j=_edge_coordinates, s=split_fractions(FLOAT64_TINY) | st.sampled_from([1 - U, 5e-324]))
+def test_reparametrize_puts_each_point_in_the_piece_of_its_exact_ratio(t_i: float, t_j: float, s: float):
+    """A point is in piece A iff t_j / (t_i + t_j) <= s, and in B iff it is >= s, decided on exact rationals.
+
+    The only rounding is that of 1 - s, a relative error of at most U, so ratios within U max(s, 1 - s) of s may
+    go either way; every other point must be in exactly the piece of its exact ratio, however small its coordinates.
+    """
+    t = torch.tensor([[t_i, t_j, max(0.0, 1.0 - t_i - t_j)]], dtype=torch.float64)
+    _, in_a = reparametrize(t, 0, 1, s, "A")
+    _, in_b = reparametrize(t, 0, 1, s, "B")
+    assert bool(in_a) or bool(in_b)
+    if t_i + t_j == 0:
+        assert bool(in_a) and bool(in_b)
+        return
+    ratio, cut = Fraction(t_j) / (Fraction(t_i) + Fraction(t_j)), Fraction(s)
+    if abs(ratio - cut) > Fraction(U) * max(cut, 1 - cut):
+        assert bool(in_a) == (ratio < cut)
+        assert bool(in_b) == (ratio > cut)
+
+
+def test_reparametrize_point_with_an_underflowing_product():
+    """Regression test: for t = [0, DBL_MIN, 1] and s = nextafter(1, 0), (1 - s) t_j and s t_i both underflowed
+    to 0, so the point, whose ratio t_j / (t_i + t_j) is 1, was also put in piece A.
+    """
+    t = torch.tensor([[0.0, FLOAT64_TINY, 1.0]], dtype=torch.float64)
+    _, in_a = reparametrize(t, 0, 1, 1 - U, "A")
+    _, in_b = reparametrize(t, 0, 1, 1 - U, "B")
+    assert not bool(in_a)
+    assert bool(in_b)

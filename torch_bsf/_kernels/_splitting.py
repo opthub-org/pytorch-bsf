@@ -219,6 +219,29 @@ def split(model: BezierSimploid, i: int, j: int, s: float = 0.5, *, factor: int 
     return _split_core(model, factor, i, j, s)
 
 
+def _product(x: torch.Tensor, c: float) -> tuple[torch.Tensor, torch.Tensor]:
+    """``x * c`` for ``c > 0`` as a mantissa of magnitude in ``{0} U [1/2, 1)`` and an exponent.
+
+    Unlike the product itself, the pair never underflows or overflows, and the mantissa is rounded once.
+    """
+    x_mantissa, x_exponent = torch.frexp(x)
+    c_mantissa, c_exponent = torch.frexp(torch.tensor(c, dtype=x.dtype, device=x.device))
+    mantissa, exponent = torch.frexp(x_mantissa * c_mantissa)  # the product of the mantissas has magnitude >= 1/4
+    return mantissa, exponent + x_exponent + c_exponent
+
+
+def _less_equal(a: tuple[torch.Tensor, torch.Tensor], b: tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
+    """``a <= b`` for numbers given as pairs of :func:`_product`."""
+    a_mantissa, a_exponent = a
+    b_mantissa, b_exponent = b
+    a_sign, b_sign = torch.sign(a_mantissa), torch.sign(b_mantissa)
+    # For numbers of the same sign, a larger exponent means a larger magnitude.
+    magnitude_less = (a_exponent < b_exponent) | ((a_exponent == b_exponent) & (a_mantissa.abs() <= b_mantissa.abs()))
+    magnitude_greater = (a_exponent > b_exponent) | ((a_exponent == b_exponent) & (a_mantissa.abs() >= b_mantissa.abs()))
+    same_sign = torch.where(a_sign > 0, magnitude_less, torch.where(a_sign < 0, magnitude_greater, True))
+    return torch.where(a_sign == b_sign, same_sign, a_sign < b_sign)
+
+
 def reparametrize(
     t: torch.Tensor,
     i: int,
@@ -317,17 +340,18 @@ def reparametrize(
 
     # t_j / (t_i + t_j) <= s is tested as (1 - s) t_j <= s t_i, each side rounded relative to its own coordinate.
     # Testing t_j <= s (t_i + t_j) loses a t_i below the rounding error of t_j and misplaces points next to the cut
-    # of a thin piece: for s = 1 - 1e-12, such a point got u_j = -2e-5 in piece B.
-    ratio_j, ratio_i = (1.0 - s) * tj, s * ti
+    # of a thin piece: for s = 1 - 1e-12, such a point got u_j = -2e-5 in piece B.  The products are compared as
+    # mantissas and exponents, because a tiny coordinate times a tiny s or 1 - s underflows to zero.
+    ratio_j, ratio_i = _product(tj, 1.0 - s), _product(ti, s)
     u = t.clone()
     if part == "A":
         # belongs to A when t_j / (t_i + t_j) <= s  (or t_i = t_j = 0)
-        mask = (~safe) | (ratio_j <= ratio_i)
+        mask = (~safe) | _less_equal(ratio_j, ratio_i)
         u[safe, cj] = tj[safe] / s
         u[safe, ci] = ti[safe] - (1.0 - s) * tj[safe] / s
     elif part == "B":
         # belongs to B when t_j / (t_i + t_j) >= s  (or t_i = t_j = 0)
-        mask = (~safe) | (ratio_j >= ratio_i)
+        mask = (~safe) | _less_equal(ratio_i, ratio_j)
         u[safe, ci] = ti[safe] / (1.0 - s)
         u[safe, cj] = tj[safe] - s * ti[safe] / (1.0 - s)
     else:
