@@ -70,6 +70,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#choose-a-policy">Choose a policy</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#map-existing-observations-into-children">Map existing observations into children</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#refitting-and-recursive-use">Refitting and recursive use</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#conforming-subdivision-of-a-whole-space">Conforming subdivision of a whole space</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#keep-comparisons-in-the-same-physical-coordinates">Keep comparisons in the same physical coordinates</a></li>
 </ul>
 </li>
@@ -141,7 +142,9 @@ piecewise coefficients. Keep this distinction visible in before/after plots.</p>
 with two models and two parameter maps. It does not automatically update
 neighboring cells of an assembled domain, rebuild shared topology, or create
 a globally remeshed model archive. The maps retain the selected parent cell
-ID so that evaluation can be traced back to the original model.</p>
+ID so that evaluation can be traced back to the original model. To refine an
+assembled space as a whole, use <code class="docutils literal notranslate"><span class="pre">subdivide_space</span></code> (see
+<a class="reference internal" href="#conforming-subdivision"><span class="std std-ref">Conforming subdivision of a whole space</span></a>).</p>
 </section>
 <section id="a-complete-exact-split">
 <h2>A complete exact split<a class="headerlink" href="#a-complete-exact-split" title="Link to this heading"></a></h2>
@@ -323,11 +326,64 @@ can also leave one child without enough informative measurements; check this
 before launching a local degree search or additional experiment batch.</p>
 <p>For adjacent cells in an assembled space, independently subdividing one patch
 leaves neighboring topology unchanged. The returned models can be visualized
-locally, but they are not a conforming replacement mesh. Rebuild and validate
-that mesh explicitly when it is required. See <a class="reference internal" href="simploidal.html"><span class="doc">Single and assembled domains</span></a> for shared
+locally, but they are not a conforming replacement mesh; use
+<code class="docutils literal notranslate"><span class="pre">subdivide_space</span></code> when one is required. See <a class="reference internal" href="simploidal.html"><span class="doc">Single and assembled domains</span></a> for shared
 coefficient construction, <a class="reference internal" href="partial.html"><span class="doc">Fixed controls</span></a> for exact boundary values, and
 <a class="reference internal" href="auto_degree.html"><span class="doc">Cross-validation and degree search</span></a> for deciding whether additional local polynomial capacity
 is supported by independent errors.</p>
+</section>
+<section id="conforming-subdivision-of-a-whole-space">
+<span id="conforming-subdivision"></span><h2>Conforming subdivision of a whole space<a class="headerlink" href="#conforming-subdivision-of-a-whole-space" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">subdivide_space</span></code> splits a factor edge of one cell and propagates the split
+so that the whole space stays conforming. Every factor edge parallel to the
+selected one through shared faces is split at the same fraction: the edges of
+the same factor in neighboring cells and, through a degenerate face, the edge
+of its base that the face’s edge maps onto. Each affected cell is bisected
+along all of its marked edges in a fixed order, so a shared face is
+subdivided identically from every side. For a prism or a cube the split runs
+through a whole sheet of cells, and an edge that a degeneracy collapses to a
+vertex is not split.</p>
+<p>The result is again a simploidal Bézier space, for any fraction in
+<span class="math notranslate nohighlight">\((0, 1)\)</span> and also when the space has degenerate cells such as cones and
+pyramids: splitting commutes with faces and, since de Casteljau subdivision is
+affine in barycentric coordinates, with degeneracy maps. Its coefficients are
+computed by de Casteljau subdivision, so the refined model represents the
+same function, and it can be subdivided again.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierModel</span><span class="p">,</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">Points</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.geometry</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimploidalSet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.splitting</span><span class="w"> </span><span class="kn">import</span> <span class="n">EdgeSplit</span><span class="p">,</span> <span class="n">subdivide_space</span>
+
+<span class="n">S</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">tetra</span><span class="p">,</span> <span class="n">prism</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">add_simplex</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">S</span><span class="o">.</span><span class="n">add_simploid</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">S</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">tetra</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">prism</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+<span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">on_set</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">BezierModel</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">space</span><span class="o">.</span><span class="n">n_controls</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
+
+<span class="c1"># Edge (1, 2) of the tetrahedron is an edge of the prism's bottom triangle.</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">subdivide_space</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">cell</span><span class="o">=</span><span class="n">space</span><span class="o">.</span><span class="n">cell_id</span><span class="p">(</span><span class="n">tetra</span><span class="p">),</span> <span class="n">policy</span><span class="o">=</span><span class="n">EdgeSplit</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">fraction</span><span class="o">=</span><span class="mf">.3</span><span class="p">))</span>
+<span class="n">refined</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">space</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">space</span><span class="o">.</span><span class="n">main_cells</span><span class="p">),</span> <span class="s2">"-&gt;"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">refined</span><span class="o">.</span><span class="n">main_cells</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">parents</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">refined</span><span class="o">.</span><span class="n">main_cells</span><span class="p">)</span> <span class="o">==</span>
+      <span class="nb">sorted</span><span class="p">([</span><span class="n">space</span><span class="o">.</span><span class="n">cell_id</span><span class="p">(</span><span class="n">tetra</span><span class="p">)]</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">[</span><span class="n">space</span><span class="o">.</span><span class="n">cell_id</span><span class="p">(</span><span class="n">prism</span><span class="p">)]</span> <span class="o">*</span> <span class="mi">2</span><span class="p">))</span>
+
+<span class="n">points</span> <span class="o">=</span> <span class="n">Points</span><span class="o">.</span><span class="n">from_cells</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="p">[(</span><span class="n">prism</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">.2</span><span class="p">,</span> <span class="mf">.3</span><span class="p">,</span> <span class="mf">.5</span><span class="p">,</span> <span class="mf">.6</span><span class="p">,</span> <span class="mf">.4</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">))])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">points</span><span class="p">),</span> <span class="n">result</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">transfer</span><span class="p">(</span><span class="n">points</span><span class="p">))))</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>2 -&gt; 4
+True
+True
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">parents</span></code> gives, for every cell of the refined space, the original cell
+whose relative interior contains it, and <code class="docutils literal notranslate"><span class="pre">transfer</span></code> maps original
+<code class="docutils literal notranslate"><span class="pre">Points</span></code> to the refined space in the same order. A point on an interface
+between pieces goes to one of them; since the model is continuous there,
+the choice does not affect the value. <code class="docutils literal notranslate"><span class="pre">split</span></code> reports the split of the selected
+cell chosen by the policy; <code class="docutils literal notranslate"><span class="pre">EdgeSplit(j,</span> <span class="pre">i,</span> <span class="pre">s)</span></code> is the same split as
+<code class="docutils literal notranslate"><span class="pre">EdgeSplit(i,</span> <span class="pre">j,</span> <span class="pre">1</span> <span class="pre">-</span> <span class="pre">s)</span></code>, computed without rounding <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">s</span></code>. The policies are those of <code class="docutils literal notranslate"><span class="pre">subdivide</span></code>,
+evaluated on the selected cell.</p>
 </section>
 <section id="keep-comparisons-in-the-same-physical-coordinates">
 <h2>Keep comparisons in the same physical coordinates<a class="headerlink" href="#keep-comparisons-in-the-same-physical-coordinates" title="Link to this heading"></a></h2>

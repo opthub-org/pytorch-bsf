@@ -21,7 +21,9 @@ piecewise coefficients. Keep this distinction visible in before/after plots.
 with two models and two parameter maps. It does not automatically update
 neighboring cells of an assembled domain, rebuild shared topology, or create
 a globally remeshed model archive. The maps retain the selected parent cell
-ID so that evaluation can be traced back to the original model.
+ID so that evaluation can be traced back to the original model. To refine an
+assembled space as a whole, use ``subdivide_space`` (see
+:ref:`conforming-subdivision`).
 
 A complete exact split
 ----------------------
@@ -220,11 +222,71 @@ before launching a local degree search or additional experiment batch.
 
 For adjacent cells in an assembled space, independently subdividing one patch
 leaves neighboring topology unchanged. The returned models can be visualized
-locally, but they are not a conforming replacement mesh. Rebuild and validate
-that mesh explicitly when it is required. See :doc:`simploidal` for shared
+locally, but they are not a conforming replacement mesh; use
+``subdivide_space`` when one is required. See :doc:`simploidal` for shared
 coefficient construction, :doc:`partial` for exact boundary values, and
 :doc:`auto_degree` for deciding whether additional local polynomial capacity
 is supported by independent errors.
+
+.. _conforming-subdivision:
+
+Conforming subdivision of a whole space
+---------------------------------------
+
+``subdivide_space`` splits a factor edge of one cell and propagates the split
+so that the whole space stays conforming. Every factor edge parallel to the
+selected one through shared faces is split at the same fraction: the edges of
+the same factor in neighboring cells and, through a degenerate face, the edge
+of its base that the face's edge maps onto. Each affected cell is bisected
+along all of its marked edges in a fixed order, so a shared face is
+subdivided identically from every side. For a prism or a cube the split runs
+through a whole sheet of cells, and an edge that a degeneracy collapses to a
+vertex is not split.
+
+The result is again a simploidal Bézier space, for any fraction in
+:math:`(0, 1)` and also when the space has degenerate cells such as cones and
+pyramids: splitting commutes with faces and, since de Casteljau subdivision is
+affine in barycentric coordinates, with degeneracy maps. Its coefficients are
+computed by de Casteljau subdivision, so the refined model represents the
+same function, and it can be subdivided again.
+
+.. testcode:: conforming
+
+    import torch
+    from torch_bsf import BezierModel, BezierSpace, Points
+    from torch_bsf.geometry import SimploidalSet
+    from torch_bsf.splitting import EdgeSplit, subdivide_space
+
+    S = SimploidalSet()
+    tetra, prism = S.add_simplex(3), S.add_simploid((2, 1))
+    S.identify(tetra.face(0, 0), prism.face(1, 0))
+    space = BezierSpace.on_set(S, degree=2)
+    model = BezierModel(space, torch.randn(space.n_controls, 1, dtype=torch.float64))
+
+    # Edge (1, 2) of the tetrahedron is an edge of the prism's bottom triangle.
+    result = subdivide_space(model, cell=space.cell_id(tetra), policy=EdgeSplit(1, 2, fraction=.3))
+    refined = result.model.space
+    print(len(space.main_cells), "->", len(refined.main_cells))
+    print(sorted(result.parents[k] for k in refined.main_cells) ==
+          sorted([space.cell_id(tetra)] * 2 + [space.cell_id(prism)] * 2))
+
+    points = Points.from_cells(space, [(prism, torch.tensor([[.2, .3, .5, .6, .4]], dtype=torch.float64))])
+    print(torch.allclose(model(points), result.model(result.transfer(points))))
+
+.. testoutput:: conforming
+
+    2 -> 4
+    True
+    True
+
+``parents`` gives, for every cell of the refined space, the original cell
+whose relative interior contains it, and ``transfer`` maps original
+``Points`` to the refined space in the same order. A point on an interface
+between pieces goes to one of them; since the model is continuous there,
+the choice does not affect the value. ``split`` reports the split of the selected
+cell chosen by the policy; ``EdgeSplit(j, i, s)`` is the same split as
+``EdgeSplit(i, j, 1 - s)``, computed without rounding ``1 - s``. The policies are those of ``subdivide``,
+evaluated on the selected cell.
 
 Keep comparisons in the same physical coordinates
 -------------------------------------------------

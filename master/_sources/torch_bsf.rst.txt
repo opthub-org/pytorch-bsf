@@ -15,6 +15,20 @@ weights, and ``BezierModel`` adds output coefficients to a space. Geometry
 does not depend on output count. Use these types to make data alignment
 and model state explicit.
 
+``Points``, ``Samples`` and ``BezierModel`` preserve floating tensor and
+NumPy array dtypes. Python float lists use ``torch.get_default_dtype()``
+(normally float32). To retain double-precision coordinates, observations
+and coefficients, construct float64 tensors or NumPy arrays before passing
+them in; converting an already rounded float32 tensor cannot recover precision.
+Integer coordinates and coefficients become float64; integer observations
+remain integers. ``Samples`` weights are stored as CPU float64 tensors.
+
+``FixedControls`` stores CPU float64 values and reads non-tensor floating
+inputs directly as float64, so ``FixedControls({0: [0.2]})`` preserves the
+Python float value independently of the default dtype. Existing tensor
+values are converted with their original precision. Complex fixed values
+are rejected.
+
 .. automodule:: torch_bsf.core
    :members:
    :show-inheritance:
