@@ -525,7 +525,11 @@ def refinement_indicator(mesh: SimplicialMesh, values: Any, *, gradients: Any = 
         cubic: torch.Tensor = model(centroid)
     linear = f[mesh.simplices].mean(dim=1)
     correction = (cubic - linear).abs().mean(dim=1)
-    # Multiplied by the volume as mantissa * 2**exponent: a volume beyond the float64 range may still give a finite
-    # score, and a simplex without correction scores zero rather than 0 * inf = NaN.
-    score = _times_power_of_two(correction * mesh._volume_mantissa, mesh._volume_exponent)
+    # Multiplied by the volume as mantissa * 2**exponent, with the correction split the same way: a volume beyond
+    # the float64 range may still give a finite score, a tiny correction is not lost before the exponent scales it
+    # up, and a simplex without correction scores zero rather than 0 * inf = NaN.
+    correction_mantissa, correction_exponent = torch.frexp(correction)
+    score = _times_power_of_two(
+        correction_mantissa * mesh._volume_mantissa, correction_exponent.to(torch.long) + mesh._volume_exponent
+    )
     return torch.where(correction > 0, score, 0.0)

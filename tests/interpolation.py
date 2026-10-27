@@ -811,6 +811,24 @@ def test_refinement_score_without_correction_on_a_huge_simplex_is_zero():
     assert refinement_indicator(mesh, [1.0, 1.0, 1.0]).tolist() == [0.0]
 
 
+def test_refinement_score_of_a_tiny_correction_on_a_huge_thin_simplex():
+    """Regression test (Codex review of #440): a subnormal correction times the small volume mantissa of a thin
+    simplex underflowed to 0 before the volume exponent scaled it up, so a curved cell got a zero score.
+
+    The triangle [0, 0], [1, 1], [1, 1 + 2**-30] with its x axis scaled by 2**1000, and data and gradients scaled
+    by 2**-1060 (all exact), must score that of the unscaled triangle times 2**(1000 - 1060). The correction is
+    subnormal, about 2**-1095, so it keeps only about 12 bits: relative tolerance 2**-10.
+    """
+    x = torch.tensor([[0.0, 0.0], [1.0, 1.0], [1.0, 1.0 + 2.0**-30]], dtype=torch.float64)
+    g = torch.tensor([[[0.0], [0.0]], [[0.0], [0.0]], [[0.0], [1.0]]], dtype=torch.float64)
+    expected = refinement_indicator(SimplicialMesh(x, [[0, 1, 2]]), [0.0, 0.0, 1.0], gradients=g).item()
+    scale = torch.tensor([2.0**1000, 1.0], dtype=torch.float64)
+    huge = SimplicialMesh(x * scale, [[0, 1, 2]])
+    actual = refinement_indicator(huge, [0.0, 0.0, 2.0**-1060], gradients=g * 2.0**-1060).item()
+    assert expected > 0
+    assert math.isclose(actual, math.ldexp(expected, -60), rel_tol=2.0**-10)
+
+
 def test_refinement_score_of_a_simplex_whose_volume_overflows():
     """The score is the correction times the volume, which may be finite although the volume itself is not."""
     big = SimplicialMesh([[0.0, 0.0], [2.0**1000, 0.0], [0.0, 2.0**25]], [[0, 1, 2]])
