@@ -1129,10 +1129,10 @@ mesh onto its boundary.</p></li>
 to one simplex and overlaps, in a set of positive <span class="math notranslate nohighlight">\((d - 1)\)</span>-volume, another such face in the
 same hyperplane (a hanging vertex, or a flat polygon split differently on its two sides). The
 overlap is tested over the whole faces, however thin it is, and faces count as in the same
-hyperplane only if they are so up to rounding; in 1-D, where faces are points, only points that
-coincide up to rounding overlap. Rounding here is <code class="docutils literal notranslate"><span class="pre">4</span> <span class="pre">*</span> <span class="pre">d</span></code> units of rounding (machine epsilon)
-of the larger diameter plus the largest absolute coordinate of the two faces, which is how faces
-meeting at a common vertex or edge touch after rounding. There is no other tolerance. Faces of the
+hyperplane only if they are so up to rounding. Rounding here is <code class="docutils literal notranslate"><span class="pre">d</span></code> units of rounding (machine
+epsilon) of the larger diameter plus the largest absolute coordinate of the two faces, which is how
+faces meeting at a common vertex or edge touch after rounding. In 1-D, where faces are points given
+as input, only equal points overlap. There is no other tolerance. Faces of the
 same simplex are never compared. Faces on the
 meshed domain are not counted, even when another part of the mesh lies close to them or touches
 them at a lower-dimensional face. Overlapping simplices that share no face are not detected.</p>
