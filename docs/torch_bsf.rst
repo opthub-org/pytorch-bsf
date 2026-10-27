@@ -31,6 +31,20 @@ See :doc:`advanced/simploidal` for chart orientation and continuity.
    :members:
    :show-inheritance:
 
+interpolation
+-------------
+
+``SimplicialMesh`` compiles user-supplied simplices into a cubic
+``BezierSpace`` whose shared faces share controls, and locates points in it.
+``hermite_interpolant`` returns a continuous piecewise cubic ``BezierModel``
+through vertex data that, when clamped, stays within the data range of each
+simplex. See :doc:`advanced/interpolation` for the construction and its
+error bound.
+
+.. automodule:: torch_bsf.interpolation
+   :members:
+   :show-inheritance:
+
 fitting
 -------
 

@@ -44,6 +44,9 @@ Choose a guide by the question you need to answer
    * - Neighboring local regions must agree.
      - :doc:`advanced/simploidal`
      - Predictions along identified faces
+   * - Exact data on a mesh must not overshoot.
+     - :doc:`advanced/interpolation`
+     - Prediction range in each cell
    * - A large fit exhausts memory.
      - :doc:`advanced/acceleration`
      - Sparse termination and conditioning
@@ -100,4 +103,5 @@ Guide chapters
    advanced/active_learning
    advanced/simploidal
    advanced/simploidal_category
+   advanced/interpolation
    advanced/sgd

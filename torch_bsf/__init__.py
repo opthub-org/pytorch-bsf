@@ -12,6 +12,7 @@ from torch_bsf.core import BezierModel, BezierSpace, FixedControls, Points, Quad
 from torch_bsf.ensemble import Ensemble
 from torch_bsf.fitting import fit
 from torch_bsf.geometry import Simploid, SimploidalSet
+from torch_bsf.interpolation import SimplicialMesh, estimate_gradients, hermite_interpolant, refinement_indicator
 from torch_bsf.optimization import OptimizationResult, PreconditionedSGD, linear_scalarization, minimize
 from torch_bsf.point_cloud import PointCloudFitResult, SkeletonFitResult, fit_point_cloud, fit_skeleton
 from torch_bsf.results import ConvergenceError, ConvergenceWarning, FitDiagnostics, FitResult, MatrixDiagnostics
@@ -25,6 +26,10 @@ __all__ = [
     "QuadraticPenalty",
     "Simploid",
     "SimploidalSet",
+    "SimplicialMesh",
+    "hermite_interpolant",
+    "estimate_gradients",
+    "refinement_indicator",
     "fit",
     "fit_point_cloud",
     "fit_skeleton",
