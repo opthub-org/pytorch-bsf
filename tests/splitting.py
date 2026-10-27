@@ -25,7 +25,7 @@ from torch_bsf import BezierModel, BezierSpace, Points
 from torch_bsf._kernels._splitting import longest_edge_criterion, max_error_criterion, reparametrize, split, split_by_criterion
 from torch_bsf._kernels.api import BezierSimploid
 from torch_bsf._kernels.combinatorics import _indices
-from torch_bsf.splitting import EdgeSplit, ParameterMap, subdivide
+from torch_bsf.splitting import EdgeSplit, ParameterMap, subdivide, subdivide_space
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -1017,3 +1017,32 @@ def test_reparametrize_point_with_an_underflowing_product():
     _, in_b = reparametrize(t, 0, 1, 1 - U, "B")
     assert not bool(in_a)
     assert bool(in_b)
+
+
+@given(data=st.data())
+def test_subdivide_space_keeps_the_function_at_any_fraction(data):
+    """Refining a whole space at any fraction, including within 1e-12 of an end, keeps the value at every point.
+
+    The tolerance is that of :func:`_split_tolerance` for the largest cell type of the domain: the refined
+    controls come from the same de Casteljau steps, and ``transfer`` maps a point to the coordinates of its
+    piece with the same few roundings as ``to_parent``.
+    """
+    name = data.draw(st.sampled_from(sorted(_domains())), label="domain")
+    space = BezierSpace.on_set(_domains()[name], degree=2)
+    coefficients = data.draw(matrices(space.n_controls, 2, scale=scalings() | extreme_scalings()), label="coefficients")
+    model = BezierModel(space, coefficients)
+    cid = data.draw(st.integers(0, space.n_cells - 1), label="cell")
+    dimensions = space.cells[cid].dimensions
+    if not dimensions:
+        return
+    factor, i, j = data.draw(factor_edges(dimensions), label="edge")
+    s = data.draw(split_fractions(), label="s")
+    result = subdivide_space(model, cell=cid, policy=EdgeSplit(i, j, s, factor))
+    cells = [k for k, cell in enumerate(space.cells) if cell.dimensions]
+    pairs = [(k, data.draw(simploid_points(space.cells[k].dimensions, 3), label=f"points of cell {k}")) for k in cells]
+    points = Points.from_cells(space, pairs)
+    magnitude = coefficients.abs().max().item()
+    tolerance = max(
+        _split_tolerance(cell.dimensions, (2,) * len(cell.dimensions), 0, magnitude) for cell in space.cells if cell.dimensions
+    )
+    torch.testing.assert_close(result.model(result.transfer(points)), model(points), rtol=0, atol=tolerance)
