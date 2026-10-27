@@ -579,3 +579,225 @@ def test_public_api_accessible_from_top_level():
 
     assert callable(subdivide)
     assert EdgeSplit(0, 1).fraction == LongestEdge().fraction
+
+
+# ---------------------------------------------------------------------------
+# Conforming subdivision of a space (subdivide_space)
+# ---------------------------------------------------------------------------
+
+
+def _uniform_points(space, n: int = 8):
+    """``n`` random barycentric points (exact per-factor sums) on every cell of ``space``, vertices included."""
+    from torch_bsf._kernels.combinatorics import sample_simploid
+    from torch_bsf.core import Points
+
+    data = []
+    for k, cell in enumerate(space.cells):
+        t = sample_simploid(cell.dimensions, n, seed=k).double()
+        offset = 0
+        for a in cell.dimensions:
+            t[:, offset : offset + a + 1] /= t[:, offset : offset + a + 1].sum(1, keepdim=True)
+            offset += a + 1
+        data.append((k, t))
+    return Points.from_cells(space, data)
+
+
+def _glued():
+    from torch_bsf.geometry import SimploidalSet
+
+    S = SimploidalSet()
+    t, p, c = S.add_simplex(3), S.add_simploid((2, 1)), S.add_simploid((1, 1, 1))
+    S.identify(t.face(0, 0), p.face(1, 0))
+    S.identify(p.face(0, 0), c.face(0, 0))
+    return S
+
+
+def _domains():
+    from torch_bsf.geometry import SimploidalSet
+
+    def single(simploid_type):
+        S = SimploidalSet()
+        S.add_simploid(simploid_type)
+        return S
+
+    def collapsed_square():
+        S = SimploidalSet()
+        e = S.add_simploid((1, 1)).face(0, 0)
+        S.degenerate(e, e.face(0, 0), 0, -1)
+        return S
+
+    def pyramid():
+        S = SimploidalSet()
+        S.cone([S.add_simploid((1, 1))])
+        return S
+
+    def double_cone():
+        S = SimploidalSet()
+        cone, _ = S.cone([S.add_simplex(2)])
+        S.cone([cone])
+        return S
+
+    def prism_with_collapsed_triangle():
+        # A triangle (v0, v1, v2) = (w0, w1, w1): two edges of the triangular factor map to the same edge.
+        S = SimploidalSet()
+        tri = S.add_simploid((2, 1)).face(1, 0)
+        S.identify(tri, S.add_simplex(1).degeneracy(0, 1))
+        return S
+
+    return {
+        "triangle": single((2,)),
+        "tetrahedron": single((3,)),
+        "prism": single((2, 1)),
+        "cube": single((1, 1, 1)),
+        "glued": _glued(),
+        "collapsed_square": collapsed_square(),
+        "pyramid": pyramid(),
+        "double_cone": double_cone(),
+        "prism_with_collapsed_triangle": prism_with_collapsed_triangle(),
+    }
+
+
+@pytest.mark.parametrize("name", list(_domains()))
+@pytest.mark.parametrize("fraction", [0.5, 0.3])
+def test_subdivide_space_is_exact_on_every_cell_and_edge(name, fraction):
+    """Every factor edge of every cell, in both directions, refines the space without changing the function."""
+    from itertools import permutations
+
+    from torch_bsf.core import BezierModel, BezierSpace
+    from torch_bsf.splitting import EdgeSplit, subdivide_space
+
+    torch.manual_seed(0)
+    space = BezierSpace.on_set(_domains()[name], degree=2)
+    model = BezierModel(space, torch.randn(space.n_controls, 2, dtype=torch.float64))
+    points = _uniform_points(space)
+    expected = model(points)
+    for cid, cell in enumerate(space.cells):
+        for factor, a in enumerate(cell.dimensions):
+            for i, j in permutations(range(a + 1), 2):
+                result = subdivide_space(model, cell=cid, policy=EdgeSplit(i, j, fraction, factor))
+                assert result.split.i < result.split.j
+                assert len(result.parents) == result.model.space.n_cells
+                assert len(result.model.space.main_cells) > len(space.main_cells)
+                torch.testing.assert_close(result.model(result.transfer(points)), expected, rtol=0, atol=1e-10)
+
+
+def test_subdivide_space_propagates_through_shared_faces():
+    """Splitting the tetrahedron edge shared with the prism also splits the prism, but not the cube."""
+    from torch_bsf.core import BezierModel, BezierSpace
+    from torch_bsf.splitting import EdgeSplit, subdivide_space
+
+    S = _glued()
+    tetra, prism, cube = S.main_simploids()
+    space = BezierSpace.on_set(S, degree=2)
+    model = BezierModel(space, torch.zeros(space.n_controls, 1, dtype=torch.float64))
+    # Face (0, 0) of the tetrahedron is the bottom triangle of the prism; its edge (0, 1) is the tetrahedron's (1, 2).
+    result = subdivide_space(model, cell=space.cell_id(tetra), policy=EdgeSplit(1, 2))
+    parents = [result.parents[k] for k in result.model.space.main_cells]
+    assert sorted(parents) == sorted([space.cell_id(tetra)] * 2 + [space.cell_id(prism)] * 2 + [space.cell_id(cube)])
+    # The segment factor of the prism is parallel to an edge of the cube.
+    result = subdivide_space(model, cell=space.cell_id(prism), policy=EdgeSplit(0, 1, factor=1))
+    parents = [result.parents[k] for k in result.model.space.main_cells]
+    assert sorted(parents) == sorted([space.cell_id(tetra)] + [space.cell_id(prism)] * 2 + [space.cell_id(cube)] * 2)
+
+
+def test_subdivide_space_keeps_mixed_degrees_and_repeats():
+    """Subdivision is closed: the result can be subdivided again, and every cell keeps its degrees."""
+    import random
+
+    from torch_bsf.core import BezierModel, BezierSpace
+    from torch_bsf.splitting import EdgeSplit, LongestEdge, subdivide_space
+
+    S = _glued()
+    tetra, prism, cube = S.main_simploids()
+    space = BezierSpace.on_set(S, degree={tetra: 3, prism: (3, 1), cube: (2, 3, 1)})
+    torch.manual_seed(1)
+    model = BezierModel(space, torch.randn(space.n_controls, 1, dtype=torch.float64))
+    points = _uniform_points(space)
+    expected = model(points)
+    rng = random.Random(0)
+    current, current_points = model, points
+    for _ in range(4):
+        cid = rng.choice([k for k, c in enumerate(current.space.cells) if c.dimensions])
+        cell = current.space.cells[cid]
+        factor = rng.randrange(len(cell.dimensions))
+        i, j = rng.sample(range(cell.dimensions[factor] + 1), 2)
+        result = subdivide_space(current, cell=cid, policy=EdgeSplit(i, j, rng.uniform(0.1, 0.9), factor))
+        for k, parent in enumerate(result.parents):
+            child, original = result.model.space.cells[k], current.space.cells[parent]
+            if child.dimensions == original.dimensions:
+                assert child.degree == original.degree
+        current_points = result.transfer(current_points)
+        current = result.model
+        torch.testing.assert_close(current(current_points), expected, rtol=0, atol=1e-9)
+    result = subdivide_space(current, cell=current.space.main_cells[0], policy=LongestEdge())
+    torch.testing.assert_close(result.model(result.transfer(current_points)), expected, rtol=0, atol=1e-9)
+
+
+def test_subdivide_space_on_a_single_cell_matches_subdivide():
+    """On a one-cell space the two pieces are the children of subdivide."""
+    from torch_bsf.core import BezierModel, BezierSpace, Samples
+    from torch_bsf.splitting import EdgeSplit, ResidualSplit, subdivide, subdivide_space
+
+    space = BezierSpace.simploid((2, 1), degree=(2, 3))
+    torch.manual_seed(2)
+    model = BezierModel(space, torch.randn(space.n_controls, 3, dtype=torch.float64))
+    policy = EdgeSplit(2, 0, 0.25, 0)
+    children = subdivide(model, policy=policy).models
+    result = subdivide_space(model, policy=policy)
+    assert result.split == EdgeSplit(0, 2, 0.75, 0)
+    pieces = [result.model.space.cells[k] for k in result.model.space.main_cells]
+    nets = {tuple(map(tuple, result.model.coefficients[list(c.controls)].tolist())) for c in pieces}
+    assert nets == {tuple(map(tuple, child.coefficients.tolist())) for child in children}
+    samples = Samples(_uniform_points(space).parameters, torch.randn(8, 3, dtype=torch.float64))
+    assert subdivide_space(model, policy=ResidualSplit(samples)).split.fraction > 0
+
+
+def test_subdivide_space_rejects_bad_edges_and_points():
+    from torch_bsf.core import BezierModel, BezierSpace, Points
+    from torch_bsf.splitting import EdgeSplit, subdivide_space
+
+    model = BezierModel(BezierSpace.simplex(2, degree=2), torch.zeros(6, 1, dtype=torch.float64))
+    with pytest.raises(ValueError, match="factor"):
+        subdivide_space(model, policy=EdgeSplit(0, 1, factor=1))
+    with pytest.raises(ValueError, match="Edge indices"):
+        subdivide_space(model, policy=EdgeSplit(0, 0))
+    with pytest.raises(ValueError, match=r"\(0, 1\)"):
+        subdivide_space(model, policy=EdgeSplit(0, 1, 1.0))
+    with pytest.raises(TypeError, match="policy"):
+        subdivide_space(model, policy="longest")  # type: ignore[arg-type]
+    result = subdivide_space(model, policy=EdgeSplit(0, 1))
+    with pytest.raises(ValueError, match="barycentric"):
+        result.transfer(Points(torch.tensor([[1.5, -0.5, 0.0]], dtype=torch.float64)))
+
+
+def test_locate_rejects_points_outside_their_cell():
+    from fractions import Fraction
+
+    from torch_bsf._kernels._conforming import locate
+
+    piece = (((Fraction(1), Fraction(0)), (Fraction(1, 2), Fraction(1, 2))),)
+    with pytest.raises(ValueError, match="outside"):
+        locate(torch.tensor([[0.0, 1.0]], dtype=torch.float64), (1,), [piece])
+
+
+def test_subdivide_space_on_simplices_bisects_exactly_the_simplices_of_the_edge():
+    """On simplices, the simplices containing the edge are bisected (as by interpolation.refine) and share rows."""
+    from torch_bsf.core import BezierModel, BezierSpace
+    from torch_bsf.geometry import SimploidalSet
+    from torch_bsf.splitting import EdgeSplit, subdivide_space
+
+    # A fan of three triangles around the edge (0, 1) of each, plus a triangle glued to the first elsewhere.
+    S = SimploidalSet()
+    fan = [S.add_simplex(2) for _ in range(3)]
+    other = S.add_simplex(2)
+    for t in fan[1:]:
+        S.identify(fan[0].face(0, 2), t.face(0, 2))
+    S.identify(fan[0].face(0, 0), other.face(0, 0))
+    space = BezierSpace.on_set(S, degree=2)
+    model = BezierModel(space, torch.zeros(space.n_controls, 1, dtype=torch.float64))
+    result = subdivide_space(model, cell=space.cell_id(fan[1]), policy=EdgeSplit(0, 1, 0.4))
+    refined = result.model.space
+    parents = sorted(result.parents[k] for k in refined.main_cells)
+    assert parents == sorted([space.cell_id(t) for t in fan] * 2 + [space.cell_id(other)])
+    # 6 + 1 vertices and 9 + 1 (split) + 3 (new interior) edges: every shared quadratic row appears once.
+    assert refined.n_controls == 7 + 13
