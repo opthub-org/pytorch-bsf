@@ -31,8 +31,10 @@ Interpolate on a mesh
 A :class:`~torch_bsf.interpolation.SimplicialMesh` takes vertex coordinates
 of shape ``(n_vertices, d)`` and simplices of shape ``(n_simplices, d + 1)``
 given by vertex numbers. The simplices must not be degenerate and must meet
-face to face. The example triangulates a jittered grid of the unit square and
-interpolates a function with a kink along a diagonal.
+face to face (the mesh must be *conforming*); ``SimplicialMesh`` checks this
+and raises ``ValueError`` otherwise (see `Conforming meshes`_). The example
+triangulates a jittered grid of the unit square and interpolates a function
+with a kink along a diagonal.
 
 .. testcode:: interpolation
 
@@ -225,10 +227,41 @@ refines a one-dimensional kink, where remeshing is just sorting.
     last = (hermite_interpolant(chain, kink(design))(chain.locate(test[:, None]))[:, 0] - kink(test)).abs().max()
     assert last < first / 4
 
-In higher dimensions, ``LongestEdge`` in :mod:`torch_bsf.splitting` selects
-the longest edge of a cell, and a triangulation library rebuilds the mesh.
+In higher dimensions, :func:`~torch_bsf.interpolation.refine` bisects the
+selected simplices at the midpoint of their longest edge and returns a new
+mesh. The new vertices are appended after the old ones, so the data already
+observed keep their rows; evaluate the response only at the new vertices.
+The example starts from the lattice mesh of the triangle described below.
+
+.. testcode:: interpolation
+
+    from torch_bsf.interpolation import lattice_mesh, refine
+
+    adaptive = lattice_mesh(2, 2)
+    observed = response(adaptive.vertices)
+    while adaptive.n_vertices < 20:
+        worst = int(refinement_indicator(adaptive, observed).argmax())
+        old = adaptive.n_vertices
+        adaptive = refine(adaptive, [worst])
+        observed = torch.cat([observed, response(adaptive.vertices[old:])])
+    assert adaptive.unmatched_faces == 0
+    model = hermite_interpolant(adaptive, observed)
+
+Conforming meshes
+-----------------
+
+Two simplices of a conforming mesh meet in a common face or not at all. The
+interpolant is continuous only on such meshes, because a control on a face is
+shared only by simplices that both have that whole face. ``SimplicialMesh``
+counts the faces that break this rule, those shared by more than two
+simplices and those across which the mesh continues without a matching face
+(a hanging vertex, or two cells splitting a common square along different
+diagonals), in ``unmatched_faces``. It raises ``ValueError`` if there are any,
+or warns with ``strict=False``. Faces on the boundary of the meshed domain
+are fine.
+
 With the optional SciPy dependency (the ``sparse`` extra), a Delaunay
-triangulation can be passed directly:
+triangulation of points in general position can be passed directly:
 
 .. testcode:: interpolation
     :skipif: __import__("importlib.util").util.find_spec("scipy") is None
@@ -241,13 +274,44 @@ triangulation can be passed directly:
     score = refinement_indicator(delaunay, response(scattered))
     assert score.shape == (delaunay.n_simplices,)
 
+Points of a lattice, such as a grid of mixture weights, are co-spherical, so
+their Delaunay triangulation is not unique. Qhull then returns flat
+simplices, which ``SimplicialMesh`` rejects as degenerate, and removing them
+leaves cells that split a flat polygon in different ways on its two sides:
+the mesh is not conforming. For the degree-``k`` lattice of a simplex, use
+:func:`~torch_bsf.interpolation.lattice_mesh` instead. It returns the Kuhn
+(Freudenthal) triangulation :cite:p:`kuhn1960combinatorial`: ``k ** d``
+simplices of equal volume (not congruent for ``d >= 3``) whose vertices are
+the lattice points, in the order of
+:func:`~torch_bsf.sampling.grid` with ``resolution=k``, given by their first
+``d`` barycentric coordinates.
+
+.. testcode:: interpolation
+
+    mixtures = lattice_mesh(3, 4)
+    print(mixtures.n_vertices, mixtures.n_simplices, mixtures.unmatched_faces)
+
+.. testoutput:: interpolation
+
+    35 64 0
+
+Refinement by :func:`~torch_bsf.interpolation.refine` keeps a mesh
+conforming. It bisects an edge in every simplex containing it, and before
+that it refines each of those simplices whose longest edge is another one,
+recursively, which is the longest-edge bisection of Rivara
+:cite:p:`rivara1984algorithms`. Refining one simplex can therefore add more
+than one vertex. Ties between edges of equal length, common on lattices, are
+broken by vertex numbers in the same way everywhere. Starting from a lattice
+mesh, every new vertex is a lattice point of a finer lattice (degree ``2k``,
+then ``4k``, and so on).
+
 Limitations
 -----------
 
-* The mesh is not generated here; the simplices must be full-dimensional,
-  non-degenerate and conforming (two simplices meet in a common face or not
-  at all). Otherwise shared controls are not shared and the interpolant is
-  discontinuous.
+* Meshes of arbitrary point sets are not generated here; only lattice meshes
+  and their refinements are. The simplices must be full-dimensional,
+  non-degenerate and conforming. The conformity check does not detect
+  simplices that overlap without sharing a face.
 * The interpolant is cubic and C0. C1 macro-elements (Clough–Tocher,
   Powell–Sabin) and non-simplicial cells such as prisms are not provided.
 * Quadratic reproduction requires enough neighbours around each vertex for

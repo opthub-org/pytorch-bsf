@@ -18,8 +18,11 @@ modulus of continuity of the data at the mesh size. In one dimension this is the
 piecewise cubic Hermite interpolation (PCHIP) :cite:p:`fritsch1980monotone`.
 """
 
+import math
+import operator
+import warnings
 from collections.abc import Sequence
-from itertools import combinations
+from itertools import accumulate, combinations, combinations_with_replacement
 from math import factorial
 from typing import Any
 
@@ -29,9 +32,10 @@ from torch_bsf._kernels.combinatorics import _indices
 from torch_bsf._kernels.sets import Simploid, SimploidalSet
 from torch_bsf.core import BezierModel, BezierSpace, Points
 
-__all__ = ["SimplicialMesh", "estimate_gradients", "hermite_interpolant", "refinement_indicator"]
+__all__ = ["SimplicialMesh", "estimate_gradients", "hermite_interpolant", "lattice_mesh", "refine", "refinement_indicator"]
 
 _DEGREE = 3
+_ROUNDING = 1  # lengths differing by this many units of rounding (times d) are equal
 
 
 def _simplicial_set(simplices: Sequence[Sequence[int]]) -> tuple[SimploidalSet, list[Simploid]]:
@@ -102,12 +106,36 @@ def _equilibrate(
     return unit, edge_exponent - centre, axis_exponent + centre, ok, det
 
 
+def _check_simplices(simplices: Any, n_vertices: int, d: int) -> torch.Tensor:
+    """Read ``simplices`` as distinct, sorted rows of ``d + 1`` distinct vertex numbers below ``n_vertices``."""
+    s = torch.as_tensor(simplices)
+    if s.is_floating_point() or s.is_complex() or s.dtype == torch.bool:
+        raise ValueError("simplices must contain integer vertex numbers.")
+    if s.ndim != 2 or s.shape[1] != d + 1 or not len(s):
+        raise ValueError(f"simplices must have shape (n_simplices, {d + 1}).")
+    s = torch.sort(s.to(dtype=torch.long, device="cpu"), dim=1).values
+    if (s < 0).any() or (s >= n_vertices).any():
+        raise ValueError("simplices refer to a vertex that does not exist.")
+    if (s[:, 1:] == s[:, :-1]).any():
+        raise ValueError("a simplex repeats a vertex.")
+    if len(torch.unique(s, dim=0)) != len(s):
+        raise ValueError("simplices must be distinct.")
+    return s
+
+
 def _as_real_tensor(x: Any) -> torch.Tensor:
     """Read ``x`` as a tensor, parsing non-tensor floating-point input in float64 rather than the default dtype."""
     t = torch.as_tensor(x)
     if not isinstance(x, torch.Tensor) and t.is_floating_point():
         t = torch.as_tensor(x, dtype=torch.float64)
     return t
+
+
+def _length_key(v: torch.Tensor) -> tuple[int, float]:
+    """A key ordering vectors by Euclidean length exactly as computed, without overflow or underflow."""
+    exponent = math.frexp(float(v.abs().max()))[1]
+    mantissa, extra = math.frexp(math.hypot(*(math.ldexp(float(t), -exponent) for t in v.tolist())))
+    return exponent + extra, mantissa
 
 
 class SimplicialMesh:
@@ -119,10 +147,15 @@ class SimplicialMesh:
         Vertex coordinates of shape ``(n_vertices, d)``, ``d >= 1``.
     simplices
         Vertex numbers of shape ``(n_simplices, d + 1)``. The simplices must be non-degenerate and meet
-        face to face (as in a Delaunay triangulation); the mesh is not generated here. A simplex counts as
+        face to face (conforming); the mesh is not generated here. A Delaunay triangulation of points in
+        general position is conforming; one of lattice points with its flat simplices removed is not
+        (use :func:`lattice_mesh` instead). A simplex counts as
         degenerate when its volume is at most ``1e-12`` times the product of its edge lengths both in the given
         coordinates and with each axis divided by the extent of the simplex along it (rounded down to a power
         of two), so that neither the units of the axes nor the scale of the coordinates matters.
+    strict
+        Whether a non-conforming mesh raises :class:`ValueError`. If ``False``, a warning is issued
+        instead and :attr:`unmatched_faces` reports the defect.
 
     Attributes
     ----------
@@ -152,24 +185,13 @@ class SimplicialMesh:
     [0.5, 0.25, 0.25]
     """
 
-    def __init__(self, vertices: Any, simplices: Any):
+    def __init__(self, vertices: Any, simplices: Any, *, strict: bool = True):
         x = _as_real_tensor(vertices)
         if x.ndim != 2 or x.shape[1] < 1 or not len(x) or x.is_complex() or not torch.isfinite(x).all():
             raise ValueError("vertices must be finite and real with shape (n_vertices, d), d >= 1.")
         x = x.to(dtype=torch.float64, device="cpu")
-        s = torch.as_tensor(simplices)
-        if s.is_floating_point() or s.is_complex() or s.dtype == torch.bool:
-            raise ValueError("simplices must contain integer vertex numbers.")
         d = x.shape[1]
-        if s.ndim != 2 or s.shape[1] != d + 1 or not len(s):
-            raise ValueError(f"simplices must have shape (n_simplices, {d + 1}).")
-        s = torch.sort(s.to(dtype=torch.long, device="cpu"), dim=1).values
-        if (s < 0).any() or (s >= len(x)).any():
-            raise ValueError("simplices refer to a vertex that does not exist.")
-        if (s[:, 1:] == s[:, :-1]).any():
-            raise ValueError("a simplex repeats a vertex.")
-        if len(torch.unique(s, dim=0)) != len(s):
-            raise ValueError("simplices must be distinct.")
+        s = _check_simplices(simplices, len(x), d)
         edges = x[s[:, 1:]] - x[s[:, :1]]  # (m, d, d): row k is the edge from vertex 0 to vertex k + 1
         if not torch.isfinite(edges).all():
             raise ValueError("the vertices of a simplex are too far apart: their differences overflow float64.")
@@ -198,6 +220,18 @@ class SimplicialMesh:
         self._volume_mantissa = det.abs() / factorial(d)
         self._volume_exponent = self._edge_exponent.sum(dim=1) + self._axis_exponent.sum(dim=1)
         self._volumes: torch.Tensor = _times_power_of_two(self._volume_mantissa, self._volume_exponent)
+        # Faces are compared in coordinates scaled per axis by a power of two (exactly), so that the test depends
+        # neither on the units of the axes nor on the scale of the coordinates.
+        self._scaled = _times_power_of_two(x, -torch.frexp(x.abs().amax(dim=0)).exponent.to(torch.long))
+        self._unmatched = self._count_unmatched_faces()
+        if self._unmatched:
+            message = (
+                f"the mesh is not conforming: {self._unmatched} faces are not shared face to face by two simplices "
+                "(e.g. a Delaunay triangulation of lattice points with flat simplices removed; see lattice_mesh)."
+            )
+            if strict:
+                raise ValueError(message)
+            warnings.warn(message, stacklevel=2)
         domain, tops = _simplicial_set(s.tolist())
         self.space = BezierSpace.on_set(domain, degree=_DEGREE)
         self.cell_ids = torch.tensor([self.space.cell_id(t) for t in tops], dtype=torch.long)
@@ -219,6 +253,104 @@ class SimplicialMesh:
     def n_simplices(self) -> int:
         """Number of simplices."""
         return len(self.simplices)
+
+    @property
+    def unmatched_faces(self) -> int:
+        """Number of faces that break conformity (0 for a conforming mesh).
+
+        A face of dimension ``d - 1`` is counted if it belongs to more than two simplices, or if it belongs
+        to one simplex and overlaps, in a set of positive :math:`(d - 1)`-volume, another such face in the
+        same hyperplane (a hanging vertex, or a flat polygon split differently on its two sides). The
+        overlap is tested over the whole faces, however thin it is, and faces count as in the same
+        hyperplane only if they are so up to rounding. Rounding here is ``d`` units of rounding (machine
+        epsilon) of the larger diameter plus the largest absolute coordinate of the two faces, which is how
+        faces meeting at a common vertex or edge touch after rounding. In 1-D, where faces are points given
+        as input, only equal points overlap. There is no other tolerance. Faces of the
+        same simplex are never compared. Faces on the
+        meshed domain are not counted, even when another part of the mesh lies close to them or touches
+        them at a lower-dimensional face. Overlapping simplices that share no face are not detected.
+        """
+        return self._unmatched
+
+    def _count_unmatched_faces(self) -> int:
+        d = self.dimension
+        owners: dict[tuple[int, ...], list[int]] = {}
+        for k, simplex in enumerate(self.simplices.tolist()):
+            for i in range(d + 1):
+                owners.setdefault(tuple(simplex[:i] + simplex[i + 1 :]), []).append(k)
+        crowded = sum(1 for o in owners.values() if len(o) > 2)
+        single = [(face, o[0]) for face, o in owners.items() if len(o) == 1]  # never empty: the mesh is bounded
+        faces = self._scaled[torch.tensor([face for face, _ in single])]  # (n, d, d)
+        own = torch.tensor([k for _, k in single])
+        # In a conforming mesh the faces of one simplex only are boundary faces, and no two of them overlap.
+        # A face partly covered by such faces of other simplices (a hanging face) overlaps one of them in a
+        # set of positive (d - 1)-volume within their common hyperplane. Candidates are pairs of faces of
+        # different simplices that are coplanar up to rounding and whose centroids are close enough for the
+        # faces to meet. Rounding is d units of the larger face and of the larger coordinate of the pair:
+        # coordinates far from the origin carry an error of their own unit of rounding.
+        centre = faces.mean(dim=1)
+        radius = (faces - centre[:, None]).norm(dim=2).amax(dim=1)
+        exact = "donot_use_mm_for_euclid_dist"
+        extent = torch.cdist(faces, faces, compute_mode=exact).amax(dim=(1, 2))
+        magnitude = faces.abs().amax(dim=(1, 2))
+        # In 1-D the faces are input coordinates themselves, and only equal ones coincide.
+        unit = 0.0 if d == 1 else _ROUNDING * d * torch.finfo(torch.float64).eps
+
+        def tolerance(i: torch.Tensor, j: torch.Tensor) -> torch.Tensor:
+            return unit * (torch.maximum(extent[i], extent[j]) + torch.maximum(magnitude[i], magnitude[j]))
+
+        normal = torch.ones_like(centre) if d == 1 else torch.linalg.svd(faces[:, 1:] - faces[:, :1]).Vh[:, -1]
+        everything = torch.arange(len(single))
+        pairs = []
+        for rows in torch.split(everything, max(1, 2**20 // (len(single) * d * d))):
+            tol = tolerance(rows[:, None], everything[None])  # (b, n)
+            height = torch.einsum("bjkd,bd->bjk", faces[None] - faces[rows, None, :1], normal[rows])
+            near = (height.abs() <= tol[..., None]).all(dim=2)
+            near &= torch.cdist(centre[rows], centre, compute_mode=exact) <= radius[rows, None] + radius[None] + tol
+            near &= (rows[:, None] < everything[None]) & (own[rows, None] != own[None])
+            at, other = near.nonzero(as_tuple=True)
+            pairs.append(torch.stack([rows[at], other]))
+        first, second = torch.cat(pairs, dim=1)
+        overlap = torch.ones(len(first), dtype=torch.bool)  # in 1-D, the candidates coincide
+        if d > 1 and len(first):
+            f, g = faces[first], faces[second]
+            # Projections are taken relative to a vertex of the pair. Faces meeting at a common vertex or edge
+            # touch up to rounding; any wider overlap, however thin, counts.
+            origin = f[:, :1]
+            f, g = f - origin, g - origin
+            gap = tolerance(first, second)
+            # Two convex polytopes have interiors that do not overlap exactly when a facet normal of their
+            # Minkowski difference separates them. In the hyperplane, such a normal is orthogonal to the
+            # edges of a face of each simplex whose dimensions sum to d - 2.
+            for a in range(1, d):
+                for left in combinations(range(d), a):
+                    for right in combinations(range(d), d - a):
+                        spans = torch.cat(
+                            [
+                                normal[first, None],
+                                f[:, left[1:]] - f[:, left[:1]],
+                                g[:, right[1:]] - g[:, right[:1]],
+                            ],
+                            dim=1,
+                        )  # (p, d - 1, d)
+                        spans = spans / spans.norm(dim=2, keepdim=True)
+                        # A unit normal of the spans (their generalized cross product), by cofactor expansion.
+                        u = torch.stack(
+                            [(-1) ** c * torch.linalg.det(spans[:, :, [k for k in range(d) if k != c]]) for c in range(d)],
+                            dim=1,
+                        )
+                        # Any direction in the hyperplane may separate the faces; one lost to rounding (when the
+                        # spans are dependent) is skipped.
+                        u -= (u * normal[first]).sum(dim=1, keepdim=True) * normal[first]
+                        length = u.norm(dim=1)
+                        u = u / length.clamp_min(1e-300)[:, None]
+                        pf, pg = (f @ u[:, :, None])[..., 0], (g @ u[:, :, None])[..., 0]
+                        apart = (pf.amax(dim=1) <= pg.amin(dim=1) + gap) | (pg.amax(dim=1) <= pf.amin(dim=1) + gap)
+                        overlap &= ~(apart & (length > unit))
+        hanging = torch.zeros(len(single), dtype=torch.bool)
+        hanging[first[overlap]] = True
+        hanging[second[overlap]] = True
+        return crowded + int(hanging.sum())
 
     def volumes(self) -> torch.Tensor:
         """Volumes of the simplices, of shape ``(n_simplices,)``."""
@@ -306,6 +438,181 @@ class SimplicialMesh:
         if f.ndim != 2 or len(f) != self.n_vertices or f.shape[1] < 1 or f.is_complex() or not torch.isfinite(f).all():
             raise ValueError("values must be finite and real with shape (n_vertices, n_outputs).")
         return f.to(dtype=torch.float64, device="cpu")
+
+
+def lattice_mesh(dim: int, k: int) -> SimplicialMesh:
+    r"""The Kuhn (Freudenthal) triangulation of the degree-``k`` lattice of the standard ``dim``-simplex.
+
+    The vertices are the lattice points :math:`a / k` with :math:`a \in \mathbb{N}^{d + 1}` and
+    :math:`|a| = k`, in the order of :func:`~torch_bsf.sampling.grid` with ``resolution=k``. Their
+    coordinates are the first ``dim`` barycentric coordinates (the last one is one minus their sum).
+    The ``k ** dim`` simplices have equal volume, have lattice points as vertices and meet face to face.
+    They are not congruent for ``dim >= 3``, because the map from the staircase coordinates below to
+    these coordinates is not an isometry.
+    In the staircase coordinates :math:`z_j = a_0 + \dots + a_j` (:math:`j < d`) the lattice is
+    :math:`\{0 \le z_0 \le \dots \le z_{d-1} \le k\}`, and the simplices are the Kuhn simplices
+    :math:`(c, c + e_{\pi(1)}, c + e_{\pi(1)} + e_{\pi(2)}, \dots)` of unit cubes whose vertices all lie in it.
+
+    Lattice points are co-spherical, so their Delaunay triangulation is not unique; qhull returns flat
+    simplices, and removing them leaves a mesh that is not conforming. Use this mesh instead.
+
+    Parameters
+    ----------
+    dim
+        Dimension of the simplex, at least one.
+    k
+        Lattice degree (number of intervals per edge), at least one.
+
+    Returns
+    -------
+    SimplicialMesh
+        A conforming mesh with ``comb(k + dim, dim)`` vertices and ``k ** dim`` simplices.
+
+    Examples
+    --------
+    >>> from torch_bsf.interpolation import lattice_mesh
+    >>> mesh = lattice_mesh(2, 3)
+    >>> mesh.n_vertices, mesh.n_simplices, mesh.unmatched_faces
+    (10, 9, 0)
+    >>> float(mesh.volumes().sum())
+    0.5
+    """
+    for name, value in (("dim", dim), ("k", k)):
+        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+            raise ValueError(f"{name} must be an integer >= 1.")
+    lattice = [alpha for (alpha,) in _indices((dim,), (k,))]
+    number = {tuple(accumulate(a[:dim])): n for n, a in enumerate(lattice)}
+    simplices = []
+    # A Kuhn simplex stays in the lattice exactly when its corner is non-decreasing with entries below k and,
+    # wherever two consecutive entries are equal, the later axis is stepped first; every such simplex is
+    # generated once, in the lexicographic order of (corner, axis order).
+    for corner in combinations_with_replacement(range(k), dim):
+        for order in _orders(corner):
+            z = list(corner)
+            path = [number[tuple(z)]]
+            for axis in order:
+                z[axis] += 1
+                path.append(number[tuple(z)])
+            simplices.append(path)
+    vertices = torch.tensor(lattice, dtype=torch.float64)[:, :dim] / k
+    return SimplicialMesh(vertices, simplices)
+
+
+def _orders(corner: tuple[int, ...]) -> list[list[int]]:
+    """The axis orders, in lexicographic order, in which axis ``j`` comes after ``j + 1`` if they tie in ``corner``."""
+    dim = len(corner)
+    orders: list[list[int]] = []
+    order: list[int] = []
+    done = [False] * (dim + 1)
+    done[dim] = True
+
+    def extend() -> None:
+        if len(order) == dim:
+            orders.append(order.copy())
+            return
+        for axis in range(dim):
+            if not done[axis] and (done[axis + 1] or corner[axis] != corner[axis + 1]):
+                done[axis] = True
+                order.append(axis)
+                extend()
+                order.pop()
+                done[axis] = False
+
+    extend()
+    return orders
+
+
+class _Bisection:
+    """Mutable state of :func:`refine`: vertices, live simplices and the simplices around each edge."""
+
+    def __init__(self, x: list[torch.Tensor], cells: list[tuple[int, ...]]):
+        self.x = x
+        self.alive: set[tuple[int, ...]] = set()
+        self.cells_of: dict[tuple[int, int], set[tuple[int, ...]]] = {}
+        for cell in cells:
+            self.add(cell)
+
+    def add(self, cell: tuple[int, ...]) -> None:
+        self.alive.add(cell)
+        for e in combinations(cell, 2):
+            self.cells_of.setdefault(e, set()).add(cell)
+
+    def remove(self, cell: tuple[int, ...]) -> None:
+        self.alive.discard(cell)
+        for e in combinations(cell, 2):
+            self.cells_of[e].discard(cell)
+
+    def longest(self, cell: tuple[int, ...]) -> tuple[int, int]:
+        """The longest edge; ties are broken by vertex numbers, the same way in every simplex."""
+        return max(combinations(cell, 2), key=lambda e: (_length_key(self.x[e[1]] - self.x[e[0]]), e))
+
+    def bisect(self, e: tuple[int, int]) -> None:
+        """Split every simplex containing edge ``e`` at its midpoint, which keeps the mesh conforming."""
+        m = len(self.x)
+        self.x.append(self.x[e[0]] / 2 + self.x[e[1]] / 2)  # without overflow of the sum
+        for cell in sorted(self.cells_of[e]):
+            self.remove(cell)
+            for v in e:
+                self.add(tuple(sorted(m if w == v else w for w in cell)))
+        del self.cells_of[e]
+
+    def refine(self, target: tuple[int, ...]) -> None:
+        stack = [target]
+        while stack:
+            cell = stack[-1]
+            if cell not in self.alive:
+                stack.pop()
+                continue
+            e = self.longest(cell)
+            other = next((c for c in sorted(self.cells_of[e]) if self.longest(c) != e), None)
+            if other is None:
+                self.bisect(e)
+            else:  # its longest edge comes after e, so the recursion ends
+                stack.append(other)
+
+
+def refine(mesh: SimplicialMesh, simplices: Sequence[int]) -> SimplicialMesh:
+    """Bisect simplices at the midpoint of their longest edge, keeping the mesh conforming.
+
+    An edge is bisected in every simplex that contains it, which keeps the mesh conforming. Before an
+    edge is bisected, every simplex containing it whose longest edge is a different one is refined
+    first, recursively (the longest-edge bisection of Rivara), so that cells are always cut across their
+    longest edge. Ties between edges of equal length are broken by their vertex numbers, consistently
+    over the whole mesh. Refining one simplex may therefore add several vertices.
+
+    Parameters
+    ----------
+    mesh
+        A conforming mesh.
+    simplices
+        Integer indices into ``mesh.simplices`` of the simplices to bisect.
+
+    Returns
+    -------
+    SimplicialMesh
+        The refined mesh. It keeps the vertices of ``mesh`` with their numbers and appends the new
+        vertices (edge midpoints) in the order they were created. Its simplices are sorted.
+
+    Examples
+    --------
+    >>> from torch_bsf.interpolation import lattice_mesh, refine
+    >>> coarse = lattice_mesh(2, 2)
+    >>> fine = refine(coarse, [0])
+    >>> fine.n_vertices - coarse.n_vertices, fine.n_simplices - coarse.n_simplices, fine.unmatched_faces
+    (1, 2, 0)
+    """
+    cells = [tuple(c) for c in mesh.simplices.tolist()]
+    try:
+        # operator.index accepts integers of any kind (Python, NumPy, 0-d tensors) but not floats or strings.
+        if any(isinstance(k, bool) or (isinstance(k, torch.Tensor) and k.dtype == torch.bool) for k in simplices):
+            raise TypeError
+        targets = [cells[operator.index(k)] for k in simplices]
+    except (IndexError, TypeError):
+        raise ValueError("simplices must be indices into mesh.simplices.") from None
+    state = _Bisection(list(mesh.vertices), cells)
+    for target in targets:
+        state.refine(target)
+    return SimplicialMesh(torch.stack(state.x), sorted(state.alive))
 
 
 def _gradient_at(v: int, x: torch.Tensor, f: torch.Tensor, ring: list[list[int]], max_rings: int) -> torch.Tensor:
@@ -488,9 +795,8 @@ def refinement_indicator(mesh: SimplicialMesh, values: Any, *, gradients: Any = 
 
     The score of a simplex is its volume times the mean over outputs of the absolute difference between
     :func:`hermite_interpolant` and linear interpolation at its centroid. It is large where the data bend
-    within a large simplex. Refine the highest-scoring simplices first, for example by evaluating the
-    response at the midpoint of their longest edge and remeshing (``LongestEdge`` in
-    :mod:`torch_bsf.splitting` selects that edge on a single cell).
+    within a large simplex. Refine the highest-scoring simplices first, for example
+    with :func:`refine`, and evaluate the response at the new vertices.
 
     Parameters
     ----------
