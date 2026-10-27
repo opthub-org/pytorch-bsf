@@ -170,6 +170,18 @@ Use a branch name that combines the commit type, issue number, and a short descr
 
 ### PR review and merge
 
+PyTest and Conda run on every PR (including drafts and forks) when it is opened,
+updated, reopened, or marked ready for review, and on pushes to `master`. Feature
+branch pushes use the PR checks to avoid duplicate runs. Contributions from forks
+may require maintainer approval before GitHub starts their workflows; resolve
+merge conflicts before expecting PR checks to run.
+
+Docker images are built and published to GHCR only for published releases, never
+for PRs or ordinary branch pushes. The Release workflow calls the Docker workflow
+after release-please creates a release; manually published releases trigger it
+directly. Stable semantic versions receive the `latest` image tag automatically;
+prereleases do not.
+
 1. Push your branch and open a Pull Request targeting `master`.
 2. In the PR description, include what changed, the related issue (`Closes #XXX`), and how to test it.
 3. Ensure all CI checks (GitHub Actions) pass.

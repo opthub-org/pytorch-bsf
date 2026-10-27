@@ -2,6 +2,9 @@ name: Conda
 
 on:
   push:
+    branches: [master]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions:
   contents: read
@@ -77,7 +80,8 @@ jobs:
         conda install -c conda-forge mlflow
     - name: E2E test with MLflow
       run: |
-        mlflow run https://github.com/opthub-org/pytorch-bsf --version ${{ github.sha }} -P params=params.csv -P values=values.csv -P degree=3
+        # Use the checked-out PR merge commit, including contributions from forks.
+        mlflow run . -P params=params.csv -P values=values.csv -P degree=3
     - name: Check that pip did not replace conda packages in the MLflow environment
       run: |
         env_name=$(conda env list | awk '$1 ~ /^mlflow-/ {print $1; exit}')

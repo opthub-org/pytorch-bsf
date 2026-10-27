@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release-please.outputs.release_created }}
+      tag_name: ${{ steps.release-please.outputs.tag_name }}
     steps:
     - id: release-please
       uses: google-github-actions/release-please-action@v3
@@ -23,6 +24,17 @@ jobs:
         # While the major version is 0, a breaking change bumps the minor version, not the major one
         bump-minor-pre-major: true
 
+  docker:
+    needs: github-release
+    if: ${{ needs.github-release.outputs.release_created }}
+    # Releases created with GITHUB_TOKEN do not trigger release-event workflows.
+    uses: ./.github/workflows/docker.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      tag_name: ${{ needs.github-release.outputs.tag_name }}
+
   pypi:
     needs: github-release
     if: ${{ needs.github-release.outputs.release_created }}
@@ -30,7 +42,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: "3.14"
     - name: Install dependencies
