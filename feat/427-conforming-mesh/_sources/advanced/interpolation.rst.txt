@@ -200,9 +200,9 @@ Choose where to add design points
 ---------------------------------
 
 :func:`~torch_bsf.interpolation.refinement_indicator` scores each simplex by
-its volume times the difference between the cubic interpolant and linear
-interpolation at its centroid. A large score means the data bend within a
-large cell. Evaluating the response near the midpoint of the longest edge of
+its volume relative to the largest simplex times the difference between the
+cubic interpolant and linear interpolation at its centroid. A large score means
+the data bend within a large cell. Evaluating the response near the midpoint of the longest edge of
 the top-scoring cell and remeshing is a simple adaptive design. The example
 refines a one-dimensional kink, where remeshing is just sorting.
 
