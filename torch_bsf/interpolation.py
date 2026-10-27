@@ -123,6 +123,33 @@ def _check_simplices(simplices: Any, n_vertices: int, d: int) -> torch.Tensor:
     return s
 
 
+def _pair_exponents(f: torch.Tensor, g: torch.Tensor, axis_exponent: torch.Tensor) -> torch.Tensor:
+    """Per pair of faces ``f`` and ``g`` (p, d, d) and axis, the power of two that scales the pair to order one.
+
+    Each axis is divided by ``2**axis_exponent`` (from the whole mesh, so that the units of the axes do not matter),
+    and then all axes of a pair by a common power of two, so that the largest extent of the pair is of order one.
+    Both are applied together, so that a pair far smaller than the mesh does not underflow on the way.
+    """
+    both = torch.cat([f, g], dim=1)
+    extent = both.amax(dim=1) - both.amin(dim=1)  # (p, d); finite, since the faces are near each other
+    relative = torch.where(extent > 0, torch.frexp(extent).exponent.to(torch.long) - axis_exponent, -(2**20))
+    return axis_exponent + relative.amax(dim=1, keepdim=True)
+
+
+def _local_pair_coordinates(
+    f: torch.Tensor, g: torch.Tensor, axis_exponent: torch.Tensor
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Faces ``f`` and ``g`` (p, d, d) relative to the first vertex of ``f`` and scaled by :func:`_pair_exponents`
+    (exactly), with the largest absolute coordinate of each pair in the same units (p,)."""
+    e = -_pair_exponents(f, g, axis_exponent)
+    magnitude = torch.maximum(f.abs().amax(dim=1), g.abs().amax(dim=1))  # (p, d)
+    return (
+        _times_power_of_two(f - f[:, :1], e[:, None]),
+        _times_power_of_two(g - f[:, :1], e[:, None]),
+        _times_power_of_two(magnitude, e).amax(dim=1),
+    )
+
+
 def _as_real_tensor(x: Any) -> torch.Tensor:
     """Read ``x`` as a tensor, parsing non-tensor floating-point input in float64 rather than the default dtype."""
     t = torch.as_tensor(x)
@@ -220,9 +247,6 @@ class SimplicialMesh:
         self._volume_mantissa = det.abs() / factorial(d)
         self._volume_exponent = self._edge_exponent.sum(dim=1) + self._axis_exponent.sum(dim=1)
         self._volumes: torch.Tensor = _times_power_of_two(self._volume_mantissa, self._volume_exponent)
-        # Faces are compared in coordinates scaled per axis by a power of two (exactly), so that the test depends
-        # neither on the units of the axes nor on the scale of the coordinates.
-        self._scaled = _times_power_of_two(x, -torch.frexp(x.abs().amax(dim=0)).exponent.to(torch.long))
         self._unmatched = self._count_unmatched_faces()
         if self._unmatched:
             message = (
@@ -284,46 +308,45 @@ class SimplicialMesh:
         single = [(face, o[0]) for face, o in owners.items() if len(o) == 1]
         if not single:  # a bounded domain has a boundary, so overlapping simplices close up the mesh
             return len(owners)
-        faces = self._scaled[torch.tensor([face for face, _ in single])]  # (n, d, d)
+        faces = self.vertices[torch.tensor([face for face, _ in single])]  # (n, d, d)
         own = torch.tensor([k for _, k in single])
         # In a conforming mesh the faces of one simplex only are boundary faces, and no two of them overlap.
         # A face partly covered by such faces of other simplices (a hanging face) overlaps one of them in a
         # set of positive (d - 1)-volume within their common hyperplane. Candidates are pairs of faces of
-        # different simplices that are coplanar up to rounding and whose centroids are close enough for the
-        # faces to meet. Rounding is d units of the larger face and of the larger coordinate of the pair:
-        # coordinates far from the origin carry an error of their own unit of rounding.
-        centre = faces.mean(dim=1)
-        radius = (faces - centre[:, None]).norm(dim=2).amax(dim=1)
-        exact = "donot_use_mm_for_euclid_dist"
-        extent = torch.cdist(faces, faces, compute_mode=exact).amax(dim=(1, 2))
-        magnitude = faces.abs().amax(dim=(1, 2))
+        # different simplices whose bounding boxes meet up to rounding; the boxes are compared as given, which
+        # cannot overflow or underflow. Rounding is d units of the larger diameter and of the larger coordinate
+        # of the pair: coordinates far from the origin carry an error of their own unit of rounding.
         # In 1-D the faces are input coordinates themselves, and only equal ones coincide.
         unit = 0.0 if d == 1 else _ROUNDING * d * torch.finfo(torch.float64).eps
-
-        def tolerance(i: torch.Tensor, j: torch.Tensor) -> torch.Tensor:
-            return unit * (torch.maximum(extent[i], extent[j]) + torch.maximum(magnitude[i], magnitude[j]))
-
-        normal = torch.ones_like(centre) if d == 1 else torch.linalg.svd(faces[:, 1:] - faces[:, :1]).Vh[:, -1]
+        low, high = faces.amin(dim=1), faces.amax(dim=1)  # (n, d)
+        # The diameter is at most sqrt(d) times the largest side of the box, which bounds the slack from above.
+        slack = unit * (math.sqrt(d) * (high - low).amax(dim=1) + faces.abs().amax(dim=(1, 2)))
         everything = torch.arange(len(single))
         pairs = []
-        for rows in torch.split(everything, max(1, 2**20 // (len(single) * d * d))):
-            tol = tolerance(rows[:, None], everything[None])  # (b, n)
-            height = torch.einsum("bjkd,bd->bjk", faces[None] - faces[rows, None, :1], normal[rows])
-            near = (height.abs() <= tol[..., None]).all(dim=2)
-            near &= torch.cdist(centre[rows], centre, compute_mode=exact) <= radius[rows, None] + radius[None] + tol
+        for rows in torch.split(everything, max(1, 2**20 // (len(single) * d))):
+            pad = torch.maximum(slack[rows, None], slack[None])[..., None]  # (b, n, 1)
+            near = ((low[rows, None] <= high[None] + pad) & (low[None] <= high[rows, None] + pad)).all(dim=2)
             near &= (rows[:, None] < everything[None]) & (own[rows, None] != own[None])
             at, other = near.nonzero(as_tuple=True)
             pairs.append(torch.stack([rows[at], other]))
         first, second = torch.cat(pairs, dim=1)
         overlap = torch.ones(len(first), dtype=torch.bool)  # in 1-D, the candidates coincide
         if d > 1 and len(first):
-            f, g = faces[first], faces[second]
-            # Projections are taken relative to a vertex of the pair. Faces meeting at a common vertex or edge
-            # touch up to rounding; any wider overlap, however thin, counts.
-            origin = f[:, :1]
-            f, g = f - origin, g - origin
-            gap = tolerance(first, second)
-            # Two convex polytopes have interiors that do not overlap exactly when a facet normal of their
+            axis_exponent = torch.frexp(self.vertices.abs().amax(dim=0)).exponent.to(torch.long)
+            f, g, magnitude = _local_pair_coordinates(faces[first], faces[second], axis_exponent)
+            exact = "donot_use_mm_for_euclid_dist"
+            both = torch.cat([f, g], dim=1)
+            diameter = torch.maximum(
+                torch.cdist(f, f, compute_mode=exact).amax(dim=(1, 2)), torch.cdist(g, g, compute_mode=exact).amax(dim=(1, 2))
+            )
+            gap = unit * (diameter + magnitude)
+            normal = torch.linalg.svd(f[:, 1:] - f[:, :1]).Vh[:, -1]  # (p, d)
+            # The faces must lie in one hyperplane up to rounding.
+            height = torch.einsum("pkd,pd->pk", both - f[:, :1], normal)
+            overlap &= (height.abs() <= gap[:, None]).all(dim=1)
+            f, g = f - f[:, :1], g - f[:, :1]
+            # Faces meeting at a common vertex or edge touch up to rounding; any wider overlap, however thin,
+            # counts. Two convex polytopes have interiors that do not overlap exactly when a facet normal of their
             # Minkowski difference separates them. In the hyperplane, such a normal is orthogonal to the
             # edges of a face of each simplex whose dimensions sum to d - 2.
             for a in range(1, d):
@@ -331,7 +354,7 @@ class SimplicialMesh:
                     for right in combinations(range(d), d - a):
                         spans = torch.cat(
                             [
-                                normal[first, None],
+                                normal[:, None],
                                 f[:, left[1:]] - f[:, left[:1]],
                                 g[:, right[1:]] - g[:, right[:1]],
                             ],
@@ -345,7 +368,7 @@ class SimplicialMesh:
                         )
                         # Any direction in the hyperplane may separate the faces; one lost to rounding (when the
                         # spans are dependent) is skipped.
-                        u -= (u * normal[first]).sum(dim=1, keepdim=True) * normal[first]
+                        u -= (u * normal).sum(dim=1, keepdim=True) * normal
                         length = u.norm(dim=1)
                         u = u / length.clamp_min(1e-300)[:, None]
                         pf, pg = (f @ u[:, :, None])[..., 0], (g @ u[:, :, None])[..., 0]

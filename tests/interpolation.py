@@ -1137,10 +1137,7 @@ def test_hanging_vertex_is_detected_under_any_scaling(data):
     first = simplices[0].tolist()
     shared = [(a, b) for a, b in itertools.combinations(first, 2) if sum(a in s and b in s for s in simplices.tolist()) > 1]
     a, b = data.draw(st.sampled_from(shared), label="edge")
-    x = torch.cat([x, (x[a] + x[b])[None] / 2])
-    m = len(x) - 1
-    halves = [[m if v == a else v for v in first], [m if v == b else v for v in first]]
-    hanging = torch.cat([simplices[1:], torch.tensor(halves)])
+    x, hanging = _with_hanging_vertex(x, simplices, a, b)
     scale = data.draw(axis_scalings(x.shape[1]), label="scale")
     with pytest.warns(UserWarning, match="not conforming"):
         mesh = SimplicialMesh(x * scale, hanging, strict=False)
@@ -1197,3 +1194,52 @@ def test_any_simplex_list_is_accepted_or_rejected_with_value_error(data):
         except ValueError:
             return
     assert mesh.unmatched_faces >= 0
+
+
+def test_components_of_opposite_scales_are_compared_on_their_own_scales():
+    """Regression test (Codex review of #430): scaling all coordinates by the largest underflowed the endpoints of the
+    small intervals to zero, so that their faces coincided and the conforming mesh was rejected."""
+    mesh = SimplicialMesh([[0.0], [1e-300], [2e-300], [3e-300], [1e300], [1.1e300]], [[0, 1], [2, 3], [4, 5]])
+    assert mesh.unmatched_faces == 0
+
+
+def _with_hanging_vertex(x: torch.Tensor, simplices: torch.Tensor, a: int, b: int) -> tuple[torch.Tensor, torch.Tensor]:
+    """``simplices[0]`` bisected at the midpoint of its edge ``(a, b)``, leaving its neighbours across the edge whole."""
+    first = simplices[0].tolist()
+    x = torch.cat([x, (x[a] + x[b])[None] / 2])
+    m = len(x) - 1
+    halves = [[m if v == a else v for v in first], [m if v == b else v for v in first]]
+    return x, torch.cat([simplices[1:], torch.tensor(halves)])
+
+
+@given(data=st.data())
+def test_components_at_independent_scales_are_checked_on_their_own(data):
+    """A conforming mesh and a mesh with a hanging vertex, scaled by independent powers of two up to 2**+-1000 and
+    side by side, give exactly the unmatched faces of the second one alone."""
+    x, simplices = data.draw(kuhn_meshes(dimensions=(2, 3)), label="mesh")
+    first = simplices[0].tolist()
+    shared = [(a, b) for a, b in itertools.combinations(first, 2) if sum(a in s and b in s for s in simplices.tolist()) > 1]
+    a, b = data.draw(st.sampled_from(shared), label="edge")
+    y, hanging = _with_hanging_vertex(x, simplices, a, b)
+    with pytest.warns(UserWarning, match="not conforming"):
+        expected = SimplicialMesh(y, hanging, strict=False).unmatched_faces
+    s, t = data.draw(extreme_scalings(), label="s"), data.draw(extreme_scalings(), label="t")
+    # The second component lies in [-2t, -t]^d, apart from the first in [0, s]^d.
+    union = torch.cat([x * s, -(y + 1) * t])
+    with pytest.warns(UserWarning, match="not conforming"):
+        mesh = SimplicialMesh(union, torch.cat([simplices, hanging + len(x)]), strict=False)
+    assert mesh.unmatched_faces == expected > 0
+
+
+def test_hanging_vertex_off_its_edge_by_rounding_is_detected():
+    """Found by Hypothesis: after a translation, a hanging vertex lies off its edge by a unit of rounding, which made
+    the pair of faces look extremely thin along one axis; scaling that axis on its own then hid the overlap."""
+    y = torch.tensor(
+        [[0.0, 0.0], [0.0, 0.5], [0.0, 1.0], [0.5, 0.0], [0.5000000000000006, 0.5], [0.5, 1.0], [1.0, 0.0], [1.0, 0.5]]
+        + [[1.0, 1.0], [0.5000000000000002, 0.25]],
+        dtype=torch.float64,
+    )
+    simplices = [[0, 1, 4], [1, 4, 5], [1, 2, 5], [3, 6, 7], [3, 4, 7], [4, 7, 8], [4, 5, 8], [0, 9, 4], [0, 3, 9]]
+    for x in (y, -(y + 1), (y + 1) * 2.0**-1000):
+        with pytest.warns(UserWarning, match="not conforming"):
+            assert SimplicialMesh(x, simplices, strict=False).unmatched_faces == 3
