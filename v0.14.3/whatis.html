@@ -116,11 +116,11 @@ We define the <em>index set</em> by</p>
 <div class="math notranslate nohighlight">
 \[\mathbf b(\mathbf t\mid\mathbf p) = \sum_{\mathbf d\in\mathbb N_D^M} \binom{D}{\mathbf d} \mathbf t^{\mathbf d} \mathbf p_{\mathbf d},\]</div>
 <p>where <span class="math notranslate nohighlight">\(\mathbf t^{\mathbf d} = t_1^{d_1} t_2^{d_2}\cdots t_M^{d_M}\)</span>, <span class="math notranslate nohighlight">\(\binom{D}{\mathbf d}=D! / (d_1!d_2!\cdots d_M!)\)</span>, and <span class="math notranslate nohighlight">\(\mathbf p_{\mathbf d}\in\mathbb R^N\ (\mathbf d\in\mathbb N_D^M)\)</span> are parameters called the <em>control points</em>.</p>
-<figure class="align-center" id="id50">
+<figure class="align-center" id="id52">
 <a class="reference internal image-reference" href="_images/bezier-simplex.png"><img alt="_images/bezier-simplex.png" src="_images/bezier-simplex.png" style="width: 33%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 2 </span><span class="caption-text">A 2-D Bézier simplex of degree 3 in <span class="math notranslate nohighlight">\(\mathbb R^3\)</span> and its control points. The shape of the simplex is determined by the control points <span class="math notranslate nohighlight">\(\mathbf p_{(3,0,0)}, \mathbf p_{(2,1,0)}, \ldots, \mathbf p_{(0,0,3)}\)</span>.</span><a class="headerlink" href="#id50" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 2 </span><span class="caption-text">A 2-D Bézier simplex of degree 3 in <span class="math notranslate nohighlight">\(\mathbb R^3\)</span> and its control points. The shape of the simplex is determined by the control points <span class="math notranslate nohighlight">\(\mathbf p_{(3,0,0)}, \mathbf p_{(2,1,0)}, \ldots, \mathbf p_{(0,0,3)}\)</span>.</span><a class="headerlink" href="#id52" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </section>
@@ -130,11 +130,11 @@ We define the <em>index set</em> by</p>
 <div class="math notranslate nohighlight">
 \[\arg\min_{\mathbf p} \sum_{(\mathbf t,\mathbf x)\in B}\|\mathbf b(\mathbf t\mid\mathbf p)-\mathbf x\|^2.\]</div>
 <p>PyTorch-BSF provides an algorithm for solving this optimization problem with the L-BFGS algorithm.</p>
-<figure class="align-center" id="id51">
+<figure class="align-center" id="id53">
 <a class="reference internal image-reference" href="_images/bezier-simplex-fitting.png"><img alt="_images/bezier-simplex-fitting.png" src="_images/bezier-simplex-fitting.png" style="width: 66%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 3 </span><span class="caption-text">A Bezier simplex fitted to a dataset. The control points are determined by the least squares fitting algorithm.</span><a class="headerlink" href="#id51" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 3 </span><span class="caption-text">A Bezier simplex fitted to a dataset. The control points are determined by the least squares fitting algorithm.</span><a class="headerlink" href="#id53" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </section>
@@ -181,18 +181,18 @@ We define the <em>index set</em> by</p>
 <section class="definition-content" id="proof-content">
 <p>Let <span class="math notranslate nohighlight">\(f:X\to\mathbb R^M\)</span> be a mapping, where <span class="math notranslate nohighlight">\(X\)</span> is a subset of <span class="math notranslate nohighlight">\(\mathbb R^N\)</span>. The problem of minimizing <span class="math notranslate nohighlight">\(f\)</span> is <span class="math notranslate nohighlight">\(C^r\)</span><em>-simplicial</em> if there exists a <span class="math notranslate nohighlight">\(C^r\)</span>-mapping <span class="math notranslate nohighlight">\(\Phi:\Delta^{M-1} \to X^\star(f)\)</span> such that both the mappings <span class="math notranslate nohighlight">\(\Phi|_{\Delta_I}:\Delta_I\to X^\star(f_I)\)</span> and <span class="math notranslate nohighlight">\(f|_{X^\star(f_I)}:X^\star(f_I)\to f(X^\star(f_I))\)</span> are <span class="math notranslate nohighlight">\(C^r\)</span>-diffeomorphisms for any nonempty subset <span class="math notranslate nohighlight">\(I\)</span> of <span class="math notranslate nohighlight">\(\{1,\ldots,M\}\)</span>, where <span class="math notranslate nohighlight">\(0\le r\le\infty\)</span>. The problem of minimizing <span class="math notranslate nohighlight">\(f\)</span> is <span class="math notranslate nohighlight">\(C^r\)</span><em>-weakly simplicial</em> if there exists a <span class="math notranslate nohighlight">\(C^r\)</span>-mapping <span class="math notranslate nohighlight">\(\phi:\Delta^{M-1}\to X^\star(f)\)</span> such that <span class="math notranslate nohighlight">\(\phi(\Delta_I)=X^\star(f_I)\)</span> for any nonempty subset <span class="math notranslate nohighlight">\(I\)</span> of <span class="math notranslate nohighlight">\(\{1,\ldots,M\}\)</span>, where <span class="math notranslate nohighlight">\(0\le r\le\infty\)</span>.</p>
 </section>
-</div><figure class="align-center" id="id52">
+</div><figure class="align-center" id="id54">
 <a class="reference internal image-reference" href="_images/simplicial-problem.png"><img alt="_images/simplicial-problem.png" src="_images/simplicial-problem.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 4 </span><span class="caption-text">A simplicial problem: the Pareto set and Pareto front are homeomorphic to a simplex, i.e., they have no pinched topology.</span><a class="headerlink" href="#id52" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 4 </span><span class="caption-text">A simplicial problem: the Pareto set and Pareto front are homeomorphic to a simplex, i.e., they have no pinched topology.</span><a class="headerlink" href="#id54" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id53">
+<figure class="align-center" id="id55">
 <a class="reference internal image-reference" href="_images/weakly-simplicial-problem.png"><img alt="_images/weakly-simplicial-problem.png" src="_images/weakly-simplicial-problem.png" style="width: 33%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 5 </span><span class="caption-text">A weakly simplicial problem: the Pareto set and Pareto front are a continuous image of a simplex, i.e., they may have a pinched topology.</span><a class="headerlink" href="#id53" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 5 </span><span class="caption-text">A weakly simplicial problem: the Pareto set and Pareto front are a continuous image of a simplex, i.e., they may have a pinched topology.</span><a class="headerlink" href="#id55" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>In weakly simplicial problems, there exists a continuous map from a simplex to the Pareto set and Pareto front, which is guaranteed to be approximable by the Universal Approximation Theorem.</p>
@@ -430,7 +430,7 @@ This affirmative test complements the non-simpliciality test, allowing practitio
         </dl>
         <dl>
             <dt>Branches</dt>
-            <dd><a href="../feat/429-subdivide-space/whatis.html">feat/429-subdivide-space</a></dd>
+            <dd><a href="../feat/427-conforming-mesh/whatis.html">feat/427-conforming-mesh</a></dd>
         </dl>
     </div>
 </div><script>
