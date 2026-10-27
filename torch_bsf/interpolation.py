@@ -810,12 +810,16 @@ def _control_values(x: torch.Tensor, f: torch.Tensor, g: torch.Tensor, alpha: tu
     """
 
     def edge(i: int, j: int) -> torch.Tensor:
-        # Only the edges from the first vertex of a simplex are known not to overflow: the others are halved where
-        # they do, and the correction doubled after the division.
+        # Only the edges from the first vertex of a simplex are known not to overflow. Where another overflows, half
+        # the correction is summed, from the halves of the overflowing components and the halved products of the
+        # others (halving a tiny component itself could round it to zero), and doubled after the division.
         step = x[:, j] - x[:, i]
-        halved = ~torch.isfinite(step).all(dim=1, keepdim=True)
-        third = torch.einsum("md,mdk->mk", torch.where(halved, x[:, j] / 2 - x[:, i] / 2, step), g[:, i]) / 3
-        c = f[:, i] + torch.where(halved, third * 2, third)
+        overflow = ~torch.isfinite(step)
+        halved = overflow.any(dim=1, keepdim=True)
+        third = torch.einsum("md,mdk->mk", step, g[:, i]) / 3
+        terms = torch.where(overflow, x[:, j] / 2 - x[:, i] / 2, step)[:, :, None] * g[:, i]
+        half_third = torch.where(overflow[:, :, None], terms, terms / 2).sum(dim=1) / 3
+        c = f[:, i] + torch.where(halved, half_third * 2, third)
         return _clip(c, f[:, [i, j]], clamp)
 
     support = [i for i, a in enumerate(alpha) if a]

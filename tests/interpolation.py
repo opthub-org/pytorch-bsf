@@ -976,6 +976,19 @@ def test_interpolant_where_differences_of_vertices_overflow():
     torch.testing.assert_close(g[:, 0, 0], torch.full((5,), 0.5, dtype=torch.float64))
 
 
+def test_finite_components_of_an_overflowing_edge_are_kept():
+    """Regression test (Codex review of #445): halving the whole edge from [-1e308, 0] to [1e308, 5e-324] rounded
+    its finite y component to zero, so the interpolant of linear data in y lost a control correction."""
+    x = torch.tensor([[0.0, 0.0], [-1e308, 0.0], [1e308, 5e-324]], dtype=torch.float64)
+    mesh = SimplicialMesh(x, [[0, 1, 2]])
+    c = torch.tensor([0.0, 1e308], dtype=torch.float64)
+    model = hermite_interpolant(mesh, x @ c, gradients=c.expand(3, 2)[:, :, None], clamp=False)
+    parameters = torch.tensor([[1 / 3, 1 / 3, 1 / 3], [0.0, 0.5, 0.5], [0.25, 0.25, 0.5]], dtype=torch.float64)
+    # Linear data are their barycentric combination; positions in y would round to subnormal multiples of 5e-324.
+    expected = parameters @ (x @ c)
+    torch.testing.assert_close(model(Points(parameters, mesh.cell_ids.expand(3)))[:, 0], expected, rtol=1e-12, atol=0)
+
+
 @given(data=st.data())
 def test_interpolant_is_exactly_invariant_when_stretched_over_the_float64_range(data):
     """Stretched over [-2**1023, 2**1023] per axis, where differences of vertices overflow, the gradients and the
