@@ -116,11 +116,11 @@ We define the <em>index set</em> by</p>
 <div class="math notranslate nohighlight">
 \[\mathbf b(\mathbf t\mid\mathbf p) = \sum_{\mathbf d\in\mathbb N_D^M} \binom{D}{\mathbf d} \mathbf t^{\mathbf d} \mathbf p_{\mathbf d},\]</div>
 <p>where <span class="math notranslate nohighlight">\(\mathbf t^{\mathbf d} = t_1^{d_1} t_2^{d_2}\cdots t_M^{d_M}\)</span>, <span class="math notranslate nohighlight">\(\binom{D}{\mathbf d}=D! / (d_1!d_2!\cdots d_M!)\)</span>, and <span class="math notranslate nohighlight">\(\mathbf p_{\mathbf d}\in\mathbb R^N\ (\mathbf d\in\mathbb N_D^M)\)</span> are parameters called the <em>control points</em>.</p>
-<figure class="align-center" id="id50">
+<figure class="align-center" id="id52">
 <a class="reference internal image-reference" href="_images/bezier-simplex.png"><img alt="_images/bezier-simplex.png" src="_images/bezier-simplex.png" style="width: 33%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 1 </span><span class="caption-text">A 2-D Bézier simplex of degree 3 in <span class="math notranslate nohighlight">\(\mathbb R^3\)</span> and its control points. The shape of the simplex is determined by the control points <span class="math notranslate nohighlight">\(\mathbf p_{(3,0,0)}, \mathbf p_{(2,1,0)}, \ldots, \mathbf p_{(0,0,3)}\)</span>.</span><a class="headerlink" href="#id50" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 1 </span><span class="caption-text">A 2-D Bézier simplex of degree 3 in <span class="math notranslate nohighlight">\(\mathbb R^3\)</span> and its control points. The shape of the simplex is determined by the control points <span class="math notranslate nohighlight">\(\mathbf p_{(3,0,0)}, \mathbf p_{(2,1,0)}, \ldots, \mathbf p_{(0,0,3)}\)</span>.</span><a class="headerlink" href="#id52" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </section>
@@ -130,11 +130,11 @@ We define the <em>index set</em> by</p>
 <div class="math notranslate nohighlight">
 \[\arg\min_{\mathbf p} \sum_{(\mathbf t,\mathbf x)\in B}\|\mathbf b(\mathbf t\mid\mathbf p)-\mathbf x\|^2.\]</div>
 <p>PyTorch-BSF provides an algorithm for solving this optimization problem with the L-BFGS algorithm.</p>
-<figure class="align-center" id="id51">
+<figure class="align-center" id="id53">
 <a class="reference internal image-reference" href="_images/bezier-simplex-fitting.png"><img alt="_images/bezier-simplex-fitting.png" src="_images/bezier-simplex-fitting.png" style="width: 66%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 2 </span><span class="caption-text">A Bezier simplex fitted to a dataset. The control points are determined by the least squares fitting algorithm.</span><a class="headerlink" href="#id51" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 2 </span><span class="caption-text">A Bezier simplex fitted to a dataset. The control points are determined by the least squares fitting algorithm.</span><a class="headerlink" href="#id53" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 </section>
@@ -181,18 +181,18 @@ We define the <em>index set</em> by</p>
 <section class="definition-content" id="proof-content">
 <p>Let <span class="math notranslate nohighlight">\(f:X\to\mathbb R^M\)</span> be a mapping, where <span class="math notranslate nohighlight">\(X\)</span> is a subset of <span class="math notranslate nohighlight">\(\mathbb R^N\)</span>. The problem of minimizing <span class="math notranslate nohighlight">\(f\)</span> is <span class="math notranslate nohighlight">\(C^r\)</span><em>-simplicial</em> if there exists a <span class="math notranslate nohighlight">\(C^r\)</span>-mapping <span class="math notranslate nohighlight">\(\Phi:\Delta^{M-1} \to X^\star(f)\)</span> such that both the mappings <span class="math notranslate nohighlight">\(\Phi|_{\Delta_I}:\Delta_I\to X^\star(f_I)\)</span> and <span class="math notranslate nohighlight">\(f|_{X^\star(f_I)}:X^\star(f_I)\to f(X^\star(f_I))\)</span> are <span class="math notranslate nohighlight">\(C^r\)</span>-diffeomorphisms for any nonempty subset <span class="math notranslate nohighlight">\(I\)</span> of <span class="math notranslate nohighlight">\(\{1,\ldots,M\}\)</span>, where <span class="math notranslate nohighlight">\(0\le r\le\infty\)</span>. The problem of minimizing <span class="math notranslate nohighlight">\(f\)</span> is <span class="math notranslate nohighlight">\(C^r\)</span><em>-weakly simplicial</em> if there exists a <span class="math notranslate nohighlight">\(C^r\)</span>-mapping <span class="math notranslate nohighlight">\(\phi:\Delta^{M-1}\to X^\star(f)\)</span> such that <span class="math notranslate nohighlight">\(\phi(\Delta_I)=X^\star(f_I)\)</span> for any nonempty subset <span class="math notranslate nohighlight">\(I\)</span> of <span class="math notranslate nohighlight">\(\{1,\ldots,M\}\)</span>, where <span class="math notranslate nohighlight">\(0\le r\le\infty\)</span>.</p>
 </section>
-</div><figure class="align-center" id="id52">
+</div><figure class="align-center" id="id54">
 <a class="reference internal image-reference" href="_images/simplicial-problem.png"><img alt="_images/simplicial-problem.png" src="_images/simplicial-problem.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 3 </span><span class="caption-text">A simplicial problem: the Pareto set and Pareto front are homeomorphic to a simplex, i.e., they have no pinched topology.</span><a class="headerlink" href="#id52" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 3 </span><span class="caption-text">A simplicial problem: the Pareto set and Pareto front are homeomorphic to a simplex, i.e., they have no pinched topology.</span><a class="headerlink" href="#id54" title="Link to this image"></a></p>
 </figcaption>
 </figure>
-<figure class="align-center" id="id53">
+<figure class="align-center" id="id55">
 <a class="reference internal image-reference" href="_images/weakly-simplicial-problem.png"><img alt="_images/weakly-simplicial-problem.png" src="_images/weakly-simplicial-problem.png" style="width: 33%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 4 </span><span class="caption-text">A weakly simplicial problem: the Pareto set and Pareto front are a continuous image of a simplex, i.e., they may have a pinched topology.</span><a class="headerlink" href="#id53" title="Link to this image"></a></p>
+<p><span class="caption-number">Fig. 4 </span><span class="caption-text">A weakly simplicial problem: the Pareto set and Pareto front are a continuous image of a simplex, i.e., they may have a pinched topology.</span><a class="headerlink" href="#id55" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>In weakly simplicial problems, there exists a continuous map from a simplex to the Pareto set and Pareto front, which is guaranteed to be approximable by the Approximation theorem.</p>
@@ -348,6 +348,10 @@ This affirmative test complements the non-simpliciality test, allowing practitio
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">KHS+19</a><span class="fn-bracket">]</span></span>
 <p>Ken Kobayashi, Naoki Hamada, Akiyoshi Sannai, Aiko Tanaka, Kenichi Bannai, and Masashi Sugiyama. Bézier simplex fitting: describing pareto fronts of simplicial problems with small samples in multi-objective optimization. In <em>Proceedings of the AAAI Conference on Artificial Intelligence</em>, volume 33, 2304–2313. 2019. URL: <a class="reference external" href="https://doi.org/10.1609/aaai.v33i01.33012304">https://doi.org/10.1609/aaai.v33i01.33012304</a>.</p>
 </div>
+<div class="citation" id="id50" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>Kuh60<span class="fn-bracket">]</span></span>
+<p>Harold W. Kuhn. Some combinatorial lemmas in topology. <em>IBM Journal of Research and Development</em>, 4(5):518–524, 1960.</p>
+</div>
 <div class="citation" id="id28" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>LV24<span class="fn-bracket">]</span></span>
 <p>Suyun Liu and Luís N Vicente. The stochastic multi-gradient algorithm for multi-objective optimization and its application to supervised machine learning. <em>Annals of Operations Research</em>, 339(3):1119–1148, 2024. <a class="reference external" href="https://doi.org/10.1007/s10479-021-04033-z">doi:10.1007/s10479-021-04033-z</a>.</p>
@@ -400,6 +404,10 @@ This affirmative test complements the non-simpliciality test, allowing practitio
 <div class="citation" id="id17" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>Qi<span class="fn-bracket">]</span></span>
 <p>Houduo Qi. Optimal portfolio selections via l1,2-norm regularization. URL: <a class="reference external" href="https://eprints.soton.ac.uk/451606/1/mvpl12_for_PURE.pdf">https://eprints.soton.ac.uk/451606/1/mvpl12_for_PURE.pdf</a>.</p>
+</div>
+<div class="citation" id="id51" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span>Riv84<span class="fn-bracket">]</span></span>
+<p>Maria-Cecilia Rivara. Algorithms for refining triangular grids suitable for adaptive and multigrid techniques. <em>International Journal for Numerical Methods in Engineering</em>, 20(4):745–756, 1984.</p>
 </div>
 <div class="citation" id="id20" role="doc-biblioentry">
 <span class="label"><span class="fn-bracket">[</span>SHS22<span class="fn-bracket">]</span></span>
@@ -514,7 +522,7 @@ This affirmative test complements the non-simpliciality test, allowing practitio
         </dl>
         <dl>
             <dt>Branches</dt>
-            <dd><a href="../fix/431-float64-list-input/whatis.html">fix/431-float64-list-input</a></dd>
+            <dd><a href="../feat/427-conforming-mesh/whatis.html">feat/427-conforming-mesh</a></dd>
         </dl>
     </div>
 </div><script>
