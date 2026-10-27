@@ -999,6 +999,16 @@ def test_control_is_computed_where_the_product_of_an_edge_and_a_gradient_overflo
     torch.testing.assert_close(model.coefficients.detach().max(), torch.tensor(1e308 / 3 * 4, dtype=torch.float64))
 
 
+def test_infinite_estimated_gradients_are_clipped():
+    """Regression test (Codex review of #445): an estimated gradient of inf, from a subnormal edge, reached the exact
+    computation of overflowing controls and raised OverflowError instead of being clipped."""
+    mesh = SimplicialMesh([[0.0], [5e-324]], [[0, 1]])
+    f = torch.tensor([0.0, 1.0], dtype=torch.float64)
+    assert torch.isinf(estimate_gradients(mesh, f)).all()
+    coefficients = hermite_interpolant(mesh, f).coefficients.detach()
+    assert coefficients.min() == 0.0 and coefficients.max() == 1.0
+
+
 def test_control_beyond_the_float64_range_is_clipped():
     """Regression test (Codex review of #445): an exact edge correction beyond the float64 range raised OverflowError
     when its sign was taken, instead of giving an infinite control for clamping to clip."""

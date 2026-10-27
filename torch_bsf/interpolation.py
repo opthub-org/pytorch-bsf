@@ -822,8 +822,10 @@ def _control_values(x: torch.Tensor, f: torch.Tensor, g: torch.Tensor, alpha: tu
         third = torch.einsum("md,mdk->mk", x[:, j] - x[:, i], g[:, i]) / 3
         c = f[:, i] + third
         # Only the differences from the first vertex of a simplex are known to be finite. Where the correction
-        # overflows, in a difference, a product or their sum, the control is computed exactly and rounded once.
-        for r, o in (~torch.isfinite(third)).nonzero().tolist():
+        # overflows, in a difference, a product or their sum, the control is computed exactly and rounded once,
+        # unless the gradient itself is not finite (an estimate may overflow).
+        overflow = ~torch.isfinite(third) & torch.isfinite(g[:, i]).all(dim=1)
+        for r, o in overflow.nonzero().tolist():
             terms = zip(x[r, j].tolist(), x[r, i].tolist(), g[r, i, :, o].tolist(), strict=True)
             correction = sum(((Fraction(b) - Fraction(a)) * Fraction(h) for b, a, h in terms), Fraction(0))
             c[r, o] = _rounded(Fraction(f[r, i, o].item()) + correction / 3)
