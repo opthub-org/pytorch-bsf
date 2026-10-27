@@ -127,14 +127,20 @@ class SimplicialMesh:
         if len(torch.unique(s, dim=0)) != len(s):
             raise ValueError("simplices must be distinct.")
         edges = x[s[:, 1:]] - x[s[:, :1]]  # (m, d, d)
-        det = torch.linalg.det(edges)
-        scale = edges.norm(dim=2).prod(dim=1)
-        if (det.abs() <= 1e-12 * scale).any():
+        if not torch.isfinite(edges).all():
+            raise ValueError("the vertices of a simplex are too far apart: their differences overflow float64.")
+        # The determinant and the edge lengths overflow or underflow beyond coordinates of about 1e+-150 (in 2-D),
+        # so the scale-invariant tests below use the edges divided by their largest entry.
+        size = edges.abs().amax(dim=(1, 2))
+        unit = edges / torch.where(size > 0, size, 1.0)[:, None, None]
+        det = torch.linalg.det(unit)
+        if (det.abs() <= 1e-12 * unit.norm(dim=2).prod(dim=1)).any():
             raise ValueError("a simplex is degenerate (zero volume).")
         self.vertices = x
         self.simplices = s
-        self._inverse = torch.linalg.inv(edges.transpose(1, 2))  # maps x - x_0 to barycentric coordinates 1..d
-        self._volumes: torch.Tensor = det.abs() / factorial(d)
+        # Maps x - x_0 to barycentric coordinates 1..d.
+        self._inverse = torch.linalg.inv(unit.transpose(1, 2)) / size[:, None, None]
+        self._volumes: torch.Tensor = det.abs() * size**d / factorial(d)
         domain, tops = _simplicial_set(s.tolist())
         self.space = BezierSpace.on_set(domain, degree=_DEGREE)
         self.cell_ids = torch.tensor([self.space.cell_id(t) for t in tops], dtype=torch.long)
@@ -220,8 +226,9 @@ class SimplicialMesh:
         ids, coordinates = [], []
         for chunk in torch.split(p, max(1, batch_size)):
             lam = self.barycentric(chunk)
-            margin, best = lam.min(dim=2).values.max(dim=1)
-            if (margin < -tol).any():
+            # Coordinates that overflow (NaN or inf) belong to a simplex far from the point.
+            margin, best = torch.nan_to_num(lam.min(dim=2).values, nan=-torch.inf).max(dim=1)
+            if not (margin >= -tol).all():
                 raise ValueError("a point lies outside the mesh.")
             t = lam[torch.arange(len(chunk)), best].clamp_min(0)
             coordinates.append(t / t.sum(dim=1, keepdim=True))
@@ -254,17 +261,18 @@ def _gradient_at(v: int, x: torch.Tensor, f: torch.Tensor, ring: list[list[int]]
         near.discard(v)
         if len(near) >= n_quadratic + 2:
             break
-    if len(near) >= n_quadratic + 2:
-        rows = torch.tensor(sorted(near), dtype=torch.long)
-        offsets = x[rows] - x[v]
-        design = torch.cat([offsets, offsets[:, iu[0]] * offsets[:, iu[1]]], dim=1)
-    else:  # The one-ring of a vertex of a non-degenerate simplex spans R^d.
-        rows = torch.tensor(ring[v], dtype=torch.long)
-        offsets = x[rows] - x[v]
-        design = offsets
+    quadratic = len(near) >= n_quadratic + 2
+    # The one-ring of a vertex of a non-degenerate simplex spans R^d, for the linear fallback.
+    rows = torch.tensor(sorted(near) if quadratic else ring[v], dtype=torch.long)
+    # Offsets are divided by their largest entry h, so that their squares and products neither overflow nor
+    # underflow at any scale of the coordinates; the gradient with respect to x is that with respect to x / h over h.
+    offsets = x[rows] - x[v]
+    h = offsets.abs().max()
+    offsets = offsets / h
+    design = torch.cat([offsets, offsets[:, iu[0]] * offsets[:, iu[1]]], dim=1) if quadratic else offsets
     weight = offsets.square().sum(dim=1).clamp_min(1e-300).rsqrt()[:, None]  # square root of 1 / |x_w - x_v|^2
     solution: torch.Tensor = torch.linalg.lstsq(design * weight, (f[rows] - f[v]) * weight, driver="gelsd").solution
-    return solution[:d]
+    return solution[:d] / h
 
 
 def estimate_gradients(mesh: SimplicialMesh, values: Any, *, max_rings: int = 4) -> torch.Tensor:

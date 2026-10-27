@@ -315,15 +315,19 @@ def reparametrize(
     denom = ti + tj
     safe = denom != 0  # points where t_i + t_j > 0
 
+    # t_j / (t_i + t_j) <= s is tested as (1 - s) t_j <= s t_i, each side rounded relative to its own coordinate.
+    # Testing t_j <= s (t_i + t_j) loses a t_i below the rounding error of t_j and misplaces points next to the cut
+    # of a thin piece: for s = 1 - 1e-12, such a point got u_j = -2e-5 in piece B.
+    ratio_j, ratio_i = (1.0 - s) * tj, s * ti
     u = t.clone()
     if part == "A":
         # belongs to A when t_j / (t_i + t_j) <= s  (or t_i = t_j = 0)
-        mask = (~safe) | (tj <= s * denom)
+        mask = (~safe) | (ratio_j <= ratio_i)
         u[safe, cj] = tj[safe] / s
         u[safe, ci] = ti[safe] - (1.0 - s) * tj[safe] / s
     elif part == "B":
         # belongs to B when t_j / (t_i + t_j) >= s  (or t_i = t_j = 0)
-        mask = (~safe) | (tj >= s * denom)
+        mask = (~safe) | (ratio_j >= ratio_i)
         u[safe, ci] = ti[safe] / (1.0 - s)
         u[safe, cj] = tj[safe] - s * ti[safe] / (1.0 - s)
     else:
