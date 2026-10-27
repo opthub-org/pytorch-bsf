@@ -123,6 +123,16 @@ def _check_simplices(simplices: Any, n_vertices: int, d: int) -> torch.Tensor:
     return s
 
 
+def _difference_times_power_of_two(a: torch.Tensor, b: torch.Tensor, exponent: torch.Tensor) -> torch.Tensor:
+    """``(a - b) * 2**exponent``, also where ``a - b`` itself overflows, as for the opposite ends of a long face."""
+    difference = a - b
+    return torch.where(
+        torch.isfinite(difference),
+        _times_power_of_two(difference, exponent),
+        _times_power_of_two(a / 2 - b / 2, exponent + 1),
+    )
+
+
 def _pair_exponents(f: torch.Tensor, g: torch.Tensor, axis_exponent: torch.Tensor) -> torch.Tensor:
     """Per pair of faces ``f`` and ``g`` (p, d, d) and axis, the power of two that scales the pair to order one.
 
@@ -131,8 +141,8 @@ def _pair_exponents(f: torch.Tensor, g: torch.Tensor, axis_exponent: torch.Tenso
     Both are applied together, so that a pair far smaller than the mesh does not underflow on the way.
     """
     both = torch.cat([f, g], dim=1)
-    extent = both.amax(dim=1) - both.amin(dim=1)  # (p, d); finite, since the faces are near each other
-    relative = torch.where(extent > 0, torch.frexp(extent).exponent.to(torch.long) - axis_exponent, -(2**20))
+    half = both.amax(dim=1) / 2 - both.amin(dim=1) / 2  # (p, d): half the extent, which may overflow itself
+    relative = torch.where(half > 0, torch.frexp(half).exponent.to(torch.long) + 1 - axis_exponent, -(2**20))
     return axis_exponent + relative.amax(dim=1, keepdim=True)
 
 
@@ -144,8 +154,8 @@ def _local_pair_coordinates(
     e = -_pair_exponents(f, g, axis_exponent)
     magnitude = torch.maximum(f.abs().amax(dim=1), g.abs().amax(dim=1))  # (p, d)
     return (
-        _times_power_of_two(f - f[:, :1], e[:, None]),
-        _times_power_of_two(g - f[:, :1], e[:, None]),
+        _difference_times_power_of_two(f, f[:, :1], e[:, None]),
+        _difference_times_power_of_two(g, f[:, :1], e[:, None]),
         _times_power_of_two(magnitude, e).amax(dim=1),
     )
 
@@ -158,11 +168,18 @@ def _as_real_tensor(x: Any) -> torch.Tensor:
     return t
 
 
-def _length_key(v: torch.Tensor) -> tuple[int, float]:
-    """A key ordering vectors by Euclidean length exactly as computed, without overflow or underflow."""
+def _length_key(a: torch.Tensor, b: torch.Tensor) -> tuple[int, float]:
+    """A key ordering segments ``ab`` by Euclidean length, without overflow or underflow.
+
+    The difference is taken of the halves where that of the points overflows, as for points near opposite ends of
+    the float64 range.
+    """
+    v, shift = b - a, 0
+    if not torch.isfinite(v).all():
+        v, shift = b / 2 - a / 2, 1
     exponent = math.frexp(float(v.abs().max()))[1]
     mantissa, extra = math.frexp(math.hypot(*(math.ldexp(float(t), -exponent) for t in v.tolist())))
-    return exponent + extra, mantissa
+    return exponent + extra + shift, mantissa
 
 
 class SimplicialMesh:
@@ -320,7 +337,8 @@ class SimplicialMesh:
         unit = 0.0 if d == 1 else _ROUNDING * d * torch.finfo(torch.float64).eps
         low, high = faces.amin(dim=1), faces.amax(dim=1)  # (n, d)
         # The diameter is at most sqrt(d) times the largest side of the box, which bounds the slack from above.
-        slack = unit * (math.sqrt(d) * (high - low).amax(dim=1) + faces.abs().amax(dim=(1, 2)))
+        # Halves are subtracted, since the extent of a face may overflow although its vertices do not.
+        slack = (2 * math.sqrt(d) * unit) * (high / 2 - low / 2).amax(dim=1) + unit * faces.abs().amax(dim=(1, 2))
         everything = torch.arange(len(single))
         pairs = []
         for rows in torch.split(everything, max(1, 2**20 // (len(single) * d))):
@@ -571,7 +589,7 @@ class _Bisection:
 
     def longest(self, cell: tuple[int, ...]) -> tuple[int, int]:
         """The longest edge; ties are broken by vertex numbers, the same way in every simplex."""
-        return max(combinations(cell, 2), key=lambda e: (_length_key(self.x[e[1]] - self.x[e[0]]), e))
+        return max(combinations(cell, 2), key=lambda e: (_length_key(self.x[e[0]], self.x[e[1]]), e))
 
     def bisect(self, e: tuple[int, int]) -> None:
         """Split every simplex containing edge ``e`` at its midpoint, which keeps the mesh conforming."""

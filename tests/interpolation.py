@@ -33,6 +33,7 @@ from torch_bsf._kernels.combinatorics import _indices
 from torch_bsf.geometry import SimploidalSet
 from torch_bsf.interpolation import (
     SimplicialMesh,
+    _Bisection,
     estimate_gradients,
     hermite_interpolant,
     lattice_mesh,
@@ -1243,3 +1244,41 @@ def test_hanging_vertex_off_its_edge_by_rounding_is_detected():
     for x in (y, -(y + 1), (y + 1) * 2.0**-1000):
         with pytest.warns(UserWarning, match="not conforming"):
             assert SimplicialMesh(x, simplices, strict=False).unmatched_faces == 3
+
+
+def test_faces_spanning_the_float64_range_are_compared():
+    """Regression test (Codex review of #430): the extent of a face from -1e308 to 1e308 overflowed, so that unrelated
+    faces became candidates and their coordinates non-finite."""
+    mesh = SimplicialMesh([[0, 0], [-1e308, 0], [1e308, 1e308], [0, -1], [1, -1], [0, -2]], [[0, 1, 2], [3, 4, 5]])
+    assert mesh.unmatched_faces == 0
+    x = torch.tensor([[0.0, 1e308], [0.0, -1e308], [-1e308, 0.0], [1e308, 0.0], [0.0, 0.0]], dtype=torch.float64)
+    assert SimplicialMesh(x, [[0, 2, 3], [1, 2, 3]]).unmatched_faces == 0
+    with pytest.warns(UserWarning, match="not conforming"):
+        assert SimplicialMesh(x, [[0, 2, 4], [0, 3, 4], [1, 2, 3]], strict=False).unmatched_faces == 3
+
+
+def test_longest_edge_is_found_beyond_the_float64_range():
+    """An edge whose difference overflows is the longest, not of length zero."""
+    x = [torch.tensor(v, dtype=torch.float64) for v in ([0.0, 1e308], [-1e308, 0.0], [1e308, 0.0])]
+    assert _Bisection(x, [(0, 1, 2)]).longest((0, 1, 2)) == (1, 2)
+
+
+@given(data=st.data())
+def test_conformity_of_meshes_spanning_the_float64_range(data):
+    """Stretched over [-2**1023, 2**1023] per axis, where differences of coordinates overflow, a mesh is either
+    rejected for that reason or judged as at scale one: conforming, or with its hanging vertex found."""
+    x, simplices = data.draw(kuhn_meshes(dimensions=(2, 3)), label="mesh")
+    if data.draw(st.booleans(), label="hanging"):
+        first = simplices[0].tolist()
+        pairs = itertools.combinations(first, 2)
+        shared = [(a, b) for a, b in pairs if sum(a in s and b in s for s in simplices.tolist()) > 1]
+        x, simplices = _with_hanging_vertex(x, simplices, *data.draw(st.sampled_from(shared), label="edge"))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        expected = SimplicialMesh(x, simplices, strict=False).unmatched_faces
+        try:
+            mesh = SimplicialMesh((2 * x - 1) * 2.0**1023, simplices, strict=False)
+        except ValueError as error:
+            assert "too far apart" in str(error)
+            return
+    assert mesh.unmatched_faces == expected
