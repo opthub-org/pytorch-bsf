@@ -7,10 +7,13 @@ from typing import Any
 
 import pytest
 import torch
+from hypothesis import given
+from hypothesis import strategies as st
 
 import torch_bsf
 import torch_bsf._kernels.api as engine_api
 from tests import requires_lightning
+from tests.strategies import U, degrees, simploid_points, simploid_types
 from torch_bsf._kernels import (
     BezierSimploid,
     Simploid,
@@ -87,6 +90,35 @@ def test_bernstein_basis_partition_of_unity(simploid_type):
     assert torch.allclose(basis.sum(dim=1), torch.ones(20))
     with pytest.raises(ValueError):
         bernstein_basis(simploid_type, 3, torch.zeros(2, simploid_n_params(simploid_type) + 1))
+
+
+def _basis_tolerance(simploid_type: tuple[int, ...], degree: tuple[int, ...]) -> float:
+    r"""Bound on ``|sum(basis) - 1|`` for float64 points whose factors are normalized in float64.
+
+    With the unit roundoff :math:`u`, :math:`N` basis functions, :math:`w` coordinates and factor degrees
+    :math:`d_k` of dimensions :math:`a_k`: each basis function is a multinomial coefficient (at most :math:`a_k + 1`
+    divisions per factor) times :math:`w` powers (one rounding each) multiplied together (:math:`w` more), so it is
+    within :math:`(\sum_k (a_k + 1) + 2w)u` relative to its exact value at the given point; the :math:`N - 1`
+    additions add :math:`(N - 1)u`; and the exact sum at the given point is :math:`\prod_k (\sum t)^{d_k}`, where the
+    coordinates of factor :math:`k` sum to one within :math:`(a_k + 2)u` after normalization.
+    The bound is doubled, because pow and the multinomial coefficients may be off by one ulp more.
+    """
+    n = len(simploid_indices(simploid_type, degree))
+    width = simploid_n_params(simploid_type)
+    normalization = sum(d * (a + 2) for a, d in zip(simploid_type, degree, strict=True))
+    return 2 * (n + 3 * width + normalization) * U
+
+
+@given(data=st.data())
+def test_bernstein_basis_is_a_nonnegative_partition_of_unity(data):
+    """At any point, including vertices, faces and coordinates down to 1e-308, the basis is nonnegative and sums to one."""
+    simploid_type = data.draw(simploid_types())
+    degree = data.draw(degrees(simploid_type, max_degree=4))
+    t = data.draw(simploid_points(simploid_type, 8), label="t")
+    basis = bernstein_basis(simploid_type, degree, t)
+    assert basis.dtype == torch.float64
+    assert torch.isfinite(basis).all() and (basis >= 0).all()
+    assert (basis.sum(dim=1) - 1).abs().max() <= _basis_tolerance(simploid_type, degree)
 
 
 def test_sample_simploid():

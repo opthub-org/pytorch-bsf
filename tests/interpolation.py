@@ -5,7 +5,23 @@ from collections import Counter
 
 import pytest
 import torch
+from hypothesis import given
+from hypothesis import strategies as st
 
+from tests.strategies import (
+    FLOAT64_MAX,
+    FLOAT64_TINY,
+    U,
+    extreme_scalings,
+    kuhn_meshes,
+    log_uniform,
+    matrices,
+    points_in_cells,
+    scalings,
+    signed,
+    simplex_points,
+    translations,
+)
 from torch_bsf import BezierModel, BezierSpace, Points
 from torch_bsf._kernels.combinatorics import _indices
 from torch_bsf.geometry import SimploidalSet
@@ -422,3 +438,217 @@ def test_complex_inputs_are_rejected():
         hermite_interpolant(mesh, [0.0, 1j])
     with pytest.raises(ValueError, match="gradients"):
         hermite_interpolant(mesh, [0.0, 1.0], gradients=[[[0.0]], [[1j]]])
+
+
+# ---------------------------------------------------------------------------
+# Properties (Hypothesis)
+# ---------------------------------------------------------------------------
+
+
+def _barycentric_tolerance(mesh: SimplicialMesh, offset: float) -> float:
+    r"""Bound on the change of barycentric coordinates when every coordinate is rounded at magnitude ``offset + 2``.
+
+    Rounding moves each vertex and point coordinate by at most :math:`u(|t| + 2)` (the unit cube is translated by
+    :math:`t`), so the right-hand side :math:`x - x_0` and the matrix of edges :math:`A` of every simplex move by at
+    most :math:`2u(|t| + 2)` per entry. The coordinates :math:`A^{-1}(x - x_0)` (with :math:`\|x - x_0\| \le` the
+    diameter, at most :math:`\sqrt d`) then move by at most :math:`\|A^{-1}\|_2 (d + 1)^2 \cdot 2u(|t| + 2)` in
+    each component, and the remaining coordinate by :math:`d` times that. :math:`\|A^{-1}\|_2 = 1 / \sigma_{\min}(A)`
+    is the condition of the location problem. The bound is doubled for the rounding inside the solve.
+    """
+    d = mesh.dimension
+    edges = mesh.vertices[mesh.simplices[:, 1:]] - mesh.vertices[mesh.simplices[:, :1]]
+    sigma = torch.linalg.svdvals(edges).min()
+    return float(4 * d * (d + 1) ** 2 * U * (offset + 2) / sigma)
+
+
+def _check_same_location(mesh: SimplicialMesh, other: SimplicialMesh, p: torch.Tensor, q: torch.Tensor, tol: float):
+    """``other`` locates ``q`` as ``mesh`` locates ``p``, up to ``tol``, wherever that is decidable at ``tol``."""
+    lam, moved = mesh.barycentric(p), other.barycentric(q)
+    torch.testing.assert_close(moved, lam, atol=tol, rtol=0)
+    margin = lam.min(dim=2).values.max(dim=1).values
+    clear = margin > 2 * tol  # the cell is decided by more than the rounding error
+    found, refound = mesh.locate(p[clear]), other.locate(q[clear])
+    assert torch.equal(found.cell_ids, refound.cell_ids)
+    torch.testing.assert_close(refound.parameters, found.parameters, atol=4 * tol, rtol=0)
+
+
+@given(data=st.data())
+def test_mesh_is_translation_invariant(data):
+    """Translating vertices and points by up to 1e12 changes neither validity nor location beyond rounding."""
+    x, simplices = data.draw(kuhn_meshes(), label="mesh")
+    _, _, p = data.draw(points_in_cells(x, simplices, 8), label="points")
+    t = data.draw(translations(x.shape[1]), label="t")
+    mesh, moved = SimplicialMesh(x, simplices), SimplicialMesh(x + t, simplices)
+    _check_same_location(mesh, moved, p, p + t, _barycentric_tolerance(mesh, float(t.abs().max())))
+
+
+@given(data=st.data())
+def test_mesh_is_exactly_translation_invariant_for_exact_translations(data):
+    """When the translated coordinates are exact, so is everything computed from them.
+
+    Vertices are multiples of 2**-10 in [0, 1], points multiples of 2**-20, and translations multiples of 2**-10 up
+    to 2**32, so every translated coordinate fits in 53 bits; differences of coordinates are then exact.
+    """
+    x, simplices = data.draw(kuhn_meshes(quantum=2.0**-10), label="mesh")
+    _, _, p = data.draw(points_in_cells(x, simplices, 8), label="points")
+    p = torch.round(p * 2.0**20) / 2.0**20
+    t = torch.round(data.draw(translations(x.shape[1], max_magnitude=2.0**32), label="t") * 2.0**10) / 2.0**10
+    mesh, moved = SimplicialMesh(x, simplices), SimplicialMesh(x + t, simplices)
+    assert torch.equal((x + t) - t, x) and torch.equal((p + t) - t, p)
+    assert torch.equal(moved.barycentric(p + t), mesh.barycentric(p))
+
+
+@given(data=st.data(), scale=scalings())
+def test_mesh_is_scale_invariant(data, scale):
+    """Scaling vertices and points by 1e-6 to 1e6 changes neither validity nor location beyond rounding."""
+    x, simplices = data.draw(kuhn_meshes(), label="mesh")
+    _, _, p = data.draw(points_in_cells(x, simplices, 8), label="points")
+    mesh, scaled = SimplicialMesh(x, simplices), SimplicialMesh(x * scale, simplices)
+    # Scaling rounds each coordinate once more, relative to its magnitude: offset 0 bounds that as well.
+    _check_same_location(mesh, scaled, p, p * scale, 2 * _barycentric_tolerance(mesh, 0.0))
+
+
+@given(data=st.data(), scale=extreme_scalings())
+def test_mesh_accepts_coordinates_near_the_float64_limits(data, scale):
+    """A mesh scaled by a power of two up to 2**±1000 (1e±301) is valid and locates points as the unscaled one."""
+    x, simplices = data.draw(kuhn_meshes(), label="mesh")
+    _, _, p = data.draw(points_in_cells(x, simplices, 8), label="points")
+    mesh, scaled = SimplicialMesh(x, simplices), SimplicialMesh(x * scale, simplices)
+    _check_same_location(mesh, scaled, p, p * scale, _barycentric_tolerance(mesh, 0.0))
+    torch.testing.assert_close(estimate_gradients(scaled, x.sum(dim=1)) * scale, estimate_gradients(mesh, x.sum(dim=1)))
+
+
+@given(data=st.data())
+def test_locate_raises_or_returns_barycentric_coordinates(data):
+    """For any finite point, even one whose offset from the mesh overflows, locate raises or returns valid coordinates."""
+    x, simplices = data.draw(kuhn_meshes(), label="mesh")
+    scale = data.draw(extreme_scalings() | scalings(), label="scale")
+    mesh = SimplicialMesh(x * scale, simplices)
+    coordinate = st.just(0.0) | signed(log_uniform(FLOAT64_TINY, FLOAT64_MAX))
+    q = torch.tensor(data.draw(st.lists(coordinate, min_size=mesh.dimension, max_size=mesh.dimension)), dtype=torch.float64)
+    try:
+        found = mesh.locate(q[None])
+    except ValueError as error:
+        assert "outside" in str(error)
+        return
+    t = found.parameters
+    assert torch.isfinite(t).all() and (t >= 0).all()
+    torch.testing.assert_close(t.sum(dim=1), torch.ones(1, dtype=torch.float64))
+
+
+def _range_tolerance(mesh: SimplicialMesh, magnitude: torch.Tensor) -> torch.Tensor:
+    r"""Bound on how far a clamped prediction may leave the range of its cell data of magnitude ``magnitude``.
+
+    The controls of a cell lie in that range exactly (they are clipped), and the prediction is a convex combination
+    of them computed with the error bound of ``_evaluation_tolerance`` in ``tests/test_core.py``:
+    :math:`2(N + D + 3w)u` times the largest control, with :math:`N` controls of degree :math:`D = 3` in :math:`w` coordinates.
+    """
+    w = mesh.dimension + 1
+    n = len(_indices((mesh.dimension,), (3,)))
+    return 2 * (n + 3 + 3 * w) * U * magnitude + 2 * n * FLOAT64_TINY
+
+
+@given(data=st.data(), scale=scalings() | extreme_scalings(), offset=st.just(0.0) | signed(log_uniform(1e-6, 1e12)))
+def test_clamped_interpolant_preserves_the_range_of_cell_data(data, scale, offset):
+    """At any point of a cell, the clamped prediction lies between the smallest and largest data of the cell.
+
+    The data are scaled by up to 2**±1000 and offset by up to 1e12, so that a cell may have nearly equal data.
+    """
+    x, simplices = data.draw(kuhn_meshes(), label="mesh")
+    mesh = SimplicialMesh(x, simplices)
+    f = data.draw(matrices(mesh.n_vertices, 2), label="f") * scale + offset
+    rows, lam, _ = data.draw(points_in_cells(x, simplices, 8), label="points")
+    model = hermite_interpolant(mesh, f, clamp=True)
+    with torch.no_grad():
+        y = model(Points(lam, mesh.cell_ids[rows]))
+    corner = f[mesh.simplices[rows]]  # (n, d + 1, M)
+    lo, hi = corner.amin(dim=1), corner.amax(dim=1)
+    tol = _range_tolerance(mesh, torch.maximum(lo.abs(), hi.abs()))
+    assert (y >= lo - tol).all() and (y <= hi + tol).all()
+
+
+@given(data=st.data(), scale=scalings() | extreme_scalings(), clamp=st.booleans())
+def test_interpolant_is_continuous_across_shared_faces(data, scale, clamp):
+    """At any point of a face shared by two cells, the predictions of both cells agree up to rounding."""
+    x, simplices = data.draw(kuhn_meshes(dimensions=(2, 3)), label="mesh")
+    mesh = SimplicialMesh(x, simplices)
+    model = hermite_interpolant(mesh, data.draw(matrices(mesh.n_vertices, 2), label="f") * scale, clamp=clamp)
+    rows = mesh.simplices.tolist()
+    pairs = [
+        (a, b) for a, b in itertools.combinations(range(len(rows)), 2) if len(set(rows[a]) & set(rows[b])) == mesh.dimension
+    ]
+    a, b = data.draw(st.sampled_from(pairs), label="cells")
+    shared = sorted(set(rows[a]) & set(rows[b]))
+    w = data.draw(simplex_points(len(shared), 4), label="w")
+
+    def on_cell(k: int) -> Points:
+        lam = torch.zeros(len(w), mesh.dimension + 1, dtype=torch.float64)
+        lam[:, [rows[k].index(v) for v in shared]] = w
+        return Points(lam, mesh.cell_ids[k].repeat(len(w)))
+
+    with torch.no_grad():
+        left, right = model(on_cell(a)), model(on_cell(b))
+    # The controls on the face are shared rows, the other controls get zero weight, and each side errs by at most
+    # the bound of _range_tolerance relative to the largest coefficient.
+    tol = 2 * _range_tolerance(mesh, model.coefficients.detach().abs().max())
+    assert (left - right).abs().max() <= tol
+
+
+@given(data=st.data(), bad=st.sampled_from([float("nan"), float("inf"), -float("inf")]))
+def test_non_finite_mesh_inputs_are_rejected(data, bad):
+    """A single NaN or infinity in vertices, points, values or gradients raises ValueError."""
+    x, simplices = data.draw(kuhn_meshes(), label="mesh")
+    mesh = SimplicialMesh(x, simplices)
+    _, _, p = data.draw(points_in_cells(x, simplices, 3), label="points")
+    f = data.draw(matrices(mesh.n_vertices, 2), label="f")
+    g = torch.zeros(mesh.n_vertices, mesh.dimension, 2, dtype=torch.float64)
+
+    def broken(t: torch.Tensor) -> torch.Tensor:
+        t = t.clone()
+        t.view(-1)[data.draw(st.integers(0, t.numel() - 1))] = bad
+        return t
+
+    with pytest.raises(ValueError, match="vertices"):
+        SimplicialMesh(broken(x), simplices)
+    with pytest.raises(ValueError, match="points"):
+        mesh.locate(broken(p))
+    with pytest.raises(ValueError, match="values"):
+        hermite_interpolant(mesh, broken(f))
+    with pytest.raises(ValueError, match="gradients"):
+        hermite_interpolant(mesh, f, gradients=broken(g))
+
+
+# Regression tests for the counterexamples found by the properties above.
+
+
+@pytest.mark.parametrize("scale", [2.0**-1000, 2.0**-600, 2.0**600, 2.0**1000])
+def test_mesh_far_from_unit_scale_is_not_degenerate(scale):
+    """The determinant of the edges overflowed (or underflowed) to inf (or 0), so the triangle was called degenerate."""
+    x = torch.tensor([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]], dtype=torch.float64)
+    mesh = SimplicialMesh(x * scale, [[0, 1, 2]])
+    p = torch.tensor([[0.25, 0.5]], dtype=torch.float64)
+    assert mesh.locate(p * scale).parameters.tolist() == [[0.25, 0.25, 0.5]]
+
+
+def test_estimated_gradients_at_large_coordinates():
+    """Squared distances overflowed beyond coordinates of 1e154, so that every weight and the gradient became zero."""
+    x = torch.linspace(0, 1, 6, dtype=torch.float64)[:, None]
+    scale = 2.0**1000
+    mesh = SimplicialMesh(x * scale, [[k, k + 1] for k in range(5)])
+    g = estimate_gradients(mesh, x.square())
+    torch.testing.assert_close(g[:, 0, 0] * scale, 2 * x[:, 0])
+
+
+def test_locate_rejects_a_point_whose_coordinates_overflow():
+    """The barycentric coordinates of this point overflow to -inf and inf, and their sum to NaN.
+
+    The NaN passed the outside test (NaN < -tol is false), and locate returned NaN coordinates.
+    """
+    mesh = SimplicialMesh([[0.0, 0.0], [0.5, 0.0], [0.5, 0.5]], [[0, 1, 2]])
+    with pytest.raises(ValueError, match="outside"):
+        mesh.locate([[0.0, FLOAT64_MAX]])
+
+
+def test_mesh_rejects_vertices_whose_differences_overflow():
+    with pytest.raises(ValueError, match="overflow"):
+        SimplicialMesh([[-FLOAT64_MAX], [FLOAT64_MAX]], [[0, 1]])

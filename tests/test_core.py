@@ -2,8 +2,11 @@
 
 import pytest
 import torch
+from hypothesis import given
+from hypothesis import strategies as st
 
 import torch_bsf as bsf
+from tests.strategies import FLOAT64_TINY, U, degrees, extreme_scalings, matrices, scalings, simploid_points, simploid_types
 from torch_bsf.solvers import DenseLeastSquares
 
 
@@ -216,3 +219,79 @@ def test_core_containers_preserve_existing_dtype_inference(default_dtype, kind):
         assert torch.equal(actual, expected)
     assert samples.values.dtype == inferred.dtype
     assert torch.equal(samples.values, inferred)
+
+
+# ---------------------------------------------------------------------------
+# Properties (Hypothesis)
+# ---------------------------------------------------------------------------
+
+
+def _evaluation_tolerance(space: bsf.BezierSpace, magnitude: float) -> float:
+    r"""Bound on the rounding error of evaluating a single-cell model whose coefficients are at most ``magnitude``.
+
+    The prediction is :math:`\sum_k b_k c_k` with :math:`N` basis functions :math:`b_k \ge 0` summing to one, each
+    within :math:`(D + 3w)u` of its exact value (total degree :math:`D`, :math:`w` coordinates; see
+    ``_basis_tolerance`` in ``tests/simploidal.py``), so the products and the :math:`N - 1` additions err by at most
+    :math:`(N + D + 3w)u` times the largest coefficient. Products below the smallest normal float64 lose up to
+    ``FLOAT64_TINY`` each. The bound is doubled for slack in the per-operation bounds.
+    """
+    cell = space.cells[0]
+    n = space.n_controls
+    return 2 * ((n + sum(cell.degree) + 3 * cell.width) * U * magnitude + n * FLOAT64_TINY)
+
+
+@given(data=st.data(), scale=scalings() | extreme_scalings())
+def test_model_evaluation_is_finite_and_scale_equivariant(data, scale):
+    """Scaling the coefficients by 1e-6 to 1e6, or by powers of two up to 2**±1000, scales the prediction.
+
+    The prediction stays finite (never NaN or inf), even at points with coordinates down to the smallest normal
+    float64, and its error relative to the scaled prediction stays within the rounding bound.
+    """
+    simploid_type = data.draw(simploid_types())
+    degree = data.draw(degrees(simploid_type))
+    space = bsf.BezierSpace.simploid(simploid_type, degree=degree)
+    coefficients = data.draw(matrices(space.n_controls, 2), label="coefficients")
+    t = data.draw(simploid_points(simploid_type, 6), label="t")
+    with torch.no_grad():
+        y = bsf.BezierModel(space, coefficients)(t)
+        scaled = bsf.BezierModel(space, coefficients * scale)(t)
+    assert torch.isfinite(y).all() and torch.isfinite(scaled).all()
+    tol = _evaluation_tolerance(space, float((coefficients * scale).abs().max()))
+    # Both y and scaled have rounding errors; that of y is scaled too (scale * tol / scale).
+    assert (scaled - scale * y).abs().max() <= 2 * tol
+
+
+_NON_FINITE = st.sampled_from([float("nan"), float("inf"), -float("inf")])
+
+
+@given(data=st.data(), bad=_NON_FINITE)
+def test_non_finite_inputs_are_rejected(data, bad):
+    """A single NaN or infinity anywhere in coordinates, coefficients or observed values raises ValueError."""
+    simploid_type = data.draw(simploid_types())
+    space = bsf.BezierSpace.simploid(simploid_type, degree=data.draw(degrees(simploid_type)))
+    coefficients = data.draw(matrices(space.n_controls, 2))
+    t = data.draw(simploid_points(simploid_type, 3))
+    row, column = data.draw(st.integers(0, 2)), data.draw(st.integers(0, t.shape[1] - 1))
+    broken_t = t.clone()
+    broken_t[row, column] = bad
+    with pytest.raises(ValueError, match="finite"):
+        bsf.BezierModel(space, coefficients)(broken_t)
+    broken_c = coefficients.clone()
+    broken_c[data.draw(st.integers(0, space.n_controls - 1)), data.draw(st.integers(0, 1))] = bad
+    with pytest.raises(ValueError, match="finite"):
+        bsf.BezierModel(space, broken_c)
+    values = torch.zeros(3, 2, dtype=torch.float64)
+    values[row, data.draw(st.integers(0, 1))] = bad
+    with pytest.raises(ValueError, match="finite"):
+        bsf.Samples(t, values)
+
+
+@given(data=st.data())
+def test_empty_batches_give_empty_predictions(data):
+    simploid_type = data.draw(simploid_types())
+    space = bsf.BezierSpace.simploid(simploid_type, degree=data.draw(degrees(simploid_type)))
+    model = bsf.BezierModel(space, data.draw(matrices(space.n_controls, 2)))
+    y = model(torch.empty(0, space.width, dtype=torch.float64))
+    assert y.shape == (0, 2)
+    with pytest.raises(ValueError, match="values"):
+        bsf.Samples(torch.empty(0, space.width), torch.empty(0, 2))

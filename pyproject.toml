@@ -78,6 +78,7 @@ develop = [
   "pytest-cov",
   "pytest-randomly",
   "pytest-benchmark",
+  "hypothesis",
   "mypy",
   "types-PyYAML",
   "types-setuptools",

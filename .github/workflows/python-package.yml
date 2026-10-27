@@ -51,7 +51,7 @@ jobs:
         uv pip install --resolution lowest-direct '.[lightning,mlflow]'
         # Keep the resolved versions while adding the optional dependencies and test tools
         uv pip freeze | grep -v '^pytorch-bsf' > lowest-constraints.txt
-        uv pip install '.[all]' pytest pytest-cov -c lowest-constraints.txt
+        uv pip install '.[all]' pytest pytest-cov hypothesis -c lowest-constraints.txt
         uv pip list
     - name: Test with pytest
       run: |
@@ -91,7 +91,7 @@ jobs:
       run: |
         # The CPU build of PyTorch is much smaller than the default CUDA one
         uv pip install torch --index-url https://download.pytorch.org/whl/cpu
-        uv pip install ".${{ matrix.extras && format('[{0}]', matrix.extras) || '' }}" pytest pytest-cov
+        uv pip install ".${{ matrix.extras && format('[{0}]', matrix.extras) || '' }}" pytest pytest-cov hypothesis
         uv pip list
     - name: Check that the excluded packages are not installed
       run: |
@@ -132,7 +132,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install pytest pytest-cov
+        python -m pip install pytest pytest-cov hypothesis
         python -m pip install -r docs/requirements.txt
         python -m pip install '.[lightning,mlflow]'
     - name: Type check with mypy
