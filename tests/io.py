@@ -2,10 +2,15 @@
 
 import json
 import zipfile
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import pytest
 import torch
+from hypothesis import given
+from hypothesis import strategies as st
 
+from tests.strategies import degrees, matrices, seeds, simploid_types
 from torch_bsf import BezierModel, BezierSpace, SimploidalSet
 from torch_bsf.io import load_model, save_model
 from torch_bsf.sampling import sample
@@ -13,21 +18,30 @@ from torch_bsf.sampling import sample
 
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
 @pytest.mark.parametrize("kind", ["simplex", "product", "glued"])
-def test_roundtrip(tmp_path, dtype, kind):
+@given(data=st.data(), seed=seeds())
+def test_roundtrip(dtype, kind, data, seed):
     if kind == "glued":
+        degree = data.draw(st.integers(1, 4))
         domain = SimploidalSet()
         a, b = domain.add_simplex(2), domain.add_simploid((1, 1))
         domain.identify(a.face(0, 0), b.face(0, 0))
-        space = BezierSpace.on_set(domain, degree=2)
+        space = BezierSpace.on_set(domain, degree=degree)
     else:
-        space = BezierSpace.simploid((1, 1) if kind == "product" else (2,), degree=2)
-    model = BezierModel(space, torch.randn(space.n_controls, 3, dtype=dtype))
-    points = sample(space, 40, seed=42)
-    path = tmp_path / "arbitrary.extension"
-    save_model(path, model)
-    loaded = load_model(path)
+        dimensions = (data.draw(st.integers(1, 3)),) if kind == "simplex" else data.draw(simploid_types(min_factors=2))
+        factor_degrees = data.draw(degrees(dimensions, max_degree=4))
+        space = BezierSpace.simploid(dimensions, degree=factor_degrees)
+    n_values = data.draw(st.integers(1, 4))
+    model = BezierModel(space, data.draw(matrices(space.n_controls, n_values)).to(dtype))
+    points = sample(space, 12, seed=seed)
+    # Every Hypothesis example owns its directory; a function-scoped fixture would
+    # otherwise be reused across examples and could hide stale-file dependencies.
+    with TemporaryDirectory() as directory:
+        path = Path(directory) / "arbitrary.extension"
+        save_model(path, model)
+        loaded = load_model(path)
     assert loaded.space.compatible(model.space)
     assert loaded.coefficients.dtype == dtype
+    assert torch.equal(loaded.coefficients, model.coefficients)
     assert torch.equal(loaded(points), model(points))
     assert loaded.space.with_degree(3).n_cells == space.n_cells
 

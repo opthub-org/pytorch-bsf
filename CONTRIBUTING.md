@@ -384,6 +384,27 @@ HYPOTHESIS_PROFILE=thorough pytest tests/splitting.py tests/interpolation.py -p 
 
 Run the `thorough` profile on the properties you add or whose code you change before opening a PR.
 
+When revisiting older tests, replace repeated fixed inputs with a generated property when the assertion
+expresses a general contract. Keep the old boundary cases as `@example` inputs when they need guaranteed
+coverage. Keep explicit API examples, format/CLI expectations, dependency failures, known numerical
+regressions and optimizer convergence benchmarks: their particular inputs or execution conditions matter.
+Do not replace these with assertions that merely check output shape or finiteness.
+
+Examples of migrated contracts:
+
+| Tests | Generated contracts |
+|-------|---------------------|
+| `tests/sampling.py` | Grid cardinality and lattice coordinates, simplex bounds, seeded reproducibility and Sobol warnings |
+| `tests/preprocessing.py` | Fitted affine maps, inverse roundtrips, constant features and normalization statistics |
+| `tests/simploidal.py` | Mixed-degree index counts, nonnegative partition of unity, face restrictions and degeneracies |
+| `tests/io.py` | Exact coefficient, dtype, topology and prediction roundtrips |
+| `tests/model_selection/kfold.py` | Disjoint and balanced folds, complete coverage, reproducibility and local RNG state |
+
+An integration example can stay fixed when its mathematical identity is already covered by a property
+at a lower level (for example, subdivision in `tests/unified_utilities.py` and `tests/splitting.py`).
+For filesystem properties, create a temporary directory inside the property body: pytest's `tmp_path`
+fixture is shared by all Hypothesis examples of a test invocation.
+
 ### Docstring tests
 
 Write runnable examples in docstrings for all public APIs. They are verified automatically in CI:

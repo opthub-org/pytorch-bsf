@@ -7,13 +7,13 @@ from typing import Any
 
 import pytest
 import torch
-from hypothesis import given
+from hypothesis import example, given
 from hypothesis import strategies as st
 
 import torch_bsf
 import torch_bsf._kernels.api as engine_api
 from tests import requires_lightning
-from tests.strategies import U, degrees, simploid_points, simploid_types
+from tests.strategies import U, degrees, matrices, seeds, simploid_points, simploid_types
 from torch_bsf._kernels import (
     BezierSimploid,
     Simploid,
@@ -64,13 +64,18 @@ def _face_type(simploid_type, i):
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("simploid_type", TYPES)
-@pytest.mark.parametrize("degree", [0, 1, 3])
-def test_simploid_indices_count(simploid_type, degree):
+@given(data=st.data())
+def test_simploid_indices_count(data):
+    simploid_type = data.draw(simploid_types(min_factors=0))
+    degree = data.draw(degrees(simploid_type, max_degree=5))
     indices = simploid_indices(simploid_type, degree)
-    assert len(indices) == prod(comb(a + degree, a) for a in simploid_type)
+    assert len(indices) == prod(comb(a + d, a) for a, d in zip(simploid_type, degree, strict=True))
     assert len(set(indices)) == len(indices)
-    assert all(sum(m) == degree and len(m) == a + 1 for alpha in indices for m, a in zip(alpha, simploid_type, strict=True))
+    assert all(
+        sum(m) == d and len(m) == a + 1 and all(v >= 0 for v in m)
+        for alpha in indices
+        for m, a, d in zip(alpha, simploid_type, degree, strict=True)
+    )
 
 
 def test_simploid_indices_invalid():
@@ -82,14 +87,9 @@ def test_simploid_indices_invalid():
         simploid_indices((1,), -1)
 
 
-@pytest.mark.parametrize("simploid_type", TYPES)
-def test_bernstein_basis_partition_of_unity(simploid_type):
-    t = sample_simploid(simploid_type, 20, seed=0)
-    basis = bernstein_basis(simploid_type, 3, t)
-    assert basis.shape == (20, len(simploid_indices(simploid_type, 3)))
-    assert torch.allclose(basis.sum(dim=1), torch.ones(20))
+def test_bernstein_basis_rejects_wrong_width():
     with pytest.raises(ValueError):
-        bernstein_basis(simploid_type, 3, torch.zeros(2, simploid_n_params(simploid_type) + 1))
+        bernstein_basis((2, 1), 3, torch.zeros(2, 6))
 
 
 def _basis_tolerance(simploid_type: tuple[int, ...], degree: tuple[int, ...]) -> float:
@@ -112,22 +112,32 @@ def _basis_tolerance(simploid_type: tuple[int, ...], degree: tuple[int, ...]) ->
 @given(data=st.data())
 def test_bernstein_basis_is_a_nonnegative_partition_of_unity(data):
     """At any point, including vertices, faces and coordinates down to 1e-308, the basis is nonnegative and sums to one."""
-    simploid_type = data.draw(simploid_types())
+    simploid_type = data.draw(simploid_types(min_factors=0))
     degree = data.draw(degrees(simploid_type, max_degree=4))
     t = data.draw(simploid_points(simploid_type, 8), label="t")
     basis = bernstein_basis(simploid_type, degree, t)
+    assert basis.shape == (len(t), len(simploid_indices(simploid_type, degree)))
     assert basis.dtype == torch.float64
     assert torch.isfinite(basis).all() and (basis >= 0).all()
     assert (basis.sum(dim=1) - 1).abs().max() <= _basis_tolerance(simploid_type, degree)
 
 
-def test_sample_simploid():
-    t = sample_simploid((2, 1), 10, seed=3)
-    assert torch.equal(t, sample_simploid((2, 1), 10, seed=3))
-    assert (t >= 0).all()
-    assert torch.allclose(t[:, :3].sum(dim=1), torch.ones(10))
-    assert torch.allclose(t[:, 3:].sum(dim=1), torch.ones(10))
-    assert sample_simploid((), 4).shape == (4, 0)
+@example(simploid_type=(), n_samples=4, seed=3)
+@example(simploid_type=(2, 1), n_samples=0, seed=0)
+@given(simploid_type=simploid_types(min_factors=0), n_samples=st.integers(0, 32), seed=seeds())
+def test_sample_simploid(simploid_type, n_samples, seed):
+    t = sample_simploid(simploid_type, n_samples, seed=seed)
+    assert t.shape == (n_samples, simploid_n_params(simploid_type))
+    assert torch.equal(t, sample_simploid(simploid_type, n_samples, seed=seed))
+    assert torch.isfinite(t).all() and ((t >= 0) & (t <= 1)).all()
+    offset = 0
+    for a in simploid_type:
+        bound = (a + 3) * torch.finfo(t.dtype).eps / 2
+        assert ((t[:, offset : offset + a + 1].sum(dim=1) - 1).abs() <= bound).all()
+        offset += a + 1
+
+
+def test_sample_simploid_rejects_negative_count():
     with pytest.raises(ValueError):
         sample_simploid((1,), -1)
 
@@ -294,38 +304,52 @@ def test_fit_simploidal_set_trainer_converges_to_lstsq():
     assert torch.allclose(trained.proper_control_points, exact.proper_control_points, atol=1e-3)
 
 
-@pytest.mark.parametrize("simploid_type", [t for t in TYPES if t])
-def test_bezier_simploid_face_property(simploid_type):
-    """Property 2-1: the restriction of a Bézier simploid to a face is the Bézier simploid of the face."""
-    bsd = BezierSimploid.randn(simploid_type, 3, n_values=2)
-    for i, j in _all_faces(simploid_type):
-        face = bsd.face(i, j)
-        assert face.simploid_type == _face_type(simploid_type, i)
-        u = sample_simploid(face.simploid_type, 10, seed=i * 7 + j)
-        assert torch.allclose(bsd(_face_param(simploid_type, u, i, j)), face(u), atol=1e-5)
+@given(data=st.data())
+def test_bezier_simploid_face_property(data):
+    """Restriction to a generated face agrees with evaluating its parent on that face."""
+    simploid_type = data.draw(simploid_types())
+    degree = data.draw(degrees(simploid_type))
+    cp = data.draw(matrices(len(simploid_indices(simploid_type, degree)), 2))
+    bsd = BezierSimploid(simploid_type, degree, cp)
+    i, j = data.draw(st.sampled_from(_all_faces(simploid_type)))
+    face = bsd.face(i, j)
+    assert face.simploid_type == _face_type(simploid_type, i)
+    u = data.draw(simploid_points(face.simploid_type, 5))
+    # Face evaluation uses a subset of the same coefficients. Bound both basis
+    # evaluations and their dot products by the coefficient magnitude.
+    bound = 4 * _basis_tolerance(simploid_type, degree) * cp.abs().max()
+    assert ((bsd(_face_param(simploid_type, u, i, j)) - face(u)).abs() <= bound).all()
     with pytest.raises(IndexError):
         bsd.face(len(simploid_type), 0)
 
 
-@pytest.mark.parametrize("simploid_type", [t for t in TYPES if t])
-def test_bezier_simploid_degenerate_property(simploid_type):
-    """Property 2-2: a degenerate Bézier simploid has the same shape as the original."""
-    bsd = BezierSimploid.randn(simploid_type, 3, n_values=2)
-    for i, a in enumerate(simploid_type):
-        offset = sum(b + 1 for b in simploid_type[:i])
-        for j in range(a + 1):
-            deg = bsd.degenerate(i, j)
-            u = sample_simploid(deg.simploid_type, 10, seed=j)
-            block = u[:, offset : offset + a + 2]
-            merged = torch.cat([block[:, :j], block[:, j : j + 2].sum(dim=1, keepdim=True), block[:, j + 2 :]], dim=1)
-            v = torch.cat([u[:, :offset], merged, u[:, offset + a + 2 :]], dim=1)
-            assert torch.allclose(deg(u), bsd(v), atol=1e-5)
-    for i in range(len(simploid_type) + 1):
-        deg = bsd.degenerate(i, -1)
-        u = sample_simploid(deg.simploid_type, 10, seed=i)
-        offset = sum(b + 1 for b in simploid_type[:i])
-        v = torch.cat([u[:, :offset], u[:, offset + 2 :]], dim=1)
-        assert torch.allclose(deg(u), bsd(v), atol=1e-5)
+@given(data=st.data())
+def test_bezier_simploid_degenerate_property(data):
+    """Merging duplicated coordinates recovers evaluation of the original model."""
+    simploid_type = data.draw(simploid_types())
+    degree = data.draw(degrees(simploid_type))
+    cp = data.draw(matrices(len(simploid_indices(simploid_type, degree)), 2))
+    bsd = BezierSimploid(simploid_type, degree, cp)
+    i, j = data.draw(st.sampled_from(_all_faces(simploid_type)))
+    deg = bsd.degenerate(i, j)
+    u = data.draw(simploid_points(deg.simploid_type, 5))
+    offset = sum(b + 1 for b in simploid_type[:i])
+    a = simploid_type[i]
+    block = u[:, offset : offset + a + 2]
+    merged = torch.cat([block[:, :j], block[:, j : j + 2].sum(dim=1, keepdim=True), block[:, j + 2 :]], dim=1)
+    v = torch.cat([u[:, :offset], merged, u[:, offset + a + 2 :]], dim=1)
+    # Include the extra coordinate addition, both basis evaluations, and dot products.
+    bound = 4 * (_basis_tolerance(simploid_type, degree) + _basis_tolerance(deg.simploid_type, deg.degree))
+    assert ((deg(u) - bsd(v)).abs() <= bound * cp.abs().max()).all()
+
+    i = data.draw(st.integers(0, len(simploid_type)))
+    inserted_degree = data.draw(st.integers(0, 3))
+    deg = bsd.degenerate(i, -1, degree=inserted_degree)
+    u = data.draw(simploid_points(deg.simploid_type, 5))
+    offset = sum(b + 1 for b in simploid_type[:i])
+    v = torch.cat([u[:, :offset], u[:, offset + 2 :]], dim=1)
+    bound = 4 * (_basis_tolerance(simploid_type, degree) + _basis_tolerance(deg.simploid_type, deg.degree))
+    assert ((deg(u) - bsd(v)).abs() <= bound * cp.abs().max()).all()
 
 
 def test_bezier_simploid_degenerate_errors():

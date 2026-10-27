@@ -32,6 +32,30 @@ FLOAT64_MAX = torch.finfo(torch.float64).max
 FLOAT64_TINY = torch.finfo(torch.float64).tiny
 
 
+def seeds() -> st.SearchStrategy[int]:
+    """Seeds accepted by both NumPy and PyTorch local generators, including zero."""
+    return st.integers(0, 2**32 - 1)
+
+
+@st.composite
+def feature_values(draw: st.DrawFn, *, min_rows: int = 1) -> torch.Tensor:
+    """Small float32/float64 tables, including constant columns and differing feature scales.
+
+    Dyadic entries and powers of two keep the inputs exact. Exponents are bounded by 30
+    (float32) or 100 (float64) so variance computations remain representable.
+    """
+    dtype = draw(st.sampled_from([torch.float32, torch.float64]))
+    max_exponent = 30 if dtype == torch.float32 else 100
+    n_rows, n_columns = draw(st.integers(min_rows, 12)), draw(st.integers(1, 4))
+    columns = []
+    for _ in range(n_columns):
+        constant = draw(st.booleans())
+        entries = draw(st.lists(st.integers(-32, 32), min_size=1 if constant else n_rows, max_size=1 if constant else n_rows))
+        column = torch.tensor(entries, dtype=dtype).expand(n_rows)
+        columns.append(column * draw(extreme_scalings(max_exponent)))
+    return torch.stack(columns, dim=1)
+
+
 def log_uniform(min_value: float, max_value: float) -> st.SearchStrategy[float]:
     """Positive floats in ``[min_value, max_value]`` spread evenly over binary orders of magnitude.
 
