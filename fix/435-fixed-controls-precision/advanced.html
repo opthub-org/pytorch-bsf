@@ -1,0 +1,321 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Advanced Topics &mdash; PyTorch-BSF 0.22.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5686f5df"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Output scaling" href="advanced/normalization.html" />
+    <link rel="prev" title="Migrating to the unified v0 API" href="migration.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Advanced Topics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#follow-a-fit-through-the-guides">Follow a fit through the guides</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#guide-chapters">Guide chapters</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="advanced/normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="advanced/point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="advanced/sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="advanced/initialization.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="advanced/visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="advanced/splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="advanced/auto_degree.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="advanced/regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="advanced/grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="advanced/partial.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="advanced/sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="advanced/acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="advanced/active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="advanced/simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="advanced/simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="advanced/interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="advanced/sgd.html">Objective minimization</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently asked questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">API reference guide</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Advanced Topics</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/advanced.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="advanced-topics">
+<h1>Advanced Topics<a class="headerlink" href="#advanced-topics" title="Link to this heading"></a></h1>
+<p>The common space, model and observation types connect regression, optimization
+and optional integrations. Start with normalization and visualization to
+understand your data and fitted image. Use degree selection, regularization
+and fixed controls to improve a model under explicit assumptions. Sampling
+and active learning help decide where to obtain additional observations;
+assembled domains describe how local charts connect. Objective minimization
+is a separate path for differentiable costs without regression targets.</p>
+<p>Each practical guide explains when the feature is needed, provides runnable
+examples, and describes how settings affect results. Before/after figures
+state what changed and retain reproduction scripts and numerical evidence.</p>
+<section id="choose-a-guide-by-the-question-you-need-to-answer">
+<h2>Choose a guide by the question you need to answer<a class="headerlink" href="#choose-a-guide-by-the-question-you-need-to-answer" title="Link to this heading"></a></h2>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-number">Table 2 </span><span class="caption-text">Practical entry points</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 40.0%" />
+<col style="width: 30.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Question</p></th>
+<th class="head"><p>Start here</p></th>
+<th class="head"><p>What to inspect afterward</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Outputs have very different scales.</p></td>
+<td><p><a class="reference internal" href="advanced/normalization.html"><span class="doc">Output scaling</span></a></p></td>
+<td><p>Errors in original units</p></td>
+</tr>
+<tr class="row-odd"><td><p>A fit oscillates between measurements.</p></td>
+<td><p><a class="reference internal" href="advanced/auto_degree.html"><span class="doc">Cross-validation and degree search</span></a>, <a class="reference internal" href="advanced/regularization.html"><span class="doc">Regularization and numerical evidence</span></a></p></td>
+<td><p>Independent prediction errors</p></td>
+</tr>
+<tr class="row-even"><td><p>Endpoint or boundary values are exact.</p></td>
+<td><p><a class="reference internal" href="advanced/partial.html"><span class="doc">Fixed controls</span></a></p></td>
+<td><p>Full boundary coverage of the constraints</p></td>
+</tr>
+<tr class="row-odd"><td><p>Reference evaluations are expensive.</p></td>
+<td><p><a class="reference internal" href="advanced/active_learning.html"><span class="doc">Explicit ensembles and active learning</span></a></p></td>
+<td><p>Errors on a fixed external validation set</p></td>
+</tr>
+<tr class="row-even"><td><p>A plot is coarse or misses a feature.</p></td>
+<td><p><a class="reference internal" href="advanced/visualization.html"><span class="doc">Visualization</span></a>, <a class="reference internal" href="advanced/grid_sampling.html"><span class="doc">Grid sampling</span></a></p></td>
+<td><p>Numerical residuals and render resolution</p></td>
+</tr>
+<tr class="row-odd"><td><p>Independent parameter groups vary together.</p></td>
+<td><p><a class="reference internal" href="advanced/simploidal.html"><span class="doc">Single and assembled domains</span></a></p></td>
+<td><p>Per-factor sums and coordinate order</p></td>
+</tr>
+<tr class="row-even"><td><p>Neighboring local regions must agree.</p></td>
+<td><p><a class="reference internal" href="advanced/simploidal.html"><span class="doc">Single and assembled domains</span></a></p></td>
+<td><p>Predictions along identified faces</p></td>
+</tr>
+<tr class="row-odd"><td><p>Exact data on a mesh must not overshoot.</p></td>
+<td><p><a class="reference internal" href="advanced/interpolation.html"><span class="doc">Shape-preserving interpolation on simplicial meshes</span></a></p></td>
+<td><p>Prediction range in each cell</p></td>
+</tr>
+<tr class="row-even"><td><p>A large fit exhausts memory.</p></td>
+<td><p><a class="reference internal" href="advanced/acceleration.html"><span class="doc">Solvers and optional execution</span></a></p></td>
+<td><p>Sparse termination and conditioning</p></td>
+</tr>
+<tr class="row-odd"><td><p>There are costs but no target responses.</p></td>
+<td><p><a class="reference internal" href="advanced/initialization.html"><span class="doc">Explicit initial models</span></a>, <a class="reference internal" href="advanced/sgd.html"><span class="doc">Objective minimization</span></a></p></td>
+<td><p>Full-sample objective and gradient stopping</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="follow-a-fit-through-the-guides">
+<h2>Follow a fit through the guides<a class="headerlink" href="#follow-a-fit-through-the-guides" title="Link to this heading"></a></h2>
+<p>Start by recording the domain, output units and measurement process. Use
+sampling and visualization to examine coverage before changing the model.
+Then choose capacity with held-out data. A larger degree can reduce bias,
+but increases controls and can worsen conditioning; regularization imposes
+an additional assumption rather than adding measurements.</p>
+<p>Keep the evaluation set fixed while comparing settings. If you change both
+degree and training locations, a better result cannot be attributed to
+either change alone. Boundary constraints, coefficient penalties and output
+transforms should be recorded with every comparison because they change
+what problem is being solved.</p>
+<p><code class="docutils literal notranslate"><span class="pre">FitResult.success</span></code> describes numerical termination. Observation rank
+describes whether data identify the free controls, while held-out errors
+describe predictive performance. None replaces the others. An accurate
+interior fit can still miss an important boundary, and a regularized
+full-rank system can still have an underdetermined data matrix.</p>
+<p>The category-theory chapter is a mathematical continuation of the geometric
+simploid guide. It is useful for understanding faces, degeneracies and
+gluing abstractly; it is not a prerequisite for fitting a square or prism.
+The scikit-learn guide uses the same core numerical model in estimator
+workflows. Exact subdivision in the splitting guide changes charts while
+preserving the represented function, so assess it differently from refitting.</p>
+</section>
+<section id="guide-chapters">
+<h2>Guide chapters<a class="headerlink" href="#guide-chapters" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="advanced/normalization.html">Output scaling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/initialization.html">Explicit initial models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/visualization.html">Visualization</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/auto_degree.html">Cross-validation and degree search</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/partial.html">Fixed controls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/sampling.html">Sampling and grids</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/sgd.html">Objective minimization</a></li>
+</ul>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="migration.html" class="btn btn-neutral float-left" title="Migrating to the unified v0 API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="advanced/normalization.html" class="btn btn-neutral float-right" title="Output scaling" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: fix/435-fixed-controls-precision
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../v0.10.0/advanced.html">v0.10.0</a></dd>
+            <dd><a href="../../v0.11.0/advanced.html">v0.11.0</a></dd>
+            <dd><a href="../../v0.11.1/advanced.html">v0.11.1</a></dd>
+            <dd><a href="../../v0.11.2/advanced.html">v0.11.2</a></dd>
+            <dd><a href="../../v0.11.3/advanced.html">v0.11.3</a></dd>
+            <dd><a href="../../v0.12.0/advanced.html">v0.12.0</a></dd>
+            <dd><a href="../../v0.12.1/advanced.html">v0.12.1</a></dd>
+            <dd><a href="../../v0.13.0/advanced.html">v0.13.0</a></dd>
+            <dd><a href="../../v0.13.1/advanced.html">v0.13.1</a></dd>
+            <dd><a href="../../v0.13.2/advanced.html">v0.13.2</a></dd>
+            <dd><a href="../../v0.13.3/advanced.html">v0.13.3</a></dd>
+            <dd><a href="../../v0.13.4/advanced.html">v0.13.4</a></dd>
+            <dd><a href="../../v0.14.0/advanced.html">v0.14.0</a></dd>
+            <dd><a href="../../v0.14.1/advanced.html">v0.14.1</a></dd>
+            <dd><a href="../../v0.14.2/advanced.html">v0.14.2</a></dd>
+            <dd><a href="../../v0.14.3/advanced.html">v0.14.3</a></dd>
+            <dd><a href="../../v0.15.0/advanced.html">v0.15.0</a></dd>
+            <dd><a href="../../v0.15.1/advanced.html">v0.15.1</a></dd>
+            <dd><a href="../../v0.16.0/advanced.html">v0.16.0</a></dd>
+            <dd><a href="../../v0.16.1/advanced.html">v0.16.1</a></dd>
+            <dd><a href="../../v0.17.0/advanced.html">v0.17.0</a></dd>
+            <dd><a href="../../v0.18.0/advanced.html">v0.18.0</a></dd>
+            <dd><a href="../../v0.19.0/advanced.html">v0.19.0</a></dd>
+            <dd><a href="../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../v0.20.0/advanced.html">v0.20.0</a></dd>
+            <dd><a href="../../v0.21.0/advanced.html">v0.21.0</a></dd>
+            <dd><a href="../../v0.22.0/advanced.html">v0.22.0</a></dd>
+            <dd><a href="../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../v0.4.0/advanced.html">v0.4.0</a></dd>
+            <dd><a href="../../v0.5.0/advanced.html">v0.5.0</a></dd>
+            <dd><a href="../../v0.5.1/advanced.html">v0.5.1</a></dd>
+            <dd><a href="../../v0.6.0/advanced.html">v0.6.0</a></dd>
+            <dd><a href="../../v0.7.0/advanced.html">v0.7.0</a></dd>
+            <dd><a href="../../v0.8.0/advanced.html">v0.8.0</a></dd>
+            <dd><a href="../../v0.9.0/advanced.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="advanced.html">fix/435-fixed-controls-precision</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
