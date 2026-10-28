@@ -100,6 +100,14 @@ new observations consistently and assess final errors after inversion. See
 of every output leaves rankings unchanged; changing relative output scales
 can change which experiments are requested.
 
+Acquisition transfers finite predictions to CPU float64 and compares variance
+mantissas and exponents, rather than materializing squared scores that could
+overflow or underflow. Internal power-of-two scaling is restored when
+combining outputs, preserving their relative units. Exactly agreeing members
+have zero disagreement even at extreme magnitudes. Nonfinite member predictions
+raise ``ValueError``. Scaling cannot recover differences already lost to
+rounding or overflow during model prediction itself.
+
 ``farthest_points`` starts from each candidate's distance to the closest
 observed point in the same cell. It repeatedly selects the farthest point and
 updates remaining distances to include that selection. Thus a batch spreads

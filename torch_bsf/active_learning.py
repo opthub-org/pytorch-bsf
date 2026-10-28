@@ -8,14 +8,49 @@ from torch_bsf.core import Points, _integer
 from torch_bsf.ensemble import Ensemble
 
 
+def _disagreement_order(predictions: torch.Tensor) -> torch.Tensor:
+    """Compare variance sums without materializing potentially unrepresentable scores."""
+    predictions = predictions.detach().to(device="cpu", dtype=torch.float64)
+    if not torch.isfinite(predictions).all():
+        raise ValueError("committee predictions must be finite.")
+    values, exponents = torch.frexp(predictions)
+    _, scale = torch.frexp(predictions.abs().amax(dim=0))
+    # Normalize each candidate/output by an exact power of two. Its exponent
+    # is restored below, so this does not change relative output weights.
+    shifts = torch.where(values == 0, 0, exponents - scale)
+    normalized = values * torch.pow(values.new_tensor(2.0), shifts)
+    # Remove a reference first: identical members must have exactly zero
+    # disagreement, including large common offsets and subnormal predictions.
+    variance = (normalized - normalized[:1]).var(dim=0, unbiased=False)
+    mantissas, adjustments = torch.frexp(variance)
+    exponents = 2 * scale + adjustments
+    # A zero term must not set the scale of a tiny, nonzero output variance.
+    exponents = torch.where(mantissas == 0, -10000, exponents)
+    largest = exponents.amax(dim=1)
+    totals = (mantissas * torch.pow(mantissas.new_tensor(2.0), exponents - largest[:, None])).sum(dim=1)
+    mantissas, adjustments = torch.frexp(totals)
+    exponents = torch.where(totals == 0, -10000, largest + adjustments)
+    # The output count is common to every candidate, so ranking variance sums
+    # also ranks their means. Stable lexicographic sorting preserves ties.
+    order = torch.argsort(mantissas, descending=True, stable=True)
+    return order[torch.argsort(exponents[order], descending=True, stable=True)]
+
+
 def query_by_committee(ensemble: Ensemble, candidates: Points, n: int = 1) -> Points:
-    """Select the largest predictive disagreement from supplied domain points."""
+    """Select candidates by mean population variance across committee outputs.
+
+    Ties preserve candidate order. Finite predictions are scored on CPU in float64
+    with exponent scaling to avoid variance overflow and underflow. This
+    preserves relative output units and common-scalar ranking invariance,
+    subject to rounding in the supplied predictions. Nonfinite predictions
+    raise ``ValueError``. Returned points retain their input gradients.
+    """
     _integer(n, "n", 1)
     if n > len(candidates):
         raise ValueError("n exceeds the number of candidates.")
     with torch.no_grad():
-        disagreement = ensemble.members(candidates).var(0, unbiased=False).mean(1)
-    return candidates.take(torch.argsort(disagreement, descending=True, stable=True)[:n])
+        order = _disagreement_order(ensemble.members(candidates))
+    return candidates.take(order[:n])
 
 
 def farthest_points(candidates: Points, observed: Points, n: int = 1, *, chunk_size: int = 1024) -> Points:
