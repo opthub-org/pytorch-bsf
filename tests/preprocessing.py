@@ -195,3 +195,11 @@ def test_std_centered_extreme_offset_preserves_spread():
     # The two-point sample standard deviation is |x1-x0| / sqrt(2).
     expected = (values[0] - values[1]) / 2**0.5
     torch.testing.assert_close(scaler.stds, expected, atol=0, rtol=8 * U)
+
+
+@pytest.mark.parametrize("scaler_class", [MinMaxScaler, StdScaler, QuantileScaler])
+@pytest.mark.parametrize("shape", [(), (3,), (0, 1), (1, 0)])
+def test_scalers_reject_non_tabular_or_empty_input(scaler_class, shape):
+    values = torch.empty(shape, dtype=torch.float64)
+    with pytest.raises(ValueError, match="nonempty floating tensor.*n_samples, n_features"):
+        scaler_class().fit(values)
