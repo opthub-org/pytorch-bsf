@@ -295,3 +295,96 @@ def test_empty_batches_give_empty_predictions(data):
     assert y.shape == (0, 2)
     with pytest.raises(ValueError, match="values"):
         bsf.Samples(torch.empty(0, space.width), torch.empty(0, 2))
+
+
+def _mixed_operator_case(parameters):
+    from torch_bsf.core import BasisOperator, Cell
+
+    # Repeated controls represent a degenerate map; cells also share global controls.
+    cells = (Cell((1,), (2,), (0, 0, 1)), Cell((2,), (1,), (1, 2, 3)), Cell((), (), (2,)))
+    space = bsf.BezierSpace(cells, 4, (0, 1, 2), ())
+    return space, BasisOperator(space, bsf.Points(parameters, [1, 0, 2, 0, 1]))
+
+
+def _reference_operator_dense(space, parameters):
+    from torch_bsf._kernels.combinatorics import bernstein_basis
+
+    rows = []
+    for row, cid in zip(parameters, [1, 0, 2, 0, 1], strict=True):
+        cell = space.cells[cid]
+        local = bernstein_basis(cell.dimensions, cell.degree, row[None, : cell.width])[0]
+        columns = torch.nn.functional.one_hot(torch.tensor(cell.controls), space.n_controls).to(parameters)
+        rows.append(local @ columns)
+    return torch.stack(rows)
+
+
+@pytest.mark.parametrize("operation", ["matmat", "rmatmat", "to_dense", "model"])
+def test_grouped_operator_values_and_input_gradients(operation):
+    parameters = torch.tensor(
+        [[0.25, 0.25, 0.5], [0.25, 0.75, 0.0], [0.0, 0.0, 0.0], [0.75, 0.25, 0.0], [0.5, 0.25, 0.25]],
+        dtype=torch.float64,
+        requires_grad=True,
+    )
+    space, operator = _mixed_operator_case(parameters)
+    coefficients = torch.arange(8, dtype=torch.float64).reshape(4, 2).requires_grad_()
+    values = torch.arange(10, dtype=torch.float64).reshape(5, 2).requires_grad_()
+    dense = _reference_operator_dense(space, parameters)
+    if operation == "matmat":
+        actual, expected = operator.matmat(coefficients), dense @ coefficients
+    elif operation == "rmatmat":
+        actual, expected = operator.rmatmat(values), dense.T @ values
+    elif operation == "to_dense":
+        actual, expected = operator.to_dense(), dense
+    else:
+        model = bsf.BezierModel(space, coefficients)
+        coefficients = model.coefficients
+        actual, expected = model(operator.points), dense @ coefficients
+    # Dyadic coordinates and integer coefficients make every product/sum exact here.
+    assert torch.equal(actual, expected)
+    inputs = (parameters, coefficients, values)
+    left = torch.autograd.grad(actual.square().sum(), inputs, create_graph=True, allow_unused=True)
+    right = torch.autograd.grad(expected.square().sum(), inputs, create_graph=True, allow_unused=True)
+    for got, reference in zip(left, right, strict=True):
+        if reference is None:
+            assert got is None
+        else:
+            assert got is not None
+            assert torch.equal(got, reference)
+    # Also exercise derivatives of the in-place assembly's backward graph.
+    assert left[0] is not None and right[0] is not None
+    second_actual = torch.autograd.grad(left[0].sum(), parameters)[0]
+    second_expected = torch.autograd.grad(right[0].sum(), parameters)[0]
+    assert torch.equal(second_actual, second_expected)
+
+
+def test_grouped_operator_empty_batch():
+    from torch_bsf.core import Cell
+
+    space = bsf.BezierSpace((Cell((1,), (1,), (0, 1)), Cell((2,), (1,), (1, 2, 3))), 4, (0, 1), ())
+    operator = space.basis(bsf.Points(torch.empty(0, 3, dtype=torch.float64), torch.empty(0, dtype=torch.long)))
+    assert operator.matmat(torch.ones(4, 2, dtype=torch.float64)).shape == (0, 2)
+    assert torch.equal(operator.rmatmat(torch.empty(0, 2, dtype=torch.float64)), torch.zeros(4, 2, dtype=torch.float64))
+    assert operator.to_dense().shape == (0, 4)
+
+
+@given(data=st.data(), outputs=st.integers(1, 4))
+def test_grouped_operator_matches_dense_property(data, outputs):
+    from tests.strategies import simplex_points
+
+    parameters = data.draw(simplex_points(3, 5))
+    for row in (1, 3):
+        parameters[row, 1] = 1 - parameters[row, 0]
+        parameters[row, 2] = 0
+    parameters[2] = 0
+    space, operator = _mixed_operator_case(parameters)
+    coefficients = data.draw(matrices(4, outputs))
+    values = data.draw(matrices(5, outputs))
+    reference = _reference_operator_dense(space, parameters)
+    # Each product sums at most 4 controls or 5 observations. Accounting for
+    # local products, repeated-column additions and both summation orders,
+    # 32*U times the input magnitude bounds absolute error (basis weights <= 1).
+    torch.testing.assert_close(
+        operator.matmat(coefficients), reference @ coefficients, atol=32 * U * float(coefficients.abs().max()), rtol=0
+    )
+    torch.testing.assert_close(operator.rmatmat(values), reference.T @ values, atol=32 * U * float(values.abs().max()), rtol=0)
+    torch.testing.assert_close(operator.to_dense(), reference, atol=8 * U, rtol=0)

@@ -203,11 +203,15 @@ class BezierSpace:
             raise ValueError("parameter width does not match the single-cell space.")
         if (points.cell_ids < 0).any() or (points.cell_ids >= self.n_cells).any():
             raise ValueError("points contain an invalid cell ID.")
-        for cid in torch.unique(points.cell_ids).tolist():
+        self._validate_groups(points, _point_groups(points.cell_ids))
+
+    def _validate_groups(self, points: Points, groups: list[tuple[int, torch.Tensor]]) -> None:
+        """Validate each active cell after a single grouping of observation rows."""
+        for cid, rows in groups:
             info = self.cells[cid]
             if points.parameters.shape[1] < info.width:
                 raise ValueError(f"cell {cid} requires {info.width} barycentric coordinates.")
-            t = points.parameters[points.cell_ids == cid, : info.width]
+            t = points.parameters[rows, : info.width]
             if not torch.isfinite(t).all():
                 raise ValueError("parameters must be finite.")
             offset = 0
@@ -224,8 +228,14 @@ class BezierSpace:
         if not isinstance(points, Points) and self.n_cells != 1:
             raise ValueError("multi-cell spaces require explicit Points with cell IDs.")
         batch = points if isinstance(points, Points) else Points(points)
-        self.validate(batch)
-        return BasisOperator(self, batch)
+        groups = _point_groups(batch.cell_ids)
+        # Validate IDs and dimensions before indexing the cell table.
+        if self.n_cells == 1 and batch.parameters.shape[1] != self.width:
+            raise ValueError("parameter width does not match the single-cell space.")
+        if (batch.cell_ids < 0).any() or (batch.cell_ids >= self.n_cells).any():
+            raise ValueError("points contain an invalid cell ID.")
+        self._validate_groups(batch, groups)
+        return BasisOperator(self, batch, _groups=groups)
 
 
 @dataclass(frozen=True, init=False)
@@ -418,17 +428,25 @@ class FixedControls:
         return cls(checked)
 
 
+def _point_groups(ids: torch.Tensor) -> list[tuple[int, torch.Tensor]]:
+    """Group row indices once, keeping observation order within each active cell."""
+    if not len(ids):
+        return []
+    order = torch.argsort(ids, stable=True)
+    cells, counts = torch.unique_consecutive(ids[order], return_counts=True)
+    return list(zip(cells.tolist(), torch.split(order, counts.tolist()), strict=True))
+
+
 class BasisOperator:
     """Cell-local basis supporting products, transpose products and explicit export."""
 
-    def __init__(self, space: BezierSpace, points: Points):
+    def __init__(self, space: BezierSpace, points: Points, *, _groups: list[tuple[int, torch.Tensor]] | None = None):
         self.space, self.points = space, points
         self.shape = (len(points), space.n_controls)
         self.blocks: list[tuple[torch.Tensor, torch.Tensor, torch.Tensor]] = []
-        t, ids = points.parameters, points.cell_ids
-        for cid in torch.unique(ids).tolist():
+        t = points.parameters
+        for cid, rows in _point_groups(points.cell_ids) if _groups is None else _groups:
             info = space.cells[cid]
-            rows = torch.nonzero(ids == cid).flatten()
             columns = torch.tensor(info.controls, dtype=torch.long, device=t.device)
             basis = bernstein_basis(info.dimensions, info.degree, t[rows, : info.width])
             self.blocks.append((rows, columns, basis))
@@ -437,22 +455,21 @@ class BasisOperator:
         """Evaluate a coefficient matrix, accumulating only local contributions."""
         out = coefficients.new_zeros(self.shape[0], coefficients.shape[1])
         for rows, columns, basis in self.blocks:
-            out = out.index_copy(0, rows, basis @ coefficients[columns])
+            out.index_copy_(0, rows, basis @ coefficients[columns])
         return out
 
     def rmatmat(self, values: torch.Tensor) -> torch.Tensor:
         """Apply the transpose, summing repeated shared coefficient columns."""
         out = values.new_zeros(self.shape[1], values.shape[1])
         for rows, columns, basis in self.blocks:
-            out = out.index_add(0, columns, basis.T @ values[rows])
+            out.index_add_(0, columns, basis.T @ values[rows])
         return out
 
     def to_dense(self) -> torch.Tensor:
         """Explicitly materialize the full design matrix, for a dense solve."""
         out = self.points.parameters.new_zeros(self.shape)
         for rows, columns, basis in self.blocks:
-            block = out.new_zeros(len(rows), self.shape[1]).index_add(1, columns, basis)
-            out = out.index_copy(0, rows, block)
+            out.index_put_((rows[:, None], columns[None, :]), basis, accumulate=True)
         return out
 
 
