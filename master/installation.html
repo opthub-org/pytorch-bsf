@@ -53,7 +53,11 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#choose-dependencies-for-your-workflow">Choose dependencies for your workflow</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#check-the-environment-you-actually-run">Check the environment you actually run</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#upgrading-from-the-earlier-api">Upgrading from the earlier API</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#upgrading-from-the-earlier-api">Upgrading from the earlier API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#choose-documentation-for-your-installed-version">Choose documentation for your installed version</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#apply-the-matching-migration-guide">Apply the matching migration guide</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
@@ -196,6 +200,20 @@ for data files, shell commands and saved-model prediction.</p>
 </section>
 <section id="upgrading-from-the-earlier-api">
 <h2>Upgrading from the earlier API<a class="headerlink" href="#upgrading-from-the-earlier-api" title="Link to this heading"></a></h2>
+<section id="choose-documentation-for-your-installed-version">
+<h3>Choose documentation for your installed version<a class="headerlink" href="#choose-documentation-for-your-installed-version" title="Link to this heading"></a></h3>
+<p>Check <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-c</span> <span class="pre">&quot;import</span> <span class="pre">torch_bsf;</span> <span class="pre">print(torch_bsf.__version__)&quot;</span></code> and
+choose the matching <code class="docutils literal notranslate"><span class="pre">vX.Y.Z</span></code> tag under <strong>Other Versions</strong> in the documentation
+sidebar. For example, version <code class="docutils literal notranslate"><span class="pre">0.23.0</span></code> corresponds to <code class="docutils literal notranslate"><span class="pre">v0.23.0</span></code>. The
+<code class="docutils literal notranslate"><span class="pre">master</span></code> pages describe development and can contain APIs not yet available
+in the latest release. The README links to the documentation home for version
+selection; its migration link explicitly targets the development guide.</p>
+<p>API <strong>[source]</strong> links follow the tag or branch being documented. A normal
+single-version local <code class="docutils literal notranslate"><span class="pre">sphinx-build</span></code> uses <code class="docutils literal notranslate"><span class="pre">master</span></code> as its source-link
+fallback; use <code class="docutils literal notranslate"><span class="pre">sphinx-multiversion</span></code> to generate links for another ref.</p>
+</section>
+<section id="apply-the-matching-migration-guide">
+<h3>Apply the matching migration guide<a class="headerlink" href="#apply-the-matching-migration-guide" title="Link to this heading"></a></h3>
 <p>Installing an extra does not restore removed public names or CLI flags.
 <code class="docutils literal notranslate"><span class="pre">solver=&quot;trainer&quot;</span></code> is replaced by an explicit Lightning adapter, legacy
 model constructors by <code class="docutils literal notranslate"><span class="pre">BezierSpace</span></code> plus <code class="docutils literal notranslate"><span class="pre">BezierModel</span></code>, and automatic
@@ -207,6 +225,7 @@ validation under the new objective. Keep the training observations and old
 evaluation results so the upgrade can be compared on the same data. Model
 archives have a versioned format; an arbitrary old pickle or coefficient CSV
 is not a geometry-preserving archive for the redesigned API.</p>
+</section>
 </section>
 </section>
 
