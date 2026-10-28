@@ -70,6 +70,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#read-the-validation-evidence">Read the validation evidence</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#tune-candidates-and-folds">Tune candidates and folds</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#penalties-and-final-deployment">Penalties and final deployment</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#non-finite-validation-metrics">Non-finite validation metrics</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
@@ -285,6 +286,24 @@ refitting. If you want an ensemble instead, explicitly construct
 <a class="reference internal" href="active_learning.html"><span class="doc">Explicit ensembles and active learning</span></a>. Save the chosen model with <code class="docutils literal notranslate"><span class="pre">io.save_model</span></code> and record
 the candidate list, weights, fold settings and errors alongside it. Persistence
 of model geometry does not by itself preserve the reasoning behind selection.</p>
+</section>
+<section id="non-finite-validation-metrics">
+<h2>Non-finite validation metrics<a class="headerlink" href="#non-finite-validation-metrics" title="Link to this heading"></a></h2>
+<p>Cross-validation excludes zero-weight held-out rows before evaluating metrics.
+Weighted errors combine mantissas and exponents before reduction to avoid
+intermediate overflow and preserve meaningful tiny normalized weights.
+Near the float64 overflow or subnormal boundaries, row contributions are
+combined with exact rational arithmetic on the CPU and rounded only once.
+The pooled average uses an exact rational reduction of the CPU scalar fold
+summaries before rounding once to float64. This preserves tiny fold weights
+and the bound that the average lies between the finite fold errors, including
+at the float64 maximum; its scalar work grows with the number of folds.
+If a fold or aggregate metric is still non-finite, <code class="docutils literal notranslate"><span class="pre">success</span></code> is
+<code class="docutils literal notranslate"><span class="pre">False</span></code> and every fold remains available for inspection. Degree selection
+excludes that candidate; if all candidates fail, <code class="docutils literal notranslate"><span class="pre">best_index</span></code> is <code class="docutils literal notranslate"><span class="pre">None</span></code>
+and <code class="docutils literal notranslate"><span class="pre">success</span></code> is <code class="docutils literal notranslate"><span class="pre">False</span></code>. Successful training alone does not certify that
+held-out errors can be represented in float64. Rescale outputs or investigate
+failed candidates before explicitly refitting a selected space.</p>
 </section>
 </section>
 

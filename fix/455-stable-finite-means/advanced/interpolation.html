@@ -195,6 +195,40 @@ outside the mesh by more than <code class="docutils literal notranslate"><span c
 within <code class="docutils literal notranslate"><span class="pre">tol</span></code> of its boundary are projected onto it. Point location tests
 every simplex, which is simple and exact but costs
 <code class="docutils literal notranslate"><span class="pre">O(n_points</span> <span class="pre">*</span> <span class="pre">n_simplices)</span></code>.</p>
+<p>For very different edge lengths, solving for barycentric coordinates can
+amplify roundoff enough to reject even a mesh’s own vertex. <code class="docutils literal notranslate"><span class="pre">barycentric</span></code>
+estimates factorization error from conditioning and edge scaling, and
+cancellation using absolute matrix products. It recomputes the
+affected point/simplex pairs with exact rational arithmetic on the input
+floats, rounding the resulting coordinates once to float64. Ordinary pairs
+keep the vectorized float64 path. The fallback is slower and caches one
+exact inverse per affected simplex; its integer sizes depend on the input
+exponents. For differentiable inputs the fallback uses cached SymPy
+expressions to differentiate the exact affine map, including the dependence
+on vertices. Each derivative order is evaluated with exact rational inputs
+before rounding, so overflowing terms that cancel cannot spoil finite
+derivatives. Points are handled independently, including when another point
+has a non-finite upstream gradient. SymPy is declared directly (PyTorch also
+requires it) and is imported lazily for these queries. Symbolic work and
+retained autograd state grow with dimension and derivative order, so this
+path is slower than ordinary tensor differentiation. Forward-mode queries
+(<code class="docutils literal notranslate"><span class="pre">torch.autograd.forward_ad</span></code> or <code class="docutils literal notranslate"><span class="pre">torch.func.jvp</span></code>) with any affected pair
+evaluate the whole query using these expressions, preserving point and vertex
+tangents without exposing dual tensor storage to Python.
+<code class="docutils literal notranslate"><span class="pre">torch.func.jacrev</span></code> and <code class="docutils literal notranslate"><span class="pre">torch.func.jacfwd</span></code> batch the exact evaluations
+independently, retaining their individual rational bindings.
+In a fresh PyTorch 2.3 process, its lazy compiler initialization can fail
+when first triggered inside a transform. Calling
+<code class="docutils literal notranslate"><span class="pre">torch.compiler.disable(lambda:</span> <span class="pre">None)</span></code> before entering the transform
+initializes the compiler outside it.
+<code class="docutils literal notranslate"><span class="pre">locate(batch_size=...)</span></code> bounds temporary float64 storage by
+<code class="docutils literal notranslate"><span class="pre">O(batch_size</span> <span class="pre">*</span> <span class="pre">n_simplices</span> <span class="pre">*</span> <span class="pre">(d</span> <span class="pre">+</span> <span class="pre">1))</span></code>, in addition to that cache.</p>
+<p>This corrects loss of precision in the solve, rather than changing the
+meaning of rounded input. For example, when a midpoint’s long-edge
+coordinates have already rounded away its short-edge contribution, the
+supplied position cannot identify the intended midpoint. Use coordinates
+that resolve the feature of interest; increasing <code class="docutils literal notranslate"><span class="pre">tol</span></code> does not recover
+the missing information.</p>
 <p>The mesh keeps independent snapshots of the input vertices and simplices,
 including CPU float64 tensors and NumPy arrays. Changing those original
 inputs later does not change coordinates, point location, volumes or
