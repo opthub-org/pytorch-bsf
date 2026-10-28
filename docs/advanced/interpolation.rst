@@ -342,13 +342,16 @@ the lattice points, in the order of
     35 64 0
 
 Refinement by :func:`~torch_bsf.interpolation.refine` keeps a mesh
-conforming. It bisects an edge in every simplex containing it, and before
-that it refines each of those simplices whose longest edge is another one,
-recursively, which is the longest-edge bisection of Rivara
-:cite:p:`rivara1984algorithms`. Refining one simplex can therefore add more
-than one vertex. Ties between edges of equal length, common on lattices, are
-broken by vertex numbers in the same way everywhere. Starting from a lattice
-mesh, every new vertex is a lattice point of a finer lattice (degree ``2k``,
+conforming. Every simplex has a refinement edge, which ``rule`` selects. A
+simplex is cut at the midpoint of its refinement edge; the edge is bisected
+in every simplex containing it, and before that each of those simplices
+whose refinement edge is another one is refined, recursively. Refining one
+simplex can therefore add more than one vertex. By default
+(``rule="longest_edge"``) the refinement edge is the longest edge, which is
+the longest-edge bisection of Rivara :cite:p:`rivara1984algorithms`; ties
+between edges of equal length, common on lattices, are broken by vertex
+numbers in the same way everywhere. Starting from a lattice mesh, with either
+rule, every new vertex is a lattice point of a finer lattice (degree ``2k``,
 then ``4k``, and so on).
 
 Longest-edge bisection does not respect the cubes of a lattice mesh,
