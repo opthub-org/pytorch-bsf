@@ -1482,14 +1482,16 @@ class _SplitMesh(SimplicialMesh):
 def _increments(dx: torch.Tensor, g: torch.Tensor, scale: torch.Tensor, origin: torch.Tensor, clamp: bool) -> torch.Tensor:
     """``dx . g / 3`` (rays, outputs) in units of ``2**scale``, for ray displacements ``dx`` (rays, d) and gradients ``g``.
 
-    Each term is formed as a mantissa times a power of two, and the terms are summed in units of the largest, so that
-    an increment is finite whenever its value is, also where its terms overflow alone and cancel. With ``clamp``, a
+    Each term is formed as the product of the mantissas of ``dx`` and ``g`` times a power of two, so that it neither
+    overflows nor underflows before it is placed, and the terms are summed in units of the largest, so that an
+    increment is finite whenever its value is, also where its terms overflow alone and cancel. With ``clamp``, a
     gradient (of a vertex and output) whose increments would overflow is first divided by a power of two, which keeps
     its direction: the limiter shrinks it into the data range anyway.
     """
     mantissa, exponent = torch.frexp(g)
-    term_mantissa, term_exponent = torch.frexp(dx[:, :, None] * mantissa)
-    term_exponent = term_exponent.to(torch.long) + exponent.to(torch.long) - scale
+    dx_mantissa, dx_exponent = torch.frexp(dx)
+    term_mantissa, term_exponent = torch.frexp(dx_mantissa[:, :, None] * mantissa)
+    term_exponent = term_exponent.to(torch.long) + exponent.to(torch.long) + dx_exponent.to(torch.long)[:, :, None] - scale
     term_exponent = torch.where(term_mantissa == 0, -(2**20), term_exponent)
     top = term_exponent.amax(dim=1)
     if clamp:

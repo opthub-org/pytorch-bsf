@@ -2466,6 +2466,24 @@ def test_clough_tocher_c1_with_increments_whose_terms_overflow_and_cancel(clamp)
     assert torch.equal(actual, expected * 2.0**20)
 
 
+@pytest.mark.parametrize("clamp", [False, True])
+def test_clough_tocher_c1_with_subnormal_sides_is_unchanged_by_an_axis_scaling(clamp):
+    """Scaling an axis by 2**1000, and the gradients along it by 2**-1000, leaves the controls exactly unchanged.
+
+    Regression: a side component 2**-1074 times the mantissa 0.5 of the gradient 2**1023 rounded to zero before the
+    exponent of the gradient was applied, which lost the term 2**-51 of the increment.
+    """
+    t = 2.0**-1074
+    x = torch.tensor([[0.0, 0.0], [t, 1.0], [2 * t, 0.0]], dtype=torch.float64)
+    f = torch.tensor([0.0, 0.25, 0.5], dtype=torch.float64)
+    gradients = torch.tensor([[[2.0**1023], [0.0]], [[2.0**1022], [0.0]], [[2.0**1021], [0.0]]], dtype=torch.float64)
+    scale = torch.tensor([2.0**1000, 1.0], dtype=torch.float64)
+    expected = _c1(SimplicialMesh(x, [[0, 1, 2]]), f, gradients=gradients, clamp=clamp).model.coefficients.detach()
+    scaled = SimplicialMesh(x * scale, [[0, 1, 2]])
+    actual = _c1(scaled, f, gradients=gradients / scale[:, None], clamp=clamp).model.coefficients.detach()
+    assert torch.equal(actual, expected)
+
+
 def test_clough_tocher_c1_with_constant_and_linear_data():
     """Constant data give a constant interpolant, and linear data are reproduced with clamping too."""
     mesh = SimplicialMesh(*_kuhn_mesh(2, 3, jitter=0.3))
