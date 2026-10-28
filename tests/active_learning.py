@@ -2,8 +2,73 @@ import pytest
 import torch
 import torch.nn as nn
 
+from torch_bsf import Points
 from torch_bsf._kernels._active_learning import suggest_next_points
 from torch_bsf._kernels.api import BezierSimploid
+from torch_bsf.active_learning import farthest_points
+
+
+def _dense_farthest(candidates, observed, n):
+    coordinates = candidates.parameters.cpu().double()
+    distances = torch.full((len(candidates),), float("inf"), dtype=torch.float64)
+    for cid in torch.unique(candidates.cell_ids).tolist():
+        rows = candidates.cell_ids.cpu() == cid
+        other = observed.parameters.cpu().double()[observed.cell_ids.cpu() == cid]
+        if len(other):
+            distances[rows] = torch.cdist(coordinates[rows], other).min(1).values
+    selected = []
+    for _ in range(n):
+        index = int(distances.argmax())
+        selected.append(index)
+        same = candidates.cell_ids.cpu() == candidates.cell_ids[index].item()
+        distances[same] = torch.minimum(distances[same], (coordinates[same] - coordinates[index]).norm(dim=1))
+        distances[selected] = -1
+    return candidates.take(torch.tensor(selected))
+
+
+@pytest.mark.parametrize("chunk_size", [1, 3, 32, 1024])
+@pytest.mark.parametrize("observations", [0, 5, 37])
+@pytest.mark.parametrize("cells", [1, 3])
+def test_chunked_farthest_matches_dense_order(chunk_size, observations, cells):
+    generator = torch.Generator().manual_seed(71)
+    candidates = Points(torch.rand(41, 3, dtype=torch.float64, generator=generator), torch.arange(41) % cells)
+    observed = Points(
+        torch.rand(observations, 3, dtype=torch.float64, generator=generator), torch.arange(observations) % min(cells, 2)
+    )
+    expected = _dense_farthest(candidates, observed, len(candidates))
+    actual = farthest_points(candidates, observed, len(candidates), chunk_size=chunk_size)
+    torch.testing.assert_close(actual.parameters, expected.parameters, rtol=0, atol=0)
+    torch.testing.assert_close(actual.cell_ids, expected.cell_ids)
+
+
+def test_chunked_farthest_ties_duplicates_and_autograd():
+    parameters = torch.tensor([[0.5], [0.5], [0.0], [1.0]], dtype=torch.float64, requires_grad=True)
+    candidates = Points(parameters)
+    observed = Points([[0.0], [1.0]])
+    result = farthest_points(candidates, observed, 4, chunk_size=1)
+    torch.testing.assert_close(result.parameters, parameters[[0, 1, 2, 3]])
+    result.parameters.sum().backward()
+    torch.testing.assert_close(parameters.grad, torch.ones_like(parameters))
+
+
+def test_farthest_distance_blocks_are_bounded(monkeypatch):
+    original = torch.cdist
+    shapes = []
+
+    def bounded_cdist(x, y, **kwargs):
+        shapes.append((len(x), len(y)))
+        assert len(x) <= 7 and len(y) <= 7
+        return original(x, y, **kwargs)
+
+    monkeypatch.setattr(torch, "cdist", bounded_cdist)
+    farthest_points(Points(torch.rand(41, 2)), Points(torch.rand(31, 2)), 4, chunk_size=7)
+    assert len(shapes) == 30
+
+
+@pytest.mark.parametrize("invalid", [0, -1, True, 1.5])
+def test_farthest_rejects_invalid_chunk_size(invalid):
+    with pytest.raises((ValueError, TypeError), match="chunk_size"):
+        farthest_points(Points([[0.0]]), Points([[1.0]]), chunk_size=invalid)
 
 
 def _make_models(n_params: int, n_values: int, degree: int, k: int = 2):
