@@ -532,10 +532,20 @@ External link checking is not part of this PR gate.
 
 ```
 pytorch-bsf/
+├── .claude/                          # Claude Code harness (worktrees/ is local, not tracked)
+│   ├── agents/                       # Reviewer agents (review-<aspect>.md) run by review-local
+│   └── skills/                       # Project skills, invoked as slash commands
+│       ├── create-issue/SKILL.md     # File a GitHub issue
+│       ├── review-local/             # Local review before opening a PR
+│       │   ├── SKILL.md              # Spawns the reviewer agents in parallel and verifies their findings
+│       │   └── protocol.md           # How every reviewer agent reviews and reports
+│       ├── setup-env/SKILL.md        # Set up or repair the development environment
+│       └── work-on-issue/SKILL.md    # Implement an issue end to end, up to an open PR
 ├── .github/
 │   ├── workflows/                    # GitHub Actions workflows
-│   │   ├── python-package.yml        # ruff (via pre-commit) + pytest + mypy + doctest; pytest on lowest deps
+│   │   ├── python-package.yml        # pre-commit (Ruff), pytest, mypy, Sphinx; lowest and optional deps
 │   │   ├── release-please-action.yml # Automated releases (CHANGELOG + PyPI publish)
+│   │   ├── docker.yml                # Docker image published to ghcr.io on release
 │   │   ├── sphinx-pages.yml          # Build and publish Sphinx docs to GitHub Pages
 │   │   ├── codeql-analysis.yml       # Security scanning
 │   │   └── python-package-conda.yml  # End-to-end tests in a Conda environment
@@ -547,54 +557,87 @@ pytorch-bsf/
 │   ├── CODEOWNERS                    # Code ownership settings
 │   └── dependabot.yml                # Automated dependency updates (pip and pre-commit hooks)
 ├── torch_bsf/                        # Main package
-│   ├── __init__.py                   # Public API exports (BezierSimploid, fit, fit_kfold, split, …)
-│   ├── __main__.py                   # CLI entry point
+│   ├── __init__.py                   # Public API exports (BezierSpace, BezierModel, fit, minimize, …)
+│   ├── __main__.py                   # CLI entry point (python -m torch_bsf)
 │   ├── _cli_args.py                  # Shared CLI arguments and data loading
-│   ├── simploidal/                   # Bézier simploids (a Bézier simplex is the case of one factor)
-│   │   ├── bezier.py                 # BezierSimploid model
-│   │   ├── combinatorics.py          # Control point indices and Bernstein basis
-│   │   ├── fitting.py                # fit, fit_kfold and fit_simploidal_set
-│   │   ├── io.py                     # save and load
-│   │   ├── sets.py                   # Simploidal sets
-│   │   └── space.py                  # Bézier spaces on simploidal sets
-│   ├── active_learning.py            # Query-by-committee point suggestion
-│   ├── plotting.py                   # Visualization
+│   ├── _numeric.py                   # Numerical reductions shared by prediction and initialization
+│   ├── _problem.py                   # Weighted, constrained least-squares problem shared by the solvers
+│   ├── active_learning.py            # Acquisition functions (query_by_committee, farthest_points)
+│   ├── core.py                       # Spaces, observations and models (BezierSpace, Points, BezierModel, …)
+│   ├── ensemble.py                   # Ensemble of fitted models
+│   ├── fitting.py                    # fit: supervised fitting for every space and solver
+│   ├── geometry.py                   # Simploids and simploidal sets (Simploid, SimploidalSet)
+│   ├── interpolation.py              # Shape-preserving cubic interpolation on simplicial complexes
+│   ├── io.py                         # Versioned model persistence (save_model, load_model, …)
+│   ├── optimization.py               # Objective minimization (minimize, PreconditionedSGD, …)
+│   ├── plotting.py                   # Visualization (plot_model)
+│   ├── point_cloud.py                # Value-only fitting (fit_point_cloud, fit_skeleton)
 │   ├── preprocessing.py              # Data scaling (MinMax, Std, Quantile, None)
-│   ├── sampling.py                   # Sampling utilities
-│   ├── sklearn.py                    # scikit-learn regressor
-│   ├── splitting.py                  # Splitting Bézier simploids
+│   ├── results.py                    # Fit results, diagnostics, ConvergenceError and ConvergenceWarning
+│   ├── sampling.py                   # Domain-aware random and grid sampling (sample, grid)
+│   ├── sklearn.py                    # scikit-learn regressor (BezierRegressor)
+│   ├── solvers.py                    # Least-squares solver configurations (DenseLeastSquares, …)
+│   ├── splitting.py                  # Exact local subdivision (subdivide, subdivide_space)
 │   ├── validator.py                  # Parsers of CLI arguments
 │   ├── py.typed                      # PEP 561 type hint marker
+│   ├── _kernels/                     # Private Bézier simploid kernels behind the public API
+│   │   ├── __init__.py               # Kernel exports (BezierSimploid, SimploidalSet, …)
+│   │   ├── api.py                    # Kernel-level fit, fit_kfold, fit_sgd and splitting
+│   │   ├── bezier.py                 # BezierSimploid model
+│   │   ├── combinatorics.py          # Control point indices and Bernstein basis
+│   │   ├── fitting.py                # Fitting Bézier simploids and simploidal Bézier spaces
+│   │   ├── io.py                     # Saving and loading Bézier simploids
+│   │   ├── sets.py                   # Simploids and simploidal sets
+│   │   ├── sgd.py                    # Fitting to Pareto sets by stochastic gradient descent
+│   │   ├── space.py                  # Simploidal Bézier spaces
+│   │   ├── _active_learning.py       # Next-point suggestion
+│   │   ├── _conforming.py            # Conforming subdivision of a simploidal Bézier space
+│   │   ├── _lightning.py             # Lightning module of the "trainer" solver
+│   │   ├── _plotting.py              # Plots of Bézier simplices, simploids and spaces
+│   │   ├── _sampling.py              # Grid, random and Sobol sampling of simplices
+│   │   └── _splitting.py             # De Casteljau splitting of Bézier simplices and simploids
+│   ├── integrations/                 # Optional adapters; importing them loads no framework
+│   │   ├── __init__.py
+│   │   ├── lightning.py              # Opt-in Lightning execution (regression_module)
+│   │   └── mlflow.py                 # MLflow recording (log_result)
 │   └── model_selection/              # Model selection sub-package
-│       ├── __init__.py
-│       ├── degree_selection.py       # Degree selection by cross-validation
-│       ├── kfold.py                  # K-fold cross-validation CLI
+│       ├── __init__.py               # Public exports (KFold, cross_validate, select_degree, …)
+│       ├── _validation.py            # Cross-validation and recorded degree search
 │       └── elastic_net_grid.py       # Elastic net grid search CLI
 ├── tests/                            # Test suite
 │   ├── __init__.py
-│   ├── simploidal.py                 # Unit tests for torch_bsf.simploidal
-│   ├── validator.py                  # Unit tests for Validator
 │   ├── conftest.py                   # Shared fixtures and the Hypothesis profiles
 │   ├── strategies.py                 # Hypothesis strategies shared by the property-based tests
-│   ├── …                             # One file per module (see Naming conventions)
+│   ├── simploidal.py                 # Tests for the Bézier simploids of torch_bsf._kernels
+│   ├── test_contributor_examples.py  # Runs the CONTRIBUTING.md CLI example and issue form examples
+│   ├── …                             # One file per module (see Naming conventions), plus contract tests
+│   ├── model_selection/              # Tests for torch_bsf.model_selection
 │   └── data/                         # Test data files
 ├── docs/                             # Sphinx documentation
 │   ├── conf.py                       # Sphinx configuration
 │   ├── index.rst                     # Documentation home page
 │   ├── requirements.txt              # Documentation build dependencies
-│   └── applications/                 # Application examples (RST)
+│   ├── advanced/                     # Advanced topics (RST)
+│   ├── applications/                 # Application examples (RST)
+│   └── …                             # Other pages, images (_static/), templates and branding
 ├── examples/                         # Example scripts
-│   └── quickstart/
-│       └── run.sh                    # Quickstart shell script
+│   ├── quickstart/
+│   │   └── run.sh                    # Quickstart shell script
+│   └── …                             # Benchmarks (benchmark_*.py) and doc figures (generate_*.py)
+├── .git-blame-ignore-revs            # Bulk formatting commits skipped by git blame
+├── .gitattributes                    # Git LFS settings for binary files
+├── .gitignore                        # Files ignored by Git
+├── .pre-commit-config.yaml           # Git hooks (Ruff) run on commit and in CI
 ├── CHANGELOG.md                      # Version history (auto-generated by release-please)
 ├── CONTRIBUTING.md                   # This file
+├── Dockerfile                        # Docker image definition
 ├── LICENSE                           # MIT License
-├── README.md                         # Project overview and usage
-├── .pre-commit-config.yaml           # Git hooks (Ruff) run on commit and in CI
+├── MANIFEST.in                       # Extra files in the source distribution
 ├── MLproject                         # MLflow project definition
+├── README.md                         # Project overview and usage
+├── control_points.yml                # Sample control points in the YAML format
 ├── environment.yml                   # Conda environment definition
+├── params.csv                        # Sample parameters for the CLI
 ├── pyproject.toml                    # Package configuration, dependencies, tool settings
-└── examples/                         # Example scripts
-    └── quickstart/
-        └── run.sh                    # Quickstart shell script
+└── values.csv                        # Sample values for the CLI
 ```
