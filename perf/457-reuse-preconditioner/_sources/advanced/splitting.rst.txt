@@ -139,6 +139,15 @@ Choose a policy
      - Edge/fraction minimizing the sum of unweighted child MSEs over a grid.
      - Groups current errors; does not refit or guarantee lower error.
 
+``LongestEdge`` compares lengths using normalized float64 mantissas and
+exponents. Finite endpoints may have subnormal distances or differences
+larger than the float64 range. Uniform changes of output units preserve
+selection up to rounding near equal lengths and information already lost
+when coordinates were stored. Different units for individual output axes
+can change the selected edge. Non-finite corner values raise ``ValueError``.
+Equal lengths retain factor/vertex lexicographic order, and tensor products
+use the maximum chord over vertices of the other factors.
+
 ``LongestEdge`` is a geometry heuristic based on vertex chords in output
 space. It does not measure the arc length of a curved edge or locate the
 largest curvature. A loop whose endpoint images coincide can have a short

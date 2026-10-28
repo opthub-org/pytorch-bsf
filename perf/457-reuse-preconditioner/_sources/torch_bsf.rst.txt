@@ -221,10 +221,12 @@ change the function; see :doc:`advanced/splitting`.
 integrations.lightning
 ----------------------
 
-The optional Lightning adapter exposes the common model to a training
-framework. It does not select a different core regression algorithm.
-Use the core fit when solving the stated linear least-squares problem;
-see :doc:`advanced/sgd` for framework-based objective optimization.
+The optional Lightning adapter's ``regression_module`` trains the common
+model on supervised samples through a Lightning Trainer. See
+:doc:`advanced/acceleration` for a complete single-device Trainer example
+and its training settings. Use the core fit for a direct linear least-squares solve.
+Objective-only optimization uses :func:`torch_bsf.minimize` with plain
+PyTorch and does not require Lightning; see :doc:`advanced/sgd`.
 
 .. automodule:: torch_bsf.integrations.lightning
    :members:

@@ -107,6 +107,41 @@ out. An unobserved cell initially has infinite distance and receives priority.
 Coordinates in different cells are not treated as points in one Euclidean
 chart, even when two cells share a geometric face.
 
+Bound acquisition memory
+-------------------------
+
+For a large candidate pool, set ``farthest_points(..., chunk_size=512)``.
+The default is 1024. Both candidate and observation axes of each distance
+matrix are bounded by this size, so a float64 matrix uses at most
+``8 * chunk_size**2`` bytes (8 MiB at the default). Distance-kernel workspaces
+and coordinate blocks require additional memory. Per-candidate minimum
+distances are retained, rather than the full candidate-by-observation matrix.
+Selected-point updates are also split into chunks. Equal scores choose the
+earliest remaining candidate, including duplicate coordinates. Returned
+parameters preserve their autograd connection to the input candidates;
+discrete selection does not retain an acquisition-distance computation graph.
+
+For one cell with C candidates, O observations, coordinate width D and n
+queries, arithmetic work remains ``O(C * O * D + n * C * D)``. Auxiliary
+memory is ``O(C + O + chunk_size**2 + chunk_size * D)`` in addition to input
+coordinates and CPU float64 conversion. Smaller chunks trade lower peak
+memory for more Python and kernel calls. The dense and chunked algorithms
+use the same distance-kernel mode; ordinary floating-point roundoff can
+still depend on block size for nearly equal distances.
+
+Measure this tradeoff on your machine from the repository root::
+
+    PYTHONPATH=. python examples/benchmark_farthest_points.py \
+        --candidates 10000 --observed 2000 --dimensions 4 \
+        --select 8 --chunks 256 1024 --repeats 3 --output acquisition.json
+
+Each dense/chunked measurement runs in a fresh CPU process with one PyTorch
+thread and the same seed. JSON records input sizes, chunk setting, selection,
+elapsed acquisition time, pre-acquisition and process peak RSS, Python,
+PyTorch and platform. RSS includes interpreter/import/input costs; it is not
+the size of the distance matrix alone. This benchmark measures exact greedy
+selection, without promising a speedup or using a fixed timing threshold.
+
 Tune the observation budget and candidate pool
 ----------------------------------------------
 

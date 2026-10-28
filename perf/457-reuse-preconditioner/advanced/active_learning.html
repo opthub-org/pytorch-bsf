@@ -74,6 +74,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#when-observations-are-expensive">When observations are expensive</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#build-a-committee">Build a committee</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#what-each-query-measures">What each query measures</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bound-acquisition-memory">Bound acquisition memory</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#tune-the-observation-budget-and-candidate-pool">Tune the observation budget and candidate pool</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#observe-append-and-refit">Observe, append and refit</a></li>
 </ul>
@@ -214,6 +215,38 @@ updates remaining distances to include that selection. Thus a batch spreads
 out. An unobserved cell initially has infinite distance and receives priority.
 Coordinates in different cells are not treated as points in one Euclidean
 chart, even when two cells share a geometric face.</p>
+</section>
+<section id="bound-acquisition-memory">
+<h2>Bound acquisition memory<a class="headerlink" href="#bound-acquisition-memory" title="Link to this heading"></a></h2>
+<p>For a large candidate pool, set <code class="docutils literal notranslate"><span class="pre">farthest_points(...,</span> <span class="pre">chunk_size=512)</span></code>.
+The default is 1024. Both candidate and observation axes of each distance
+matrix are bounded by this size, so a float64 matrix uses at most
+<code class="docutils literal notranslate"><span class="pre">8</span> <span class="pre">*</span> <span class="pre">chunk_size**2</span></code> bytes (8 MiB at the default). Distance-kernel workspaces
+and coordinate blocks require additional memory. Per-candidate minimum
+distances are retained, rather than the full candidate-by-observation matrix.
+Selected-point updates are also split into chunks. Equal scores choose the
+earliest remaining candidate, including duplicate coordinates. Returned
+parameters preserve their autograd connection to the input candidates;
+discrete selection does not retain an acquisition-distance computation graph.</p>
+<p>For one cell with C candidates, O observations, coordinate width D and n
+queries, arithmetic work remains <code class="docutils literal notranslate"><span class="pre">O(C</span> <span class="pre">*</span> <span class="pre">O</span> <span class="pre">*</span> <span class="pre">D</span> <span class="pre">+</span> <span class="pre">n</span> <span class="pre">*</span> <span class="pre">C</span> <span class="pre">*</span> <span class="pre">D)</span></code>. Auxiliary
+memory is <code class="docutils literal notranslate"><span class="pre">O(C</span> <span class="pre">+</span> <span class="pre">O</span> <span class="pre">+</span> <span class="pre">chunk_size**2</span> <span class="pre">+</span> <span class="pre">chunk_size</span> <span class="pre">*</span> <span class="pre">D)</span></code> in addition to input
+coordinates and CPU float64 conversion. Smaller chunks trade lower peak
+memory for more Python and kernel calls. The dense and chunked algorithms
+use the same distance-kernel mode; ordinary floating-point roundoff can
+still depend on block size for nearly equal distances.</p>
+<p>Measure this tradeoff on your machine from the repository root:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PYTHONPATH</span><span class="o">=.</span> <span class="n">python</span> <span class="n">examples</span><span class="o">/</span><span class="n">benchmark_farthest_points</span><span class="o">.</span><span class="n">py</span> \
+    <span class="o">--</span><span class="n">candidates</span> <span class="mi">10000</span> <span class="o">--</span><span class="n">observed</span> <span class="mi">2000</span> <span class="o">--</span><span class="n">dimensions</span> <span class="mi">4</span> \
+    <span class="o">--</span><span class="n">select</span> <span class="mi">8</span> <span class="o">--</span><span class="n">chunks</span> <span class="mi">256</span> <span class="mi">1024</span> <span class="o">--</span><span class="n">repeats</span> <span class="mi">3</span> <span class="o">--</span><span class="n">output</span> <span class="n">acquisition</span><span class="o">.</span><span class="n">json</span>
+</pre></div>
+</div>
+<p>Each dense/chunked measurement runs in a fresh CPU process with one PyTorch
+thread and the same seed. JSON records input sizes, chunk setting, selection,
+elapsed acquisition time, pre-acquisition and process peak RSS, Python,
+PyTorch and platform. RSS includes interpreter/import/input costs; it is not
+the size of the distance matrix alone. This benchmark measures exact greedy
+selection, without promising a speedup or using a fixed timing threshold.</p>
 </section>
 <section id="tune-the-observation-budget-and-candidate-pool">
 <h2>Tune the observation budget and candidate pool<a class="headerlink" href="#tune-the-observation-budget-and-candidate-pool" title="Link to this heading"></a></h2>
