@@ -30,6 +30,7 @@ Use the longest-edge criterion to choose the split automatically:
 from collections.abc import Callable, Sequence
 from functools import cache
 from itertools import product
+from math import frexp, hypot, ldexp
 from typing import Literal
 
 import torch
@@ -370,6 +371,19 @@ def _check_splittable(model: BezierSimploid) -> None:
         raise ValueError("Splitting requires a simploid with at least one factor, but the type is ().")
 
 
+def _chord_length_key(a: torch.Tensor, b: torch.Tensor) -> tuple[int, float]:
+    """Compare finite chords by a normalized mantissa/exponent without squaring their scale."""
+    difference, shift = b - a, 0
+    if not torch.isfinite(difference).all():
+        difference, shift = b / 2 - a / 2, 1
+    scale = float(difference.abs().max())
+    if scale == 0:
+        return -(2**20), 0.0
+    exponent = frexp(scale)[1]
+    mantissa, extra = frexp(hypot(*(ldexp(float(t), -exponent) for t in difference.tolist())))
+    return exponent + extra + shift, mantissa
+
+
 def longest_edge_criterion(model: BezierSimploid, s: float = 0.5) -> tuple[int, int, int, float]:
     r"""Select the edge with the greatest value-space length and split it at ``s``.
 
@@ -385,6 +399,9 @@ def longest_edge_criterion(model: BezierSimploid, s: float = 0.5) -> tuple[int, 
     vector.  An edge of a factor of a Bézier simploid is parallel to an edge for
     every vertex of the other factors, and its length is the greatest length of them.
     Ties go to the first edge in the order of factors, then of ``(i, j)``.
+    Finite endpoints are compared using scaled float64 differences and norm mantissas/exponents,
+    including subnormal distances and differences exceeding float64's range. Comparisons retain
+    floating-point rounding near ties; non-finite corner values raise ``ValueError``.
 
     Parameters
     ----------
@@ -412,20 +429,20 @@ def longest_edge_criterion(model: BezierSimploid, s: float = 0.5) -> tuple[int, 
     """
     _check_splittable(model)
     st, ds = model.simploid_type, model.degree
-    cp = model.control_points.detach()
+    cp = model.control_points.detach().to(dtype=torch.float64, device="cpu")
     pos = _positions(st, ds)
 
     def corner(vertices: Sequence[int]) -> torch.Tensor:
         index = tuple(tuple(d if m == v else 0 for m in range(a + 1)) for a, d, v in zip(st, ds, vertices, strict=True))
-        return cp[pos[index]]
+        value = cp[pos[index]]
+        if not torch.isfinite(value).all():
+            raise ValueError("LongestEdge requires finite corner values.")
+        return value
 
-    best, best_length = (0, 0, 1), -1.0
+    best, best_length = (0, 0, 1), (-(2**20), -1.0)
     for k, i, j in _edges(st):
         others = [range(a + 1) for a in st[:k] + st[k + 1 :]]
-        length = max(
-            float(torch.linalg.vector_norm(corner(v[:k] + (i,) + v[k:]) - corner(v[:k] + (j,) + v[k:])))
-            for v in product(*others)
-        )
+        length = max(_chord_length_key(corner(v[:k] + (i,) + v[k:]), corner(v[:k] + (j,) + v[k:])) for v in product(*others))
         if length > best_length:
             best, best_length = (k, i, j), length
     return (*best, s)
