@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -72,7 +73,9 @@ def cross_validate(
 
     Every fold must have positive observation weight in both its train and test
     portions. Failed solves remain in the result and make the whole CV fail;
-    they are never silently dropped from model selection.
+    they are never silently dropped from model selection. Non-finite held-out
+    or aggregate metrics also make CV fail, retaining every fold for inspection.
+    Zero-weight held-out rows are excluded from metric evaluation.
     """
     return _cross_validate(space, samples, cv.split(len(samples)), solver, penalty, fixed)
 
@@ -90,20 +93,43 @@ def _cross_validate(
         training, held_out = samples.take(train), samples.take(test)
         fitted = fit(space, training, solver=solver, penalty=penalty, fixed=fixed)
         with torch.no_grad():
-            difference = fitted.model(held_out.points) - held_out.values.cpu().double()
-            squared = difference.square().mean(1)
-            absolute = difference.abs().mean(1)
-            weight = held_out.weights / held_out.weights.sum()
-            metrics = {"mse": (squared * weight).sum().item(), "mae": (absolute * weight).sum().item()}
+            metrics = _held_out_metrics(fitted.model, held_out)
         folds.append(FoldResult(train.clone(), test.clone(), fitted, metrics, held_out.weights.sum().item()))
     mse = torch.tensor([fold.metrics["mse"] for fold in folds], dtype=torch.float64)
+    scale = mse.abs().max()
+    scaled = mse / scale if scale > 0 else mse
     total = sum(fold.test_weight for fold in folds)
     metrics = {
-        "mean_mse": mse.mean().item(),
-        "std_mse": mse.std(unbiased=False).item(),
-        "pooled_mse": sum(fold.metrics["mse"] * fold.test_weight for fold in folds) / total,
+        "mean_mse": (scaled.mean() * scale).item(),
+        "std_mse": (scaled.std(unbiased=False) * scale).item(),
+        "pooled_mse": sum(fold.metrics["mse"] * (fold.test_weight / total) for fold in folds),
     }
-    return CVResult(tuple(folds), metrics, all(f.result.success for f in folds))
+    success = all(f.result.success and all(math.isfinite(v) for v in f.metrics.values()) for f in folds) and all(
+        math.isfinite(v) for v in metrics.values()
+    )
+    return CVResult(tuple(folds), metrics, success)
+
+
+def _held_out_metrics(model: BezierModel, held_out: Samples) -> dict[str, float]:
+    # Zero-weight observations do not participate in prediction or arithmetic.
+    selected = torch.nonzero(held_out.weights > 0).flatten()
+    positive = held_out.take(selected)
+    predicted = model(positive.points)
+    observed = positive.values.cpu().double()
+    weights = positive.weights
+    total = weights.sum()
+    # Apply sqrt weights before subtraction and squaring, avoiding overflowing
+    # residuals and preserving small weights whose normalized square underflows.
+    root = (weights.sqrt() / total.sqrt() / math.sqrt(model.n_outputs))[:, None]
+    linear = ((weights / total) / model.n_outputs)[:, None]
+    difference = predicted - observed
+    if torch.isfinite(difference).all():
+        squared = (difference * root).square().sum()
+        absolute = (difference.abs() * linear).sum()
+    else:
+        squared = (predicted * root - observed * root).square().sum()
+        absolute = (predicted * linear - observed * linear).abs().sum()
+    return {"mse": squared.item(), "mae": absolute.item()}
 
 
 @dataclass(frozen=True)
@@ -148,7 +174,9 @@ def select_degree(
     """Evaluate every specified degree on identical folds and record the result.
 
     Invalid degrees raise; failed numerical solves remain visible and cannot
-    win. To refit, explicitly call ``fit(result.best_space, samples, ...)``.
+    win. Non-finite validation metrics likewise make candidates ineligible.
+    If none is eligible, best_index is None and success is False.
+    To refit, explicitly call ``fit(result.best_space, samples, ...)``.
     """
     if not degrees:
         raise ValueError("degrees must contain at least one candidate.")

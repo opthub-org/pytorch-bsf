@@ -5,8 +5,8 @@ import torch
 from hypothesis import example, given
 from hypothesis import strategies as st
 
-from tests.strategies import seeds
-from torch_bsf import BezierSpace, Ensemble, Samples
+from tests.strategies import extreme_scalings, seeds
+from torch_bsf import BezierSpace, Ensemble, FixedControls, Samples
 from torch_bsf.model_selection import KFold, cross_validate
 from torch_bsf.sampling import sample
 
@@ -53,3 +53,72 @@ def test_kfold_partitions_samples_reproducibly(n_samples, requested_splits, shuf
         assert sorted(torch.cat([train, test]).tolist()) == list(range(n_samples))
     if not shuffle:
         assert torch.equal(torch.cat([test for _, test in folds]), torch.arange(n_samples))
+
+
+@pytest.mark.parametrize("zero_weight", [True, False])
+def test_nonfinite_validation_is_not_success(zero_weight):
+    space = BezierSpace.simplex(1, degree=0)
+    params = torch.eye(2, dtype=torch.float64).repeat(2, 1)
+    values = [0, 1e200, 0, 1e200] if zero_weight else [1e200, 1e200, -1e200, -1e200]
+    observations = Samples(
+        params, torch.tensor(values, dtype=torch.float64)[:, None], weights=[1, 0, 1, 0] if zero_weight else None
+    )
+    result = cross_validate(space, observations, cv=KFold(2, shuffle=False))
+    assert result.success == zero_weight
+    if zero_weight:
+        assert result.metrics["pooled_mse"] == 0
+        assert all(f.metrics == {"mse": 0, "mae": 0} for f in result.folds)
+    else:
+        assert len(result.folds) == 2
+        assert all(not torch.isfinite(torch.tensor(f.metrics["mse"])) for f in result.folds)
+
+
+def test_representable_weighted_error_avoids_square_overflow():
+
+    space = BezierSpace.simplex(1, degree=0)
+    params = torch.eye(2, dtype=torch.float64).repeat(2, 1)
+    observations = Samples(
+        params, torch.tensor([0, 1e200, 0, 1e200], dtype=torch.float64)[:, None], weights=[1, 1e-300, 1, 1e-300]
+    )
+    result = cross_validate(space, observations, cv=KFold(2, shuffle=False), fixed=FixedControls({0: [0]}))
+    assert result.success
+    # Weight normalization, sqrt, scaling and summation introduce at most 16 roundings.
+    assert result.metrics["pooled_mse"] == pytest.approx(1e100, rel=16 * 2**-53)
+    for fold in result.folds:
+        assert fold.metrics["mae"] == pytest.approx(1e-100, rel=16 * 2**-53)
+
+
+@pytest.mark.parametrize("value", [1e100, 1e154])
+def test_pooled_metrics_avoid_weight_product_overflow(value):
+
+    space = BezierSpace.simplex(1, degree=0)
+    params = torch.eye(2, dtype=torch.float64).repeat(2, 1)
+    observations = Samples(params, torch.full((4, 1), value, dtype=torch.float64), weights=[1e200] * 4)
+    result = cross_validate(space, observations, cv=KFold(2, shuffle=False), fixed=FixedControls({0: [0]}))
+    assert result.success
+    assert result.metrics["pooled_mse"] == pytest.approx(value * value, rel=16 * 2**-53)
+    assert result.metrics["mean_mse"] == pytest.approx(value * value, rel=16 * 2**-53)
+    assert result.metrics["std_mse"] == 0
+
+
+def test_validation_overflow_fails_after_successful_training():
+    space = BezierSpace.simplex(1, degree=0)
+    observations = Samples(torch.eye(2, dtype=torch.float64), torch.tensor([[2.0**700], [-(2.0**700)]], dtype=torch.float64))
+    result = cross_validate(space, observations, cv=KFold(2, shuffle=False))
+    assert all(f.result.success for f in result.folds)
+    assert not result.success
+
+
+@given(scale=extreme_scalings(450))
+def test_weighted_validation_scales_quadratically(scale):
+    space = BezierSpace.simplex(1, degree=0)
+    observations = Samples(
+        torch.eye(2, dtype=torch.float64).repeat(2, 1),
+        torch.tensor([1, 2, 3, 4], dtype=torch.float64)[:, None] * scale,
+        weights=[1, 3, 2, 4],
+    )
+    result = cross_validate(space, observations, cv=KFold(2, shuffle=False), fixed=FixedControls({0: [0]}))
+    assert result.success
+    # Normalize the exact power-of-two output scaling; 32u covers roots,
+    # products and the fold/pooled reductions of these four dyadic observations.
+    assert result.metrics["pooled_mse"] / scale / scale == pytest.approx(9.5, rel=32 * 2**-53)
