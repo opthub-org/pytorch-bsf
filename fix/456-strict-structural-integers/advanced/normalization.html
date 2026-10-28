@@ -64,6 +64,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#choose-a-scaler">Choose a scaler</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#what-changes-mathematically">What changes mathematically?</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#validation-without-leakage">Validation without leakage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#extreme-finite-values">Extreme finite values</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
@@ -293,6 +294,35 @@ output-specific tolerances.</p>
 fresh model with the chosen settings. Keep a final untouched test set if one
 is needed. See <a class="reference internal" href="auto_degree.html"><span class="doc">Cross-validation and degree search</span></a> for metrics and <a class="reference internal" href="active_learning.html"><span class="doc">Explicit ensembles and active learning</span></a> for
 how changing output scales changes committee disagreement rankings.</p>
+</section>
+<section id="extreme-finite-values">
+<h2>Extreme finite values<a class="headerlink" href="#extreme-finite-values" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">MinMaxScaler</span></code>, <code class="docutils literal notranslate"><span class="pre">StdScaler</span></code> and <code class="docutils literal notranslate"><span class="pre">QuantileScaler</span></code> require nonempty finite
+floating input tables. Statistics and transformed outputs must fit the input
+dtype. Standard deviations and quantiles retry with scaled arithmetic when
+ordinary reductions overflow; constant and single-sample columns retain their
+unit-scale convention. Transforms and inverse transforms also retry a factored
+affine expression when a subtraction or product overflows before cancellation.</p>
+<p>The fitted public <code class="docutils literal notranslate"><span class="pre">scales</span></code> / <code class="docutils literal notranslate"><span class="pre">stds</span></code> attributes remain single tensors in the
+original units. If a range or sample standard deviation itself exceeds that
+dtype, fitting raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> with a recommendation to rescale the
+original units. For example, float64 <code class="docutils literal notranslate"><span class="pre">[-1e308,</span> <span class="pre">1e308]</span></code> has an unrepresentable
+min-max range (<code class="docutils literal notranslate"><span class="pre">2e308</span></code>), although its sample standard deviation is representable.
+The min-max and default quantile scalers reject this range explicitly; the
+standard scaler returns approximately <code class="docutils literal notranslate"><span class="pre">[-0.7071,</span> <span class="pre">0.7071]</span></code>. Divide the original
+data by a suitable unit (for example <code class="docutils literal notranslate"><span class="pre">1e308</span></code>) before fitting when needed,
+and retain that unit separately for interpreting inverse transforms.</p>
+<p>Non-finite input and genuinely unrepresentable forward or inverse results also
+raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> instead of propagating NaN/Inf. A successful inverse is
+still subject to floating rounding: a spread smaller than the precision of a
+large offset may already have been lost in the supplied data. These scalers do
+not recover information absent from the input dtype. <code class="docutils literal notranslate"><span class="pre">NoneScaler</span></code> remains a
+pass-through, without numerical validation.</p>
+<p>A varying column whose nonzero standard deviation rounds to zero also raises
+<code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. The unit-scale convention applies to genuinely constant
+columns and single samples. Scale tiny original units upward before fitting;
+otherwise substituting a unit standard deviation would silently skip
+standardization of varying data.</p>
 </section>
 </section>
 
