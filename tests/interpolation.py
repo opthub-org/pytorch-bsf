@@ -1923,3 +1923,17 @@ def test_box_sweep_finds_exactly_the_meeting_pairs(data):
         and bool(((low[a] <= high[b] + max(slack[a], slack[b])) & (low[b] <= high[a] + max(slack[a], slack[b]))).all())
     }
     assert found == expected
+
+
+@pytest.mark.parametrize("wrap", [np.array, tuple, list, lambda x: np.array(x[0]), lambda x: np.array(x * 2)])
+def test_rule_rejects_non_string_choice(wrap):
+    value = wrap(["longest_edge"])
+    with pytest.raises(ValueError, match="rule"):
+        refine(lattice_mesh(1, 2), [], rule=value)
+
+
+@pytest.mark.parametrize("option", ("longest_edge", "newest_vertex"))
+@pytest.mark.parametrize("string_type", [str, np.str_])
+def test_rule_accepts_string_choice(string_type, option):
+    value = string_type(option)
+    refine(lattice_mesh(2, 1), [], rule=value)

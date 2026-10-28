@@ -27,6 +27,7 @@ from torch_bsf._kernels import (
     simploid_n_params,
 )
 from torch_bsf._kernels.api import fit
+from torch_bsf._kernels.fitting import _check_solver
 from torch_bsf.preprocessing import NormalizeType
 
 TYPES = [(), (1,), (2,), (3,), (1, 1), (2, 1), (1, 2), (1, 1, 1), (2, 2)]
@@ -2090,3 +2091,31 @@ def test_scalar_degree_ignores_default_degree():
     from torch_bsf import BezierSpace
 
     assert BezierSpace.on_set(domain, degree=2, default_degree=0).compatible(BezierSpace.on_set(domain, degree=2))
+
+
+@pytest.mark.parametrize("wrap", [np.array, tuple, list, lambda x: np.array(x[0]), lambda x: np.array(x * 2)])
+def test_solver_rejects_non_string_choice(wrap):
+    value = wrap(["lstsq"])
+    with pytest.raises(ValueError, match="solver"):
+        _check_solver(value, 0, 0)
+
+
+@pytest.mark.parametrize("option", ("lstsq", "trainer"))
+@pytest.mark.parametrize("string_type", [str, np.str_])
+def test_solver_accepts_string_choice(string_type, option):
+    value = string_type(option)
+    _check_solver(value, 0, 0)
+
+
+@pytest.mark.parametrize("wrap", [np.array, tuple, list, lambda x: np.array(x[0]), lambda x: np.array(x * 2)])
+def test_field_rejects_non_string_choice(wrap):
+    value = wrap(["Q"])
+    with pytest.raises(ValueError, match="field"):
+        SimploidalSet().betti_numbers(value)
+
+
+@pytest.mark.parametrize("option", ("Q", "Z2"))
+@pytest.mark.parametrize("string_type", [str, np.str_])
+def test_field_accepts_string_choice(string_type, option):
+    value = string_type(option)
+    SimploidalSet().betti_numbers(value)

@@ -2,6 +2,7 @@
 
 import math
 
+import numpy as np
 import pytest
 import torch
 from hypothesis import given
@@ -538,3 +539,31 @@ def test_diagonal_sgd_scale_invariance(scale):
     torch.testing.assert_close(
         result.model.coefficients / scale, torch.tensor([[6 / 7], [-6 / 7]], dtype=torch.float64), rtol=32 * 2**-53, atol=0
     )
+
+
+@pytest.mark.parametrize("wrap", [np.array, tuple, list, lambda x: np.array(x[0]), lambda x: np.array(x * 2)])
+def test_preconditioner_rejects_non_string_choice(wrap):
+    value = wrap(["gram"])
+    with pytest.raises(ValueError, match="preconditioner"):
+        PreconditionedSGD(preconditioner=value)
+
+
+@pytest.mark.parametrize("option", ("gram", "none"))
+@pytest.mark.parametrize("string_type", [str, np.str_])
+def test_preconditioner_accepts_string_choice(string_type, option):
+    value = string_type(option)
+    PreconditionedSGD(preconditioner=value)
+
+
+@pytest.mark.parametrize("wrap", [np.array, tuple, list, lambda x: np.array(x[0]), lambda x: np.array(x * 2)])
+def test_step_decay_rejects_non_string_choice(wrap):
+    value = wrap(["sqrt"])
+    with pytest.raises(ValueError, match="step_decay"):
+        PreconditionedSGD(step_decay=value)
+
+
+@pytest.mark.parametrize("option", ("constant", "sqrt"))
+@pytest.mark.parametrize("string_type", [str, np.str_])
+def test_step_decay_accepts_string_choice(string_type, option):
+    value = string_type(option)
+    PreconditionedSGD(step_decay=value)

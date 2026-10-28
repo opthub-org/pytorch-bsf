@@ -38,6 +38,7 @@ from torch_bsf._kernels.bezier import BezierSimploid, ControlPointData
 from torch_bsf._kernels.combinatorics import SimploidIndex, SimploidType, _check_degree, _check_type, simploid_n_params
 from torch_bsf._kernels.sets import Simploid, SimploidalSet
 from torch_bsf._kernels.space import DegreeAssignment, SimploidalBezierSpace
+from torch_bsf._validation import _choice
 from torch_bsf.preprocessing import NormalizeType, make_scaler
 
 Solver = Literal["lstsq", "trainer"]
@@ -91,8 +92,7 @@ def _lightning() -> ModuleType:
 def _check_solver(
     solver: str, ridge: float, smoothness_weight: float, batch_size: int | None = None, kwargs: Mapping[str, Any] = {}
 ) -> None:
-    if solver not in ("lstsq", "trainer"):
-        raise ValueError(f"Unknown solver {solver!r}.")
+    _choice(solver, "solver", ("lstsq", "trainer"))
     if ridge < 0:
         raise ValueError(f"ridge must be non-negative, but {ridge} is given.")
     if ridge and solver != "lstsq":
