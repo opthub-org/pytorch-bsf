@@ -27,6 +27,29 @@ def farthest_points(candidates: Points, observed: Points, n: int = 1, *, chunk_s
     bounds both axes of each temporary distance matrix, using at most
     ``chunk_size ** 2`` float64 distances. Smaller chunks reduce memory at
     the cost of more distance-kernel calls; arithmetic work is unchanged.
+
+    Parameters
+    ----------
+    candidates : Points
+        Candidate parameter coordinates with their cell IDs.
+    observed : Points
+        Existing observations in the same coordinate layout.
+    n : int, default=1
+        Number of distinct candidate rows to select.
+    chunk_size : int, default=1024
+        Positive upper bound on each distance-matrix dimension.
+
+    Returns
+    -------
+    Points
+        Selected candidates in greedy order, retaining input gradients.
+
+    Examples
+    --------
+    >>> from torch_bsf import Points
+    >>> from torch_bsf.active_learning import farthest_points
+    >>> farthest_points(Points([[0.0], [1.0]]), Points([[0.0]]), chunk_size=1).parameters.tolist()
+    [[1.0]]
     """
     _integer(n, "n", 1)
     _integer(chunk_size, "chunk_size", 1)
