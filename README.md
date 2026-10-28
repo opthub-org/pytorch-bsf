@@ -18,25 +18,13 @@
 PyTorch-BSF fits Bézier simplices, products of simplices, and cells glued along
 shared faces. A single model type and regression API cover all three.
 
-```python
-import torch
-from torch_bsf import BezierSpace, Samples, fit
+Choose an entry point from the data you have:
 
-space = BezierSpace.simplex(dimension=1, degree=2)
-t = torch.tensor([[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]])
-result = fit(space, Samples(t, [[0.0], [1.0], [4.0]]))
-result.require_success()
-predictions = result.model(t)
-print(result.metrics, result.diagnostics)
-```
-
-- `BezierSpace` holds immutable geometry and shared coefficient ordering.
-- `BezierModel` is a differentiable PyTorch module containing coefficients.
-- `fit(space, samples)` always returns `FitResult`: model, metrics, diagnostics and stopping state.
-- Dense SVD and optional sparse LSMR solve the same weighted, penalized objective in CPU float64.
-- Objective minimization uses `minimize` with explicit `PreconditionedSGD` settings.
-- Cross-validation, degree search and ensembles retain explicit evidence and ownership.
-- Sampling, plotting, subdivision and versioned persistence use the same model types.
+| Your inputs | Operation and result | Guide |
+| --- | --- | --- |
+| Known parameter coordinates and measured responses | `fit(space, Samples(...))` learns a model predicting responses at new coordinates. | [Regression quickstart](https://opthub-org.github.io/pytorch-bsf/master/quickstart.html) |
+| Observed points on a curve or surface, with unknown parameter coordinates | `fit_point_cloud(space, values)` estimates a model and coordinates for each observation on a single simplex. | [Point cloud fitting](https://opthub-org.github.io/pytorch-bsf/master/advanced/point_cloud.html) |
+| A differentiable cost function, with no measured target responses | `minimize(initial_model, loss, ...)` optimizes model coefficients against the cost. | [Objective minimization](https://opthub-org.github.io/pytorch-bsf/master/advanced/sgd.html) |
 
 Install with Python 3.10 or later:
 
@@ -50,9 +38,52 @@ Conda is an optional environment manager. Lightning and MLflow are optional
 adapters and are never imported by core fitting. Random/Sobol sampling needs
 no extra dependency. Tracking is opt-in.
 
+Copy this complete example to fit a quadratic response on a segment:
+
+```python
+import torch
+from torch_bsf import BezierSpace, Samples, fit
+
+space = BezierSpace.simplex(dimension=1, degree=2)
+t = torch.tensor([[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]])
+result = fit(space, Samples(t, [[0.0], [1.0], [4.0]]))
+result.require_success()
+predictions = result.model(t)
+print(predictions)
+print(predictions.shape)
+```
+
+A segment position `x` is represented by barycentric coordinates `[1-x, x]`:
+the two columns sum to one and describe one independent input dimension.
+The example evaluates `x = 0, 0.5, 1`. Predictions are approximately
+`[[0.0], [1.0], [4.0]]`, with shape `torch.Size([3, 1])`: three locations and
+one response per location. Floating-point roundoff can leave tiny values near
+zero. See [the geometry guide](https://opthub-org.github.io/pytorch-bsf/master/whatis.html)
+for simplices, products and glued cells.
+
+- `BezierSpace` holds immutable geometry and shared coefficient ordering.
+- `BezierModel` is a differentiable PyTorch module containing coefficients.
+- `fit(space, samples)` always returns `FitResult`: model, metrics, diagnostics and stopping state.
+- Dense SVD and optional sparse LSMR solve the same weighted, penalized objective in CPU float64.
+- Cross-validation, degree search and ensembles retain explicit evidence and ownership.
+- Sampling, plotting, subdivision and versioned persistence use the same model types.
+
+For the CLI, first create `params.csv` and `values.csv` using the
+[Quickstart CSV example](https://opthub-org.github.io/pytorch-bsf/master/quickstart.html#prepare-your-own-observations).
+Then run these commands in the directory containing those files:
+
 ```bash
-python -m torch_bsf fit --params params.csv --values values.csv --degree 3 --save model.bsf
+python -m torch_bsf fit --params params.csv --values values.csv --degree 2 --save model.bsf
 python -m torch_bsf predict --model model.bsf --params params.csv --save predictions.csv
+```
+
+Fitting saves `model.bsf`; prediction saves one output row per input row to
+`predictions.csv`. With the Quickstart data, these are approximately `0`, `1`
+and `4`. The commands above work with a pip installation. The complete
+[quickstart script](https://github.com/opthub-org/pytorch-bsf/blob/master/examples/quickstart/run.sh)
+requires a repository checkout and Bash; run it from the repository root:
+
+```bash
 bash examples/quickstart/run.sh
 ```
 
@@ -63,7 +94,7 @@ pickle Python classes. CSV coefficient export is a separate operation.
 This v0 release deliberately consolidates previous APIs without compatibility
 aliases. See the [migration guide](https://opthub-org.github.io/pytorch-bsf/master/migration.html),
 [documentation](https://opthub-org.github.io/pytorch-bsf/) and
-[contributing guide](CONTRIBUTING.md).
+[contributing guide](https://github.com/opthub-org/pytorch-bsf/blob/master/CONTRIBUTING.md).
 
 Research foundations:
 
