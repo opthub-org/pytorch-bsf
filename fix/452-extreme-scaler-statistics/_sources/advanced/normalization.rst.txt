@@ -204,3 +204,9 @@ still subject to floating rounding: a spread smaller than the precision of a
 large offset may already have been lost in the supplied data. These scalers do
 not recover information absent from the input dtype. ``NoneScaler`` remains a
 pass-through, without numerical validation.
+
+A varying column whose nonzero standard deviation rounds to zero also raises
+``ValueError``. The unit-scale convention applies to genuinely constant
+columns and single samples. Scale tiny original units upward before fitting;
+otherwise substituting a unit standard deviation would silently skip
+standardization of varying data.
