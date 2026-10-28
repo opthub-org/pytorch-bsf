@@ -476,3 +476,26 @@ saved IDs. That mapping makes model archives useful to future experiments
 without depending on the lifetime of the original topology builder.
 
 Retain that validated domain schema alongside every exported observation batch.
+
+High-degree evaluation
+----------------------
+
+Bernstein factors of degree 16 and above use degree elevation rather than
+forming a large multinomial times a tiny monomial. This keeps finite
+nonnegative barycentric inputs on their simplex finite at degrees such as
+20 (float16), 140 (float32), and 171 (float64), including vertices and faces.
+The polynomial recurrence preserves coordinate and coefficient autograd at
+zero coordinates. Rounding error grows with degree and factor count; very
+small basis entries can still underflow in the requested dtype.
+
+The recurrence retains intermediate bases for autograd and performs work
+proportional to the sum of control counts over all lower degrees. Large
+control counts are still limited by available memory. Predecessor index tables
+are cached per degree, factor width and device for the lifetime of the process
+to avoid rebuilding and transferring them on repeated evaluations. Extrapolation outside
+the simplex can overflow when the polynomial itself is not representable.
+Gram integration combines moments and multinomials in the log domain.
+Its explicit multinomials must fit float64, otherwise it raises ``ValueError``
+explaining that degree limit. Point-cloud fitting uses the same recurrence
+for high-degree values and first/second derivatives; its optimization and
+least-squares conditioning limits still apply.

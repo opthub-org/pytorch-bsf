@@ -254,6 +254,14 @@ control-net size when choosing an edge.</p>
 </tr>
 </tbody>
 </table>
+<p><code class="docutils literal notranslate"><span class="pre">LongestEdge</span></code> compares lengths using normalized float64 mantissas and
+exponents. Finite endpoints may have subnormal distances or differences
+larger than the float64 range. Uniform changes of output units preserve
+selection up to rounding near equal lengths and information already lost
+when coordinates were stored. Different units for individual output axes
+can change the selected edge. Non-finite corner values raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.
+Equal lengths retain factor/vertex lexicographic order, and tensor products
+use the maximum chord over vertices of the other factors.</p>
 <p><code class="docutils literal notranslate"><span class="pre">LongestEdge</span></code> is a geometry heuristic based on vertex chords in output
 space. It does not measure the arc length of a curved edge or locate the
 largest curvature. A loop whose endpoint images coincide can have a short

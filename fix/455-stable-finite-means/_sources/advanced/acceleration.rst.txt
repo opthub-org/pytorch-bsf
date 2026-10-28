@@ -237,3 +237,45 @@ execution is rejected. Changing precision changes numerical execution and may
 reduce attainable accuracy. Benchmark the actual problem, including transfer
 and setup costs, before choosing a device for speed. These settings belong
 to the application Trainer rather than the core ``fit`` operation.
+
+
+Cell-local prediction and transpose products
+--------------------------------------------
+
+``BasisOperator`` groups observation rows once by cell using a stable sort,
+then reuses those row groups for validation and local basis assembly.
+Grouping costs ``O(N log N)`` and stores ``O(N)`` row indices, replacing one
+full observation scan per active cell. Products write or add local results
+into one output tensor. They do not copy the complete output once per cell
+or introduce an implicit global dense design matrix. ``to_dense()`` remains
+an explicit dense allocation, and accumulates repeated control columns
+directly into that matrix. Coordinates and coefficient matrices retain
+first and higher derivatives through these writes.
+
+Run the reproducible CPU comparison against the previous implementation::
+
+    python examples/benchmark_basis_operator.py --cells 16 64 256 \
+        --rows-per-cell 1 16 --outputs 1 8 --repeats 5 --output basis_operator.json
+
+Each implementation/configuration uses a fresh process and one CPU thread.
+The report contains local operator assembly and product median times,
+profiler counts of full-output copy operations, cumulative copied output
+bytes (call count times output size), profiler-attributed net copy memory,
+and peak process RSS. Assembly timings exclude validation. RSS includes
+Python, imports, input tensors, warmups and profiling; cumulative copy bytes
+are neither peak live memory nor total allocator traffic. In-place local
+writes and autograd intermediates can still allocate memory.
+
+``docs/benchmarks/basis_operator_macos.json`` records Python 3.13.12,
+PyTorch 2.10.0 on macOS arm64, using independent degree-1 interval cells,
+interleaved observations and float64. Across all 12 configurations,
+full-output copy calls and cumulative output bytes fall to zero for both
+products. At 256 cells, 16 observations per cell and 8 outputs, forward
+products copy 64 MiB cumulatively in the previous implementation and zero
+with local writes; transpose products drop from 8 MiB to zero. Median
+product times for that case are 2.224 to 0.870 ms (forward) and 1.389 to
+0.943 ms (transpose); process peak RSS is 332.9 versus 327.7 MiB. These
+measurements include process noise: at 64 cells and one observation/output,
+assembly was slower (1.515 to 1.773 ms). The removed scan/copy work is a
+complexity improvement, not a claim of universal speedup. GPU synchronization
+and GPU memory were not measured.
