@@ -1,5 +1,6 @@
 """Tests for torch_bsf.interpolation (shape-preserving cubic interpolation on simplicial complexes)."""
 
+import functools
 import itertools
 import math
 import warnings
@@ -10,7 +11,7 @@ from typing import Any
 import numpy as np
 import pytest
 import torch
-from hypothesis import given
+from hypothesis import example, given
 from hypothesis import strategies as st
 
 from tests.strategies import (
@@ -36,6 +37,7 @@ from torch_bsf.interpolation import (
     _Bisection,
     _overlapping_boxes,
     _rational_inverse,
+    _Tagged,
     estimate_gradients,
     hermite_interpolant,
     lattice_mesh,
@@ -938,10 +940,32 @@ def test_lattice_mesh_in_high_dimension():
     assert (mesh.n_simplices, mesh.n_vertices, mesh.unmatched_faces) == (1, 13, 0)
 
 
-def test_refine_midpoints_do_not_overflow():
-    mesh = SimplicialMesh(torch.tensor([[1e308], [1.2e308]], dtype=torch.float64), [[0, 1]])
-    fine = refine(mesh, [0])
-    torch.testing.assert_close(fine.vertices[2], torch.tensor([1.1e308], dtype=torch.float64))
+@pytest.mark.parametrize("rule", ["longest_edge", "newest_vertex"])
+@pytest.mark.parametrize(
+    "a, b",
+    [
+        # The sum of the end points overflows.
+        (1e308, 1.2e308),
+        (-1.2e308, -1e308),
+        (2.0**1023, FLOAT64_MAX),
+        # Tiny and subnormal midpoints.
+        (1e-300, 3e-300),
+        (FLOAT64_TINY, 3 * FLOAT64_TINY),
+        (2.0**-1074, 2.0**-1072),  # a tie: 2.5 * 2**-1074 is rounded to even (2 * 2**-1074)
+        (2.0**-1074, 5 * 2.0**-1074),  # halving first would round twice: 0 + 2 * 2**-1074 instead of 3 * 2**-1074
+    ],
+)
+def test_refine_midpoints_are_correctly_rounded_near_the_float64_limits(rule, a, b):
+    """The new vertex is the correctly rounded midpoint, also where the end points' sum overflows or it is subnormal.
+
+    The newest-vertex state of a segment (refinement edge 0 1) is attached by hand, as the meshes of lattice_mesh
+    lie in [0, 1]; the default rule ignores it.
+    """
+    mesh = SimplicialMesh(torch.tensor([[a], [b]], dtype=torch.float64), [[0, 1]])
+    mesh._newest_vertex = {(0, 1): _Tagged((0, 1), 1, 0)}
+    fine = refine(mesh, [0], rule=rule)
+    assert fine.vertices[2].item() == float((Fraction(a) + Fraction(b)) / 2)
+    assert fine.simplices.tolist() == [[0, 2], [1, 2]]
 
 
 def test_refine_bisects_longest_edge_and_closes_neighbours():
@@ -975,9 +999,18 @@ def test_invalid_lattice_and_refine_arguments():
     for index in indices:
         torch.testing.assert_close(refine(lattice, [index]).simplices, expected)
     torch.testing.assert_close(refine(lattice, torch.tensor([1])).simplices, expected)  # type: ignore[arg-type]
-    for rule in ["newest", "Longest_edge", None]:
+    # A rule must be a string: a NumPy array compares element-wise, so `rule in (...)` alone would accept it.
+    rules: list[Any] = [
+        "newest",
+        "Longest_edge",
+        None,
+        ("newest_vertex",),
+        np.array(["newest_vertex"]),
+        np.array(["longest_edge"]),
+    ]
+    for rule in rules:
         with pytest.raises(ValueError, match="rule"):
-            refine(lattice, [1], rule=rule)  # type: ignore[arg-type]
+            refine(lattice, [1], rule=rule)
 
 
 # ---------------------------------------------------------------------------
@@ -985,11 +1018,65 @@ def test_invalid_lattice_and_refine_arguments():
 # ---------------------------------------------------------------------------
 
 
+def _lattice_points(mesh: SimplicialMesh, denominator: int) -> list[list[int]]:
+    """The vertices of ``mesh`` times ``denominator``, which must make them integers exactly."""
+    z = mesh.vertices * float(denominator)
+    assert torch.equal(z, z.round())
+    return [[int(t) for t in row] for row in z.tolist()]
+
+
+def _integer_determinant(rows: list[list[int]]) -> int:
+    """The determinant of a square integer matrix, exactly (fraction-free Bareiss elimination)."""
+    a = [row.copy() for row in rows]
+    n, sign, previous = len(a), 1, 1
+    for j in range(n - 1):
+        if a[j][j] == 0:
+            pivot = next((r for r in range(j + 1, n) if a[r][j]), None)
+            if pivot is None:
+                return 0
+            a[j], a[pivot], sign = a[pivot], a[j], -sign
+        for r in range(j + 1, n):
+            for c in range(j + 1, n):
+                a[r][c] = (a[r][c] * a[j][j] - a[r][j] * a[j][c]) // previous  # an exact division
+        previous = a[j][j]
+    return sign * a[-1][-1]
+
+
+def _exact_volumes(points: list[list[int]], simplices: torch.Tensor, denominator: int) -> list[Fraction]:
+    """The volumes of ``simplices`` whose vertices are ``points`` divided by ``denominator``, in exact arithmetic."""
+    d = len(points[0])
+    unit = math.factorial(d) * denominator**d
+    volumes = []
+    for s in simplices.tolist():
+        edges = [[a - b for a, b in zip(points[v], points[s[0]], strict=True)] for v in s[1:]]
+        volumes.append(Fraction(abs(_integer_determinant(edges)), unit))
+    return volumes
+
+
+def _generations(mesh: SimplicialMesh) -> list[int]:
+    """The generation (number of bisections since the lattice mesh) of every simplex of ``mesh``."""
+    state = mesh._newest_vertex
+    assert state is not None
+    return [state[tuple(s)].generation for s in mesh.simplices.tolist()]
+
+
+def _lattice_degree(dim: int, k: int, generation: int) -> int:
+    """The degree of a lattice that holds the vertices of newest-vertex simplices of ``lattice_mesh(dim, k)``.
+
+    Every ``dim`` generations of bisection halve the lattice spacing, so a simplex of generation ``generation`` or
+    less has its vertices on the lattice of degree ``k * 2**ceil(generation / dim)``.
+    """
+    return k << math.ceil(generation / dim)  # k * 2**ceil(generation / dim)
+
+
+def _mesh_lattice_degree(mesh: SimplicialMesh, k: int) -> int:
+    """The :func:`_lattice_degree` of a newest-vertex refinement of ``lattice_mesh(mesh.dimension, k)``."""
+    return _lattice_degree(mesh.dimension, k, max(_generations(mesh)))
+
+
 def _cells(mesh: SimplicialMesh, scale: int) -> set[frozenset[tuple[int, ...]]]:
     """The simplices of ``mesh`` as sets of vertex coordinates times ``scale`` (which must make them integers)."""
-    z = mesh.vertices * scale
-    assert torch.equal(z, z.round())
-    rows = [tuple(int(t) for t in r) for r in z.round().long().tolist()]
+    rows = [tuple(row) for row in _lattice_points(mesh, scale)]
     return {frozenset(rows[v] for v in s) for s in mesh.simplices.tolist()}
 
 
@@ -998,6 +1085,28 @@ def _uniform(mesh: SimplicialMesh, rounds: int) -> list[SimplicialMesh]:
     for _ in range(rounds):
         meshes.append(refine(meshes[-1], range(meshes[-1].n_simplices), rule="newest_vertex"))
     return meshes
+
+
+@functools.cache
+def _uniform_cells(dim: int, k: int, depth: int) -> frozenset[frozenset[tuple[int, ...]]]:
+    """The cells of the uniform newest-vertex refinements of ``lattice_mesh(dim, k)`` up to ``depth`` rounds.
+
+    Their coordinates are scaled by ``_lattice_degree(dim, k, depth)``, which makes them integers. Cached, as the
+    examples of a property share them.
+    """
+    scale = _lattice_degree(dim, k, depth)
+    return frozenset().union(*(_cells(m, scale) for m in _uniform(lattice_mesh(dim, k), depth)))
+
+
+def _assert_reproduces_vertex_data(mesh: SimplicialMesh, model: BezierModel, values: torch.Tensor) -> None:
+    """``model`` equals ``values`` exactly at the vertices of every simplex.
+
+    At the barycentric coordinates of a vertex, every Bernstein polynomial is exactly 0 or 1, and the one that is 1
+    belongs to the vertex control, which is the datum itself; so the prediction is exact.
+    """
+    n = mesh.dimension + 1
+    corners = Points(torch.eye(n, dtype=torch.float64).repeat(mesh.n_simplices, 1), mesh.cell_ids.repeat_interleave(n))
+    assert torch.equal(model(corners), values[mesh.simplices.flatten()])
 
 
 @pytest.mark.parametrize("dim, k", [(1, 1), (1, 3), (2, 1), (2, 3), (3, 1), (3, 2), (4, 1), (4, 2)])
@@ -1009,12 +1118,19 @@ def test_newest_vertex_rounds_double_the_lattice_degree(dim, k):
         lattice = lattice_mesh(dim, degree)
         assert mesh.unmatched_faces == 0
         assert (mesh.n_vertices, mesh.n_simplices) == (lattice.n_vertices, degree**dim)
-        # The vertices are those of the finer lattice (in another order), up to the rounding of a / k.
+        # The vertices are those of the finer lattice (in another order). The coordinates a / k of lattice_mesh,
+        # at most one, are rounded once, by at most U. Round r bisects cells of generation r - 1, whose vertices
+        # were created in earlier rounds, and a midpoint (x + y) / 2 adds one rounding of at most U to the errors
+        # of x and y; so after m rounds a coordinate is off by at most (m + 1) U, and times degree (rounded once
+        # more) by degree (m + 2) U, plus terms of order U**2 that one more U covers. For k a power of two, a / k
+        # and all midpoints are exact.
         scaled = mesh.vertices * degree
-        torch.testing.assert_close(scaled, scaled.round(), atol=1e-12, rtol=0)
-        assert sorted(map(tuple, scaled.round().tolist())) == sorted(map(tuple, (lattice.vertices * degree).round().tolist()))
-        volumes = mesh.volumes()
-        torch.testing.assert_close(volumes, torch.full_like(volumes, volumes.sum().item() / len(volumes)))
+        tol = 0.0 if k & (k - 1) == 0 else degree * (m + 3) * U
+        torch.testing.assert_close(scaled, scaled.round(), atol=tol, rtol=0)
+        points = [[int(t) for t in row] for row in scaled.round().tolist()]
+        assert sorted(map(tuple, points)) == sorted(map(tuple, (lattice.vertices * degree).round().long().tolist()))
+        # The simplices of the finer lattice, in exact arithmetic, all have the volume 1 / (d! degree**d).
+        assert set(_exact_volumes(points, mesh.simplices, degree)) == {Fraction(1, math.factorial(dim) * degree**dim)}
     # In between, every round halves the volume of every simplex and keeps the mesh conforming.
     for coarse, fine in itertools.pairwise(meshes):
         assert fine.n_simplices == 2 * coarse.n_simplices
@@ -1025,7 +1141,8 @@ def test_newest_vertex_bisects_the_cube_diagonal_first():
     mesh = lattice_mesh(3, 1)  # one Kuhn simplex: 0 -> e0 -> e0 + e1 -> e0 + e1 + e2 in staircase coordinates
     path = sorted(range(4), key=lambda v: (mesh.vertices[v].cumsum(0)).sum().item())
     fine = refine(mesh, [0], rule="newest_vertex")
-    torch.testing.assert_close(fine.vertices[4], (mesh.vertices[path[0]] + mesh.vertices[path[3]]) / 2)
+    # The coordinates are 0 and 1, so the midpoint is exact.
+    assert torch.equal(fine.vertices[4], (mesh.vertices[path[0]] + mesh.vertices[path[3]]) / 2)
     # Longest-edge bisection of the same simplex cuts another edge (the chart is not the staircase metric).
     longest = refine(mesh, [0])
     assert not torch.equal(longest.vertices[4], fine.vertices[4])
@@ -1035,31 +1152,77 @@ def test_newest_vertex_bisects_the_cube_diagonal_first():
 
 
 @given(
-    dim=st.integers(1, 4),
-    k=st.integers(1, 2),
+    # (dim, k). Refining lattice_mesh(4, 2) ten times takes about a second, so 4-D starts from one simplex here;
+    # test_newest_vertex_rounds_double_the_lattice_degree refines lattice_mesh(4, 2).
+    lattice=st.sampled_from([(1, 1), (1, 2), (2, 1), (2, 2), (3, 1), (3, 2), (4, 1)]),
     marks=st.lists(st.integers(0, 2**30), min_size=1, max_size=10),
     batch=st.integers(1, 3),
 )
-def test_newest_vertex_refinement_is_conforming_and_nested(dim, k, marks, batch):
+def test_newest_vertex_refinement_is_conforming_and_nested(lattice, marks, batch):
+    dim, k = lattice
     mesh = lattice_mesh(dim, k)
-    total = mesh.volumes().sum()
-    depth = 0
     for start in range(0, len(marks), batch):
         targets = [m % mesh.n_simplices for m in marks[start : start + batch]]
         fine = refine(mesh, targets, rule="newest_vertex")
         assert fine.unmatched_faces == 0
         torch.testing.assert_close(fine.vertices[: mesh.n_vertices], mesh.vertices, atol=0, rtol=0)
         assert not {tuple(mesh.simplices[t].tolist()) for t in targets} & set(map(tuple, fine.simplices.tolist()))
-        torch.testing.assert_close(fine.volumes().sum(), total)
         mesh = fine
-        depth = max(depth, round(math.log2(float(total / mesh.volumes().min()) / k**dim)))
+        # Every bisection halves a simplex: in exact arithmetic, a simplex of generation g has the volume
+        # 1 / (d! k**d 2**g), and the simplices fill the standard simplex (of volume 1 / d!).
+        degree = _mesh_lattice_degree(mesh, k)
+        volumes = _exact_volumes(_lattice_points(mesh, degree), mesh.simplices, degree)
+        assert volumes == [Fraction(1, math.factorial(dim) * k**dim * 2**g) for g in _generations(mesh)]
+        assert sum(volumes) == Fraction(1, math.factorial(dim))
     # Every simplex is one of the uniform refinement of the same depth or a coarser one: refinement is local and
     # nested, and the simplices take only the finitely many shapes of the uniform refinements.
     if dim == 4:
         return  # the uniform refinements are too large to compare quickly
-    scale = 2 ** (depth // dim + 1) * k
-    uniform = set().union(*(_cells(m, scale) for m in _uniform(lattice_mesh(dim, k), depth)))
-    assert _cells(mesh, scale) <= uniform
+    assert _cells(mesh, _mesh_lattice_degree(mesh, k)) <= _uniform_cells(dim, k, max(_generations(mesh)))
+
+
+def _with_vertices(mesh: SimplicialMesh, vertices: torch.Tensor) -> SimplicialMesh:
+    """``mesh`` with other vertices but its simplices and newest-vertex state, which the public API cannot attach."""
+    other = SimplicialMesh(vertices, mesh.simplices)
+    other._newest_vertex = mesh._newest_vertex  # refine copies the state and leaves it unchanged
+    return other
+
+
+@given(
+    dim=st.integers(1, 3),
+    k=st.integers(1, 2),
+    marks=st.lists(st.integers(0, 2**30), min_size=1, max_size=4),
+    scale=extreme_scalings(),
+)
+@example(dim=3, k=2, marks=[0, 7, 3, 5], scale=2.0**1023)  # coordinates up to 2**1023
+@example(dim=3, k=2, marks=[0, 7, 3, 5], scale=2.0**-1022)  # the new coordinates below 2**-1022 are subnormal
+def test_newest_vertex_refinement_commutes_with_affine_maps_near_the_float64_limits(dim, k, marks, scale):
+    """Refining a lattice mesh mapped by ``x * scale`` (a power of two) or by ``2**1023 + x * 2**1022`` gives the
+    mapped refinement of the lattice mesh, exactly.
+
+    The vertices of the refinements lie on dyadic lattices and have few bits, so their mapped values are exact even
+    near the float64 limits, and refine computes correctly rounded midpoints, hence these exact values. The scaled
+    coordinates reach 2**1023 (their sums stay below 2**1024, as two vertices of the standard simplex sum to less
+    than 2) and the subnormal range; the translated ones lie in [2**1023, 1.5 * 2**1023], where every sum of two
+    coordinates overflows. Newest-vertex bisection does not compare lengths, so it bisects the same edges under
+    every such map.
+    """
+    maps = [lambda x: x * scale, lambda x: 2.0**1023 + x * 2.0**1022]
+    mesh = lattice_mesh(dim, k)
+    mapped = [_with_vertices(mesh, f(mesh.vertices)) for f in maps]
+    for start in range(0, len(marks), 2):
+        targets = [m % mesh.n_simplices for m in marks[start : start + 2]]
+        mesh = refine(mesh, targets, rule="newest_vertex")
+        assert _lattice_points(mesh, _mesh_lattice_degree(mesh, k))  # asserts the midpoints are lattice points
+        for i, f in enumerate(maps):
+            mapped[i] = refine(mapped[i], targets, rule="newest_vertex")
+            assert mapped[i].unmatched_faces == 0
+            assert torch.equal(mapped[i].simplices, mesh.simplices)
+            assert mapped[i]._newest_vertex == mesh._newest_vertex
+            expected = f(mesh.vertices)
+            assert torch.equal(mapped[i].vertices, expected)
+        assert torch.equal(mesh.vertices * scale / scale, mesh.vertices)  # no bit of a scaled lattice point is lost
+        assert torch.equal((mapped[1].vertices - 2.0**1023) / 2.0**1022, mesh.vertices)  # nor of a translated one
 
 
 def test_newest_vertex_state_is_carried_and_required():
@@ -1096,31 +1259,39 @@ def test_newest_vertex_detects_a_broken_matching_condition():
     cells = [tuple(c) for c in mesh.simplices.tolist()]
 
     def edge(cell: tuple[int, ...]) -> set[int]:
-        ordered, tag, _ = state[cell]
-        return {ordered[0], ordered[tag]}
+        tagged = state[cell]
+        return {tagged.vertices[0], tagged.vertices[tagged.tag]}
 
     k, neighbour = next((k, c) for k, t in enumerate(cells) for c in cells if c != t and edge(t) <= set(c))
-    ordered, _, generation = state[neighbour]
+    ordered = state[neighbour].vertices
     new_tag = next(t for t in range(1, len(ordered)) if {ordered[0], ordered[t]} != edge(cells[k]))
-    mesh._newest_vertex = {**state, neighbour: (ordered, new_tag, generation)}
+    mesh._newest_vertex = {**state, neighbour: state[neighbour]._replace(tag=new_tag)}
     with pytest.raises(RuntimeError, match="matching condition"):
         refine(mesh, [k], rule="newest_vertex")
 
 
-@pytest.mark.parametrize("dim, levels", [(1, 300), (2, 150), (3, 90)])
+@pytest.mark.parametrize("dim, levels", [(1, 64), (2, 64), (3, 48)])
 def test_newest_vertex_deep_refinement_towards_a_corner(dim, levels):
-    # Cells of size about 2**-(levels / dim), far below the scale of the lattice, stay conforming.
+    """Cells of size 2**-(levels / dim), far below the scale of the lattice, stay conforming and exact.
+
+    Every ``dim`` bisections of the cell at the origin halve it, so the cells there reach 2**-64 (below the unit
+    roundoff relative to the lattice), 2**-32 and 2**-16; deeper refinement only repeats the same shapes at
+    smaller scales, which test_newest_vertex_refinement_commutes_with_affine_maps_near_the_float64_limits covers.
+    """
     mesh = lattice_mesh(dim, 1)
     for _ in range(levels):
         corner = int(mesh.locate(torch.zeros(1, dim, dtype=torch.float64)).cell_ids[0])
         mesh = refine(mesh, [int((mesh.cell_ids == corner).nonzero()[0])], rule="newest_vertex")
     assert mesh.unmatched_faces == 0
-    small = mesh.vertices[mesh.vertices > 0].min()
-    assert small <= 2.0 ** -(levels // dim - 2)
-    torch.testing.assert_close(mesh.volumes().sum(), lattice_mesh(dim, 1).volumes().sum())
+    # The cell at the origin is the lattice simplex scaled by 2**-size, so the smallest positive coordinate is
+    # 2**-size, and every vertex lies on the dyadic lattice of that spacing.
+    size = levels // dim
+    assert mesh.vertices[mesh.vertices > 0].min().item() == math.ldexp(1.0, -size)
+    volumes = _exact_volumes(_lattice_points(mesh, 2**size), mesh.simplices, 2**size)
+    assert volumes == [Fraction(1, math.factorial(dim) * 2**g) for g in _generations(mesh)]
+    assert sum(volumes) == Fraction(1, math.factorial(dim))
     values = mesh.vertices.sum(1, keepdim=True) ** 2
-    model = hermite_interpolant(mesh, values)
-    assert torch.isfinite(model(mesh.locate(mesh.vertices))).all()
+    _assert_reproduces_vertex_data(mesh, hermite_interpolant(mesh, values), values)
 
 
 # ---------------------------------------------------------------------------
