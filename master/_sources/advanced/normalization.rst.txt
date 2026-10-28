@@ -181,7 +181,15 @@ how changing output scales changes committee disagreement rankings.
 Extreme finite values
 ---------------------
 
-The scalers require nonempty finite input tables. ``StdScaler`` and
+Fitting requires nonempty finite input tables. After fitting, ``transform``
+and ``inverse_transform`` require a two-dimensional table with the same number
+of features as the fitted data, raising ``ValueError`` for other shapes rather
+than broadcasting columns. The number of rows may differ, including a batch of
+zero rows with shape ``(0, n_features)``. For example, after fitting two columns,
+``scaler.transform(torch.ones(3, 1))`` raises ``ValueError``; provide both
+columns in their original order. Refitting establishes a new feature count.
+
+``StdScaler`` and
 ``QuantileScaler`` require floating values; ``MinMaxScaler`` also accepts
 integral tensors. For floating input, statistics and transformed outputs must
 fit the input dtype. Standard deviations and quantiles retry with scaled
