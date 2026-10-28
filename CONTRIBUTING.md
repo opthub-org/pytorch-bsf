@@ -469,13 +469,37 @@ def fit(params, values, degree):
     """
 ```
 
-### Sphinx doctest
+### Sphinx HTML and doctest
 
-Code blocks in RST files under `docs/` are also tested via Sphinx doctest:
+The `docs` job in the PyTest workflow builds HTML and executes Sphinx doctests
+once on Python 3.14. Both commands treat warnings as errors and continue to
+report other problems, so broken references, missing images and malformed
+headings fail the PR before publication. Use the same interpreter for installation
+and both builds. From the repository root, install Sphinx extensions and every
+optional integration used by the examples, then restore the editable install:
 
 ```bash
-sphinx-build -b doctest docs/ docs/_build/doctest
+python -m pip install -r docs/requirements.txt
+python -m pip install -e '.[all]'
+python -m sphinx -b html -W --keep-going docs docs/_build/html
+python -m sphinx -b doctest -W --keep-going docs docs/_build/doctest
 ```
+
+In a fresh pip environment, the CI job first installs CPU PyTorch with
+`python -m pip install torch --index-url https://download.pytorch.org/whl/cpu`.
+An existing environment can retain its suitable PyTorch installation.
+The requirements file includes the local package (`.`); installing editable
+afterward ensures that later edits are used. Run these commands through the
+`pytorch-bsf` environment's Python when using Conda.
+
+Only executable doctest and `testcode` blocks are tested; a plain `code-block`
+is displayed without execution. Add assertions or expected output for examples
+whose behavior should be checked.
+
+The separate GitHub Pages workflow builds multiple tags and branches with
+`sphinx-multiversion`. Historical tags keep their original configuration and
+warnings; their builds do not replace the strict checks of the current PR.
+External link checking is not part of this PR gate.
 
 ---
 

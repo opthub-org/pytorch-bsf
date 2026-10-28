@@ -204,6 +204,7 @@ standardization generally violates those constraints. See
 
 .. automodule:: torch_bsf.sklearn
    :members:
+   :exclude-members: set_fit_request, set_score_request
    :show-inheritance:
 
 splitting

@@ -10,6 +10,7 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+import importlib.util
 import os
 import sys
 
@@ -56,7 +57,9 @@ autodoc_inherit_docstrings = False
 # Optional dependencies that may not be present in the docs build environment.
 # These modules are imported lazily (inside functions) but autodoc may still
 # try to resolve type annotations that reference them.
-autodoc_mock_imports = ["matplotlib", "sklearn", "scipy"]
+# Keep installed integrations real: mocking sklearn's base classes while
+# importing our estimator would otherwise break its later doctest examples.
+autodoc_mock_imports = [name for name in ("matplotlib", "sklearn", "scipy") if importlib.util.find_spec(name) is None]
 
 # -- doctest -----------------------------------------------------------------
 # https://www.sphinx-doc.org/ja/master/usage/extensions/doctest.html#confval-doctest_global_setup
