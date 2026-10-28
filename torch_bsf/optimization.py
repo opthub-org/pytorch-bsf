@@ -13,6 +13,7 @@ import torch
 
 from torch_bsf._kernels.sgd import _simploid_gram
 from torch_bsf._numeric import _finite_mean
+from torch_bsf._validation import _choice
 from torch_bsf.core import BezierModel, BezierSpace, FixedControls, Points, QuadraticPenalty, _integer
 from torch_bsf.geometry import Simploid
 from torch_bsf.results import ConvergenceWarning
@@ -38,8 +39,8 @@ class PreconditionedSGD:
             _integer(self.batch_size, "batch_size", 1)
         if not math.isfinite(self.step_size) or self.step_size <= 0:
             raise ValueError("step_size must be finite and positive.")
-        if self.preconditioner not in ("gram", "none") or self.step_decay not in ("constant", "sqrt"):
-            raise ValueError("unknown preconditioner or step_decay.")
+        _choice(self.preconditioner, "preconditioner", ("gram", "none"), message="unknown preconditioner or step_decay.")
+        _choice(self.step_decay, "step_decay", ("constant", "sqrt"), message="unknown preconditioner or step_decay.")
         if self.gradient_tolerance is not None and (not math.isfinite(self.gradient_tolerance) or self.gradient_tolerance < 0):
             raise ValueError("gradient_tolerance must be finite and nonnegative.")
 

@@ -58,6 +58,7 @@ from torch_bsf._kernels.combinatorics import (
 from torch_bsf._kernels.fitting import _incidence, _parameter, _smoothness_penalty
 from torch_bsf._kernels.sets import Simploid
 from torch_bsf._kernels.space import SimploidalBezierSpace
+from torch_bsf._validation import _choice
 
 #: A loss ``loss(values, *inputs)`` returning the loss of every sample, of shape ``(batch,)``, where ``values``
 #: is the output of the model and ``inputs`` are the arguments of its ``forward``: ``(t,)`` for a
@@ -303,10 +304,8 @@ def _check_sgd_options(
         raise ValueError(f"step_size must be positive, but {step_size} is given.")
     if batch_size is not None and batch_size < 1:
         raise ValueError(f"batch_size must be positive, but {batch_size} is given.")
-    if step_decay not in ("constant", "sqrt"):
-        raise ValueError(f"Unknown step_decay {step_decay!r}.")
-    if preconditioner not in ("gram", "none"):
-        raise ValueError(f"Unknown preconditioner {preconditioner!r}.")
+    _choice(step_decay, "step_decay", ("constant", "sqrt"))
+    _choice(preconditioner, "preconditioner", ("gram", "none"))
     if not smoothness_weight >= 0:
         raise ValueError(f"smoothness_weight must be non-negative, but {smoothness_weight} is given.")
 

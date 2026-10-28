@@ -31,6 +31,7 @@ import torch
 
 from torch_bsf._kernels.combinatorics import _indices
 from torch_bsf._kernels.sets import Simploid, SimploidalSet
+from torch_bsf._validation import _choice
 from torch_bsf.core import BezierModel, BezierSpace, Points
 
 __all__ = ["SimplicialMesh", "estimate_gradients", "hermite_interpolant", "lattice_mesh", "refine", "refinement_indicator"]
@@ -1067,8 +1068,12 @@ def refine(
     >>> sorted(set((4 * mesh.vertices).flatten().tolist()))
     [0.0, 1.0, 2.0, 3.0, 4.0]
     """
-    if rule not in ("longest_edge", "newest_vertex"):
-        raise ValueError(f"rule must be 'longest_edge' or 'newest_vertex', not {rule!r}.")
+    _choice(
+        rule,
+        "rule",
+        ("longest_edge", "newest_vertex"),
+        message=f"rule must be 'longest_edge' or 'newest_vertex', not {rule!r}.",
+    )
     order = None
     if rule == "newest_vertex":
         order = mesh._newest_vertex

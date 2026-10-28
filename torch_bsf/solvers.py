@@ -6,6 +6,7 @@ import math
 from dataclasses import dataclass
 from typing import Literal
 
+from torch_bsf._validation import _choice
 from torch_bsf.core import _integer
 
 DiagnosticLevel = Literal["basic", "full"]
@@ -31,8 +32,7 @@ class DenseLeastSquares:
     def __post_init__(self) -> None:
         if self.rcond is not None and (not math.isfinite(self.rcond) or self.rcond < 0):
             raise ValueError("rcond must be finite and nonnegative.")
-        if self.diagnostics not in ("basic", "full"):
-            raise ValueError("diagnostics must be 'basic' or 'full'.")
+        _choice(self.diagnostics, "diagnostics", ("basic", "full"), message="diagnostics must be 'basic' or 'full'.")
 
 
 @dataclass(frozen=True)

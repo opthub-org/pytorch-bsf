@@ -8,6 +8,7 @@ from typing import Literal, cast
 import torch
 
 from torch_bsf._kernels.combinatorics import DegeneracyMap, SimploidType, _check_type
+from torch_bsf._validation import _choice
 
 
 def _identity_map(simploid_type: SimploidType) -> DegeneracyMap:
@@ -695,8 +696,7 @@ class SimploidalSet:
         >>> S.betti_numbers()
         [1, 2, 1]
         """
-        if field not in ("Q", "Z2"):
-            raise ValueError(f'field must be "Q" or "Z2", but {field!r} is given.')
+        _choice(field, "field", ("Q", "Z2"), message=f'field must be "Q" or "Z2", but {field!r} is given.')
         modulus = 2 if field == "Z2" else None
         ranks = [_rank(self.boundary_matrix(k), modulus) for k in range(self.dim + 2)]
         return [len(self.simploids(k)) - ranks[k] - ranks[k + 1] for k in range(self.dim + 1)]

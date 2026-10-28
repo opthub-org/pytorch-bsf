@@ -1,6 +1,7 @@
 from math import factorial, prod
 from typing import Any
 
+import numpy as np
 import pytest
 import torch
 
@@ -17,6 +18,7 @@ from torch_bsf._kernels import (
     sample_simploid,
     simploid_indices,
 )
+from torch_bsf._kernels.sgd import _check_sgd_options
 
 
 def _location_objective(x: torch.Tensor) -> torch.Tensor:
@@ -589,3 +591,31 @@ def test_fit_sgd_callback_with_freeze_and_smoothness() -> None:
     before = [init.control_points] + [points for points, _ in records[:-1]]
     for points, (_, batch_loss) in zip(before, records, strict=True):
         assert batch_loss == pytest.approx(_mean_loss(BezierSimploid((2,), 2, points), loss, inputs), rel=1e-6)
+
+
+@pytest.mark.parametrize("wrap", [np.array, tuple, list, lambda x: np.array(x[0]), lambda x: np.array(x * 2)])
+def test_step_decay_rejects_non_string_choice(wrap):
+    value = wrap(["sqrt"])
+    with pytest.raises(ValueError, match="step_decay"):
+        _check_sgd_options(1, 0.1, None, value, "gram", 0)
+
+
+@pytest.mark.parametrize("option", ("constant", "sqrt"))
+@pytest.mark.parametrize("string_type", [str, np.str_])
+def test_step_decay_accepts_string_choice(string_type, option):
+    value = string_type(option)
+    _check_sgd_options(1, 0.1, None, value, "gram", 0)
+
+
+@pytest.mark.parametrize("wrap", [np.array, tuple, list, lambda x: np.array(x[0]), lambda x: np.array(x * 2)])
+def test_preconditioner_rejects_non_string_choice(wrap):
+    value = wrap(["gram"])
+    with pytest.raises(ValueError, match="preconditioner"):
+        _check_sgd_options(1, 0.1, None, "constant", value, 0)
+
+
+@pytest.mark.parametrize("option", ("gram", "none"))
+@pytest.mark.parametrize("string_type", [str, np.str_])
+def test_preconditioner_accepts_string_choice(string_type, option):
+    value = string_type(option)
+    _check_sgd_options(1, 0.1, None, "constant", value, 0)

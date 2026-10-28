@@ -10,6 +10,7 @@ import torch
 from torch.nn import functional as F
 
 from torch_bsf._kernels.combinatorics import _indices
+from torch_bsf._validation import _choice
 from torch_bsf.core import BezierSpace, Points, _integer
 from torch_bsf.geometry import Simploid
 
@@ -60,8 +61,7 @@ def sample(
     torch.Size([5, 3])
     """
     _integer(n, "n")
-    if method not in ("random", "sobol"):
-        raise ValueError("method must be 'random' or 'sobol'.")
+    _choice(method, "method", ("random", "sobol"), message="method must be 'random' or 'sobol'.")
     generator = _generator(seed)
     probability = _probabilities(space, cell_weights)
     ids = torch.multinomial(probability, n, replacement=True, generator=generator) if n else torch.empty(0, dtype=torch.long)

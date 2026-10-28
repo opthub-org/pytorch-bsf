@@ -1,13 +1,16 @@
 import warnings
 from math import comb
 
+import numpy as np
 import pytest
 import torch
 from hypothesis import example, given
 from hypothesis import strategies as st
 
 from tests.strategies import seeds
+from torch_bsf import BezierSpace
 from torch_bsf._kernels._sampling import simplex_grid, simplex_random, simplex_sobol
+from torch_bsf.sampling import sample
 
 # ---------------------------------------------------------------------------
 # simplex_grid
@@ -188,3 +191,17 @@ def test_simplex_sobol_scipy_import_error(monkeypatch):
 
     with pytest.raises(ImportError, match="scipy"):
         sampling_mod.simplex_sobol(3, 4)
+
+
+@pytest.mark.parametrize("wrap", [np.array, tuple, list, lambda x: np.array(x[0]), lambda x: np.array(x * 2)])
+def test_method_rejects_non_string_choice(wrap):
+    value = wrap(["sobol"])
+    with pytest.raises(ValueError, match="method"):
+        sample(BezierSpace.simplex(1, degree=1), 2, seed=0, method=value)
+
+
+@pytest.mark.parametrize("option", ("random", "sobol"))
+@pytest.mark.parametrize("string_type", [str, np.str_])
+def test_method_accepts_string_choice(string_type, option):
+    value = string_type(option)
+    sample(BezierSpace.simplex(1, degree=1), 2, seed=0, method=value)
