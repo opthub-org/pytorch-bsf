@@ -56,3 +56,12 @@ def test_issue_455_constant_point_cloud():
     result = fit_point_cloud(space, torch.full((2, 1), 1e308, dtype=torch.float64)).require_success()
     assert result.objective_history == (0.0,)
     assert result.model.coefficients.item() == 1e308
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_mean_rounded_overflow_threshold(dtype):
+    value = torch.tensor(torch.finfo(dtype).max / 3, dtype=dtype)
+    space = BezierSpace.simplex(0, degree=0)
+    model = BezierModel(space, value.reshape(1, 1))
+    prediction = Ensemble([model, model, model])(torch.empty((1, 0), dtype=dtype))
+    torch.testing.assert_close(prediction, value.reshape(1, 1), atol=0, rtol=0)
