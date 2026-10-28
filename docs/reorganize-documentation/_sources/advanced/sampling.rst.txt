@@ -92,6 +92,8 @@ cells only.
 Boundary observations often matter for Pareto extremes or constraints. Random
 interior sampling is not an adequate guarantee of endpoint or face coverage.
 Include vertices and edges deliberately with a grid or a cell-specific batch.
+For a simplex fitted face by face, :doc:`skeleton_sampling` gives the split
+among vertices, edges and larger faces that minimizes the asymptotic risk.
 A multi-cell batch preserves its IDs even when two rows map to the same
 physical point on a shared boundary. Use those IDs consistently when obtaining
 responses and appending observations.

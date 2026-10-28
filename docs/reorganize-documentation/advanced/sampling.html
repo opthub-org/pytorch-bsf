@@ -23,7 +23,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Fitting from values alone" href="point_cloud.html" />
+    <link rel="next" title="Optimal skeleton sampling" href="skeleton_sampling.html" />
     <link rel="prev" title="Output scaling" href="normalization.html" /> 
 </head>
 
@@ -68,6 +68,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#sample-a-product-without-mixing-its-factors">Sample a product without mixing its factors</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
 <li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
 <li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
 <li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
@@ -206,6 +207,8 @@ cells only.</p>
 <p>Boundary observations often matter for Pareto extremes or constraints. Random
 interior sampling is not an adequate guarantee of endpoint or face coverage.
 Include vertices and edges deliberately with a grid or a cell-specific batch.
+For a simplex fitted face by face, <a class="reference internal" href="skeleton_sampling.html"><span class="doc">Optimal skeleton sampling</span></a> gives the split
+among vertices, edges and larger faces that minimizes the asymptotic risk.
 A multi-cell batch preserves its IDs even when two rows map to the same
 physical point on a shared boundary. Use those IDs consistently when obtaining
 responses and appending observations.</p>
@@ -272,7 +275,7 @@ slices does not conceal interpolation error between operating conditions.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="normalization.html" class="btn btn-neutral float-left" title="Output scaling" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="point_cloud.html" class="btn btn-neutral float-right" title="Fitting from values alone" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="skeleton_sampling.html" class="btn btn-neutral float-right" title="Optimal skeleton sampling" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
