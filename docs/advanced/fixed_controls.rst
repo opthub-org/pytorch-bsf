@@ -113,7 +113,7 @@ numbers as a topology-independent constraint specification.
 ``minimize`` accepts the same ``fixed`` object. It sets those rows in the
 optimized copy and excludes them from updates; the initial model is preserved.
 Thus fixed values are constraints on the result, not requests to initialize
-some rows and then let them move. See :doc:`initialization` and :doc:`sgd` for
+some rows and then let them move. See :doc:`initial_models` and :doc:`objective_minimization` for
 how initial guesses and optimizer tolerances serve different purposes.
 
 Prescribe a complete quadratic edge

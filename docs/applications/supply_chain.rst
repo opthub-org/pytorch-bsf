@@ -131,7 +131,7 @@ If the reference model is extended with nonnegative orders, storage limits
 or shortage bounds, measure their violations on predicted trajectories.
 These constraints are not imposed by unconstrained Bézier regression.
 Exact endpoint controls can preserve a known extreme policy, but do not
-guarantee interior feasibility. See :doc:`../advanced/partial` for what
+guarantee interior feasibility. See :doc:`../advanced/fixed_controls` for what
 fixed controls actually constrain.
 
 Changing demand, horizon and initial stock

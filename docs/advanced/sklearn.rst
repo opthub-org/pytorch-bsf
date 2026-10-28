@@ -76,7 +76,7 @@ shrinks controls toward the output origin; increasing smoothness draws
 adjacent controls together. Pass complete typed ``QuadraticPenalty`` objects
 in the grid, as above; the penalty is an immutable numerical configuration,
 not a nested scikit-learn estimator. See :doc:`regularization` for units and
-:doc:`auto_degree` for an actual before/after degree comparison.
+:doc:`model_selection` for an actual before/after degree comparison.
 
 .. figure:: ../_static/guides/degree.png
    :width: 100%

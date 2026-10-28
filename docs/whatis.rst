@@ -45,7 +45,7 @@ points. PyTorch-BSF solves this linear least-squares problem with a dense
 solver by default, with an optional sparse iterative solver for larger
 systems. The solve uses CPU float64. This is separate from using
 ``minimize`` to optimize a differentiable application objective; see
-:doc:`advanced/sgd`.
+:doc:`advanced/objective_minimization`.
 
 .. figure:: _static/bezier-simplex-fitting.png
    :width: 66%

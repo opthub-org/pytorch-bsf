@@ -14,7 +14,7 @@ Least-squares regression is different. ``fit(space, samples)`` directly solves
 the specified linear problem and has no initial-model argument. Its geometry,
 observations, penalties and fixed constraints completely define the solve.
 Passing an initial guess cannot improve its convergence. If you know an exact
-endpoint value, use :doc:`partial`; if a fit oscillates between observations,
+endpoint value, use :doc:`fixed_controls`; if a fit oscillates between observations,
 consider degree selection or :doc:`regularization`.
 
 Construct a model with explicit coefficients
@@ -105,7 +105,7 @@ Read ``success`` and ``status`` alongside the final objective. Reaching the
 iteration budget is not convergence; a low-looking curve can still have a
 large full-sample gradient. A callback stop also does not certify convergence.
 Set a justified ``gradient_tolerance`` and compare multiple starts on nonconvex
-problems. See :doc:`sgd` for step size, minibatches, preconditioners and stopping.
+problems. See :doc:`objective_minimization` for step size, minibatches, preconditioners and stopping.
 
 Use a known polynomial as a starting model
 ------------------------------------------

@@ -126,4 +126,4 @@ direct parameter interpolation unreliable even when their losses are similar.
 If a separate operating variable such as a regularization level varies
 independently of task priorities, encode it as another simplex factor; see
 :doc:`../advanced/simploidal`. For fitting choices, use
-:doc:`../advanced/auto_degree` and :doc:`../advanced/regularization`.
+:doc:`../advanced/model_selection` and :doc:`../advanced/regularization`.

@@ -12,7 +12,7 @@ First read `.claude/skills/review-local/protocol.md` in the repository path you 
 
 - Docstrings of changed functions: every parameter, default, return value, raised exception and warning matches the code. Check the code, not the diff text.
 - `Examples` sections run and print what they claim (run them: `"$PY" -m pytest --doctest-modules <module> -q` or the Sphinx doctest build for `docs/`).
-- Sphinx pages under `docs/` that describe the changed behavior: updated, and new public functions listed where their siblings are (`docs/modules.rst`, `docs/torch_bsf.rst`, `docs/advanced/`).
+- Sphinx pages under `docs/` that describe the changed behavior: updated, and new public functions listed where their siblings are (`docs/api.rst`, `docs/advanced/`).
 - README, `docs/quickstart.rst`, `docs/migration.rst`, `CONTRIBUTING.md` and `.claude/skills/` mention the changed behavior correctly if they mention it at all (`grep` for the changed names).
 - CLI help strings in `torch_bsf/_cli_args.py` match the behavior.
 - Type hints agree with what the function accepts and returns.

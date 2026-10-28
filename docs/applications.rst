@@ -32,30 +32,30 @@ row needs its generating parameter row.
    * - Elastic Net
      - Loss and penalty weights on a triangle
      - Regression coefficients
-   * - Portfolio
-     - Two regularized objective weights
-     - Three unconstrained allocation variables
-   * - Smart grids
-     - Cost versus emissions weights
-     - Three generator outputs
-   * - Federated learning
-     - Two task weights
-     - Two model parameters in the toy problem
-   * - Model predictive control
-     - Priority weights and independent initial state
-     - Five future inputs
-   * - Communications
-     - Two or three priority weights
-     - Two allocation variables in the toy problem
-   * - Supply chain
-     - Inventory versus ordering-cost weights
-     - Five future orders
    * - Medical imaging
      - Logarithmic regularization coordinate
      - 256 image pixels
    * - Facility location
      - Weights for two, three or four centers
      - Two spatial coordinates
+   * - Portfolio
+     - Two regularized objective weights
+     - Three unconstrained allocation variables
+   * - Smart grids
+     - Cost versus emissions weights
+     - Three generator outputs
+   * - Communications
+     - Two or three priority weights
+     - Two allocation variables in the toy problem
+   * - Federated learning
+     - Two task weights
+     - Two model parameters in the toy problem
+   * - Model predictive control
+     - Priority weights and independent initial state
+     - Five future inputs
+   * - Supply chain
+     - Inventory versus ordering-cost weights
+     - Five future orders
 
 The objective-map output instead contains one column per objective.
 Its low dimensionality makes it convenient to plot, but it does not contain
@@ -93,20 +93,40 @@ illustrated in the :ref:`simploid overview <simploidal-space-overview>`.
 More output variables do not require more domain factors.
 
 Use :doc:`quickstart` for the fitting API, :doc:`advanced/normalization` for
-units and transforms, and :doc:`advanced/auto_degree` for model selection.
+units and transforms, and :doc:`advanced/model_selection` for model selection.
 For an original differentiable objective without reference target values,
-use :doc:`advanced/sgd`; that is a different operation from regression on
+use :doc:`advanced/objective_minimization`; that is a different operation from regression on
 solver-generated observations.
+
+Application guides
+------------------
+
+Choose a group by the map you want to approximate. The regularization
+examples trace fitted solutions as penalty weights change. The trade-off
+examples map objective priorities to decisions, starting with geometric
+facility location. The planning and control examples use sequences of
+decisions, with MPC also introducing an independent initial-state input.
 
 .. toctree::
    :maxdepth: 1
+   :caption: Regularization paths
 
    applications/elastic_net
+   applications/medical_imaging
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Weighted objective trade-offs
+
+   applications/facility_location
    applications/portfolio
    applications/smart_grids
-   applications/federated_learning
-   applications/model_predictive_control
    applications/communications
+   applications/federated_learning
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Planning and control
+
+   applications/model_predictive_control
    applications/supply_chain
-   applications/medical_imaging
-   applications/facility_location
