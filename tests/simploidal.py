@@ -2007,3 +2007,14 @@ def test_high_degree_gram_and_point_cloud_derivatives():
     c = coefficients.clone().requires_grad_()
     grad = torch.autograd.grad((b @ c).sum(), (t, c))
     assert all(torch.isfinite(g).all() for g in grad)
+
+
+def test_low_degree_basis_avoids_host_scalar_reads(monkeypatch):
+    def forbidden(*args, **kwargs):
+        raise AssertionError("basis evaluation must not read device scalars")
+
+    t = torch.tensor([[0.25, 0.75]], dtype=torch.float64)
+    for method in ["__int__", "__bool__", "item"]:
+        monkeypatch.setattr(torch.Tensor, method, forbidden)
+    b = bernstein_basis((1,), 3, t)
+    assert b.shape == (1, 4)

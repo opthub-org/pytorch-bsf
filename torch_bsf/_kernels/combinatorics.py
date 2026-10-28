@@ -160,11 +160,13 @@ def _factor_tables(a: int, d: int) -> tuple[tuple[tuple[int, ...], ...], tuple[f
 def _factor_tensors(a: int, d: int, dtype: torch.dtype, device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
     """The powers ``(n_k, a + 1)`` and coefficients ``(n_k,)`` of the Bernstein basis of a factor, as tensors."""
     idx = tuple(_simplex_indices(a + 1, d))
-    # High degrees use the polynomial recurrence and need no multinomials.
-    coeffs = (0.0,) * len(idx) if d >= 16 else _factor_tables(a, d)[1]
+    # Empty coefficient metadata encodes recurrence degree without a device
+    # scalar read in evaluation (including after module .to(dtype/device)).
+    coeffs = () if d >= 16 else _factor_tables(a, d)[1]
+    recurrent = d >= 16 or max(coeffs, default=0) > torch.finfo(torch.float16).max
     return (
         torch.tensor(idx, dtype=torch.long, device=device).reshape(len(idx), a + 1),
-        torch.tensor(coeffs, dtype=dtype, device=device),
+        torch.empty((d, 0), dtype=dtype, device=device) if recurrent else torch.tensor(coeffs, dtype=dtype, device=device),
     )
 
 
@@ -175,9 +177,8 @@ def _tensor_product_basis(t: torch.Tensor, factors: Sequence[tuple[torch.Tensor,
     for powers, coeffs in factors:
         width = powers.shape[1]
         block = t[:, offset : offset + width]
-        degree = int(powers[0].sum())
-        if degree >= 16 or not torch.isfinite(coeffs).all():
-            factor = _recursive_basis(block, degree)
+        if coeffs.numel() == 0:
+            factor = _recursive_basis(block, coeffs.shape[0])
         else:
             factor = coeffs.to(t.dtype) * torch.pow(block.unsqueeze(1), powers.unsqueeze(0)).prod(dim=-1)
         basis = (basis.unsqueeze(2) * factor.unsqueeze(1)).reshape(t.shape[0], -1)
