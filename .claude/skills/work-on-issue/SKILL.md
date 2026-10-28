@@ -5,7 +5,7 @@ description: Implement a GitHub issue of opthub-org/pytorch-bsf end to end - rea
 
 # work-on-issue
 
-Take issue `$ARGUMENTS` (a number, with or without `#`) from reading to an open PR. Invoking this skill authorizes pushing the branch and opening the PR; it does **not** authorize merging, closing issues, or commenting on GitHub.
+Take issue `$ARGUMENTS` (a number, with or without `#`) from reading to an open PR. Invoking this skill authorizes pushing the branch, opening the PR, and replying to and resolving review threads on that PR, including threads on older commits. Handle those threads proactively as described in step 10. Merging, closing issues, and commenting elsewhere on GitHub still require explicit user authorization.
 
 Follow CONTRIBUTING.md throughout (commit rules, coding conventions, tests, "Bezier" vs "Bézier"). Write code, commits and the PR in English; talk to the user in their language.
 
@@ -144,6 +144,68 @@ Closes #<N>
 <Unrelated issues noticed. Omit if none.>
 ```
 
-## 10. Report
+## 10. Wait for CI and handle PR review threads
+
+After opening the PR and after every push, wait for CI and the Codex review of the current head commit. Record the head SHA and check that the results refer to that SHA; an older review is not evidence for the new head. If Codex has not reviewed it yet, keep waiting or report the pending review; do not claim it passed. Codex may post a review or a top-level PR comment, so inspect both. A successful CI check alone does not establish that the Codex review finished.
+
+```bash
+PR=<PR-number>
+REPO=opthub-org/pytorch-bsf
+gh pr view "$PR" -R "$REPO" --json headRefOid,reviews,statusCheckRollup
+gh pr checks "$PR" -R "$REPO" --watch
+gh api --paginate "repos/$REPO/pulls/$PR/reviews"
+gh api --paginate "repos/$REPO/issues/$PR/comments"
+```
+
+List **all** review threads, including outdated ones, with their root comment's REST ID and resolution state. `--paginate` and `pageInfo` ensure PRs with more than 100 threads are covered; `comments(first: 1)` fetches only the root needed for a reply.
+
+```bash
+gh api graphql --paginate -F pr="$PR" -f query='
+  query($pr: Int!, $endCursor: String) {
+    repository(owner: "opthub-org", name: "pytorch-bsf") {
+      pullRequest(number: $pr) {
+        headRefOid
+        reviewThreads(first: 100, after: $endCursor) {
+          nodes {
+            id isResolved isOutdated path line
+            comments(first: 1) {
+              nodes { databaseId body url commit { oid } }
+            }
+          }
+          pageInfo { hasNextPage endCursor }
+        }
+      }
+    }
+  }'
+```
+
+For each unresolved thread:
+
+1. Read the whole conversation before acting (`gh api --paginate "repos/$REPO/pulls/$PR/comments"` includes replies; match `in_reply_to_id` to the root's `databaseId`). Verify the finding against the current code. Fix it and run the relevant checks, or explain why no change is appropriate. Do not silently dismiss a finding.
+2. Commit and push any fix. Reply **in that thread** with what changed and the full fixing commit SHA, or the concrete reason it was not fixed. For a thread on an older commit, point to the commit that already addressed it. Use the root comment's numeric `databaseId` as `COMMENT_ID`, not the GraphQL thread ID. Write the reply to a file to preserve newlines and avoid shell interpolation of review text:
+
+   ```bash
+   COMMENT_ID=<root-comment-databaseId>
+   gh api "repos/$REPO/pulls/$PR/comments/$COMMENT_ID/replies" \
+     -F body=@<scratchpad>/review-reply.md
+   ```
+
+   For a short literal reply, `-f body='Addressed in <full-SHA>: <explanation>.'` also works.
+
+3. Resolve only after the thread has been fixed or answered with a substantive reason. A pending investigation or a promise to fix later is not an answer. Use its GraphQL `id` as `THREAD_ID`:
+
+   ```bash
+   THREAD_ID=<review-thread-node-id>
+   gh api graphql -f threadId="$THREAD_ID" -f query='
+     mutation($threadId: ID!) {
+       resolveReviewThread(input: {threadId: $threadId}) {
+         thread { id isResolved }
+       }
+     }'
+   ```
+
+After a push, repeat the CI/head-review check and thread listing: bot reviewers may open new threads, and fixed threads on older commits may still be unresolved. Re-list threads after mutations to verify replies and resolution. If the head changes while waiting, repeat for the new SHA. Report any remaining CI failure, pending review or unanswered thread explicitly; do not merge or close the issue without explicit user authorization.
+
+## 11. Report
 
 Give the user the PR URL, a short summary, any design decisions made, the local review result, and anything left unverified or skipped (with the reason). If a check could not be made to pass, do not open the PR; report the failure output instead.
