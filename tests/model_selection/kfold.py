@@ -226,3 +226,30 @@ def test_overflowing_row_does_not_erase_another_subnormal_residual():
     # The weighted large residual rounds to 20 minimum subnormal units; the
     # other row contributes one more. Neither is near a rounding tie here.
     assert all(fold.metrics["mae"] == expected for fold in result.folds)
+
+
+def test_row_average_stays_finite_at_float64_boundary():
+    error = float.fromhex("0x1.ffffffffffffep+1023")
+    weights = [float.fromhex("0x1.5f44296f6fbf6p-1"), float.fromhex("0x1.474361dfd1657p-1")]
+    residual = math.sqrt(error)
+    observations = Samples(
+        torch.eye(2, dtype=torch.float64).repeat(2, 1),
+        torch.full((4, 1), residual, dtype=torch.float64),
+        weights=weights * 2,
+    )
+    result = cross_validate(
+        BezierSpace.simplex(1, degree=0), observations, cv=KFold(2, shuffle=False), fixed=FixedControls({0: [0]})
+    )
+    expected = float(Fraction(residual) ** 2)
+    assert result.success
+    assert all(fold.metrics["mse"] == expected for fold in result.folds)
+
+
+@pytest.mark.parametrize("residual,metric,power", [(5e-324, "mae", 1), (math.sqrt(5e-324), "mse", 2)])
+def test_row_average_rounds_subnormal_contributions_once(residual, metric, power):
+    observations = Samples(torch.eye(2, dtype=torch.float64).repeat(2, 1), torch.full((4, 1), residual, dtype=torch.float64))
+    result = cross_validate(
+        BezierSpace.simplex(1, degree=0), observations, cv=KFold(2, shuffle=False), fixed=FixedControls({0: [0]})
+    )
+    assert result.success
+    assert all(fold.metrics[metric] == float(Fraction(residual) ** power) for fold in result.folds)

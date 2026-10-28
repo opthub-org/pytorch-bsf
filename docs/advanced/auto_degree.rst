@@ -177,6 +177,8 @@ Non-finite validation metrics
 Cross-validation excludes zero-weight held-out rows before evaluating metrics.
 Weighted errors combine mantissas and exponents before reduction to avoid
 intermediate overflow and preserve meaningful tiny normalized weights.
+Near the float64 overflow or subnormal boundaries, row contributions are
+combined with exact rational arithmetic on the CPU and rounded only once.
 The pooled average uses an exact rational reduction of the CPU scalar fold
 summaries before rounding once to float64. This preserves tiny fold weights
 and the bound that the average lies between the finite fold errors, including

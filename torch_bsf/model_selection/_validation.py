@@ -134,6 +134,20 @@ def _weighted_error(
     mantissa, adjustment = torch.frexp(mantissa)
     exponent = power * (exponent + exponent_shift) + weight_exponent - total_exponent + adjustment
     exponent = torch.where(mantissa == 0, 0, exponent)
+    if torch.isfinite(difference).all() and (((exponent > 1000) | (exponent < -1021)) & (mantissa != 0)).any():
+        # Boundary contributions must be combined before rounding: separately
+        # rounded terms can overflow on addition or all underflow to zero.
+        shifts = torch.zeros_like(difference, dtype=torch.int32) + exponent_shift
+        numerator = sum(
+            Fraction(weight)
+            * sum((Fraction(abs(value)) * 2 ** int(shift)) ** power for value, shift in zip(row, row_shifts, strict=True))
+            for row, row_shifts, weight in zip(difference.tolist(), shifts.tolist(), weights.tolist(), strict=True)
+        )
+        exact = numerator / (sum(Fraction(weight) for weight in weights.tolist()) * outputs)
+        try:
+            return float(exact)
+        except OverflowError:
+            return math.inf
     # PyTorch 2.3 ldexp forms its intermediate power in the default float32
     # dtype even for float64 inputs. Use an explicit float64 base, and split
     # the exponent so a power itself does not overflow at a finite boundary.
