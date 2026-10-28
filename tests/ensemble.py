@@ -1,10 +1,13 @@
 """Finite averaging and copied-member contracts."""
 
+from fractions import Fraction
+
 import pytest
 import torch
 from hypothesis import given
 from hypothesis import strategies as st
 
+from tests.strategies import extreme_scalings
 from torch_bsf import BezierModel, BezierSpace, fit_point_cloud
 from torch_bsf.ensemble import Ensemble
 
@@ -95,7 +98,9 @@ def test_cancelling_extreme_mean_scaled_loss_has_finite_gradients(dtype):
         torch.testing.assert_close(member.coefficients.grad, torch.ones((1, 1), dtype=dtype), atol=0, rtol=0)
 
 
-@pytest.mark.parametrize("dtype,small", [(torch.float32, 1e-16), (torch.float64, 1e-100)])
+@pytest.mark.parametrize(
+    "dtype,small", [(torch.float32, 1e-16), (torch.float64, 1e-100), (torch.float32, 1.0), (torch.float64, 1.0)]
+)
 @pytest.mark.parametrize("order", [(0, 1, 2), (0, 2, 1), (2, 0, 1)])
 def test_scaled_cancellation_preserves_finite_residual(dtype, small, order):
     from torch_bsf._numeric import _finite_mean
@@ -137,3 +142,46 @@ def test_finite_mean_near_rounded_sum_boundary(dtype, count):
     below = torch.nextafter(boundary, torch.tensor(0.0, dtype=dtype))
     values = below.expand(count)
     torch.testing.assert_close(_finite_mean(values, 0), below, atol=0, rtol=0)
+
+
+@pytest.mark.parametrize("sign", [-1, 1])
+def test_exact_float32_mean_avoids_binary64_double_rounding(sign):
+    from torch_bsf._numeric import _finite_mean
+
+    values = sign * torch.tensor([8.945040568366156e37, -1.2722663938486925e-26, -1.654059785906659e37], dtype=torch.float32)
+    expected = torch.tensor(sign * 2.430326800721439e37, dtype=torch.float32)
+    torch.testing.assert_close(_finite_mean(values, 0), expected, atol=0, rtol=0)
+
+
+@pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16, torch.float32, torch.float64])
+def test_exact_fraction_rounding_normal_and_subnormal_boundaries(dtype):
+    from torch_bsf._numeric import _round_fraction
+
+    info = torch.finfo(dtype)
+    unit = Fraction.from_float(info.eps)
+    midpoint = Fraction(1) + unit / 2
+    perturbation = unit / 2**100
+    # At 1, the lower endpoint has an even significand; at its successor the
+    # upper endpoint is even. Perturbations must survive before target rounding.
+    assert _round_fraction(midpoint, dtype) == 1
+    assert _round_fraction(midpoint - perturbation, dtype) == 1
+    assert _round_fraction(midpoint + perturbation, dtype) == 1 + info.eps
+    assert _round_fraction(Fraction(1) + unit * Fraction(3, 2), dtype) == 1 + 2 * info.eps
+    smallest = Fraction.from_float(info.tiny) * unit
+    assert _round_fraction(smallest / 2, dtype) == 0
+    assert _round_fraction(smallest * Fraction(513, 1024), dtype) == float(smallest)
+    assert _round_fraction(-smallest * Fraction(513, 1024), dtype) == -float(smallest)
+
+
+@pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16, torch.float32, torch.float64])
+@given(scale=extreme_scalings(), divisor=st.integers(1, 31), negative=st.booleans())
+def test_fraction_rounding_matches_binary_division_property(dtype, scale, divisor, negative):
+    from torch_bsf._numeric import _round_fraction
+
+    value = torch.tensor(min(scale, torch.finfo(dtype).max), dtype=dtype)
+    if negative:
+        value = -value
+    exact = Fraction.from_float(value.item()) / divisor
+    # Hardware division is an independent reference. Small integer divisors
+    # are exact in every format; powers of two span extreme exponents.
+    assert _round_fraction(exact, dtype) == (value / divisor).item()

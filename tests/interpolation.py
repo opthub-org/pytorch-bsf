@@ -35,6 +35,7 @@ from torch_bsf.interpolation import (
     SimplicialMesh,
     _Bisection,
     _overlapping_boxes,
+    _rational_inverse,
     estimate_gradients,
     hermite_interpolant,
     lattice_mesh,
@@ -348,6 +349,304 @@ def test_locate_boundary_points(dim, n):
     assert (found.parameters >= 0).all()
     torch.testing.assert_close(_global_positions(mesh, found), p, atol=1e-12, rtol=0)
     mesh.space.validate(found)
+
+
+@pytest.mark.parametrize("exponent", [-100, -60, -30, 0, 30, 60, 100])
+def test_locate_vertices_and_representable_midpoints_on_extreme_aspect_ratio(exponent):
+    """The issue's vertices and exactly representable midpoints survive ratios through 2**±100.
+
+    The opposite-edge midpoint can lose the entire short edge when rounded to float64; asserting its
+    original barycentric coordinates would require recovering information missing from the input.
+    """
+    short = 2.0 ** (-exponent)
+    vertices = torch.tensor([[0.0, 0.0], [1.0, 0.3], [0.7 * short, -0.2 * short]], dtype=torch.float64)
+    mesh = SimplicialMesh(vertices, [[0, 1, 2]])
+
+    midpoints = vertices[1:] / 2
+    points = torch.cat([vertices, midpoints])
+    expected = torch.tensor(
+        [
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+            [0.5, 0.5, 0.0],
+            [0.5, 0.0, 0.5],
+        ],
+        dtype=torch.float64,
+    )
+
+    found = mesh.locate(points)
+    torch.testing.assert_close(found.parameters, expected, atol=1e-12, rtol=0)
+
+
+@given(data=st.data())
+def test_locate_ill_conditioned_vertices_and_exact_midpoints(data: st.DataObject):
+    """Known barycentrics for dyadic vertices/midpoints, with edges differing by up to 2**±100.
+
+    Dense integer, diagonally dominant directions ensure non-degeneracy. Shared scaling strategies also vary
+    axis units by 2**±400. Only midpoints represented exactly by their float64 positions are compared to
+    half/half weights: a rounded position is a different point in an ill-conditioned simplex.
+    """
+    d = data.draw(st.integers(1, 3), label="dimension")
+    entries = data.draw(st.lists(st.sampled_from([-1, 1]), min_size=d * d, max_size=d * d), label="directions")
+    directions = torch.tensor(entries, dtype=torch.float64).reshape(d, d)
+    directions.diagonal().fill_(4)
+    ratio = data.draw(extreme_scalings(100), label="edge ratio")
+    directions[-1] *= ratio
+    units = data.draw(axis_scalings(d, extreme_scalings(400)), label="axis units")
+    vertices = torch.cat([torch.zeros(1, d, dtype=torch.float64), directions * units])
+    mesh = SimplicialMesh(vertices, [list(reversed(range(d + 1)))])
+    points, expected = [*vertices], [*torch.eye(d + 1, dtype=torch.float64)]
+    for i, j in itertools.combinations(range(d + 1), 2):
+        midpoint = (vertices[i] + vertices[j]) / 2
+        if all(
+            2 * Fraction(float(p)) == Fraction(float(a)) + Fraction(float(b))
+            for p, a, b in zip(midpoint, vertices[i], vertices[j], strict=True)
+        ):
+            points.append(midpoint)
+            weights = torch.zeros(d + 1, dtype=torch.float64)
+            weights[[i, j]] = 0.5
+            expected.append(weights)
+    found = mesh.locate(torch.stack(points), batch_size=2)
+    torch.testing.assert_close(found.parameters, torch.stack(expected), atol=1e-12, rtol=0)
+
+
+@pytest.mark.parametrize("exponent", [-100, -60, -30, 30, 60, 100])
+def test_locate_all_midpoints_when_the_short_edge_is_resolved(exponent):
+    """Disjoint axes retain both endpoints of every midpoint even at an extreme edge ratio."""
+    vertices = torch.tensor([[0.0, 0.0], [1.0, 0.0], [0.0, 2.0**exponent]], dtype=torch.float64)
+    pairs = torch.tensor(list(itertools.combinations(range(3), 2)))
+    expected = torch.zeros(3, 3, dtype=torch.float64).scatter_(1, pairs, 0.5)
+    mesh = SimplicialMesh(vertices, [[0, 1, 2]])
+    torch.testing.assert_close(mesh.locate(vertices[pairs].mean(1)).parameters, expected, atol=1e-12, rtol=0)
+
+
+def test_barycentric_does_not_invent_information_lost_in_a_midpoint():
+    vertices = torch.tensor([[0.0, 0.0], [1.0, 0.3], [0.7 * 2.0**-100, -0.2 * 2.0**-100]], dtype=torch.float64)
+    mesh = SimplicialMesh(vertices, [[0, 1, 2]])
+    rounded = vertices[1:].mean(0)[None]
+    assert torch.equal(rounded, vertices[1:2] / 2)
+    assert mesh.locate(rounded).parameters.tolist() == [[0.5, 0.5, 0.0]]
+    # Exact evaluation must still reject a genuinely outside point on this very thin triangle.
+    with pytest.raises(ValueError, match="outside"):
+        mesh.locate([[0.5, 0.15 + 2.0**-30]])
+
+
+def test_cancellation_fallback_keeps_barycentric_point_gradients():
+    short = 2.0**-100
+    mesh = SimplicialMesh([[0.0, 0.0], [1.0, 1.0], [short, -short]], [[0, 1, 2]])
+    point = torch.tensor([[0.5, 0.5]], dtype=torch.float64, requires_grad=True)
+    lam = mesh.barycentric(point)
+    assert lam.tolist() == [[[0.5, 0.5, 0.0]]]
+    gradient = torch.autograd.grad(lam[:, :, 2].sum(), point)[0]
+    torch.testing.assert_close(gradient, torch.tensor([[1 / (2 * short), -1 / (2 * short)]], dtype=torch.float64))
+
+
+@pytest.mark.parametrize("mode", ["dual", "func"])
+def test_exact_fallback_preserves_forward_mode_point_tangents(mode):
+    """Codex review: a dual need not require reverse gradients to carry a nonzero tangent."""
+    short = 2.0**-100
+    mesh = SimplicialMesh([[0.0, 0.0], [1.0, 1.0], [short, -short]], [[0, 1, 2]])
+    points = torch.tensor([[0.25, 0.25], [0.5, 0.5]], dtype=torch.float64)
+    direction = torch.tensor([[short, -short], [short, short]], dtype=torch.float64)
+    if mode == "dual":
+        with torch.autograd.forward_ad.dual_level():
+            dual = torch.autograd.forward_ad.make_dual(points, direction)
+            primal, tangent = torch.autograd.forward_ad.unpack_dual(mesh.barycentric(dual))
+    else:
+        result = torch.func.jvp(mesh.barycentric, (points,), (direction,))
+        primal, tangent = result[0], result[1]
+    torch.testing.assert_close(primal, mesh.barycentric(points), rtol=0, atol=0)
+    expected = torch.tensor([[[-1.0, 0.0, 1.0]], [[-short, short, 0.0]]], dtype=torch.float64)
+    assert tangent is not None
+    torch.testing.assert_close(tangent, expected, rtol=0, atol=0)
+
+
+@pytest.mark.parametrize("mode", ["dual", "func"])
+@pytest.mark.parametrize("short", [1.0, 2.0**-100])
+def test_barycentric_preserves_forward_mode_vertex_tangents(mode, short):
+    vertices = torch.tensor([[0.0, 0.0], [1.0, 1.0], [short, -short]], dtype=torch.float64)
+    direction = torch.tensor([[0.0, 0.0], [short, -short], [0.0, 0.0]], dtype=torch.float64)
+    if mode == "dual":
+        with torch.autograd.forward_ad.dual_level():
+            dual = torch.autograd.forward_ad.make_dual(vertices, direction)
+            mesh = SimplicialMesh(dual, [[0, 1, 2]])
+            primal, tangent = torch.autograd.forward_ad.unpack_dual(mesh.barycentric([[0.5, 0.5]]))
+    else:
+        result = torch.func.jvp(lambda v: SimplicialMesh(v, [[0, 1, 2]]).barycentric([[0.5, 0.5]]), (vertices,), (direction,))
+        primal, tangent = result[0], result[1]
+    torch.testing.assert_close(primal, torch.tensor([[[0.5, 0.5, 0.0]]], dtype=torch.float64), rtol=0, atol=0)
+    torch.testing.assert_close(tangent, torch.tensor([[[0.5, 0.0, -0.5]]], dtype=torch.float64), rtol=0, atol=0)
+
+
+def test_exact_forward_mode_cancels_before_rounding_and_retains_reverse_gradients():
+    small, gap = 2.0**-463, 2.0**-500
+    vertices = torch.tensor(
+        [[0.0, 0.0], [2.0**1000, small], [2.0**1000, small + gap]], dtype=torch.float64, requires_grad=True
+    )
+    mesh = SimplicialMesh(vertices, [[0, 1, 2]])
+    point = torch.tensor([[0.0, 0.0]], dtype=torch.float64)
+    # Large opposing terms must cancel before the directional derivative is rounded.
+    direction = torch.tensor([[2.0**1000, small]], dtype=torch.float64)
+    tangent = torch.func.jvp(mesh.barycentric, (point,), (direction,))[1]
+    torch.testing.assert_close(tangent, torch.tensor([[[-1.0, 1.0, 0.0]]], dtype=torch.float64), rtol=0, atol=0)
+    (gradient,) = torch.autograd.grad(tangent[0, 0, 2], vertices)
+    slope = 2.0**500
+    expected = torch.tensor([[-small * 2.0**-500, slope], [small * 2.0**-500, -slope], [0.0, 0.0]], dtype=torch.float64)
+    torch.testing.assert_close(gradient, expected, rtol=0, atol=0)
+
+
+@pytest.mark.parametrize("transform", [torch.func.jacrev, torch.func.jacfwd])
+@pytest.mark.parametrize("short", [1.0, 2.0**-100])
+@pytest.mark.parametrize("argument", ["points", "vertices"])
+def test_barycentric_batched_jacobian_transforms(transform, short, argument):
+    """Jacobian transforms batch pullbacks/pushforwards, including the exact-expression recursion."""
+    vertices = torch.tensor([[0.0, 0.0], [1.0, 1.0], [short, -short]], dtype=torch.float64)
+    point = torch.tensor([[0.5, 0.5]], dtype=torch.float64)
+    jacobian = torch.tensor(
+        [[-0.5 - 0.5 / short, -0.5 + 0.5 / short], [0.5, 0.5], [0.5 / short, -0.5 / short]], dtype=torch.float64
+    )
+    if argument == "points":
+        result = transform(SimplicialMesh(vertices, [[0, 1, 2]]).barycentric)(point)
+        expected = jacobian[None, None, :, None, :]
+    else:
+        result = transform(lambda v: SimplicialMesh(v, [[0, 1, 2]]).barycentric(point))(vertices)
+        weights = torch.tensor([0.5, 0.5, 0.0], dtype=torch.float64)
+        expected = (-jacobian[:, None, :] * weights[None, :, None])[None, None]
+    torch.testing.assert_close(result, expected, rtol=0, atol=0)
+
+
+def test_exact_barycentric_hessian_composes_forward_reverse_and_batching():
+    short = 2.0**-100
+    vertices = torch.tensor([[0.0, 0.0], [1.0, 1.0], [short, -short]], dtype=torch.float64)
+
+    def coordinate(v):
+        return SimplicialMesh(v, [[0, 1, 2]]).barycentric([[0.5, 0.5]])[0, 0, 2]
+
+    actual = torch.func.hessian(coordinate)(vertices)
+    expected = torch.autograd.functional.hessian(coordinate, vertices)
+    torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+    assert actual[1, 0, 1, 0].item() == 0.25 / short
+
+
+def test_exact_inverse_rejects_an_affinely_dependent_simplex():
+    """The exact solver must reject a truly singular triangle instead of dividing by a zero pivot."""
+    vertices = torch.tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]], dtype=torch.float64)
+    with pytest.raises(ValueError, match="degenerate"):
+        _rational_inverse(vertices)
+
+
+@pytest.mark.parametrize("exponent, loss_exponent", [(980, 0), (1000, -100)])
+def test_exact_fallback_preserves_gradients_after_floating_products_overflow(exponent, loss_exponent):
+    """Codex review: finite exact coordinates/Jacobians must not inherit the overflowed solve's zero gradient."""
+    length = 2.0**-exponent
+    mesh = SimplicialMesh([[0.0, 0.0], [length, length], [length, length * (1 + 2.0**-37)]], [[0, 1, 2]])
+    point = torch.tensor([[2.0**8, 2.0**8]], dtype=torch.float64, requires_grad=True)
+    lam = mesh.barycentric(point)
+    long_coordinate = 2.0 ** (exponent + 8)
+    torch.testing.assert_close(
+        lam[0, 0], torch.tensor([1 - long_coordinate, long_coordinate, 0.0], dtype=torch.float64), rtol=0, atol=0
+    )
+    gradient = torch.autograd.grad((lam[:, :, 2] * 2.0**loss_exponent).sum(), point)[0]
+    slope = 2.0 ** (exponent + 37 + loss_exponent)
+    torch.testing.assert_close(gradient, torch.tensor([[-slope, slope]], dtype=torch.float64), rtol=0, atol=0)
+
+
+def test_exact_fallback_preserves_vertex_and_second_derivatives():
+    short = 2.0**-20
+    vertices = torch.tensor([[0.0, 0.0], [1.0, 1.0], [short, -short]], dtype=torch.float64, requires_grad=True)
+    point = torch.tensor([[0.25, 0.25]], dtype=torch.float64, requires_grad=True)
+    lam = SimplicialMesh(vertices, [[0, 1, 2]]).barycentric(point)
+    point_gradient, vertex_gradient = torch.autograd.grad(lam[:, :, 2].sum(), (point, vertices), create_graph=True)
+    jacobian = torch.tensor([[1 / (2 * short), -1 / (2 * short)]], dtype=torch.float64)
+    torch.testing.assert_close(point_gradient, jacobian, rtol=0, atol=0)
+    torch.testing.assert_close(vertex_gradient, -lam.detach()[0, 0, :, None] * jacobian, rtol=0, atol=0)
+    second = torch.autograd.grad(point_gradient[0, 0], vertices)[0]
+    assert second[2, 0].item() == -((1 / (2 * short)) ** 2)
+
+
+def test_exact_fallback_keeps_vertex_gradients_when_the_point_gradient_underflows():
+    """Large barycentrics must multiply the unrounded point gradient in the vertex pullback."""
+    large, small = 2.0**1000, 2.0**-1000
+    vertices = torch.tensor([[0.0, 0.0], [large, 0.0], [large, small]], dtype=torch.float64, requires_grad=True)
+    point = torch.tensor([[0.0, 1.0]], dtype=torch.float64, requires_grad=True)
+    lam = SimplicialMesh(vertices, [[0, 1, 2]]).barycentric(point)
+    point_gradient, vertex_gradient = torch.autograd.grad(lam[:, :, 1].sum() * 2.0**-100, (point, vertices))
+    assert point_gradient[0, 0].item() == 0.0  # the true 2**-1100 is below float64
+    torch.testing.assert_close(vertex_gradient[:, 0], torch.tensor([0.0, 2.0**-100, -(2.0**-100)], dtype=torch.float64))
+
+
+def test_locate_accounts_for_factorization_error_near_the_degeneracy_cutoff():
+    """Codex review: a small final dot product can hide a large error already present in the inverse."""
+    vertices = torch.tensor([[0.0, 0.0], [1.01, 1.05], [-1.01, -1.050000000005]], dtype=torch.float64)
+    mesh = SimplicialMesh(vertices, [[0, 1, 2]])
+    point = vertices[1:].mean(0)[None]
+    expected = torch.tensor([[0.0, 0.5, 0.5]], dtype=torch.float64)
+    torch.testing.assert_close(mesh.locate(point).parameters, expected, atol=1e-12, rtol=0)
+
+
+def test_exact_backward_ignores_unused_rows_with_unrepresentable_derivatives():
+    """Codex review: zero upstream weights must not multiply infinite Jacobian entries."""
+    vertices = torch.tensor([[0.0, 0.0], [1.9, 1e-300], [1.9, 1e-300 * (1 + 1e-11)]], dtype=torch.float64, requires_grad=True)
+    point = vertices.detach()[1:2].clone().requires_grad_(True)
+    lam = SimplicialMesh(vertices, [[0, 1, 2]]).barycentric(point)
+    point_gradient, vertex_gradient = torch.autograd.grad(lam[:, :, 0].sum(), (point, vertices))
+    torch.testing.assert_close(point_gradient, torch.tensor([[-1 / 1.9, 0.0]], dtype=torch.float64), rtol=0, atol=0)
+    expected = torch.tensor([[0.0, 0.0], [1 / 1.9, 0.0], [0.0, 0.0]], dtype=torch.float64)
+    torch.testing.assert_close(vertex_gradient, expected, rtol=0, atol=0)
+
+
+def test_exact_backward_cancels_large_output_weights_before_rounding():
+    vertices = torch.tensor([[0.0, 0.0], [1.0, 1.0], [2.0**-100, -(2.0**-100)]], dtype=torch.float64, requires_grad=True)
+    point = torch.tensor([[0.25, 0.25]], dtype=torch.float64, requires_grad=True)
+    lam = SimplicialMesh(vertices, [[0, 1, 2]]).barycentric(point)
+    # A constant function has zero derivatives even when its individual pullback terms overflow.
+    point_gradient, vertex_gradient = torch.autograd.grad(lam.sum() * 2.0**1000, (point, vertices))
+    assert torch.equal(point_gradient, torch.zeros_like(point))
+    assert torch.equal(vertex_gradient, torch.zeros_like(vertices))
+
+
+def test_exact_backward_propagates_nonfinite_upstream_gradients():
+    mesh = SimplicialMesh([[0.0, 0.0], [1.0, 1.0], [2.0**-100, -(2.0**-100)]], [[0, 1, 2]])
+    point = torch.tensor([[0.25, 0.25]], dtype=torch.float64, requires_grad=True)
+    lam = mesh.barycentric(point)
+    (gradient,) = torch.autograd.grad(lam, point, grad_outputs=torch.full_like(lam, torch.nan))
+    assert torch.isnan(gradient).all()
+
+
+@pytest.mark.parametrize("bad", [torch.nan, torch.inf, -torch.inf])
+def test_exact_backward_isolates_nonfinite_rows_in_a_batch(bad):
+    large, small = 2.0**1000, 2.0**-463
+    mesh = SimplicialMesh([[0.0, 0.0], [large, small], [large, small + 2.0**-500]], [[0, 1, 2]])
+    points = torch.tensor([[large, small], [large, small]], dtype=torch.float64, requires_grad=True)
+    lam = mesh.barycentric(points)
+    upstream = torch.tensor([[[bad, bad, bad]], [[0.0, large, large]]], dtype=torch.float64)
+    (gradient,) = torch.autograd.grad(lam, points, grad_outputs=upstream)
+    torch.testing.assert_close(gradient[1], torch.tensor([1.0, 0.0], dtype=torch.float64), rtol=0, atol=0)
+
+
+def test_exact_backward_preserves_higher_derivatives_through_cancellation():
+    large, small, gap = 2.0**1000, 2.0**-463, 2.0**-500
+    vertices = torch.tensor([[0.0, 0.0], [large, small], [large, small + gap]], dtype=torch.float64, requires_grad=True)
+    point = vertices.detach()[1:2].clone().requires_grad_(True)
+    lam = SimplicialMesh(vertices, [[0, 1, 2]]).barycentric(point)
+    (first,) = torch.autograd.grad(large * lam[:, :, 1:].sum(), point, create_graph=True)
+    torch.testing.assert_close(first, torch.tensor([[1.0, 0.0]], dtype=torch.float64), rtol=0, atol=0)
+    (second,) = torch.autograd.grad(first[0, 1], vertices, create_graph=True)
+    assert second[1, 0].item() == 2.0**500
+    (third,) = torch.autograd.grad(second[1, 0], vertices)
+    assert third[1, 0].item() == -2 * (small + gap)
+
+
+def test_exact_backward_supports_vertex_gradients_with_a_constant_point():
+    short = 2.0**-100
+    vertices = torch.tensor([[0.0, 0.0], [1.0, 1.0], [short, -short]], dtype=torch.float64, requires_grad=True)
+    point = torch.tensor([[0.25, 0.25]], dtype=torch.float64)
+    lam = SimplicialMesh(vertices, [[0, 1, 2]]).barycentric(point)
+    (gradient,) = torch.autograd.grad(lam[:, :, 2].sum(), vertices)
+    weights = torch.tensor([[0.75], [0.25], [0.0]], dtype=torch.float64)
+    jacobian = torch.tensor([[1 / (2 * short), -1 / (2 * short)]], dtype=torch.float64)
+    torch.testing.assert_close(gradient, -weights * jacobian, rtol=0, atol=0)
 
 
 def test_locate_tolerance_and_outside_points():

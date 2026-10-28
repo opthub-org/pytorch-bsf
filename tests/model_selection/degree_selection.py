@@ -29,3 +29,13 @@ def test_unseeded_search_still_reuses_identical_splits():
         for actual, expected in zip(candidate.validation.folds, reference, strict=True):
             assert torch.equal(actual.train_indices, expected.train_indices)
             assert torch.equal(actual.test_indices, expected.test_indices)
+
+
+def test_unrepresentable_validation_cannot_win_degree_search():
+    space = BezierSpace.simplex(1, degree=0)
+    params = torch.eye(2, dtype=torch.float64)
+    observations = Samples(params, torch.tensor([[2.0**700], [-(2.0**700)]], dtype=torch.float64))
+    result = select_degree(space, observations, degrees=[0], cv=KFold(2, shuffle=False))
+    assert not result.success and result.best_index is None and result.best_degree is None
+    assert len(result.candidates) == 1
+    assert not result.candidates[0].validation.success

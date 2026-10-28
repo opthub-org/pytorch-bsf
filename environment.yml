@@ -7,10 +7,11 @@ dependencies:
 - "pytorch>=2.6,<3"
 - "lightning>=2.4,<3"
 - "numpy>=1.21.2,<3"
+- "sympy>=1.12,<2"
 - "mlflow>=3.11.1,<4"
 - "pyyaml>=6,<7"
 - pip
-# Install pytorch-bsf itself with pip. Its required dependencies (torch, numpy, PyYAML) are all listed above,
+# Install pytorch-bsf itself with pip. Its required dependencies (torch, numpy, SymPy, PyYAML) are all listed above,
 # so pip finds them satisfied and installs nothing else. Do not add extras here (e.g. `-e .[mlflow]`):
 # pip would then also check the PyPI metadata of their dependencies and may replace conda packages,
 # e.g. protobuf 7 with 6 because databricks-sdk requires protobuf<7 on PyPI (#405).

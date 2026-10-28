@@ -80,6 +80,33 @@ def _times_power_of_two(x: torch.Tensor, exponent: torch.Tensor) -> torch.Tensor
     return x * torch.pow(two, first) * torch.pow(two, second) * torch.pow(two, e - first - second)
 
 
+class _Frexp(torch.autograd.Function):
+    """Differentiate frexp without materializing an infinite scale factor for subnormal inputs."""
+
+    generate_vmap_rule = True
+
+    @staticmethod
+    def forward(value: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        mantissa, exponent = torch.frexp(value)
+        return mantissa, exponent
+
+    @staticmethod
+    def setup_context(ctx: Any, inputs: tuple[torch.Tensor], output: tuple[torch.Tensor, torch.Tensor]) -> None:
+        _, exponent = output
+        ctx.save_for_backward(exponent)
+        ctx.save_for_forward(exponent)
+
+    @staticmethod
+    def backward(ctx: Any, gradient: torch.Tensor, exponent_gradient: None) -> torch.Tensor:
+        (exponent,) = ctx.saved_tensors
+        return _times_power_of_two(gradient, -exponent)
+
+    @staticmethod
+    def jvp(ctx: Any, tangent: torch.Tensor) -> tuple[torch.Tensor, None]:
+        (exponent,) = ctx.saved_tensors
+        return _times_power_of_two(tangent, -exponent), None
+
+
 def _equilibrate(
     mantissa: torch.Tensor, exponent: torch.Tensor, axis_exponent: torch.Tensor
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -216,6 +243,157 @@ def _as_real_tensor(x: Any) -> torch.Tensor:
     return t
 
 
+def _rational_inverse(vertices: torch.Tensor) -> tuple[list[Fraction], list[list[Fraction]]]:
+    """Origin and inverse edge matrix of input float64 vertices, without rounding their differences.
+
+    Used lazily for point/simplex pairs whose floating-point solve suffers large cancellation. An exact
+    inverse is shared by all such points; no inverse about a distant, numerically singular anchor is needed.
+    """
+    points = [[Fraction(float(v.detach())) for v in row.unbind()] for row in vertices.unbind()]
+    origin, d = points[0], vertices.shape[1]
+    rows = [[points[j + 1][i] - origin[i] for j in range(d)] + [Fraction(i == j) for j in range(d)] for i in range(d)]
+    for column in range(d):
+        pivot = max(range(column, d), key=lambda i: abs(rows[i][column]))
+        rows[column], rows[pivot] = rows[pivot], rows[column]
+        value = rows[column][column]
+        if value == 0:
+            raise ValueError("a simplex is degenerate (zero volume).")
+        rows[column] = [v / value for v in rows[column]]
+        for i in range(d):
+            if i != column:
+                value = rows[i][column]
+                rows[i] = [a - value * b for a, b in zip(rows[i], rows[column], strict=True)]
+    return origin, [row[d:] for row in rows]
+
+
+def _rounded_fraction(value: Fraction) -> float:
+    """Round a rational to float64, including coordinates of far points that overflow."""
+    try:
+        return float(value)
+    except OverflowError:
+        return math.inf if value > 0 else -math.inf
+
+
+class _ExactExpressions(torch.autograd.Function):
+    """Evaluate and differentiate rational expressions before rounding, at every derivative order.
+
+    Each invocation describes one point, so non-finite cotangents of another point cannot contaminate it.
+    SymPy is loaded only for differentiable queries that require the exact fallback.
+    """
+
+    @staticmethod
+    def forward(
+        expressions: tuple[Any, ...],
+        symbols: tuple[tuple[Any, ...], ...],
+        shape: tuple[int, ...],
+        *arguments: torch.Tensor,
+    ) -> torch.Tensor:
+        import sympy as sp
+
+        bindings = {}
+        for group, argument in zip(symbols, arguments, strict=True):
+            for symbol, value in zip(group, argument.reshape(-1).tolist(), strict=True):
+                if math.isfinite(value):
+                    bindings[symbol] = sp.Rational(value)
+                elif math.isnan(value):
+                    bindings[symbol] = sp.nan
+                else:
+                    bindings[symbol] = sp.oo if value > 0 else -sp.oo
+        numbers = [expression.xreplace(bindings) for expression in expressions]
+        values = [_rounded_fraction(Fraction(int(v.p), int(v.q))) if v.is_Rational else float(v) for v in numbers]
+        return torch.tensor(values, dtype=torch.float64).reshape(shape)
+
+    @staticmethod
+    def setup_context(ctx: Any, inputs: tuple[Any, ...], output: torch.Tensor) -> None:
+        ctx.expressions, ctx.symbols, ctx.shape, *arguments = inputs
+        ctx.save_for_backward(*arguments)
+        ctx.save_for_forward(*arguments)
+
+    @staticmethod
+    def vmap(
+        info: Any,
+        in_dims: tuple[Any, ...],
+        expressions: tuple[Any, ...],
+        symbols: tuple[tuple[Any, ...], ...],
+        shape: tuple[int, ...],
+        *arguments: torch.Tensor,
+    ) -> tuple[torch.Tensor, int]:
+        # SymPy reads concrete scalar bindings in forward. Iterate this transform's batch outside it,
+        # keeping independent exact evaluations rather than exposing batched tensor storage to Python.
+        rows = []
+        for index in range(info.batch_size):
+            values = tuple(
+                argument if axis is None else argument.select(axis, index)
+                for argument, axis in zip(arguments, in_dims[3:], strict=True)
+            )
+            rows.append(_ExactExpressions.apply(expressions, symbols, shape, *values))
+        return torch.stack(rows), 0
+
+    @staticmethod
+    def backward(ctx: Any, gradient: torch.Tensor) -> tuple[Any, ...]:
+        import sympy as sp
+
+        arguments = ctx.saved_tensors
+        cotangents = tuple(sp.Dummy(real=True) for _ in ctx.expressions)
+        symbols = (*ctx.symbols, cotangents)
+        result: list[torch.Tensor | None] = []
+        for index, argument in enumerate(arguments):
+            if not ctx.needs_input_grad[index + 3]:
+                result.append(None)
+                continue
+            derivatives = tuple(
+                sp.Add(*(g * sp.diff(expression, variable) for g, expression in zip(cotangents, ctx.expressions, strict=True)))
+                for variable in ctx.symbols[index]
+            )
+            result.append(_ExactExpressions.apply(derivatives, symbols, tuple(argument.shape), *arguments, gradient))
+        return None, None, None, *result
+
+    @staticmethod
+    def jvp(
+        ctx: Any, expressions_tangent: None, symbols_tangent: None, shape_tangent: None, *tangents: torch.Tensor
+    ) -> torch.Tensor:
+        import sympy as sp
+
+        arguments = ctx.saved_tensors
+        directions = tuple(tuple(sp.Dummy(real=True) for _ in group) for group in ctx.symbols)
+        derivatives = tuple(
+            sp.Add(
+                *(
+                    sp.diff(expression, variable) * direction
+                    for group, tangent_group in zip(ctx.symbols, directions, strict=True)
+                    for variable, direction in zip(group, tangent_group, strict=True)
+                )
+            )
+            for expression in ctx.expressions
+        )
+        result: torch.Tensor = _ExactExpressions.apply(
+            derivatives, (*ctx.symbols, *directions), ctx.shape, *arguments, *tangents
+        )
+        return result
+
+
+def _barycentric_expressions(
+    dimension: int, origin: list[Fraction], inverse: list[list[Fraction]], vertex_gradients: bool
+) -> tuple[tuple[Any, ...], tuple[tuple[Any, ...], ...]]:
+    """Compile a cell's exact affine formula; symbolic vertex coordinates retain inverse derivatives."""
+    import sympy as sp
+
+    point = tuple(sp.Dummy(real=True) for _ in range(dimension))
+    symbols: tuple[tuple[Any, ...], ...]
+    if vertex_gradients:
+        vertices = tuple(sp.Dummy(real=True) for _ in range((dimension + 1) * dimension))
+        edges = sp.Matrix(dimension, dimension, lambda i, j: vertices[(j + 1) * dimension + i] - vertices[i])
+        offset = sp.Matrix([p - v for p, v in zip(point, vertices[:dimension], strict=True)])
+        rest = edges.inv() * offset
+        symbols = (point, vertices)
+    else:
+        matrix = sp.Matrix([[sp.Rational(v.numerator, v.denominator) for v in row] for row in inverse])
+        offset = sp.Matrix([p - sp.Rational(v.numerator, v.denominator) for p, v in zip(point, origin, strict=True)])
+        rest = matrix * offset
+        symbols = (point,)
+    return (1 - sum(rest), *rest), symbols
+
+
 def _length_key(a: torch.Tensor, b: torch.Tensor) -> tuple[int, float]:
     """A key ordering segments ``ab`` by Euclidean length, without overflow or underflow.
 
@@ -300,7 +478,7 @@ class SimplicialMesh:
         # `unit` do not. Two choices of axis exponents are tried: one per axis, from the extent of the simplex
         # along it, under which scaling an axis by a power of two changes only its exponent; and a common one,
         # which keeps the Euclidean shape. The first is used unless only the second gives a non-degenerate `unit`.
-        mantissa, exponent = torch.frexp(edges)
+        mantissa, exponent = _Frexp.apply(edges)
         exponent = torch.where(mantissa == 0, -(2**20), exponent.to(torch.long))  # zeros never set a scale
         per_axis = _equilibrate(mantissa, exponent, exponent.amax(dim=1))
         common = _equilibrate(mantissa, exponent, torch.zeros_like(exponent[:, 0]))
@@ -312,8 +490,21 @@ class SimplicialMesh:
         )
         self.vertices = x
         self.simplices = s
+        # Keep discrete topology in Python too: older functorch versions cannot expose wrapped
+        # tensor storage through tolist(), even for constant integer metadata.
+        self._simplex_rows = [tuple(int(v) for v in row.unbind()) for row in s.unbind()]
         # Maps (x - x_0) / 2**axis_exponent to barycentric coordinates 1..d times 2**edge_exponent.
         self._inverse = torch.linalg.inv(unit.transpose(1, 2))
+        # The final dot-product error alone misses rounding in the factorization of a nearly singular
+        # unit matrix. Also account for amplification when coordinates of differently scaled edges are
+        # recovered, even if a spurious inverse entry hides cancellation in the final dot product.
+        condition = unit.abs().sum(dim=1).amax(dim=1) * self._inverse.abs().sum(dim=2).amax(dim=1)
+        amplification = self._edge_exponent.amax(dim=1) - self._edge_exponent.amin(dim=1)
+        self._inexact_inverse = (8 * d * torch.finfo(torch.float64).eps) * _times_power_of_two(
+            condition, amplification
+        ) > 1e-12
+        self._exact_inverses: dict[int, tuple[list[Fraction], list[list[Fraction]]]] = {}
+        self._exact_formulas: dict[tuple[int, bool], tuple[tuple[Any, ...], tuple[tuple[Any, ...], ...]]] = {}
         # Volumes are kept as mantissa * 2**exponent too, so that a product with a volume beyond the float64 range
         # (e.g. a refinement score) can still be finite.
         self._volume_mantissa = det.abs() / factorial(d)
@@ -328,7 +519,7 @@ class SimplicialMesh:
             if strict:
                 raise ValueError(message)
             warnings.warn(message, stacklevel=2)
-        domain, tops = _simplicial_set(s.tolist())
+        domain, tops = _simplicial_set(self._simplex_rows)
         self.space = BezierSpace.on_set(domain, degree=_DEGREE)
         self.cell_ids = torch.tensor([self.space.cell_id(t) for t in tops], dtype=torch.long)
 
@@ -373,7 +564,7 @@ class SimplicialMesh:
     def _count_unmatched_faces(self) -> int:
         d = self.dimension
         owners: dict[tuple[int, ...], list[int]] = {}
-        for k, simplex in enumerate(self.simplices.tolist()):
+        for k, simplex in enumerate(self._simplex_rows):
             for i in range(d + 1):
                 owners.setdefault(tuple(simplex[:i] + simplex[i + 1 :]), []).append(k)
         crowded = sum(1 for o in owners.values() if len(o) > 2)
@@ -470,12 +661,103 @@ class SimplicialMesh:
         torch.Tensor
             Coordinates of shape ``(n_points, n_simplices, d + 1)``, in the vertex order of :attr:`simplices`.
             They sum to one and are all nonnegative exactly when the point lies in the simplex.
+
+        Notes
+        -----
+        The usual path uses the equilibrated float64 inverse. If its condition estimate indicates excessive
+        factorization error, an absolute-product estimate of roundoff
+        exceeds ``1e-12 * (1 + abs(coordinate))``, or the solve overflows, the affected point/simplex pairs
+        are evaluated with exact rational arithmetic on the input floats and rounded once to float64.
+        This slower path caches one exact inverse per affected simplex. It recovers coordinates lost by
+        the solve, but cannot recover information already lost when the input points were rounded.
+        Differentiable affected pairs additionally use cached SymPy expressions. Their derivatives are
+        evaluated exactly at every order before rounding, independently for each point. Symbolic work and
+        retained autograd state grow with dimension and derivative order; this path is intentionally slower.
+        Forward-mode queries with any affected pair use symbolic expressions for the whole query so that
+        ``forward_ad`` and ``torch.func.jvp`` retain tangents without reading dual tensor storage in Python.
         """
         p = self._check_points(x)
         origin = self.vertices[self.simplices[:, 0]]  # (m, d)
         offset = _times_power_of_two(p[:, None, :] - origin[None], -self._axis_exponent[None])
         rest = _times_power_of_two(torch.einsum("mij,nmj->nmi", self._inverse, offset), -self._edge_exponent[None])
-        return torch.cat([1 - rest.sum(dim=2, keepdim=True), rest], dim=2)
+        coordinates = torch.cat([1 - rest.sum(dim=2, keepdim=True), rest], dim=2)
+        products = _times_power_of_two(
+            torch.einsum("mij,nmj->nmi", self._inverse.abs(), offset.abs()), -self._edge_exponent[None]
+        )
+        magnitude = torch.cat([products.sum(dim=2, keepdim=True), products], dim=2)
+        error = (8 * self.dimension * torch.finfo(torch.float64).eps) * magnitude
+        uncertain = (error > 1e-12 * (1 + coordinates.abs())).any(dim=2) | ~torch.isfinite(coordinates).all(dim=2)
+        uncertain |= self._inexact_inverse[None]
+        if not uncertain.any():
+            return coordinates
+        return self._exact_barycentric(p, coordinates, uncertain, offset)
+
+    def _forward_barycentric(self, p: torch.Tensor) -> torch.Tensor:
+        """Evaluate dual queries without exposing transformed tensor storage to Python."""
+        # torch.func duals cannot expose storage via tolist/nonzero. Evaluate the full query using
+        # transform-compatible exact expressions, retaining both point and vertex tangents.
+        cells = []
+        for cell in range(self.n_simplices):
+            key = (cell, True)
+            if key not in self._exact_formulas:
+                self._exact_formulas[key] = _barycentric_expressions(self.dimension, [], [], True)
+            expressions, symbols = self._exact_formulas[key]
+            vertices = self.vertices[self.simplices[cell]]
+            cells.append(
+                torch.stack(
+                    [
+                        _ExactExpressions.apply(expressions, symbols, (self.dimension + 1,), point, vertices)
+                        for point in p.unbind()
+                    ]
+                )
+            )
+        return torch.stack(cells, dim=1)
+
+    def _exact_barycentric(
+        self, p: torch.Tensor, coordinates: torch.Tensor, uncertain: torch.Tensor, offset: torch.Tensor
+    ) -> torch.Tensor:
+        """Correct cancellation-prone pairs, retaining the derivative of the same affine map."""
+        if (
+            torch.autograd.forward_ad.unpack_dual(p).tangent is not None
+            or torch.autograd.forward_ad.unpack_dual(self.vertices).tangent is not None
+        ):
+            return self._forward_barycentric(p)
+        result = coordinates.detach().clone()
+        if coordinates.requires_grad:
+            # Rebuild the ordinary derivative path with finite offsets: even a zero upstream gradient
+            # through an overflowed dot product can otherwise contaminate vertex gradients with NaN.
+            safe_offset = torch.where(uncertain[:, :, None], 0.0, offset)
+            rest = _times_power_of_two(torch.einsum("mij,nmj->nmi", self._inverse, safe_offset), -self._edge_exponent[None])
+            result = torch.cat([1 - rest.sum(dim=2, keepdim=True), rest], dim=2)
+        for cell_tensor in uncertain.any(dim=0).nonzero().flatten().unbind():
+            cell = int(cell_tensor)
+            vertices = self.vertices[self.simplices[cell]]
+            if cell not in self._exact_inverses:
+                self._exact_inverses[cell] = _rational_inverse(vertices)
+            origin, inverse = self._exact_inverses[cell]
+            indices = uncertain[:, cell].nonzero().flatten()
+            if coordinates.requires_grad:
+                key = (cell, vertices.requires_grad)
+                if key not in self._exact_formulas:
+                    self._exact_formulas[key] = _barycentric_expressions(
+                        self.dimension, origin, inverse, vertices.requires_grad
+                    )
+                expressions, symbols = self._exact_formulas[key]
+                rows = []
+                for index_tensor in indices.unbind():
+                    index = int(index_tensor)
+                    arguments = (p[index], vertices) if vertices.requires_grad else (p[index],)
+                    rows.append(_ExactExpressions.apply(expressions, symbols, (self.dimension + 1,), *arguments))
+                values = torch.stack(rows)
+            else:
+                exact_rows = []
+                for point in p[indices].tolist():
+                    exact_offset = [Fraction(v) - o for v, o in zip(point, origin, strict=True)]
+                    exact_rest = [sum((a * b for a, b in zip(row, exact_offset, strict=True)), Fraction(0)) for row in inverse]
+                    exact_rows.append([_rounded_fraction(v) for v in [1 - sum(exact_rest, Fraction(0)), *exact_rest]])
+                values = torch.tensor(exact_rows, dtype=torch.float64)
+            result[indices, cell] = values
+        return result
 
     def locate(self, x: Any, *, tol: float = 1e-8, batch_size: int = 1024) -> Points:
         """Find the simplex containing each point and its barycentric coordinates there.
@@ -492,7 +774,11 @@ class SimplicialMesh:
             coordinates are clipped to be nonnegative and renormalized, which moves points just outside the
             mesh onto its boundary.
         batch_size
-            Number of points tested at a time, which bounds the memory to ``batch_size * n_simplices * (d + 1)``.
+            Number of points tested at a time, bounding temporary float64 storage by
+            ``O(batch_size * n_simplices * (d + 1))``. Exact arithmetic for cancellation-prone pairs additionally
+            caches ``O(d**2)`` rational coefficients per affected simplex, whose integer sizes depend on the
+            input exponents. Those pairs are processed sequentially without an array of rational coordinates.
+            Differentiable queries additionally retain symbolic expression caches and autograd state.
 
         Returns
         -------

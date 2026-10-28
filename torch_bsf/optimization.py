@@ -6,11 +6,13 @@ import math
 import warnings
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from fractions import Fraction
 from typing import Literal
 
 import torch
 
 from torch_bsf._kernels.sgd import _simploid_gram
+from torch_bsf._numeric import _finite_mean
 from torch_bsf.core import BezierModel, BezierSpace, FixedControls, Points, QuadraticPenalty, _integer
 from torch_bsf.geometry import Simploid
 from torch_bsf.results import ConvergenceWarning
@@ -106,17 +108,45 @@ def linear_scalarization(objective: Callable[[torch.Tensor], torch.Tensor]) -> L
     return loss
 
 
+def _optimization_device(tensor: torch.Tensor) -> torch.device:
+    # MPS has no float64 kernels; autograd supports transfers to/from CPU.
+    return torch.device("cpu") if tensor.device.type == "mps" else tensor.device
+
+
+def _wide(tensor: torch.Tensor) -> torch.Tensor:
+    return tensor.to(device=_optimization_device(tensor)).to(dtype=torch.float64)
+
+
 def _objective(model: BezierModel, loss: Loss, points: Points, penalty: QuadraticPenalty) -> torch.Tensor:
     values = loss(model(points), points)
     if values.shape != (len(points),) or not torch.isfinite(values).all():
         raise ValueError("loss must return one finite value per sample.")
-    coefficients = model.coefficients
-    edges = model.space.adjacency().to(coefficients.device)
-    return (
-        values.mean()
-        + penalty.ridge * coefficients.square().sum()
-        + penalty.smoothness * (coefficients[edges[:, 0]] - coefficients[edges[:, 1]]).square().sum()
-    )
+    # Keep Python-float penalty weights representable even with float32 controls.
+    coefficients: torch.Tensor = model.coefficients
+    if penalty.ridge or penalty.smoothness:
+        coefficients = _wide(coefficients)
+    objective = _finite_mean(values, 0)
+    if penalty.ridge or penalty.smoothness:
+        objective = _wide(objective)
+    if penalty.ridge:
+        objective = objective + ((coefficients * penalty.ridge) * coefficients).sum()
+    if penalty.smoothness:
+        edges = model.space.adjacency().to(coefficients.device)
+        differences = coefficients[edges[:, 0]] - coefficients[edges[:, 1]]
+        if torch.isfinite(differences).all():
+            smoothness = ((differences * penalty.smoothness) * differences).sum()
+        else:
+            # Halve before subtracting: the true difference can exceed float64
+            # while its weighted square remains representable.
+            half = coefficients / 2
+            differences = half[edges[:, 0]] - half[edges[:, 1]]
+            # Fold the exact factor into the weight so backward never forms
+            # an overflowing 4*difference before multiplying the tiny weight.
+            smoothness = ((differences * (penalty.smoothness * 4)) * differences).sum()
+        objective = objective + smoothness
+    if not torch.isfinite(objective):
+        raise ArithmeticError("loss and penalties produced a non-finite objective.")
+    return objective
 
 
 def _fix_controls(model: BezierModel, fixed: FixedControls | None) -> torch.Tensor:
@@ -136,6 +166,89 @@ def _model_for_optimization(model: BezierModel) -> BezierModel:
     if fitted.coefficients.dtype in (torch.float16, torch.bfloat16):
         fitted = fitted.to(dtype=torch.float32)
     return fitted
+
+
+def _gradient(value: torch.Tensor, coefficients: torch.Tensor) -> torch.Tensor:
+    (gradient,) = torch.autograd.grad(value, coefficients)
+    if not torch.isfinite(gradient).all():
+        raise ArithmeticError("loss produced a non-finite gradient.")
+    return gradient
+
+
+def _finite_metric(matrix: torch.Tensor) -> torch.Tensor:
+    if not torch.isfinite(matrix).all():
+        raise ArithmeticError("optimization metric matrix is not representable in float64.")
+    return matrix
+
+
+def _scaled_gradient(gradient: torch.Tensor, alpha: float) -> tuple[torch.Tensor, float]:
+    wide = _wide(gradient)
+    scaled = wide * alpha
+    if torch.isfinite(scaled).all() and ((scaled != 0) | (wide == 0)).all():
+        return scaled, 1.0
+    return wide, alpha
+
+
+def _updated_values(coefficients: torch.Tensor, alpha: float, direction: torch.Tensor) -> torch.Tensor:
+    source, step = _wide(coefficients), _wide(direction)
+    updated = source - alpha * step
+    invalid = ~torch.isfinite(updated)
+    if invalid.any() and torch.isfinite(step).all():
+        # Rare overflow cancellation needs a fused product/subtraction. Exact
+        # rationals also support Python versions without math.fma.
+        selected = torch.nonzero(invalid.flatten()).flatten().cpu().tolist()
+        source_cpu, step_cpu = source.detach().cpu().flatten(), step.detach().cpu().flatten()
+        exact_alpha = Fraction.from_float(alpha)
+        for index in selected:
+            exact = Fraction.from_float(source_cpu[index].item()) - exact_alpha * Fraction.from_float(step_cpu[index].item())
+            try:
+                updated.flatten()[index] = float(exact)
+            except OverflowError as error:
+                raise ArithmeticError("optimization update produced non-finite coefficients.") from error
+    return updated.to(dtype=coefficients.dtype).to(device=coefficients.device)
+
+
+def _update(coefficients: torch.Tensor, free: torch.Tensor, alpha: float, direction: torch.Tensor) -> None:
+    with torch.no_grad():
+        updated = _updated_values(coefficients[free], alpha, direction)
+        if not torch.isfinite(updated).all():
+            raise ArithmeticError("optimization update produced non-finite coefficients.")
+        coefficients[free] = updated
+
+
+def _regularizer(
+    topology: torch.Tensor | None, penalty: QuadraticPenalty, alpha: float, size: int, device: torch.device
+) -> torch.Tensor:
+    # Multiply step-scaled weights by an unweighted topology, whose integer
+    # degrees cannot overflow. Topology/device transfer happens only once.
+    matrix = (
+        torch.zeros(size, size, dtype=torch.float64, device=device)
+        if topology is None
+        else topology * ((penalty.smoothness * alpha) * 2)
+    )
+    if penalty.ridge:
+        matrix.diagonal().add_((penalty.ridge * alpha) * 2)
+    return matrix
+
+
+def _prepare_regularizer(
+    model: BezierModel, penalty: QuadraticPenalty, free: torch.Tensor
+) -> Callable[[float], torch.Tensor | None]:
+    if not penalty.ridge and not penalty.smoothness:
+        return lambda alpha: None
+    selected = free.cpu()
+    device = _optimization_device(model.coefficients)
+    topology = None
+    if penalty.smoothness:
+        topology = torch.zeros(len(free), len(free), dtype=torch.float64)
+        for i, j in model.space.adjacency().tolist():
+            topology[i, i] += 1
+            topology[j, j] += 1
+            topology[i, j] -= 1
+            topology[j, i] -= 1
+        topology = topology[selected][:, selected].to(device=device)
+    size = int(selected.sum().item())
+    return lambda alpha: _regularizer(topology, penalty, alpha, size, device)
 
 
 def minimize(
@@ -162,7 +275,9 @@ def minimize(
     method
         Typed preconditioned SGD settings, independent of Lightning. Float16
         and bfloat16 initial models are copied and promoted to float32 on the
-        same device for basis evaluation, gradients and supported metric solves.
+        same device for basis evaluation and gradients. Metric solves and update
+        arithmetic use float64 before casting back to the model dtype. On MPS,
+        float64 penalties and solves run on CPU with differentiable transfers.
         The returned model then has float32 coefficients.
     points
         Fixed samples. Otherwise draw ``n_samples`` with the stated cell weights.
@@ -177,6 +292,17 @@ def minimize(
     -------
     OptimizationResult
         Copied model, pre-update history, final full-sample objective and stopping state.
+
+    Raises
+    ------
+    ValueError
+        The loss does not return one finite value per sample.
+    ArithmeticError
+        The combined objective, gradient or coefficient update is non-finite,
+        or the step-scaled metric matrix cannot be represented in float64.
+        Zero-weight penalties are not evaluated. Active penalties accumulate in
+        float64 and apply weights before the final product, while gradients retain
+        the model dtype. Truly unrepresentable results raise on every stopping path.
     """
     fitted = _model_for_optimization(model)
     p = fitted.coefficients
@@ -202,41 +328,37 @@ def minimize(
         if method.preconditioner == "gram"
         else torch.eye(len(p), dtype=torch.float64)
     )
-    edges = model.space.adjacency()
-    regularizer = torch.eye(len(p), dtype=torch.float64) * penalty.ridge
-    for i, j in edges.tolist():
-        regularizer[i, i] += penalty.smoothness
-        regularizer[j, j] += penalty.smoothness
-        regularizer[i, j] -= penalty.smoothness
-        regularizer[j, i] -= penalty.smoothness
     cpu_free = free.cpu()
-    metric = metric[cpu_free][:, cpu_free].to(p)
-    regularizer = regularizer[cpu_free][:, cpu_free].to(p)
+    metric = metric[cpu_free][:, cpu_free].to(device=_optimization_device(p))
+    regularizer_for = _prepare_regularizer(fitted, penalty, free)
+    cached_matrix: torch.Tensor | None = None
     generator = _generator(None if seed is None else seed + 1)
     history: list[Iteration] = []
     success, status, message = False, "iteration_limit", "Iteration budget exhausted; convergence was not established."
     for k in range(method.max_iter):
         if method.gradient_tolerance is not None:
             full = _objective(fitted, loss, batch, penalty)
-            (full_grad,) = torch.autograd.grad(full, p)
+            full_grad = _gradient(full, p)
             if full_grad[free].norm().item() <= method.gradient_tolerance:
                 success, status, message = True, "gradient_tolerance", "Full-sample gradient tolerance reached."
                 break
         rows = torch.randperm(len(batch), generator=generator)[: method.batch_size or len(batch)]
         current = batch.take(rows)
         value = _objective(fitted, loss, current, penalty)
-        (gradient,) = torch.autograd.grad(value, p)
-        if not torch.isfinite(gradient).all():
-            raise ArithmeticError("loss produced a non-finite gradient.")
+        gradient = _gradient(value, p)
         record = Iteration(k, value.item(), gradient[free].norm().item())
         history.append(record)
         if callback is not None and callback(record, fitted):
             status, message = "callback_stop", "Stopped by callback; convergence was not established."
             break
         alpha = method.step_size / math.sqrt(k + 1) if method.step_decay == "sqrt" else method.step_size
-        direction = torch.linalg.solve(metric + 2 * alpha * regularizer, gradient[free])
-        with torch.no_grad():
-            p[free] -= alpha * direction
+        if cached_matrix is None or method.step_decay == "sqrt":
+            regularizer = regularizer_for(alpha)
+            cached_matrix = metric if regularizer is None else metric + regularizer
+        matrix = cached_matrix
+        rhs, update_alpha = _scaled_gradient(gradient[free], alpha)
+        direction = torch.linalg.solve(_finite_metric(matrix), rhs)
+        _update(p, free, update_alpha, direction)
     final = _objective(fitted, loss, batch, penalty).item()
     result = OptimizationResult(fitted, tuple(history), success, status, message, final, len(history), seed)
     if not success and status == "iteration_limit":
