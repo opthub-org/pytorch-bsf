@@ -1,0 +1,320 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Distributed Smart Grids and Energy Operations &mdash; PyTorch-BSF 0.22.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5686f5df"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Multi-Task and Federated Learning" href="federated_learning.html" />
+    <link rel="prev" title="Robust Portfolio Management" href="portfolio.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../advanced.html">Advanced Topics</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../applications.html">Applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../applications.html#what-is-fitted-in-each-application">What is fitted in each application?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../applications.html#a-common-reproduction-and-validation-workflow">A common reproduction and validation workflow</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../applications.html#choosing-a-domain-and-a-next-guide">Choosing a domain and a next guide</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="elastic_net.html">Elastic Net Model Selection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="portfolio.html">Robust Portfolio Management</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Distributed Smart Grids and Energy Operations</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#numerical-experiments">Numerical Experiments</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#separate-priorities-from-generator-shares">Separate priorities from generator shares</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#what-the-plots-and-error-measure">What the plots and error measure</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#demand-variation-and-operating-limits">Demand variation and operating limits</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="federated_learning.html">Multi-Task and Federated Learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="communications.html">Communication Systems and Routing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="supply_chain.html">Supply Chain and Logistics Optimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="medical_imaging.html">Medical Imaging and Radiation Therapy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="facility_location.html">Facility Location and Continuous Approximations</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../applications.html">Applications</a></li>
+      <li class="breadcrumb-item active">Distributed Smart Grids and Energy Operations</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/applications/smart_grids.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="distributed-smart-grids-and-energy-operations">
+<h1>Distributed Smart Grids and Energy Operations<a class="headerlink" href="#distributed-smart-grids-and-energy-operations" title="Link to this heading"></a></h1>
+<p>Modern power management systems face uniquely high-stakes trade-offs. The Multi-Objective Optimal Power Flow (MO-OPF) model mathematically formulates the challenges of simultaneously minimizing the economic costs of power generation, restricting environmental emission rates, and regulating line transmission losses or voltage deviations.</p>
+<p>For traditional generators, the expected fuel and operating cost across an interconnected network is naturally modeled as a strongly convex quadratic function of power output <span class="math notranslate nohighlight">\(P_i\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[C_i(P_i) = a_i P_i^2 + b_i P_i + c_i \quad (a_i &gt; 0)\]</div>
+<p>Equally, in multi-agent microgrids integrating photovoltaic systems (PV), energy storage batteries, and Electric Vehicle (EV) charging stations, researchers utilize game-theoretic models to continuously distribute power allocations. To stabilize the energy demand across multiple EV chargers, the network actively minimizes the demand mismatch penalty against a target demand <span class="math notranslate nohighlight">\(p_k^*\)</span> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id36" title="Dongxiang Yan, He Yin, Tao Li, and Chengbin Ma. A two-stage scheme for both power allocation and ev charging coordination in a grid tied pv-battery charging station. IEEE Transactions on Industrial Informatics, 2021. doi:10.1109/TII.2021.3054417.">YYLM21</a>]</span>. Evaluated as an independent utility function for each node <span class="math notranslate nohighlight">\(l\)</span>, this forms:</p>
+<div class="math notranslate nohighlight">
+\[u_l = -\frac{1}{2}(p_l - p_l^*)^2\]</div>
+<p>From a mathematical perspective, modifying the power allocations to maximize the utility <span class="math notranslate nohighlight">\(u_l\)</span> is mathematically identical to minimizing the positive-definite squared deviation between allocated and requested charge. Because the error metrics natively employ bounded quadratic structures (with the positive coefficient <span class="math notranslate nohighlight">\(a_i &gt; 0\)</span>), the resulting system cost matrix is structurally strongly convex across the sub-groups.</p>
+<p>Positive quadratic curvature can support efficient convex dispatch solvers.
+Convergence rates for a distributed method additionally depend on the
+constraints, coupling and algorithm settings. Convex generator costs alone
+do not make nonlinear AC power-flow constraints convex.</p>
+<p>A fitted Bézier map can reduce the cost of exploring priorities for a fixed
+dispatch problem. Demand, weather and prices must be represented explicitly
+or held fixed; changing the priority weights does not update those inputs.</p>
+<section id="numerical-experiments">
+<h2>Numerical Experiments<a class="headerlink" href="#numerical-experiments" title="Link to this heading"></a></h2>
+<p>We illustrate Bézier simplex fitting on a three-generator economic–emission dispatch problem balancing generation cost against emissions under a fixed demand.</p>
+<p><strong>Problem Setup:</strong></p>
+<ul class="simple">
+<li><p>Power outputs: <span class="math notranslate nohighlight">\(P = [P_1, P_2, P_3] \in \mathbb{R}^3_{\ge 0}\)</span>, subject to the demand balance <span class="math notranslate nohighlight">\(P_1 + P_2 + P_3 = D = 5\)</span></p></li>
+<li><p>Generator 1 is cheap but dirty, generator 3 is expensive but clean.</p></li>
+<li><p>Generation cost (strongly convex):</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[f_1(P) = 0.10 P_1^2 + 0.12 P_2^2 + 0.15 P_3^2 + 0.2 P_1 + 0.3 P_2 + 0.4 P_3\]</div>
+<ul class="simple">
+<li><p>Emissions (strongly convex):</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[f_2(P) = 0.20 P_1^2 + 0.10 P_2^2 + 0.05 P_3^2 + 0.3 P_1 + 0.2 P_2 + 0.1 P_3\]</div>
+<p>The demand constraint is what makes the objectives conflict: without it, both would be minimized by <span class="math notranslate nohighlight">\(P = 0\)</span>.</p>
+<p><strong>Experiment Procedure:</strong></p>
+<ol class="arabic simple">
+<li><p>Sample 10 weight vectors <span class="math notranslate nohighlight">\(w = (w_1, w_2)\)</span> on the 1-simplex from <span class="math notranslate nohighlight">\((1,0)\)</span> to <span class="math notranslate nohighlight">\((0,1)\)</span>.</p></li>
+<li><p>For each <span class="math notranslate nohighlight">\(w\)</span>, solve <span class="math notranslate nohighlight">\(P^*(w) = \arg\min_P [w_1 f_1(P) + w_2 f_2(P)]\)</span> subject to the demand balance using SLSQP.</p></li>
+<li><p>Collect the Pareto front points <span class="math notranslate nohighlight">\((f_1(P^*(w)), f_2(P^*(w)))\)</span>.</p></li>
+<li><p>Fit a degree-4 Bézier simplex to the weight–objective pairs and another to the weight–decision pairs.</p></li>
+<li><p>Evaluate the fitted Bézier curve on 101 test weights.</p></li>
+</ol>
+<p>The maximum error on the test weights is about <span class="math notranslate nohighlight">\(0.003\)</span>, i.e., 0.2% of the range of <span class="math notranslate nohighlight">\(f_1\)</span>.
+The Pareto set lies on the plane <span class="math notranslate nohighlight">\(P_1 + P_2 + P_3 = 5\)</span> and is shown by its projection onto <span class="math notranslate nohighlight">\((P_1, P_2)\)</span>.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><a class="reference internal image-reference" href="../_images/smart_grids_pareto_set.png"><img alt="Pareto set for smart grid (power output space)" src="../_images/smart_grids_pareto_set.png" style="width: 100%;" />
+</a>
+</td>
+<td><a class="reference internal image-reference" href="../_images/smart_grids_pareto.png"><img alt="Bézier simplex fitting to smart grid Pareto front" src="../_images/smart_grids_pareto.png" style="width: 100%;" />
+</a>
+</td>
+</tr>
+<tr class="row-even"><td><p>Pareto set.</p></td>
+<td><p>Pareto front.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The complete example script is available at <code class="file docutils literal notranslate"><span class="pre">examples/generate_smart_grids_pareto.py</span></code>.</p>
+</section>
+<section id="separate-priorities-from-generator-shares">
+<h2>Separate priorities from generator shares<a class="headerlink" href="#separate-priorities-from-generator-shares" title="Link to this heading"></a></h2>
+<p>The model input <code class="docutils literal notranslate"><span class="pre">[w1,</span> <span class="pre">w2]</span></code> specifies cost versus emissions, not power shares.
+It is a point on a one-dimensional simplex. The decision map has three
+outputs <code class="docutils literal notranslate"><span class="pre">[P1,</span> <span class="pre">P2,</span> <span class="pre">P3]</span></code> and the objective map has two. Although generator
+shares also satisfy a sum constraint, they are responses of this optimization,
+not additional coordinates in the weight segment.</p>
+<p>Every reference solve enforces demand balance and nonnegative generation.
+The two quadratic objective Hessians are positive definite, so their convex
+combinations remain positive definite, including at the endpoints. On the
+fixed convex feasible set, this gives a unique dispatch for each weight.
+It does not make the polynomial surrogate an exact dispatch solver.</p>
+</section>
+<section id="what-the-plots-and-error-measure">
+<h2>What the plots and error measure<a class="headerlink" href="#what-the-plots-and-error-measure" title="Link to this heading"></a></h2>
+<p>The left panel projects a three-output map to <code class="docutils literal notranslate"><span class="pre">(P1,</span> <span class="pre">P2)</span></code>. Recovering the
+third output from balance is possible for the reference solutions, but the
+fit should still be checked in all three columns. The right panel describes
+the corresponding cost and emissions. A close front fit does not prove that
+a separately fitted generation vector satisfies balance or operating limits.</p>
+<p>Reproduce the figures from the repository root with
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">examples/generate_smart_grids_pareto.py</span></code> after installing the plot,
+SciPy and scikit-learn dependencies used by the script. It uses 10 training
+weights and evaluates 101 weights. Distinguish training points from new
+weights when interpreting the reported maximum error; also check each
+objective rather than normalizing both by only the cost range.</p>
+<p>For the decision surrogate, measure
+<span class="math notranslate nohighlight">\(|\sum_i\widehat P_i-D|\)</span> and
+<span class="math notranslate nohighlight">\(\max(0,-\min_i\widehat P_i)\)</span> across the evaluation set. If capacity
+bounds are added, inspect those too. Exact reference feasibility at sampled
+weights does not establish feasibility everywhere between them. Validate
+objective values by recomputing them from the predicted dispatch.</p>
+</section>
+<section id="demand-variation-and-operating-limits">
+<h2>Demand variation and operating limits<a class="headerlink" href="#demand-variation-and-operating-limits" title="Link to this heading"></a></h2>
+<p>The example keeps <span class="math notranslate nohighlight">\(D=5\)</span> fixed. For demand in a bounded interval,
+normalize it to a second barycentric block and use a square of type
+<code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">1)</span></code>: one factor for priorities and one for demand. Then a parameter
+row can be <code class="docutils literal notranslate"><span class="pre">[1-u,</span> <span class="pre">u,</span> <span class="pre">1-v,</span> <span class="pre">v]</span></code> with
+<span class="math notranslate nohighlight">\(D=(1-v)D_{\min}+vD_{\max}\)</span>. Each block sums to one independently.
+The <a class="reference internal" href="../whatis.html#simploidal-space-overview"><span class="std std-ref">simploid figure</span></a> illustrates this
+independent-factor construction.</p>
+<p>Capacity constraints can change which generators saturate as priorities or
+demand vary. Such transitions can create derivative changes in an otherwise
+continuous solution map. Add reference solves near them and compare held-out
+errors before increasing degree. Multiple local patches may be appropriate
+if a single polynomial needs too much capacity; their coordinate conventions
+and continuity requirements must then be explicit.</p>
+<p>This experiment covers an economic-emission dispatch model. It does not
+include voltage constraints, line limits, AC network equations or a
+closed-loop grid controller. Those conditions belong in the reference
+problem and in the validation of any proposed extension. For fitting
+mechanics, see <a class="reference internal" href="../quickstart.html"><span class="doc">Quickstart</span></a> and <a class="reference internal" href="../advanced/simploidal.html"><span class="doc">Single and assembled domains</span></a>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="portfolio.html" class="btn btn-neutral float-left" title="Robust Portfolio Management" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="federated_learning.html" class="btn btn-neutral float-right" title="Multi-Task and Federated Learning" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: fix/450-finite-validation-metrics
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/applications/smart_grids.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/applications/smart_grids.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/applications/smart_grids.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/applications/smart_grids.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/applications/smart_grids.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/applications/smart_grids.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/applications/smart_grids.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/applications/smart_grids.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/applications/smart_grids.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/applications/smart_grids.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/applications/smart_grids.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/applications/smart_grids.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="smart_grids.html">fix/450-finite-validation-metrics</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
