@@ -58,15 +58,15 @@ Follow <path>/.claude/skills/review-local/protocol.md and return its report form
 
 Do not pass your own opinion of the change: an anchored reviewer tends to confirm it.
 
-If the `review-*` agent types are not available (agents are loaded when a session starts, so a session that predates them does not see them), launch `general-purpose` agents instead and start the brief with "Your role definition is `<worktree>/.claude/agents/review-<aspect>.md` (ignore its frontmatter); read it and follow it."
+If the `review-*` agent types are not available (agents are loaded when a session starts, so a session that predates them does not see them), launch `general-purpose` agents instead and start the brief with "Your role definition is `<path>/.claude/agents/review-<aspect>.md` (ignore its frontmatter); read it and follow it."
 
 Reviewers that run experiments can take several minutes; the slowest usually sets the wall-clock time. Start consolidating the reports that have arrived while waiting for the rest.
 
 ## 3. Consolidate and verify
 
-1. Check that `git status --porcelain` still shows the clean tree of step 1: reviewers are read-only by protocol, not by their tool list (they need Bash for `git diff` and experiments). If a reviewer changed a file, inspect the change and revert it.
+1. Check that `git status --porcelain` prints the same output as in step 1: reviewers are read-only by protocol, not by their tool list (they need Bash for `git diff` and experiments). If a reviewer changed a file, inspect the change and revert it.
 2. Collect the reports, including the "Outside my aspect" sections. Merge duplicates (same location and cause) and keep the highest severity; a finding raised independently by several reviewers is more likely real, but still verify it.
-3. **Verify every `blocker` and `major` yourself** before acting: read the cited lines, run the reproducer or write one. Mark each finding `confirmed`, `rejected` (with the reason, e.g. "input is rejected earlier at validator.py:42") or `uncertain`. Reviewers are wrong sometimes; do not "fix" a non-bug.
+3. **Verify every `blocker` and `major` yourself** before acting: read the cited lines, run the reproducer or write one. Mark each finding `confirmed`, `rejected` (with the reason, e.g. "input is rejected earlier at validator.py:42") or `uncertain`. Treat an `uncertain` blocker or major as confirmed unless you can reject it, or ask the user. Triage `minor` and `nit` findings by reading the cited lines, without a reproducer. Reviewers are wrong sometimes; do not "fix" a non-bug.
 4. Write the consolidated list to `<scratch>/findings.md`, sorted by severity, with the verdict of each.
 
 ## 4. Fix
@@ -86,7 +86,7 @@ Add a `## Local review` section to the PR body:
 
 ```markdown
 ## Local review
-Aspects: requirements, design, correctness, edge cases, tests, docs, conventions, readability, numerics, performance (N reviewers, R rounds)
+Aspects: requirements, design, correctness, edge cases, tests, docs, conventions, readability, numerics, performance (N reviewers, R rounds including the first)
 
 | Severity | Found | Fixed | Rejected | Deferred |
 |----------|-------|-------|----------|----------|
