@@ -175,8 +175,8 @@ Non-finite validation metrics
 -----------------------------
 
 Cross-validation excludes zero-weight held-out rows before evaluating metrics.
-Weighted errors apply weights before squaring to avoid unnecessary intermediate
-overflow. If a fold or aggregate metric is still non-finite, ``success`` is
+Weighted errors combine mantissas and exponents before reduction to avoid
+intermediate overflow and preserve meaningful tiny normalized weights. If a fold or aggregate metric is still non-finite, ``success`` is
 ``False`` and every fold remains available for inspection. Degree selection
 excludes that candidate; if all candidates fail, ``best_index`` is ``None``
 and ``success`` is ``False``. Successful training alone does not certify that

@@ -122,3 +122,29 @@ def test_weighted_validation_scales_quadratically(scale):
     # Normalize the exact power-of-two output scaling; 32u covers roots,
     # products and the fold/pooled reductions of these four dyadic observations.
     assert result.metrics["pooled_mse"] / scale / scale == pytest.approx(9.5, rel=32 * 2**-53)
+
+
+def test_pooled_metric_preserves_tiny_fold_weight():
+    space = BezierSpace.simplex(1, degree=0)
+    observations = Samples(
+        torch.eye(2, dtype=torch.float64), torch.tensor([[1e150], [0]], dtype=torch.float64), weights=[1e-300, 1e200]
+    )
+    result = cross_validate(space, observations, cv=KFold(2, shuffle=False), fixed=FixedControls({0: [0]}))
+    assert result.success
+    # Two sqrt weights and four products/reductions fit within 32 float64 roundings.
+    assert result.metrics["pooled_mse"] == pytest.approx(1e-200, rel=32 * 2**-53, abs=0)
+
+
+def test_mae_preserves_tiny_normalized_weight():
+    space = BezierSpace.simplex(1, degree=0)
+    observations = Samples(
+        torch.eye(2, dtype=torch.float64).repeat(2, 1),
+        torch.tensor([[1e308], [0], [1e308], [0]], dtype=torch.float64),
+        weights=[1e-300, 1e200, 1e-300, 1e200],
+    )
+    result = cross_validate(space, observations, cv=KFold(2, shuffle=False), fixed=FixedControls({0: [0]}))
+    assert result.success
+    # Root weights preserve the finite product even though weight/total is zero.
+    for fold in result.folds:
+        assert fold.metrics["mae"] == pytest.approx(1e-192, rel=32 * 2**-53, abs=0)
+        assert fold.metrics["mse"] == pytest.approx(1e116, rel=32 * 2**-53)

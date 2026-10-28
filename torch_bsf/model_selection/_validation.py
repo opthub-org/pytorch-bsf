@@ -102,12 +102,44 @@ def _cross_validate(
     metrics = {
         "mean_mse": (scaled.mean() * scale).item(),
         "std_mse": (scaled.std(unbiased=False) * scale).item(),
-        "pooled_mse": sum(fold.metrics["mse"] * (fold.test_weight / total) for fold in folds),
+        "pooled_mse": sum(_pooled_term(fold.metrics["mse"], fold.test_weight, total) for fold in folds),
     }
     success = all(f.result.success and all(math.isfinite(v) for v in f.metrics.values()) for f in folds) and all(
         math.isfinite(v) for v in metrics.values()
     )
     return CVResult(tuple(folds), metrics, success)
+
+
+def _pooled_term(error: float, weight: float, total: float) -> float:
+    if not math.isfinite(error) or not error or weight == total:
+        return error
+    value, exponent = math.frexp(error)
+    weight_value, weight_exponent = math.frexp(weight)
+    total_value, total_exponent = math.frexp(total)
+    try:
+        return math.ldexp(value * weight_value / total_value, exponent + weight_exponent - total_exponent)
+    except OverflowError:
+        # The normalized weight is <=1, so any upper-bound rounding cannot
+        # legitimately increase a finite nonnegative fold error beyond itself.
+        return error
+
+
+def _weighted_error(
+    difference: torch.Tensor, weights: torch.Tensor, total: float, outputs: int, power: int, exponent_shift: int
+) -> float:
+    # Combine mantissas before scaling exponents: weight/total and difference**2
+    # may each be unrepresentable even though their product is finite.
+    value, exponent = torch.frexp(difference.abs())
+    weight_value, weight_exponent = torch.frexp(weights[:, None])
+    total_value, total_exponent = math.frexp(total)
+    mantissa = value.pow(power) * weight_value / total_value / outputs
+    mantissa, adjustment = torch.frexp(mantissa)
+    exponent = power * (exponent + exponent_shift) + weight_exponent - total_exponent + adjustment
+    exponent = torch.where(mantissa == 0, 0, exponent)
+    # torch.ldexp internally forms 2**exponent; split large exponents so its
+    # intermediate power remains finite even for a representable boundary term.
+    first = exponent.clamp(min=-1022, max=1023)
+    return torch.ldexp(torch.ldexp(mantissa, first), exponent - first).sum().item()
 
 
 def _held_out_metrics(model: BezierModel, held_out: Samples) -> dict[str, float]:
@@ -116,20 +148,16 @@ def _held_out_metrics(model: BezierModel, held_out: Samples) -> dict[str, float]
     positive = held_out.take(selected)
     predicted = model(positive.points)
     observed = positive.values.cpu().double()
-    weights = positive.weights
-    total = weights.sum()
-    # Apply sqrt weights before subtraction and squaring, avoiding overflowing
-    # residuals and preserving small weights whose normalized square underflows.
-    root = (weights.sqrt() / total.sqrt() / math.sqrt(model.n_outputs))[:, None]
-    linear = ((weights / total) / model.n_outputs)[:, None]
     difference = predicted - observed
-    if torch.isfinite(difference).all():
-        squared = (difference * root).square().sum()
-        absolute = (difference.abs() * linear).sum()
-    else:
-        squared = (predicted * root - observed * root).square().sum()
-        absolute = (predicted * linear - observed * linear).abs().sum()
-    return {"mse": squared.item(), "mae": absolute.item()}
+    shift = 0
+    if not torch.isfinite(difference).all():
+        difference = predicted / 2 - observed / 2
+        shift = 1
+    weights, total = positive.weights, positive.weights.sum().item()
+    return {
+        "mse": _weighted_error(difference, weights, total, model.n_outputs, 2, shift),
+        "mae": _weighted_error(difference, weights, total, model.n_outputs, 1, shift),
+    }
 
 
 @dataclass(frozen=True)
