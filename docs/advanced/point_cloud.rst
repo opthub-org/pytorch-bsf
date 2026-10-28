@@ -7,8 +7,11 @@ a different problem: regression from known parameter/value pairs.
 
 The value-only methods implement Algorithms 2 and 3 of
 :cite:t:`kobayashi2019bezier`. Both currently support a single simplex.
-They return ordinary ``BezierModel`` objects, so prediction, plotting and
-model serialization use the existing interfaces.
+``fit_point_cloud`` returns a ``PointCloudFitResult``; ``fit_skeleton``
+returns a ``SkeletonFitResult``. Each result holds an ordinary ``BezierModel``
+in ``result.model`` for prediction, plotting and serialization. Inspect
+``result.success``, ``result.status`` and ``result.message`` for numerical
+termination, or call ``result.require_success()`` to raise on failure.
 
 All-at-once fitting
 -------------------
@@ -22,9 +25,11 @@ for every observation. ``fit_point_cloud`` alternates two steps:
    the existing float64 SVD least-squares implementation.
 
 For example, fit a two-objective Schaffer front without providing its
-parameter coordinates to the fitting routine:
+parameter coordinates to the fitting routine. The three examples on this
+page share the named ``point-cloud-demo`` session: run them in page order;
+the later examples reuse ``torch``, ``space`` and ``values`` from this one.
 
-.. code-block:: python
+.. testcode:: point-cloud-demo
 
    import torch
    from torch_bsf import BezierSpace, fit_point_cloud
@@ -34,12 +39,23 @@ parameter coordinates to the fitting routine:
    space = BezierSpace.simplex(dimension=1, degree=2)
    result = fit_point_cloud(space, values).require_success()
 
+   assert result.success and result.status == "converged"
+   assert result.parameters.shape == (len(values), 2)
+   assert torch.all(result.parameters >= 0)
+   torch.testing.assert_close(
+       result.parameters.sum(1), torch.ones(len(values), dtype=torch.float64),
+       rtol=0, atol=8 * torch.finfo(torch.float64).eps,
+   )
    fitted_values = result.model(result.parameters)
-   error = (fitted_values - values).square().sum(1).mean()
-   assert error < 1e-12
+   # Row i reconstructs values[i], rather than a reordered cloud.
+   row_errors = (fitted_values - values).square().sum(1)
+   assert row_errors.max() < 1e-12
 
 ``result.parameters`` contains the inferred barycentric rows in the
-original observation order. A zero-dimensional simplex uses empty
+original observation order, with shape ``(n_observations, dimension + 1)``
+for a positive-dimensional simplex. Here the 21 observations have two
+barycentric coordinates each; ``result.model(result.parameters)[i]``
+approximates ``values[i]``. A zero-dimensional simplex uses empty
 coordinate rows, consistent with ``BezierSpace``. ``objective_history``
 records mean squared Euclidean distances, starting with the initial model
 and coordinates; ``control_result`` retains the last linear solve's
@@ -62,13 +78,29 @@ Only faces with at most ``min(degree, number_of_vertices)`` vertices are
 needed: a degree-three simplex has no controls supported on four or more
 vertices, even when its domain dimension is larger.
 
-.. code-block:: python
+.. testcode:: point-cloud-demo
 
    from torch_bsf import fit_skeleton
 
-   result = fit_skeleton(space, values).require_success()
-   model = result.model
-   edge_result = result.faces[(0, 1)]
+   skeleton = fit_skeleton(space, values).require_success()
+   model = skeleton.model
+   assert skeleton.success and skeleton.status == "converged"
+   assert set(skeleton.faces) == {(0,), (1,), (0, 1)}
+   edge_result = skeleton.faces[(0, 1)]
+   assert edge_result.success
+   assert edge_result.parameters.shape == (len(values), 2)
+   # The assembled edge retains the fitted vertex controls exactly.
+   for vertex, powers in [(0, (2, 0)), (1, (0, 2))]:
+       vertex_result = skeleton.faces[(vertex,)]
+       assert vertex_result.success
+       control = model.coefficients[space.control_index(powers)]
+       assert torch.equal(control, vertex_result.model.coefficients[0])
+
+``skeleton.faces`` maps sorted vertex-ID tuples to ``PointCloudFitResult``
+objects. In this segment example, ``(0,)`` and ``(1,)`` identify the vertices
+and ``(0, 1)`` identifies the whole edge. Each face has its own numerical
+status and locally inferred coordinates; the assembled predictor is
+``skeleton.model``.
 
 By default, a face's samples are the points nondominated under the
 objectives corresponding to its vertices, using the paper's definition
@@ -78,14 +110,22 @@ the stated simplex structure. It takes quadratic time in sample count
 per face and linear auxiliary memory. For larger data or observations
 already separated by subproblem, supply the samples explicitly:
 
-.. code-block:: python
+.. testcode:: point-cloud-demo
 
    faces = {
        (0,): values[:1],
        (1,): values[-1:],
        (0, 1): values,
    }
-   result = fit_skeleton(space, values, face_values=faces).require_success()
+   explicit = fit_skeleton(space, values, face_values=faces).require_success()
+   assert all(face.success for face in explicit.faces.values())
+   for vertex, powers in [(0, (2, 0)), (1, (0, 2))]:
+       control = explicit.model.coefficients[space.control_index(powers)]
+       assert torch.equal(control, faces[(vertex,)][0])
+   edge = explicit.faces[(0, 1)]
+   assert edge.parameters.shape == (len(values), 2)
+   row_errors = (edge.model(edge.parameters) - faces[(0, 1)]).square().sum(1)
+   assert row_errors.max() < 1e-12
 
 Face keys are sorted tuples of zero-based vertex IDs. Supply exactly all
 required faces and full output vectors for each sample. No parameter
@@ -109,8 +149,8 @@ parameterizations are generally not identifiable from values alone.
 ``parameter_tolerance`` bounds the projected gradient residual. The code
 uses an absolute change rather than the signed stopping expression printed
 in the paper. Success requires both stopping checks. Iteration exhaustion
-returns ``success=False`` and emits ``ConvergenceWarning``, preserving the
-finite model. Use ``require_success()`` when a failed fit must halt a
+returns ``success=False``, ``status="iteration_limit"`` and emits
+``ConvergenceWarning``, preserving the finite model. Use ``require_success()`` when a failed fit must halt a
 workflow. Convergence is a numerical stopping statement, not a certificate
 of global optimality or reconstruction accuracy.
 
