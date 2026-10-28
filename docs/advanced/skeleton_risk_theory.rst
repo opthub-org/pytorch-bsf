@@ -584,6 +584,66 @@ coefficients into the propagation from a vertex in any dimension.
    On the edge, :math:`e(k, D - k) = b_k`. For :math:`\mathbf 1_J`,
    :math:`\alpha_i = 1` and :math:`D b_1 = (-1)^{D-1} (D+1)/2`.
 
+.. prf:theorem:: A generating function for the vertex risk
+   :label: thm-skeleton-vertex-sum
+
+   Put :math:`w_k=(D-k+1)b_k`, with :math:`b_k` as in
+   :prf:ref:`thm-skeleton-curves`, and define the formal power series
+
+   .. math::
+
+      F(x,y) &= \sum_{p,q\geq0}\frac{\binom{p+q}{p}}{(p+1)(q+1)}x^p y^q \\
+      &= \frac{(1-x-y)\log(1-x-y)-(1-x)\log(1-x)
+         -(1-y)\log(1-y)}{xy}, \\
+      K_r(p,q) &= [x^p y^q]F(x,y)^r.
+
+   The quotient denotes its formal series, including at either zero
+   coordinate. For every :math:`D\geq1` and :math:`M\geq2`,
+
+   .. math::
+      :label: skeleton-vertex-double-sum
+
+      a_0 = \frac{M^2(D!)^2}{(M)_{2D}}
+      \sum_{k=1}^D\sum_{l=1}^D
+      w_k w_l\binom{k+l}{k}K_{M-1}(D-k,D-l).
+
+   In particular, the polynomial :math:`P_{D,0}` in
+   :prf:ref:`thm-skeleton-rational` has the general finite expression
+
+   .. math::
+      :label: skeleton-vertex-polynomial
+
+      P_{D,0}(M) = (D!)^2\sum_{s=0}^{2D-2}\binom{M-1}{s}
+      \sum_{k,l=1}^D w_k w_l\binom{k+l}{k}
+      [x^{D-k}y^{D-l}](F-1)^s.
+
+.. prf:proof::
+
+   Fix vertex 1 and write :math:`\alpha=(k,u)` and
+   :math:`\beta=(l,v)`. By :prf:ref:`cor-skeleton-vertex`, their propagated
+   errors are :math:`w_k/\prod_j(u_j+1)` and
+   :math:`w_l/\prod_j(v_j+1)`. The full Gram entry is
+
+   .. math::
+
+      G_{\alpha\beta}=\frac{(D!)^2}{(M)_{2D}}
+      \binom{k+l}{k}\prod_{j=1}^{M-1}\binom{u_j+v_j}{u_j}.
+
+   Summing over :math:`|u|=D-k` and :math:`|v|=D-l` gives exactly
+   :math:`K_{M-1}(D-k,D-l)`. The vertex Gram block is 1. The
+   :math:`M` equal vertex contributions and the allocation factor
+   :math:`\binom M1=M` give the factor :math:`M^2` in
+   :eq:`skeleton-vertex-double-sum`.
+
+   Integrating :math:`(1-x-y)^{-1}` formally once in each variable gives
+   the displayed expression for :math:`xyF`. Finally expand
+   :math:`F^{M-1}=(1+(F-1))^{M-1}`. Since :math:`F-1` has no constant
+   term, its power :math:`s` cannot contribute above :math:`s=p+q`.
+   Here :math:`p+q\leq2D-2`, which proves
+   :eq:`skeleton-vertex-polynomial`, including the degree bound. The
+   coefficient extraction uses a polynomial of bounded degree for every
+   fixed :math:`D`; it requires no propagation matrices or inverses.
+
 Fixed degree, growing dimension
 -------------------------------
 
@@ -768,10 +828,42 @@ Open questions
   :math:`D = 3, \dots, 6` acquire large prime factors, such as
   :math:`81259 = 23 \cdot 3533`. This suggests that no single
   hypergeometric term gives them.
-- **A simpler form of a_0 for finite M ≥ 3.** :prf:ref:`cor-skeleton-vertex`
-  makes :math:`a_0` an explicit finite double sum over pairs of controls, for
-  example :math:`41/280, 79/1120, 1189/30800` for :math:`M = 3` and
-  :math:`D = 3, 4, 5`. A closed form without the sum is not known.
+- **A simpler form of a_0 for finite M ≥ 3.**
+  :eq:`skeleton-vertex-double-sum` reduces the control-pair sum to a
+  :math:`D\times D` sum with an explicit generating function. For example
+  it gives :math:`41/280,79/1120,1189/30800` at :math:`M=3` and
+  :math:`D=3,4,5`. :eq:`skeleton-vertex-polynomial` gives every fixed-degree
+  polynomial, but a scalar closed form in :math:`D`, or a linear
+  recurrence in :math:`D` of bounded order, remains open even for
+  :math:`M=3`.
+
+  Two simplification attempts give the following concrete partial results.
+  Removing the factors :math:`(p+1)^{-1}(q+1)^{-1}` from :math:`F`
+  would give :math:`(1-x-y)^{-1}`, whose powers have coefficients
+  :math:`(r)_{p+q}/(p!q!)` by Vandermonde convolution. Keeping these
+  factors instead gives the logarithmic generating function above;
+  the same unweighted convolution therefore does not evaluate
+  :math:`K_r`.
+
+  For :math:`M=3`, the boundary coefficient can be simplified by partial
+  fractions:
+
+  .. math::
+
+     K_2(p,0)=\sum_{j=0}^p\frac{1}{(j+1)(p-j+1)}
+       =\frac{2H_{p+1}}{p+2},\qquad
+     H_n=\sum_{j=1}^n\frac1j.
+
+  Indeed the summand is
+  :math:`((j+1)^{-1}+(p-j+1)^{-1})/(p+2)`.
+  Gosper summation of this summand with symbolic :math:`p` returns no
+  hypergeometric antidifference (SymPy ``gosper_sum`` returns ``None``).
+  This limits that direct indefinite-summation attempt; it does not rule
+  out a definite-sum identity or creative telescoping. The boundary
+  identity only evaluates terms with :math:`k=D` or :math:`l=D` in
+  :eq:`skeleton-vertex-double-sum`; interior coefficients still involve
+  both variables. No WZ certificate or bounded-order recurrence is
+  asserted.
 - **Exact crossover dimensions for every degree.**
   :prf:ref:`cor-skeleton-large-dimension` shows that a crossover dimension
   exists for every :math:`D`, and :prf:ref:`prop-skeleton-wins` determines it
