@@ -20,7 +20,7 @@ conda --version
 conda env list
 "$PY" --version
 "$PY" -c "import torch_bsf; print(torch_bsf.__file__)"
-for m in torch lightning mlflow scipy sklearn matplotlib pytest pytest_cov pytest_randomly pytest_benchmark mypy ruff pre_commit sphinx sphinx_rtd_theme sphinx_design sphinxcontrib.bibtex; do
+for m in torch lightning mlflow scipy sklearn matplotlib pytest pytest_cov diff_cover pytest_randomly pytest_benchmark mypy ruff pre_commit sphinx sphinx_rtd_theme sphinx_design sphinxcontrib.bibtex; do
   "$PY" -c "import $m" 2>/dev/null && echo "ok $m" || echo "MISSING $m"
 done
 test -f "$(git rev-parse --git-path hooks)/pre-commit" && echo "ok git hook" || echo "MISSING git hook"

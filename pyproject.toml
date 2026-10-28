@@ -77,6 +77,7 @@ develop = [
   "ruff",
   "pytest",
   "pytest-cov",
+  "diff-cover",
   "pytest-randomly",
   "pytest-benchmark",
   "hypothesis",
