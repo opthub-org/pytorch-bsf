@@ -1,0 +1,80 @@
+{
+  "torch_version": "2.10.0",
+  "dtype": "float64",
+  "device": "cpu",
+  "optimizer_seed": 7,
+  "degree": {
+    "seed": 17,
+    "fold_seed": 7,
+    "folds": 3,
+    "degrees": [
+      1,
+      2,
+      3,
+      5,
+      9
+    ],
+    "pooled_mse": [
+      0.1685755613149414,
+      0.012608201807272885,
+      0.018651303712199523,
+      0.040981579713638576,
+      111.87196875531528
+    ]
+  },
+  "sampling": {
+    "seed": 7,
+    "random_n": 64,
+    "sobol_n": 64,
+    "grid_resolution": 10,
+    "grid_n": 66
+  },
+  "fixed": {
+    "before_data_mse": 0.0076927464145320245,
+    "after_data_mse": 0.009347639847809435
+  },
+  "scaling": {
+    "max_prediction_difference": 1.0231815394945443e-12
+  },
+  "subdivision": {
+    "fraction": 0.4,
+    "maximum_errors": [
+      3.3306690738754696e-16,
+      4.440892098500626e-16
+    ]
+  },
+  "before acquisition": {
+    "test_mse": 0.0005100424199752305
+  },
+  "after querying exact target": {
+    "test_mse": 0.000547428813651081
+  },
+  "acquisition": {
+    "fold_seed": 7,
+    "candidates": 200,
+    "committee_x": [
+      0.999,
+      0.9939849246231156,
+      0.9889698492462311
+    ],
+    "coverage_x": [
+      0.8986984924623116,
+      0.2768291457286432,
+      0.7231708542713567
+    ]
+  },
+  "initial_0": {
+    "status": "gradient_tolerance",
+    "iterations": 90,
+    "objective": 5.758369067320986e-19
+  },
+  "initial_2": {
+    "status": "gradient_tolerance",
+    "iterations": 97,
+    "objective": 6.938800133808272e-19
+  },
+  "topology": {
+    "independent_seam_gap": 0.16000000000000147,
+    "joined_seam_gap": 0.0
+  }
+}
