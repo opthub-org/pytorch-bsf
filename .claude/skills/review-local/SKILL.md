@@ -35,12 +35,15 @@ For a change limited to docs, skills or CI, the "always" set may drop `review-co
 
 ```bash
 BASE=origin/master             # or the base ref given in the arguments
+PY="$(conda info --base)/envs/pytorch-bsf/bin/python"
+(PYTHONPATH=. "$PY" -c "import torch_bsf, pytest, mypy, ruff, diff_cover; print(torch_bsf.__file__)")  # must print a path in this worktree
 git fetch origin
 git status --porcelain          # must print nothing: reviewers read HEAD
 git diff "$BASE"...HEAD --stat
 ```
 
 - The worktree must be clean: commit the branch, and remove or move out untracked files (or review in a fresh worktree of the branch). Reviewers see `git diff $BASE...HEAD`, but their `PYTHONPATH=.` experiments and pytest runs would also import or collect untracked modules, tests or `conftest.py` files that the PR will not contain.
+- If the environment check fails, follow the `setup-env` skill first: the reviewers need `$PY` for their experiments, pytest and patch coverage.
 - Create a scratch directory (`<scratchpad>/review-<issue number>`, or the branch name with `/` replaced by `-`), and write `context.md` there with: the repository path, the base ref, the branch, the issue number, title and full body (`gh issue view <N> -R opthub-org/pytorch-bsf --json title,body,comments`), and one paragraph on what the change intends. Without an issue, describe the intent and acceptance criteria yourself.
 - Choose the aspects from the table using `git diff --stat` and the content of the diff.
 
