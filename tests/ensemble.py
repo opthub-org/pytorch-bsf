@@ -80,3 +80,16 @@ def test_constant_fit_does_not_mistake_squared_underflow_for_exactness():
         rtol=8 * torch.finfo(torch.float64).eps,
     )
     assert result.control_result is not None
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_cancelling_extreme_mean_scaled_loss_has_finite_gradients(dtype):
+    maximum = torch.finfo(dtype).max
+    space = BezierSpace.simplex(0, degree=0)
+    models = [BezierModel(space, torch.tensor([[x]], dtype=dtype)) for x in [maximum, -maximum]]
+    ensemble = Ensemble(models)
+    prediction = ensemble(torch.empty((1, 0), dtype=dtype))
+    assert prediction.item() == 0
+    (2 * prediction.sum()).backward()
+    for member in ensemble.models:
+        torch.testing.assert_close(member.coefficients.grad, torch.ones((1, 1), dtype=dtype), atol=0, rtol=0)
