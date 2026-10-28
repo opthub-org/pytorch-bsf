@@ -165,7 +165,7 @@ def _gradient(value: torch.Tensor, coefficients: torch.Tensor) -> torch.Tensor:
 
 def _update(coefficients: torch.Tensor, free: torch.Tensor, alpha: float, direction: torch.Tensor) -> None:
     with torch.no_grad():
-        updated = coefficients[free] - alpha * direction
+        updated = (coefficients[free].double() - alpha * direction.double()).to(coefficients)
         if not torch.isfinite(updated).all():
             raise ArithmeticError("optimization update produced non-finite coefficients.")
         coefficients[free] = updated
@@ -195,7 +195,8 @@ def minimize(
     method
         Typed preconditioned SGD settings, independent of Lightning. Float16
         and bfloat16 initial models are copied and promoted to float32 on the
-        same device for basis evaluation, gradients and supported metric solves.
+        same device for basis evaluation and gradients. Metric solves and update
+        arithmetic use float64 before casting back to the model dtype.
         The returned model then has float32 coefficients.
     points
         Fixed samples. Otherwise draw ``n_samples`` with the stated cell weights.
@@ -253,8 +254,8 @@ def minimize(
         regularizer[i, j] -= penalty.smoothness
         regularizer[j, i] -= penalty.smoothness
     cpu_free = free.cpu()
-    metric = metric[cpu_free][:, cpu_free].to(p)
-    regularizer = regularizer[cpu_free][:, cpu_free].to(p)
+    metric = metric[cpu_free][:, cpu_free].to(device=p.device)
+    regularizer = regularizer[cpu_free][:, cpu_free].to(device=p.device)
     generator = _generator(None if seed is None else seed + 1)
     history: list[Iteration] = []
     success, status, message = False, "iteration_limit", "Iteration budget exhausted; convergence was not established."
@@ -275,7 +276,7 @@ def minimize(
             status, message = "callback_stop", "Stopped by callback; convergence was not established."
             break
         alpha = method.step_size / math.sqrt(k + 1) if method.step_decay == "sqrt" else method.step_size
-        direction = torch.linalg.solve(metric + 2 * alpha * regularizer, gradient[free])
+        direction = torch.linalg.solve(metric + 2 * alpha * regularizer, gradient[free].double())
         _update(p, free, alpha, direction)
     final = _objective(fitted, loss, batch, penalty).item()
     result = OptimizationResult(fitted, tuple(history), success, status, message, final, len(history), seed)

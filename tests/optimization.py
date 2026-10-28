@@ -224,3 +224,22 @@ def test_smoothness_with_unrepresentable_difference():
     )
     # The half-difference is 1e308; a power-of-two rescale introduces no rounding.
     assert result.objective == (1e308 * 1e-320) * 1e308 * 4
+
+
+@pytest.mark.parametrize("preconditioner,expected_ratio", [("none", 1 / 3), ("gram", 1 / 5)])
+def test_float32_large_ridge_keeps_representable_update(preconditioner, expected_ratio):
+    space = BezierSpace.simplex(1, degree=1)
+    initial = BezierModel(space, torch.full((2, 1), 1e-30, dtype=torch.float32))
+    with pytest.warns(ConvergenceWarning):
+        result = minimize(
+            initial,
+            lambda y, p: y[:, 0] * 0,
+            points=grid(space, 4),
+            penalty=QuadraticPenalty(ridge=1e40),
+            method=PreconditionedSGD(max_iter=1, step_size=1e-40, preconditioner=preconditioner),
+        )
+    # Uniform coefficients are an eigenvector of the degree-one Gram with
+    # eigenvalue 1/2; identity has eigenvalue 1. Six float32 gradient/update
+    # roundings plus float64 solve roundoff are bounded by 32u32.
+    torch.testing.assert_close(result.model.coefficients, initial.coefficients * expected_ratio, rtol=32 * 2**-24, atol=0)
+    assert result.model.coefficients.dtype == torch.float32
