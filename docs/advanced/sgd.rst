@@ -557,6 +557,13 @@ final full objective for final-state reporting and history for optimization
 dynamics. Compute held-out losses separately; they are not automatically
 included in ``OptimizationResult``.
 
+Numerical failures raise ``ArithmeticError`` when the combined objective,
+gradient or coefficient update is non-finite, including all-fixed and callback
+stops. A loss returning non-finite individual values raises ``ValueError``.
+Zero-weight penalties are skipped; active penalties scale coefficients before
+squaring so representable small-weight penalties avoid intermediate overflow.
+Rescale the model, loss or step size when a result remains unrepresentable.
+
 .. figure:: ../_static/guides/initialization.png
    :width: 100%
    :alt: Initial constant curves, optimized quadratic curves and their full-batch loss histories.

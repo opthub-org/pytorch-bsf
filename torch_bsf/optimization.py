@@ -111,12 +111,25 @@ def _objective(model: BezierModel, loss: Loss, points: Points, penalty: Quadrati
     if values.shape != (len(points),) or not torch.isfinite(values).all():
         raise ValueError("loss must return one finite value per sample.")
     coefficients = model.coefficients
-    edges = model.space.adjacency().to(coefficients.device)
-    return (
-        values.mean()
-        + penalty.ridge * coefficients.square().sum()
-        + penalty.smoothness * (coefficients[edges[:, 0]] - coefficients[edges[:, 1]]).square().sum()
-    )
+    objective = values.mean()
+    if not torch.isfinite(objective):
+        # Retry without an overflowing sum; preserve subnormal means on the usual path.
+        objective = (values / len(points)).sum()
+    if penalty.ridge:
+        objective = objective + (coefficients * math.sqrt(penalty.ridge)).square().sum()
+    if penalty.smoothness:
+        edges = model.space.adjacency().to(coefficients.device)
+        differences = coefficients[edges[:, 0]] - coefficients[edges[:, 1]]
+        scale = math.sqrt(penalty.smoothness)
+        if torch.isfinite(differences).all():
+            differences = differences * scale
+        else:
+            scaled = coefficients * scale
+            differences = scaled[edges[:, 0]] - scaled[edges[:, 1]]
+        objective = objective + differences.square().sum()
+    if not torch.isfinite(objective):
+        raise ArithmeticError("loss and penalties produced a non-finite objective.")
+    return objective
 
 
 def _fix_controls(model: BezierModel, fixed: FixedControls | None) -> torch.Tensor:
@@ -136,6 +149,21 @@ def _model_for_optimization(model: BezierModel) -> BezierModel:
     if fitted.coefficients.dtype in (torch.float16, torch.bfloat16):
         fitted = fitted.to(dtype=torch.float32)
     return fitted
+
+
+def _gradient(value: torch.Tensor, coefficients: torch.Tensor) -> torch.Tensor:
+    (gradient,) = torch.autograd.grad(value, coefficients)
+    if not torch.isfinite(gradient).all():
+        raise ArithmeticError("loss produced a non-finite gradient.")
+    return gradient
+
+
+def _update(coefficients: torch.Tensor, free: torch.Tensor, alpha: float, direction: torch.Tensor) -> None:
+    with torch.no_grad():
+        updated = coefficients[free] - alpha * direction
+        if not torch.isfinite(updated).all():
+            raise ArithmeticError("optimization update produced non-finite coefficients.")
+        coefficients[free] = updated
 
 
 def minimize(
@@ -177,6 +205,15 @@ def minimize(
     -------
     OptimizationResult
         Copied model, pre-update history, final full-sample objective and stopping state.
+
+    Raises
+    ------
+    ValueError
+        The loss does not return one finite value per sample.
+    ArithmeticError
+        The combined objective, gradient or coefficient update is non-finite.
+        Zero-weight penalties are not evaluated. Active penalties scale before
+        squaring, but truly unrepresentable results raise on every stopping path.
     """
     fitted = _model_for_optimization(model)
     p = fitted.coefficients
@@ -218,16 +255,14 @@ def minimize(
     for k in range(method.max_iter):
         if method.gradient_tolerance is not None:
             full = _objective(fitted, loss, batch, penalty)
-            (full_grad,) = torch.autograd.grad(full, p)
+            full_grad = _gradient(full, p)
             if full_grad[free].norm().item() <= method.gradient_tolerance:
                 success, status, message = True, "gradient_tolerance", "Full-sample gradient tolerance reached."
                 break
         rows = torch.randperm(len(batch), generator=generator)[: method.batch_size or len(batch)]
         current = batch.take(rows)
         value = _objective(fitted, loss, current, penalty)
-        (gradient,) = torch.autograd.grad(value, p)
-        if not torch.isfinite(gradient).all():
-            raise ArithmeticError("loss produced a non-finite gradient.")
+        gradient = _gradient(value, p)
         record = Iteration(k, value.item(), gradient[free].norm().item())
         history.append(record)
         if callback is not None and callback(record, fitted):
@@ -235,8 +270,7 @@ def minimize(
             break
         alpha = method.step_size / math.sqrt(k + 1) if method.step_decay == "sqrt" else method.step_size
         direction = torch.linalg.solve(metric + 2 * alpha * regularizer, gradient[free])
-        with torch.no_grad():
-            p[free] -= alpha * direction
+        _update(p, free, alpha, direction)
     final = _objective(fitted, loss, batch, penalty).item()
     result = OptimizationResult(fitted, tuple(history), success, status, message, final, len(history), seed)
     if not success and status == "iteration_limit":
