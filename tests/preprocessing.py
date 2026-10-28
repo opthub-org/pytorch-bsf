@@ -201,7 +201,8 @@ def test_std_centered_extreme_offset_preserves_spread():
 @pytest.mark.parametrize("shape", [(), (3,), (0, 1), (1, 0)])
 def test_scalers_reject_non_tabular_or_empty_input(scaler_class, shape):
     values = torch.empty(shape, dtype=torch.float64)
-    with pytest.raises(ValueError, match="nonempty floating tensor.*n_samples, n_features"):
+    kind = "real numeric" if scaler_class is MinMaxScaler else "floating"
+    with pytest.raises(ValueError, match=f"nonempty {kind} tensor.*n_samples, n_features"):
         scaler_class().fit(values)
 
 
@@ -219,3 +220,47 @@ def test_std_rejects_underflowed_deviation_of_varying_column(dtype):
     normalized = scaler.fit_transform(constant)
     torch.testing.assert_close(normalized, torch.zeros_like(constant), atol=0, rtol=0)
     torch.testing.assert_close(scaler.inverse_transform(normalized), constant, atol=0, rtol=0)
+
+
+@pytest.mark.parametrize("integer_dtype", [torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64])
+@pytest.mark.parametrize("default_dtype", [torch.float32, torch.float64])
+def test_minmax_preserves_integer_statistics_and_default_output_dtype(integer_dtype, default_dtype):
+    previous = torch.get_default_dtype()
+    try:
+        torch.set_default_dtype(default_dtype)
+        maximum = torch.iinfo(integer_dtype).max
+        values = torch.tensor([[maximum - 1, 7], [maximum, 7]], dtype=integer_dtype)
+        scaler = MinMaxScaler()
+        normalized = scaler.fit_transform(values)
+        torch.testing.assert_close(normalized, torch.tensor([[0.0, 0.0], [1.0, 0.0]]), atol=0, rtol=0)
+        assert normalized.dtype == default_dtype
+        torch.testing.assert_close(scaler.mins, values[0], atol=0, rtol=0)
+        torch.testing.assert_close(scaler.scales, torch.ones(2, dtype=integer_dtype), atol=0, rtol=0)
+        # Inverse output retains the original floating result semantics; large
+        # offsets can round together in that dtype, even though normalization
+        # preserved their integer difference before division.
+        torch.testing.assert_close(scaler.inverse_transform(normalized), values.to(default_dtype), atol=0, rtol=0)
+    finally:
+        torch.set_default_dtype(previous)
+
+
+@pytest.mark.parametrize("offset", [10**10, torch.iinfo(torch.int64).max - 2])
+def test_minmax_subtracts_large_integer_offsets_before_dividing(offset):
+    values = torch.tensor([[offset + 1], [offset + 2]], dtype=torch.int64)
+    scaler = MinMaxScaler()
+    normalized = scaler.fit_transform(values)
+    expected = torch.tensor([[0.0], [1.0]], dtype=torch.get_default_dtype())
+    torch.testing.assert_close(normalized, expected, atol=0, rtol=0)
+    assert scaler.mins.dtype == scaler.scales.dtype == torch.int64
+
+
+@pytest.mark.parametrize("dtype", [torch.bool, torch.complex64, torch.complex128])
+def test_minmax_still_rejects_unsupported_nonreal_or_boolean_input(dtype):
+    with pytest.raises(ValueError, match="nonempty.*tensor"):
+        MinMaxScaler().fit(torch.ones((2, 1), dtype=dtype))
+
+
+@pytest.mark.parametrize("scaler_class", [StdScaler, QuantileScaler])
+def test_other_scalers_still_require_floating_input(scaler_class):
+    with pytest.raises(ValueError, match="nonempty floating tensor"):
+        scaler_class().fit(torch.tensor([[1], [3]], dtype=torch.int64))

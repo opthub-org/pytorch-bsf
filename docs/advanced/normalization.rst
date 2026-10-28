@@ -181,10 +181,11 @@ how changing output scales changes committee disagreement rankings.
 Extreme finite values
 ---------------------
 
-``MinMaxScaler``, ``StdScaler`` and ``QuantileScaler`` require nonempty finite
-floating input tables. Statistics and transformed outputs must fit the input
-dtype. Standard deviations and quantiles retry with scaled arithmetic when
-ordinary reductions overflow; constant and single-sample columns retain their
+The scalers require nonempty finite input tables. ``StdScaler`` and
+``QuantileScaler`` require floating values; ``MinMaxScaler`` also accepts
+integral tensors. For floating input, statistics and transformed outputs must
+fit the input dtype. Standard deviations and quantiles retry with scaled
+arithmetic when ordinary reductions overflow; constant and single-sample columns retain their
 unit-scale convention. Transforms and inverse transforms also retry a factored
 affine expression when a subtraction or product overflows before cancellation.
 
@@ -210,3 +211,10 @@ A varying column whose nonzero standard deviation rounds to zero also raises
 columns and single samples. Scale tiny original units upward before fitting;
 otherwise substituting a unit standard deviation would silently skip
 standardization of varying data.
+
+For integral ``MinMaxScaler`` input, fitted minima and ranges retain their
+integer dtype. Subtraction happens before true division, preserving adjacent
+integer differences even at large offsets. Normalized values follow PyTorch's
+default floating dtype. Inverse results have floating precision, so adjacent
+large integers can round together in that output dtype. Boolean and complex
+inputs remain unsupported.

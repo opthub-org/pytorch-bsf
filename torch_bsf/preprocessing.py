@@ -13,9 +13,12 @@ def _finite(values: torch.Tensor, name: str) -> torch.Tensor:
     return values
 
 
-def _input(values: torch.Tensor) -> None:
-    if values.ndim != 2 or min(values.shape) < 1 or not values.is_floating_point():
-        raise ValueError("values must be a nonempty floating tensor of shape (n_samples, n_features).")
+def _input(values: torch.Tensor, *, allow_integer: bool = False) -> None:
+    integer = values.dtype in (torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64)
+    valid_dtype = values.is_floating_point() or (allow_integer and integer)
+    if values.ndim != 2 or min(values.shape) < 1 or not valid_dtype:
+        kind = "real numeric" if allow_integer else "floating"
+        raise ValueError(f"values must be a nonempty {kind} tensor of shape (n_samples, n_features).")
     _finite(values, "values")
 
 
@@ -65,9 +68,10 @@ class Scaler(Protocol):
 class MinMaxScaler:
     """Min-max scaler that normalizes values to the [0, 1] range.
 
-    All fitted statistics and returned values must be finite in the input
-    dtype. An unrepresentable fitted range raises ``ValueError``; rescale
-    the original data units first.
+    Floating statistics and returned values must be finite in the input
+    dtype. Integral inputs retain integer statistics and use PyTorch's default
+    floating dtype for normalized values. An unrepresentable floating range
+    raises ``ValueError``; rescale the original data units first.
 
     Attributes
     ----------
@@ -91,7 +95,7 @@ class MinMaxScaler:
         values : torch.Tensor
             Input tensor of shape ``(n_samples, n_features)``.
         """
-        _input(values)
+        _input(values, allow_integer=True)
         mins = values.amin(dim=0)
         maxs = values.amax(dim=0)
         scales = _finite(maxs - mins, "fitted range (max - min)")
