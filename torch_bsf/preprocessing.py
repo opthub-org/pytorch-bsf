@@ -23,7 +23,8 @@ def _transform(values: torch.Tensor, offset: torch.Tensor, scale: torch.Tensor) 
     _finite(values, "values")
     result = (values - offset) / scale
     if not torch.isfinite(result).all():
-        result = values / scale - offset / scale
+        fallback = values / scale - offset / scale
+        result = torch.where(torch.isfinite(result), result, fallback)
     return _finite(result, "transformed values")
 
 
@@ -31,7 +32,8 @@ def _inverse(values: torch.Tensor, offset: torch.Tensor, scale: torch.Tensor) ->
     _finite(values, "values")
     result = values * scale + offset
     if not torch.isfinite(result).all():
-        result = (values + offset / scale) * scale
+        fallback = (values + offset / scale) * scale
+        result = torch.where(torch.isfinite(result), result, fallback)
     return _finite(result, "inverse-transformed values")
 
 
@@ -178,13 +180,19 @@ class StdScaler:
             stds, means = torch.ones_like(values[0]), values[0].clone()
         else:
             stds, means = torch.std_mean(values, dim=0)
-            if (
-                not (torch.isfinite(stds).all() and torch.isfinite(means).all())
-                or ((stds == 0) & (values.amax(0) != values.amin(0))).any()
-            ):
-                unit = values.abs().amax(dim=0).clamp_min(torch.finfo(values.dtype).tiny)
-                stds, means = torch.std_mean(values / unit, dim=0)
-                stds, means = stds * unit, means * unit
+            retry = ~torch.isfinite(stds) | ~torch.isfinite(means) | ((stds == 0) & (values.amax(0) != values.amin(0)))
+            if retry.any():
+                # Center first when differences fit: dividing a large offset
+                # before centering would erase precision in a narrow spread.
+                delta = values - values[0]
+                centered = torch.isfinite(delta).all(dim=0)
+                unit = torch.where(centered, delta.abs().amax(0), values.abs().amax(0))
+                unit = unit.clamp_min(torch.finfo(values.dtype).tiny)
+                normalized = torch.where(centered, delta / unit, values / unit)
+                scaled_stds, scaled_means = torch.std_mean(normalized, dim=0)
+                recovered_means = scaled_means * unit + torch.where(centered, values[0], 0)
+                stds = torch.where(retry, scaled_stds * unit, stds)
+                means = torch.where(retry, recovered_means, means)
         _finite(stds, "fitted standard deviation")
         _finite(means, "fitted mean")
         self.stds = torch.where(stds > 0, stds, torch.ones_like(stds))

@@ -176,3 +176,22 @@ def test_scaler_power_of_two_equivariance(scaler_class, unit):
     torch.testing.assert_close(transformed, base, atol=16 * U, rtol=16 * U)
     restored = scaler.inverse_transform(transformed) / unit
     torch.testing.assert_close(restored, values, atol=16 * U, rtol=16 * U)
+
+
+def test_mixed_columns_retry_only_nonfinite_affine_results():
+    scaler = MinMaxScaler()
+    scaler.mins = torch.tensor([-1e308, 1e308], dtype=torch.float64)
+    scaler.scales = torch.tensor([1e308, 1e-300], dtype=torch.float64)
+    z = torch.tensor([[2.0, 1.0]], dtype=torch.float64)
+    restored = scaler.inverse_transform(z)
+    torch.testing.assert_close(restored, torch.tensor([[1e308, 1e308]], dtype=torch.float64), atol=0, rtol=0)
+
+
+def test_std_centered_extreme_offset_preserves_spread():
+    values = torch.tensor([[1e308], [1e308]], dtype=torch.float64)
+    values[1] = torch.nextafter(values[0], torch.tensor(0.0, dtype=torch.float64))
+    scaler = StdScaler()
+    scaler.fit(values)
+    # The two-point sample standard deviation is |x1-x0| / sqrt(2).
+    expected = (values[0] - values[1]) / 2**0.5
+    torch.testing.assert_close(scaler.stds, expected, atol=0, rtol=8 * U)
