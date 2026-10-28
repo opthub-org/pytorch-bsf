@@ -73,10 +73,12 @@ Run all of these and fix every failure:
 "$PY" -m ruff format --check .
 "$PY" -m mypy torch_bsf tests
 "$PY" -m pytest
+git fetch origin master && "$PY" -m diff_cover.diff_cover_tool coverage.xml --compare-branch=origin/master
 "$PY" -m sphinx -b doctest docs docs/_build/doctest
 ```
 
 - Format only the files you changed, to keep the diff clean.
+- `diff_cover` reports the changed lines that no test runs, as the `codecov/patch` check does; cover them with tests.
 - If CLI code (`torch_bsf/__main__.py`, `_cli_args.py`) changed, also run `PATH="$(dirname "$PY"):$PATH" bash examples/quickstart/run.sh`.
 - If docs changed, also run `"$PY" -m sphinx -b html docs docs/_build/html` and check for new warnings.
 - Then walk through each acceptance criterion and confirm it is met with evidence (test name, command output, doc page). An unmet criterion means the work is not done.

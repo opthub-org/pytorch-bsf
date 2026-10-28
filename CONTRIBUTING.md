@@ -72,6 +72,7 @@ The `[develop]` extras include:
 | Package | Purpose |
 |---------|---------|
 | `pytest`, `pytest-cov`, `pytest-randomly` | Running tests |
+| `diff-cover` | Coverage of the lines a branch changes (as `codecov/patch` reports it) |
 | `hypothesis` | Property-based tests |
 | `mypy` + type stubs | Static type checking |
 | `ruff` | Linting, import sorting and code formatting |
@@ -104,6 +105,14 @@ pytest tests/
 ```
 
 All tests should pass.
+
+pytest also writes `coverage.xml`. To see which changed lines the tests miss, as the `codecov/patch`
+check on a PR does, compare it with `master`:
+
+```bash
+git fetch origin master
+diff-cover coverage.xml --compare-branch=origin/master
+```
 
 ### 2. Try the CLI
 
