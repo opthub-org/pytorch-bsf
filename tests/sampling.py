@@ -1,5 +1,6 @@
 import math
 import warnings
+from collections import Counter
 from fractions import Fraction
 from functools import cache
 from itertools import combinations, count
@@ -491,6 +492,134 @@ _RISK_POLYNOMIALS = {
     (5, 2): (Fraction(56700), (45, -930, 9971, -49694, 106152)),
     (5, 3): (Fraction(79833600), (3, -33, 136)),
     (5, 4): (Fraction(3632428800), (1,)),
+    (6, 0): (
+        Fraction(7, 1536),
+        (
+            189,
+            -9765,
+            416010,
+            -9917418,
+            170241981,
+            -1939736421,
+            15319824604,
+            -79461497164,
+            261855225632,
+            -485208011456,
+            394380100608,
+        ),
+    ),
+    (6, 1): (
+        Fraction(63, 40),
+        (4725, -207900, 5933250, -99912240, 1132957965, -8261943780, 38361752764, -100723167440, 118578731904),
+    ),
+    (6, 2): (Fraction(155925), (55, -1925, 38401, -431519, 2952160, -11026484, 18273744)),
+    (6, 3): (Fraction(21621600), (117, -2886, 35695, -208734, 519368)),
+    (6, 4): (Fraction(68108040000), (3, -39, 184)),
+    (6, 5): (Fraction(2964061900800), (1,)),
+    (7, 0): (
+        Fraction(1, 10368),
+        (
+            3969,
+            -277830,
+            16911909,
+            -585892314,
+            15245701191,
+            -274563067842,
+            3631411308511,
+            -34078439471286,
+            227106974533684,
+            -1028193132036840,
+            3014866953859072,
+            -5083595030097792,
+            3804385671687168,
+        ),
+    ),
+    (7, 1): (
+        Fraction(315, 8),
+        (
+            189,
+            -11655,
+            488100,
+            -12550518,
+            229047537,
+            -2894482743,
+            25831659094,
+            -156730040300,
+            621915070424,
+            -1437930406240,
+            1507450665216,
+        ),
+    ),
+    (7, 2): (
+        Fraction(31185, 4),
+        (2475, -128700, 4016430, -76100640, 969732275, -8107098420, 43614175604, -135327928048, 189756997248),
+    ),
+    (7, 3): (Fraction(151351200), (91, -3731, 83699, -1072645, 8358906, -36008544, 68795424)),
+    (7, 4): (Fraction(363242880000), (9, -258, 3607, -24086, 67896)),
+    (7, 5): (Fraction(80029671321600), (3, -45, 238)),
+    (7, 6): (Fraction(3379030566912000), (1,)),
+    (8, 0): (
+        Fraction(1, 1536),
+        (
+            243,
+            -22113,
+            1822905,
+            -86413257,
+            3170012139,
+            -82654759071,
+            1640539616043,
+            -24125599635171,
+            266382561743494,
+            -2157428183555988,
+            12638903353801912,
+            -51381774261439680,
+            137262734136374272,
+            -214224590422872576,
+            149755742713294848,
+        ),
+    ),
+    (8, 1): (
+        Fraction(55, 384),
+        (
+            43659,
+            -3580038,
+            206363619,
+            -7485895494,
+            199202107797,
+            -3823026542874,
+            54535243641473,
+            -568795558812642,
+            4306623724542524,
+            -22811488486847928,
+            80426058871064384,
+            -168310145729971584,
+            161038581507542016,
+        ),
+    ),
+    (8, 2): (
+        Fraction(27027, 16),
+        (
+            19305,
+            -1383525,
+            61604400,
+            -1734571410,
+            34500231285,
+            -483666978405,
+            4831926907690,
+            -33375332254980,
+            152661774969416,
+            -413966621739552,
+            513284796940032,
+        ),
+    ),
+    (8, 3): (
+        Fraction(4729725, 2),
+        (20475, -1228500, 42200550, -891274440, 12638555275, -118800088180, 722231576084, -2559256843376, 4107713331840),
+    ),
+    (8, 4): (Fraction(1543782240000), (17, -799, 19941, -286433, 2496802, -12115512, 26028000)),
+    (8, 5): (Fraction(31678411564800), (171, -5586, 86965, -650590, 2040000)),
+    (8, 6): (Fraction(124179373334016000), (3, -51, 298)),
+    (8, 7): (Fraction(5129368400572416000), (1,)),
 }
 
 
@@ -525,53 +654,81 @@ def _tabulated_coefficient(degree: int, m: int, n_vertices: int) -> Fraction:
     return comb(n_vertices, m + 1) ** 2 * _risk_polynomial(degree, m, n_vertices) / _rising(n_vertices, 2 * degree)
 
 
+def _pair_representatives(
+    weighted: dict[tuple[int, ...], list[Fraction]], face_size: int, group_sizes: tuple[int, ...]
+) -> list[tuple[tuple[int, ...], list[Fraction], int]]:
+    # The stabilizer of a permutes positions with equal outside exponents. Sum one b per such orbit.
+    groups = []
+    start = face_size
+    for size in group_sizes:
+        groups.append(tuple(range(start, start + size)))
+        start += size
+    result = []
+    for b, w in weighted.items():
+        if any(b[i] < b[j] for group in groups for i, j in zip(group, group[1:], strict=False)):
+            continue
+        multiplicity = math.prod(
+            math.factorial(len(group)) // math.prod(math.factorial(c) for c in Counter(b[i] for i in group).values())
+            for group in groups
+        )
+        result.append((b, w, multiplicity))
+    return result
+
+
 def _counted_risk_polynomial(degree: int, m: int) -> list[Fraction]:
     """P_{D,m} by the counting in the proof of the rational dependence on M, lowest power of M first.
 
     The errors from the face I = {0, ..., m} reach controls with at most D - m - 1 vertices outside I, so every class
     of pairs of such controls occurs on a simplex with V = 2D - m - 1 vertices. A class with s vertices outside I
     occurs (M - m - 1)(M - m - 2) ... (M - m - s) / ((V - m - 1) ... (V - m - s)) times as often on M vertices as
-    on V.
+    on V. Propagation reduction constructs E_I from the solve on m + 2 vertices. The pair sum keeps one
+    representative a per orbit of permutations outside I. Its multiplicity is q! / prod_k n_k!, where
+    q = V - m - 1 and n_k counts outside exponents equal to k, including zeros. For fixed a, keep one b per
+    orbit of its stabilizer, multiplying the same multinomial formula within each equal-exponent group.
     """
     n_vertices = 2 * degree - m - 1
     face = tuple(range(m + 1))
-    alpha = _simplex_indices(n_vertices, degree)
-
-    def controls(vertices: tuple[int, ...]) -> list[tuple[int, ...]]:
-        return [a for a in alpha if {i for i, x in enumerate(a) if x} == set(vertices)]
-
-    interior = controls(face)
+    # Propagation reduction: solve on just one extra vertex, then distribute its exponent.
+    local = _simplex_indices(m + 2, degree)
+    interior = [a for a in local if all(a[i] for i in face) and not a[-1]]
+    top = [a for a in local if all(a)]
     n = len(interior)
-    errors = {a: [Fraction(int(i == j)) for j in range(n)] for i, a in enumerate(interior)}
-    for size in range(1, degree - m):
-        for extra in combinations(range(m + 1, n_vertices), size):
-            larger = frozenset(face + extra)
-            top = controls(face + extra)
-            boundary = [b for b in errors if all(b[v] == 0 for v in range(n_vertices) if v not in larger)]
-            g_tt = [[_bernstein_moment(a, b, larger, degree) for b in top] for a in top]
-            rhs = [
-                [
-                    -sum((_bernstein_moment(a, b, larger, degree) * errors[b][j] for b in boundary), Fraction(0))
-                    for j in range(n)
-                ]
-                for a in top
-            ]
-            errors.update(zip(top, _exact_solve(g_tt, rhs), strict=True))
+    g_tt = [[_bernstein_moment(a, b, frozenset(range(m + 2)), degree) for b in top] for a in top]
+    rhs = [[-_bernstein_moment(a, b, frozenset(range(m + 2)), degree) for b in interior] for a in top]
+    local_errors = dict(zip(top, _exact_solve(g_tt, rhs), strict=True))
+    local_errors.update({a: [Fraction(int(i == j)) for j in range(n)] for i, a in enumerate(interior)})
+    errors = {}
+    for a in _simplex_indices(n_vertices, degree):
+        if all(a[i] for i in face):
+            outside = a[m + 1 :]
+            scale = Fraction(sum(outside) + 1, math.prod(x + 1 for x in outside))
+            errors[a] = [scale * e for e in local_errors[a[: m + 1] + (sum(outside),)]]
+    interior = [a[: m + 1] + (0,) * (n_vertices - m - 1) for a in interior]
     g_face = [[_bernstein_moment(a, b, frozenset(face), degree) for b in interior] for a in interior]
     covariance = _exact_solve(g_face, [[Fraction(int(i == j)) for j in range(n)] for i in range(n)])
     weighted = {
         b: [sum((covariance[i][j] * e[j] for j in range(n)), Fraction(0)) for i in range(n)] for b, e in errors.items()
     }
+
+    representatives: dict[tuple[int, ...], list[tuple[tuple[int, ...], list[Fraction], int]]] = {}
     by_outside: dict[int, Fraction] = {}
     for a, e in errors.items():
-        for b, w in weighted.items():
+        outside = a[m + 1 :]
+        if outside != tuple(sorted(outside, reverse=True)):
+            continue
+        # Fix a representative under permutations outside I; summing all b makes the summand invariant.
+        multiplicity = math.factorial(len(outside)) // math.prod(math.factorial(k) for k in Counter(outside).values())
+        groups = tuple(Counter(outside).values())
+        if groups not in representatives:
+            representatives[groups] = _pair_representatives(weighted, m + 1, groups)
+        for b, w, b_multiplicity in representatives[groups]:
             # Times 1 / (M)_{2D}, this is C_{ab} times the Gram entry of a and b on the whole simplex.
             value = sum((x * y for x, y in zip(e, w, strict=True)), Fraction(0)) * Fraction(
                 math.factorial(degree) ** 2 * math.prod(math.factorial(x + y) for x, y in zip(a, b, strict=True)),
                 math.prod(math.factorial(x) for x in a + b),
             )
             s = sum(1 for v in range(m + 1, n_vertices) if a[v] or b[v])
-            by_outside[s] = by_outside.get(s, Fraction(0)) + value
+            by_outside[s] = by_outside.get(s, Fraction(0)) + multiplicity * b_multiplicity * value
     polynomial = [Fraction(0)] * (2 * (degree - m - 1) + 1)
     for s, value in by_outside.items():
         scale = value / math.prod(range(n_vertices - m - s, n_vertices - m))
@@ -586,7 +743,11 @@ def test_risk_polynomial_table_is_the_counting(degree, m):
 
 
 @pytest.mark.parametrize(
-    ("n_vertices", "degree"), [(n, d) for n in range(2, 7) for d in range(1, 5)] + [(n, 5) for n in range(2, 6)]
+    ("n_vertices", "degree"),
+    [(n, d) for n in range(2, 7) for d in range(1, 5)]
+    + [(n, 5) for n in range(2, 6)]
+    + [(n, d) for n in (2, 3) for d in (6, 7, 8)]
+    + [(4, 6)],
 )
 def test_risk_polynomials_match_exact_coefficients(n_vertices, degree):
     # The table comes from counting classes of control pairs; the helper evaluates the definition directly.
@@ -604,7 +765,7 @@ def test_risk_polynomials_match_higher_dimensions(n_vertices, degree):
         assert abs(coefficients[m] - reference) <= (_RISK_RELATIVE_ERROR + U) * reference
 
 
-@pytest.mark.parametrize("degree", range(1, 6))
+@pytest.mark.parametrize("degree", range(1, 9))
 def test_risk_polynomials_match_the_closed_forms(degree):
     for n_vertices in range(degree, 30):
         # Faces with D vertices.
@@ -622,7 +783,7 @@ def test_risk_polynomials_match_the_closed_forms(degree):
         assert _tabulated_coefficient(degree, degree - 2, n_vertices) == second
 
 
-@pytest.mark.parametrize("degree", range(1, 6))
+@pytest.mark.parametrize("degree", range(1, 9))
 def test_risk_polynomial_limits_in_high_dimensions(degree):
     # The degree bound 2(D - m - 1) is attained, so a_m tends to the leading coefficient over (m + 1)!^2.
     limits = []
@@ -770,16 +931,25 @@ def test_degree_two_wins_in_every_dimension():
 
 # Dimensions (vertex counts) in which optimal inductive skeleton fitting does not beat all-at-once least squares, as
 # in the proposition "Where inductive fitting wins".
-_SKELETON_LOSSES = {1: set(), 2: set(), 3: set(range(3, 11)), 4: set(range(3, 20)), 5: set(range(4, 29))}
+_SKELETON_LOSSES = {
+    1: set(),
+    2: set(),
+    3: set(range(3, 11)),
+    4: set(range(3, 20)),
+    5: set(range(4, 29)),
+    6: set(range(4, 39)),
+    7: set(range(4, 49)),
+    8: set(range(5, 60)),
+}
 
 
 def test_skeleton_losses_agree_with_the_documented_table():
-    table = {(n_vertices, degree) for degree in _SKELETON_LOSSES for n_vertices in range(2, 7)}
+    table = {(n_vertices, degree) for degree in _DOCS_OPTIMAL_RISKS for n_vertices in range(2, 7)}
     wins = {(n_vertices, degree) for n_vertices, degree in table if n_vertices not in _SKELETON_LOSSES[degree]}
     assert wins == _DOCS_SKELETON_WINS & table
 
 
-@pytest.mark.parametrize("degree", range(1, 6))
+@pytest.mark.parametrize("degree", range(1, 9))
 def test_skeleton_wins_exactly_where_documented(degree):
     # a_m <= sum |p_i| / (m + 1)!^2 for every M, because C(M, m+1)^2 <= M^(2m+2) / (m+1)!^2, (M)_{2D} >= M^(2D) and
     # P_{D,m} has degree at most 2(D - m - 1).
@@ -793,7 +963,7 @@ def test_skeleton_wins_exactly_where_documented(degree):
     last = next(n for n in count(2) if comb(n + degree - 1, degree) > bound)
     if degree >= 3:
         # The thresholds quoted in the proof.
-        assert last == {3: 55, 4: 111, 5: 190}[degree]
+        assert last == {3: 55, 4: 111, 5: 190, 6: 295, 7: 429, 8: 593}[degree]
     losses = set()
     for n_vertices in range(2, last + 1):
         optimum = sum(math.sqrt(_tabulated_coefficient(degree, m, n_vertices)) for m in range(degree)) ** 2
