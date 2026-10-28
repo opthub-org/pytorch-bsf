@@ -1,0 +1,642 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Command-line reference &mdash; PyTorch-BSF 0.23.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=2753bf86"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Migrating to the unified v0 API" href="migration.html" />
+    <link rel="prev" title="Quickstart" href="quickstart.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Command-line reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#regression-input-and-shared-options">Regression input and shared options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fit">fit</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#header-and-weighted-product-example">Header and weighted product example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#cross-validate">cross-validate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#select-degree">select-degree</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#predict">predict</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#multi-cell-prediction">Multi-cell prediction</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#minimize">minimize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#output-failures-and-saved-files">Output, failures and saved files</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently asked questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">API reference guide</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Command-line reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/cli.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="command-line-reference">
+<h1>Command-line reference<a class="headerlink" href="#command-line-reference" title="Link to this heading"></a></h1>
+<p>Run <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">torch_bsf</span> <span class="pre">COMMAND</span></code> in an environment with PyTorch-BSF installed.
+<code class="docutils literal notranslate"><span class="pre">--help</span></code> works at the top level and on every subcommand. Paths are relative to
+the current working directory. The examples below use Python to create files,
+so they work with either a POSIX shell or PowerShell.</p>
+<nav class="contents local" id="on-this-page">
+<p class="topic-title">On this page</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#regression-input-and-shared-options" id="id7">Regression input and shared options</a></p></li>
+<li><p><a class="reference internal" href="#fit" id="id8">fit</a></p>
+<ul>
+<li><p><a class="reference internal" href="#header-and-weighted-product-example" id="id9">Header and weighted product example</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#cross-validate" id="id10">cross-validate</a></p></li>
+<li><p><a class="reference internal" href="#select-degree" id="id11">select-degree</a></p></li>
+<li><p><a class="reference internal" href="#predict" id="id12">predict</a></p>
+<ul>
+<li><p><a class="reference internal" href="#multi-cell-prediction" id="id13">Multi-cell prediction</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#minimize" id="id14">minimize</a></p></li>
+<li><p><a class="reference internal" href="#output-failures-and-saved-files" id="id15">Output, failures and saved files</a></p></li>
+</ul>
+</nav>
+<section id="regression-input-and-shared-options">
+<h2><a class="toc-backref" href="#id7" role="doc-backlink">Regression input and shared options</a><a class="headerlink" href="#regression-input-and-shared-options" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">fit</span></code>, <code class="docutils literal notranslate"><span class="pre">cross-validate</span></code> and <code class="docutils literal notranslate"><span class="pre">select-degree</span></code> share these options. Every
+subcommand also accepts <code class="docutils literal notranslate"><span class="pre">-h</span></code> / <code class="docutils literal notranslate"><span class="pre">--help</span></code> (print help and exit successfully).</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-number">Table 2 </span><span class="caption-text">Regression options</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 27.0%" />
+<col style="width: 18.0%" />
+<col style="width: 55.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning and constraints</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--params</span> <span class="pre">PATH</span></code></p></td>
+<td><p>Required</p></td>
+<td><p>Numeric comma-separated parameter rows; one observation per row.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--values</span> <span class="pre">PATH</span></code></p></td>
+<td><p>Required</p></td>
+<td><p>Numeric output rows in the same order; at least one output column.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--weights</span> <span class="pre">PATH</span></code></p></td>
+<td><p>Omitted (all ones)</p></td>
+<td><p>One finite nonnegative weight per observation; total must be positive
+and finite. Use a single column. The loader flattens this file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--header</span> <span class="pre">INTEGER</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>Number of initial rows to skip in <strong>all</strong> supplied regression CSVs,
+including weights. It does not select columns by name.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--dimensions</span> <span class="pre">D1,D2,...</span></code></p></td>
+<td><p>Inferred from columns</p></td>
+<td><p>Positive simplex dimensions of product factors, with no spaces inside
+the comma-separated argument. Required width is <code class="docutils literal notranslate"><span class="pre">sum(Di</span> <span class="pre">+</span> <span class="pre">1)</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--degree</span> <span class="pre">INTEGER</span></code></p></td>
+<td><p>Required</p></td>
+<td><p>Nonnegative polynomial degree, applied to every product factor.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--solver</span> <span class="pre">{dense,sparse}</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dense</span></code></p></td>
+<td><p>CPU float64 SVD or optional SciPy LSMR. Install the <code class="docutils literal notranslate"><span class="pre">sparse</span></code> extra for
+LSMR. Tolerances and iteration budgets use solver defaults; the CLI
+does not expose them.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--diagnostics</span> <span class="pre">{basic,full}</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">basic</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">full</span></code> additionally diagnoses the weighted data matrix where needed.
+Only <code class="docutils literal notranslate"><span class="pre">dense</span></code> supports <code class="docutils literal notranslate"><span class="pre">full</span></code>; the sparse/full combination is an error.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--ridge</span> <span class="pre">FLOAT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>Finite nonnegative coefficient penalty strength.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--smoothness</span> <span class="pre">FLOAT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>Finite nonnegative adjacent-control difference penalty strength.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Parameter and value tables must have equal, positive row counts. Values must
+be finite. Each simplex factor uses nonnegative barycentric coordinates that
+sum to one (validation permits small floating-point roundoff). Concatenate
+factor blocks in the order of <code class="docutils literal notranslate"><span class="pre">--dimensions</span></code>. For <code class="docutils literal notranslate"><span class="pre">--dimensions</span> <span class="pre">2,1</span></code>, the
+columns are <code class="docutils literal notranslate"><span class="pre">triangle_0,triangle_1,triangle_2,segment_0,segment_1</span></code>.</p>
+<p>Without <code class="docutils literal notranslate"><span class="pre">--dimensions</span></code>, a table with <code class="docutils literal notranslate"><span class="pre">K</span> <span class="pre">&gt;</span> <span class="pre">1</span></code> columns means a single
+<code class="docutils literal notranslate"><span class="pre">(K-1)</span></code>-dimensional simplex. Four columns therefore do <strong>not</strong> automatically
+describe a square: specify <code class="docutils literal notranslate"><span class="pre">--dimensions</span> <span class="pre">1,1</span></code> and supply two independently
+normalized coordinate pairs. A one-column file instead denotes a constant,
+zero-dimensional domain; its dummy column is ignored. Regression CLI commands
+construct single-cell spaces. Use Python to fit a glued multi-cell space, then
+use <a class="reference internal" href="#cli-predict"><span class="std std-ref">predict</span></a> to evaluate its saved model.</p>
+<p>Weights scale squared residuals, not the coordinates or responses. Zero weights
+exclude observations from fitting metrics; they do not permit missing or
+non-finite values. For validation, each train and test fold must retain positive
+weight. See <a class="reference internal" href="advanced/regularization.html"><span class="doc">Regularization and numerical evidence</span></a> for the objective and diagnostics.</p>
+</section>
+<section id="fit">
+<h2><a class="toc-backref" href="#id8" role="doc-backlink">fit</a><a class="headerlink" href="#fit" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">fit</span></code> solves weighted least squares. In addition to the shared options:</p>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-number">Table 3 </span><span class="caption-text">Fit options</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--save</span> <span class="pre">PATH</span></code></p></td>
+<td><p>Required</p></td>
+<td><p>Model archive destination, independent of its filename extension.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--track</span></code></p></td>
+<td><p>Disabled</p></td>
+<td><p>Log the result using the optional MLflow integration. Requires the
+<code class="docutils literal notranslate"><span class="pre">mlflow</span></code> extra; merely installing MLflow does not enable tracking.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--tracking-uri</span> <span class="pre">URI</span></code></p></td>
+<td><p>MLflow configuration</p></td>
+<td><p>Explicit tracking URI; requires <code class="docutils literal notranslate"><span class="pre">--track</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+<section id="header-and-weighted-product-example">
+<h3><a class="toc-backref" href="#id9" role="doc-backlink">Header and weighted product example</a><a class="headerlink" href="#header-and-weighted-product-example" title="Link to this heading"></a></h3>
+<p>Run this Python code in a fresh working directory. It writes a square’s four
+corners and center, a scalar response <code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">+</span> <span class="pre">2*y</span></code>, and matching weights. All
+three training files have one header row:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="n">Path</span><span class="p">(</span><span class="s2">"params.csv"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span>
+    <span class="s2">"u0,u1,v0,v1</span><span class="se">\n</span><span class="s2">1,0,1,0</span><span class="se">\n</span><span class="s2">0,1,1,0</span><span class="se">\n</span><span class="s2">1,0,0,1</span><span class="se">\n</span><span class="s2">0,1,0,1</span><span class="se">\n</span><span class="s2">0.5,0.5,0.5,0.5</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+    <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">Path</span><span class="p">(</span><span class="s2">"values.csv"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="s2">"response</span><span class="se">\n</span><span class="s2">0</span><span class="se">\n</span><span class="s2">1</span><span class="se">\n</span><span class="s2">2</span><span class="se">\n</span><span class="s2">3</span><span class="se">\n</span><span class="s2">1.5</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+<span class="n">Path</span><span class="p">(</span><span class="s2">"weights.csv"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="s2">"weight</span><span class="se">\n</span><span class="s2">1</span><span class="se">\n</span><span class="s2">1</span><span class="se">\n</span><span class="s2">1</span><span class="se">\n</span><span class="s2">1</span><span class="se">\n</span><span class="s2">4</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+<span class="n">Path</span><span class="p">(</span><span class="s2">"query.csv"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="s2">"0.75,0.25,0.5,0.5</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m torch_bsf fit --params params.csv --values values.csv --weights weights.csv --header 1 --dimensions 1,1 --degree 1 --save square.bsf</span>
+<span class="go">python -m torch_bsf predict --model square.bsf --params query.csv --save prediction.csv</span>
+</pre></div>
+</div>
+<p>The prediction file contains one numeric value, approximately <code class="docutils literal notranslate"><span class="pre">1.25</span></code>.
+Prediction input has <strong>no header</strong>; <code class="docutils literal notranslate"><span class="pre">predict</span></code> has no <code class="docutils literal notranslate"><span class="pre">--header</span></code> option.</p>
+</section>
+</section>
+<section id="cross-validate">
+<h2><a class="toc-backref" href="#id10" role="doc-backlink">cross-validate</a><a class="headerlink" href="#cross-validate" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">cross-validate</span></code> uses the shared regression options and the following options:</p>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-number">Table 4 </span><span class="caption-text">Validation options (also used by select-degree)</span><a class="headerlink" href="#id3" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--folds</span> <span class="pre">INTEGER</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">5</span></code></p></td>
+<td><p>Number of shuffled folds, at least two and at most the observation count.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--seed</span> <span class="pre">INTEGER</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>Local random seed for reproducible splits.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Using the files above:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m torch_bsf cross-validate --params params.csv --values values.csv --weights weights.csv --header 1 --dimensions 1,1 --degree 1 --folds 3 --seed 7</span>
+</pre></div>
+</div>
+<p>The JSON contains <code class="docutils literal notranslate"><span class="pre">success</span></code>, aggregate <code class="docutils literal notranslate"><span class="pre">metrics</span></code> (<code class="docutils literal notranslate"><span class="pre">mean_mse</span></code>, <code class="docutils literal notranslate"><span class="pre">std_mse</span></code>,
+<code class="docutils literal notranslate"><span class="pre">pooled_mse</span></code>), and <code class="docutils literal notranslate"><span class="pre">folds</span></code>. Each fold includes zero-based <code class="docutils literal notranslate"><span class="pre">train</span></code> and
+<code class="docutils literal notranslate"><span class="pre">test</span></code> row indices after header removal, held-out <code class="docutils literal notranslate"><span class="pre">mse</span></code> / <code class="docutils literal notranslate"><span class="pre">mae</span></code> metrics,
+and solver <code class="docutils literal notranslate"><span class="pre">status</span></code>. No model is saved, and there is no <code class="docutils literal notranslate"><span class="pre">--save</span></code> option.</p>
+</section>
+<section id="select-degree">
+<h2><a class="toc-backref" href="#id11" role="doc-backlink">select-degree</a><a class="headerlink" href="#select-degree" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">select-degree</span></code> adds required <code class="docutils literal notranslate"><span class="pre">--degrees</span> <span class="pre">INTEGER</span> <span class="pre">[INTEGER</span> <span class="pre">...]</span></code> to the shared
+regression and validation options. Candidates are nonnegative integers, each
+applied to every product factor. <code class="docutils literal notranslate"><span class="pre">--degree</span></code> is still required to construct
+the initial space; it does not restrict the candidate list.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m torch_bsf select-degree --params params.csv --values values.csv --weights weights.csv --header 1 --dimensions 1,1 --degree 1 --degrees 0 1 --folds 3 --seed 7 &gt; selection.json</span>
+</pre></div>
+</div>
+<p>The JSON contains <code class="docutils literal notranslate"><span class="pre">success</span></code>, <code class="docutils literal notranslate"><span class="pre">best_degree</span></code> and <code class="docutils literal notranslate"><span class="pre">candidates</span></code> (each with
+<code class="docutils literal notranslate"><span class="pre">degree</span></code> and validation <code class="docutils literal notranslate"><span class="pre">metrics</span></code>). All candidates use identical splits.
+The eligible candidate with smallest pooled held-out MSE wins; input order
+breaks exact ties. Failed candidates remain visible but cannot win. If none
+is eligible, <code class="docutils literal notranslate"><span class="pre">best_degree</span></code> is <code class="docutils literal notranslate"><span class="pre">null</span></code> and the exit code is 1.</p>
+<p>Selection does not refit or save a model. Read <code class="docutils literal notranslate"><span class="pre">best_degree</span></code> from the report,
+then explicitly fit that degree on all observations. This Python snippet runs
+the refit without shell-specific JSON processing:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="n">selection</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">"selection.json"</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">))</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">selection</span><span class="p">[</span><span class="s2">"success"</span><span class="p">]:</span>
+    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">"No candidate passed validation"</span><span class="p">)</span>
+<span class="n">refit</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">executable</span><span class="p">,</span> <span class="s2">"-m"</span><span class="p">,</span> <span class="s2">"torch_bsf"</span><span class="p">,</span> <span class="s2">"fit"</span><span class="p">,</span>
+    <span class="s2">"--params"</span><span class="p">,</span> <span class="s2">"params.csv"</span><span class="p">,</span> <span class="s2">"--values"</span><span class="p">,</span> <span class="s2">"values.csv"</span><span class="p">,</span>
+    <span class="s2">"--weights"</span><span class="p">,</span> <span class="s2">"weights.csv"</span><span class="p">,</span> <span class="s2">"--header"</span><span class="p">,</span> <span class="s2">"1"</span><span class="p">,</span> <span class="s2">"--dimensions"</span><span class="p">,</span> <span class="s2">"1,1"</span><span class="p">,</span>
+    <span class="s2">"--degree"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">selection</span><span class="p">[</span><span class="s2">"best_degree"</span><span class="p">]),</span> <span class="s2">"--save"</span><span class="p">,</span> <span class="s2">"selected.bsf"</span><span class="p">,</span>
+<span class="p">],</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="predict">
+<span id="cli-predict"></span><h2><a class="toc-backref" href="#id12" role="doc-backlink">predict</a><a class="headerlink" href="#predict" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">predict</span></code> reads the saved space and coefficients; it accepts none of the
+shared regression options except <code class="docutils literal notranslate"><span class="pre">--params</span></code>.</p>
+<table class="docutils align-default" id="id4">
+<caption><span class="caption-number">Table 5 </span><span class="caption-text">Prediction options</span><a class="headerlink" href="#id4" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--model</span> <span class="pre">PATH</span></code></p></td>
+<td><p>Required</p></td>
+<td><p>Saved model archive.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--params</span> <span class="pre">PATH</span></code></p></td>
+<td><p>Required</p></td>
+<td><p>Headerless numeric CSV of barycentric coordinates.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--cell-ids</span> <span class="pre">PATH</span></code></p></td>
+<td><p>Omitted</p></td>
+<td><p>Headerless single column of integer cell IDs, one per parameter row.
+Required for a multi-cell model; optional for a single-cell model.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--save</span> <span class="pre">PATH</span></code></p></td>
+<td><p>Required</p></td>
+<td><p>Headerless numeric CSV destination, one row per input and one column per
+model output. Row order is preserved; values use NumPy scientific notation.</p></td>
+</tr>
+</tbody>
+</table>
+<section id="multi-cell-prediction">
+<h3><a class="toc-backref" href="#id13" role="doc-backlink">Multi-cell prediction</a><a class="headerlink" href="#multi-cell-prediction" title="Link to this heading"></a></h3>
+<p>Create a model in Python before invoking the CLI. This example uses a segment
+and a triangle with constant outputs <code class="docutils literal notranslate"><span class="pre">3</span></code> and <code class="docutils literal notranslate"><span class="pre">7</span></code>, respectively, so that
+cell routing and padding can be checked independently of fitting:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierModel</span><span class="p">,</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">Points</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.geometry</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimploidalSet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">save_model</span>
+
+<span class="n">domain</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">segment</span> <span class="o">=</span> <span class="n">domain</span><span class="o">.</span><span class="n">add_simplex</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">triangle</span> <span class="o">=</span> <span class="n">domain</span><span class="o">.</span><span class="n">add_simplex</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">on_set</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">coefficients</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">space</span><span class="o">.</span><span class="n">n_controls</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mf">7.</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="n">coefficients</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">space</span><span class="o">.</span><span class="n">cells</span><span class="p">[</span><span class="n">space</span><span class="o">.</span><span class="n">cell_id</span><span class="p">(</span><span class="n">segment</span><span class="p">)]</span><span class="o">.</span><span class="n">controls</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">3.</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">BezierModel</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">)</span>
+<span class="n">save_model</span><span class="p">(</span><span class="s2">"multi.bsf"</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+<span class="n">points</span> <span class="o">=</span> <span class="n">Points</span><span class="o">.</span><span class="n">from_cells</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="p">[</span>
+    <span class="p">(</span><span class="n">segment</span><span class="p">,</span> <span class="p">[[</span><span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">]]),</span>
+    <span class="p">(</span><span class="n">triangle</span><span class="p">,</span> <span class="p">[[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]]),</span>
+<span class="p">])</span>
+<span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="s2">"multi-params.csv"</span><span class="p">,</span> <span class="n">points</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">","</span><span class="p">)</span>
+<span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="s2">"cells.csv"</span><span class="p">,</span> <span class="n">points</span><span class="o">.</span><span class="n">cell_ids</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">fmt</span><span class="o">=</span><span class="s2">"</span><span class="si">%d</span><span class="s2">"</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">","</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">multi-params.csv</span></code> contains rows <code class="docutils literal notranslate"><span class="pre">0.25,0.75,0</span></code> and <code class="docutils literal notranslate"><span class="pre">0.2,0.3,0.5</span></code>. The
+segment row is padded to the saved space width, three columns. Only the active
+coordinates for the selected cell are evaluated. Use zero padding for portable
+files. Resolve IDs with <code class="docutils literal notranslate"><span class="pre">space.cell_id(handle)</span></code> or export <code class="docutils literal notranslate"><span class="pre">Points.cell_ids</span></code>
+as above: compiled IDs include faces and need not equal builder insertion order.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m torch_bsf predict --model multi.bsf --params multi-params.csv --cell-ids cells.csv --save multi-prediction.csv</span>
+</pre></div>
+</div>
+<p>This writes two rows, approximately <code class="docutils literal notranslate"><span class="pre">3</span></code> and <code class="docutils literal notranslate"><span class="pre">7</span></code>. Omitting <code class="docutils literal notranslate"><span class="pre">--cell-ids</span></code> for this
+model is an input error, even when all requested cells have the same width.</p>
+</section>
+</section>
+<section id="minimize">
+<h2><a class="toc-backref" href="#id14" role="doc-backlink">minimize</a><a class="headerlink" href="#minimize" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">minimize</span></code> optimizes a copied initial model using simplex-weighted objectives.
+It accepts the following options, and none of the shared regression options:</p>
+<table class="docutils align-default" id="id5">
+<caption><span class="caption-number">Table 6 </span><span class="caption-text">Minimization options</span><a class="headerlink" href="#id5" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--init</span> <span class="pre">PATH</span></code></p></td>
+<td><p>Required</p></td>
+<td><p>Initial saved model.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--objective</span> <span class="pre">MODULE:FUNCTION</span></code></p></td>
+<td><p>Required</p></td>
+<td><p>Importable differentiable vector objective; see shape contract below.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--save</span> <span class="pre">PATH</span></code></p></td>
+<td><p>Required</p></td>
+<td><p>Destination for the returned model, including after iteration exhaustion.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--max-iter</span> <span class="pre">INTEGER</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">100</span></code></p></td>
+<td><p>Positive number of updates.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--step-size</span> <span class="pre">FLOAT</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.05</span></code></p></td>
+<td><p>Finite positive constant step size.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--n-samples</span> <span class="pre">INTEGER</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">100</span></code></p></td>
+<td><p>Positive number of fixed domain samples used for optimization.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--seed</span> <span class="pre">INTEGER</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>Local seed for samples and update ordering.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Save an initial segment model and write the objective module into the working
+directory using Python:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierModel</span><span class="p">,</span> <span class="n">BezierSpace</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">save_model</span>
+
+<span class="n">initial</span> <span class="o">=</span> <span class="n">BezierModel</span><span class="p">(</span><span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="p">[[</span><span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.</span><span class="p">]])</span>
+<span class="n">save_model</span><span class="p">(</span><span class="s2">"initial.bsf"</span><span class="p">,</span> <span class="n">initial</span><span class="p">)</span>
+<span class="n">Path</span><span class="p">(</span><span class="s2">"objectives.py"</span><span class="p">)</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span>
+    <span class="s2">"import torch</span><span class="se">\n\n</span><span class="s2">"</span>
+    <span class="s2">"def costs(values):</span><span class="se">\n</span><span class="s2">"</span>
+    <span class="s2">"    x = values[:, 0]</span><span class="se">\n</span><span class="s2">"</span>
+    <span class="s2">"    return torch.stack((x.square(), (x - 1).square()), dim=1)</span><span class="se">\n</span><span class="s2">"</span><span class="p">,</span>
+    <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m torch_bsf minimize --init initial.bsf --objective objectives:costs --save optimized.bsf --max-iter 20 --step-size 0.05 --n-samples 100 --seed 0</span>
+</pre></div>
+</div>
+<p>The module must be on Python’s import path (the current directory works for
+this command). <code class="docutils literal notranslate"><span class="pre">costs</span></code> receives predicted values with shape
+<code class="docutils literal notranslate"><span class="pre">(n_samples,</span> <span class="pre">n_outputs)</span></code> and returns differentiable finite objective values
+with shape <code class="docutils literal notranslate"><span class="pre">(n_samples,</span> <span class="pre">dimension</span> <span class="pre">+</span> <span class="pre">1)</span></code> for a simplex of that dimension.
+Here one predicted scalar produces two competing costs, matching the segment’s
+two barycentric coordinates. The CLI wraps the function with
+<code class="docutils literal notranslate"><span class="pre">linear_scalarization</span></code> and minimizes <code class="docutils literal notranslate"><span class="pre">sum_i</span> <span class="pre">coordinate_i</span> <span class="pre">*</span> <span class="pre">cost_i</span></code> per row.
+Keep operations in PyTorch to preserve gradients.</p>
+<p>This callable takes <strong>one</strong> argument; the Python API’s general
+<code class="docutils literal notranslate"><span class="pre">loss(values,</span> <span class="pre">points)</span></code> takes two. Ordinary product coordinates have one
+normalization per factor and do not satisfy the scalarization’s single-simplex
+sum/shape requirement. Use the Python API with an explicit loss for those
+domains or for custom stopping criteria.</p>
+<p>The CLI sets an iteration budget without a gradient tolerance. Consequently
+this example returns <code class="docutils literal notranslate"><span class="pre">success:</span> <span class="pre">false</span></code>, <code class="docutils literal notranslate"><span class="pre">status:</span> <span class="pre">&quot;iteration_limit&quot;</span></code>, exit
+code 1, and a <code class="docutils literal notranslate"><span class="pre">ConvergenceWarning</span></code> on stderr, even if the objective decreased.
+It still saves <code class="docutils literal notranslate"><span class="pre">optimized.bsf</span></code>. Inspect the report before deciding to use it.</p>
+</section>
+<section id="output-failures-and-saved-files">
+<h2><a class="toc-backref" href="#id15" role="doc-backlink">Output, failures and saved files</a><a class="headerlink" href="#output-failures-and-saved-files" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">fit</span></code>, <code class="docutils literal notranslate"><span class="pre">cross-validate</span></code>, <code class="docutils literal notranslate"><span class="pre">select-degree</span></code> and <code class="docutils literal notranslate"><span class="pre">minimize</span></code> print one JSON
+object on stdout after returning a result. Warnings go to stderr. <code class="docutils literal notranslate"><span class="pre">predict</span></code>
+writes its CSV and produces no stdout on success. Redirect stdout to capture
+JSON independently of warnings. Help text is printed on stdout and exits 0.</p>
+<p>For example, a successful <code class="docutils literal notranslate"><span class="pre">fit</span></code> report has the following structure (additional
+diagnostic fields are omitted here; numeric values depend on the data):</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"success"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"status"</span><span class="p">:</span><span class="w"> </span><span class="s2">"solved"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"message"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Least-squares optimum computed."</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"model_saved"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"metrics"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"data_mse"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="nt">"objective"</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0</span><span class="p">},</span>
+<span class="w">  </span><span class="nt">"diagnostics"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"solution_available"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>An exhausted <code class="docutils literal notranslate"><span class="pre">minimize</span></code> report is
+<code class="docutils literal notranslate"><span class="pre">{&quot;success&quot;:</span> <span class="pre">false,</span> <span class="pre">&quot;status&quot;:</span> <span class="pre">&quot;iteration_limit&quot;,</span> <span class="pre">&quot;objective&quot;:</span> <span class="pre">0.16}</span></code>,
+with an illustrative objective value. A selection report has the form
+<code class="docutils literal notranslate"><span class="pre">{&quot;success&quot;:</span> <span class="pre">true,</span> <span class="pre">&quot;best_degree&quot;:</span> <span class="pre">1,</span> <span class="pre">&quot;candidates&quot;:</span> <span class="pre">[...]}</span></code>.
+JSON output uses Python’s <code class="docutils literal notranslate"><span class="pre">allow_nan=True</span></code>: unavailable or overflowing metrics
+may appear as <code class="docutils literal notranslate"><span class="pre">NaN</span></code>, <code class="docutils literal notranslate"><span class="pre">Infinity</span></code> or <code class="docutils literal notranslate"><span class="pre">-Infinity</span></code>. These tokens are accepted
+by Python’s JSON reader but are outside strict JSON; consumers must handle them.</p>
+<table class="docutils align-default" id="id6">
+<caption><span class="caption-number">Table 7 </span><span class="caption-text">Exit and persistence contracts</span><a class="headerlink" href="#id6" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 40.0%" />
+<col style="width: 45.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Exit code</p></th>
+<th class="head"><p>Meaning / output</p></th>
+<th class="head"><p>File behavior</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>Successful result, prediction, or help.</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fit</span></code> and <code class="docutils literal notranslate"><span class="pre">minimize</span></code> save model archives; <code class="docutils literal notranslate"><span class="pre">predict</span></code> saves CSV.
+Validation and selection save no model.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">1</span></code></p></td>
+<td><p>A returned numerical result has <code class="docutils literal notranslate"><span class="pre">success:</span> <span class="pre">false</span></code>; JSON is printed.</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fit</span></code> saves only if <code class="docutils literal notranslate"><span class="pre">diagnostics.solution_available</span></code> is true,
+reported as <code class="docutils literal notranslate"><span class="pre">model_saved</span></code>. A finite but nonconverged solution or a
+diagnostic/metric failure may still be saved. An unavailable solution
+neither creates nor overwrites the destination. <code class="docutils literal notranslate"><span class="pre">minimize</span></code> saves its
+returned model on iteration exhaustion. Validation/selection save none.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">2</span></code></p></td>
+<td><p>Argument parsing or caught <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>, <code class="docutils literal notranslate"><span class="pre">OSError</span></code> or <code class="docutils literal notranslate"><span class="pre">ImportError</span></code>;
+usage and <code class="docutils literal notranslate"><span class="pre">error:</span> <span class="pre">...</span></code> on stderr, no result JSON.</p></td>
+<td><p>Invalid inputs normally fail before saving. This is not an atomic
+transaction: a later write or tracking error may occur after an artifact
+was created. Existing files are not removed or rolled back.</p></td>
+</tr>
+</tbody>
+</table>
+<p>These codes describe handled paths. Unexpected exceptions, including uncaught
+<code class="docutils literal notranslate"><span class="pre">ArithmeticError</span></code> in minimization, can produce a traceback and process failure
+without JSON or a saved returned model. Do not interpret every exit 1 as a
+structured numerical result. Check stdout and the report fields.</p>
+<p>For a reproducible input error using the headered files above:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m torch_bsf fit --params params.csv --values values.csv --header 1 --dimensions 1,1 --degree 1 --solver sparse --diagnostics full --save invalid.bsf</span>
+</pre></div>
+</div>
+<p>This reports <code class="docutils literal notranslate"><span class="pre">error:</span> <span class="pre">full</span> <span class="pre">SVD</span> <span class="pre">diagnostics</span> <span class="pre">require</span> <span class="pre">--solver=dense</span></code> on stderr,
+exits 2, prints no JSON and creates no <code class="docutils literal notranslate"><span class="pre">invalid.bsf</span></code>. Likewise, headers in a
+prediction CSV fail numeric loading; strip them before prediction.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="quickstart.html" class="btn btn-neutral float-left" title="Quickstart" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="migration.html" class="btn btn-neutral float-right" title="Migrating to the unified v0 API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: docs/492-cli-reference
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="cli.html">docs/492-cli-reference</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
