@@ -641,12 +641,12 @@ def test_risk_polynomial_limits_in_high_dimensions(degree):
     assert residual and abs(2 * half - residual) < abs(residual) / 1000
 
 
-def _triangle_jacobi_modes(degree: int) -> list[dict[tuple[int, int, int], Fraction]]:
+def _triangle_jacobi_modes(degree: int) -> list[dict[tuple[int, ...], Fraction]]:
     """Edge-error modes via the documented homogeneous Jacobi sums, converted to Bernstein controls."""
     n = degree - 2
     modes = []
     for k in range(n + 1):
-        polynomial: dict[tuple[int, int, int], int] = {}
+        polynomial: dict[tuple[int, ...], int] = {}
         for h in range(k + 1):
             angular = (-1) ** (k - h) * comb(k + 2, h) * comb(k + 2, k - h)
             for j in range(n - k + 1):
