@@ -156,5 +156,5 @@ New measurements generally require new reference reconstructions and a
 new fit; the segment parameter changes regularization, not the patient or
 the data. If nonnegative pixels or other constraints are introduced, check
 their satisfaction after prediction. See :doc:`../advanced/normalization`
-for preserving output units and :doc:`../advanced/auto_degree` for choosing
+for preserving output units and :doc:`../advanced/model_selection` for choosing
 capacity using held-out responses.

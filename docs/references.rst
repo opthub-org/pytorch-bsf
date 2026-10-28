@@ -14,12 +14,12 @@ Fitting, approximation and statistical behavior
 fronts and its approximation perspective. :cite:t:`tanaka2020asymptotic`
 studies statistical risk; :doc:`advanced/skeleton_sampling` extends its
 optimal sample ratio to every dimension and degree. Read these alongside
-:doc:`whatis` and :doc:`advanced/auto_degree`: expressiveness at a sufficiently large degree
+:doc:`whatis` and :doc:`advanced/model_selection`: expressiveness at a sufficiently large degree
 and accuracy from a particular finite sample are distinct questions.
 
 :cite:t:`hikima2025stochastic` concerns objective-based stochastic
 optimization of a Bézier representation. Its setting is discussed in
-:doc:`advanced/sgd`; it should be distinguished from linear least-squares
+:doc:`advanced/objective_minimization`; it should be distinguished from linear least-squares
 regression on known parameter-response pairs.
 
 Topology and domain construction

@@ -233,8 +233,8 @@ For adjacent cells in an assembled space, independently subdividing one patch
 leaves neighboring topology unchanged. The returned models can be visualized
 locally, but they are not a conforming replacement mesh; use
 ``subdivide_space`` when one is required. See :doc:`simploidal` for shared
-coefficient construction, :doc:`partial` for exact boundary values, and
-:doc:`auto_degree` for deciding whether additional local polynomial capacity
+coefficient construction, :doc:`fixed_controls` for exact boundary values, and
+:doc:`model_selection` for deciding whether additional local polynomial capacity
 is supported by independent errors.
 
 .. _conforming-subdivision:

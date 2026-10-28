@@ -152,4 +152,4 @@ separate models rather than treating degree as a substitute for topology.
 
 For more on the relationship between parameter domains and image shape,
 see :doc:`../whatis`. For boundaries, rank and sample placement, continue
-to :doc:`../advanced/sampling` and :doc:`../advanced/auto_degree`.
+to :doc:`../advanced/sampling` and :doc:`../advanced/model_selection`.

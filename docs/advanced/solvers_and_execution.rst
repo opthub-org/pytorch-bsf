@@ -1,5 +1,5 @@
-Solvers and optional execution
-==============================
+Solvers, performance and optional execution
+===========================================
 
 Use typed solver settings in core regression::
 

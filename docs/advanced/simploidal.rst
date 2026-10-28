@@ -302,7 +302,7 @@ can reduce variation, but it is not a derivative-matching condition between
 charts. Its effect depends on degree and adjacency as well as its weight.
 Keep geometry, exact constraints and soft regularization conceptually separate
 when interpreting a before/after comparison. See :doc:`regularization` and
-:doc:`partial` for their objectives and tuning guidance.
+:doc:`fixed_controls` for their objectives and tuning guidance.
 
 Sampling and visual checks
 --------------------------

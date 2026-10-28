@@ -2,12 +2,11 @@ Advanced Topics
 ===============
 
 The common space, model and observation types connect regression, optimization
-and optional integrations. Start with normalization and visualization to
-understand your data and fitted image. Use degree selection, regularization
-and fixed controls to improve a model under explicit assumptions. Sampling
-and active learning help decide where to obtain additional observations;
-assembled domains describe how local charts connect. Objective minimization
-is a separate path for differentiable costs without regression targets.
+and optional integrations. The guides follow a fitting workflow: prepare
+observations, inspect predictions, then adjust the model or acquire more data.
+Continue with domain construction when you need products or connected cells.
+Objective minimization has its own sequence for differentiable costs without
+regression targets, followed by optional integrations and larger-scale solves.
 
 Each practical guide explains when the feature is needed, provides runnable
 examples, and describes how settings affect results. Before/after figures
@@ -30,10 +29,10 @@ Choose a guide by the question you need to answer
      - :doc:`advanced/normalization`
      - Errors in original units
    * - A fit oscillates between measurements.
-     - :doc:`advanced/auto_degree`, :doc:`advanced/regularization`
+     - :doc:`advanced/model_selection`, :doc:`advanced/regularization`
      - Independent prediction errors
    * - Endpoint or boundary values are exact.
-     - :doc:`advanced/partial`
+     - :doc:`advanced/fixed_controls`
      - Full boundary coverage of the constraints
    * - Reference evaluations are expensive.
      - :doc:`advanced/active_learning`
@@ -54,14 +53,14 @@ Choose a guide by the question you need to answer
      - :doc:`advanced/interpolation`
      - Prediction range in each cell
    * - A large fit exhausts memory.
-     - :doc:`advanced/acceleration`
+     - :doc:`advanced/solvers_and_execution`
      - Sparse termination and conditioning
    * - There are costs but no target responses.
-     - :doc:`advanced/initialization`, :doc:`advanced/sgd`
+     - :doc:`advanced/initial_models`, :doc:`advanced/objective_minimization`
      - Full-sample objective and gradient stopping
 
-Follow a fit through the guides
--------------------------------
+Guide chapters
+--------------
 
 Start by recording the domain, output units and measurement process. Use
 sampling and visualization to examine coverage before changing the model.
@@ -81,34 +80,54 @@ describe predictive performance. None replaces the others. An accurate
 interior fit can still miss an important boundary, and a regularized
 full-rank system can still have an underdetermined data matrix.
 
-The category-theory chapter is a mathematical continuation of the geometric
-simploid guide. It is useful for understanding faces, degeneracies and
-gluing abstractly; it is not a prerequisite for fitting a square or prism.
-The scikit-learn guide uses the same core numerical model in estimator
-workflows. Exact subdivision in the splitting guide changes charts while
-preserving the represented function, so assess it differently from refitting.
-
-Guide chapters
---------------
+For regression, follow the first two groups from data preparation through
+validation and refinement. The remaining groups are independent paths:
+choose them when your domain, objective or execution environment requires it.
 
 .. toctree::
    :maxdepth: 1
+   :caption: Prepare data and fit
 
    advanced/normalization
-   advanced/point_cloud
-   advanced/sklearn
-   advanced/initialization
-   advanced/visualization
-   advanced/splitting
-   advanced/auto_degree
-   advanced/regularization
-   advanced/grid_sampling
-   advanced/partial
    advanced/sampling
    advanced/skeleton_sampling
-   advanced/acceleration
+   advanced/point_cloud
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Inspect and improve a fit
+
+   advanced/visualization
+   advanced/grid_sampling
+   advanced/model_selection
+   advanced/regularization
+   advanced/fixed_controls
    advanced/active_learning
+
+Start with the geometric simploid guide before interpolation or subdivision.
+Exact subdivision changes charts while preserving the represented function;
+assess it differently from refitting. The category-theory chapter is an
+optional mathematical continuation about faces, degeneracies and gluing.
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Build and refine domains
+
    advanced/simploidal
-   advanced/simploidal_category
    advanced/interpolation
-   advanced/sgd
+   advanced/splitting
+   advanced/simploidal_category
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Optimize differentiable objectives
+
+   advanced/initial_models
+   advanced/objective_minimization
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Integrations and performance
+
+   advanced/sklearn
+   advanced/solvers_and_execution

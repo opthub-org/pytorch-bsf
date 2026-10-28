@@ -67,7 +67,7 @@ so that lines do not connect unrelated parameter charts.
 
 The figure is reproduced by ``python examples/generate_guide_figures.py``.
 It evaluates a known smooth response to isolate resolution from regression
-error. For fitting and degree effects, compare :doc:`auto_degree` instead.
+error. For fitting and degree effects, compare :doc:`model_selection` instead.
 
 Meaning of resolution
 ---------------------

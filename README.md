@@ -24,7 +24,7 @@ Choose an entry point from the data you have:
 | --- | --- | --- |
 | Known parameter coordinates and measured responses | `fit(space, Samples(...))` learns a model predicting responses at new coordinates. | [Regression quickstart](https://opthub-org.github.io/pytorch-bsf/master/quickstart.html) |
 | Observed points on a curve or surface, with unknown parameter coordinates | `fit_point_cloud(space, values)` estimates a model and coordinates for each observation on a single simplex. | [Point cloud fitting](https://opthub-org.github.io/pytorch-bsf/master/advanced/point_cloud.html) |
-| A differentiable cost function, with no measured target responses | `minimize(initial_model, loss, ...)` optimizes model coefficients against the cost. | [Objective minimization](https://opthub-org.github.io/pytorch-bsf/master/advanced/sgd.html) |
+| A differentiable cost function, with no measured target responses | `minimize(initial_model, loss, ...)` optimizes model coefficients against the cost. | [Objective minimization](https://opthub-org.github.io/pytorch-bsf/master/advanced/objective_minimization.html) |
 
 Install with Python 3.10 or later:
 

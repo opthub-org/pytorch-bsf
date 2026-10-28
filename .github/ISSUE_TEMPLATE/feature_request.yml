@@ -63,7 +63,7 @@ body:
       placeholder: |
         In scope:
         - `torch_bsf/model_selection/_validation.py` (`KFold`, `cross_validate`)
-        - `docs/advanced/auto_degree.rst`
+        - `docs/advanced/model_selection.rst`
 
         Out of scope:
         - CLI options

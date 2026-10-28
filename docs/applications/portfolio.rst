@@ -137,4 +137,4 @@ market changes are not represented by moving along the priority segment.
 The workflow is a numerical approximation example. Evidence for a practical
 allocation model also requires evaluation under the intended data and
 constraints. See :doc:`../advanced/sampling` for boundary coverage and
-:doc:`../advanced/auto_degree` for validation-based capacity selection.
+:doc:`../advanced/model_selection` for validation-based capacity selection.
