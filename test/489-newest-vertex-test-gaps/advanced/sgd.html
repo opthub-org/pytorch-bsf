@@ -472,7 +472,7 @@ on the first <span class="math notranslate nohighlight">\(N = 1{,}000\)</span> s
 higher degrees have not converged in 100 iterations yet (see the optimality
 gap above).  To fit a model to the Pareto set of objectives that are increasing
 functions of convex ones, pass the transformed objectives to
-<code class="xref py py-func docutils literal notranslate"><span class="pre">linear_scalarization()</span></code>:</p>
+<a class="reference internal" href="../torch_bsf.html#torch_bsf.optimization.linear_scalarization" title="torch_bsf.optimization.linear_scalarization"><code class="xref py py-func docutils literal notranslate"><span class="pre">linear_scalarization()</span></code></a>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">3.0</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># the powers p_i of the skew-MMD</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">transformed</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
