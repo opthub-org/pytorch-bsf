@@ -2,6 +2,7 @@
 
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -24,8 +25,15 @@ def test_contributing_fit_predict(tmp_path):
     assert len(commands) == 1
     for name in ("params.csv", "values.csv"):
         shutil.copyfile(ROOT / name, tmp_path / name)
-    env = {**os.environ, "PYTHONPATH": str(ROOT), "PATH": str(Path(sys.executable).parent) + os.pathsep + os.environ["PATH"]}
-    subprocess.run(["bash", "-eu", "-c", commands[0]], cwd=tmp_path, env=env, check=True, capture_output=True, text=True)
+    env = {**os.environ, "PYTHONPATH": str(ROOT)}
+    for line in commands[0].splitlines():
+        arguments = shlex.split(line)
+        if not arguments:
+            continue
+        assert arguments[0] == "python"
+        # Use the pytest interpreter on every OS; a Windows bash can select
+        # WSL or a different Python, which does not verify this installation.
+        subprocess.run([sys.executable, *arguments[1:]], cwd=tmp_path, env=env, check=True)
     params = np.loadtxt(tmp_path / "params.csv", delimiter=",", ndmin=2)
     values = np.loadtxt(tmp_path / "values.csv", delimiter=",", ndmin=2)
     predicted = np.loadtxt(tmp_path / "predictions.csv", delimiter=",", ndmin=2)
