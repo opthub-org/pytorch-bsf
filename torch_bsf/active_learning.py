@@ -2,10 +2,48 @@
 
 from __future__ import annotations
 
+from fractions import Fraction
+
 import torch
 
 from torch_bsf.core import Points, _integer
 from torch_bsf.ensemble import Ensemble
+
+
+def _exact_disagreement(predictions: torch.Tensor) -> Fraction:
+    """Return K squared times the variance sum, exactly for supplied floats."""
+    score = Fraction(0)
+    for output in predictions.T.tolist():
+        values = [Fraction(value) for value in output]
+        total = sum(values, Fraction(0))
+        score += len(values) * sum((value * value for value in values), Fraction(0)) - total * total
+    return score
+
+
+def _resolve_close_disagreements(
+    predictions: torch.Tensor, order: torch.Tensor, mantissas: torch.Tensor, exponents: torch.Tensor
+) -> torch.Tensor:
+    """Resolve groups whose approximate scores differ by reduction roundoff."""
+    values = mantissas[order]
+    powers = exponents[order]
+    aligned = values[1:] * torch.pow(values.new_tensor(2.0), powers[1:] - powers[:-1])
+    # Generous forward-error allowance for centering, variance, and output
+    # summation; exact comparisons also retain terms below float64 precision.
+    tolerance = 64 * torch.finfo(torch.float64).eps * predictions.shape[0] * predictions.shape[2]
+    close = ((values[:-1] - aligned) <= tolerance * values[:-1]) & (values[1:] != 0)
+    if not close.any():
+        return order
+    indices = order.tolist()
+    start = 0
+    for end in range(1, len(indices) + 1):
+        if end < len(indices) and close[end - 1]:
+            continue
+        if end - start > 1:
+            indices[start:end] = sorted(
+                indices[start:end], key=lambda index: (-_exact_disagreement(predictions[:, index]), index)
+            )
+        start = end
+    return torch.tensor(indices, dtype=torch.int64)
 
 
 def _disagreement_order(predictions: torch.Tensor) -> torch.Tensor:
@@ -33,7 +71,8 @@ def _disagreement_order(predictions: torch.Tensor) -> torch.Tensor:
     # The output count is common to every candidate, so ranking variance sums
     # also ranks their means. Stable lexicographic sorting preserves ties.
     order = torch.argsort(mantissas, descending=True, stable=True)
-    return order[torch.argsort(exponents[order], descending=True, stable=True)]
+    order = order[torch.argsort(exponents[order], descending=True, stable=True)]
+    return _resolve_close_disagreements(predictions, order, mantissas, exponents)
 
 
 def query_by_committee(ensemble: Ensemble, candidates: Points, n: int = 1) -> Points:
@@ -42,7 +81,9 @@ def query_by_committee(ensemble: Ensemble, candidates: Points, n: int = 1) -> Po
     Ties preserve candidate order. Finite predictions are scored on CPU in float64
     with exponent scaling to avoid variance overflow and underflow. This
     preserves relative output units and common-scalar ranking invariance,
-    subject to rounding in the supplied predictions. Nonfinite predictions
+    subject to rounding in the supplied predictions. Nearly tied nonzero
+    scores use exact rational comparisons of those predictions, at additional
+    CPU cost. Nonfinite predictions
     raise ``ValueError``. Returned points retain their input gradients.
     """
     _integer(n, "n", 1)

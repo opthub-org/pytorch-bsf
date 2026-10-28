@@ -104,7 +104,13 @@ Acquisition transfers finite predictions to CPU float64 and compares variance
 mantissas and exponents, rather than materializing squared scores that could
 overflow or underflow. Internal power-of-two scaling is restored when
 combining outputs, preserving their relative units. Exactly agreeing members
-have zero disagreement even at extreme magnitudes. Nonfinite member predictions
+have zero disagreement even at extreme magnitudes. Nearly tied nonzero scores
+are compared using exact rational arithmetic on the supplied predictions.
+This retains small output contributions that float64 summation could otherwise
+erase; its additional CPU cost grows with the number of nearly tied candidates,
+committee members, outputs, and prediction exponent range. Separated scores and
+zero-disagreement groups use the vectorized float64 comparison.
+Nonfinite member predictions
 raise ``ValueError``. Scaling cannot recover differences already lost to
 rounding or overflow during model prediction itself.
 

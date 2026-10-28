@@ -111,3 +111,44 @@ def test_public_query_preserves_candidate_device_and_gradients(device):
     result.parameters[0].sum().backward()
     assert parameters.grad is not None
     assert torch.equal(parameters.grad, torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device))
+
+
+@pytest.mark.parametrize("exponent", [-30, -500, -1074])
+def test_subdominant_output_breaks_apparent_variance_ties(exponent):
+    tiny = 2.0**exponent
+    predictions = torch.tensor(
+        [[[-1.0, 0.0], [-1.0, -tiny], [-1.0, -2 * tiny]], [[1.0, 0.0], [1.0, tiny], [1.0, 2 * tiny]]],
+        dtype=torch.float64,
+    )
+    assert _query_order(predictions) == _exact_order(predictions) == [2, 1, 0]
+
+
+@given(st.integers(-1074, -27), st.integers(2, 7))
+def test_close_scores_match_exact_variance_across_member_counts(exponent, members):
+    tiny = 2.0**exponent
+    # Common leading variance hides the second output in ordinary float64
+    # sums. Multiple members exercise centering and non-dyadic 1/K variance.
+    predictions = torch.tensor(
+        [[[float(member), tiny * candidate] for candidate in [0, 2, 1]] for member in range(members)],
+        dtype=torch.float64,
+    )
+    predictions[0, :, 1] *= -1
+    assert _query_order(predictions) == _exact_order(predictions) == [1, 2, 0]
+
+
+def test_exact_ties_keep_candidate_order_after_approximate_roundoff():
+    predictions = torch.tensor(
+        [
+            [[-1.0, 1.0], [1.0, -1.0], [0.0, 0.0]],
+            [[0.0, 0.0], [0.0, 0.0], [1.0, -1.0]],
+            [[1.0, -1.0], [-1.0, 1.0], [-1.0, 1.0]],
+        ],
+        dtype=torch.float64,
+    )
+    assert _query_order(predictions) == _exact_order(predictions) == [0, 1, 2]
+
+
+def test_separated_and_zero_scores_do_not_need_exact_comparisons():
+    predictions = torch.tensor([[[-1.0], [-2.0], [0.0], [0.0]], [[1.0], [2.0], [0.0], [0.0]]], dtype=torch.float64)
+    with patch("torch_bsf.active_learning._exact_disagreement", side_effect=AssertionError("unexpected exact fallback")):
+        assert _query_order(predictions) == [1, 0, 2, 3]
