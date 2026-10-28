@@ -1,0 +1,424 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Frequently asked questions &mdash; PyTorch-BSF 0.23.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=2753bf86"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="References" href="references.html" />
+    <link rel="prev" title="Facility Location and Continuous Approximations" href="applications/facility_location.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command-line reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Frequently asked questions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#do-i-need-conda-lightning-or-mlflow">Do I need Conda, Lightning or MLflow?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-do-i-predict">How do I predict?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#does-solver-success-imply-identifiable-coefficients">Does solver success imply identifiable coefficients?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-do-i-choose-a-degree">How do I choose a degree?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#where-did-the-old-apis-go">Where did the old APIs go?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#what-are-the-objects-i-need-for-an-ordinary-fit">What are the objects I need for an ordinary fit?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#why-does-a-one-column-input-produce-a-constant-model">Why does a one-column input produce a constant model?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-do-i-choose-between-simplex-product-and-assembled-spaces">How do I choose between simplex, product and assembled spaces?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#why-can-a-successful-model-still-be-poor">Why can a successful model still be poor?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#what-should-i-adjust-when-the-fit-oscillates">What should I adjust when the fit oscillates?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#when-should-i-normalize-outputs">When should I normalize outputs?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#are-control-points-predicted-values-on-a-grid">Are control points predicted values on a grid?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-can-i-preserve-a-known-endpoint-exactly">How can I preserve a known endpoint exactly?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#will-splitting-reduce-my-prediction-error">Will splitting reduce my prediction error?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#does-active-learning-guarantee-better-accuracy-each-round">Does active learning guarantee better accuracy each round?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#should-i-switch-to-the-sparse-solver-or-a-gpu">Should I switch to the sparse solver or a GPU?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#why-does-optimization-report-failure-after-using-every-iteration">Why does optimization report failure after using every iteration?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#what-happens-after-a-numerical-solve-fails">What happens after a numerical solve fails?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-should-i-save-a-model-and-reproduce-its-figures">How should I save a model and reproduce its figures?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#can-i-compare-before-after-runs-with-different-evaluation-points">Can I compare before/after runs with different evaluation points?</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="modules.html">API reference guide</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Frequently asked questions</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/faq.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="frequently-asked-questions">
+<h1>Frequently asked questions<a class="headerlink" href="#frequently-asked-questions" title="Link to this heading"></a></h1>
+<section id="do-i-need-conda-lightning-or-mlflow">
+<h2>Do I need Conda, Lightning or MLflow?<a class="headerlink" href="#do-i-need-conda-lightning-or-mlflow" title="Link to this heading"></a></h2>
+<p>No. Install the core with pip. Integrations are optional and explicit.</p>
+</section>
+<section id="how-do-i-predict">
+<h2>How do I predict?<a class="headerlink" href="#how-do-i-predict" title="Link to this heading"></a></h2>
+<p>Call <code class="docutils literal notranslate"><span class="pre">result.model(points)</span></code>. <code class="docutils literal notranslate"><span class="pre">FitResult</span></code> itself is not callable.</p>
+</section>
+<section id="does-solver-success-imply-identifiable-coefficients">
+<h2>Does solver success imply identifiable coefficients?<a class="headerlink" href="#does-solver-success-imply-identifiable-coefficients" title="Link to this heading"></a></h2>
+<p>No. Inspect data rank and condition diagnostics. Regularization can stabilize
+a system without supplying missing observational information. See
+<a class="reference internal" href="advanced/regularization.html"><span class="doc">Regularization and numerical evidence</span></a>.</p>
+</section>
+<section id="how-do-i-choose-a-degree">
+<h2>How do I choose a degree?<a class="headerlink" href="#how-do-i-choose-a-degree" title="Link to this heading"></a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">select_degree</span></code> with explicit candidates and held-out folds, then
+explicitly refit the chosen space. See <a class="reference internal" href="advanced/auto_degree.html"><span class="doc">Cross-validation and degree search</span></a>.</p>
+</section>
+<section id="where-did-the-old-apis-go">
+<h2>Where did the old APIs go?<a class="headerlink" href="#where-did-the-old-apis-go" title="Link to this heading"></a></h2>
+<p>See <a class="reference internal" href="migration.html"><span class="doc">Migrating to the unified v0 API</span></a>. The project is pre-1.0 and this release intentionally
+consolidates model classes, solvers, sampling, plotting and persistence.</p>
+</section>
+<section id="what-are-the-objects-i-need-for-an-ordinary-fit">
+<h2>What are the objects I need for an ordinary fit?<a class="headerlink" href="#what-are-the-objects-i-need-for-an-ordinary-fit" title="Link to this heading"></a></h2>
+<p>Create <code class="docutils literal notranslate"><span class="pre">BezierSpace</span></code> for geometry and degree, wrap parameter locations and
+measured outputs in <code class="docutils literal notranslate"><span class="pre">Samples</span></code>, then call <code class="docutils literal notranslate"><span class="pre">fit(space,</span> <span class="pre">samples)</span></code>. The result
+has a <code class="docutils literal notranslate"><span class="pre">model</span></code>, metrics, numerical diagnostics and termination status. Use
+<code class="docutils literal notranslate"><span class="pre">result.require_success()</span></code> when the next operation should run only after a
+successful solve. The space and observations are not modified by fitting.</p>
+<p>A model is a PyTorch module with learned coefficients. A space contains no
+learned output values and can be reused for several responses on the same
+geometry. <code class="docutils literal notranslate"><span class="pre">Points</span></code> describes locations without targets, while <code class="docutils literal notranslate"><span class="pre">Samples</span></code>
+adds targets and optional row weights. Keeping those roles separate avoids
+confusing a prediction request with new evidence for training.</p>
+</section>
+<section id="why-does-a-one-column-input-produce-a-constant-model">
+<h2>Why does a one-column input produce a constant model?<a class="headerlink" href="#why-does-a-one-column-input-produce-a-constant-model" title="Link to this heading"></a></h2>
+<p>When dimensions are inferred, a single input column follows the constant-domain
+convention. Its values are dummy features. An interval needs two barycentric
+columns <code class="docutils literal notranslate"><span class="pre">[1-x,</span> <span class="pre">x]</span></code>; a triangle needs three nonnegative coordinates summing
+to one. A product needs one such block per factor. Check input representation
+before tuning degree or penalties to fix an unexpectedly flat prediction.</p>
+<p>In Python, construct a constant space explicitly with
+<code class="docutils literal notranslate"><span class="pre">BezierSpace.simplex(0,</span> <span class="pre">degree=0)</span></code> and zero-width parameter rows. The CLI and
+scikit-learn adapter use one dummy feature column because tabular tools commonly
+require at least one column. For unregularized constant regression, the fitted
+output is the weighted observation mean.</p>
+</section>
+<section id="how-do-i-choose-between-simplex-product-and-assembled-spaces">
+<h2>How do I choose between simplex, product and assembled spaces?<a class="headerlink" href="#how-do-i-choose-between-simplex-product-and-assembled-spaces" title="Link to this heading"></a></h2>
+<p>Use a simplex for one set of trade-off weights, a product when independent
+weight blocks vary together, and an assembled space when local charts must
+share faces or represent a nontrivial topology. Increasing degree changes
+flexibility within the chosen domain; it does not change connectivity or add
+independent parameter blocks. See <a class="reference internal" href="advanced/simploidal.html"><span class="doc">Single and assembled domains</span></a> for complete
+examples, coordinate layouts and shared-boundary checks.</p>
+<p>A square product <code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">1)</span></code> has four columns arranged in two sum-to-one blocks.
+A tetrahedron has four columns in one sum-to-one block. Equal input widths
+do not make their geometry interchangeable. Record dimensions and factor order
+with raw data rather than trying to infer the domain from column count alone.</p>
+</section>
+<section id="why-can-a-successful-model-still-be-poor">
+<h2>Why can a successful model still be poor?<a class="headerlink" href="#why-can-a-successful-model-still-be-poor" title="Link to this heading"></a></h2>
+<p>Solver success means the numerical termination criterion was met for the
+specified problem. It does not mean the observations identify every coefficient,
+the degree is suitable, or held-out predictions are accurate. A rank-deficient
+minimum-norm solution can be computed successfully. Ridge can make the
+augmented system full rank without adding any missing observational evidence.</p>
+<p>Inspect <code class="docutils literal notranslate"><span class="pre">diagnostics.data</span></code> separately from <code class="docutils literal notranslate"><span class="pre">diagnostics.system</span></code>, then
+check independent errors and plot residuals across the domain. <code class="docutils literal notranslate"><span class="pre">None</span></code> in a
+diagnostic field means uncomputed, not a perfect condition number or zero
+rank. Sparse condition estimates are not exact singular-value diagnostics.
+See <a class="reference internal" href="advanced/regularization.html"><span class="doc">Regularization and numerical evidence</span></a> for interpreting the fields and failure states.</p>
+</section>
+<section id="what-should-i-adjust-when-the-fit-oscillates">
+<h2>What should I adjust when the fit oscillates?<a class="headerlink" href="#what-should-i-adjust-when-the-fit-oscillates" title="Link to this heading"></a></h2>
+<p>First inspect observation coverage and verify coordinates and units. Then
+compare lower degrees on identical held-out folds. A smaller degree may remove
+unsupported variation without any penalty. If necessary, try logarithmically
+spaced ridge or smoothness weights and compare prediction error, not only the
+penalized training objective. More iterations are not a tuning parameter for
+the direct dense regression solve.</p>
+<p>Ridge pulls controls toward zero in output coordinates. Smoothness draws
+adjacent controls together and can flatten genuine variation. Neither changes
+degree or domain. A very strong penalty may make the curve look stable while
+biasing it far from the true response. The before/after comparison in
+<a class="reference internal" href="advanced/regularization.html"><span class="doc">Regularization and numerical evidence</span></a> shows these different effects using the same data.</p>
+</section>
+<section id="when-should-i-normalize-outputs">
+<h2>When should I normalize outputs?<a class="headerlink" href="#when-should-i-normalize-outputs" title="Link to this heading"></a></h2>
+<p>Use explicit transforms when output units make aggregate errors, plots or
+acquisition scores misleading. Fit scaler statistics on training data, transform
+targets and exact fixed values consistently, then invert predictions before
+reporting physical errors. Generic feature standardization is generally
+inappropriate for barycentric input blocks because it violates their constraints.</p>
+<p>Without penalties, affine output scaling leaves the exact independent-column
+least-squares predictions unchanged after inversion. It is not a way to add
+capacity. Centering can change ridge’s preferred origin, and relative output
+scales can change model-selection or committee-query rankings. See
+<a class="reference internal" href="advanced/normalization.html"><span class="doc">Output scaling</span></a> for the distinction and the before/after scale plot.</p>
+</section>
+<section id="are-control-points-predicted-values-on-a-grid">
+<h2>Are control points predicted values on a grid?<a class="headerlink" href="#are-control-points-predicted-values-on-a-grid" title="Link to this heading"></a></h2>
+<p>Vertex controls equal vertex values. Interior controls generally do not equal
+the function values at corresponding barycentric lattice locations. The
+coefficient net is a representation of the polynomial, not a table of observed
+responses. Call <code class="docutils literal notranslate"><span class="pre">model(points)</span></code> to evaluate the polynomial at any desired
+lattice or random point set.</p>
+<p>Polynomial degree chooses controls; grid resolution chooses evaluation rows.
+Increasing resolution makes a display denser without changing the model or
+adding training information. See <a class="reference internal" href="advanced/grid_sampling.html"><span class="doc">Grid sampling</span></a> for point-count
+formulas and examples that distinguish a denser plot from a better fit.</p>
+</section>
+<section id="how-can-i-preserve-a-known-endpoint-exactly">
+<h2>How can I preserve a known endpoint exactly?<a class="headerlink" href="#how-can-i-preserve-a-known-endpoint-exactly" title="Link to this heading"></a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">FixedControls</span></code> with the endpoint’s Bernstein multi-index resolved through
+the space. Increasing an endpoint observation’s weight only makes agreement a
+soft preference. An exact fixed value is eliminated from the unknowns and
+cannot move during fitting. On an assembled domain, a shared fixed row affects
+every incident cell.</p>
+<p>There is no strength parameter for a fixed row. If the value is uncertain,
+keep it as a weighted observation. Fixing all rows returns the prescribed
+model without factorization; a large resulting error means the prescribed
+model conflicts with the observations, not that the constraints were ignored.
+See <a class="reference internal" href="advanced/partial.html"><span class="doc">Fixed controls</span></a> for examples and a before/after endpoint plot.</p>
+</section>
+<section id="will-splitting-reduce-my-prediction-error">
+<h2>Will splitting reduce my prediction error?<a class="headerlink" href="#will-splitting-reduce-my-prediction-error" title="Link to this heading"></a></h2>
+<p>Exact subdivision preserves the parent function. It can isolate a region
+for later refinement, but its two child models initially have the same error
+as the parent at corresponding points. Compare child and parent values using
+the returned coordinate maps. Passing the same raw coordinates to both charts
+is usually an invalid comparison.</p>
+<p>To improve a piecewise approximation, obtain suitable local observations and
+refit under explicit boundary requirements. Independent child refits can break
+continuity; subdividing one assembled patch does not automatically remesh its
+neighbors. <code class="docutils literal notranslate"><span class="pre">ResidualSplit</span></code> groups existing residuals and does not promise
+lower approximation error. See <a class="reference internal" href="advanced/splitting.html"><span class="doc">Exact local subdivision</span></a> for a checked exactness
+comparison and the extra steps needed for refinement.</p>
+</section>
+<section id="does-active-learning-guarantee-better-accuracy-each-round">
+<h2>Does active learning guarantee better accuracy each round?<a class="headerlink" href="#does-active-learning-guarantee-better-accuracy-each-round" title="Link to this heading"></a></h2>
+<p>No. Committee disagreement is a heuristic, and a batch can cluster near one
+endpoint while neglecting the rest of the domain. Members can also agree
+because their shared model class cannot represent the true response. Compare
+with coverage-based <code class="docutils literal notranslate"><span class="pre">farthest_points</span></code> and maintain independent evaluation
+locations. Append actual new measurements, never surrogate predictions
+presented as measurements.</p>
+<p>The guide’s synthetic committee example deliberately reports a round where
+whole-domain MSE increases slightly after acquisition. Its plotted local errors
+explain why a high disagreement score is not a guarantee of global improvement.
+See <a class="reference internal" href="advanced/active_learning.html"><span class="doc">Explicit ensembles and active learning</span></a> for candidate-pool, batch-size and output-unit
+choices, with exact queries and errors saved in the generated metrics JSON.</p>
+</section>
+<section id="should-i-switch-to-the-sparse-solver-or-a-gpu">
+<h2>Should I switch to the sparse solver or a GPU?<a class="headerlink" href="#should-i-switch-to-the-sparse-solver-or-a-gpu" title="Link to this heading"></a></h2>
+<p>Start with dense regression for small and medium problems. Sparse LSMR is
+useful when many local cells make the global matrix mostly zero. A single
+large product cell may still have a dense basis and gain little. Both core
+solvers compute on CPU float64 and solve the same augmented objective. Sparse
+stopping tolerances and iteration budgets can affect how closely their
+predictions agree.</p>
+<p>Lightning is an explicit optional execution adapter, not a <code class="docutils literal notranslate"><span class="pre">fit</span></code> solver flag.
+It uses an application-owned single-device Trainer and the complete regression
+objective at each step. GPU execution is not automatically faster for small
+problems, and sparse-regression benchmarks do not measure this adapter. See
+<a class="reference internal" href="advanced/acceleration.html"><span class="doc">Solvers and optional execution</span></a> for measured scaling and an adapter example.</p>
+</section>
+<section id="why-does-optimization-report-failure-after-using-every-iteration">
+<h2>Why does optimization report failure after using every iteration?<a class="headerlink" href="#why-does-optimization-report-failure-after-using-every-iteration" title="Link to this heading"></a></h2>
+<p>Iteration-budget exhaustion means no configured convergence criterion was
+established. <code class="docutils literal notranslate"><span class="pre">minimize</span></code> still returns the model and history for inspection,
+but it does not claim success because a curve looks flat. Set a justified
+full-sample <code class="docutils literal notranslate"><span class="pre">gradient_tolerance</span></code>, adjust step size or budget, and check the
+loss and gradient path. Callback stops likewise do not certify convergence.</p>
+<p>Histories describe pre-update minibatch values. The final objective describes
+the complete fixed sample set after stopping. They need not match. More
+iterations improve optimization of that fixed empirical set, not its coverage
+of the continuous domain. See <a class="reference internal" href="advanced/sgd.html"><span class="doc">Objective minimization</span></a> for parameter effects and
+<a class="reference internal" href="advanced/initialization.html"><span class="doc">Explicit initial models</span></a> for sensitivity to the starting model.</p>
+</section>
+<section id="what-happens-after-a-numerical-solve-fails">
+<h2>What happens after a numerical solve fails?<a class="headerlink" href="#what-happens-after-a-numerical-solve-fails" title="Link to this heading"></a></h2>
+<p>Inspect <code class="docutils literal notranslate"><span class="pre">success</span></code>, <code class="docutils literal notranslate"><span class="pre">status</span></code>, <code class="docutils literal notranslate"><span class="pre">message</span></code> and per-output diagnostics before
+using the model. A finite iterative approximation may remain available even
+when a condition or iteration limit stopped it. If no usable solution exists,
+<code class="docutils literal notranslate"><span class="pre">diagnostics.solution_available</span></code> is false and unavailable free coefficients
+are placeholders. Do not treat their finite-looking metrics as a fitted optimum.</p>
+<p><code class="docutils literal notranslate"><span class="pre">require_success</span></code> raises while retaining the regression result in the
+exception. Invalid inputs raise immediately instead of creating a failed
+result. A failed optional diagnostic decomposition can preserve an otherwise
+computed model, so read the status rather than assuming every failure means
+the same thing. The CLI reports nonzero exit status and whether a model was
+saved; see <a class="reference internal" href="advanced/regularization.html"><span class="doc">Regularization and numerical evidence</span></a> for the precise persistence policy.</p>
+</section>
+<section id="how-should-i-save-a-model-and-reproduce-its-figures">
+<h2>How should I save a model and reproduce its figures?<a class="headerlink" href="#how-should-i-save-a-model-and-reproduce-its-figures" title="Link to this heading"></a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">io.save_model</span></code> and <code class="docutils literal notranslate"><span class="pre">io.load_model</span></code> for the versioned non-pickled
+archive. It preserves geometry and coefficients; the filename extension does
+not select a different format. CSV coefficient export loses the geometry
+needed to interpret shared rows and multi-cell domains. Store preprocessing
+statistics, raw-data schema and experimental settings separately.</p>
+<p>Run <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">examples/generate_guide_figures.py</span></code> with the plot extra for the
+current tutorial comparisons. Seeds, counts and measured errors are written
+to <code class="docutils literal notranslate"><span class="pre">docs/_static/guides/metrics.json</span></code>. Run the separate regularization
+comparison script with plot and sparse extras for its dense/sparse-checked
+figure. Historical SGD figures are explicitly labeled; they are not fresh
+performance evidence for the redesigned API.</p>
+</section>
+<section id="can-i-compare-before-after-runs-with-different-evaluation-points">
+<h2>Can I compare before/after runs with different evaluation points?<a class="headerlink" href="#can-i-compare-before-after-runs-with-different-evaluation-points" title="Link to this heading"></a></h2>
+<p>Use the same independent points, output units and summary weights whenever
+you attribute a difference to degree, penalties or an acquisition round.
+Changing the evaluation distribution can improve an average without improving
+predictions at any particular physical location. If the intended deployment
+distribution changes, state that change explicitly and report both old and
+new evaluation metrics so that readers can distinguish the effects.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="applications/facility_location.html" class="btn btn-neutral float-left" title="Facility Location and Continuous Approximations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="references.html" class="btn btn-neutral float-right" title="References" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: fix/issue-506
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../v0.0.1/faq.html">v0.0.1</a></dd>
+            <dd><a href="../../v0.0.2/faq.html">v0.0.2</a></dd>
+            <dd><a href="../../v0.1.0/faq.html">v0.1.0</a></dd>
+            <dd><a href="../../v0.10.0/faq.html">v0.10.0</a></dd>
+            <dd><a href="../../v0.11.0/faq.html">v0.11.0</a></dd>
+            <dd><a href="../../v0.11.1/faq.html">v0.11.1</a></dd>
+            <dd><a href="../../v0.11.2/faq.html">v0.11.2</a></dd>
+            <dd><a href="../../v0.11.3/faq.html">v0.11.3</a></dd>
+            <dd><a href="../../v0.12.0/faq.html">v0.12.0</a></dd>
+            <dd><a href="../../v0.12.1/faq.html">v0.12.1</a></dd>
+            <dd><a href="../../v0.13.0/faq.html">v0.13.0</a></dd>
+            <dd><a href="../../v0.13.1/faq.html">v0.13.1</a></dd>
+            <dd><a href="../../v0.13.2/faq.html">v0.13.2</a></dd>
+            <dd><a href="../../v0.13.3/faq.html">v0.13.3</a></dd>
+            <dd><a href="../../v0.13.4/faq.html">v0.13.4</a></dd>
+            <dd><a href="../../v0.14.0/faq.html">v0.14.0</a></dd>
+            <dd><a href="../../v0.14.1/faq.html">v0.14.1</a></dd>
+            <dd><a href="../../v0.14.2/faq.html">v0.14.2</a></dd>
+            <dd><a href="../../v0.14.3/faq.html">v0.14.3</a></dd>
+            <dd><a href="../../v0.15.0/faq.html">v0.15.0</a></dd>
+            <dd><a href="../../v0.15.1/faq.html">v0.15.1</a></dd>
+            <dd><a href="../../v0.16.0/faq.html">v0.16.0</a></dd>
+            <dd><a href="../../v0.16.1/faq.html">v0.16.1</a></dd>
+            <dd><a href="../../v0.17.0/faq.html">v0.17.0</a></dd>
+            <dd><a href="../../v0.18.0/faq.html">v0.18.0</a></dd>
+            <dd><a href="../../v0.19.0/faq.html">v0.19.0</a></dd>
+            <dd><a href="../../v0.2.0/faq.html">v0.2.0</a></dd>
+            <dd><a href="../../v0.20.0/faq.html">v0.20.0</a></dd>
+            <dd><a href="../../v0.21.0/faq.html">v0.21.0</a></dd>
+            <dd><a href="../../v0.22.0/faq.html">v0.22.0</a></dd>
+            <dd><a href="../../v0.23.0/faq.html">v0.23.0</a></dd>
+            <dd><a href="../../v0.3.0/faq.html">v0.3.0</a></dd>
+            <dd><a href="../../v0.3.1/faq.html">v0.3.1</a></dd>
+            <dd><a href="../../v0.4.0/faq.html">v0.4.0</a></dd>
+            <dd><a href="../../v0.5.0/faq.html">v0.5.0</a></dd>
+            <dd><a href="../../v0.5.1/faq.html">v0.5.1</a></dd>
+            <dd><a href="../../v0.6.0/faq.html">v0.6.0</a></dd>
+            <dd><a href="../../v0.7.0/faq.html">v0.7.0</a></dd>
+            <dd><a href="../../v0.8.0/faq.html">v0.8.0</a></dd>
+            <dd><a href="../../v0.9.0/faq.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="faq.html">fix/issue-506</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
