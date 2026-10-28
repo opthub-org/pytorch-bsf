@@ -152,10 +152,20 @@ After opening the PR and after every push, wait for CI and the Codex review of t
 PR=<PR-number>
 REPO=opthub-org/pytorch-bsf
 gh pr view "$PR" -R "$REPO" --json headRefOid,reviews,statusCheckRollup
+# GitHub can take a moment to register checks after a PR opens or a push.
+# Abort on API errors; zero registered checks means pending, not failure.
+CHECK_COUNT=0
+while [ "$CHECK_COUNT" -eq 0 ]; do
+  CHECK_COUNT=$(gh pr view "$PR" -R "$REPO" --json statusCheckRollup \
+    --jq '.statusCheckRollup | length') || exit 1
+  if [ "$CHECK_COUNT" -eq 0 ]; then sleep 10; fi
+done
 gh pr checks "$PR" -R "$REPO" --watch
 gh api --paginate "repos/$REPO/pulls/$PR/reviews"
 gh api --paginate "repos/$REPO/issues/$PR/comments"
 ```
+
+If checks remain unregistered (for example, workflows need maintainer approval), stop waiting and report CI as pending with the reason. Never treat an empty check list as success. If the head changes during registration or watch, restart the check for the new head.
 
 List **all** review threads, including outdated ones, with their root comment's REST ID and resolution state. `--paginate` and `pageInfo` ensure PRs with more than 100 threads are covered; `comments(first: 1)` fetches only the root needed for a reply.
 
