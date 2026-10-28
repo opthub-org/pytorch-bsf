@@ -374,6 +374,8 @@ def _check_splittable(model: BezierSimploid) -> None:
 def _chord_length_key(a: torch.Tensor, b: torch.Tensor) -> tuple[int, float]:
     """Compare finite chords by a normalized mantissa/exponent without squaring their scale."""
     difference, shift = b - a, 0
+    if not difference.numel():
+        return -(2**20), 0.0
     if not torch.isfinite(difference).all():
         difference, shift = b / 2 - a / 2, 1
     scale = float(difference.abs().max())

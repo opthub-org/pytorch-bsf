@@ -409,6 +409,11 @@ def test_longest_edge_tensor_product_maximum_and_tie(scale):
     assert longest_edge_criterion(BezierSimploid((1, 1), 1, square * scale)) == (0, 0, 1, 0.5)
 
 
+def test_longest_edge_empty_output_preserves_zero_norm_tie():
+    model = BezierSimploid.zeros((2,), 1, n_values=0)
+    assert longest_edge_criterion(model) == (0, 0, 1, 0.5)
+
+
 def test_longest_edge_criterion_wrong_n_params():
     bs = _rand(1, 1, 2)
     with pytest.raises(ValueError, match="type is"):
