@@ -1,0 +1,397 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cross-validation and degree search &mdash; PyTorch-BSF 0.23.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2753bf86"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Regularization and numerical evidence" href="regularization.html" />
+    <link rel="prev" title="Exact local subdivision" href="splitting.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#follow-a-fit-through-the-guides">Follow a fit through the guides</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Cross-validation and degree search</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#when-degree-selection-matters">When degree selection matters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#a-reproducible-search">A reproducible search</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#read-the-validation-evidence">Read the validation evidence</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#tune-candidates-and-folds">Tune candidates and folds</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#penalties-and-final-deployment">Penalties and final deployment</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#non-finite-validation-metrics">Non-finite validation metrics</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="partial.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Cross-validation and degree search</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/auto_degree.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="cross-validation-and-degree-search">
+<h1>Cross-validation and degree search<a class="headerlink" href="#cross-validation-and-degree-search" title="Link to this heading"></a></h1>
+<section id="when-degree-selection-matters">
+<h2>When degree selection matters<a class="headerlink" href="#when-degree-selection-matters" title="Link to this heading"></a></h2>
+<p>Polynomial degree controls the flexibility of a Bézier model. A degree-one
+curve is a straight segment; degree two can represent a quadratic bend;
+higher degrees permit more complicated variation and introduce more unknown
+controls. A larger degree often lowers training error even when its predictions
+between observations get worse. Select degree using observations that were
+not used to fit the corresponding model.</p>
+<p>This is particularly useful when a surrogate will interpolate costly simulator
+outputs, when the data contain noise, or when one region has much weaker
+coverage than another. It also gives evidence for retaining a low degree:
+if higher degrees do not reduce held-out error, additional coefficients and
+compute cost have little practical justification.</p>
+<p><code class="docutils literal notranslate"><span class="pre">cross_validate</span></code> evaluates one space. <code class="docutils literal notranslate"><span class="pre">select_degree</span></code> evaluates an explicit
+list of candidate degrees on identical folds. Both retain results rather than
+silently converting validation into a fitted ensemble or full-data refit.
+Inspect the evidence, choose a degree, and then explicitly train the model
+that the application will use.</p>
+</section>
+<section id="a-reproducible-search">
+<h2>A reproducible search<a class="headerlink" href="#a-reproducible-search" title="Link to this heading"></a></h2>
+<p>This example adds fixed-seed noise to a curved scalar response. The barycentric
+inputs <code class="docutils literal notranslate"><span class="pre">[1-x,</span> <span class="pre">x]</span></code> represent a segment rather than two independent features.
+The same observations and fold partition are used for all degrees.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">Samples</span><span class="p">,</span> <span class="n">fit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">KFold</span><span class="p">,</span> <span class="n">cross_validate</span><span class="p">,</span> <span class="n">select_degree</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">generator</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span><span class="p">()</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">17</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="mf">.2</span> <span class="o">*</span> <span class="n">x</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">y</span> <span class="o">+</span> <span class="mf">.1</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">18</span><span class="p">,</span> <span class="n">generator</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="n">samples</span> <span class="o">=</span> <span class="n">Samples</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">])</span>
+<span class="n">template</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">cv</span> <span class="o">=</span> <span class="n">KFold</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+<span class="n">search</span> <span class="o">=</span> <span class="n">select_degree</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">degrees</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">9</span><span class="p">],</span> <span class="n">cv</span><span class="o">=</span><span class="n">cv</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">search</span><span class="o">.</span><span class="n">success</span>
+<span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">search</span><span class="o">.</span><span class="n">candidates</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">candidate</span><span class="o">.</span><span class="n">validation</span><span class="o">.</span><span class="n">success</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidate</span><span class="o">.</span><span class="n">validation</span><span class="o">.</span><span class="n">folds</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
+<span class="n">chosen</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span><span class="n">search</span><span class="o">.</span><span class="n">best_space</span><span class="p">,</span> <span class="n">samples</span><span class="p">)</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="k">assert</span> <span class="n">chosen</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">space</span><span class="o">.</span><span class="n">compatible</span><span class="p">(</span><span class="n">search</span><span class="o">.</span><span class="n">best_space</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Use <code class="docutils literal notranslate"><span class="pre">candidate.degree</span></code>, <code class="docutils literal notranslate"><span class="pre">candidate.validation.metrics</span></code> and individual fold
+results to produce a report. <code class="docutils literal notranslate"><span class="pre">search.best_degree</span></code> is the candidate minimizing
+held-out <code class="docutils literal notranslate"><span class="pre">pooled_mse</span></code> among successful candidates. <code class="docutils literal notranslate"><span class="pre">best_space</span></code> is its
+compiled space, not a trained model. If all candidates fail, <code class="docutils literal notranslate"><span class="pre">success</span></code> is
+false and both properties are <code class="docutils literal notranslate"><span class="pre">None</span></code>. Check success before passing the
+selected space to <code class="docutils literal notranslate"><span class="pre">fit</span></code>.</p>
+<p>No early stopping occurs: every requested candidate is evaluated. This makes
+it possible to discover a later improvement after a mediocre intermediate
+degree. It also means that a long candidate list has a real cost. Start with
+a small range and expand only when the best candidate is at its upper boundary
+and there are enough observations to identify the larger space.</p>
+</section>
+<section id="read-the-validation-evidence">
+<h2>Read the validation evidence<a class="headerlink" href="#read-the-validation-evidence" title="Link to this heading"></a></h2>
+<p>Each <code class="docutils literal notranslate"><span class="pre">FoldResult</span></code> keeps <code class="docutils literal notranslate"><span class="pre">train_indices</span></code>, <code class="docutils literal notranslate"><span class="pre">test_indices</span></code>, the complete
+<code class="docutils literal notranslate"><span class="pre">FitResult</span></code>, held-out <code class="docutils literal notranslate"><span class="pre">mse</span></code> and <code class="docutils literal notranslate"><span class="pre">mae</span></code>, and total held-out observation weight.
+Every observation appears in one test fold. The test targets do not participate
+in that fold’s numerical solve. A failed solve remains visible and makes that
+candidate ineligible; it is never omitted from an apparently successful mean.</p>
+<p>The reported metrics answer different questions:</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-number">Table 6 </span><span class="caption-text">Validation metrics</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Metric</p></th>
+<th class="head"><p>Interpretation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mean_mse</span></code></p></td>
+<td><p>Arithmetic mean of fold MSEs. Every fold contributes equally.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">std_mse</span></code></p></td>
+<td><p>Population standard deviation of fold MSEs. Large values flag unstable partitions.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pooled_mse</span></code></p></td>
+<td><p>Fold MSEs weighted by their held-out weight sums. This is the selection criterion.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Fold <code class="docutils literal notranslate"><span class="pre">mae</span></code></p></td>
+<td><p>Weighted absolute error, averaged over output coordinates; useful beside squared error.</p></td>
+</tr>
+</tbody>
+</table>
+<p>With unequal fold sizes or unequal observation weights, <code class="docutils literal notranslate"><span class="pre">mean_mse</span></code> and
+<code class="docutils literal notranslate"><span class="pre">pooled_mse</span></code> need not match. Output columns are averaged equally in their
+current units. A large-scale output may dominate both; inspect per-output
+errors separately if the application has different tolerances per response.
+A small average can conceal unacceptable error near an endpoint or boundary.
+Plot residuals against parameter position as well as comparing summary errors.</p>
+<figure class="align-default" id="id2">
+<a class="reference internal image-reference" href="../_images/degree.png"><img alt="Low, selected and high degree curves against observations, alongside held-out errors for five degrees." src="../_images/degree.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 12 </span><span class="caption-text">Before selection: degree one underfits the curved target, while degree nine
+introduces unnecessary flexibility. After selection: refit the degree with
+the smallest pooled three-fold error. The target and data are identical
+across curves. Right: candidate errors on a logarithmic scale.</span><a class="headerlink" href="#id2" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>The figure uses the example’s 18 observations, noise seed 17 and fold seed 7.
+Reproduce it with <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">examples/generate_guide_figures.py</span></code>. The generated
+<a class="reference download internal" download="" href="../_downloads/84af9d5d5260b756f659bd39d1ec8602/metrics.json"><code class="xref download docutils literal notranslate"><span class="pre">metrics</span> <span class="pre">JSON</span></code></a> retains every candidate
+error. This synthetic comparison illustrates the workflow; its chosen degree
+is not a universal default for other responses or sample counts.</p>
+</section>
+<section id="tune-candidates-and-folds">
+<h2>Tune candidates and folds<a class="headerlink" href="#tune-candidates-and-folds" title="Link to this heading"></a></h2>
+<p>Increasing degree increases controls combinatorially with domain dimension.
+A degree <span class="math notranslate nohighlight">\(d\)</span> simplex of dimension <span class="math notranslate nohighlight">\(a\)</span> has
+<span class="math notranslate nohighlight">\(\binom{a+d}{d}\)</span> controls. A product has the product of these counts over
+factors. Check <code class="docutils literal notranslate"><span class="pre">space.n_controls</span></code> before requesting a large search. A cubic
+triangle has ten controls; a cubic segment has four. The same number of
+observations therefore supports very different searches on those domains.</p>
+<p>Increasing <code class="docutils literal notranslate"><span class="pre">KFold.n_splits</span></code> fits more models per candidate. Each training set
+contains a larger fraction of observations, while each test set becomes smaller
+and may provide a noisier local estimate. Three to five folds are often a
+reasonable first experiment, provided each training fold has positive weight
+and sufficient coverage. The requested split count must be at least two and
+cannot exceed the number of observations. A fold with zero total train or test
+weight is invalid; it does not become a zero-error fold.</p>
+<p><code class="docutils literal notranslate"><span class="pre">shuffle=True</span></code> randomizes indices with a local generator. <code class="docutils literal notranslate"><span class="pre">seed</span></code> fixes that
+partition for reproducibility; it does not change the regression solver’s
+precision. <code class="docutils literal notranslate"><span class="pre">shuffle=False</span></code> makes contiguous test blocks in input row order.
+This can test interpolation gaps when rows are spatially sorted, but is not
+an automatic time-series or grouped validation scheme. For correlated repeated
+measurements, independent random folds can be optimistic. Construct a separate
+evaluation protocol reflecting the future prediction task instead of reporting
+random-fold error as evidence for extrapolation or unseen experimental groups.</p>
+<p>For a product space, provide degree tuples such as <code class="docutils literal notranslate"><span class="pre">[(1,</span> <span class="pre">1),</span> <span class="pre">(2,</span> <span class="pre">1),</span> <span class="pre">(2,</span> <span class="pre">2)]</span></code>.
+Increasing one factor degree adds flexibility along that factor. Keep factor
+order consistent with concatenated barycentric blocks. A tuple must match the
+number of factors. Degree search calls <code class="docutils literal notranslate"><span class="pre">space.with_degree</span></code>; use manually
+constructed compatible candidate spaces and explicit validation when changing
+topology or specifying different cellwise degree assignments.</p>
+</section>
+<section id="penalties-and-final-deployment">
+<h2>Penalties and final deployment<a class="headerlink" href="#penalties-and-final-deployment" title="Link to this heading"></a></h2>
+<p>Use the same <code class="docutils literal notranslate"><span class="pre">penalty</span></code> and <code class="docutils literal notranslate"><span class="pre">solver</span></code> in candidate evaluation and the final
+refit. A degree chosen with strong smoothness is not evidence for an
+unregularized fit of that degree. To compare several penalty weights, run
+separate searches with the same <code class="docutils literal notranslate"><span class="pre">KFold</span></code> settings and record all trials.
+Avoid repeatedly tuning against the final test set; retain untouched data for
+an honest final evaluation if the choice matters operationally.</p>
+<p><code class="docutils literal notranslate"><span class="pre">cross_validate</span></code> also accepts <code class="docutils literal notranslate"><span class="pre">fixed</span></code> for evaluating one space with exact
+controls. <code class="docutils literal notranslate"><span class="pre">select_degree</span></code> does not take fixed controls, because a global row
+number may mean a different coefficient at a different degree. For a constrained
+degree search, build each space, resolve its endpoint or face indices anew,
+and call <code class="docutils literal notranslate"><span class="pre">cross_validate</span></code> explicitly with the corresponding constraints.</p>
+<p>The final full-data model generally differs from every fold model because it
+uses more observations. Recheck numerical status and inspect errors after
+refitting. If you want an ensemble instead, explicitly construct
+<code class="docutils literal notranslate"><span class="pre">Ensemble(validation.models)</span></code> from a single compatible space; see
+<a class="reference internal" href="active_learning.html"><span class="doc">Explicit ensembles and active learning</span></a>. Save the chosen model with <code class="docutils literal notranslate"><span class="pre">io.save_model</span></code> and record
+the candidate list, weights, fold settings and errors alongside it. Persistence
+of model geometry does not by itself preserve the reasoning behind selection.</p>
+</section>
+<section id="non-finite-validation-metrics">
+<h2>Non-finite validation metrics<a class="headerlink" href="#non-finite-validation-metrics" title="Link to this heading"></a></h2>
+<p>Cross-validation excludes zero-weight held-out rows before evaluating metrics.
+Weighted errors combine mantissas and exponents before reduction to avoid
+intermediate overflow and preserve meaningful tiny normalized weights.
+Near the float64 overflow or subnormal boundaries, row contributions are
+combined with exact rational arithmetic on the CPU and rounded only once.
+The pooled average uses an exact rational reduction of the CPU scalar fold
+summaries before rounding once to float64. This preserves tiny fold weights
+and the bound that the average lies between the finite fold errors, including
+at the float64 maximum; its scalar work grows with the number of folds.
+If a fold or aggregate metric is still non-finite, <code class="docutils literal notranslate"><span class="pre">success</span></code> is
+<code class="docutils literal notranslate"><span class="pre">False</span></code> and every fold remains available for inspection. Degree selection
+excludes that candidate; if all candidates fail, <code class="docutils literal notranslate"><span class="pre">best_index</span></code> is <code class="docutils literal notranslate"><span class="pre">None</span></code>
+and <code class="docutils literal notranslate"><span class="pre">success</span></code> is <code class="docutils literal notranslate"><span class="pre">False</span></code>. Successful training alone does not certify that
+held-out errors can be represented in float64. Rescale outputs or investigate
+failed candidates before explicitly refitting a selected space.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="splitting.html" class="btn btn-neutral float-left" title="Exact local subdivision" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="regularization.html" class="btn btn-neutral float-right" title="Regularization and numerical evidence" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: fix/477-farthest-distance
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/advanced/auto_degree.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/advanced/auto_degree.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/advanced/auto_degree.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/advanced/auto_degree.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/advanced/auto_degree.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/advanced/auto_degree.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/advanced/auto_degree.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/advanced/auto_degree.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/advanced/auto_degree.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/advanced/auto_degree.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/advanced/auto_degree.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="auto_degree.html">fix/477-farthest-distance</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

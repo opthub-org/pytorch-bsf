@@ -1,0 +1,504 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Exact local subdivision &mdash; PyTorch-BSF 0.23.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2753bf86"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Cross-validation and degree search" href="auto_degree.html" />
+    <link rel="prev" title="Visualization" href="visualization.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#follow-a-fit-through-the-guides">Follow a fit through the guides</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Exact local subdivision</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#when-to-split-a-model">When to split a model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#a-complete-exact-split">A complete exact split</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#understand-the-split-fraction">Understand the split fraction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#choose-a-policy">Choose a policy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#map-existing-observations-into-children">Map existing observations into children</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#refitting-and-recursive-use">Refitting and recursive use</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#conforming-subdivision-of-a-whole-space">Conforming subdivision of a whole space</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#keep-comparisons-in-the-same-physical-coordinates">Keep comparisons in the same physical coordinates</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="partial.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Exact local subdivision</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/splitting.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="exact-local-subdivision">
+<h1>Exact local subdivision<a class="headerlink" href="#exact-local-subdivision" title="Link to this heading"></a></h1>
+<section id="when-to-split-a-model">
+<h2>When to split a model<a class="headerlink" href="#when-to-split-a-model" title="Link to this heading"></a></h2>
+<p>Subdivision replaces one fitted cell by two local Bézier models whose images
+together reproduce the parent. Use it to isolate a region for inspection,
+evaluate pieces in separate downstream systems, or prepare a later local
+refinement. It is useful when one global model spans regions with different
+geometric scales and you want explicit charts for those regions.</p>
+<p>Subdivision itself is an exact change of parameterization. It does not
+collect observations, optimize coefficients, change polynomial degree, or
+reduce prediction error. If a parent underfits a localized feature, its exact
+children still underfit that feature. Error reduction requires an additional
+refitting step, usually with new observations or independently adjustable
+piecewise coefficients. Keep this distinction visible in before/after plots.</p>
+<p><code class="docutils literal notranslate"><span class="pre">subdivide</span></code> acts on one selected cell. It returns a <code class="docutils literal notranslate"><span class="pre">SubdivisionResult</span></code>
+with two models and two parameter maps. It does not automatically update
+neighboring cells of an assembled domain, rebuild shared topology, or create
+a globally remeshed model archive. The maps retain the selected parent cell
+ID so that evaluation can be traced back to the original model. To refine an
+assembled space as a whole, use <code class="docutils literal notranslate"><span class="pre">subdivide_space</span></code> (see
+<a class="reference internal" href="#conforming-subdivision"><span class="std std-ref">Conforming subdivision of a whole space</span></a>).</p>
+</section>
+<section id="a-complete-exact-split">
+<h2>A complete exact split<a class="headerlink" href="#a-complete-exact-split" title="Link to this heading"></a></h2>
+<p>The example fits a scalar quadratic on a segment and splits the parameter
+edge at fraction .4. Each child has its own full local barycentric domain.
+The map converts those local points back to the appropriate parent interval.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">Samples</span><span class="p">,</span> <span class="n">fit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.sampling</span><span class="w"> </span><span class="kn">import</span> <span class="n">grid</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.splitting</span><span class="w"> </span><span class="kn">import</span> <span class="n">EdgeSplit</span><span class="p">,</span> <span class="n">LongestEdge</span><span class="p">,</span> <span class="n">subdivide</span>
+
+<span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">observations</span> <span class="o">=</span> <span class="n">grid</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">observations</span><span class="o">.</span><span class="n">parameters</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">Samples</span><span class="p">(</span><span class="n">observations</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">square</span><span class="p">()[:,</span> <span class="kc">None</span><span class="p">]))</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span><span class="o">.</span><span class="n">model</span>
+<span class="n">pieces</span> <span class="o">=</span> <span class="n">subdivide</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">cell</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">policy</span><span class="o">=</span><span class="n">EdgeSplit</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">fraction</span><span class="o">=</span><span class="mf">.4</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">child</span><span class="p">,</span> <span class="n">mapping</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">pieces</span><span class="o">.</span><span class="n">models</span><span class="p">,</span> <span class="n">pieces</span><span class="o">.</span><span class="n">maps</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="n">child_points</span> <span class="o">=</span> <span class="n">grid</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">space</span><span class="p">,</span> <span class="mi">40</span><span class="p">)</span>
+    <span class="n">parent_points</span> <span class="o">=</span> <span class="n">mapping</span><span class="o">.</span><span class="n">to_parent</span><span class="p">(</span><span class="n">child_points</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">child</span><span class="p">(</span><span class="n">child_points</span><span class="p">),</span> <span class="n">model</span><span class="p">(</span><span class="n">parent_points</span><span class="p">),</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">pieces</span><span class="o">.</span><span class="n">models</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">pieces</span><span class="o">.</span><span class="n">maps</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+</pre></div>
+</div>
+<p>The selected parent is unchanged. Child coefficient tensors retain its dtype
+and device, while each child receives a single-cell space. The representation
+is local even if the original model was assembled from many cells. Always
+pair each child with its corresponding map; swapping maps produces an
+incorrect comparison despite identical coordinate widths.</p>
+<figure class="align-default" id="id1">
+<a class="reference internal image-reference" href="../_images/subdivision.png"><img alt="A parent curve and two child curves displayed in the same parent parameter coordinate." src="../_images/subdivision.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 11 </span><span class="caption-text">Before: one fitted cubic. After: two exact pieces at fraction .4, plotted
+against parent coordinates. The curves join without changing the represented
+response. The generator checks maximum child/parent discrepancies below
+1e-12; the figure does not claim a reduction in fitting error.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>The figure uses the noisy-data cubic from
+<code class="docutils literal notranslate"><span class="pre">examples/generate_guide_figures.py</span></code>, while the executable example above
+uses an exactly representable quadratic. The same map invariant applies in
+both cases. The figure’s measured errors are stored in
+<a class="reference download internal" download="" href="../_downloads/84af9d5d5260b756f659bd39d1ec8602/metrics.json"><code class="xref download docutils literal notranslate"><span class="pre">metrics.json</span></code></a>.</p>
+</section>
+<section id="understand-the-split-fraction">
+<h2>Understand the split fraction<a class="headerlink" href="#understand-the-split-fraction" title="Link to this heading"></a></h2>
+<p>For an edge joining factor vertices <span class="math notranslate nohighlight">\(v_i\)</span> and <span class="math notranslate nohighlight">\(v_j\)</span>, fraction
+<span class="math notranslate nohighlight">\(s\)</span> inserts a new vertex</p>
+<div class="math notranslate nohighlight">
+\[v_{\mathrm{new}}=(1-s)v_i+s v_j,\qquad 0&lt;s&lt;1.\]</div>
+<p>The first child replaces vertex <span class="math notranslate nohighlight">\(j\)</span> by the new vertex, and the second
+replaces vertex <span class="math notranslate nohighlight">\(i\)</span>. With child coordinates <span class="math notranslate nohighlight">\(u\)</span>, the first map is</p>
+<div class="math notranslate nohighlight">
+\[t_i=u_i+(1-s)u_j,\qquad t_j=s u_j,\]</div>
+<p>while the second map is</p>
+<div class="math notranslate nohighlight">
+\[t_i=(1-s)u_i,\qquad t_j=s u_i+u_j.\]</div>
+<p>Other coordinates in that factor are unchanged. Other factors of a product
+are also unchanged. These formulas preserve nonnegativity and the per-factor
+sum of one, so each full child simplex maps into its parent piece.</p>
+<p>The first piece covers parent points satisfying
+<span class="math notranslate nohighlight">\(t_j\le s(t_i+t_j)\)</span> and the second covers
+<span class="math notranslate nohighlight">\(t_j\ge s(t_i+t_j)\)</span>. Points on the dividing face belong to both.
+They must produce the same output under either exact representation.
+The child coefficients are obtained by Bézier subdivision, not by fitting
+outputs sampled at a few new locations.</p>
+<p>Increasing <code class="docutils literal notranslate"><span class="pre">fraction</span></code> moves the new vertex toward vertex <code class="docutils literal notranslate"><span class="pre">j</span></code>. It enlarges
+the first child’s portion of the selected edge and shrinks the second’s.
+<code class="docutils literal notranslate"><span class="pre">fraction=.5</span></code> bisects it. Values near zero or one create a very small
+piece, which may be useful for a localized region but can magnify coordinate
+conversion errors. Fractions must be strictly between zero and one; endpoints
+would create a degenerate piece.</p>
+<p><code class="docutils literal notranslate"><span class="pre">i</span></code> and <code class="docutils literal notranslate"><span class="pre">j</span></code> are distinct vertex indices within the selected factor,
+not global coefficient indices or output-coordinate indices. On a prism of
+type <code class="docutils literal notranslate"><span class="pre">(2,</span> <span class="pre">1)</span></code>, <code class="docutils literal notranslate"><span class="pre">factor=0</span></code> selects the triangular factor with three vertices,
+while <code class="docutils literal notranslate"><span class="pre">factor=1</span></code> selects the segment factor with two. Raising polynomial
+degree does not add vertices to these factors. Check geometry rather than
+control-net size when choosing an edge.</p>
+</section>
+<section id="choose-a-policy">
+<h2>Choose a policy<a class="headerlink" href="#choose-a-policy" title="Link to this heading"></a></h2>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-number">Table 5 </span><span class="caption-text">Policies and appropriate uses</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 24.0%" />
+<col style="width: 38.0%" />
+<col style="width: 38.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Policy</p></th>
+<th class="head"><p>Selection</p></th>
+<th class="head"><p>What to check</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EdgeSplit(i,</span> <span class="pre">j,</span> <span class="pre">fraction=.5,</span> <span class="pre">factor=0)</span></code></p></td>
+<td><p>Explicit edge and location.</p></td>
+<td><p>Use when the region of interest is known in parameter coordinates.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LongestEdge(fraction=.5)</span></code></p></td>
+<td><p>Longest chord between selected cell vertex images.</p></td>
+<td><p>Output units affect which chord is longest.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ResidualSplit(samples,</span> <span class="pre">resolution=10)</span></code></p></td>
+<td><p>Edge/fraction minimizing the sum of unweighted child MSEs over a grid.</p></td>
+<td><p>Groups current errors; does not refit or guarantee lower error.</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">LongestEdge</span></code> compares lengths using normalized float64 mantissas and
+exponents. Finite endpoints may have subnormal distances or differences
+larger than the float64 range. Uniform changes of output units preserve
+selection up to rounding near equal lengths and information already lost
+when coordinates were stored. Different units for individual output axes
+can change the selected edge. Non-finite corner values raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.
+Equal lengths retain factor/vertex lexicographic order, and tensor products
+use the maximum chord over vertices of the other factors.</p>
+<p><code class="docutils literal notranslate"><span class="pre">LongestEdge</span></code> is a geometry heuristic based on vertex chords in output
+space. It does not measure the arc length of a curved edge or locate the
+largest curvature. A loop whose endpoint images coincide can have a short
+chord despite a long curved path. Rescaling one output coordinate can change
+which chord is selected, so keep units consistent when comparing policies.</p>
+<p><code class="docutils literal notranslate"><span class="pre">ResidualSplit</span></code> requires equally weighted observations on the selected
+cell. It uses current model residuals to assess how observations group into
+two pieces. A larger <code class="docutils literal notranslate"><span class="pre">resolution</span></code> examines a finer split-fraction grid and
+costs more evaluation work. It does not increase the model’s degree or add
+training points. Since the score sums two child means rather than recomputing
+a single observation-weighted global MSE, it can favor partitions with very
+different point counts. Inspect those counts and the selected location before
+interpreting the policy as an accuracy improvement.</p>
+<p>No policy changes the exactness guarantee: once an edge and fraction have
+been selected, the two local models represent the same parent function.
+Choose a policy according to the next operation, such as balanced local data
+sets or a physically meaningful region boundary, rather than expecting one
+policy to repair the parent’s bias automatically.</p>
+</section>
+<section id="map-existing-observations-into-children">
+<h2>Map existing observations into children<a class="headerlink" href="#map-existing-observations-into-children" title="Link to this heading"></a></h2>
+<p>A child model expects child coordinates. Passing parent coordinates directly
+may produce a plausible but unrelated response. Use the inverse map to obtain
+both transformed coordinates and a membership mask:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">first_child</span> <span class="o">=</span> <span class="n">pieces</span><span class="o">.</span><span class="n">models</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">first_map</span> <span class="o">=</span> <span class="n">pieces</span><span class="o">.</span><span class="n">maps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">local_points</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="n">first_map</span><span class="o">.</span><span class="n">from_parent</span><span class="p">(</span><span class="n">observations</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">local_points</span><span class="p">)</span> <span class="o">==</span> <span class="nb">int</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+<span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">first_child</span><span class="p">(</span><span class="n">local_points</span><span class="p">),</span> <span class="n">model</span><span class="p">(</span><span class="n">observations</span><span class="p">)[</span><span class="n">mask</span><span class="p">],</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">)</span>
+<span class="n">local_values</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">square</span><span class="p">()[:,</span> <span class="kc">None</span><span class="p">][</span><span class="n">mask</span><span class="p">]</span>
+<span class="n">local_samples</span> <span class="o">=</span> <span class="n">Samples</span><span class="p">(</span><span class="n">local_points</span><span class="p">,</span> <span class="n">local_values</span><span class="p">)</span>
+<span class="n">local_fit</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span><span class="n">first_child</span><span class="o">.</span><span class="n">space</span><span class="p">,</span> <span class="n">local_samples</span><span class="p">)</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="k">assert</span> <span class="n">local_fit</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">"data_mse"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">1e-24</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">from_parent</span></code> ignores rows from other parent cells and returns a mask over
+the original batch. Apply that mask to values and weights as well as parameters.
+The returned child <code class="docutils literal notranslate"><span class="pre">Points</span></code> use the local single-cell ID. Do not keep the
+parent’s cell ID when feeding them to the child. To compare the child with
+an assembled parent, call <code class="docutils literal notranslate"><span class="pre">to_parent</span></code> so the correct original ID is restored.</p>
+<p>Points on the cut can appear in both child data sets. Decide whether that is
+desired for subsequent fitting and evaluation, and avoid double-counting them
+in a pooled global error. Exact children agree on the cut, but two independent
+refits need not agree there. A shared continuity constraint or a newly assembled
+domain is required if that equality must remain exact after coefficients move.</p>
+</section>
+<section id="refitting-and-recursive-use">
+<h2>Refitting and recursive use<a class="headerlink" href="#refitting-and-recursive-use" title="Link to this heading"></a></h2>
+<p>If the goal is a more accurate piecewise surrogate, first preserve the exact
+split as a baseline. Map observations, inspect per-piece coverage, obtain
+additional true responses where needed, and refit each admissible model.
+Compare every candidate in parent coordinates on an independent evaluation
+set. This makes it clear whether improvement comes from new information,
+extra piecewise freedom, or merely a denser plot.</p>
+<p>Refitting the same degree on smaller domains can resolve localized behavior,
+but it increases total independent coefficients and may overfit a small child
+with few observations. Check free-control count and data rank separately for
+each child. Keep important boundary values fixed or compile a glued space if
+the pieces must remain continuous. Smoothness penalties within separate child
+models do not by themselves enforce agreement across their interface.</p>
+<p>For recursive subdivision, each returned map relates one level of child
+coordinates to that level’s parent. Compose the maps in order to reach the
+original chart, and retain the path of cell IDs. Repeatedly splitting does
+not automatically compose maps or maintain a hierarchy for you. Save the
+hierarchy in application metadata if downstream consumers need it.</p>
+<p>A practical stopping rule considers local held-out error, minimum sample
+count and smallest permitted region size. Stopping only when training error
+is tiny can generate many unsupported pieces. A split at an extreme fraction
+can also leave one child without enough informative measurements; check this
+before launching a local degree search or additional experiment batch.</p>
+<p>For adjacent cells in an assembled space, independently subdividing one patch
+leaves neighboring topology unchanged. The returned models can be visualized
+locally, but they are not a conforming replacement mesh; use
+<code class="docutils literal notranslate"><span class="pre">subdivide_space</span></code> when one is required. See <a class="reference internal" href="simploidal.html"><span class="doc">Single and assembled domains</span></a> for shared
+coefficient construction, <a class="reference internal" href="partial.html"><span class="doc">Fixed controls</span></a> for exact boundary values, and
+<a class="reference internal" href="auto_degree.html"><span class="doc">Cross-validation and degree search</span></a> for deciding whether additional local polynomial capacity
+is supported by independent errors.</p>
+</section>
+<section id="conforming-subdivision-of-a-whole-space">
+<span id="conforming-subdivision"></span><h2>Conforming subdivision of a whole space<a class="headerlink" href="#conforming-subdivision-of-a-whole-space" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">subdivide_space</span></code> splits a factor edge of one cell and propagates the split
+so that the whole space stays conforming. Every factor edge parallel to the
+selected one through shared faces is split at the same fraction: the edges of
+the same factor in neighboring cells and, through a degenerate face, the edge
+of its base that the face’s edge maps onto. Each affected cell is bisected
+along all of its marked edges in a fixed order, so a shared face is
+subdivided identically from every side. For a prism or a cube the split runs
+through a whole sheet of cells, and an edge that a degeneracy collapses to a
+vertex is not split.</p>
+<p>The result is again a simploidal Bézier space, for any fraction in
+<span class="math notranslate nohighlight">\((0, 1)\)</span> and also when the space has degenerate cells such as cones and
+pyramids: splitting commutes with faces and, since de Casteljau subdivision is
+affine in barycentric coordinates, with degeneracy maps. Its coefficients are
+computed by de Casteljau subdivision, so the refined model represents the
+same function, and it can be subdivided again.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierModel</span><span class="p">,</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">Points</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.geometry</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimploidalSet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.splitting</span><span class="w"> </span><span class="kn">import</span> <span class="n">EdgeSplit</span><span class="p">,</span> <span class="n">subdivide_space</span>
+
+<span class="n">S</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">tetra</span><span class="p">,</span> <span class="n">prism</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">add_simplex</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">S</span><span class="o">.</span><span class="n">add_simploid</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">S</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">tetra</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">prism</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+<span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">on_set</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">BezierModel</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">space</span><span class="o">.</span><span class="n">n_controls</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
+
+<span class="c1"># Edge (1, 2) of the tetrahedron is an edge of the prism's bottom triangle.</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">subdivide_space</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">cell</span><span class="o">=</span><span class="n">space</span><span class="o">.</span><span class="n">cell_id</span><span class="p">(</span><span class="n">tetra</span><span class="p">),</span> <span class="n">policy</span><span class="o">=</span><span class="n">EdgeSplit</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">fraction</span><span class="o">=</span><span class="mf">.3</span><span class="p">))</span>
+<span class="n">refined</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">space</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">space</span><span class="o">.</span><span class="n">main_cells</span><span class="p">),</span> <span class="s2">"-&gt;"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">refined</span><span class="o">.</span><span class="n">main_cells</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">parents</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">refined</span><span class="o">.</span><span class="n">main_cells</span><span class="p">)</span> <span class="o">==</span>
+      <span class="nb">sorted</span><span class="p">([</span><span class="n">space</span><span class="o">.</span><span class="n">cell_id</span><span class="p">(</span><span class="n">tetra</span><span class="p">)]</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">[</span><span class="n">space</span><span class="o">.</span><span class="n">cell_id</span><span class="p">(</span><span class="n">prism</span><span class="p">)]</span> <span class="o">*</span> <span class="mi">2</span><span class="p">))</span>
+
+<span class="n">points</span> <span class="o">=</span> <span class="n">Points</span><span class="o">.</span><span class="n">from_cells</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="p">[(</span><span class="n">prism</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">.2</span><span class="p">,</span> <span class="mf">.3</span><span class="p">,</span> <span class="mf">.5</span><span class="p">,</span> <span class="mf">.6</span><span class="p">,</span> <span class="mf">.4</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">))])</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">points</span><span class="p">),</span> <span class="n">result</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">transfer</span><span class="p">(</span><span class="n">points</span><span class="p">))))</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>2 -&gt; 4
+True
+True
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">parents</span></code> gives, for every cell of the refined space, the original cell
+whose relative interior contains it, and <code class="docutils literal notranslate"><span class="pre">transfer</span></code> maps original
+<code class="docutils literal notranslate"><span class="pre">Points</span></code> to the refined space in the same order. A point on an interface
+between pieces goes to one of them; since the model is continuous there,
+the choice does not affect the value. <code class="docutils literal notranslate"><span class="pre">split</span></code> reports the split of the selected
+cell chosen by the policy; <code class="docutils literal notranslate"><span class="pre">EdgeSplit(j,</span> <span class="pre">i,</span> <span class="pre">s)</span></code> is the same split as
+<code class="docutils literal notranslate"><span class="pre">EdgeSplit(i,</span> <span class="pre">j,</span> <span class="pre">1</span> <span class="pre">-</span> <span class="pre">s)</span></code>, computed without rounding <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">s</span></code>. The policies are those of <code class="docutils literal notranslate"><span class="pre">subdivide</span></code>,
+evaluated on the selected cell.</p>
+</section>
+<section id="keep-comparisons-in-the-same-physical-coordinates">
+<h2>Keep comparisons in the same physical coordinates<a class="headerlink" href="#keep-comparisons-in-the-same-physical-coordinates" title="Link to this heading"></a></h2>
+<p>A useful split report includes the parent cell, factor and edge, the chosen
+fraction, child observation counts, and the maximum child-versus-parent
+prediction difference before any refit. Then report independent errors after
+refitting as a second comparison. This sequence distinguishes exact geometry
+preservation from an actual improvement in the surrogate.</p>
+<p>For a scalar graph, plot against the parent parameter or a known physical
+coordinate, as the figure does. Plotting both children against their own local
+zero-to-one coordinate stretches each piece to the same width and can make
+them appear unrelated to the parent. For an output-space image, use the same
+projection and common axis limits. A different control polygon after splitting
+is expected and is not itself a change of the represented function.</p>
+<p>Retain original observation IDs when applying membership masks so that later
+error reports can identify repeated cut-boundary rows. In a recursive process,
+store the complete mapping path beside each leaf model. A local model archive
+alone cannot reconstruct which portion of the original experiment its local
+coordinates describe.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="visualization.html" class="btn btn-neutral float-left" title="Visualization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="auto_degree.html" class="btn btn-neutral float-right" title="Cross-validation and degree search" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: fix/477-farthest-distance
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/advanced/splitting.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/advanced/splitting.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/advanced/splitting.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/advanced/splitting.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/advanced/splitting.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/advanced/splitting.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="splitting.html">fix/477-farthest-distance</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
