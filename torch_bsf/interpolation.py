@@ -610,9 +610,14 @@ class SimplicialMesh:
             # counts. Two convex polytopes have interiors that do not overlap exactly when a facet normal of their
             # Minkowski difference separates them. In the hyperplane, such a normal is orthogonal to the
             # edges of a face of each simplex whose dimensions sum to d - 2.
+            signs = torch.tensor([(-1) ** c for c in range(d)], dtype=faces.dtype)
             for a in range(1, d):
                 for left in combinations(range(d), a):
                     for right in combinations(range(d), d - a):
+                        # Once every candidate has a separating axis, further determinants cannot
+                        # change the result. This is common for conforming boundary faces.
+                        if not overlap.any():
+                            return crowded
                         spans = torch.cat(
                             [
                                 normal[:, None],
@@ -623,10 +628,8 @@ class SimplicialMesh:
                         )  # (p, d - 1, d)
                         spans = spans / spans.norm(dim=2, keepdim=True)
                         # A unit normal of the spans (their generalized cross product), by cofactor expansion.
-                        u = torch.stack(
-                            [(-1) ** c * torch.linalg.det(spans[:, :, [k for k in range(d) if k != c]]) for c in range(d)],
-                            dim=1,
-                        )
+                        cofactors = torch.stack([spans[:, :, [k for k in range(d) if k != c]] for c in range(d)], dim=1)
+                        u = torch.linalg.det(cofactors) * signs
                         # Any direction in the hyperplane may separate the faces; one lost to rounding (when the
                         # spans are dependent) is skipped.
                         u -= (u * normal).sum(dim=1, keepdim=True) * normal
