@@ -949,6 +949,132 @@ def test_invalid_lattice_and_refine_arguments():
     for index in indices:
         torch.testing.assert_close(refine(lattice, [index]).simplices, expected)
     torch.testing.assert_close(refine(lattice, torch.tensor([1])).simplices, expected)  # type: ignore[arg-type]
+    for rule in ["newest", "Longest_edge", None]:
+        with pytest.raises(ValueError, match="rule"):
+            refine(lattice, [1], rule=rule)  # type: ignore[arg-type]
+
+
+# ---------------------------------------------------------------------------
+# Newest-vertex bisection
+# ---------------------------------------------------------------------------
+
+
+def _cells(mesh: SimplicialMesh, scale: int) -> set[frozenset[tuple[int, ...]]]:
+    """The simplices of ``mesh`` as sets of vertex coordinates times ``scale`` (which must make them integers)."""
+    z = mesh.vertices * scale
+    assert torch.equal(z, z.round())
+    rows = [tuple(int(t) for t in r) for r in z.round().long().tolist()]
+    return {frozenset(rows[v] for v in s) for s in mesh.simplices.tolist()}
+
+
+def _uniform(mesh: SimplicialMesh, rounds: int) -> list[SimplicialMesh]:
+    meshes = [mesh]
+    for _ in range(rounds):
+        meshes.append(refine(meshes[-1], range(meshes[-1].n_simplices), rule="newest_vertex"))
+    return meshes
+
+
+@pytest.mark.parametrize("dim, k", [(1, 1), (1, 3), (2, 1), (2, 3), (3, 1), (3, 2), (4, 1), (4, 2)])
+def test_newest_vertex_rounds_double_the_lattice_degree(dim, k):
+    meshes = _uniform(lattice_mesh(dim, k), 2 * dim if dim < 4 else dim)  # (2k)**4 simplices suffice in 4-D
+    for m in range(dim, len(meshes), dim):
+        mesh = meshes[m]
+        degree = 2 ** (m // dim) * k
+        lattice = lattice_mesh(dim, degree)
+        assert mesh.unmatched_faces == 0
+        assert (mesh.n_vertices, mesh.n_simplices) == (lattice.n_vertices, degree**dim)
+        # The vertices are those of the finer lattice (in another order), up to the rounding of a / k.
+        scaled = mesh.vertices * degree
+        torch.testing.assert_close(scaled, scaled.round(), atol=1e-12, rtol=0)
+        assert sorted(map(tuple, scaled.round().tolist())) == sorted(map(tuple, (lattice.vertices * degree).round().tolist()))
+        volumes = mesh.volumes()
+        torch.testing.assert_close(volumes, torch.full_like(volumes, volumes.sum().item() / len(volumes)))
+    # In between, every round halves the volume of every simplex and keeps the mesh conforming.
+    for coarse, fine in itertools.pairwise(meshes):
+        assert fine.n_simplices == 2 * coarse.n_simplices
+        assert fine.unmatched_faces == 0
+
+
+def test_newest_vertex_bisects_the_cube_diagonal_first():
+    mesh = lattice_mesh(3, 1)  # one Kuhn simplex: 0 -> e0 -> e0 + e1 -> e0 + e1 + e2 in staircase coordinates
+    path = sorted(range(4), key=lambda v: (mesh.vertices[v].cumsum(0)).sum().item())
+    fine = refine(mesh, [0], rule="newest_vertex")
+    torch.testing.assert_close(fine.vertices[4], (mesh.vertices[path[0]] + mesh.vertices[path[3]]) / 2)
+    # Longest-edge bisection of the same simplex cuts another edge (the chart is not the staircase metric).
+    longest = refine(mesh, [0])
+    assert not torch.equal(longest.vertices[4], fine.vertices[4])
+    # Uniform rounds: newest-vertex bisection stays on the lattice hierarchy without closure vertices.
+    rounds = _uniform(lattice_mesh(3, 3), 3)
+    assert [m.n_vertices for m in rounds] == [20, 30, 54, 84]
+
+
+@given(
+    dim=st.integers(1, 4),
+    k=st.integers(1, 2),
+    marks=st.lists(st.integers(0, 2**30), min_size=1, max_size=10),
+    batch=st.integers(1, 3),
+)
+def test_newest_vertex_refinement_is_conforming_and_nested(dim, k, marks, batch):
+    mesh = lattice_mesh(dim, k)
+    total = mesh.volumes().sum()
+    depth = 0
+    for start in range(0, len(marks), batch):
+        targets = [m % mesh.n_simplices for m in marks[start : start + batch]]
+        fine = refine(mesh, targets, rule="newest_vertex")
+        assert fine.unmatched_faces == 0
+        torch.testing.assert_close(fine.vertices[: mesh.n_vertices], mesh.vertices, atol=0, rtol=0)
+        assert not {tuple(mesh.simplices[t].tolist()) for t in targets} & set(map(tuple, fine.simplices.tolist()))
+        torch.testing.assert_close(fine.volumes().sum(), total)
+        mesh = fine
+        depth = max(depth, round(math.log2(float(total / mesh.volumes().min()) / k**dim)))
+    # Every simplex is one of the uniform refinement of the same depth or a coarser one: refinement is local and
+    # nested, and the simplices take only the finitely many shapes of the uniform refinements.
+    if dim == 4:
+        return  # the uniform refinements are too large to compare quickly
+    scale = 2 ** (depth // dim + 1) * k
+    uniform = set().union(*(_cells(m, scale) for m in _uniform(lattice_mesh(dim, k), depth)))
+    assert _cells(mesh, scale) <= uniform
+
+
+def test_newest_vertex_state_is_carried_and_required():
+    lattice = lattice_mesh(2, 2)
+    first = refine(lattice, [0], rule="newest_vertex")
+    second = refine(first, [first.n_simplices - 1], rule="newest_vertex")
+    assert second.unmatched_faces == 0
+    # Marking in one call or in two gives the same mesh when the second mark is a simplex of the first mesh.
+    marks = [tuple(lattice.simplices[k].tolist()) for k in (0, 3)]
+    one_call = refine(lattice, [0, 3], rule="newest_vertex")
+    two_calls = refine(first, [first.simplices.tolist().index(list(marks[1]))], rule="newest_vertex")
+    assert torch.equal(one_call.simplices, two_calls.simplices)
+    torch.testing.assert_close(one_call.vertices, two_calls.vertices, atol=0, rtol=0)
+    # A mesh built directly, or refined by another rule, has no newest-vertex state.
+    for mesh in (SimplicialMesh(lattice.vertices, lattice.simplices), refine(first, [0])):
+        with pytest.raises(ValueError, match="newest_vertex"):
+            refine(mesh, [0], rule="newest_vertex")
+    # The default rule is longest-edge bisection, also on meshes that carry the state.
+    for mesh in (lattice, first):
+        for k in range(mesh.n_simplices):
+            assert torch.equal(refine(mesh, [k]).simplices, refine(mesh, [k], rule="longest_edge").simplices)
+            assert torch.equal(refine(mesh, [k]).vertices, refine(mesh, [k], rule="longest_edge").vertices)
+    # Refining a mesh does not change its own state.
+    assert lattice._newest_vertex == lattice_mesh(2, 2)._newest_vertex
+    assert torch.equal(refine(lattice, [0], rule="newest_vertex").simplices, first.simplices)
+
+
+@pytest.mark.parametrize("dim, levels", [(1, 300), (2, 150), (3, 90)])
+def test_newest_vertex_deep_refinement_towards_a_corner(dim, levels):
+    # Cells of size about 2**-(levels / dim), far below the scale of the lattice, stay conforming.
+    mesh = lattice_mesh(dim, 1)
+    for _ in range(levels):
+        corner = int(mesh.locate(torch.zeros(1, dim, dtype=torch.float64)).cell_ids[0])
+        mesh = refine(mesh, [int((mesh.cell_ids == corner).nonzero()[0])], rule="newest_vertex")
+    assert mesh.unmatched_faces == 0
+    small = mesh.vertices[mesh.vertices > 0].min()
+    assert small <= 2.0 ** -(levels // dim - 2)
+    torch.testing.assert_close(mesh.volumes().sum(), lattice_mesh(dim, 1).volumes().sum())
+    values = mesh.vertices.sum(1, keepdim=True) ** 2
+    model = hermite_interpolant(mesh, values)
+    assert torch.isfinite(model(mesh.locate(mesh.vertices))).all()
 
 
 # ---------------------------------------------------------------------------
