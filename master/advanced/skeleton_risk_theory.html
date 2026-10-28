@@ -608,11 +608,56 @@ with <span class="math notranslate nohighlight">\(\alpha_i \geq 1\)</span>,</p>
 <p>Proof. On the edge, <span class="math notranslate nohighlight">\(e(k, D - k) = b_k\)</span>. For <span class="math notranslate nohighlight">\(\mathbf 1_J\)</span>,
 <span class="math notranslate nohighlight">\(\alpha_i = 1\)</span> and <span class="math notranslate nohighlight">\(D b_1 = (-1)^{D-1} (D+1)/2\)</span>.</p>
 </div>
+<div class="proof theorem admonition" id="thm-skeleton-vertex-sum">
+<p class="admonition-title"><span class="caption-number">Theorem 11 </span> (A generating function for the vertex risk)</p>
+<section class="theorem-content" id="proof-content">
+<p>Put <span class="math notranslate nohighlight">\(w_k=(D-k+1)b_k\)</span>, with <span class="math notranslate nohighlight">\(b_k\)</span> as in
+<a class="reference internal" href="#thm-skeleton-curves">Theorem 10</a>, and define the formal power series</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}F(x,y) &amp;= \sum_{p,q\geq0}\frac{\binom{p+q}{p}}{(p+1)(q+1)}x^p y^q \\
+&amp;= \frac{(1-x-y)\log(1-x-y)-(1-x)\log(1-x)
+   -(1-y)\log(1-y)}{xy}, \\
+K_r(p,q) &amp;= [x^p y^q]F(x,y)^r.\end{split}\]</div>
+<p>The quotient denotes its formal series, including at either zero
+coordinate. For every <span class="math notranslate nohighlight">\(D\geq1\)</span> and <span class="math notranslate nohighlight">\(M\geq2\)</span>,</p>
+<div class="math notranslate nohighlight" id="equation-skeleton-vertex-double-sum">
+<span class="eqno">(6)<a class="headerlink" href="#equation-skeleton-vertex-double-sum" title="Link to this equation"></a></span>\[a_0 = \frac{M^2(D!)^2}{(M)_{2D}}
+\sum_{k=1}^D\sum_{l=1}^D
+w_k w_l\binom{k+l}{k}K_{M-1}(D-k,D-l).\]</div>
+<p>In particular, the polynomial <span class="math notranslate nohighlight">\(P_{D,0}\)</span> in
+<a class="reference internal" href="#thm-skeleton-rational">Theorem 12</a> has the general finite expression</p>
+<div class="math notranslate nohighlight" id="equation-skeleton-vertex-polynomial">
+<span class="eqno">(7)<a class="headerlink" href="#equation-skeleton-vertex-polynomial" title="Link to this equation"></a></span>\[P_{D,0}(M) = (D!)^2\sum_{s=0}^{2D-2}\binom{M-1}{s}
+\sum_{k,l=1}^D w_k w_l\binom{k+l}{k}
+[x^{D-k}y^{D-l}](F-1)^s.\]</div>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Fix vertex 1 and write <span class="math notranslate nohighlight">\(\alpha=(k,u)\)</span> and
+<span class="math notranslate nohighlight">\(\beta=(l,v)\)</span>. By <a class="reference internal" href="#cor-skeleton-vertex">Corollary 3</a>, their propagated
+errors are <span class="math notranslate nohighlight">\(w_k/\prod_j(u_j+1)\)</span> and
+<span class="math notranslate nohighlight">\(w_l/\prod_j(v_j+1)\)</span>. The full Gram entry is</p>
+<div class="math notranslate nohighlight">
+\[G_{\alpha\beta}=\frac{(D!)^2}{(M)_{2D}}
+\binom{k+l}{k}\prod_{j=1}^{M-1}\binom{u_j+v_j}{u_j}.\]</div>
+<p>Summing over <span class="math notranslate nohighlight">\(|u|=D-k\)</span> and <span class="math notranslate nohighlight">\(|v|=D-l\)</span> gives exactly
+<span class="math notranslate nohighlight">\(K_{M-1}(D-k,D-l)\)</span>. The vertex Gram block is 1. The
+<span class="math notranslate nohighlight">\(M\)</span> equal vertex contributions and the allocation factor
+<span class="math notranslate nohighlight">\(\binom M1=M\)</span> give the factor <span class="math notranslate nohighlight">\(M^2\)</span> in
+<a class="reference internal" href="#equation-skeleton-vertex-double-sum">(6)</a>.</p>
+<p>Integrating <span class="math notranslate nohighlight">\((1-x-y)^{-1}\)</span> formally once in each variable gives
+the displayed expression for <span class="math notranslate nohighlight">\(xyF\)</span>. Finally expand
+<span class="math notranslate nohighlight">\(F^{M-1}=(1+(F-1))^{M-1}\)</span>. Since <span class="math notranslate nohighlight">\(F-1\)</span> has no constant
+term, its power <span class="math notranslate nohighlight">\(s\)</span> cannot contribute above <span class="math notranslate nohighlight">\(s=p+q\)</span>.
+Here <span class="math notranslate nohighlight">\(p+q\leq2D-2\)</span>, which proves
+<a class="reference internal" href="#equation-skeleton-vertex-polynomial">(7)</a>, including the degree bound. The
+coefficient extraction uses a polynomial of bounded degree for every
+fixed <span class="math notranslate nohighlight">\(D\)</span>; it requires no propagation matrices or inverses.</p>
+</div>
 </section>
 <section id="fixed-degree-growing-dimension">
 <h2>Fixed degree, growing dimension<a class="headerlink" href="#fixed-degree-growing-dimension" title="Link to this heading"></a></h2>
 <div class="proof theorem admonition" id="thm-skeleton-rational">
-<p class="admonition-title"><span class="caption-number">Theorem 11 </span> (Rational dependence on the dimension)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 12 </span> (Rational dependence on the dimension)</p>
 <section class="theorem-content" id="proof-content">
 <p>For fixed <span class="math notranslate nohighlight">\(D\)</span> and <span class="math notranslate nohighlight">\(m &lt; D\)</span>, there is a polynomial
 <span class="math notranslate nohighlight">\(P_{D,m}\)</span> of degree at most <span class="math notranslate nohighlight">\(2(D - m - 1)\)</span> such that, for every
@@ -734,7 +779,7 @@ skeleton fitting wins in all sufficiently high dimensions.</p>
 </section>
 </div><div class="proof admonition" id="proof">
 <p>Proof. <span class="math notranslate nohighlight">\(\binom{M}{m+1}^2 / (M)_{2D}\)</span> has degree <span class="math notranslate nohighlight">\(2(m + 1) - 2D\)</span>, so
-the degree bound of <a class="reference internal" href="#thm-skeleton-rational">Theorem 11</a> gives convergence.
+the degree bound of <a class="reference internal" href="#thm-skeleton-rational">Theorem 12</a> gives convergence.
 The last two limits follow from <a class="reference internal" href="#prop-skeleton-degree-faces">Proposition 2</a> and
 <a class="reference internal" href="#prop-skeleton-second-faces">Proposition 3</a>.</p>
 <p>For <span class="math notranslate nohighlight">\(a_0\)</span>, the leading term counts the pairs with
@@ -784,7 +829,7 @@ around once the dimension is large enough.</p>
 </section>
 <section id="open-questions">
 <h2>Open questions<a class="headerlink" href="#open-questions" title="Link to this heading"></a></h2>
-<ul class="simple">
+<ul>
 <li><p><strong>A closed form in D for 1 ≤ m ≤ D − 3.</strong> By
 <a class="reference internal" href="#thm-skeleton-propagation-reduction">Theorem 9</a>, <span class="math notranslate nohighlight">\(a_m\)</span> is determined by the
 propagation onto a face with <span class="math notranslate nohighlight">\(m + 2 \geq 3\)</span> vertices. For
@@ -795,10 +840,38 @@ least two, and no product formula is known. Exact values such as
 <span class="math notranslate nohighlight">\(D = 3, \dots, 6\)</span> acquire large prime factors, such as
 <span class="math notranslate nohighlight">\(81259 = 23 \cdot 3533\)</span>. This suggests that no single
 hypergeometric term gives them.</p></li>
-<li><p><strong>A simpler form of a_0 for finite M ≥ 3.</strong> <a class="reference internal" href="#cor-skeleton-vertex">Corollary 3</a>
-makes <span class="math notranslate nohighlight">\(a_0\)</span> an explicit finite double sum over pairs of controls, for
-example <span class="math notranslate nohighlight">\(41/280, 79/1120, 1189/30800\)</span> for <span class="math notranslate nohighlight">\(M = 3\)</span> and
-<span class="math notranslate nohighlight">\(D = 3, 4, 5\)</span>. A closed form without the sum is not known.</p></li>
+<li><p><strong>A simpler form of a_0 for finite M ≥ 3.</strong>
+<a class="reference internal" href="#equation-skeleton-vertex-double-sum">(6)</a> reduces the control-pair sum to a
+<span class="math notranslate nohighlight">\(D\times D\)</span> sum with an explicit generating function. For example
+it gives <span class="math notranslate nohighlight">\(41/280,79/1120,1189/30800\)</span> at <span class="math notranslate nohighlight">\(M=3\)</span> and
+<span class="math notranslate nohighlight">\(D=3,4,5\)</span>. <a class="reference internal" href="#equation-skeleton-vertex-polynomial">(7)</a> gives every fixed-degree
+polynomial, but a scalar closed form in <span class="math notranslate nohighlight">\(D\)</span>, or a linear
+recurrence in <span class="math notranslate nohighlight">\(D\)</span> of bounded order, remains open even for
+<span class="math notranslate nohighlight">\(M=3\)</span>.</p>
+<p>Two simplification attempts give the following concrete partial results.
+Removing the factors <span class="math notranslate nohighlight">\((p+1)^{-1}(q+1)^{-1}\)</span> from <span class="math notranslate nohighlight">\(F\)</span>
+would give <span class="math notranslate nohighlight">\((1-x-y)^{-1}\)</span>, whose powers have coefficients
+<span class="math notranslate nohighlight">\((r)_{p+q}/(p!q!)\)</span> by Vandermonde convolution. Keeping these
+factors instead gives the logarithmic generating function above;
+the same unweighted convolution therefore does not evaluate
+<span class="math notranslate nohighlight">\(K_r\)</span>.</p>
+<p>For <span class="math notranslate nohighlight">\(M=3\)</span>, the boundary coefficient can be simplified by partial
+fractions:</p>
+<div class="math notranslate nohighlight">
+\[K_2(p,0)=\sum_{j=0}^p\frac{1}{(j+1)(p-j+1)}
+  =\frac{2H_{p+1}}{p+2},\qquad
+H_n=\sum_{j=1}^n\frac1j.\]</div>
+<p>Indeed the summand is
+<span class="math notranslate nohighlight">\(((j+1)^{-1}+(p-j+1)^{-1})/(p+2)\)</span>.
+Gosper summation of this summand with symbolic <span class="math notranslate nohighlight">\(p\)</span> returns no
+hypergeometric antidifference (SymPy <code class="docutils literal notranslate"><span class="pre">gosper_sum</span></code> returns <code class="docutils literal notranslate"><span class="pre">None</span></code>).
+This limits that direct indefinite-summation attempt; it does not rule
+out a definite-sum identity or creative telescoping. The boundary
+identity only evaluates terms with <span class="math notranslate nohighlight">\(k=D\)</span> or <span class="math notranslate nohighlight">\(l=D\)</span> in
+<a class="reference internal" href="#equation-skeleton-vertex-double-sum">(6)</a>; interior coefficients still involve
+both variables. No WZ certificate or bounded-order recurrence is
+asserted.</p>
+</li>
 <li><p><strong>Exact crossover dimensions for every degree.</strong>
 <a class="reference internal" href="#cor-skeleton-large-dimension">Corollary 4</a> shows that a crossover dimension
 exists for every <span class="math notranslate nohighlight">\(D\)</span>, and <a class="reference internal" href="#prop-skeleton-wins">Proposition 4</a> determines it
