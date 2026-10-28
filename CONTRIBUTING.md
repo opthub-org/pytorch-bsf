@@ -200,6 +200,30 @@ Use a branch name that combines the commit type, issue number, and a short descr
 | Refactoring | `refactor/101-simplify-validator` |
 | CI / build | `ci/102-update-workflow` |
 
+### Local review before a PR
+
+CI and PR review take a while per round trip, so review the branch locally first. With [Claude Code](https://claude.com/claude-code), run `/review-local` (it is also step 8 of `/work-on-issue`): it starts one read-only reviewer agent per aspect in parallel, verifies their findings and fixes them. The reviewers are defined in `.claude/agents/review-<aspect>.md` and share `.claude/skills/review-local/protocol.md`; with another tool, use those files as the reviewers' prompts.
+
+| Aspect | Looks for |
+|--------|-----------|
+| Requirements and scope | Unmet acceptance criteria, scope creep, call sites left unchanged |
+| Design and API | Duplicated abstractions, a larger API than needed, inconsistency with neighboring functions |
+| Correctness and logic | Wrong formulas, indices, branches and error paths |
+| Edge cases and input validation | Empty, single, degenerate, non-finite, wrong-typed or wrong-shaped inputs |
+| Test quality | Untested branches (patch coverage), weak assertions, missing properties, flaky tests |
+| Documentation consistency | Docstrings, Examples, Sphinx pages and CLI help that disagree with the code |
+| Project conventions | This guide's rules not enforced by tools, commit and branch names |
+| Readability and maintainability | Naming, duplication, long functions, missing or stale comments |
+| Numerical robustness | Cancellation, overflow, dtype handling, tolerances, conditioning |
+| PyTorch and framework integration | Devices, autograd, in-place operations, Lightning, scikit-learn and MLflow conventions |
+| Performance | Complexity, Python loops over tensors, large intermediates, device transfers |
+| Backward compatibility | Changed public API, file formats or CLI without a breaking-change declaration |
+| Security and safety | Unsafe deserialization, file paths, subprocess use, workflow changes |
+| Reproducibility and side effects | Global RNG or configuration changes, mutated arguments, nondeterminism |
+| Dependencies and packaging | Undeclared or unguarded imports, version bounds, `environment.yml` sync |
+
+The first eight aspects run for every change (correctness and edge cases may be skipped when no code changes); the others run when the diff touches what they cover. `.claude/skills/review-local/SKILL.md` has the exact rules. Record the result in the PR description under **Local review**.
+
 ### PR review and merge
 
 PyTest and Conda run on every PR (including drafts and forks) when it is opened,
@@ -215,7 +239,7 @@ directly. Stable semantic versions receive the `latest` image tag automatically;
 prereleases do not.
 
 1. Push your branch and open a Pull Request targeting `master`.
-2. In the PR description, include what changed, the related issue (`Closes #XXX`), and how to test it.
+2. In the PR description, include what changed, the related issue (`Closes #XXX`), how to test it, and the result of the local review.
 3. Ensure all CI checks (GitHub Actions) pass.
 4. Address reviewer comments and merge once you have an approval.
 5. Delete the branch after merging.
