@@ -161,19 +161,25 @@ Please review head $HEAD_SHA."
 # GitHub can take a moment to register checks after a PR opens or a push.
 # Abort on API errors; zero registered checks means pending, not failure.
 CHECK_COUNT=0
-while [ "$CHECK_COUNT" -eq 0 ]; do
+CHECK_ATTEMPT=0
+while [ "$CHECK_COUNT" -eq 0 ] && [ "$CHECK_ATTEMPT" -lt 12 ]; do
   CHECK_COUNT=$(gh pr view "$PR" -R "$REPO" --json statusCheckRollup \
     --jq '.statusCheckRollup | length') || exit 1
+  CHECK_ATTEMPT=$((CHECK_ATTEMPT + 1))
   if [ "$CHECK_COUNT" -eq 0 ]; then sleep 10; fi
 done
-gh pr checks "$PR" -R "$REPO" --watch
+if [ "$CHECK_COUNT" -eq 0 ]; then
+  echo "CI pending: no checks registered within 2 minutes; inspect workflow approval and triggers."
+else
+  gh pr checks "$PR" -R "$REPO" --watch
+fi
 gh api --paginate "repos/$REPO/pulls/$PR/reviews"
 gh api --paginate "repos/$REPO/issues/$PR/comments"
 ```
 
 After requesting review, verify that Codex acknowledges it and that the Review Summary identifies the recorded head as running or completed. Posting a request alone does not establish that review started. If there is no acknowledgement or an access/usage error, report it explicitly and stop retrying; do not repeatedly post requests. If the head changes, inspect and request review for the new head using the same procedure.
 
-If checks remain unregistered (for example, workflows need maintainer approval), stop waiting and report CI as pending with the reason. Never treat an empty check list as success. If the head changes during registration or watch, restart the check for the new head.
+The registration loop makes at most 12 attempts, 10 seconds apart. If checks remain unregistered after 2 minutes (for example, workflows need maintainer approval), stop waiting and report CI as pending with the reason. Never treat an empty check list as success. If the head changes during registration or watch, restart the check for the new head.
 
 List **all** review threads, including outdated ones, with their root comment's REST ID and resolution state. `--paginate` and `pageInfo` ensure PRs with more than 100 threads are covered; `comments(first: 1)` fetches only the root needed for a reply.
 
