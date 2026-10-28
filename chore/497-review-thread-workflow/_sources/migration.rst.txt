@@ -1,8 +1,11 @@
 Migrating to the unified v0 API
 ===============================
 
-This release makes breaking API changes before 1.0. There are no legacy
-aliases or alternate result types.
+This guide describes the unified API in documentation version |release|. There are no
+legacy aliases or alternate result types. Later pre-1.0 releases can add
+further changes: use the version selector to read the guide matching your
+installed release, and consult its changelog. The ``master`` copy documents
+development toward the next release; it can include unreleased additions.
 
 .. list-table::
    :header-rows: 1

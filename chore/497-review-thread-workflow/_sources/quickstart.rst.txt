@@ -34,6 +34,8 @@ The command line uses the same operations::
 Outputs include metrics and numerical status. An unsuccessful numerical solve
 returns a nonzero exit code. Tracking is opt-in with ``fit --track``.
 Run ``bash examples/quickstart/run.sh`` for a complete local example.
+See :doc:`cli` for all five subcommands, CSV layouts, a self-contained
+``minimize`` example, and exit codes and model-saving rules.
 
 Persistence uses one versioned, non-pickled format::
 

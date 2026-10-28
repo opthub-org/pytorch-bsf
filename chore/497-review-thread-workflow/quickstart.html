@@ -23,7 +23,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Migrating to the unified v0 API" href="migration.html" />
+    <link rel="next" title="Command-line reference" href="cli.html" />
     <link rel="prev" title="Installation" href="installation.html" /> 
 </head>
 
@@ -58,6 +58,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#next-steps-and-reproducibility">Next steps and reproducibility</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command-line reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a></li>
@@ -126,7 +127,9 @@ No Lightning, MLflow or Conda installation is required for this example.</p>
 </div>
 <p>Outputs include metrics and numerical status. An unsuccessful numerical solve
 returns a nonzero exit code. Tracking is opt-in with <code class="docutils literal notranslate"><span class="pre">fit</span> <span class="pre">--track</span></code>.
-Run <code class="docutils literal notranslate"><span class="pre">bash</span> <span class="pre">examples/quickstart/run.sh</span></code> for a complete local example.</p>
+Run <code class="docutils literal notranslate"><span class="pre">bash</span> <span class="pre">examples/quickstart/run.sh</span></code> for a complete local example.
+See <a class="reference internal" href="cli.html"><span class="doc">Command-line reference</span></a> for all five subcommands, CSV layouts, a self-contained
+<code class="docutils literal notranslate"><span class="pre">minimize</span></code> example, and exit codes and model-saving rules.</p>
 <p>Persistence uses one versioned, non-pickled format:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">save_model</span><span class="p">,</span> <span class="n">load_model</span>
 <span class="n">save_model</span><span class="p">(</span><span class="s2">"model.bsf"</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
@@ -261,7 +264,7 @@ not automatically preserve every decision that led to it.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="migration.html" class="btn btn-neutral float-right" title="Migrating to the unified v0 API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="cli.html" class="btn btn-neutral float-right" title="Command-line reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

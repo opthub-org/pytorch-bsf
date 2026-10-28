@@ -52,6 +52,7 @@
 <li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command-line reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Advanced Topics</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
@@ -126,7 +127,7 @@ state what changed and retain reproduction scripts and numerical evidence.</p>
 <section id="choose-a-guide-by-the-question-you-need-to-answer">
 <h2>Choose a guide by the question you need to answer<a class="headerlink" href="#choose-a-guide-by-the-question-you-need-to-answer" title="Link to this heading"></a></h2>
 <table class="docutils align-default" id="id1">
-<caption><span class="caption-number">Table 2 </span><span class="caption-text">Practical entry points</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<caption><span class="caption-number">Table 8 </span><span class="caption-text">Practical entry points</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 40.0%" />
 <col style="width: 30.0%" />
@@ -139,43 +140,47 @@ state what changed and retain reproduction scripts and numerical evidence.</p>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>Outputs have very different scales.</p></td>
+<tr class="row-even"><td><p>Only points on a curve or surface are known; parameter coordinates are unknown.</p></td>
+<td><p><a class="reference internal" href="advanced/point_cloud.html"><span class="doc">Fitting from values alone</span></a></p></td>
+<td><p>Local convergence, inferred coordinates and reconstruction distances</p></td>
+</tr>
+<tr class="row-odd"><td><p>Outputs have very different scales.</p></td>
 <td><p><a class="reference internal" href="advanced/normalization.html"><span class="doc">Output scaling</span></a></p></td>
 <td><p>Errors in original units</p></td>
 </tr>
-<tr class="row-odd"><td><p>A fit oscillates between measurements.</p></td>
+<tr class="row-even"><td><p>A fit oscillates between measurements.</p></td>
 <td><p><a class="reference internal" href="advanced/auto_degree.html"><span class="doc">Cross-validation and degree search</span></a>, <a class="reference internal" href="advanced/regularization.html"><span class="doc">Regularization and numerical evidence</span></a></p></td>
 <td><p>Independent prediction errors</p></td>
 </tr>
-<tr class="row-even"><td><p>Endpoint or boundary values are exact.</p></td>
+<tr class="row-odd"><td><p>Endpoint or boundary values are exact.</p></td>
 <td><p><a class="reference internal" href="advanced/partial.html"><span class="doc">Fixed controls</span></a></p></td>
 <td><p>Full boundary coverage of the constraints</p></td>
 </tr>
-<tr class="row-odd"><td><p>Reference evaluations are expensive.</p></td>
+<tr class="row-even"><td><p>Reference evaluations are expensive.</p></td>
 <td><p><a class="reference internal" href="advanced/active_learning.html"><span class="doc">Explicit ensembles and active learning</span></a></p></td>
 <td><p>Errors on a fixed external validation set</p></td>
 </tr>
-<tr class="row-even"><td><p>A plot is coarse or misses a feature.</p></td>
+<tr class="row-odd"><td><p>A plot is coarse or misses a feature.</p></td>
 <td><p><a class="reference internal" href="advanced/visualization.html"><span class="doc">Visualization</span></a>, <a class="reference internal" href="advanced/grid_sampling.html"><span class="doc">Grid sampling</span></a></p></td>
 <td><p>Numerical residuals and render resolution</p></td>
 </tr>
-<tr class="row-odd"><td><p>Independent parameter groups vary together.</p></td>
+<tr class="row-even"><td><p>Independent parameter groups vary together.</p></td>
 <td><p><a class="reference internal" href="advanced/simploidal.html"><span class="doc">Single and assembled domains</span></a></p></td>
 <td><p>Per-factor sums and coordinate order</p></td>
 </tr>
-<tr class="row-even"><td><p>Neighboring local regions must agree.</p></td>
+<tr class="row-odd"><td><p>Neighboring local regions must agree.</p></td>
 <td><p><a class="reference internal" href="advanced/simploidal.html"><span class="doc">Single and assembled domains</span></a></p></td>
 <td><p>Predictions along identified faces</p></td>
 </tr>
-<tr class="row-odd"><td><p>Exact data on a mesh must not overshoot.</p></td>
+<tr class="row-even"><td><p>Exact data on a mesh must not overshoot.</p></td>
 <td><p><a class="reference internal" href="advanced/interpolation.html"><span class="doc">Shape-preserving interpolation on simplicial meshes</span></a></p></td>
 <td><p>Prediction range in each cell</p></td>
 </tr>
-<tr class="row-even"><td><p>A large fit exhausts memory.</p></td>
+<tr class="row-odd"><td><p>A large fit exhausts memory.</p></td>
 <td><p><a class="reference internal" href="advanced/acceleration.html"><span class="doc">Solvers and optional execution</span></a></p></td>
 <td><p>Sparse termination and conditioning</p></td>
 </tr>
-<tr class="row-odd"><td><p>There are costs but no target responses.</p></td>
+<tr class="row-even"><td><p>There are costs but no target responses.</p></td>
 <td><p><a class="reference internal" href="advanced/initialization.html"><span class="doc">Explicit initial models</span></a>, <a class="reference internal" href="advanced/sgd.html"><span class="doc">Objective minimization</span></a></p></td>
 <td><p>Full-sample objective and gradient stopping</p></td>
 </tr>

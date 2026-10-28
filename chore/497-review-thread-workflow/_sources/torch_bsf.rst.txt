@@ -23,6 +23,17 @@ them in; converting an already rounded float32 tensor cannot recover precision.
 Integer coordinates and coefficients become float64; integer observations
 remain integers. ``Samples`` weights are stored as CPU float64 tensors.
 
+The constructor contracts and executable examples below use ``n_samples``
+for the number of aligned rows, ``coordinate_width`` for the number of
+coordinate columns, and ``n_outputs`` for the number of response columns.
+See :class:`~torch_bsf.core.Points` and :class:`~torch_bsf.core.Samples` for
+shapes, defaults and validation. Their ``from_cells`` methods pack local
+rows of different widths; :meth:`~torch_bsf.core.Samples.from_cells` shows
+the shared order of coordinates, observations and weights. These helpers
+convert nonempty coordinate batches and observations to CPU float64.
+:meth:`~torch_bsf.core.BezierModel.forward` describes single-cell tensor
+inputs, explicit multi-cell Points and the prediction shape.
+
 ``FixedControls`` stores CPU float64 values and reads non-tensor floating
 inputs directly as float64, so ``FixedControls({0: [0.2]})`` preserves the
 Python float value independently of the default dtype. Existing tensor
@@ -204,6 +215,7 @@ standardization generally violates those constraints. See
 
 .. automodule:: torch_bsf.sklearn
    :members:
+   :exclude-members: set_fit_request, set_score_request
    :show-inheritance:
 
 splitting
