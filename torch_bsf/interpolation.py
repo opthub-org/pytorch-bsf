@@ -1977,6 +1977,11 @@ def macro_interpolant(
     parallel, it is free along their common normal; once they are not, it must vanish. The clamped C1 interpolant
     therefore need not depend continuously on the vertex coordinates.
 
+    The construction is not differentiated with respect to the mesh: like every :class:`~torch_bsf.core.BezierModel`,
+    the model copies its coefficients without their autograd history, as for :func:`hermite_interpolant`, and the
+    split points are computed from the vertices without it too. Derivatives with respect to the vertices therefore
+    pass only through :meth:`SimplicialMesh.locate`.
+
     Parameters
     ----------
     mesh
