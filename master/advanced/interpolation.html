@@ -404,7 +404,15 @@ Powell–Sabin) and non-simplicial cells such as prisms are not provided.</p></l
 <li><p>Quadratic reproduction requires enough neighbours around each vertex for
 the gradient estimate; near a sparse boundary only linear data are
 reproduced unless you pass gradients.</p></li>
-<li><p>Computation is in float64 on the CPU.</p></li>
+<li><p>Computation is in float64 on the CPU.
+<a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.estimate_gradients" title="torch_bsf.interpolation.estimate_gradients"><code class="xref py py-func docutils literal notranslate"><span class="pre">estimate_gradients()</span></code></a> returns signed infinity
+without a warning for gradient components beyond the float64 range, even
+when the vertex data are finite (for example, on very short edges).
+<a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.hermite_interpolant" title="torch_bsf.interpolation.hermite_interpolant"><code class="xref py py-func docutils literal notranslate"><span class="pre">hermite_interpolant()</span></code></a> and
+<a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.refinement_indicator" title="torch_bsf.interpolation.refinement_indicator"><code class="xref py py-func docutils literal notranslate"><span class="pre">refinement_indicator()</span></code></a> raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>
+identifying overflow in the interpolant when its controls are non-finite.
+Clamping can clip infinite controls into the vertex data range, but cannot
+repair NaN controls. Rescale the vertex data or coordinates if this occurs.</p></li>
 </ul>
 </section>
 </section>

@@ -318,3 +318,11 @@ Limitations
   the gradient estimate; near a sparse boundary only linear data are
   reproduced unless you pass gradients.
 * Computation is in float64 on the CPU.
+  :func:`~torch_bsf.interpolation.estimate_gradients` returns signed infinity
+  without a warning for gradient components beyond the float64 range, even
+  when the vertex data are finite (for example, on very short edges).
+  :func:`~torch_bsf.interpolation.hermite_interpolant` and
+  :func:`~torch_bsf.interpolation.refinement_indicator` raise ``ValueError``
+  identifying overflow in the interpolant when its controls are non-finite.
+  Clamping can clip infinite controls into the vertex data range, but cannot
+  repair NaN controls. Rescale the vertex data or coordinates if this occurs.
