@@ -566,7 +566,7 @@ pytorch-bsf/
 │   ├── core.py                       # Spaces, observations and models (BezierSpace, Points, BezierModel, …)
 │   ├── ensemble.py                   # Ensemble of fitted models
 │   ├── fitting.py                    # fit: supervised fitting for every space and solver
-│   ├── geometry.py                   # Simploids and simploidal sets (Simploid, SimploidalSet)
+│   ├── geometry.py                   # Public topology builders (Simploid, SimploidalSet from _kernels/sets.py)
 │   ├── interpolation.py              # Shape-preserving cubic interpolation on simplicial complexes
 │   ├── io.py                         # Versioned model persistence (save_model, load_model, …)
 │   ├── optimization.py               # Objective minimization (minimize, PreconditionedSGD, …)
@@ -587,7 +587,7 @@ pytorch-bsf/
 │   │   ├── combinatorics.py          # Control point indices and Bernstein basis
 │   │   ├── fitting.py                # Fitting Bézier simploids and simploidal Bézier spaces
 │   │   ├── io.py                     # Saving and loading Bézier simploids
-│   │   ├── sets.py                   # Simploids and simploidal sets
+│   │   ├── sets.py                   # Simploid and simploidal set implementation
 │   │   ├── sgd.py                    # Fitting to Pareto sets by stochastic gradient descent
 │   │   ├── space.py                  # Simploidal Bézier spaces
 │   │   ├── _active_learning.py       # Next-point suggestion
@@ -597,7 +597,7 @@ pytorch-bsf/
 │   │   ├── _sampling.py              # Grid, random and Sobol sampling of simplices
 │   │   └── _splitting.py             # De Casteljau splitting of Bézier simplices and simploids
 │   ├── integrations/                 # Optional adapters; importing them loads no framework
-│   │   ├── __init__.py
+│   │   ├── __init__.py               # Package marker; import each adapter module explicitly
 │   │   ├── lightning.py              # Opt-in Lightning execution (regression_module)
 │   │   └── mlflow.py                 # MLflow recording (log_result)
 │   └── model_selection/              # Model selection sub-package
@@ -619,11 +619,11 @@ pytorch-bsf/
 │   ├── requirements.txt              # Documentation build dependencies
 │   ├── advanced/                     # Advanced topics (RST)
 │   ├── applications/                 # Application examples (RST)
-│   └── …                             # Other pages, images (_static/), templates and branding
+│   └── …                             # Other pages, images (_static/), benchmark results, templates, branding
 ├── examples/                         # Example scripts
 │   ├── quickstart/
 │   │   └── run.sh                    # Quickstart shell script
-│   └── …                             # Benchmarks (benchmark_*.py) and doc figures (generate_*.py)
+│   └── …                             # Benchmarks (*benchmark*.py), doc figures (generate_*.py), other scripts
 ├── .git-blame-ignore-revs            # Bulk formatting commits skipped by git blame
 ├── .gitattributes                    # Git LFS settings for binary files
 ├── .gitignore                        # Files ignored by Git
