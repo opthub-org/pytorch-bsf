@@ -216,6 +216,11 @@ For integral ``MinMaxScaler`` input, fitted minima and ranges retain their
 integer dtype; a range exceeding that dtype raises ``ValueError`` before
 subtraction can wrap. Subtraction happens before true division, preserving adjacent
 integer differences even at large offsets. Normalized values follow PyTorch's
-default floating dtype. Inverse results have floating precision, so adjacent
+default floating dtype; half outputs use float32 division before casting to
+that dtype. Floating inverse results have floating precision, so adjacent
 large integers can round together in that output dtype. Boolean and complex
-inputs remain unsupported.
+inputs remain unsupported. Integer extrapolation retries a floating expression
+when subtraction would wrap. Integer inputs to ``inverse_transform`` keep their
+promoted integer output dtype: risky multiplication or addition uses exact
+Python integers on the CPU, and a final result outside that dtype raises
+``ValueError``. Ordinary integer inverse operations stay on the tensor device.
