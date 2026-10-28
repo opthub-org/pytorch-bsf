@@ -681,7 +681,7 @@ Fixed degree, growing dimension
    at most :math:`D - m - 1` vertices outside :math:`I`, so
    :math:`s \leq 2(D - m - 1)`.
 
-.. list-table:: :math:`P_{D,m}(M)` for :math:`D \leq 5`
+.. list-table:: :math:`P_{D,m}(M)` for :math:`D \leq 8`
    :header-rows: 1
    :stub-columns: 2
 
@@ -734,10 +734,83 @@ Fixed degree, growing dimension
      - 4
      - :math:`3632428800`
 
+   * - 6
+     - 0
+     - :math:`\frac{7}{1536} (189M^{10} - 9765M^{9} + 416010M^{8} - 9917418M^{7} + 170241981M^{6} - 1939736421M^{5} + 15319824604M^{4} - 79461497164M^{3} + 261855225632M^{2} - 485208011456M + 394380100608)`
+   * - 6
+     - 1
+     - :math:`\frac{63}{40} (4725M^{8} - 207900M^{7} + 5933250M^{6} - 99912240M^{5} + 1132957965M^{4} - 8261943780M^{3} + 38361752764M^{2} - 100723167440M + 118578731904)`
+   * - 6
+     - 2
+     - :math:`155925 (55M^{6} - 1925M^{5} + 38401M^{4} - 431519M^{3} + 2952160M^{2} - 11026484M + 18273744)`
+   * - 6
+     - 3
+     - :math:`21621600 (117M^{4} - 2886M^{3} + 35695M^{2} - 208734M + 519368)`
+   * - 6
+     - 4
+     - :math:`68108040000 (3M^{2} - 39M + 184)`
+   * - 6
+     - 5
+     - :math:`2964061900800`
+   * - 7
+     - 0
+     - :math:`\frac{1}{10368} (3969M^{12} - 277830M^{11} + 16911909M^{10} - 585892314M^{9} + 15245701191M^{8} - 274563067842M^{7} + 3631411308511M^{6} - 34078439471286M^{5} + 227106974533684M^{4} - 1028193132036840M^{3} + 3014866953859072M^{2} - 5083595030097792M + 3804385671687168)`
+   * - 7
+     - 1
+     - :math:`\frac{315}{8} (189M^{10} - 11655M^{9} + 488100M^{8} - 12550518M^{7} + 229047537M^{6} - 2894482743M^{5} + 25831659094M^{4} - 156730040300M^{3} + 621915070424M^{2} - 1437930406240M + 1507450665216)`
+   * - 7
+     - 2
+     - :math:`\frac{31185}{4} (2475M^{8} - 128700M^{7} + 4016430M^{6} - 76100640M^{5} + 969732275M^{4} - 8107098420M^{3} + 43614175604M^{2} - 135327928048M + 189756997248)`
+   * - 7
+     - 3
+     - :math:`151351200 (91M^{6} - 3731M^{5} + 83699M^{4} - 1072645M^{3} + 8358906M^{2} - 36008544M + 68795424)`
+   * - 7
+     - 4
+     - :math:`363242880000 (9M^{4} - 258M^{3} + 3607M^{2} - 24086M + 67896)`
+   * - 7
+     - 5
+     - :math:`80029671321600 (3M^{2} - 45M + 238)`
+   * - 7
+     - 6
+     - :math:`3379030566912000`
+   * - 8
+     - 0
+     - :math:`\frac{1}{1536} (243M^{14} - 22113M^{13} + 1822905M^{12} - 86413257M^{11} + 3170012139M^{10} - 82654759071M^{9} + 1640539616043M^{8} - 24125599635171M^{7} + 266382561743494M^{6} - 2157428183555988M^{5} + 12638903353801912M^{4} - 51381774261439680M^{3} + 137262734136374272M^{2} - 214224590422872576M + 149755742713294848)`
+   * - 8
+     - 1
+     - :math:`\frac{55}{384} (43659M^{12} - 3580038M^{11} + 206363619M^{10} - 7485895494M^{9} + 199202107797M^{8} - 3823026542874M^{7} + 54535243641473M^{6} - 568795558812642M^{5} + 4306623724542524M^{4} - 22811488486847928M^{3} + 80426058871064384M^{2} - 168310145729971584M + 161038581507542016)`
+   * - 8
+     - 2
+     - :math:`\frac{27027}{16} (19305M^{10} - 1383525M^{9} + 61604400M^{8} - 1734571410M^{7} + 34500231285M^{6} - 483666978405M^{5} + 4831926907690M^{4} - 33375332254980M^{3} + 152661774969416M^{2} - 413966621739552M + 513284796940032)`
+   * - 8
+     - 3
+     - :math:`\frac{4729725}{2} (20475M^{8} - 1228500M^{7} + 42200550M^{6} - 891274440M^{5} + 12638555275M^{4} - 118800088180M^{3} + 722231576084M^{2} - 2559256843376M + 4107713331840)`
+   * - 8
+     - 4
+     - :math:`1543782240000 (17M^{6} - 799M^{5} + 19941M^{4} - 286433M^{3} + 2496802M^{2} - 12115512M + 26028000)`
+   * - 8
+     - 5
+     - :math:`31678411564800 (171M^{4} - 5586M^{3} + 86965M^{2} - 650590M + 2040000)`
+   * - 8
+     - 6
+     - :math:`124179373334016000 (3M^{2} - 51M + 298)`
+   * - 8
+     - 7
+     - :math:`5129368400572416000`
+
 The table is computer-assisted: it is computed exactly from the counting in
 the proof, starting from one face per class on a simplex with
 :math:`2D - m - 1` vertices, which contains every class. ``tests/sampling.py``
-repeats this computation, and compares the entries with an independent exact
+repeats this computation, using :prf:ref:`thm-skeleton-propagation-reduction`
+to solve on only :math:`m+2` vertices. In the pair sum it keeps one first
+control per orbit under permutations outside the fixed face. For each first
+control it keeps one second control per orbit of the stabilizer, which
+permutes positions with equal outside exponents. If the outside exponents
+have multiplicities
+:math:`n_k` (including :math:`n_0`), the orbit size is
+:math:`(2D-2m-2)!/\prod_k n_k!`; the second-control multiplicity is the
+product of the same formula within the equal-exponent groups. It compares
+the entries with an independent exact
 evaluation of the definition for small :math:`M`. The entries for
 :math:`m = D-1` and :math:`m = D-2` agree with
 :prf:ref:`prop-skeleton-degree-faces` and
@@ -786,7 +859,10 @@ evaluation of the definition for small :math:`M`. The entries for
    - :math:`D = 1` and :math:`D = 2`: every :math:`M \geq 2`;
    - :math:`D = 3`: :math:`M = 2` and :math:`M \geq 11`;
    - :math:`D = 4`: :math:`M = 2` and :math:`M \geq 20`;
-   - :math:`D = 5`: :math:`M \in \{2, 3\}` and :math:`M \geq 29`.
+   - :math:`D = 5`: :math:`M \in \{2, 3\}` and :math:`M \geq 29`;
+   - :math:`D = 6`: :math:`M \in \{2, 3\}` and :math:`M \geq 39`;
+   - :math:`D = 7`: :math:`M \in \{2, 3\}` and :math:`M \geq 49`;
+   - :math:`D = 8`: :math:`M \in \{2, 3, 4\}` and :math:`M \geq 60`.
 
    The cases :math:`D \geq 3` are computer-assisted.
 
@@ -805,10 +881,20 @@ evaluation of the definition for small :math:`M`. The entries for
    :math:`a_m \leq \sum_i |p_i| / (m+1)!^2` for all :math:`M \geq 1`, where
    :math:`p_i` are the coefficients of :math:`P_{D,m}`. The all-at-once risk
    exceeds the resulting bound on :math:`(\sum_m \sqrt{a_m})^2` for
-   :math:`M \geq 55`, :math:`111` and :math:`190` when :math:`D = 3`,
-   :math:`4` and :math:`5`. For every smaller :math:`M`, evaluating the table
+   :math:`M \geq 55, 111, 190, 295, 429, 593` for
+   :math:`D = 3, 4, 5, 6, 7, 8`, respectively. For every smaller :math:`M`, evaluating the table
    in floating point with a bound on the rounding error gives the stated sets;
    the closest comparison differs by a relative :math:`4.5 \cdot 10^{-3}`.
+   Converting each exact coefficient to float, taking square roots, summing,
+   and squaring has relative error at most :math:`4(D+1)u`, where
+   :math:`u = 2^{-53}`. Every comparison lies beyond this error bound.
+
+   On the development machine, regenerating all polynomials took about
+   :math:`0.09`, :math:`0.75` and :math:`6.6` seconds for :math:`D=6,7,8`.
+   The unreduced :math:`D=6,m=0` computation alone took :math:`31.6` seconds;
+   the reduced version took about :math:`0.04` seconds. Full exact regeneration
+   remains in the test suite; the additional degree-eight cases dominate
+   its added runtime.
 
 These results sharpen the observation of :cite:t:`tanaka2020asymptotic` that
 inductive skeleton fitting wins for degrees below three. That observation is
@@ -867,4 +953,12 @@ Open questions
 - **Exact crossover dimensions for every degree.**
   :prf:ref:`cor-skeleton-large-dimension` shows that a crossover dimension
   exists for every :math:`D`, and :prf:ref:`prop-skeleton-wins` determines it
-  for :math:`D \leq 5`. A formula for it is not known.
+  for :math:`D \leq 8`. For :math:`D=3,\ldots,8`, the crossover vertex
+  counts are :math:`11,20,29,39,49,60`. In particular the apparent arithmetic
+  progression :math:`9D-16` fails already at :math:`D=6`, where it predicts
+  :math:`38` instead of :math:`39`. The successive differences
+  :math:`9,9,10,10,11` do not establish a general formula or an asymptotic
+  law as :math:`D\to\infty`; those remain open. The exceptional wins below
+  the crossover are :math:`\{2\}` for :math:`D=3,4`,
+  :math:`\{2,3\}` for :math:`D=5,6,7`, and :math:`\{2,3,4\}` for
+  :math:`D=8`.
