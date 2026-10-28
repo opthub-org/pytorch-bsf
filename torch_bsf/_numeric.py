@@ -1,14 +1,42 @@
 """Small numerical reductions shared by prediction and initialization."""
 
 from fractions import Fraction
+from math import frexp, ldexp
 
 import torch
+
+
+def _round_fraction(value: Fraction, dtype: torch.dtype) -> float:
+    """Round once to the target binary format, including subnormal ties to even."""
+    if value == 0:
+        return 0.0
+    numerator, denominator = abs(value.numerator), value.denominator
+    exponent = numerator.bit_length() - denominator.bit_length()
+    below_power = numerator < denominator << exponent if exponent >= 0 else numerator << -exponent < denominator
+    if below_power:
+        exponent -= 1
+    info = torch.finfo(dtype)
+    # eps = 2**(1-p); the smallest quantum is tiny * eps.
+    precision = 2 - frexp(info.eps)[1]
+    quantum = max(exponent - precision + 1, frexp(info.tiny)[1] - precision)
+    if quantum >= 0:
+        denominator <<= quantum
+    else:
+        numerator <<= -quantum
+    significand, remainder = divmod(numerator, denominator)
+    if 2 * remainder > denominator or (2 * remainder == denominator and significand % 2):
+        significand += 1
+    rounded = ldexp(float(significand), quantum)
+    return -rounded if value < 0 else rounded
 
 
 def _exact_means(values: torch.Tensor) -> torch.Tensor:
     """Evaluate finite column means with exact rationals in a rare CPU fallback."""
     columns = values.detach().cpu().T.tolist()
-    means = [float(sum((Fraction.from_float(x) for x in column), Fraction(0)) / len(column)) for column in columns]
+    means = [
+        _round_fraction(sum((Fraction.from_float(x) for x in column), Fraction(0)) / len(column), values.dtype)
+        for column in columns
+    ]
     return torch.tensor(means, dtype=values.dtype, device=values.device)
 
 

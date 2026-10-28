@@ -7,6 +7,7 @@ from collections.abc import Sequence
 import torch
 from torch import nn
 
+from torch_bsf._numeric import _finite_mean
 from torch_bsf.core import BezierModel, Points
 
 
@@ -31,5 +32,11 @@ class Ensemble(nn.Module):
         return torch.stack([model(points) for model in self.models])
 
     def forward(self, points: Points | torch.Tensor) -> torch.Tensor:
-        """Return the ensemble mean, without changing the member models."""
-        return self.members(points).mean(0)
+        """Return the ensemble mean, without changing the member models.
+
+        Finite groups near sum overflow use an exact CPU reduction to retain
+        cancelling residuals. The overflow-risk check synchronizes accelerators;
+        only affected groups transfer to CPU. Ordinary groups remain vectorized on their
+        device, and finite-input gradients follow the ordinary mean.
+        """
+        return _finite_mean(self.members(points), 0)
