@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass
+from fractions import Fraction
 from numbers import Integral
 
 import torch
@@ -73,7 +75,9 @@ def cross_validate(
 
     Every fold must have positive observation weight in both its train and test
     portions. Failed solves remain in the result and make the whole CV fail;
-    they are never silently dropped from model selection.
+    they are never silently dropped from model selection. Non-finite held-out
+    or aggregate metrics also make CV fail, retaining every fold for inspection.
+    Zero-weight held-out rows are excluded from metric evaluation.
     """
     return _cross_validate(space, samples, cv.split(len(samples)), solver, penalty, fixed)
 
@@ -91,20 +95,88 @@ def _cross_validate(
         training, held_out = samples.take(train), samples.take(test)
         fitted = fit(space, training, solver=solver, penalty=penalty, fixed=fixed)
         with torch.no_grad():
-            difference = fitted.model(held_out.points) - held_out.values.cpu().double()
-            squared = difference.square().mean(1)
-            absolute = difference.abs().mean(1)
-            weight = held_out.weights / held_out.weights.sum()
-            metrics = {"mse": (squared * weight).sum().item(), "mae": (absolute * weight).sum().item()}
+            metrics = _held_out_metrics(fitted.model, held_out)
         folds.append(FoldResult(train.clone(), test.clone(), fitted, metrics, held_out.weights.sum().item()))
     mse = torch.tensor([fold.metrics["mse"] for fold in folds], dtype=torch.float64)
-    total = sum(fold.test_weight for fold in folds)
+    scale = mse.abs().max()
+    scaled = mse / scale if scale > 0 else mse
     metrics = {
-        "mean_mse": mse.mean().item(),
-        "std_mse": mse.std(unbiased=False).item(),
-        "pooled_mse": sum(fold.metrics["mse"] * fold.test_weight for fold in folds) / total,
+        "mean_mse": (scaled.mean() * scale).item(),
+        "std_mse": (scaled.std(unbiased=False) * scale).item(),
+        "pooled_mse": _pooled_mse(folds),
     }
-    return CVResult(tuple(folds), metrics, all(f.result.success for f in folds))
+    success = all(f.result.success and all(math.isfinite(v) for v in f.metrics.values()) for f in folds) and all(
+        math.isfinite(v) for v in metrics.values()
+    )
+    return CVResult(tuple(folds), metrics, success)
+
+
+def _pooled_mse(folds: Sequence[FoldResult]) -> float:
+    errors = [fold.metrics["mse"] for fold in folds]
+    if not all(math.isfinite(error) for error in errors):
+        return sum(errors)
+    # These are already CPU scalar fold summaries. A single exact reduction
+    # avoids overflowing either the weight sum or independently rounded terms,
+    # and preserves tiny weights whose product with a large error is meaningful.
+    weights = [Fraction.from_float(fold.test_weight) for fold in folds]
+    numerator = sum(Fraction.from_float(error) * weight for error, weight in zip(errors, weights, strict=True))
+    return float(numerator / sum(weights))
+
+
+def _weighted_error(
+    difference: torch.Tensor, weights: torch.Tensor, total: float, outputs: int, power: int, exponent_shift: int | torch.Tensor
+) -> float:
+    # Combine mantissas before scaling exponents: weight/total and difference**2
+    # may each be unrepresentable even though their product is finite.
+    value, exponent = torch.frexp(difference.abs())
+    weight_value, weight_exponent = torch.frexp(weights[:, None])
+    total_value, total_exponent = math.frexp(total)
+    mantissa = value.pow(power) * weight_value / total_value / outputs
+    mantissa, adjustment = torch.frexp(mantissa)
+    exponent = power * (exponent + exponent_shift) + weight_exponent - total_exponent + adjustment
+    exponent = torch.where(mantissa == 0, 0, exponent)
+    if torch.isfinite(difference).all() and (((exponent > 1000) | (exponent < -1021)) & (mantissa != 0)).any():
+        # Boundary contributions must be combined before rounding: separately
+        # rounded terms can overflow on addition or all underflow to zero.
+        shifts = torch.zeros_like(difference, dtype=torch.int32) + exponent_shift
+        numerator = sum(
+            Fraction(weight)
+            * sum((Fraction(abs(value)) * 2 ** int(shift)) ** power for value, shift in zip(row, row_shifts, strict=True))
+            for row, row_shifts, weight in zip(difference.tolist(), shifts.tolist(), weights.tolist(), strict=True)
+        )
+        exact = numerator / (sum(Fraction(weight) for weight in weights.tolist()) * outputs)
+        try:
+            return float(exact)
+        except OverflowError:
+            return math.inf
+    # PyTorch 2.3 ldexp forms its intermediate power in the default float32
+    # dtype even for float64 inputs. Use an explicit float64 base, and split
+    # the exponent so a power itself does not overflow at a finite boundary.
+    first = exponent.clamp(min=-512, max=512)
+    base = mantissa.new_tensor(2.0)
+    terms = mantissa * torch.pow(base, first) * torch.pow(base, exponent - first)
+    return terms.sum().item()
+
+
+def _held_out_metrics(model: BezierModel, held_out: Samples) -> dict[str, float]:
+    # Zero-weight observations do not participate in prediction or arithmetic.
+    selected = torch.nonzero(held_out.weights > 0).flatten()
+    positive = held_out.take(selected)
+    predicted = model(positive.points)
+    observed = positive.values.cpu().double()
+    difference = predicted - observed
+    shift: int | torch.Tensor = 0
+    finite = torch.isfinite(difference)
+    if not finite.all():
+        # Only overflowing entries need halving. Applying it to every row
+        # would erase otherwise representable subnormal residuals.
+        difference = torch.where(finite, difference, predicted / 2 - observed / 2)
+        shift = (~finite).to(torch.int32)
+    weights, total = positive.weights, positive.weights.sum().item()
+    return {
+        "mse": _weighted_error(difference, weights, total, model.n_outputs, 2, shift),
+        "mae": _weighted_error(difference, weights, total, model.n_outputs, 1, shift),
+    }
 
 
 @dataclass(frozen=True)
@@ -149,7 +221,9 @@ def select_degree(
     """Evaluate every specified degree on identical folds and record the result.
 
     Invalid degrees raise; failed numerical solves remain visible and cannot
-    win. To refit, explicitly call ``fit(result.best_space, samples, ...)``.
+    win. Non-finite validation metrics likewise make candidates ineligible.
+    If none is eligible, best_index is None and success is False.
+    To refit, explicitly call ``fit(result.best_space, samples, ...)``.
     """
     if len(degrees) == 0:
         raise ValueError("degrees must contain at least one candidate.")

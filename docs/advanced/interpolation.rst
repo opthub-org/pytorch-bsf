@@ -80,6 +80,42 @@ within ``tol`` of its boundary are projected onto it. Point location tests
 every simplex, which is simple and exact but costs
 ``O(n_points * n_simplices)``.
 
+For very different edge lengths, solving for barycentric coordinates can
+amplify roundoff enough to reject even a mesh's own vertex. ``barycentric``
+estimates factorization error from conditioning and edge scaling, and
+cancellation using absolute matrix products. It recomputes the
+affected point/simplex pairs with exact rational arithmetic on the input
+floats, rounding the resulting coordinates once to float64. Ordinary pairs
+keep the vectorized float64 path. The fallback is slower and caches one
+exact inverse per affected simplex; its integer sizes depend on the input
+exponents. For differentiable inputs the fallback uses cached SymPy
+expressions to differentiate the exact affine map, including the dependence
+on vertices. Each derivative order is evaluated with exact rational inputs
+before rounding, so overflowing terms that cancel cannot spoil finite
+derivatives. Points are handled independently, including when another point
+has a non-finite upstream gradient. SymPy is declared directly (PyTorch also
+requires it) and is imported lazily for these queries. Symbolic work and
+retained autograd state grow with dimension and derivative order, so this
+path is slower than ordinary tensor differentiation. Forward-mode queries
+(``torch.autograd.forward_ad`` or ``torch.func.jvp``) with any affected pair
+evaluate the whole query using these expressions, preserving point and vertex
+tangents without exposing dual tensor storage to Python.
+``torch.func.jacrev`` and ``torch.func.jacfwd`` batch the exact evaluations
+independently, retaining their individual rational bindings.
+In a fresh PyTorch 2.3 process, its lazy compiler initialization can fail
+when first triggered inside a transform. Calling
+``torch.compiler.disable(lambda: None)`` before entering the transform
+initializes the compiler outside it.
+``locate(batch_size=...)`` bounds temporary float64 storage by
+``O(batch_size * n_simplices * (d + 1))``, in addition to that cache.
+
+This corrects loss of precision in the solve, rather than changing the
+meaning of rounded input. For example, when a midpoint's long-edge
+coordinates have already rounded away its short-edge contribution, the
+supplied position cannot identify the intended midpoint. Use coordinates
+that resolve the feature of interest; increasing ``tol`` does not recover
+the missing information.
+
 The mesh keeps independent snapshots of the input vertices and simplices,
 including CPU float64 tensors and NumPy arrays. Changing those original
 inputs later does not change coordinates, point location, volumes or
