@@ -1,5 +1,7 @@
 """Degree selection keeps all evidence and never implicitly refits."""
 
+import numpy as np
+import pytest
 import torch
 
 from torch_bsf import BezierSpace, Samples, fit
@@ -29,6 +31,28 @@ def test_unseeded_search_still_reuses_identical_splits():
         for actual, expected in zip(candidate.validation.folds, reference, strict=True):
             assert torch.equal(actual.train_indices, expected.train_indices)
             assert torch.equal(actual.test_indices, expected.test_indices)
+
+
+@pytest.mark.parametrize("multi_cell", [False, True])
+def test_numpy_scalar_degree_candidates(multi_cell):
+    from torch_bsf import SimploidalSet
+
+    if multi_cell:
+        domain = SimploidalSet()
+        domain.add_simplex(1)
+        domain.add_simplex(1)
+        space = BezierSpace.on_set(domain, degree=1)
+    else:
+        space = BezierSpace.simplex(1, degree=1)
+    points = sample(space, 30, seed=7)
+    samples = Samples(points, points.parameters[:, :1])
+    numpy_result = select_degree(space, samples, degrees=list(np.arange(1, 3)), cv=KFold(3, seed=12))
+    reference = select_degree(space, samples, degrees=[1, 2], cv=KFold(3, seed=12))
+    assert numpy_result.success == reference.success
+    assert [candidate.degree for candidate in numpy_result.candidates] == [1, 2]
+    for actual, expected in zip(numpy_result.candidates, reference.candidates, strict=True):
+        assert actual.space.compatible(expected.space)
+        assert actual.validation.metrics == expected.validation.metrics
 
 
 def test_unrepresentable_validation_cannot_win_degree_search():

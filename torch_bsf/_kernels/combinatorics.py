@@ -35,17 +35,25 @@ def _multinomial(degree: int, index: Sequence[int]) -> float:
         raise ValueError("degree produces multinomial coefficients outside float64 range.") from exc
 
 
+def _structural_integer(value: object, name: str, minimum: int = 0) -> int:
+    """Accept Python/NumPy integral values without coercing floats, booleans or strings."""
+    if isinstance(value, bool) or not isinstance(value, Integral) or value < minimum:
+        raise ValueError(f"{name} must be an integer at least {minimum}, but {value!r} is given.")
+    return int(value)
+
+
 def _check_type(simploid_type: Sequence[int]) -> SimploidType:
-    t = tuple(int(a) for a in simploid_type)
+    t = tuple(_structural_integer(a, f"dimension[{i}]") for i, a in enumerate(simploid_type))
     if any(a < 1 for a in t):
         raise ValueError(f"Every component of a simploid type must be positive, but {t} is given.")
     return t
 
 
 def _check_degree(degree: int | Sequence[int], length: int) -> tuple[int, ...]:
-    if isinstance(degree, int) and degree < 0:
-        raise ValueError(f"degree must be non-negative, but {degree} is given.")
-    ds = (int(degree),) * length if isinstance(degree, int) else tuple(int(d) for d in degree)
+    if isinstance(degree, Integral) or not hasattr(degree, "__iter__") or isinstance(degree, (str, bytes)):
+        ds = (_structural_integer(degree, "degree"),) * length
+    else:
+        ds = tuple(_structural_integer(d, f"degree[{i}]") for i, d in enumerate(cast(Sequence[int], degree)))
     if len(ds) != length:
         raise ValueError(f"degree must have {length} components, but {ds} is given.")
     if any(d < 0 for d in ds):
@@ -69,10 +77,14 @@ def _canonical_index(simploid_type: SimploidType, index: object) -> SimploidInde
     A Bézier simplex (a single factor) also accepts its multi-index alone, e.g. ``(2, 1, 0)`` for ``((2, 1, 0),)``.
     Raises :class:`TypeError` or :class:`ValueError` if ``index`` is not a sequence of multi-indices.
     """
+    if isinstance(index, (str, bytes)):
+        raise ValueError("control index must be a sequence of integer multi-indices.")
     items = tuple(cast(Sequence[Any], index))
-    if len(simploid_type) == 1 and items and all(isinstance(v, Integral) for v in items):
+    if len(simploid_type) == 1 and items and all(not hasattr(v, "__iter__") or isinstance(v, (str, bytes)) for v in items):
         items = (items,)
-    return tuple(tuple(int(v) for v in m) for m in items)
+    return tuple(
+        tuple(_structural_integer(v, f"control index[{i}][{j}]") for j, v in enumerate(m)) for i, m in enumerate(items)
+    )
 
 
 def simploid_indices(simploid_type: Sequence[int], degree: int | Sequence[int]) -> list[SimploidIndex]:

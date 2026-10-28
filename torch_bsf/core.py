@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
+from numbers import Integral
 from types import MappingProxyType
 from typing import Any
 
@@ -18,6 +19,7 @@ from torch_bsf._kernels.combinatorics import (
     _check_degree,
     _check_type,
     _indices,
+    _structural_integer,
     bernstein_basis,
 )
 from torch_bsf._kernels.sets import Simploid, SimploidalSet
@@ -55,6 +57,10 @@ class BezierSpace:
 
     Construct a simplex with :meth:`simplex`, a product with :meth:`simploid`,
     or compile a mutable topology builder with :meth:`on_set`.
+    Dimensions, degrees and control multi-indices accept Python and NumPy integers;
+    booleans, strings and floats (including integer-valued floats) raise ``ValueError``.
+    Factor dimensions are positive; :meth:`simplex` also accepts dimension zero.
+    Single-cell degrees are non-negative; shared-space degrees are positive.
 
     Examples
     --------
@@ -94,7 +100,7 @@ class BezierSpace:
     @classmethod
     def simplex(cls, dimension: int, *, degree: int) -> BezierSpace:
         """Create a single simplex, including a zero-dimensional constant."""
-        _integer(dimension, "dimension")
+        dimension = _structural_integer(dimension, "dimension")
         return cls.simploid((dimension,) if dimension else (), degree=degree)
 
     @classmethod
@@ -185,8 +191,9 @@ class BezierSpace:
         """Recompile the same frozen domain at another degree for model selection."""
         if not self._topology:
             return BezierSpace.simploid(self.cells[0].dimensions, degree=degree)
-        if not isinstance(degree, int):
+        if not isinstance(degree, Integral):
             raise ValueError("a multi-cell degree candidate must be a scalar degree.")
+        degree = _structural_integer(degree, "degree", 1)
         from torch_bsf._kernels.sets import _canonical
 
         nodes = [Simploid(cell.dimensions) for cell in self.cells]

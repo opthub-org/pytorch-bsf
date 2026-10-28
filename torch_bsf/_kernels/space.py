@@ -17,6 +17,7 @@ from torch_bsf._kernels.combinatorics import (
     _indices,
     _positions,
     _pullback_index,
+    _structural_integer,
     bernstein_basis,
     simploid_n_params,
 )
@@ -31,9 +32,7 @@ _Factor: TypeAlias = tuple[Simploid, int]
 
 
 def _check_min_degree(degree: int, what: str) -> int:
-    if int(degree) < 1:
-        raise ValueError(f"{what} must be at least 1, but {degree} is given.")
-    return int(degree)
+    return _structural_integer(degree, what, 1)
 
 
 def _face_factors(simploid_type: SimploidType, i: int) -> list[int]:
@@ -90,7 +89,7 @@ def _assign_degrees(
     simploids: Sequence[Simploid], degree: DegreeAssignment, default_degree: int | None
 ) -> dict[Simploid, tuple[int, ...]]:
     """The degree of each factor of each non-degenerate simploid."""
-    if isinstance(degree, int):
+    if not isinstance(degree, Mapping):
         d = _check_min_degree(degree, "degree")
         return {s: (d,) * s.length for s in simploids}
     if default_degree is not None:
@@ -204,6 +203,10 @@ class SimploidalBezierSpace(nn.Module):
         self.simploidal_set = simploidal_set
         self.simploids: list[Simploid] = simploidal_set.simploids()
         self._ids = {s: k for k, s in enumerate(self.simploids)}
+        if not isinstance(degree, Mapping):
+            degree = _check_min_degree(degree, "degree")
+        elif default_degree is not None:
+            default_degree = _check_min_degree(default_degree, "default_degree")
         self._degrees = _assign_degrees(self.simploids, degree, default_degree)
         all_degrees = [d for ds in self._degrees.values() for d in ds]
         #: The degree of every factor if they are all equal, and their maximum otherwise.
