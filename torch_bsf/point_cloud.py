@@ -289,12 +289,13 @@ def fit_point_cloud(
     _apply_fixed(model, y, fixed)
     t = torch.full((len(y), space.width), 1 / width, dtype=torch.float64)
     control_result = None
-    history = [float((model(t).detach() - y).square().sum(1).mean())]
+    initial_residual = model(t).detach() - y
+    history = [float(initial_residual.square().sum(1).mean())]
     if not math.isfinite(history[0]):
         message = "Initial point-cloud objective overflowed."
         warnings.warn(message, ConvergenceWarning, stacklevel=2)
         return PointCloudFitResult(model, t, tuple(history), False, "numerical_failure", message, 0, False, None)
-    if width == 1 and history[0] == 0:
+    if width == 1 and (initial_residual == 0).all():
         return PointCloudFitResult(model, t, tuple(history), True, "converged", "Exact initial fit.", 0, True, None)
     success, status, message, parameter_converged = False, "iteration_limit", "Alternating iteration limit reached.", False
     for _ in range(max_iter):

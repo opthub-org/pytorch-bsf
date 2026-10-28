@@ -65,3 +65,18 @@ def test_mean_rounded_overflow_threshold(dtype):
     model = BezierModel(space, value.reshape(1, 1))
     prediction = Ensemble([model, model, model])(torch.empty((1, 0), dtype=dtype))
     torch.testing.assert_close(prediction, value.reshape(1, 1), atol=0, rtol=0)
+
+
+def test_constant_fit_does_not_mistake_squared_underflow_for_exactness():
+    space = BezierSpace.simplex(0, degree=0)
+    initial = BezierModel(space, torch.zeros((1, 1), dtype=torch.float64))
+    values = torch.tensor([[0.0], [1e-200]], dtype=torch.float64)
+    result = fit_point_cloud(space, values, initial=initial).require_success()
+    # SVD combines two entries and divides by sqrt(2): allow 8 roundings.
+    torch.testing.assert_close(
+        result.model.coefficients,
+        torch.tensor([[5e-201]], dtype=torch.float64),
+        atol=0,
+        rtol=8 * torch.finfo(torch.float64).eps,
+    )
+    assert result.control_result is not None
