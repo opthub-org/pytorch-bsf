@@ -2032,3 +2032,16 @@ def test_recurrent_basis_reuses_device_predecessor_tensors(monkeypatch):
     monkeypatch.setattr(torch, "tensor", forbidden)
     actual = _recursive_basis(t, 20)
     torch.testing.assert_close(actual, expected, atol=0, rtol=0)
+
+
+def test_recurrent_factor_metadata_omits_unused_power_table(monkeypatch):
+    import torch_bsf._kernels.combinatorics as combinatorics
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("recurrent factor metadata must not enumerate power indices")
+
+    monkeypatch.setattr(combinatorics, "_simplex_indices", forbidden)
+    powers, coefficients = combinatorics._factor_tensors(3, 20, torch.float64, torch.device("cpu"))
+    assert powers.shape == (0, 4)
+    assert coefficients.shape == (20, 0)
+    assert powers.numel() == coefficients.numel() == 0
