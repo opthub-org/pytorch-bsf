@@ -233,8 +233,12 @@ queries, arithmetic work remains <code class="docutils literal notranslate"><spa
 memory is <code class="docutils literal notranslate"><span class="pre">O(C</span> <span class="pre">+</span> <span class="pre">O</span> <span class="pre">+</span> <span class="pre">chunk_size**2</span> <span class="pre">+</span> <span class="pre">chunk_size</span> <span class="pre">*</span> <span class="pre">D)</span></code> in addition to input
 coordinates and CPU float64 conversion. Smaller chunks trade lower peak
 memory for more Python and kernel calls. The dense and chunked algorithms
-use the same distance-kernel mode; ordinary floating-point roundoff can
-still depend on block size for nearly equal distances.</p>
+use direct coordinate differences rather than expanding squared norms into
+matrix products. This retains tiny separations between nearby points even
+when a cell has more than 25 candidates or observations, where PyTorch would
+otherwise switch distance algorithms. Direct differences may be slower than
+matrix multiplication for large blocks; the distance-matrix memory bound
+and arithmetic complexity above are unchanged.</p>
 <p>Measure this tradeoff on your machine from the repository root:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PYTHONPATH</span><span class="o">=.</span> <span class="n">python</span> <span class="n">examples</span><span class="o">/</span><span class="n">benchmark_farthest_points</span><span class="o">.</span><span class="n">py</span> \
     <span class="o">--</span><span class="n">candidates</span> <span class="mi">10000</span> <span class="o">--</span><span class="n">observed</span> <span class="mi">2000</span> <span class="o">--</span><span class="n">dimensions</span> <span class="mi">4</span> \
@@ -421,6 +425,7 @@ candidate generation and coverage, see <a class="reference internal" href="sampl
             <dd><a href="../../v0.20.0/advanced/active_learning.html">v0.20.0</a></dd>
             <dd><a href="../../v0.21.0/advanced/active_learning.html">v0.21.0</a></dd>
             <dd><a href="../../v0.22.0/advanced/active_learning.html">v0.22.0</a></dd>
+            <dd><a href="../../v0.23.0/advanced/active_learning.html">v0.23.0</a></dd>
             <dd><a href="../../v0.3.0/index.html">v0.3.0</a></dd>
             <dd><a href="../../v0.3.1/index.html">v0.3.1</a></dd>
             <dd><a href="../../v0.4.0/index.html">v0.4.0</a></dd>
