@@ -1,6 +1,7 @@
 """Tests for torch_bsf.interpolation (shape-preserving cubic interpolation on simplicial complexes)."""
 
 import functools
+import importlib.util
 import itertools
 import math
 import warnings
@@ -11,7 +12,7 @@ from typing import Any
 import numpy as np
 import pytest
 import torch
-from hypothesis import example, given
+from hypothesis import assume, example, given
 from hypothesis import strategies as st
 
 from tests.strategies import (
@@ -19,10 +20,12 @@ from tests.strategies import (
     FLOAT64_TINY,
     U,
     axis_scalings,
+    delaunay_meshes,
     extreme_scalings,
     kuhn_meshes,
     log_uniform,
     matrices,
+    planar_meshes,
     points_in_cells,
     scalings,
     signed,
@@ -33,14 +36,21 @@ from torch_bsf import BezierModel, BezierSpace, Points
 from torch_bsf._kernels.combinatorics import _indices
 from torch_bsf.geometry import SimploidalSet
 from torch_bsf.interpolation import (
+    C0,
+    C1,
+    CloughTocher,
+    MacroInterpolant,
+    NoSplit,
     SimplicialMesh,
     _Bisection,
+    _nearest_feasible,
     _overlapping_boxes,
     _rational_inverse,
     _Tagged,
     estimate_gradients,
     hermite_interpolant,
     lattice_mesh,
+    macro_interpolant,
     refine,
     refinement_indicator,
 )
@@ -2095,7 +2105,10 @@ def test_mesh_helpers_are_exported_from_the_package():
     import torch_bsf
 
     assert torch_bsf.lattice_mesh is lattice_mesh and torch_bsf.refine is refine
-    assert {"lattice_mesh", "refine"} <= set(torch_bsf.__all__)
+    assert torch_bsf.macro_interpolant is macro_interpolant and torch_bsf.MacroInterpolant is MacroInterpolant
+    assert {"lattice_mesh", "refine", "macro_interpolant", "MacroInterpolant", "NoSplit", "CloughTocher", "C0", "C1"} <= set(
+        torch_bsf.__all__
+    )
 
 
 @given(data=st.data())
@@ -2134,3 +2147,650 @@ def test_rule_rejects_non_string_choice(wrap):
 def test_rule_accepts_string_choice(string_type, option):
     value = string_type(option)
     refine(lattice_mesh(2, 1), [], rule=value)
+
+
+# ---------------------------------------------------------------------------
+# Macro-elements: splits and joins
+# ---------------------------------------------------------------------------
+
+
+_EDGES = ((0, 1), (0, 2), (1, 2))
+# Thin and obtuse triangles, on lattices and, with SciPy, on Delaunay triangulations of random points.
+_TRIANGLE_MESHES = planar_meshes() | delaunay_meshes() if importlib.util.find_spec("scipy") else planar_meshes()
+
+
+def _c1(mesh: SimplicialMesh, values: Any, **kwargs: Any) -> MacroInterpolant:
+    return macro_interpolant(mesh, values, split=CloughTocher(), continuity=C1(), **kwargs)
+
+
+def _gradients_on_both_sides(model: BezierModel, pieces: SimplicialMesh, a: int, b: int, x: torch.Tensor) -> torch.Tensor:
+    """Autograd gradients (2, n, d, M) of the polynomials of pieces ``a`` and ``b`` at points ``x``."""
+    out = []
+    for k in (a, b):
+        p = x.clone().requires_grad_(True)
+        y = model(Points(pieces.barycentric(p)[:, k], pieces.cell_ids[k].repeat(len(p))))
+        out.append(torch.stack([torch.autograd.grad(y[:, o].sum(), p, retain_graph=True)[0] for o in range(y.shape[1])], -1))
+    return torch.stack(out)
+
+
+def _gradient_scale(mesh: SimplicialMesh) -> float:
+    """``max L / h**2`` over the simplices: a gradient of data of size one is at most ``1 / h`` and its rounding error
+    ``L / h`` times larger, for the longest edge ``L`` and the shortest height ``h`` of a triangle."""
+    corners = mesh.vertices[mesh.simplices]
+    longest = torch.stack([(corners[:, i] - corners[:, j]).norm(dim=1) for i, j in _EDGES]).amax(dim=0)
+    height = 2 * mesh.volumes() / longest
+    return float((longest / height.square()).max())
+
+
+def _aspect_ratio(mesh: SimplicialMesh) -> float:
+    """``max L / h`` over the simplices, for the longest edge ``L`` and the shortest height ``h`` of a triangle."""
+    corners = mesh.vertices[mesh.simplices]
+    longest = torch.stack([(corners[:, i] - corners[:, j]).norm(dim=1) for i, j in _EDGES]).amax(dim=0)
+    return float((longest.square() / (2 * mesh.volumes())).max())
+
+
+def _rounding_bound(interpolant: MacroInterpolant) -> float:
+    """Bound on the rounding of a C1 Clough-Tocher prediction, beyond that of the data and gradients themselves.
+
+    Every control is a few roundings of sums of controls of magnitude up to ``M`` (the largest coefficient), with
+    coefficients up to the aspect ratio ``A`` of the pieces: the coordinates of a split point or of the direction
+    across an edge, relative to vertices, are ratios of their lengths and heights. A prediction is a convex
+    combination of controls. So ``64 U M A`` bounds the error of the controls and of the prediction.
+    """
+    magnitude = float(interpolant.model.coefficients.detach().abs().max())
+    return 64 * U * magnitude * _aspect_ratio(interpolant.pieces) + FLOAT64_TINY
+
+
+@pytest.mark.parametrize("dim,n", MESHES)
+@pytest.mark.parametrize("clamp", [False, True])
+def test_macro_interpolant_without_split_is_hermite_interpolant(dim, n, clamp):
+    mesh = SimplicialMesh(*_kuhn_mesh(dim, n, jitter=0.3))
+    f = _kinked(mesh.vertices)
+    interpolant = macro_interpolant(mesh, f, clamp=clamp)
+    assert interpolant.pieces is mesh and torch.equal(interpolant.parent, torch.arange(mesh.n_simplices))
+    assert torch.equal(interpolant.model.coefficients, hermite_interpolant(mesh, f, clamp=clamp).coefficients)
+    x = _global_positions(mesh, _random_points_in_cells(mesh, 2))
+    found, expected = interpolant.locate(x), mesh.locate(x)
+    assert torch.equal(found.parameters, expected.parameters) and torch.equal(found.cell_ids, expected.cell_ids)
+    with torch.no_grad():
+        assert torch.equal(interpolant(x), interpolant.model(expected))
+
+
+def test_clough_tocher_pieces():
+    """Each triangle splits into three pieces at its incenter, and located points map to the same positions.
+
+    The legs of the 20-21-29 triangles have lengths in the same power of two, so the incenter is the Euclidean one.
+    Each coordinate is rounded a few times at magnitudes up to 21, also in the 2 x 2 solves of locate and transfer,
+    whose triangles have aspect ratios below 10.
+    """
+    mesh = SimplicialMesh([[0.0, 0.0], [21.0, 0.0], [0.0, 20.0], [21.0, 20.0]], [[0, 1, 2], [1, 2, 3]])
+    interpolant = _c1(mesh, torch.zeros(4))
+    pieces = interpolant.pieces
+    assert pieces.n_vertices == 6 and pieces.n_simplices == 6
+    assert interpolant.parent.tolist() == [0, 0, 0, 1, 1, 1]
+    tol = 64 * U * 21 * 10
+    # The inradius is (20 + 21 - 29) / 2 = 6.
+    expected = torch.tensor([[6.0, 6.0], [15.0, 14.0]], dtype=torch.float64)
+    torch.testing.assert_close(pieces.vertices[4:], expected, atol=tol, rtol=0)
+    x = _global_positions(mesh, _random_points_in_cells(mesh, 50))
+    x = torch.cat([x, mesh.vertices, pieces.vertices[4:]])
+    torch.testing.assert_close(_global_positions(pieces, interpolant.locate(x)), x, atol=tol, rtol=0)
+
+
+def test_clough_tocher_on_a_refined_mesh():
+    """The pieces are found by the cell IDs of a refined mesh, which do not start at zero, and its indicator agrees."""
+    mesh = refine(lattice_mesh(2, 2), [0, 3])
+    assert mesh.cell_ids.min() > 0
+    f = _quadratic(mesh.vertices)
+    interpolant = _c1(mesh, f)
+    x = _global_positions(mesh, _random_points_in_cells(mesh, 5))
+    # Coordinates of order one, rounded a few times in the solves of locate and transfer (aspect ratios below 10).
+    torch.testing.assert_close(_global_positions(interpolant.pieces, interpolant.locate(x)), x, atol=64 * U * 10, rtol=0)
+    centroids = mesh.vertices[mesh.simplices].mean(dim=1)
+    with torch.no_grad():
+        correction = (interpolant(centroids) - f[mesh.simplices].mean(dim=1)).abs().mean(dim=1)
+    score = refinement_indicator(mesh, f, split=CloughTocher(), continuity=C1())
+    torch.testing.assert_close(score, mesh.volumes() * correction, atol=_rounding_bound(interpolant), rtol=0)
+
+
+@given(data=st.data(), clamp=st.booleans(), scale=scalings() | extreme_scalings())
+def test_clough_tocher_c1_interpolates_and_is_c1(data, clamp, scale):
+    """The interpolant matches the data and its gradient is continuous across the edges of the pieces.
+
+    Both one-sided gradients are exact (autograd of each piece's polynomial). They agree up to rounding of the
+    controls and of the barycentric coordinates, amplified by the aspect ratio of the thinnest piece.
+    """
+    x, simplices = data.draw(_TRIANGLE_MESHES, label="mesh")
+    mesh = SimplicialMesh(x, simplices)
+    f = data.draw(matrices(mesh.n_vertices, 2), label="f") * scale
+    interpolant = _c1(mesh, f, clamp=clamp)
+    model, pieces = interpolant.model, interpolant.pieces
+    magnitude = float(model.coefficients.detach().abs().max())
+    # At its corners (exact barycentric coordinates), every piece takes the datum of each mesh vertex.
+    corner = torch.eye(3, dtype=torch.float64).repeat(pieces.n_simplices, 1)
+    with torch.no_grad():
+        y = model(Points(corner, pieces.cell_ids.repeat_interleave(3))).reshape(-1, 3, f.shape[1])
+    at_vertex = pieces.simplices[:, :2] < mesh.n_vertices
+    assert torch.equal(y[:, :2][at_vertex], f[pieces.simplices[:, :2][at_vertex]])
+    rows = pieces.simplices.tolist()
+    pairs = [(a, b) for a, b in itertools.combinations(range(len(rows)), 2) if len(set(rows[a]) & set(rows[b])) == 2]
+    a, b = data.draw(st.sampled_from(pairs), label="pieces")
+    shared = sorted(set(rows[a]) & set(rows[b]))
+    t = data.draw(simplex_points(2, 3), label="t")
+    gradients = _gradients_on_both_sides(model, pieces, a, b, t @ pieces.vertices[shared])
+    # Subnormal controls round to a multiple of 2**-1074 instead, which FLOAT64_TINY bounds.
+    assert (gradients[0] - gradients[1]).abs().max() <= 64 * (U * magnitude + FLOAT64_TINY) * _gradient_scale(pieces)
+
+
+def test_clamped_clough_tocher_c1_is_c1_where_a_range_is_narrow():
+    """A vertex whose triangles have ranges of 1e-18 next to ones of 3e-8 keeps one gradient for all its controls.
+
+    Regression: a limiter tolerance relative to the widest range let the narrow ranges be violated, and clipping
+    the controls afterwards broke C1 at the vertex.
+    """
+    mesh = SimplicialMesh(*_kuhn_mesh(2, 3))
+    f = torch.zeros(mesh.n_vertices, dtype=torch.float64)
+    f[2], f[11] = -3.125e-8, 1e-18
+    interpolant = _c1(mesh, f)
+    model, pieces = interpolant.model, interpolant.pieces
+    tol = 64 * U * float(model.coefficients.detach().abs().max()) * _gradient_scale(pieces)
+    rows = pieces.simplices.tolist()
+    t = torch.tensor([[0.5, 0.5], [1.0, 0.0], [0.0, 1.0]], dtype=torch.float64)
+    for a, b in itertools.combinations(range(len(rows)), 2):
+        shared = sorted(set(rows[a]) & set(rows[b]))
+        if len(shared) == 2:
+            gradients = _gradients_on_both_sides(model, pieces, a, b, t @ pieces.vertices[shared])
+            assert (gradients[0] - gradients[1]).abs().max() <= tol
+
+
+@given(data=st.data())
+def test_clough_tocher_c1_reproduces_quadratics(data):
+    """Without clamping and with exact gradients, quadratic data are reproduced on thin and obtuse triangles too."""
+    x, simplices = data.draw(_TRIANGLE_MESHES, label="mesh")
+    mesh = SimplicialMesh(x, simplices)
+    c = data.draw(matrices(6, 2), label="coefficients")
+    v = mesh.vertices
+
+    def quadratic(p: torch.Tensor) -> torch.Tensor:
+        monomials = torch.stack([torch.ones_like(p[:, 0]), p[:, 0], p[:, 1], p[:, 0] ** 2, p[:, 0] * p[:, 1], p[:, 1] ** 2], 1)
+        return torch.matmul(monomials, c)
+
+    gradients = torch.stack(
+        [c[1] + 2 * c[3] * v[:, :1] + c[4] * v[:, 1:], c[2] + c[4] * v[:, :1] + 2 * c[5] * v[:, 1:]], dim=1
+    )
+    interpolant = _c1(mesh, quadratic(v), gradients=gradients, clamp=False)
+    rows, lam, _ = data.draw(points_in_cells(x, simplices, 8), label="points")
+    p = torch.einsum("nk,nkd->nd", lam, v[mesh.simplices[rows]])
+    with torch.no_grad():
+        y = interpolant(p)
+    # The data, gradients and expected values carry a few roundings of terms up to sum |c| (1 + |v|)**2 each.
+    data_bound = 16 * U * float(c.abs().sum(dim=0).max()) * (1 + float(v.abs().max())) ** 2
+    torch.testing.assert_close(y, quadratic(p), atol=_rounding_bound(interpolant) + data_bound, rtol=0)
+
+
+@given(
+    data=st.data(),
+    scale=scalings() | extreme_scalings(),
+    offset=st.just(0.0) | signed(log_uniform(1e-6, 1e12)),
+    gradient_scale=st.just(1.0) | log_uniform(1e-6, 1e300),
+)
+def test_clamped_clough_tocher_c1_preserves_the_range_of_triangle_data(data, scale, offset, gradient_scale):
+    """Every control of a piece lies in the range of its triangle's data, so the prediction does too.
+
+    The data are scaled by up to 2**±1000 and offset by up to 1e12, and the given gradients are up to 1e300 times too
+    steep, so that the limiter is active at nearly every vertex.
+    """
+    x, simplices = data.draw(_TRIANGLE_MESHES, label="mesh")
+    mesh = SimplicialMesh(x, simplices)
+    f = data.draw(matrices(mesh.n_vertices, 3), label="f") * scale + offset
+    g = data.draw(matrices(mesh.n_vertices * 2, 3), label="g").reshape(-1, 2, 3) * scale * gradient_scale
+    g = g.clamp(-FLOAT64_MAX, FLOAT64_MAX)
+    interpolant = _c1(mesh, f, gradients=g)
+    corner = f[mesh.simplices[interpolant.parent]]
+    lo, hi = corner.amin(dim=1), corner.amax(dim=1)
+    pieces = interpolant.pieces
+    controls = torch.tensor([pieces.space.cells[c].controls for c in pieces.cell_ids.tolist()])
+    coefficients = interpolant.model.coefficients.detach()[controls]  # (pieces, 10, M)
+    assert (coefficients >= lo[:, None]).all() and (coefficients <= hi[:, None]).all()
+    rows, lam, _ = data.draw(points_in_cells(pieces.vertices, pieces.simplices, 8), label="points")
+    with torch.no_grad():
+        y = interpolant.model(Points(lam, pieces.cell_ids[rows]))
+    tol = _range_tolerance(pieces, torch.maximum(lo.abs(), hi.abs())[rows])
+    assert (y >= lo[rows] - tol).all() and (y <= hi[rows] + tol).all()
+
+
+@given(
+    data=st.data(),
+    scale=axis_scalings(2) | extreme_scalings().map(lambda s: torch.tensor([s, s], dtype=torch.float64)),
+    clamp=st.booleans(),
+)
+@example(data=None, scale=torch.tensor([2.0**-1000, 2.0**1000], dtype=torch.float64), clamp=True).via("anisotropic axes")
+def test_clough_tocher_c1_at_extreme_coordinates(data, scale, clamp):
+    """Scaling each axis by a power of two up to 2**±1000 scales the split points and gradients exactly.
+
+    The interpolant is then exactly the same, even where products of coordinates over- or underflow and the axes
+    differ in scale by up to 2**2000 (the split does not depend on the units of the axes). Regression: the
+    Euclidean incenter of such triangles rounded onto a side, and the split failed.
+    """
+    if data is None:
+        base = lattice_mesh(2, 2)
+        x, simplices, f = base.vertices, base.simplices, _quadratic(base.vertices)
+    else:
+        x, simplices = data.draw(kuhn_meshes(dimensions=(2,), max_n=3), label="mesh")
+        f = data.draw(matrices(len(x), 2), label="f")
+    corners = x[simplices]
+    differences = (corners[:, :, None] - corners[:, None]).abs() * scale
+    # Products of subnormal differences of vertices (e.g. a jitter of 2**-24 scaled by 2**-1000) lose bits.
+    assume(bool((differences[differences > 0] >= 2.0**-1000).all()))
+    mesh, scaled = SimplicialMesh(x, simplices), SimplicialMesh(x * scale, simplices)
+    g = estimate_gradients(mesh, f)
+    assume(torch.equal(g / scale[:, None] * scale[:, None], g))  # no subnormal gradient components
+    expected = _c1(mesh, f, gradients=g, clamp=clamp)
+    actual = _c1(scaled, f, gradients=g / scale[:, None], clamp=clamp)
+    assert torch.equal(actual.model.coefficients, expected.model.coefficients)
+
+
+@given(
+    data=st.data(),
+    t=st.lists(st.integers(-(2**40), 2**40), min_size=2, max_size=2).map(lambda v: torch.tensor(v, dtype=torch.float64)),
+    clamp=st.booleans(),
+)
+def test_clough_tocher_c1_is_unchanged_by_exact_translations(data, t, clamp):
+    """Translating dyadic vertices by integers up to 2**40, which is exact, gives exactly the same interpolant.
+
+    Regression: the controls were built from the split points rounded to absolute coordinates, which broke quadratic
+    reproduction and C1 by about ulp(t) / h.
+    """
+    x, simplices = data.draw(kuhn_meshes(dimensions=(2,), max_n=2, quantum=2.0**-8), label="mesh")
+    mesh, moved = SimplicialMesh(x, simplices), SimplicialMesh(x + t, simplices)
+    assert torch.equal(moved.vertices - t, mesh.vertices)
+    f = data.draw(matrices(mesh.n_vertices, 2), label="f")
+    g = estimate_gradients(mesh, f)
+    expected = _c1(mesh, f, gradients=g, clamp=clamp)
+    assert torch.equal(_c1(moved, f, gradients=g, clamp=clamp).model.coefficients, expected.model.coefficients)
+
+
+@given(data=st.data(), t=translations(2))
+def test_clamped_clough_tocher_c1_after_large_translations(data, t):
+    """After translating the mesh by up to 1e12, the interpolant still matches the data and keeps their range.
+
+    The coefficients themselves are not compared: rounding the translated vertices changes the triangles, and the
+    limited gradients are a projection onto polygons whose corners may be sensitive to the directions towards them
+    (see macro_interpolant). Exact translations are compared in the test above.
+    """
+    x, simplices = data.draw(kuhn_meshes(dimensions=(2,), max_n=3), label="mesh")
+    mesh = SimplicialMesh(x + t, simplices)
+    f = data.draw(matrices(mesh.n_vertices, 2), label="f")
+    interpolant = _c1(mesh, f)
+    pieces = interpolant.pieces
+    corner = f[mesh.simplices[interpolant.parent]]
+    controls = torch.tensor([pieces.space.cells[c].controls for c in pieces.cell_ids.tolist()])
+    coefficients = interpolant.model.coefficients.detach()[controls]
+    assert (coefficients >= corner.amin(dim=1)[:, None]).all() and (coefficients <= corner.amax(dim=1)[:, None]).all()
+    corners = [_indices((2,), (3,)).index(((3, 0, 0),)), _indices((2,), (3,)).index(((0, 3, 0),))]
+    vertex_controls = controls[:, corners]  # the controls at the two mesh vertices of each piece
+    assert torch.equal(interpolant.model.coefficients.detach()[vertex_controls], f[pieces.simplices[:, :2]])
+
+
+def test_clough_tocher_c1_overflow():
+    """Overflowing controls raise ValueError without clamping; with it, the gradients are limited into range."""
+    x, simplices = _kuhn_mesh(2, 2, jitter=0.3)
+    mesh = SimplicialMesh(16 * x, simplices)
+    f = torch.linspace(-1.0, 1.0, mesh.n_vertices, dtype=torch.float64)[:, None] * 1e308
+    g = torch.full((mesh.n_vertices, 2, 1), 1.7e308, dtype=torch.float64)
+    with pytest.raises(ValueError, match="not finite"):
+        _c1(mesh, f, gradients=g, clamp=False)
+    interpolant = _c1(mesh, f, gradients=g)
+    pieces = interpolant.pieces
+    corner = f[mesh.simplices[interpolant.parent]]
+    with torch.no_grad():
+        y = interpolant.model(_random_points_in_cells(pieces, 4))
+    piece = torch.arange(pieces.n_simplices).repeat_interleave(4)
+    lo, hi = corner.amin(dim=1)[piece], corner.amax(dim=1)[piece]
+    tol = _range_tolerance(pieces, torch.maximum(lo.abs(), hi.abs()))
+    assert (y >= lo - tol).all() and (y <= hi + tol).all()
+
+
+def test_clough_tocher_c1_with_constant_and_linear_data():
+    """Constant data give a constant interpolant, and linear data are reproduced with clamping too."""
+    mesh = SimplicialMesh(*_kuhn_mesh(2, 3, jitter=0.3))
+    x = _global_positions(mesh, _random_points_in_cells(mesh, 5))
+    with torch.no_grad():
+        constant = _c1(mesh, torch.full((mesh.n_vertices,), 2.5))(x)
+        linear = _c1(mesh, _linear(mesh.vertices))(x)
+    n_controls = _c1(mesh, torch.zeros(mesh.n_vertices)).pieces.space.n_controls
+    assert torch.equal(_c1(mesh, torch.full((mesh.n_vertices,), 2.5)).model.coefficients, torch.full((n_controls, 1), 2.5))
+    # A convex combination of equal controls, rounded once per term; linear data also round their own values.
+    torch.testing.assert_close(constant, torch.full_like(constant, 2.5), atol=32 * U * 2.5, rtol=0)
+    tol = _rounding_bound(_c1(mesh, _linear(mesh.vertices))) + 16 * U * 4
+    torch.testing.assert_close(linear, _linear(x), atol=tol, rtol=0)
+
+
+@pytest.mark.parametrize(
+    "split,continuity",
+    [(NoSplit(), C1()), (CloughTocher(), C0())],
+)
+def test_unsupported_constructions_are_rejected(split, continuity):
+    mesh = SimplicialMesh(*_kuhn_mesh(2, 1))
+    with pytest.raises(ValueError, match="supported: split=NoSplit\\(\\) with continuity=C0\\(\\), split=CloughTocher"):
+        macro_interpolant(mesh, torch.zeros(mesh.n_vertices), split=split, continuity=continuity)
+    with pytest.raises(ValueError, match="not supported"):
+        refinement_indicator(mesh, torch.zeros(mesh.n_vertices), split=split, continuity=continuity)
+
+
+def test_clough_tocher_rejects_a_triangle_whose_sides_overflow():
+    """The mesh checks the edges from the first vertex only; the third side may still overflow."""
+    mesh = SimplicialMesh([[0.0, 0.0], [1e308, 0.0], [-1e308, 1e308]], [[0, 1, 2]])
+    with pytest.raises(ValueError, match="too far apart"):
+        _c1(mesh, torch.zeros(3))
+
+
+@pytest.mark.parametrize("dim,n", [(1, 3), (3, 1)])
+def test_clough_tocher_requires_triangles(dim, n):
+    mesh = SimplicialMesh(*_kuhn_mesh(dim, n))
+    with pytest.raises(ValueError, match="two-dimensional.*supported: split=NoSplit\\(\\) with continuity=C0\\(\\)"):
+        _c1(mesh, torch.zeros(mesh.n_vertices))
+
+
+@pytest.mark.parametrize("split,continuity", [("clough-tocher", C1()), (CloughTocher(), "C1"), (CloughTocher, C1())])
+def test_construction_options_must_be_instances(split, continuity):
+    mesh = SimplicialMesh(*_kuhn_mesh(2, 1))
+    with pytest.raises(TypeError, match="split must be NoSplit or CloughTocher, and continuity C0 or C1"):
+        macro_interpolant(mesh, torch.zeros(mesh.n_vertices), split=split, continuity=continuity)
+    with pytest.raises(TypeError, match="split must be"):
+        refinement_indicator(mesh, torch.zeros(mesh.n_vertices), split=split, continuity=continuity)
+
+
+def test_construction_options_are_matched_by_exact_type():
+    """A subclass of an option is rejected as a wrong type, not reported as an unsupported construction."""
+
+    class Smoother(C1):
+        pass
+
+    mesh = SimplicialMesh(*_kuhn_mesh(2, 1))
+    with pytest.raises(TypeError, match="continuity C0 or C1"):
+        macro_interpolant(mesh, torch.zeros(mesh.n_vertices), split=CloughTocher(), continuity=Smoother())
+
+
+def test_clough_tocher_rejects_a_triangle_whose_split_point_is_not_representable():
+    """Regression: a triangle one ulp high far from the origin failed with "a simplex is degenerate" of its pieces."""
+    t = 1e12
+    u = math.ulp(t)
+    mesh = SimplicialMesh([[t, t], [t + 1, t], [t + 0.5, t + u]], [[0, 1, 2]])
+    with pytest.raises(ValueError, match="CloughTocher cannot split a triangle"):
+        _c1(mesh, torch.zeros(3))
+
+
+def _peak(n: int, vertex: int, outputs: int = 1) -> torch.Tensor:
+    """Data (n, outputs) that are zero but for a one at ``vertex`` in the last output."""
+    f = torch.zeros(n, outputs, dtype=torch.float64)
+    f[vertex, -1] = 1.0
+    return f
+
+
+# Shrunk counterexamples of the numbering test (vertices, triangles, data, vertex renumbering), each with a peak in the
+# data at a vertex on a nearly straight boundary, where the feasible gradients of the limiter form a thin wedge.
+_NUMBERING_EXAMPLES = {
+    "mirror-symmetric neighbours": (
+        [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
+        [[0, 1, 2], [1, 2, 3]],
+        torch.tensor([[0.0], [1.0], [-2.0], [5.0]], dtype=torch.float64),
+        [0, 1, 2, 3],
+    ),
+    # The rays of vertex 3 were factorized in the order of the triangles.
+    "rays of a nearly straight boundary": (
+        [
+            [0.0, 0.0],
+            [0.14711160095201448, 0.20213674068506124],
+            [0.29422320190402895, 0.40427348137012248],
+            [0.29590253754623874, 0.40304055413034651],
+            [0.45220861355775410, 0.61781084110822404],
+            [0.59012573945026769, 0.80731403550046898],
+            [0.59180507509247748, 0.80608110826069301],
+            [0.73891667604449196, 1.00821784894575428],
+            [0.88602827699650644, 1.21035458963081544],
+        ],
+        [[0, 3, 4], [0, 1, 4], [1, 4, 5], [1, 2, 5], [3, 6, 7], [3, 4, 7], [4, 7, 8], [4, 5, 8]],
+        _peak(9, 3, outputs=2),
+        list(range(9)),
+    ),
+    # The split rays of vertex 13 were summed in the order of the vertex numbers, which moved one by an ulp.
+    "split rays next to thin triangles": (
+        [
+            [0.0, 0.0],
+            [-0.060589471646867954, 0.29699331317046307],
+            [-0.12117894329373591, 0.5939866263409261],
+            [-0.18176841494060386, 0.8909799395113893],
+            [-0.0665948177942419, 0.3266132902287701],
+            [-0.12718428944110985, 0.6236066033992332],
+            [-0.1877737610879778, 0.9205999165696963],
+            [-0.24836323273484576, 1.2175932297401595],
+            [-0.1331896355884838, 0.6532265804575402],
+            [-0.20293308680754735, 0.9951154498558074],
+            [-0.2543685788822197, 1.2472132067984665],
+            [-0.31495805052908765, 1.5442065199689297],
+            [-0.19978445338272569, 0.9798398706863104],
+            [-0.2603739250295936, 1.2768331838567735],
+            [-0.32096339667646157, 1.5738264970272366],
+            [-0.3815528683233296, 1.8708198101976996],
+        ],
+        [
+            [0, 4, 5],
+            [0, 1, 5],
+            [1, 5, 6],
+            [1, 2, 6],
+            [2, 6, 7],
+            [2, 3, 7],
+            [4, 8, 9],
+            [4, 5, 9],
+            [5, 9, 10],
+            [5, 6, 10],
+            [6, 10, 11],
+            [6, 7, 11],
+            [8, 12, 13],
+            [8, 9, 13],
+            [9, 13, 14],
+            [9, 10, 14],
+            [10, 14, 15],
+            [10, 11, 15],
+        ],
+        _peak(16, 13),
+        [0, 1, 2, 3, 9, 5, 6, 7, 8, 4, 10, 11, 12, 13, 14, 15],
+    ),
+}
+
+
+@given(data=st.data(), clamp=st.booleans())
+@example(data="mirror-symmetric neighbours", clamp=False).via("mirror-symmetric neighbours")
+@example(data="rays of a nearly straight boundary", clamp=True).via("rays of a nearly straight boundary")
+@example(data="split rays next to thin triangles", clamp=True).via("split rays next to thin triangles")
+def test_clough_tocher_c1_does_not_depend_on_the_numbering_of_the_mesh(data, clamp):
+    """Renumbering the vertices and listing the triangles in reverse order give the same interpolant up to rounding.
+
+    The two triangles of an edge are treated alike, also when their controls next to it are clamped to both ranges.
+    Where the split points are equally far from the edge, which side comes first is decided by the order of the
+    triangles alone. The gradients are given, as their estimates round differently.
+    """
+    if isinstance(data, str):
+        vertices, triangles, f, numbering = _NUMBERING_EXAMPLES[data]
+        x, simplices = torch.tensor(vertices, dtype=torch.float64), torch.tensor(triangles)
+        perm = torch.tensor(numbering)
+    else:
+        x, simplices = data.draw(_TRIANGLE_MESHES, label="mesh")
+        f = data.draw(matrices(len(x), 2), label="f")
+        perm = torch.tensor(data.draw(st.permutations(range(len(x))), label="numbering"))
+    mesh = SimplicialMesh(x, simplices)
+    gradients = estimate_gradients(mesh, f)
+    interpolant = _c1(mesh, f, gradients=gradients, clamp=clamp)
+    # Vertex k of the renumbered mesh is vertex perm[k] of the mesh.
+    renumbered = SimplicialMesh(x[perm], torch.argsort(perm)[simplices].flip(0))
+    other = _c1(renumbered, f[perm], gradients=gradients[perm], clamp=clamp)
+    points = _global_positions(interpolant.pieces, _random_points_in_cells(interpolant.pieces, 2))
+    with torch.no_grad():
+        expected, actual = interpolant(points), other(points)
+    bound = 2 * max(_rounding_bound(interpolant), _rounding_bound(other))
+    torch.testing.assert_close(actual, expected, atol=bound, rtol=0)
+
+
+@pytest.mark.parametrize("clamp", [False, True])
+def test_clough_tocher_c1_next_to_a_much_thinner_triangle_with_huge_data(clamp):
+    """A power-of-two scaling of the data scales the controls exactly, even when they come near float64 overflow.
+
+    Regression: next to a triangle 1e8 times thinner, terms of the construction were 1e8 times larger than the data
+    and overflowed for data near 1e300, so the interpolant was reported not finite.
+    """
+    mesh = SimplicialMesh([[0.0, 0.0], [1.0, 0.0], [0.5, 1e-8], [0.5, -1.0]], [[0, 1, 2], [0, 1, 3]])
+    f = torch.tensor([1.0, 2.0, 3.0, 0.5], dtype=torch.float64)
+    gradients = torch.zeros(4, 2, 1, dtype=torch.float64)
+    expected = _c1(mesh, f, gradients=gradients, clamp=clamp).model.coefficients.detach()
+    actual = _c1(mesh, f * 2.0**1000, gradients=gradients, clamp=clamp).model.coefficients.detach()
+    assert torch.equal(actual, expected * 2.0**1000)
+
+
+def test_clough_tocher_pieces_of_a_non_conforming_mesh_are_not_warned_about_again():
+    """The pieces have the unmatched faces of the mesh, which has been warned about already."""
+    x = [[0.0, 0.0], [2.0, 0.0], [1.0, -1.0], [1.0, 0.0], [1.0, 1.0]]  # (1, 0) hangs on the edge below it
+    with pytest.warns(UserWarning, match="not conforming"):
+        mesh = SimplicialMesh(x, [[0, 1, 2], [0, 3, 4], [1, 3, 4]], strict=False)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        interpolant = _c1(mesh, torch.arange(5.0))
+    assert not caught
+    assert interpolant.pieces.unmatched_faces == mesh.unmatched_faces > 0
+
+
+def test_clough_tocher_pieces_of_a_far_sliver_are_conforming():
+    """Regression: the long sides of a sliver far from the origin, now in different pieces, seemed to overlap."""
+    t = 1e9
+    mesh = SimplicialMesh([[t, t + 7.5e-7], [t, t + 1e-6], [t + 1, t]], [[0, 1, 2]])
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        interpolant = _c1(mesh, torch.arange(3.0))
+    assert interpolant.pieces.unmatched_faces == 0
+
+
+@pytest.mark.parametrize("split,continuity", [(NoSplit(), C0()), (CloughTocher(), C1())])
+def test_macro_interpolant_transfers_only_points_in_simplices_of_the_mesh(split, continuity):
+    """Regression: the cell ID of a face (or of a simplex replaced by refine) was sent to the last triangle."""
+    mesh = refine(lattice_mesh(2, 2), [0])
+    interpolant = macro_interpolant(mesh, mesh.vertices[:, 0], split=split, continuity=continuity)
+    retired = sorted(set(range(int(mesh.cell_ids.max()) + 1)) - set(mesh.cell_ids.tolist()))
+    for cell_id in (0, retired[-1], int(mesh.cell_ids.max()) + 1):
+        points = Points(torch.full((1, 3), 1 / 3, dtype=torch.float64), torch.tensor([cell_id]))
+        with pytest.raises(ValueError, match="cell IDs must be in mesh.cell_ids"):
+            interpolant.transfer(points)
+
+
+@pytest.mark.parametrize("split,continuity", [(NoSplit(), C0()), (CloughTocher(), C1())])
+@pytest.mark.parametrize(
+    "parameters,message",
+    [
+        ([[0.2, 0.2, 0.2]], "barycentric coordinates"),
+        ([[0.5, 0.6, -0.1]], "barycentric coordinates"),
+        ([[0.5, 0.5]], "requires 3 barycentric coordinates"),
+    ],
+)
+def test_macro_interpolant_transfers_only_barycentric_coordinates(split, continuity, parameters, message):
+    """Regression: coordinates not summing to one, or negative, were moved into a piece, and too few failed in torch."""
+    mesh = lattice_mesh(2, 2)
+    interpolant = macro_interpolant(mesh, mesh.vertices[:, 0], split=split, continuity=continuity)
+    points = Points(torch.tensor(parameters, dtype=torch.float64), mesh.cell_ids[:1])
+    with pytest.raises(ValueError, match=message):
+        interpolant.transfer(points)
+
+
+def test_refinement_indicator_of_the_clough_tocher_c1_interpolant():
+    """One score per triangle: its area times the mean correction to linear interpolation at its centroid."""
+    mesh = SimplicialMesh(*_kuhn_mesh(2, 3, jitter=0.3))
+    f = _quadratic(mesh.vertices)
+    score = refinement_indicator(mesh, f, split=CloughTocher(), continuity=C1())
+    interpolant = _c1(mesh, f)
+    centroids = mesh.vertices[mesh.simplices].mean(dim=1)
+    with torch.no_grad():
+        correction = (interpolant(centroids) - f[mesh.simplices].mean(dim=1)).abs().mean(dim=1)
+    assert score.shape == (mesh.n_simplices,)
+    # Both evaluate the same controls at the centroid, located differently: areas below one times the rounding bound.
+    torch.testing.assert_close(score, mesh.volumes() * correction, atol=_rounding_bound(interpolant), rtol=0)
+    assert torch.equal(refinement_indicator(mesh, f, split=NoSplit(), continuity=C0()), refinement_indicator(mesh, f))
+
+
+def _projection_tolerance(q: torch.Tensor, r: torch.Tensor, nearest: torch.Tensor, *values: torch.Tensor) -> float:
+    """The violation of a bound that :func:`_nearest_feasible` tolerates at ``nearest``, given the target and bounds.
+
+    It is 32 eps = 64 U times ``|r|_1 |r^-1 h|_1 + |bound|`` in units of a power of two at most twice
+    ``M = max(|target|, |lower|, |upper|)``, for ``nearest = q h``: at most ``64 U (|r|_1 |r^-1 h|_1 + 2 M)``, doubled
+    for the rounding of the check itself.
+    """
+    g = torch.linalg.solve_triangular(r, (q.T @ nearest)[:, None], upper=True)[:, 0]
+    m = float(torch.cat([v.flatten() for v in values]).abs().max())
+    return 128 * U * (float(r.abs().sum() * g.abs().sum()) + 2 * m)
+
+
+@given(data=st.data())
+def test_nearest_feasible_point_of_a_polygon(data):
+    """The limiter's projection is feasible and no farther from the target than any feasible sample.
+
+    A point violating slab k by the tolerance ``tol`` lies within ``tol / |q_k|`` of it, so it can be that much closer
+    to the target than any exactly feasible point.
+    """
+    k = data.draw(st.integers(3, 6) | st.integers(7, 60), label="k")
+    a = data.draw(matrices(k, 2), label="a")
+    assume(torch.linalg.matrix_rank(a) == 2)
+    q, r = torch.linalg.qr(a)
+    lower = -data.draw(matrices(1, k), label="lower").abs()
+    upper = data.draw(matrices(1, k), label="upper").abs()
+    target = q @ (data.draw(matrices(2, 1, scale=log_uniform(1e-3, 1e3)), label="h"))[:, 0]
+    nearest = _nearest_feasible(q[None], r[None], target[None], lower, upper)[0]
+    tol = _projection_tolerance(q, r, nearest, target, lower, upper)
+    assert (nearest >= lower[0] - tol).all() and (nearest <= upper[0] + tol).all()
+    samples = torch.rand(4000, 2, generator=torch.Generator().manual_seed(0), dtype=torch.float64) * 4 - 2
+    values = samples @ q.T
+    feasible = values[((values >= lower) & (values <= upper)).all(dim=1)]
+    distance = (nearest - target).norm()
+    norms = q.norm(dim=1)
+    smallest = float(norms[norms > 0].min())  # a zero row bounds nothing: 0 lies in every slab
+    assert ((feasible - target).norm(dim=1) >= distance - tol / smallest).all()
+
+
+@given(data=st.data())
+@example(data=None).via("ill-conditioned rays")
+def test_nearest_feasible_point_between_two_opposite_rays(data):
+    """Two opposite rays whose increments must not be positive leave the segment ``t d`` of the line ``q_0 . h = 0``.
+
+    That is a vertex on a straight boundary where the data peak. The projection is no farther from the target than
+    the nearest point of the segment, up to the tolerance of :func:`_projection_tolerance`.
+    Regression: the factorization turned the opposite ray by many ulps for ill-conditioned rays, which put the line
+    outside its slab, and the projection fell back to zero.
+    """
+    if data is None:
+        a = torch.tensor([[1.0, 1.0], [0.0, 0.0], [0.0, -(2.0**-8)]], dtype=torch.float64)
+        lower = torch.tensor([[0.0, 0.0, -1.0]], dtype=torch.float64)
+        upper = torch.zeros(1, 3, dtype=torch.float64)
+        h = torch.tensor([[0.0], [-1e-3]], dtype=torch.float64)
+    else:
+        k = data.draw(st.integers(3, 8), label="k")
+        a = data.draw(matrices(k, 2), label="a")
+        lower = -data.draw(matrices(1, k), label="lower").abs()
+        upper = data.draw(matrices(1, k), label="upper").abs()
+        h = data.draw(matrices(2, 1, scale=log_uniform(1e-3, 1e3)), label="h")
+    a[1] = -a[0]
+    assume(torch.linalg.matrix_rank(a) == 2)
+    q, r = torch.linalg.qr(a)
+    assume((q[0] != 0).any())  # the line of the opposite rays, unless their row of q underflows
+    upper[0, :2] = 0.0
+    target = q @ h[:, 0]
+    nearest = _nearest_feasible(q[None], r[None], target[None], lower, upper)[0]
+    tol = _projection_tolerance(q, r, nearest, target, lower, upper)
+    assert (nearest >= lower[0] - tol).all() and (nearest <= upper[0] + tol).all()
+    # The segment, from the other slabs, and its point nearest to the target.
+    d = torch.stack([-q[0, 1], q[0, 0]])
+    d = d / d.abs().max()  # q_0 may be tiny
+    c = q[2:] @ d
+    ends = torch.stack([lower[0, 2:] / c, upper[0, 2:] / c])
+    across = c != 0  # a slab parallel to the line holds all of it, as it holds 0
+    t_low = float(torch.where(across, ends.amin(dim=0), -math.inf).max())
+    t_high = float(torch.where(across, ends.amax(dim=0), math.inf).min())
+    t = min(max(float(target @ (q @ d)) / float(d @ d), t_low), t_high)
+    closest = q @ (t * d)
+    norms = q.norm(dim=1)
+    assert (nearest - target).norm() <= (closest - target).norm() + tol / float(norms[norms > 0].min())
