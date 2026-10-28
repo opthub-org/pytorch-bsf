@@ -28,7 +28,10 @@ body:
 
         params = torch.tensor([[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]])
         values = torch.tensor([[0.0], [1.0], [0.0]])
-        bs = torch_bsf.fit(params=params, values=values, degree=2)
+        space = torch_bsf.BezierSpace.simplex(1, degree=2)
+        result = torch_bsf.fit(space, torch_bsf.Samples(params, values))
+        prediction = result.model(params)
+        torch.testing.assert_close(prediction, values.to(prediction))
         ```
     validations:
       required: true

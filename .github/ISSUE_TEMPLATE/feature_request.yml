@@ -38,10 +38,19 @@ body:
       label: Proposed change
       description: What to build or change. Be concrete about behavior; an API sketch helps.
       placeholder: |
-        Unify the signatures of `torch_bsf.fit()` and `torch_bsf.fit_kfold()`:
+        Add a validation strategy for `cross_validate` alongside `KFold`.
+        Start from this runnable example and describe the proposed behavior:
 
         ```python
-        def fit_kfold(params, values, degree, *, n_splits=5, ...) -> EnsembleModel: ...
+        import torch
+        from torch_bsf import BezierSpace, Samples
+        from torch_bsf.model_selection import KFold, cross_validate
+
+        t = torch.linspace(0, 1, 6, dtype=torch.float64)
+        params = torch.stack((1 - t, t), dim=1)
+        samples = Samples(params, t[:, None])
+        result = cross_validate(BezierSpace.simplex(1, degree=1), samples, cv=KFold(3))
+        assert len(result.folds) == 3
         ```
     validations:
       required: true
@@ -53,8 +62,8 @@ body:
       description: Modules, files, APIs or docs pages expected to change, and what is explicitly **out of scope**.
       placeholder: |
         In scope:
-        - `torch_bsf/model_selection/kfold.py`
-        - `docs/advanced/...`
+        - `torch_bsf/model_selection/_validation.py` (`KFold`, `cross_validate`)
+        - `docs/advanced/auto_degree.rst`
 
         Out of scope:
         - CLI options
