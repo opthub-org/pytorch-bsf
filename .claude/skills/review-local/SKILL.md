@@ -78,7 +78,7 @@ Reviewers that run experiments can take several minutes; the slowest usually set
 
 ## 5. Re-review
 
-If step 4 changed any file, rerun in parallel the reviewers that reported a fixed finding, plus every conditional reviewer whose trigger the fixes touch, with the same brief plus "Previous findings: <scratch>/findings.md; check that they are fixed and that the fixes introduced no new problems". Process their reports through steps 3 and 4 again. Repeat until a round has no confirmed `blocker` or `major`, at most two re-review rounds; if one remains then, report it to the user instead of opening the PR. Skip this step when step 4 changed nothing.
+If step 4 changed any file, rerun in parallel the reviewers that reported a fixed finding, every conditional reviewer whose trigger the fixes touch, and, if the fixes changed code under `torch_bsf/` or `tests/`, `review-correctness`, `review-edge-cases`, `review-tests` and `review-docs` (a refactor for one aspect can break behavior another aspect checks), with the same brief plus "Previous findings: <scratch>/findings.md; check that they are fixed and that the fixes introduced no new problems". Process their reports through steps 3 and 4 again. Repeat until a round has no confirmed `blocker` or `major`, at most two re-review rounds; if one remains then, report it to the user instead of opening the PR. Skip this step when step 4 changed nothing.
 
 ## 6. Record the result
 
