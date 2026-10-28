@@ -1959,3 +1959,110 @@ def test_lightning_reraises_a_missing_dependency_of_lightning(monkeypatch):
     monkeypatch.setattr(builtins, "__import__", fake_import)
     with pytest.raises(ModuleNotFoundError, match="lightning_utilities"):
         _lightning()
+
+
+@pytest.mark.parametrize("degree,dtype", [(20, torch.float16), (140, torch.float32), (171, torch.float64)])
+def test_high_degree_basis(degree, dtype):
+    t = torch.tensor([[1.0, 0.0], [0.5, 0.5], [0.0, 1.0], [1e-4, 1 - 1e-4]], dtype=dtype, requires_grad=True)
+    basis = bernstein_basis((1,), degree, t)
+    assert torch.isfinite(basis).all()
+    assert (basis >= 0).all()
+    # At most degree multiply/add stages and one reduction; gamma_(2d+2).
+    eps = torch.finfo(dtype).eps
+    torch.testing.assert_close(basis.sum(1), torch.ones(4, dtype=dtype), atol=(2 * degree + 2) * eps, rtol=0)
+    grad = torch.autograd.grad(basis[:, 0].sum(), t)[0]
+    assert torch.isfinite(grad).all()
+    assert grad[0, 0] == degree
+
+
+@given(st.integers(16, 25), st.integers(0, 256))
+def test_high_degree_partition_property(degree, numerator):
+    x = numerator / 256
+    t = torch.tensor([[x, 1 - x, 0.0, 0.25, 0.75]], dtype=torch.float64)
+    b = bernstein_basis((2, 1), (degree, 16), t)
+    assert torch.isfinite(b).all() and (b >= 0).all()
+    # Each elevation stage adds at most three products; allow 4u per stage.
+    torch.testing.assert_close(b.sum(), torch.tensor(1.0, dtype=torch.float64), atol=4 * (degree + 16) * U, rtol=0)
+
+
+def test_high_degree_gram_and_point_cloud_derivatives():
+    from torch_bsf._kernels.sgd import _factor_gram
+    from torch_bsf.point_cloud import _Polynomial
+
+    gram = _factor_gram(1, 171)
+    assert torch.isfinite(gram).all() and (gram >= 0).all()
+    # Log-gamma evaluation subtracts numbers of order d log(d); allowance 64*d^2*u.
+    torch.testing.assert_close(gram.sum(), torch.tensor(1.0, dtype=torch.float64), atol=64 * 171**2 * U, rtol=0)
+    space = torch_bsf.BezierSpace.simplex(1, degree=171)
+    coefficients = torch.zeros((172, 1), dtype=torch.float64)
+    coefficients[0] = 1
+    poly = _Polynomial(torch_bsf.BezierModel(space, coefficients))
+    t = torch.tensor([[1.0, 0.0], [0.0, 1.0], [0.5, 0.5]], dtype=torch.float64, requires_grad=True)
+    prediction = poly.derivative(t)
+    assert torch.isfinite(prediction).all()
+    for axes in [(), (0,), (1,), (0, 0), (0, 1)]:
+        assert torch.isfinite(poly.derivative(t, axes)).all()
+    torch.testing.assert_close(poly.derivative(t, (0,))[0, 0], torch.tensor(171.0, dtype=torch.float64), atol=0, rtol=0)
+    b = space.basis(t).to_dense()
+    c = coefficients.clone().requires_grad_()
+    grad = torch.autograd.grad((b @ c).sum(), (t, c))
+    assert all(torch.isfinite(g).all() for g in grad)
+
+
+def test_low_degree_basis_avoids_host_scalar_reads(monkeypatch):
+    def forbidden(*args, **kwargs):
+        raise AssertionError("basis evaluation must not read device scalars")
+
+    t = torch.tensor([[0.25, 0.75]], dtype=torch.float64)
+    for method in ["__int__", "__bool__", "item"]:
+        monkeypatch.setattr(torch.Tensor, method, forbidden)
+    b = bernstein_basis((1,), 3, t)
+    assert b.shape == (1, 4)
+
+
+def test_recurrent_basis_reuses_device_predecessor_tensors(monkeypatch):
+    from torch_bsf._kernels.combinatorics import _recursive_basis
+
+    t = torch.tensor([[0.25, 0.75]], dtype=torch.float64)
+    expected = _recursive_basis(t, 20)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("recurrent forward must reuse cached device indices")
+
+    monkeypatch.setattr(torch, "tensor", forbidden)
+    actual = _recursive_basis(t, 20)
+    torch.testing.assert_close(actual, expected, atol=0, rtol=0)
+
+
+def test_recurrent_factor_metadata_omits_unused_power_table(monkeypatch):
+    import torch_bsf._kernels.combinatorics as combinatorics
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("recurrent factor metadata must not enumerate power indices")
+
+    monkeypatch.setattr(combinatorics, "_simplex_indices", forbidden)
+    powers, coefficients = combinatorics._factor_tensors(3, 20, torch.float64, torch.device("cpu"))
+    assert powers.shape == (0, 4)
+    assert coefficients.shape == (20, 0)
+    assert powers.numel() == coefficients.numel() == 0
+
+
+def test_gram_rejects_degree_with_unrepresentable_multinomials():
+    from torch_bsf.optimization import gram_matrix
+
+    space = torch_bsf.BezierSpace.simplex(1, degree=1030)
+    with pytest.raises(ValueError, match="degree.*multinomial.*float64"):
+        gram_matrix(space)
+
+
+def test_high_degree_derivative_above_polynomial_degree_is_zero():
+    from torch_bsf.point_cloud import _Polynomial
+
+    degree = 16
+    space = torch_bsf.BezierSpace.simplex(1, degree=degree)
+    controls = torch.arange(degree + 1, dtype=torch.float64)[:, None]
+    polynomial = _Polynomial(torch_bsf.BezierModel(space, controls))
+    parameters = torch.tensor([[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]], dtype=torch.float64)
+    actual = polynomial.derivative(parameters, (0,) * (degree + 1))
+    # Every derivative of order above the total degree vanishes identically.
+    torch.testing.assert_close(actual, torch.zeros((3, 1), dtype=torch.float64), atol=0, rtol=0)

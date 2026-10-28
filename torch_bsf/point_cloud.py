@@ -16,7 +16,7 @@ from typing import Any
 
 import torch
 
-from torch_bsf._kernels.combinatorics import _indices
+from torch_bsf._kernels.combinatorics import _indices, _recursive_basis, _simplex_indices
 from torch_bsf.core import BezierModel, BezierSpace, FixedControls, Samples, _integer
 from torch_bsf.fitting import fit
 from torch_bsf.results import ConvergenceWarning, FitResult
@@ -125,12 +125,17 @@ class _Polynomial:
         width, degree = _simplex(model.space)
         self.coefficients = model.coefficients.detach()
         self.powers = torch.tensor([a[0] for a in _indices((width - 1,), (degree,))], dtype=torch.long)
+        self.degree = degree
         self.factors = torch.tensor(
-            [math.factorial(degree) / math.prod(math.factorial(int(v)) for v in a) for a in self.powers],
+            [1.0] * len(self.powers)
+            if degree >= 16
+            else [math.factorial(degree) / math.prod(math.factorial(int(v)) for v in a) for a in self.powers],
             dtype=torch.float64,
         )
 
     def derivative(self, t: torch.Tensor, axes: tuple[int, ...] = ()) -> torch.Tensor:
+        if self.degree >= 16:
+            return self._high_derivative(t, axes)
         powers = self.powers.clone()
         factors = self.factors.clone()
         for axis in axes:
@@ -138,6 +143,20 @@ class _Polynomial:
             powers[:, axis] -= 1
         basis = t[:, None, :].pow(powers.clamp_min(0)[None, :, :]).prod(2) * factors
         return basis @ self.coefficients
+
+    def _high_derivative(self, t: torch.Tensor, axes: tuple[int, ...]) -> torch.Tensor:
+        degree = self.degree - len(axes)
+        if degree < 0:
+            return torch.zeros((len(t), self.coefficients.shape[1]), dtype=t.dtype)
+        powers = self.powers.clone()
+        for axis in axes:
+            powers[:, axis] -= 1
+        positions = {alpha: i + 1 for i, alpha in enumerate(_simplex_indices(t.shape[1], degree))}
+        indices = torch.tensor([positions.get(tuple(row), 0) for row in powers.tolist()])
+        basis = _recursive_basis(t, degree)
+        padded = torch.cat((torch.zeros_like(basis[:, :1]), basis), 1)
+        multiplier = math.prod(range(degree + 1, self.degree + 1))
+        return (padded[:, indices] * multiplier) @ self.coefficients
 
     def geometry(self, t: torch.Tensor, y: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         residual = self.derivative(t) - y
