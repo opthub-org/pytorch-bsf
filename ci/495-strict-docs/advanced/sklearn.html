@@ -1,0 +1,343 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scikit-learn integration &mdash; PyTorch-BSF 0.23.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2753bf86"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Explicit initial models" href="initialization.html" />
+    <link rel="prev" title="Fitting from values alone" href="point_cloud.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#follow-a-fit-through-the-guides">Follow a fit through the guides</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Scikit-learn integration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#when-to-use-the-estimator">When to use the estimator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#prepare-barycentric-features">Prepare barycentric features</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#choose-degree-and-penalty-through-validation">Choose degree and penalty through validation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#weights-outputs-and-evidence">Weights, outputs and evidence</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#fit-independent-input-blocks-as-a-product">Fit independent input blocks as a product</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="partial.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Scikit-learn integration</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/sklearn.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="scikit-learn-integration">
+<h1>Scikit-learn integration<a class="headerlink" href="#scikit-learn-integration" title="Link to this heading"></a></h1>
+<section id="when-to-use-the-estimator">
+<h2>When to use the estimator<a class="headerlink" href="#when-to-use-the-estimator" title="Link to this heading"></a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">BezierRegressor</span></code> when a Bézier surrogate belongs in a scikit-learn
+workflow: cloning estimators, cross-validation, a parameter grid, or a larger
+pipeline. It delegates fitting to the same numerical core as <code class="docutils literal notranslate"><span class="pre">fit</span></code> and
+exposes the complete numerical result. It does not introduce a different
+meaning of degree, penalty or sample weighting.</p>
+<p>Install <code class="docutils literal notranslate"><span class="pre">pytorch-bsf[sklearn]</span></code>. The estimator handles one simplex or product
+domain with NumPy-compatible arrays. Use the Python <code class="docutils literal notranslate"><span class="pre">Points</span></code> and <code class="docutils literal notranslate"><span class="pre">Samples</span></code>
+API for assembled mixed-cell observations, because a feature matrix alone
+does not carry the required per-row cell IDs.</p>
+</section>
+<section id="prepare-barycentric-features">
+<h2>Prepare barycentric features<a class="headerlink" href="#prepare-barycentric-features" title="Link to this heading"></a></h2>
+<p>A segment input uses two columns <code class="docutils literal notranslate"><span class="pre">[1-x,</span> <span class="pre">x]</span></code>, where <code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">&lt;=</span> <span class="pre">x</span> <span class="pre">&lt;=</span> <span class="pre">1</span></code>. These
+are dependent barycentric coordinates, not two arbitrary tabular features.
+Do not pass a single <code class="docutils literal notranslate"><span class="pre">x</span></code> column expecting an ordinary polynomial regressor.
+By default one input column denotes a constant domain and its numeric values
+are ignored; the column is only a scikit-learn-compatible dummy feature.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">GridSearchCV</span><span class="p">,</span> <span class="n">KFold</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">QuadraticPenalty</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.sklearn</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierRegressor</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">30</span><span class="p">)</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">])</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="mf">.2</span> <span class="o">*</span> <span class="n">x</span>
+<span class="n">estimator</span> <span class="o">=</span> <span class="n">BezierRegressor</span><span class="p">(</span><span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">estimator</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+<span class="n">prediction</span> <span class="o">=</span> <span class="n">estimator</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">prediction</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span>
+<span class="k">assert</span> <span class="n">estimator</span><span class="o">.</span><span class="n">result_</span><span class="o">.</span><span class="n">success</span>
+<span class="k">assert</span> <span class="n">estimator</span><span class="o">.</span><span class="n">diagnostics_</span><span class="o">.</span><span class="n">compute_dtype</span> <span class="o">==</span> <span class="s2">"float64"</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">dimensions=None</span></code> infers one simplex from the column count. A triangle
+uses three columns. A square represented as a product uses four columns,
+<code class="docutils literal notranslate"><span class="pre">[1-u,</span> <span class="pre">u,</span> <span class="pre">1-v,</span> <span class="pre">v]</span></code>, and requires <code class="docutils literal notranslate"><span class="pre">dimensions=(1,</span> <span class="pre">1)</span></code>. A prism requires
+<code class="docutils literal notranslate"><span class="pre">dimensions=(2,</span> <span class="pre">1)</span></code> and five columns. Each factor block must independently
+sum to one; the entire product row generally does not.</p>
+</section>
+<section id="choose-degree-and-penalty-through-validation">
+<h2>Choose degree and penalty through validation<a class="headerlink" href="#choose-degree-and-penalty-through-validation" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">search</span> <span class="o">=</span> <span class="n">GridSearchCV</span><span class="p">(</span>
+    <span class="n">BezierRegressor</span><span class="p">(),</span>
+    <span class="p">{</span><span class="s2">"degree"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span>
+     <span class="s2">"penalty"</span><span class="p">:</span> <span class="p">[</span><span class="n">QuadraticPenalty</span><span class="p">(),</span> <span class="n">QuadraticPenalty</span><span class="p">(</span><span class="n">ridge</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">)]},</span>
+    <span class="n">scoring</span><span class="o">=</span><span class="s2">"neg_mean_squared_error"</span><span class="p">,</span>
+    <span class="n">cv</span><span class="o">=</span><span class="n">KFold</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">7</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">search</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+<span class="n">best</span> <span class="o">=</span> <span class="n">search</span><span class="o">.</span><span class="n">best_estimator_</span>
+<span class="k">assert</span> <span class="n">best</span><span class="o">.</span><span class="n">result_</span><span class="o">.</span><span class="n">success</span>
+<span class="k">assert</span> <span class="n">best</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">30</span><span class="p">,)</span>
+</pre></div>
+</div>
+<p>Scikit-learn maximizes its score, so negative MSE closer to zero is better.
+<code class="docutils literal notranslate"><span class="pre">GridSearchCV</span></code> refits its chosen estimator by default, unlike the core
+<code class="docutils literal notranslate"><span class="pre">select_degree</span></code> operation, which requires an explicit full-data refit.
+Inspect <code class="docutils literal notranslate"><span class="pre">cv_results_</span></code> rather than reporting only the winning degree.</p>
+<p>Increasing degree adds controls and can overfit noise. Increasing ridge
+shrinks controls toward the output origin; increasing smoothness draws
+adjacent controls together. Pass complete typed <code class="docutils literal notranslate"><span class="pre">QuadraticPenalty</span></code> objects
+in the grid, as above; the penalty is an immutable numerical configuration,
+not a nested scikit-learn estimator. See <a class="reference internal" href="regularization.html"><span class="doc">Regularization and numerical evidence</span></a> for units and
+<a class="reference internal" href="auto_degree.html"><span class="doc">Cross-validation and degree search</span></a> for an actual before/after degree comparison.</p>
+<figure class="align-default" id="id1">
+<a class="reference internal image-reference" href="../_images/degree.png"><img alt="Candidate curve fits and their cross-validation errors." src="../_images/degree.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 8 </span><span class="caption-text">The numerical core’s degree comparison illustrates the same capacity
+trade-off used by the estimator. The figure is generated by the core
+three-fold search; it is not the output of the separate GridSearchCV
+example above, whose scoring and refit policy should be recorded separately.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</section>
+<section id="weights-outputs-and-evidence">
+<h2>Weights, outputs and evidence<a class="headerlink" href="#weights-outputs-and-evidence" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">estimator.fit(X,</span> <span class="pre">y,</span> <span class="pre">sample_weight=w)</span></code> supplies row weights. Larger relative
+weights emphasize particular observations. Uniformly scaling all weights
+leaves the normalized regression problem unchanged. A one-dimensional <code class="docutils literal notranslate"><span class="pre">y</span></code>
+returns a one-dimensional prediction; multioutput <code class="docutils literal notranslate"><span class="pre">y</span></code> returns a two-dimensional
+array with the same output count. Predictions are NumPy arrays from the CPU
+float64 model, even if the original input arrays were float32.</p>
+<p><code class="docutils literal notranslate"><span class="pre">result_</span></code> holds metrics, diagnostics, model and termination status;
+<code class="docutils literal notranslate"><span class="pre">model_</span></code> is the shared <code class="docutils literal notranslate"><span class="pre">BezierModel</span></code>; <code class="docutils literal notranslate"><span class="pre">diagnostics_</span></code> exposes solver
+evidence directly. The estimator requires numerical success during fitting,
+so a failed solve raises through <code class="docutils literal notranslate"><span class="pre">require_success</span></code>. A successful fit can
+still be unidentifiable or statistically poor; inspect data rank and
+held-out error. A high default R-squared score is not an application-specific
+error guarantee, especially for low-variance outputs.</p>
+<p>Avoid using a generic feature standardizer on barycentric columns inside a
+pipeline: it generally breaks their domain constraints. If ordinary scalar
+features need conversion into barycentric blocks, perform that explicit
+conversion first. Output transforms must be inverted when reporting original
+units and fitted independently within each validation fold. See
+<a class="reference internal" href="normalization.html"><span class="doc">Output scaling</span></a> for that distinction.</p>
+<p>For product degrees use a tuple matching <code class="docutils literal notranslate"><span class="pre">dimensions</span></code>. Fixed controls and
+typed solvers use the same constructor arguments as the core API. If a search
+changes degree, fixed global row numbers cannot be reused blindly: resolve
+constraints for each space in a manual core validation loop. Save
+<code class="docutils literal notranslate"><span class="pre">best.model_</span></code> with <code class="docutils literal notranslate"><span class="pre">io.save_model</span></code> when only the common numerical model is
+needed; store preprocessing and feature schemas alongside it in the application.</p>
+</section>
+<section id="fit-independent-input-blocks-as-a-product">
+<h2>Fit independent input blocks as a product<a class="headerlink" href="#fit-independent-input-blocks-as-a-product" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">7</span><span class="p">),</span> <span class="n">indexing</span><span class="o">=</span><span class="s2">"ij"</span><span class="p">)</span>
+<span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">v</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+<span class="n">product_X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="mi">1</span> <span class="o">-</span> <span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">v</span><span class="p">,</span> <span class="n">v</span><span class="p">])</span>
+<span class="n">product_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="o">+</span> <span class="n">v</span>
+<span class="n">product</span> <span class="o">=</span> <span class="n">BezierRegressor</span><span class="p">(</span><span class="n">dimensions</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">product</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">product_X</span><span class="p">,</span> <span class="n">product_y</span><span class="p">)</span>
+<span class="n">test_u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">.13</span><span class="p">,</span> <span class="mf">.47</span><span class="p">,</span> <span class="mf">.81</span><span class="p">])</span>
+<span class="n">test_v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">.22</span><span class="p">,</span> <span class="mf">.56</span><span class="p">,</span> <span class="mf">.73</span><span class="p">])</span>
+<span class="n">test_X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="mi">1</span> <span class="o">-</span> <span class="n">test_u</span><span class="p">,</span> <span class="n">test_u</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">test_v</span><span class="p">,</span> <span class="n">test_v</span><span class="p">])</span>
+<span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">product</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">test_X</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">test_u</span><span class="p">)</span> <span class="o">+</span> <span class="n">test_v</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The domain is the square pictured in the
+<a class="reference internal" href="../whatis.html#simploidal-space-overview"><span class="std std-ref">simploid overview</span></a>. Its two factors have
+different degrees because the target is quadratic in <code class="docutils literal notranslate"><span class="pre">u</span></code> and linear in
+<code class="docutils literal notranslate"><span class="pre">v</span></code>. Without explicit <code class="docutils literal notranslate"><span class="pre">dimensions</span></code>, four columns would imply one
+three-dimensional simplex, whose sum-to-one constraint these rows violate.</p>
+<p>Random row folds assess interpolation among the sampled combinations. If
+the intended task is prediction at entirely unseen operating conditions,
+hold out complete <code class="docutils literal notranslate"><span class="pre">v</span></code> slices or use an appropriate grouped split instead.
+Choose a validation design that matches the use of the fitted model rather
+than relying on a default splitter to define that use implicitly.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="point_cloud.html" class="btn btn-neutral float-left" title="Fitting from values alone" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="initialization.html" class="btn btn-neutral float-right" title="Explicit initial models" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: ci/495-strict-docs
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/advanced/sklearn.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/advanced/sklearn.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/advanced/sklearn.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/advanced/sklearn.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/advanced/sklearn.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/advanced/sklearn.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/advanced/sklearn.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/advanced/sklearn.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/advanced/sklearn.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/advanced/sklearn.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/advanced/sklearn.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="sklearn.html">ci/495-strict-docs</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
