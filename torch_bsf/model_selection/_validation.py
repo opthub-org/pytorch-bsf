@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass
+from fractions import Fraction
 
 import torch
 
@@ -98,11 +99,10 @@ def _cross_validate(
     mse = torch.tensor([fold.metrics["mse"] for fold in folds], dtype=torch.float64)
     scale = mse.abs().max()
     scaled = mse / scale if scale > 0 else mse
-    total = sum(fold.test_weight for fold in folds)
     metrics = {
         "mean_mse": (scaled.mean() * scale).item(),
         "std_mse": (scaled.std(unbiased=False) * scale).item(),
-        "pooled_mse": sum(_pooled_term(fold.metrics["mse"], fold.test_weight, total) for fold in folds),
+        "pooled_mse": _pooled_mse(folds),
     }
     success = all(f.result.success and all(math.isfinite(v) for v in f.metrics.values()) for f in folds) and all(
         math.isfinite(v) for v in metrics.values()
@@ -110,22 +110,20 @@ def _cross_validate(
     return CVResult(tuple(folds), metrics, success)
 
 
-def _pooled_term(error: float, weight: float, total: float) -> float:
-    if not math.isfinite(error) or not error or weight == total:
-        return error
-    value, exponent = math.frexp(error)
-    weight_value, weight_exponent = math.frexp(weight)
-    total_value, total_exponent = math.frexp(total)
-    try:
-        return math.ldexp(value * weight_value / total_value, exponent + weight_exponent - total_exponent)
-    except OverflowError:
-        # The normalized weight is <=1, so any upper-bound rounding cannot
-        # legitimately increase a finite nonnegative fold error beyond itself.
-        return error
+def _pooled_mse(folds: Sequence[FoldResult]) -> float:
+    errors = [fold.metrics["mse"] for fold in folds]
+    if not all(math.isfinite(error) for error in errors):
+        return sum(errors)
+    # These are already CPU scalar fold summaries. A single exact reduction
+    # avoids overflowing either the weight sum or independently rounded terms,
+    # and preserves tiny weights whose product with a large error is meaningful.
+    weights = [Fraction.from_float(fold.test_weight) for fold in folds]
+    numerator = sum(Fraction.from_float(error) * weight for error, weight in zip(errors, weights, strict=True))
+    return float(numerator / sum(weights))
 
 
 def _weighted_error(
-    difference: torch.Tensor, weights: torch.Tensor, total: float, outputs: int, power: int, exponent_shift: int
+    difference: torch.Tensor, weights: torch.Tensor, total: float, outputs: int, power: int, exponent_shift: int | torch.Tensor
 ) -> float:
     # Combine mantissas before scaling exponents: weight/total and difference**2
     # may each be unrepresentable even though their product is finite.
@@ -152,10 +150,13 @@ def _held_out_metrics(model: BezierModel, held_out: Samples) -> dict[str, float]
     predicted = model(positive.points)
     observed = positive.values.cpu().double()
     difference = predicted - observed
-    shift = 0
-    if not torch.isfinite(difference).all():
-        difference = predicted / 2 - observed / 2
-        shift = 1
+    shift: int | torch.Tensor = 0
+    finite = torch.isfinite(difference)
+    if not finite.all():
+        # Only overflowing entries need halving. Applying it to every row
+        # would erase otherwise representable subnormal residuals.
+        difference = torch.where(finite, difference, predicted / 2 - observed / 2)
+        shift = (~finite).to(torch.int32)
     weights, total = positive.weights, positive.weights.sum().item()
     return {
         "mse": _weighted_error(difference, weights, total, model.n_outputs, 2, shift),

@@ -1,5 +1,8 @@
 """Explicit CV splits and ensemble composition."""
 
+import math
+from fractions import Fraction
+
 import pytest
 import torch
 from hypothesis import example, given
@@ -148,3 +151,78 @@ def test_mae_preserves_tiny_normalized_weight():
     for fold in result.folds:
         assert fold.metrics["mae"] == pytest.approx(1e-192, rel=32 * 2**-53, abs=0)
         assert fold.metrics["mse"] == pytest.approx(1e116, rel=32 * 2**-53)
+
+
+def test_pooling_uses_the_validated_global_weight_sum():
+    count = 11
+    maximum = torch.finfo(torch.float64).max
+    weights = torch.full((count,), maximum / count, dtype=torch.float64)
+    # CPU reduction orders vary; keep the public input valid on each platform.
+    while not torch.isfinite(weights.sum()):
+        weights = torch.nextafter(weights, torch.zeros_like(weights))
+    observations = Samples(
+        torch.tensor([[1.0, 0.0]], dtype=torch.float64).repeat(count, 1),
+        torch.ones((count, 1), dtype=torch.float64),
+        weights=weights,
+    )
+    result = cross_validate(
+        BezierSpace.simplex(1, degree=0), observations, cv=KFold(count, shuffle=False), fixed=FixedControls({0: [0]})
+    )
+    assert result.success
+    # Each residual is exactly one. The reduction of eleven normalized fold
+    # contributions permits 32 roundings; a zero pooled score is invalid.
+    assert result.metrics["pooled_mse"] == pytest.approx(1.0, rel=32 * 2**-53)
+
+
+def test_pooled_average_stays_bounded_at_float64_maximum():
+    error = float.fromhex("0x1.ffffffffffffep+1023")
+    # Frozen binary weights whose separately rounded weighted terms overflow
+    # on addition even though a weighted average cannot exceed its inputs.
+    weights = [float.fromhex("0x1.5f44296f6fbf6p-1"), float.fromhex("0x1.474361dfd1657p-1")]
+    observations = Samples(
+        torch.eye(2, dtype=torch.float64), torch.full((2, 1), math.sqrt(error), dtype=torch.float64), weights=weights
+    )
+    result = cross_validate(
+        BezierSpace.simplex(1, degree=0), observations, cv=KFold(2, shuffle=False), fixed=FixedControls({0: [0]})
+    )
+    assert result.success
+    errors = [fold.metrics["mse"] for fold in result.folds]
+    assert min(errors) <= result.metrics["pooled_mse"] <= max(errors)
+
+
+def test_weighted_metrics_preserve_an_overflowing_residual():
+    observations = Samples(
+        torch.eye(2, dtype=torch.float64).repeat(2, 1),
+        torch.tensor([[-1e308], [1e308], [-1e308], [1e308]], dtype=torch.float64),
+        weights=[1e-300, 1e200, 1e-300, 1e200],
+    )
+    result = cross_validate(
+        BezierSpace.simplex(1, degree=0), observations, cv=KFold(2, shuffle=False), fixed=FixedControls({0: [1e308]})
+    )
+    assert result.success
+    # The residual 2e308 itself is unrepresentable, but its normalized weighted
+    # errors are finite. Mantissa/exponent products permit 32 roundings here.
+    assert result.metrics["pooled_mse"] == pytest.approx(4e116, rel=32 * 2**-53)
+    for fold in result.folds:
+        assert fold.metrics["mae"] == pytest.approx(2e-192, rel=32 * 2**-53, abs=0)
+
+
+def test_overflowing_row_does_not_erase_another_subnormal_residual():
+    from torch_bsf.core import Cell
+
+    space = BezierSpace((Cell((), (), (0,)), Cell((), (), (1,))), 2, (0, 1), ())
+    tiny, weight = 5e-324, 1e307
+    observations = Samples(
+        torch.empty((4, 0), dtype=torch.float64),
+        torch.tensor([[-1e308], [0.0], [-1e308], [0.0]], dtype=torch.float64),
+        cell_ids=[0, 1, 0, 1],
+        weights=[tiny, weight, tiny, weight],
+    )
+    result = cross_validate(space, observations, cv=KFold(2, shuffle=False), fixed=FixedControls({0: [1e308], 1: [tiny]}))
+    expected = float(
+        (2 * Fraction(1e308) * Fraction(tiny) + Fraction(tiny) * Fraction(weight)) / (Fraction(tiny) + Fraction(weight))
+    )
+    assert result.success
+    # The weighted large residual rounds to 20 minimum subnormal units; the
+    # other row contributes one more. Neither is near a rounding tie here.
+    assert all(fold.metrics["mae"] == expected for fold in result.folds)

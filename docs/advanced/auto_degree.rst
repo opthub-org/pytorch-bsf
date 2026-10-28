@@ -176,7 +176,12 @@ Non-finite validation metrics
 
 Cross-validation excludes zero-weight held-out rows before evaluating metrics.
 Weighted errors combine mantissas and exponents before reduction to avoid
-intermediate overflow and preserve meaningful tiny normalized weights. If a fold or aggregate metric is still non-finite, ``success`` is
+intermediate overflow and preserve meaningful tiny normalized weights.
+The pooled average uses an exact rational reduction of the CPU scalar fold
+summaries before rounding once to float64. This preserves tiny fold weights
+and the bound that the average lies between the finite fold errors, including
+at the float64 maximum; its scalar work grows with the number of folds.
+If a fold or aggregate metric is still non-finite, ``success`` is
 ``False`` and every fold remains available for inspection. Degree selection
 excludes that candidate; if all candidates fail, ``best_index`` is ``None``
 and ``success`` is ``False``. Successful training alone does not certify that
