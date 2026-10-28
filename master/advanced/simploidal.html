@@ -63,6 +63,7 @@
 <li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
 <li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
 <li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
@@ -175,7 +176,7 @@ space; a type <code class="docutils literal notranslate"><span class="pre">(2,</
 when the renderer shows only surfaces. Red controls describe the polynomial
 and are not necessarily measured points or points on the image.</p>
 <table class="docutils align-default" id="id2">
-<caption><span class="caption-number">Table 14 </span><span class="caption-text">Domain choices and parameter rows</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<caption><span class="caption-number">Table 15 </span><span class="caption-text">Domain choices and parameter rows</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 20.0%" />
 <col style="width: 25.0%" />
@@ -466,7 +467,7 @@ required global connectivity, then tune its degree with validation.</p>
 <section id="homology">
 <h2>Homology<a class="headerlink" href="#homology" title="Link to this heading"></a></h2>
 <p>The topology of a simploidal set can be checked after it is built by
-computing its homology (Section 4.4 of <span class="bibtex-citation" id="id1">Peltier and Lienhardt [<a class="reference internal" href="../references.html#id41" title="Samuel Peltier and Pascal Lienhardt. Simploidal sets: a data structure for handling simploidal bézier spaces. Computer Aided Geometric Design, 62:44–62, 2018. URL: https://doi.org/10.1016/j.cagd.2018.03.010.">PL18</a>]</span>).  The
+computing its homology (Section 4.4 of <span class="bibtex-citation" id="id1">Peltier and Lienhardt [<a class="reference internal" href="../references.html#id42" title="Samuel Peltier and Pascal Lienhardt. Simploidal sets: a data structure for handling simploidal bézier spaces. Computer Aided Geometric Design, 62:44–62, 2018. URL: https://doi.org/10.1016/j.cagd.2018.03.010.">PL18</a>]</span>).  The
 chain group <span class="math notranslate nohighlight">\(C_k\)</span> is spanned by the <strong>non-degenerate</strong> simploids of
 dimension <span class="math notranslate nohighlight">\(k\)</span>, and the boundary of a simploid <span class="math notranslate nohighlight">\(\sigma\)</span> of type
 <span class="math notranslate nohighlight">\((a_1, \ldots, a_n)\)</span> follows the sign rule of a product of simplices:</p>

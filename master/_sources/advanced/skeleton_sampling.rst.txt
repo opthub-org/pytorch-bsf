@@ -72,7 +72,8 @@ with :math:`U` uniform on the simplex. Then
    R = \sigma^2 L \sum_{m=0}^{M-1} \frac{a_m}{N^{(m)}} + o\!\left(\frac{1}{N}\right).
 
 :func:`~torch_bsf.sampling.skeleton_risk_coefficients` returns
-:math:`a_0, \dots, a_{M-1}`. They follow from three facts.
+:math:`a_0, \dots, a_{M-1}`. They follow from three facts, proved in
+:doc:`skeleton_risk_theory`.
 
 1. On a face :math:`I`, let :math:`T` be the controls whose multi-index has
    support exactly :math:`I` and :math:`B` those with smaller support. Only
@@ -98,15 +99,27 @@ with :math:`U` uniform on the simplex. Then
 The Gram entries are exact moments of the uniform distribution on a simplex,
 :math:`E[t^\alpha] = k!\,\alpha! / (|\alpha| + k)!` on a :math:`k`-simplex.
 
-Some coefficients have closed forms:
+Several coefficients have closed forms. :doc:`skeleton_risk_theory` proves
+them:
 
 - :math:`a_m = 0` for :math:`m \geq D`: faces with more than :math:`D`
   vertices have no interior controls, and the optimal ratio gives them no rows.
 - For :math:`D \geq M`, :math:`a_{M-1} = \binom{D-1}{M-1}`, the number of
-  controls interior to the whole simplex, because their estimate is measured
-  with the same Gram matrix it was fitted with.
-- For :math:`D = 1`, :math:`a_0 = 2M / (M + 1)`: each vertex control is a mean
-  of :math:`N^{(0)} / M` rows, and :math:`E[t_i^2] = 2 / (M (M + 1))`.
+  controls interior to the whole simplex. Their estimate is measured with the
+  same Gram matrix it was fitted with.
+- For :math:`D \leq M`,
+  :math:`a_{D-1} = \binom{M}{D}^2 (3D-1)! / ((D-1)!\,(M)_{2D})`, where
+  :math:`(M)_k = M (M+1) \cdots (M+k-1)`. For :math:`D = 1` this is
+  :math:`a_0 = 2M / (M + 1)`. :math:`a_{D-2}` has a closed form too.
+- On curves (:math:`M = 2`), :math:`a_0 = 4 / (D (D + 2))` and
+  :math:`a_1 = D - 1`.
+- For a fixed degree, every :math:`a_m` is a rational function of :math:`M`
+  and converges as :math:`M` grows; for example,
+  :math:`a_0 \to 2 D^2 (D+1)^2 / 4^D`.
+
+These closed forms rest on a structure theorem: the errors that a face
+passes to larger faces are determined by the errors it passes to the faces
+with one more vertex.
 
 The optimal ratio
 -----------------
@@ -179,6 +192,13 @@ The degree-two and degree-three rows agree with Tables 1 and 2 of
 They show that the paper's observation that the inductive skeleton fitting wins
 for :math:`D < 3` does not extend to a rule in the degree: it wins for every
 degree shown on curves (:math:`M = 2`), and again on triangles from degree five.
+:doc:`skeleton_risk_theory` proves that it wins:
+
+- on curves at every degree;
+- for :math:`D \leq 2` in every dimension;
+- for every degree once the dimension is large enough, for example from
+  :math:`M = 11` at degree three, from :math:`M = 20` at degree four and from
+  :math:`M = 29` at degree five.
 
 Notes on the original derivation
 --------------------------------

@@ -24,7 +24,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Visualization" href="visualization.html" />
-    <link rel="prev" title="Optimal skeleton sampling" href="skeleton_sampling.html" /> 
+    <link rel="prev" title="Theory of the skeleton risk" href="skeleton_risk_theory.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -62,6 +62,7 @@
 <li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Fitting from values alone</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#all-at-once-fitting">All-at-once fitting</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#inductive-skeleton-fitting">Inductive skeleton fitting</a></li>
@@ -127,7 +128,7 @@
 surface and its domain coordinate is unknown. The existing <code class="docutils literal notranslate"><span class="pre">fit</span></code> solves
 a different problem: regression from known parameter/value pairs.</p>
 <p>The value-only methods implement Algorithms 2 and 3 of
-<span class="bibtex-citation" id="id1">Kobayashi <em>et al.</em> [<a class="reference internal" href="../references.html#id11" title="Ken Kobayashi, Naoki Hamada, Akiyoshi Sannai, Aiko Tanaka, Kenichi Bannai, and Masashi Sugiyama. Bézier simplex fitting: describing pareto fronts of simplicial problems with small samples in multi-objective optimization. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 33, 2304–2313. 2019. URL: https://doi.org/10.1609/aaai.v33i01.33012304.">KHS+19</a>]</span>. Both currently support a single simplex.
+<span class="bibtex-citation" id="id1">Kobayashi <em>et al.</em> [<a class="reference internal" href="../references.html#id12" title="Ken Kobayashi, Naoki Hamada, Akiyoshi Sannai, Aiko Tanaka, Kenichi Bannai, and Masashi Sugiyama. Bézier simplex fitting: describing pareto fronts of simplicial problems with small samples in multi-objective optimization. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 33, 2304–2313. 2019. URL: https://doi.org/10.1609/aaai.v33i01.33012304.">KHS+19</a>]</span>. Both currently support a single simplex.
 <code class="docutils literal notranslate"><span class="pre">fit_point_cloud</span></code> returns a <code class="docutils literal notranslate"><span class="pre">PointCloudFitResult</span></code>; <code class="docutils literal notranslate"><span class="pre">fit_skeleton</span></code>
 returns a <code class="docutils literal notranslate"><span class="pre">SkeletonFitResult</span></code>. Each result holds an ordinary <code class="docutils literal notranslate"><span class="pre">BezierModel</span></code>
 in <code class="docutils literal notranslate"><span class="pre">result.model</span></code> for prediction, plotting and serialization. Inspect
@@ -273,7 +274,7 @@ surface coverage separately from numerical convergence.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="skeleton_sampling.html" class="btn btn-neutral float-left" title="Optimal skeleton sampling" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="skeleton_risk_theory.html" class="btn btn-neutral float-left" title="Theory of the skeleton risk" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="visualization.html" class="btn btn-neutral float-right" title="Visualization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

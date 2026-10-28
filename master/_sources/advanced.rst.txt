@@ -91,6 +91,7 @@ choose them when your domain, objective or execution environment requires it.
    advanced/normalization
    advanced/sampling
    advanced/skeleton_sampling
+   advanced/skeleton_risk_theory
    advanced/point_cloud
 
 .. toctree::

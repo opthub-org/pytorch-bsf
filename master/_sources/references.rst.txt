@@ -12,8 +12,10 @@ Fitting, approximation and statistical behavior
 
 :cite:t:`kobayashi2019bezier` introduces Bézier simplex fitting for Pareto
 fronts and its approximation perspective. :cite:t:`tanaka2020asymptotic`
-studies statistical risk; :doc:`advanced/skeleton_sampling` extends its
-optimal sample ratio to every dimension and degree. Read these alongside
+studies statistical risk. :doc:`advanced/skeleton_sampling` extends its
+optimal sample ratio to every dimension and degree, and
+:doc:`advanced/skeleton_risk_theory` proves the result, using the polynomial
+small-ball inequality of :cite:t:`carbery2001distributional`. Read these alongside
 :doc:`whatis` and :doc:`advanced/model_selection`: expressiveness at a sufficiently large degree
 and accuracy from a particular finite sample are distinct questions.
 
