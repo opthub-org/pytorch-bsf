@@ -101,7 +101,7 @@ If master moved, resolve conflicts and re-run step 5.
 
 ## 8. Review locally
 
-Follow the `review-local` skill (`.claude/skills/review-local/SKILL.md`) with this issue number: specialised reviewer agents check the branch in parallel, one per aspect (requirements, design, correctness, edge cases, tests, docs, conventions, readability, and numerics, performance, compatibility, … when relevant). Verify their findings, fix every confirmed blocker and major, re-run step 5, and commit the fixes. Do not open the PR while a confirmed blocker or major remains; report it to the user instead.
+Follow the `review-local` skill (`.claude/skills/review-local/SKILL.md`) with this issue number. Do not open the PR while a confirmed blocker or major finding remains; report it to the user instead.
 
 ## 9. Open the PR
 
