@@ -69,6 +69,7 @@
 <li class="toctree-l3"><a class="reference internal" href="advanced/grid_sampling.html">Grid sampling</a></li>
 <li class="toctree-l3"><a class="reference internal" href="advanced/partial.html">Fixed controls</a></li>
 <li class="toctree-l3"><a class="reference internal" href="advanced/sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="advanced/skeleton_sampling.html">Optimal skeleton sampling</a></li>
 <li class="toctree-l3"><a class="reference internal" href="advanced/acceleration.html">Solvers and optional execution</a></li>
 <li class="toctree-l3"><a class="reference internal" href="advanced/active_learning.html">Explicit ensembles and active learning</a></li>
 <li class="toctree-l3"><a class="reference internal" href="advanced/simploidal.html">Single and assembled domains</a></li>
@@ -160,27 +161,31 @@ state what changed and retain reproduction scripts and numerical evidence.</p>
 <td><p><a class="reference internal" href="advanced/active_learning.html"><span class="doc">Explicit ensembles and active learning</span></a></p></td>
 <td><p>Errors on a fixed external validation set</p></td>
 </tr>
-<tr class="row-odd"><td><p>A plot is coarse or misses a feature.</p></td>
+<tr class="row-odd"><td><p>A measurement budget must be split among vertices, edges and faces.</p></td>
+<td><p><a class="reference internal" href="advanced/skeleton_sampling.html"><span class="doc">Optimal skeleton sampling</span></a></p></td>
+<td><p>Rows per face and each face’s least-squares rank</p></td>
+</tr>
+<tr class="row-even"><td><p>A plot is coarse or misses a feature.</p></td>
 <td><p><a class="reference internal" href="advanced/visualization.html"><span class="doc">Visualization</span></a>, <a class="reference internal" href="advanced/grid_sampling.html"><span class="doc">Grid sampling</span></a></p></td>
 <td><p>Numerical residuals and render resolution</p></td>
 </tr>
-<tr class="row-even"><td><p>Independent parameter groups vary together.</p></td>
+<tr class="row-odd"><td><p>Independent parameter groups vary together.</p></td>
 <td><p><a class="reference internal" href="advanced/simploidal.html"><span class="doc">Single and assembled domains</span></a></p></td>
 <td><p>Per-factor sums and coordinate order</p></td>
 </tr>
-<tr class="row-odd"><td><p>Neighboring local regions must agree.</p></td>
+<tr class="row-even"><td><p>Neighboring local regions must agree.</p></td>
 <td><p><a class="reference internal" href="advanced/simploidal.html"><span class="doc">Single and assembled domains</span></a></p></td>
 <td><p>Predictions along identified faces</p></td>
 </tr>
-<tr class="row-even"><td><p>Exact data on a mesh must not overshoot.</p></td>
+<tr class="row-odd"><td><p>Exact data on a mesh must not overshoot.</p></td>
 <td><p><a class="reference internal" href="advanced/interpolation.html"><span class="doc">Shape-preserving interpolation on simplicial meshes</span></a></p></td>
 <td><p>Prediction range in each cell</p></td>
 </tr>
-<tr class="row-odd"><td><p>A large fit exhausts memory.</p></td>
+<tr class="row-even"><td><p>A large fit exhausts memory.</p></td>
 <td><p><a class="reference internal" href="advanced/acceleration.html"><span class="doc">Solvers and optional execution</span></a></p></td>
 <td><p>Sparse termination and conditioning</p></td>
 </tr>
-<tr class="row-even"><td><p>There are costs but no target responses.</p></td>
+<tr class="row-odd"><td><p>There are costs but no target responses.</p></td>
 <td><p><a class="reference internal" href="advanced/initialization.html"><span class="doc">Explicit initial models</span></a>, <a class="reference internal" href="advanced/sgd.html"><span class="doc">Objective minimization</span></a></p></td>
 <td><p>Full-sample objective and gradient stopping</p></td>
 </tr>
@@ -226,6 +231,7 @@ preserving the represented function, so assess it differently from refitting.</p
 <li class="toctree-l1"><a class="reference internal" href="advanced/grid_sampling.html">Grid sampling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="advanced/partial.html">Fixed controls</a></li>
 <li class="toctree-l1"><a class="reference internal" href="advanced/sampling.html">Sampling and grids</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced/skeleton_sampling.html">Optimal skeleton sampling</a></li>
 <li class="toctree-l1"><a class="reference internal" href="advanced/acceleration.html">Solvers and optional execution</a></li>
 <li class="toctree-l1"><a class="reference internal" href="advanced/active_learning.html">Explicit ensembles and active learning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="advanced/simploidal.html">Single and assembled domains</a></li>
