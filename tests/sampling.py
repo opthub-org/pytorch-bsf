@@ -1,7 +1,7 @@
 import math
 import warnings
 from fractions import Fraction
-from itertools import combinations
+from itertools import combinations, count
 from math import comb
 from unittest.mock import patch
 
@@ -338,8 +338,14 @@ def _exact_solve(matrix: list[list[Fraction]], rhs: list[list[Fraction]]) -> lis
     return [row[n:] for row in rows]
 
 
-def _exact_coefficients(n_vertices: int, degree: int) -> tuple[list[Fraction], list[list[list[Fraction]]]]:
-    """An independent rational evaluation of the risk coefficients and the Gram matrices it solves with."""
+def _exact_coefficients(
+    n_vertices: int, degree: int
+) -> tuple[list[Fraction], list[list[list[Fraction]]], list[list[Fraction]]]:
+    """An independent rational evaluation of the risk coefficients, the Gram matrices it solves with, and the errors.
+
+    ``errors[i][k]`` is the error of control ``i`` per unit error of the interior control ``k`` of its face, in the
+    order of :func:`_simplex_indices`.
+    """
     alpha = _simplex_indices(n_vertices, degree)
     support = [frozenset(i for i, a in enumerate(x) if a) for x in alpha]
 
@@ -378,7 +384,7 @@ def _exact_coefficients(n_vertices: int, degree: int) -> tuple[list[Fraction], l
         ]
         solved = _exact_solve(g_tt, ete)
         coefficients[size - 1] += comb(n_vertices, size) * sum(solved[i][i] for i in range(len(interior)))
-    return coefficients, [full] + [g_tt for _, _, g_tt in blocks]
+    return coefficients, [full] + [g_tt for _, _, g_tt in blocks], errors
 
 
 def _condition(matrix: list[list[Fraction]]) -> float:
@@ -388,7 +394,7 @@ def _condition(matrix: list[list[Fraction]]) -> float:
 @pytest.mark.parametrize(("n_vertices", "degree"), [(m, d) for m in range(2, 6) for d in range(1, 5)])
 def test_skeleton_risk_coefficients_match_exact_rationals(n_vertices, degree):
     coefficients = skeleton_risk_coefficients(BezierSpace.simplex(n_vertices - 1, degree=degree))
-    exact, grams = _exact_coefficients(n_vertices, degree)
+    exact, grams, _ = _exact_coefficients(n_vertices, degree)
     n = len(grams[0])
     kappa = max(_condition(g) for g in grams)
     # Gram entries have relative errors of at most (2M + 2) U (one rounding per binomial and the division).
@@ -462,6 +468,175 @@ def test_skeleton_risk_documented_comparison(n_vertices, degree):
     # The winner is decided beyond the error of the optimum (15.07 versus 15 is closest): relative errors of at
     # most _RISK_RELATIVE_ERROR in each a_m halve under the square roots and double under the square.
     assert abs(optimum - all_at_once) > 2 * _RISK_RELATIVE_ERROR * optimum
+
+
+# P_{D,m} of docs/advanced/skeleton_risk_theory.rst: (D, m) -> (denominator, coefficients from the highest power of M),
+# so that a_m = C(M, m + 1)^2 P_{D,m}(M) / (M)_{2D}.
+_RISK_POLYNOMIALS = {
+    (1, 0): (1, (2,)),
+    (2, 0): (2, (9, -45, 84)),
+    (2, 1): (1, (120,)),
+    (3, 0): (2, (9, -114, 835, -2610, 3320)),
+    (3, 1): (1, (1080, -7560, 20880)),
+    (3, 2): (1, (20160,)),
+    (4, 0): (8, (25, -575, 9125, -73825, 356250, -874200, 905760)),
+    (4, 1): (2, (6615, -110250, 995505, -4058670, 7088760)),
+    (4, 2): (1, (408240, -3674160, 12791520)),
+    (4, 3): (1, (6652800,)),
+    (5, 0): (128, (225, -8100, 223650, -3352440, 33885265, -210684820, 810530924, -1692775952, 1526667648)),
+    (5, 1): (1, (5880, -170520, 3001320, -28930440, 169380960, -528948000, 728542080)),
+    (5, 2): (1, (2551500, -52731000, 565355700, -2817649800, 6018818400)),
+    (5, 3): (1, (239500800, -2634508800, 10857369600)),
+    (5, 4): (1, (3632428800,)),
+}
+
+
+def _risk_polynomial(degree: int, m: int, n_vertices: int) -> Fraction:
+    denominator, coefficients = _RISK_POLYNOMIALS[degree, m]
+    value = 0
+    for c in coefficients:
+        value = value * n_vertices + c
+    return Fraction(value, denominator)
+
+
+def _tabulated_coefficient(degree: int, m: int, n_vertices: int) -> Fraction:
+    rising = math.prod(range(n_vertices, n_vertices + 2 * degree))
+    return comb(n_vertices, m + 1) ** 2 * _risk_polynomial(degree, m, n_vertices) / rising
+
+
+@pytest.mark.parametrize(
+    ("n_vertices", "degree"), [(m, d) for m in range(2, 7) for d in range(1, 5)] + [(m, 5) for m in range(2, 6)]
+)
+def test_risk_polynomials_match_exact_coefficients(n_vertices, degree):
+    # The table was computed by counting classes of control pairs; the helper evaluates the definition directly.
+    exact, _, _ = _exact_coefficients(n_vertices, degree)
+    for m in range(degree):
+        assert _tabulated_coefficient(degree, m, n_vertices) == (exact[m] if m < n_vertices else 0)
+
+
+@pytest.mark.parametrize(("n_vertices", "degree"), [(m, d) for m in (7, 8) for d in range(1, 6)] + [(6, 5)])
+def test_risk_polynomials_match_higher_dimensions(n_vertices, degree):
+    coefficients = skeleton_risk_coefficients(BezierSpace.simplex(n_vertices - 1, degree=degree))
+    for m in range(degree):
+        reference = float(_tabulated_coefficient(degree, m, n_vertices))
+        # The coefficients are guaranteed to _RISK_RELATIVE_ERROR; converting the reference adds one rounding.
+        assert abs(coefficients[m] - reference) <= (_RISK_RELATIVE_ERROR + U) * reference
+
+
+@pytest.mark.parametrize("degree", range(1, 6))
+def test_risk_polynomials_match_the_closed_forms(degree):
+    for n_vertices in range(degree, 30):
+        # Faces with D vertices.
+        rising = math.prod(range(n_vertices, n_vertices + 2 * degree))
+        top = Fraction(comb(n_vertices, degree) ** 2 * math.factorial(3 * degree - 1), math.factorial(degree - 1) * rising)
+        assert _tabulated_coefficient(degree, degree - 1, n_vertices) == top
+    for n_vertices in range(degree - 1, 30) if degree >= 2 else ():
+        # Faces with D - 1 vertices, including M = D - 1, where the face is the whole simplex.
+        quadratic = 3 * n_vertices**2 - (6 * degree + 3) * n_vertices + 3 * degree**2 + 15 * degree - 14
+        second = Fraction(
+            comb(n_vertices, degree - 1) ** 2 * (degree - 1) * math.factorial(3 * degree - 3) * quadratic,
+            4 * math.factorial(degree - 2) * math.prod(range(n_vertices, n_vertices + 2 * degree)),
+        )
+        assert _tabulated_coefficient(degree, degree - 2, n_vertices) == second
+
+
+@pytest.mark.parametrize("degree", range(1, 6))
+def test_risk_polynomial_limits_in_high_dimensions(degree):
+    # The degree bound 2(D - m - 1) is attained, so a_m tends to the leading coefficient over (m + 1)!^2.
+    limits = []
+    for m in range(degree):
+        denominator, coefficients = _RISK_POLYNOMIALS[degree, m]
+        assert len(coefficients) == 2 * (degree - m - 1) + 1
+        limits.append(Fraction(coefficients[0], denominator * math.factorial(m + 1) ** 2))
+    assert limits[0] == Fraction(2 * degree**2 * (degree + 1) ** 2, 4**degree)
+    top = Fraction(math.factorial(3 * degree - 1), math.factorial(degree - 1) * math.factorial(degree) ** 2)
+    assert limits[degree - 1] == top
+    if degree >= 2:
+        second = Fraction(3 * math.factorial(3 * degree - 3), 4 * math.factorial(degree - 2) ** 2 * math.factorial(degree - 1))
+        assert limits[degree - 2] == second
+    # The limits converge from the exact coefficients too.
+    assert abs(_tabulated_coefficient(degree, 0, 10**6) - limits[0]) < Fraction(limits[0], 10**4)
+
+
+@pytest.mark.parametrize("degree", range(1, 11))
+def test_curve_risk_closed_form(degree):
+    exact, _, errors = _exact_coefficients(2, degree)
+    assert exact == [Fraction(4, degree * (degree + 2)), Fraction(degree - 1)]
+    # Bernstein coefficients of the error from a unit error at vertex 0, whose coordinate is x = t_0.
+    alpha = _simplex_indices(2, degree)
+    vertex = alpha.index((degree, 0))
+    for i, (k, _) in enumerate(alpha):
+        b = Fraction((-1) ** (degree - k) * k * comb(degree + 2, k + 1), degree * (degree + 2))
+        assert errors[i][vertex] == b
+    assert (math.sqrt(degree - 1) + 2 / math.sqrt(degree * (degree + 2))) ** 2 < degree + 1
+
+
+@pytest.mark.parametrize("degree", range(11, 15))
+def test_curve_risk_closed_form_at_high_degrees(degree):
+    a = skeleton_risk_coefficients(BezierSpace.simplex(1, degree=degree))
+    assert abs(a[0] - 4 / (degree * (degree + 2))) <= (_RISK_RELATIVE_ERROR + U) * a[0]
+    assert abs(a[1] - (degree - 1)) <= _RISK_RELATIVE_ERROR * a[1]
+
+
+@pytest.mark.parametrize(("n_vertices", "degree"), [(3, 3), (4, 3), (3, 4), (4, 4), (5, 4), (4, 5), (5, 5)])
+def test_propagation_reduces_to_one_more_vertex(n_vertices, degree):
+    _, _, errors = _exact_coefficients(n_vertices, degree)
+    alpha = _simplex_indices(n_vertices, degree)
+    index = {a: i for i, a in enumerate(alpha)}
+    for size in range(1, min(degree, n_vertices)):
+        face = tuple(range(size))
+        j = size  # the extra vertex of the face with one more vertex
+        interior = [i for i, a in enumerate(alpha) if all(a[v] for v in face) and not any(a[size:])]
+        for i, a in enumerate(alpha):
+            if not all(a[v] for v in face) or not any(a[size:]):
+                continue
+            n = sum(a[size:])
+            one_more = index[a[:size] + (0,) * (j - size) + (n,) + (0,) * (n_vertices - j - 1)]
+            scale = Fraction(n + 1, math.prod(x + 1 for x in a[size:]))
+            for k in interior:
+                assert errors[i][k] == scale * errors[one_more][k]
+        if size == 1:
+            # Propagation from a vertex, with the curve coefficients b_k.
+            for i, a in enumerate(alpha):
+                if a[0]:
+                    k = a[0]
+                    b = Fraction((-1) ** (degree - k) * k * comb(degree + 2, k + 1), degree * (degree + 2))
+                    assert errors[i][interior[0]] == (degree - k + 1) * b / math.prod(x + 1 for x in a[1:])
+
+
+@pytest.mark.parametrize("degree", range(1, 6))
+def test_vertex_error_at_the_center_of_a_degree_face(degree):
+    _, _, errors = _exact_coefficients(degree, degree)
+    alpha = _simplex_indices(degree, degree)
+    vertex, center = alpha.index((degree,) + (0,) * (degree - 1)), alpha.index((1,) * degree)
+    assert errors[center][vertex] == Fraction((-1) ** (degree - 1) * (degree + 1), 2**degree)
+
+
+# Dimensions (vertex counts) in which optimal inductive skeleton fitting beats all-at-once least squares.
+_SKELETON_WIN_EXCEPTIONS = {1: set(), 2: set(), 3: set(range(3, 11)), 4: set(range(3, 20)), 5: set(range(4, 29))}
+
+
+@pytest.mark.parametrize("degree", range(1, 6))
+def test_skeleton_wins_exactly_where_documented(degree):
+    # a_m <= sum |p_i| / (m + 1)!^2 for every M, because C(M, m+1)^2 <= M^(2m+2) / (m+1)!^2, (M)_{2D} >= M^(2D) and
+    # P_{D,m} has degree at most 2(D - m - 1).
+    bounds = [
+        sum(abs(Fraction(c, _RISK_POLYNOMIALS[degree, m][0])) for c in _RISK_POLYNOMIALS[degree, m][1])
+        / math.factorial(m + 1) ** 2
+        for m in range(degree)
+    ]
+    # Inflated to cover the float64 square roots and sum.
+    bound = sum(math.sqrt(b) for b in bounds) ** 2 * (1 + 1e-9)
+    last = next(n for n in count(2) if comb(n + degree - 1, degree) > bound)
+    losses = set()
+    for n_vertices in range(2, last + 1):
+        optimum = sum(math.sqrt(_tabulated_coefficient(degree, m, n_vertices)) for m in range(degree)) ** 2
+        all_at_once = comb(n_vertices + degree - 1, degree)
+        # Decided far beyond the float64 error of the square roots.
+        assert abs(optimum - all_at_once) > 1e-9 * all_at_once
+        if optimum >= all_at_once:
+            losses.add(n_vertices)
+    assert losses == _SKELETON_WIN_EXCEPTIONS[degree]
 
 
 @pytest.mark.parametrize(
