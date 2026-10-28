@@ -329,7 +329,9 @@ integer dtype; a range exceeding that dtype raises <code class="docutils literal
 subtraction can wrap. Subtraction happens before true division, preserving adjacent
 integer differences even at large offsets. Normalized values follow PyTorch’s
 default floating dtype; half outputs use float32 division before casting to
-that dtype. Floating inverse results have floating precision, so adjacent
+that dtype. A remaining nonfinite integer transform uses exact rational CPU
+arithmetic before rounding once to the output dtype; this preserves the last
+finite half rounding interval. Floating inverse results have floating precision, so adjacent
 large integers can round together in that output dtype. Boolean and complex
 inputs remain unsupported. Integer extrapolation retries a floating expression
 when subtraction would wrap. Integer inputs to <code class="docutils literal notranslate"><span class="pre">inverse_transform</span></code> keep their
