@@ -106,6 +106,15 @@ def linear_scalarization(objective: Callable[[torch.Tensor], torch.Tensor]) -> L
     return loss
 
 
+def _optimization_device(tensor: torch.Tensor) -> torch.device:
+    # MPS has no float64 kernels; autograd supports transfers to/from CPU.
+    return torch.device("cpu") if tensor.device.type == "mps" else tensor.device
+
+
+def _wide(tensor: torch.Tensor) -> torch.Tensor:
+    return tensor.to(device=_optimization_device(tensor)).to(dtype=torch.float64)
+
+
 def _objective(model: BezierModel, loss: Loss, points: Points, penalty: QuadraticPenalty) -> torch.Tensor:
     values = loss(model(points), points)
     if values.shape != (len(points),) or not torch.isfinite(values).all():
@@ -113,11 +122,13 @@ def _objective(model: BezierModel, loss: Loss, points: Points, penalty: Quadrati
     # Keep Python-float penalty weights representable even with float32 controls.
     coefficients: torch.Tensor = model.coefficients
     if penalty.ridge or penalty.smoothness:
-        coefficients = coefficients.to(dtype=torch.float64)
+        coefficients = _wide(coefficients)
     objective = values.mean()
     if not torch.isfinite(objective):
         # Retry without an overflowing sum; preserve subnormal means on the usual path.
         objective = (values / len(points)).sum()
+    if penalty.ridge or penalty.smoothness:
+        objective = _wide(objective)
     if penalty.ridge:
         objective = objective + ((coefficients * penalty.ridge) * coefficients).sum()
     if penalty.smoothness:
@@ -165,7 +176,9 @@ def _gradient(value: torch.Tensor, coefficients: torch.Tensor) -> torch.Tensor:
 
 def _update(coefficients: torch.Tensor, free: torch.Tensor, alpha: float, direction: torch.Tensor) -> None:
     with torch.no_grad():
-        updated = (coefficients[free].double() - alpha * direction.double()).to(coefficients)
+        updated = (
+            (_wide(coefficients[free]) - alpha * _wide(direction)).to(dtype=coefficients.dtype).to(device=coefficients.device)
+        )
         if not torch.isfinite(updated).all():
             raise ArithmeticError("optimization update produced non-finite coefficients.")
         coefficients[free] = updated
@@ -196,7 +209,8 @@ def minimize(
         Typed preconditioned SGD settings, independent of Lightning. Float16
         and bfloat16 initial models are copied and promoted to float32 on the
         same device for basis evaluation and gradients. Metric solves and update
-        arithmetic use float64 before casting back to the model dtype.
+        arithmetic use float64 before casting back to the model dtype. On MPS,
+        float64 penalties and solves run on CPU with differentiable transfers.
         The returned model then has float32 coefficients.
     points
         Fixed samples. Otherwise draw ``n_samples`` with the stated cell weights.
@@ -254,8 +268,8 @@ def minimize(
         regularizer[i, j] -= penalty.smoothness
         regularizer[j, i] -= penalty.smoothness
     cpu_free = free.cpu()
-    metric = metric[cpu_free][:, cpu_free].to(device=p.device)
-    regularizer = regularizer[cpu_free][:, cpu_free].to(device=p.device)
+    metric = metric[cpu_free][:, cpu_free].to(device=_optimization_device(p))
+    regularizer = regularizer[cpu_free][:, cpu_free].to(device=_optimization_device(p))
     generator = _generator(None if seed is None else seed + 1)
     history: list[Iteration] = []
     success, status, message = False, "iteration_limit", "Iteration budget exhausted; convergence was not established."
@@ -276,7 +290,7 @@ def minimize(
             status, message = "callback_stop", "Stopped by callback; convergence was not established."
             break
         alpha = method.step_size / math.sqrt(k + 1) if method.step_decay == "sqrt" else method.step_size
-        direction = torch.linalg.solve(metric + 2 * alpha * regularizer, gradient[free].double())
+        direction = torch.linalg.solve(metric + 2 * alpha * regularizer, _wide(gradient[free]))
         _update(p, free, alpha, direction)
     final = _objective(fitted, loss, batch, penalty).item()
     result = OptimizationResult(fitted, tuple(history), success, status, message, final, len(history), seed)

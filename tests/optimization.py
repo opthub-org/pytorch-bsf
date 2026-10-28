@@ -243,3 +243,30 @@ def test_float32_large_ridge_keeps_representable_update(preconditioner, expected
     # roundings plus float64 solve roundoff are bounded by 32u32.
     torch.testing.assert_close(result.model.coefficients, initial.coefficients * expected_ratio, rtol=32 * 2**-24, atol=0)
     assert result.model.coefficients.dtype == torch.float32
+
+
+@pytest.mark.skipif(not torch.backends.mps.is_available(), reason="MPS device is unavailable")
+@pytest.mark.parametrize("preconditioner", ["none", "gram"])
+@pytest.mark.parametrize("coefficient,weight,step_size", [(1, 0, 0.01), (1e30, 1e-100, 0.01), (1e-30, 1e40, 1e-40)])
+def test_mps_optimizer_keeps_device_with_wide_penalties(preconditioner, coefficient, weight, step_size):
+    space = BezierSpace.simplex(1, degree=1)
+    initial = BezierModel(space, torch.full((2, 1), coefficient, dtype=torch.float32, device="mps"))
+    with pytest.warns(ConvergenceWarning):
+        result = minimize(
+            initial,
+            lambda y, p: y[:, 0] * 0,
+            points=grid(space, 4),
+            penalty=QuadraticPenalty(ridge=weight),
+            method=PreconditionedSGD(max_iter=1, step_size=step_size, preconditioner=preconditioner),
+        )
+    assert result.model.coefficients.device.type == "mps"
+    assert result.model.coefficients.dtype == torch.float32
+    assert math.isfinite(result.objective)
+    updated = result.model.coefficients.detach().cpu().double().flatten().tolist()
+    expected_objective = sum((weight * value) * value for value in updated)
+    assert result.objective == pytest.approx(expected_objective, rel=16 * 2**-53, abs=0)
+    metric_eigenvalue = 1 if preconditioner == "none" else 0.5
+    ratio = metric_eigenvalue / (metric_eigenvalue + 2 * step_size * weight)
+    # Float32 basis/backprop plus transfers and a wide solve: 64u32 allows
+    # MPS accumulation differences without hiding a lost update.
+    torch.testing.assert_close(result.model.coefficients.cpu(), initial.coefficients.cpu() * ratio, rtol=64 * 2**-24, atol=0)

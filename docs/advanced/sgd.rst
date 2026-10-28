@@ -563,7 +563,9 @@ stops. A loss returning non-finite individual values raises ``ValueError``.
 Zero-weight penalties are skipped; active penalties accumulate in float64 and
 apply weights before the final product so representable penalties avoid intermediate
 overflow. Coefficient gradients retain the model dtype. Metric solves and update arithmetic
-use float64 and cast the updated coefficients back to the model dtype.
+use float64 and cast the updated coefficients back to the model dtype. On MPS,
+float64 penalty accumulation and metric updates run on CPU through differentiable
+transfers; the returned coefficients stay on MPS with their original dtype.
 Rescale the model, loss or step size when a result remains unrepresentable.
 
 .. figure:: ../_static/guides/initialization.png
