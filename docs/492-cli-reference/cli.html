@@ -462,7 +462,8 @@ directory using Python:</p>
 <p>The module must be on Python’s import path (the current directory works for
 this command). <code class="docutils literal notranslate"><span class="pre">costs</span></code> receives predicted values with shape
 <code class="docutils literal notranslate"><span class="pre">(n_samples,</span> <span class="pre">n_outputs)</span></code> and returns differentiable finite objective values
-with shape <code class="docutils literal notranslate"><span class="pre">(n_samples,</span> <span class="pre">dimension</span> <span class="pre">+</span> <span class="pre">1)</span></code> for a simplex of that dimension.
+with shape <code class="docutils literal notranslate"><span class="pre">(n_samples,</span> <span class="pre">dimension</span> <span class="pre">+</span> <span class="pre">1)</span></code> for a positive-dimensional simplex
+of that dimension.
 Here one predicted scalar produces two competing costs, matching the segment’s
 two barycentric coordinates. The CLI wraps the function with
 <code class="docutils literal notranslate"><span class="pre">linear_scalarization</span></code> and minimizes <code class="docutils literal notranslate"><span class="pre">sum_i</span> <span class="pre">coordinate_i</span> <span class="pre">*</span> <span class="pre">cost_i</span></code> per row.
@@ -472,6 +473,11 @@ Keep operations in PyTorch to preserve gradients.</p>
 normalization per factor and do not satisfy the scalarization’s single-simplex
 sum/shape requirement. Use the Python API with an explicit loss for those
 domains or for custom stopping criteria.</p>
+<p>Zero-dimensional models are supported by regression and prediction, but CLI
+minimization does not support them. Their parameter width is zero: returning
+one objective column fails the scalarization’s shape check, and returning zero
+columns fails its coordinate-sum check. Use the Python API with a general
+<code class="docutils literal notranslate"><span class="pre">loss(values,</span> <span class="pre">points)</span></code> for a constant domain.</p>
 <p>The CLI sets an iteration budget without a gradient tolerance. Consequently
 this example returns <code class="docutils literal notranslate"><span class="pre">success:</span> <span class="pre">false</span></code>, <code class="docutils literal notranslate"><span class="pre">status:</span> <span class="pre">&quot;iteration_limit&quot;</span></code>, exit
 code 1, and a <code class="docutils literal notranslate"><span class="pre">ConvergenceWarning</span></code> on stderr, even if the objective decreased.

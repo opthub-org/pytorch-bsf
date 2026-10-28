@@ -384,7 +384,8 @@ directory using Python:
 The module must be on Python's import path (the current directory works for
 this command). ``costs`` receives predicted values with shape
 ``(n_samples, n_outputs)`` and returns differentiable finite objective values
-with shape ``(n_samples, dimension + 1)`` for a simplex of that dimension.
+with shape ``(n_samples, dimension + 1)`` for a positive-dimensional simplex
+of that dimension.
 Here one predicted scalar produces two competing costs, matching the segment's
 two barycentric coordinates. The CLI wraps the function with
 ``linear_scalarization`` and minimizes ``sum_i coordinate_i * cost_i`` per row.
@@ -395,6 +396,12 @@ This callable takes **one** argument; the Python API's general
 normalization per factor and do not satisfy the scalarization's single-simplex
 sum/shape requirement. Use the Python API with an explicit loss for those
 domains or for custom stopping criteria.
+
+Zero-dimensional models are supported by regression and prediction, but CLI
+minimization does not support them. Their parameter width is zero: returning
+one objective column fails the scalarization's shape check, and returning zero
+columns fails its coordinate-sum check. Use the Python API with a general
+``loss(values, points)`` for a constant domain.
 
 The CLI sets an iteration budget without a gradient tolerance. Consequently
 this example returns ``success: false``, ``status: "iteration_limit"``, exit
@@ -412,6 +419,16 @@ It still saves ``optimized.bsf``. Inspect the report before deciding to use it.
     assert not optimization["success"] and optimization["status"] == "iteration_limit"
     assert "ConvergenceWarning" in optimized.stderr
     assert Path("optimized.bsf").is_file() and load_model("optimized.bsf").n_outputs == 1
+    constant = BezierModel(BezierSpace.simplex(0, degree=0), [[0.]])
+    save_model("constant.bsf", constant)
+    Path("constant_objective.py").write_text(
+        "def costs(values):\n    return values.square()\n", encoding="utf-8",
+    )
+    rejected = cli("minimize", "--init", "constant.bsf", "--objective", "constant_objective:costs",
+                   "--save", "constant-optimized.bsf")
+    assert rejected.returncode == 2 and rejected.stdout == ""
+    assert "linear scalarization requires simplex coordinates" in rejected.stderr
+    assert not Path("constant-optimized.bsf").exists()
 
 Output, failures and saved files
 --------------------------------
