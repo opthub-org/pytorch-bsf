@@ -133,7 +133,7 @@ class BezierSpace:
             cells,
             compiled.n_proper_control_points,
             main,
-            tuple(map(tuple, compiled.adjacency().tolist())),
+            tuple((int(row[0]), int(row[1])) for row in compiled.adjacency().unbind()),
             MappingProxyType({s: k for k, s in enumerate(original)}),
             topology,
         )
