@@ -7,7 +7,7 @@ import torch
 from hypothesis import given
 
 from tests.strategies import extreme_scalings
-from torch_bsf import BezierModel, BezierSpace, FixedControls, PreconditionedSGD, QuadraticPenalty, minimize
+from torch_bsf import BezierModel, BezierSpace, FixedControls, Points, PreconditionedSGD, QuadraticPenalty, minimize
 from torch_bsf.results import ConvergenceWarning
 from torch_bsf.sampling import grid
 
@@ -270,3 +270,87 @@ def test_mps_optimizer_keeps_device_with_wide_penalties(preconditioner, coeffici
     # Float32 basis/backprop plus transfers and a wide solve: 64u32 allows
     # MPS accumulation differences without hiding a lost update.
     torch.testing.assert_close(result.model.coefficients.cpu(), initial.coefficients.cpu() * ratio, rtol=64 * 2**-24, atol=0)
+
+
+@pytest.mark.parametrize("preconditioner", ["none", "gram"])
+@pytest.mark.parametrize("step_decay", ["constant", "sqrt"])
+def test_scale_smoothness_before_accumulating_edges(preconditioner, step_decay):
+    from torch_bsf.optimization import gram_matrix
+
+    space = BezierSpace.simplex(1, degree=2)
+    controls = torch.tensor([[0.0], [1e-160], [0.0]], dtype=torch.float64)
+    initial = BezierModel(space, controls)
+    metric = gram_matrix(space) if preconditioner == "gram" else torch.eye(3, dtype=torch.float64)
+    laplacian = torch.tensor([[1, -1, 0], [-1, 2, -1], [0, -1, 1]], dtype=torch.float64)
+    expected = controls.clone()
+    for k in range(2):
+        alpha = 1e-310 / math.sqrt(k + 1) if step_decay == "sqrt" else 1e-310
+        # Zero data gradient makes the regularized update A^-1 M P. Scale the
+        # scalar edge weight before forming L so its middle diagonal is finite.
+        expected = torch.linalg.solve(metric + ((1e308 * alpha) * 2) * laplacian, metric @ expected)
+    with pytest.warns(ConvergenceWarning):
+        result = minimize(
+            initial,
+            lambda y, p: y[:, 0] * 0,
+            points=grid(space, 4),
+            penalty=QuadraticPenalty(smoothness=1e308),
+            method=PreconditionedSGD(max_iter=2, step_size=1e-310, step_decay=step_decay, preconditioner=preconditioner),
+        )
+    # Two equivalent 3x3 solves/updates and large-gradient multiplication are
+    # bounded by 2048 float64 roundings (including the modest Gram condition).
+    torch.testing.assert_close(result.model.coefficients, expected, rtol=2048 * 2**-53, atol=0)
+
+
+@pytest.mark.parametrize("kind", ["maximum", "cancellation", "subnormal"])
+def test_finite_extreme_loss_mean_and_gradient(kind):
+    from torch_bsf.optimization import _objective
+
+    maximum = torch.finfo(torch.float64).max
+    tiny = math.ulp(0.0)
+    losses = {"maximum": [maximum] * 3, "cancellation": [maximum, 3 * tiny, -maximum], "subnormal": [tiny] * 3}[kind]
+    expected = maximum if kind == "maximum" else tiny
+    space = BezierSpace.simplex(0, degree=0)
+    initial = BezierModel(space, torch.zeros(1, 1, dtype=torch.float64))
+    points = Points(torch.empty(3, 0, dtype=torch.float64))
+
+    def loss(y, p):
+        return y[:, 0] + torch.tensor(losses, dtype=torch.float64)
+
+    objective = _objective(initial, loss, points, QuadraticPenalty())
+    (gradient,) = torch.autograd.grad(objective, initial.coefficients)
+    assert objective.item() == expected
+    # The three derivative contributions are 1/3; their rounded sum is one.
+    torch.testing.assert_close(gradient, torch.ones_like(gradient), rtol=4 * 2**-53, atol=0)
+    result = minimize(initial, loss, points=points, method=PreconditionedSGD(gradient_tolerance=1))
+    assert result.success and result.status == "gradient_tolerance"
+    assert result.objective == expected
+
+
+def test_finite_update_when_step_product_overflows():
+    space = BezierSpace.simplex(0, degree=0)
+    initial = BezierModel(space, torch.tensor([[1e308]], dtype=torch.float64))
+    with pytest.warns(ConvergenceWarning):
+        result = minimize(
+            initial,
+            lambda y, p: torch.where(y[:, 0] > 0, 2 * (y[:, 0] - 1e308), y[:, 0] + 1e308),
+            points=Points(torch.empty(1, 0, dtype=torch.float64)),
+            method=PreconditionedSGD(max_iter=1, step_size=1e308, preconditioner="none"),
+        )
+    # The exact update 1e308 - 1e308*2 is representable, though the product is not.
+    assert result.model.coefficients.item() == -1e308
+
+
+def test_large_step_does_not_underflow_direction_before_scaling():
+    space = BezierSpace.simplex(0, degree=0)
+    initial = BezierModel(space, torch.tensor([[1e-300]], dtype=torch.float64))
+    with pytest.warns(ConvergenceWarning):
+        result = minimize(
+            initial,
+            lambda y, p: y[:, 0] * 0,
+            points=Points(torch.empty(1, 0, dtype=torch.float64)),
+            penalty=QuadraticPenalty(ridge=1),
+            method=PreconditionedSGD(max_iter=1, step_size=1e100, preconditioner="none"),
+        )
+    # The exact implicit-ridge result is below the smallest subnormal. Compare
+    # in initial-coefficient units to allow 64u of cancellation in the update.
+    assert abs(result.model.coefficients.item() / 1e-300) <= 64 * 2**-53

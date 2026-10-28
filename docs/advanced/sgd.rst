@@ -558,7 +558,8 @@ dynamics. Compute held-out losses separately; they are not automatically
 included in ``OptimizationResult``.
 
 Numerical failures raise ``ArithmeticError`` when the combined objective,
-gradient or coefficient update is non-finite, including all-fixed and callback
+gradient or coefficient update is non-finite, or a step-scaled metric matrix
+cannot be represented in float64. This includes all-fixed and callback
 stops. A loss returning non-finite individual values raises ``ValueError``.
 Zero-weight penalties are skipped; active penalties accumulate in float64 and
 apply weights before the final product so representable penalties avoid intermediate
@@ -566,6 +567,13 @@ overflow. Coefficient gradients retain the model dtype. Metric solves and update
 use float64 and cast the updated coefficients back to the model dtype. On MPS,
 float64 penalty accumulation and metric updates run on CPU through differentiable
 transfers; the returned coefficients stay on MPS with their original dtype.
+Finite loss means share the stable reduction used by ensembles: ordinary groups
+use a device reduction, while values near sum overflow use an exact CPU rational
+mean with the ordinary mean gradient. Step-scaled penalty matrices apply their
+weights before accumulating adjacent edges to avoid premature diagonal overflow.
+When safe, scale the gradient by the step before solving to avoid underflowing
+a direction that a large step would restore. Rare overflowing product/subtraction
+updates use an exact CPU rational fallback to retain finite cancellation results.
 Rescale the model, loss or step size when a result remains unrepresentable.
 
 .. figure:: ../_static/guides/initialization.png
