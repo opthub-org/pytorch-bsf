@@ -414,6 +414,30 @@ def test_longest_edge_empty_output_preserves_zero_norm_tie():
     assert longest_edge_criterion(model) == (0, 0, 1, 0.5)
 
 
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), -float("inf")])
+def test_longest_edge_rejects_nonfinite_corners(bad):
+    model = BezierSimploid.zeros((2,), 1, n_values=2).double()
+    with torch.no_grad():
+        model.control_points[0, 1] = bad
+    with pytest.raises(ValueError, match="LongestEdge requires finite corner values"):
+        longest_edge_criterion(model)
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), -float("inf")])
+@pytest.mark.parametrize("whole_space", [False, True])
+def test_subdivision_rejects_mutated_nonfinite_corner(bad, whole_space):
+    # Construction validates coefficients, but subsequent optimizer/user writes can make them non-finite.
+    space = BezierSpace.simplex(2, degree=1)
+    model = BezierModel(space, torch.zeros(space.n_controls, 2, dtype=torch.float64))
+    with torch.no_grad():
+        model.coefficients[0, 1] = bad
+    with pytest.raises(ValueError, match="LongestEdge requires finite corner values"):
+        if whole_space:
+            subdivide_space(model, policy=LongestEdge())
+        else:
+            subdivide(model, policy=LongestEdge())
+
+
 def test_longest_edge_criterion_wrong_n_params():
     bs = _rand(1, 1, 2)
     with pytest.raises(ValueError, match="type is"):
