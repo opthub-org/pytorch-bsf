@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal
 
 import torch
@@ -106,4 +106,27 @@ class FitResult:
         """Expose a failed numerical solve without hiding its partial result."""
         if not self.success:
             warnings.warn(self.message, ConvergenceWarning, stacklevel=3)
+        return self
+
+
+@dataclass(frozen=True)
+class SkeletonRegressionResult:
+    """Assembled model and face least-squares results keyed by sorted zero-based vertex IDs.
+
+    Each face result solves for that face's interior controls with every other
+    control fixed. Faces are fitted in increasing size; a failed face stops
+    assembly, leaving later faces absent and their controls zero.
+    """
+
+    model: BezierModel
+    faces: dict[tuple[int, ...], FitResult]
+    success: bool
+    status: str
+    message: str
+
+    def require_success(self) -> SkeletonRegressionResult:
+        """Raise :class:`ConvergenceError` with the failed face's result if a face fit failed."""
+        if not self.success:
+            failed = list(self.faces.values())[-1]
+            raise ConvergenceError(replace(failed, message=self.message))
         return self

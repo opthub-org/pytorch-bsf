@@ -38,6 +38,9 @@ Choose a guide by the question you need to answer
    * - Reference evaluations are expensive.
      - :doc:`advanced/active_learning`
      - Errors on a fixed external validation set
+   * - A measurement budget must be split among vertices, edges and faces.
+     - :doc:`advanced/skeleton_sampling`
+     - Rows per face and each face's least-squares rank
    * - A plot is coarse or misses a feature.
      - :doc:`advanced/visualization`, :doc:`advanced/grid_sampling`
      - Numerical residuals and render resolution
@@ -102,6 +105,7 @@ Guide chapters
    advanced/grid_sampling
    advanced/partial
    advanced/sampling
+   advanced/skeleton_sampling
    advanced/acceleration
    advanced/active_learning
    advanced/simploidal

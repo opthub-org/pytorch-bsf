@@ -1,4 +1,4 @@
-"""One supervised fitting entry point for every space and numerical solver."""
+"""Supervised fitting at known parameters: one entry point for every space and solver, and face-by-face simplex fitting."""
 
 from __future__ import annotations
 
@@ -9,8 +9,9 @@ from typing import TypeVar
 import torch
 
 from torch_bsf._problem import LeastSquaresProblem
+from torch_bsf._skeleton import _control_faces, _faces_with_interior_controls, _interior_and_boundary, _skeleton_shape
 from torch_bsf.core import BezierModel, BezierSpace, FixedControls, QuadraticPenalty, Samples
-from torch_bsf.results import FitDiagnostics, FitResult, MatrixDiagnostics
+from torch_bsf.results import FitDiagnostics, FitResult, MatrixDiagnostics, SkeletonRegressionResult
 from torch_bsf.solvers import DenseLeastSquares, LeastSquaresSolver, SparseLeastSquares
 
 
@@ -287,3 +288,104 @@ def fit(
     if not all(math.isfinite(value) for value in metrics.values()):
         success, status, message = False, "numerical_failure", "Objective evaluation overflowed."
     return FitResult(BezierModel(space, coefficients), metrics, diagnostics, success, status, message).warn_if_failed()
+
+
+def fit_skeleton_regression(
+    space: BezierSpace,
+    samples: Samples,
+    *,
+    solver: LeastSquaresSolver = DenseLeastSquares(),
+) -> SkeletonRegressionResult:
+    """Fit a simplex face by face from observations at known parameters.
+
+    This is the inductive skeleton fitting analyzed by Tanaka et al. (AAAI 2020).
+    Vertices are fitted first, then edges, then larger faces. On each face,
+    ordinary least squares on the observations lying on that face estimates
+    the controls interior to it, with the controls on its boundary fixed at
+    their estimates. Contrast :func:`fit`, which uses every observation for
+    every control, and :func:`~torch_bsf.point_cloud.fit_skeleton`, which
+    infers unknown parameters.
+
+    A row lies on the face spanned by its nonzero coordinates; zeros must be
+    exact. Draw rows with :func:`~torch_bsf.sampling.sample_skeleton` and the
+    :func:`~torch_bsf.sampling.optimal_skeleton_ratio` to minimize the
+    asymptotic risk given by :func:`~torch_bsf.sampling.skeleton_risk_coefficients`.
+
+    Parameters
+    ----------
+    space
+        A single simplex of positive dimension and degree.
+    samples
+        Observations at known parameters. Every face with at most ``degree``
+        vertices needs at least one row of positive weight. Rows on larger
+        faces, which have no interior controls, are ignored and counted in the
+        result's message. Weights apply within each face.
+    solver
+        Least-squares configuration used for every face.
+
+    Returns
+    -------
+    SkeletonRegressionResult
+        The assembled model and each face's :class:`FitResult`. A face whose
+        rows do not identify its interior controls is not a failure; inspect
+        that face's ``diagnostics.data.rank``. If a face's solve fails, as
+        reported by its :class:`FitResult` (with a
+        :class:`~torch_bsf.ConvergenceWarning`), fitting stops there:
+        ``success`` is ``False``, ``faces`` ends with the failed face, and
+        controls of later faces stay zero.
+
+    Raises
+    ------
+    TypeError
+        If ``space`` or ``samples`` has the wrong type.
+    ValueError
+        If ``space`` is not a single simplex of positive dimension and degree,
+        or a face with interior controls has no row of positive weight.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from torch_bsf import BezierSpace, Samples
+    >>> from torch_bsf.fitting import fit_skeleton_regression
+    >>> from torch_bsf.sampling import sample_skeleton
+    >>> space = BezierSpace.simplex(1, degree=2)
+    >>> points = sample_skeleton(space, 8, seed=0)
+    >>> t = points.parameters
+    >>> result = fit_skeleton_regression(space, Samples(points, (t[:, 1] ** 2)[:, None]))
+    >>> sorted(result.faces), torch.allclose(result.model(t), (t[:, 1] ** 2)[:, None])
+    ([(0,), (0, 1), (1,)], True)
+    """
+    width, degree = _skeleton_shape(space)
+    if not isinstance(samples, Samples):
+        raise TypeError("samples must be Samples.")
+    space.validate(samples.points)
+    support = samples.points.parameters.cpu() != 0
+    ignored = int((support.sum(1) > degree).sum())
+    ignored_message = f" Ignored {ignored} rows on faces with more than degree={degree} vertices." if ignored else ""
+    faces = _faces_with_interior_controls(width, degree)
+    # Group rows by their distinct supports in one vectorized pass; row order within a face is kept.
+    supports, inverse = torch.unique(support, dim=0, return_inverse=True)
+    face_of_support = {tuple(row.nonzero().flatten().tolist()): k for k, row in enumerate(supports)}
+    empty = torch.zeros(0, dtype=torch.long)
+    rows = {
+        face: (inverse == face_of_support[face]).nonzero().flatten() if face in face_of_support else empty for face in faces
+    }
+    missing = [face for face in faces if not (samples.weights[rows[face]] > 0).any()]
+    if missing:
+        raise ValueError(f"faces without rows of positive weight: {missing}.")
+    control_faces = _control_faces(width, degree)
+    coefficients = torch.zeros(space.n_controls, samples.values.shape[1], dtype=torch.float64)
+    results: dict[tuple[int, ...], FitResult] = {}
+    for face in faces:
+        free, _ = _interior_and_boundary(control_faces, face)
+        fixed = FixedControls({k: coefficients[k] for k in range(space.n_controls) if k not in free})
+        result = fit(space, samples.take(rows[face]), solver=solver, fixed=fixed)
+        results[face] = result
+        coefficients[free] = result.model.coefficients.detach()[free]
+        if not result.success:
+            message = f"Face {face}: {result.message}{ignored_message}"
+            return SkeletonRegressionResult(BezierModel(space, coefficients), results, False, result.status, message)
+    # Every face uses the same solver, so they share its success status ("solved" or "converged").
+    status = results[faces[-1]].status
+    message = f"Every face least-squares problem was solved.{ignored_message}"
+    return SkeletonRegressionResult(BezierModel(space, coefficients), results, True, status, message)

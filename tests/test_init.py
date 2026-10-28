@@ -38,6 +38,8 @@ def test_public_api_exports():
         "Points",
         "Samples",
         "fit",
+        "fit_skeleton_regression",
+        "SkeletonRegressionResult",
         "minimize",
         "FitResult",
         "SimploidalSet",
