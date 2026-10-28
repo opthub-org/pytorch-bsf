@@ -58,9 +58,13 @@ Follow .claude/skills/review-local/protocol.md and return its report format only
 
 Do not pass your own opinion of the change: an anchored reviewer tends to confirm it.
 
+If the `review-*` agent types are not available (agents are loaded when a session starts, so a session that predates them does not see them), launch `general-purpose` agents instead and start the brief with "Your role definition is `<worktree>/.claude/agents/review-<aspect>.md` (ignore its frontmatter); read it and follow it."
+
+Reviewers that run experiments can take several minutes; the slowest usually sets the wall-clock time. Start consolidating the reports that have arrived while waiting for the rest.
+
 ## 3. Consolidate and verify
 
-1. Collect the reports. Merge duplicates (same location and cause) and keep the highest severity.
+1. Collect the reports, including the "Outside my aspect" sections. Merge duplicates (same location and cause) and keep the highest severity; a finding raised independently by several reviewers is more likely real, but still verify it.
 2. **Verify every `blocker` and `major` yourself** before acting: read the cited lines, run the reproducer or write one. Mark each finding `confirmed`, `rejected` (with the reason, e.g. "input is rejected earlier at validator.py:42") or `uncertain`. Reviewers are wrong sometimes; do not "fix" a non-bug.
 3. Write the consolidated list to `<scratch>/findings.md`, sorted by severity, with the verdict of each.
 

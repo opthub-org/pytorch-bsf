@@ -16,7 +16,7 @@ The caller gives you:
 1. Read the context file, then the diff: `git diff <base>...HEAD --stat` and `git diff <base>...HEAD`.
 2. Read the changed files in full where your aspect needs it, and the code they call or that calls them (`grep -rn`). Read `CONTRIBUTING.md` sections relevant to your aspect.
 3. Check every item of your aspect's checklist against the changed lines. Unchanged code is out of scope unless the change makes it wrong (e.g. a caller of a function whose contract changed).
-4. Where a claim can be checked cheaply, check it: run a few lines of Python with `"$PY" -c '...'` from the worktree root, or a single test with `-m pytest <file>::<test> -q -p no:randomly`. Keep each command under a minute. Write temporary files only under the scratch directory you are given, never in the repository (git-ignored test artefacts such as `pytest.xml` are fine).
+4. Where a claim can be checked cheaply, check it: run a few lines of Python with `PYTHONPATH=. "$PY" -c '...'` from the worktree root, or a single test with `PYTHONPATH=. "$PY" -m pytest <file>::<test> -q -p no:randomly`. `PYTHONPATH=.` makes `torch_bsf` come from the worktree, not from the checkout the environment was installed from. Keep each command under a minute and the whole review under about ten minutes. Write temporary files only under the scratch directory you are given, never in the repository (git-ignored test artefacts such as `pytest.xml` are fine).
 
 ## Rules
 
