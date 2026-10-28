@@ -1,5 +1,50 @@
 # Changelog
 
+## [0.23.0](https://github.com/opthub-org/pytorch-bsf/compare/v0.22.0...v0.23.0) (2026-10-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* **interpolation:** SimplicialMesh raises ValueError for non-conforming meshes, which were silently accepted before. Pass strict=False to get a warning instead.
+
+### Features
+
+* **interpolation:** check mesh conformity, add lattice_mesh and refine ([#430](https://github.com/opthub-org/pytorch-bsf/issues/430)) ([4db3b80](https://github.com/opthub-org/pytorch-bsf/commit/4db3b80d380d7cce664de17b26070482841934a3))
+* **splitting:** add conforming subdivision of a whole space ([#438](https://github.com/opthub-org/pytorch-bsf/issues/438)) ([5d01307](https://github.com/opthub-org/pytorch-bsf/commit/5d0130794fd4c8e0c62de0093760bd60b8d3dd10))
+
+
+### Bug Fixes
+
+* **ci:** test draft PRs and publish Docker only on releases ([#443](https://github.com/opthub-org/pytorch-bsf/issues/443)) ([740ae0c](https://github.com/opthub-org/pytorch-bsf/commit/740ae0cb6ef0adf1d596680115376f234de2f182))
+* **core:** preserve non-tensor fixed control precision ([#437](https://github.com/opthub-org/pytorch-bsf/issues/437)) ([dc4730a](https://github.com/opthub-org/pytorch-bsf/commit/dc4730af14ac056737fefe5c205d564863d0cdcf))
+* **core:** validate structural integers without coercion ([#471](https://github.com/opthub-org/pytorch-bsf/issues/471)) ([cde82a6](https://github.com/opthub-org/pytorch-bsf/commit/cde82a6f34acd23f5d2616f0ad4fb40ce6779704))
+* handle extreme coordinates and add property-based tests ([#440](https://github.com/opthub-org/pytorch-bsf/issues/440)) ([341b825](https://github.com/opthub-org/pytorch-bsf/commit/341b82546f1f48f52efe5dc9889a1eb1f87323c7))
+* **interpolation:** explain interpolant overflow from vertex data ([#448](https://github.com/opthub-org/pytorch-bsf/issues/448)) ([6299001](https://github.com/opthub-org/pytorch-bsf/commit/6299001a4490af97648da9682b3b1e1feda2c180))
+* **interpolation:** handle vertex differences that overflow float64 ([#445](https://github.com/opthub-org/pytorch-bsf/issues/445)) ([d13306d](https://github.com/opthub-org/pytorch-bsf/commit/d13306d1aa26a10a5d237b476e4a04d564c5eeed))
+* **interpolation:** read non-tensor inputs as float64 ([#434](https://github.com/opthub-org/pytorch-bsf/issues/434)) ([5d814ef](https://github.com/opthub-org/pytorch-bsf/commit/5d814ef43585a24b9976b34af0ad41e4e3661b06)), closes [#431](https://github.com/opthub-org/pytorch-bsf/issues/431)
+* **interpolation:** snapshot mesh vertex storage ([#462](https://github.com/opthub-org/pytorch-bsf/issues/462)) ([581838a](https://github.com/opthub-org/pytorch-bsf/commit/581838ab83d1b3be037d964fe93fd412ed822bf3))
+* **interpolation:** stabilize barycentrics and their gradients ([#442](https://github.com/opthub-org/pytorch-bsf/issues/442)) ([1d4ce4c](https://github.com/opthub-org/pytorch-bsf/commit/1d4ce4c3babe722261d6b482ffcd78efe837da9b))
+* **kernels:** stabilize high-degree Bernstein evaluation ([#464](https://github.com/opthub-org/pytorch-bsf/issues/464)) ([42bc5d1](https://github.com/opthub-org/pytorch-bsf/commit/42bc5d15247973a454bfdfb9377810835388fc0a))
+* **model_selection:** reject non-finite validation metrics ([#470](https://github.com/opthub-org/pytorch-bsf/issues/470)) ([1f13e94](https://github.com/opthub-org/pytorch-bsf/commit/1f13e9498e4425815ca523c36e2ba8be21a4c11f))
+* **numeric:** preserve finite ensemble and constant-cloud means ([#468](https://github.com/opthub-org/pytorch-bsf/issues/468)) ([ba31efc](https://github.com/opthub-org/pytorch-bsf/commit/ba31efc32bcb3b4a1ee7139ef9c61c2c1f7ead81))
+* **optimization:** reject non-finite objectives and updates ([#466](https://github.com/opthub-org/pytorch-bsf/issues/466)) ([1b7b125](https://github.com/opthub-org/pytorch-bsf/commit/1b7b125d3052e34d387afd89af8f4deca180f1fa))
+* **preprocessing:** check and stabilize extreme-value scaling ([#469](https://github.com/opthub-org/pytorch-bsf/issues/469)) ([26f68e0](https://github.com/opthub-org/pytorch-bsf/commit/26f68e00ae3f7755c6c8a82ab53e18b93fb3efe3))
+* **preprocessing:** restore integer MinMaxScaler compatibility ([#475](https://github.com/opthub-org/pytorch-bsf/issues/475)) ([adb036d](https://github.com/opthub-org/pytorch-bsf/commit/adb036d45927562600da54e9d3832593cce3649c))
+* **splitting:** compare extreme chord lengths safely ([#465](https://github.com/opthub-org/pytorch-bsf/issues/465)) ([abc2274](https://github.com/opthub-org/pytorch-bsf/commit/abc22748de0627e204d4e92299b36ec76d3788f9))
+
+
+### Performance Improvements
+
+* **active-learning:** bound farthest-point distance blocks ([#467](https://github.com/opthub-org/pytorch-bsf/issues/467)) ([d5ed060](https://github.com/opthub-org/pytorch-bsf/commit/d5ed060e8f59ee7cfeb17a65a77273f33e4c6ca0))
+* **core:** group basis rows and write outputs locally ([#472](https://github.com/opthub-org/pytorch-bsf/issues/472)) ([f680428](https://github.com/opthub-org/pytorch-bsf/commit/f68042868a2ba93fcb9afce64e93f3016a0e6d59))
+* **optimization:** reuse metrics and bypass plain SGD solves ([#473](https://github.com/opthub-org/pytorch-bsf/issues/473)) ([6d17521](https://github.com/opthub-org/pytorch-bsf/commit/6d175218ac4720e58151f7af32e04118a4384b8d))
+
+
+### Documentation
+
+* **contributing:** refresh runnable API and CLI examples ([#463](https://github.com/opthub-org/pytorch-bsf/issues/463)) ([ea3980f](https://github.com/opthub-org/pytorch-bsf/commit/ea3980facc290ddd05d6958ccb44b46d1a670ac5))
+* fix title underline length in point_cloud.rst ([#433](https://github.com/opthub-org/pytorch-bsf/issues/433)) ([bdd76c1](https://github.com/opthub-org/pytorch-bsf/commit/bdd76c15d898c304f93d0af95204a8e4a79895fb)), closes [#432](https://github.com/opthub-org/pytorch-bsf/issues/432)
+
 ## [0.22.0](https://github.com/opthub-org/pytorch-bsf/compare/v0.21.0...v0.22.0) (2026-10-27)
 
 
