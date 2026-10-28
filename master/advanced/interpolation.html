@@ -427,13 +427,16 @@ the lattice points, in the order of
 </pre></div>
 </div>
 <p>Refinement by <a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.refine" title="torch_bsf.interpolation.refine"><code class="xref py py-func docutils literal notranslate"><span class="pre">refine()</span></code></a> keeps a mesh
-conforming. It bisects an edge in every simplex containing it, and before
-that it refines each of those simplices whose longest edge is another one,
-recursively, which is the longest-edge bisection of Rivara
-<span class="bibtex-citation" id="id4">[<a class="reference internal" href="../references.html#id51" title="Maria-Cecilia Rivara. Algorithms for refining triangular grids suitable for adaptive and multigrid techniques. International Journal for Numerical Methods in Engineering, 20(4):745–756, 1984.">Riv84</a>]</span>. Refining one simplex can therefore add more
-than one vertex. Ties between edges of equal length, common on lattices, are
-broken by vertex numbers in the same way everywhere. Starting from a lattice
-mesh, every new vertex is a lattice point of a finer lattice (degree <code class="docutils literal notranslate"><span class="pre">2k</span></code>,
+conforming. Every simplex has a refinement edge, which <code class="docutils literal notranslate"><span class="pre">rule</span></code> selects. A
+simplex is cut at the midpoint of its refinement edge; the edge is bisected
+in every simplex containing it, and before that each of those simplices
+whose refinement edge is another one is refined, recursively. Refining one
+simplex can therefore add more than one vertex. By default
+(<code class="docutils literal notranslate"><span class="pre">rule=&quot;longest_edge&quot;</span></code>) the refinement edge is the longest edge, which is
+the longest-edge bisection of Rivara <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../references.html#id51" title="Maria-Cecilia Rivara. Algorithms for refining triangular grids suitable for adaptive and multigrid techniques. International Journal for Numerical Methods in Engineering, 20(4):745–756, 1984.">Riv84</a>]</span>; ties
+between edges of equal length, common on lattices, are broken by vertex
+numbers in the same way everywhere. Starting from a lattice mesh, with either
+rule, every new vertex is a lattice point of a finer lattice (degree <code class="docutils literal notranslate"><span class="pre">2k</span></code>,
 then <code class="docutils literal notranslate"><span class="pre">4k</span></code>, and so on).</p>
 <p>Longest-edge bisection does not respect the cubes of a lattice mesh,
 however: the longest edge of a Kuhn simplex in these coordinates is not the
