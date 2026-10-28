@@ -367,8 +367,10 @@ def test_longest_edge_extreme_output_scale(scale, whole_space):
     space = BezierSpace.simplex(2, degree=1)
     coefficients = torch.tensor([[0.0, 0.0], [scale, scale], [3 * scale, 3 * scale]], dtype=torch.float64)
     model = BezierModel(space, coefficients)
-    result = (subdivide_space if whole_space else subdivide)(model, policy=LongestEdge())
-    assert (result.split if whole_space else result.maps[0].split) == EdgeSplit(0, 2)
+    if whole_space:
+        assert subdivide_space(model, policy=LongestEdge()).split == EdgeSplit(0, 2)
+    else:
+        assert subdivide(model, policy=LongestEdge()).maps[0].split == EdgeSplit(0, 2)
 
 
 @pytest.mark.parametrize("whole_space", [False, True])
@@ -376,8 +378,10 @@ def test_longest_edge_overflowing_difference(whole_space):
     space = BezierSpace.simplex(2, degree=1)
     coefficients = torch.tensor([[-1e308, -1e308], [0.0, 0.0], [1e308, 1e308]], dtype=torch.float64)
     model = BezierModel(space, coefficients)
-    result = (subdivide_space if whole_space else subdivide)(model, policy=LongestEdge())
-    assert (result.split if whole_space else result.maps[0].split) == EdgeSplit(0, 2)
+    if whole_space:
+        assert subdivide_space(model, policy=LongestEdge()).split == EdgeSplit(0, 2)
+    else:
+        assert subdivide(model, policy=LongestEdge()).maps[0].split == EdgeSplit(0, 2)
 
 
 @given(scale=extreme_scalings(), width=st.integers(2, 5), reverse=st.booleans())
