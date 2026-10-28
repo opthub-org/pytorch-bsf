@@ -25,6 +25,14 @@ def _input(values: torch.Tensor, *, allow_integer: bool = False) -> None:
     _finite(values, "values")
 
 
+def _transform_input(values: torch.Tensor, offset: torch.Tensor) -> None:
+    if values.ndim != 2:
+        raise ValueError("values must be a 2-dimensional tensor of shape (n_samples, n_features).")
+    if values.shape[1] != offset.shape[0]:
+        raise ValueError(f"values must have {offset.shape[0]} features as fitted; got {values.shape[1]}.")
+    _finite(values, "values")
+
+
 def _integer_inverse(values: torch.Tensor, offset: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
     dtype = torch.promote_types(torch.promote_types(values.dtype, offset.dtype), scale.dtype)
     values, offset, scale = torch.broadcast_tensors(values.to(dtype), offset.to(dtype), scale.to(dtype))
@@ -59,7 +67,7 @@ def _integer_divide(values: torch.Tensor, scale: torch.Tensor, offset: torch.Ten
 
 
 def _transform(values: torch.Tensor, offset: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
-    _finite(values, "values")
+    _transform_input(values, offset)
     difference = values - offset
     integer = not difference.is_floating_point() and not difference.is_complex()
     result = _integer_divide(difference, scale) if integer else difference / scale
@@ -85,7 +93,7 @@ def _transform(values: torch.Tensor, offset: torch.Tensor, scale: torch.Tensor) 
 
 
 def _inverse(values: torch.Tensor, offset: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
-    _finite(values, "values")
+    _transform_input(values, offset)
     if not any(t.is_floating_point() or t.is_complex() for t in (values, offset, scale)):
         return _integer_inverse(values, offset, scale)
     result = values * scale + offset
@@ -187,12 +195,19 @@ class MinMaxScaler:
         Parameters
         ----------
         values : torch.Tensor
-            Tensor of shape ``(n_samples, n_features)``.
+            Tensor of shape ``(n_samples, n_features)`` with the fitted feature count.
+            Empty batches (zero samples) are accepted.
 
         Returns
         -------
         torch.Tensor
             Transformed tensor of the same shape as ``values``.
+
+        Raises
+        ------
+        ValueError
+            If the input is not two-dimensional, has a different feature count
+            from the fitted data, or contains non-finite values or results.
         """
         return _transform(values, self.mins, self.scales)
 
@@ -202,12 +217,19 @@ class MinMaxScaler:
         Parameters
         ----------
         values : torch.Tensor
-            Normalized tensor of shape ``(n_samples, n_features)``.
+            Normalized tensor of shape ``(n_samples, n_features)`` with the fitted feature count.
+            Empty batches (zero samples) are accepted.
 
         Returns
         -------
         torch.Tensor
             Tensor rescaled back to the original value range.
+
+        Raises
+        ------
+        ValueError
+            If the input is not two-dimensional, has a different feature count
+            from the fitted data, or contains non-finite values or results.
         """
         return _inverse(values, self.mins, self.scales)
 
@@ -288,12 +310,19 @@ class StdScaler:
         Parameters
         ----------
         values : torch.Tensor
-            Tensor of shape ``(n_samples, n_features)``.
+            Tensor of shape ``(n_samples, n_features)`` with the fitted feature count.
+            Empty batches (zero samples) are accepted.
 
         Returns
         -------
         torch.Tensor
             Transformed tensor of the same shape as ``values``.
+
+        Raises
+        ------
+        ValueError
+            If the input is not two-dimensional, has a different feature count
+            from the fitted data, or contains non-finite values or results.
         """
         return _transform(values, self.means, self.stds)
 
@@ -303,12 +332,19 @@ class StdScaler:
         Parameters
         ----------
         values : torch.Tensor
-            Standardized tensor of shape ``(n_samples, n_features)``.
+            Standardized tensor of shape ``(n_samples, n_features)`` with the fitted feature count.
+            Empty batches (zero samples) are accepted.
 
         Returns
         -------
         torch.Tensor
             Tensor rescaled back to the original value range.
+
+        Raises
+        ------
+        ValueError
+            If the input is not two-dimensional, has a different feature count
+            from the fitted data, or contains non-finite values or results.
         """
         return _inverse(values, self.means, self.stds)
 
@@ -386,12 +422,19 @@ class QuantileScaler:
         Parameters
         ----------
         values : torch.Tensor
-            Tensor of shape ``(n_samples, n_features)``.
+            Tensor of shape ``(n_samples, n_features)`` with the fitted feature count.
+            Empty batches (zero samples) are accepted.
 
         Returns
         -------
         torch.Tensor
             Transformed tensor of the same shape as ``values``.
+
+        Raises
+        ------
+        ValueError
+            If the input is not two-dimensional, has a different feature count
+            from the fitted data, or contains non-finite values or results.
         """
         return _transform(values, self.mins, self.scales)
 
@@ -401,12 +444,19 @@ class QuantileScaler:
         Parameters
         ----------
         values : torch.Tensor
-            Scaled tensor of shape ``(n_samples, n_features)``.
+            Scaled tensor of shape ``(n_samples, n_features)`` with the fitted feature count.
+            Empty batches (zero samples) are accepted.
 
         Returns
         -------
         torch.Tensor
             Tensor rescaled back to the original value range.
+
+        Raises
+        ------
+        ValueError
+            If the input is not two-dimensional, has a different feature count
+            from the fitted data, or contains non-finite values or results.
         """
         return _inverse(values, self.mins, self.scales)
 

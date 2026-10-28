@@ -464,3 +464,58 @@ def test_minmax_ordinary_integer_transform_does_not_need_exact_cpu_arithmetic(mo
             torch.testing.assert_close(result, torch.tensor([[0.0], [1.0]]), atol=0, rtol=0)
         finally:
             torch.set_default_dtype(previous)
+
+
+@pytest.mark.parametrize("scaler_class", [MinMaxScaler, StdScaler, QuantileScaler])
+@pytest.mark.parametrize("method", ["transform", "inverse_transform"])
+@pytest.mark.parametrize("n_features", [1, 2])
+@pytest.mark.parametrize("shape", [(), (2,), (2, 1, 2)])
+def test_scaler_transforms_reject_non_tabular_input(scaler_class, method, n_features, shape):
+    scaler = scaler_class()
+    scaler.fit(torch.zeros((2, n_features), dtype=torch.float64))
+    with pytest.raises(ValueError, match="2-dimensional.*n_samples, n_features"):
+        getattr(scaler, method)(torch.zeros(shape, dtype=torch.float64))
+
+
+@pytest.mark.parametrize("scaler_class", [MinMaxScaler, StdScaler, QuantileScaler])
+@pytest.mark.parametrize("method", ["transform", "inverse_transform"])
+@pytest.mark.parametrize("n_features, supplied", [(2, 1), (1, 2), (2, 0), (2, 3)])
+@pytest.mark.parametrize("n_rows", [0, 3])
+def test_scaler_transforms_reject_wrong_feature_count(scaler_class, method, n_features, supplied, n_rows):
+    scaler = scaler_class()
+    scaler.fit(torch.zeros((2, n_features), dtype=torch.float64))
+    with pytest.raises(ValueError, match=f"{n_features} features as fitted; got {supplied}"):
+        getattr(scaler, method)(torch.zeros((n_rows, supplied), dtype=torch.float64))
+
+
+@pytest.mark.parametrize("scaler_class", [MinMaxScaler, StdScaler, QuantileScaler])
+@pytest.mark.parametrize("method", ["transform", "inverse_transform"])
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_scaler_transforms_accept_empty_batches_and_preserve_gradients(scaler_class, method, dtype):
+    scaler = scaler_class()
+    fitted = torch.tensor([[1.0, 2.0], [3.0, 6.0]], dtype=dtype)
+    scaler.fit(fitted)
+    operation = getattr(scaler, method)
+    empty = operation(torch.empty((0, 2), dtype=dtype))
+    assert empty.shape == (0, 2)
+    assert empty.dtype == dtype and empty.device == fitted.device
+    values = torch.tensor([[2.0, 3.0]], dtype=dtype, requires_grad=True)
+    result = operation(values)
+    result.sum().backward()
+    # These affine maps have constant derivatives given by the fitted scale.
+    scale = scaler.stds if isinstance(scaler, StdScaler) else scaler.scales
+    expected = scale.reciprocal() if method == "transform" else scale
+    assert result.shape == values.shape and result.dtype == dtype
+    torch.testing.assert_close(values.grad, expected.unsqueeze(0), atol=0, rtol=0)
+
+
+@pytest.mark.parametrize("scaler_class", [MinMaxScaler, StdScaler, QuantileScaler])
+@pytest.mark.parametrize("method", ["transform", "inverse_transform"])
+def test_scaler_transform_feature_count_follows_refitting(scaler_class, method):
+    scaler = scaler_class()
+    scaler.fit(torch.zeros((2, 2)))
+    scaler.fit(torch.zeros((3, 1)))
+    operation = getattr(scaler, method)
+    torch.testing.assert_close(operation(torch.ones((1, 1))), torch.ones((1, 1)), atol=0, rtol=0)
+    with pytest.raises(ValueError, match="1 features as fitted; got 2"):
+        operation(torch.ones((1, 2)))
