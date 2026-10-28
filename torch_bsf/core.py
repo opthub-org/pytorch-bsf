@@ -249,9 +249,39 @@ class BezierSpace:
 class Points:
     """Barycentric coordinate rows and their cell IDs, in prediction order.
 
+    Parameters
+    ----------
+    parameters : array-like, shape (n_samples, coordinate_width)
+        Real coordinate rows. For a simplex of dimension ``d``, the width
+        is ``d + 1``; for a product, concatenate one barycentric block per
+        factor. Mixed-cell rows may be padded on the right to ``space.width``.
+        Coordinates are copied on their input device.
+    cell_ids : array-like of int, shape (n_samples,), optional
+        One integer cell ID per row. Defaults to all zeros on the coordinate
+        device. IDs are copied as ``torch.long`` on that device.
+
+    Raises
+    ------
+    ValueError
+        If coordinates are complex or not two-dimensional, or IDs are not
+        a matching one-dimensional integer vector (booleans are rejected).
+
+    Notes
+    -----
     Floating tensors and NumPy arrays retain their dtype. Python float lists
     use ``torch.get_default_dtype()``; integer coordinates become float64.
     Pass float64 tensors or arrays to preserve double-precision coordinates.
+    Construction checks shapes and types only. Cell membership, finite active
+    coordinates and barycentric blocks are checked by ``space.validate``,
+    basis construction or model evaluation. Inactive padding is ignored.
+
+    Examples
+    --------
+    >>> from torch_bsf import BezierSpace, Points
+    >>> points = Points([[1.0, 0.0], [0.25, 0.75]])
+    >>> tuple(points.parameters.shape), points.cell_ids.tolist()
+    ((2, 2), [0, 0])
+    >>> BezierSpace.simplex(1, degree=1).validate(points)
     """
 
     parameters: torch.Tensor
@@ -277,7 +307,52 @@ class Points:
 
     @classmethod
     def from_cells(cls, space: BezierSpace, data: Sequence[tuple[int | Simploid, Any]]) -> Points:
-        """Pack ordered cell-local coordinates without manual padding."""
+        """Pack ordered cell-local coordinates without manual padding.
+
+        Parameters
+        ----------
+        space : BezierSpace
+            Compiled space used to resolve cell references and validate rows.
+        data : sequence of (cell, parameters) pairs
+            Each ``cell`` is an integer ID or an original builder handle.
+            Its coordinates have shape ``(n_cell_samples, cell.width)``.
+            Entries and rows within each entry retain their supplied order;
+            repeated cell references are allowed.
+
+        Returns
+        -------
+        Points
+            Coordinates of shape ``(n_samples, space.width)``, where
+            ``n_samples`` is the sum of entry row counts. Nonempty input is
+            converted to CPU float64 and zero-padded on the right. IDs are
+            CPU ``torch.long``. An empty sequence returns zero rows with
+            coordinates in PyTorch's default floating dtype on its default
+            device.
+
+        Raises
+        ------
+        ValueError
+            If a cell reference is invalid, a coordinate batch has the wrong
+            shape or local width, or its coordinates are not finite valid
+            barycentric blocks for that cell.
+
+        Notes
+        -----
+        Inputs first follow :class:`Points` dtype inference, then convert to
+        float64; this cannot recover precision already lost to float32.
+        See :meth:`Samples.from_cells` for a mixed-width packing example with
+        aligned observations and weights.
+
+        Examples
+        --------
+        >>> from torch_bsf import BezierSpace, Points
+        >>> space = BezierSpace.simplex(1, degree=1)
+        >>> points = Points.from_cells(space, [(0, [[0.25, 0.75], [1.0, 0.0]])])
+        >>> points.parameters.tolist(), points.cell_ids.tolist()
+        ([[0.25, 0.75], [1.0, 0.0]], [0, 0])
+        >>> str(points.parameters.dtype), str(points.parameters.device)
+        ('torch.float64', 'cpu')
+        """
         if not data:
             return cls(torch.empty(0, space.width), torch.empty(0, dtype=torch.long))
         coordinates, identifiers = [], []
@@ -308,11 +383,58 @@ class Points:
 class Samples:
     """Points with finite observed outputs and optional nonnegative weights.
 
+    Parameters
+    ----------
+    parameters : Points or array-like, shape (n_samples, coordinate_width)
+        Existing points, retained as supplied, or coordinates used to build
+        :class:`Points`. Raw coordinates and cell IDs are copied by Points.
+    values : array-like, shape (n_samples, n_outputs) or (n_samples,)
+        Real, finite observations in point row order. One-dimensional values
+        become one output column. Both ``n_samples`` and ``n_outputs`` must
+        be positive. Values are copied and retain their input device.
+    cell_ids : array-like of int, shape (n_samples,), optional
+        IDs for raw coordinates; defaults to all zeros. Must be omitted when
+        ``parameters`` is already a :class:`Points` instance.
+    weights : array-like, shape (n_samples,), optional
+        Observation weights in the same row order, copied to CPU float64.
+        Defaults to all ones. Entries must be finite and nonnegative, and
+        their sum must be finite and strictly positive. Individual zeros
+        are allowed, but all observations must still be finite, including
+        observations with zero weight.
+
+    Raises
+    ------
+    ValueError
+        If both Points and separate IDs are supplied, values are complex,
+        nonfinite, empty or have a mismatched shape, or weights violate the
+        shape, finiteness or positivity requirements. Raw coordinates also
+        follow the construction checks of :class:`Points`.
+
+    Notes
+    -----
     Coordinates follow :class:`Points`. Observed values use
     ``torch.as_tensor`` dtype inference: tensors and NumPy arrays retain
     their dtype, Python float lists use ``torch.get_default_dtype()``, and
     integer values remain integers. For double precision, pass float64
     tensors or arrays. Weights are stored as CPU float64 tensors.
+    As with direct Points construction, space membership is checked when
+    the points are validated or used with a space, rather than here.
+
+    Examples
+    --------
+    >>> from torch_bsf import Points, Samples
+    >>> points = Points([[1.0, 0.0], [0.0, 1.0]])
+    >>> samples = Samples(points, [2.0, 4.0], weights=[0.0, 1.0])
+    >>> tuple(samples.values.shape), samples.weights.tolist()
+    ((2, 1), [0.0, 1.0])
+    >>> Samples(points, [2.0, 4.0], cell_ids=[0, 0])
+    Traceback (most recent call last):
+        ...
+    ValueError: cell_ids are already specified by Points.
+    >>> Samples(points, [float("nan"), 4.0], weights=[0.0, 1.0])
+    Traceback (most recent call last):
+        ...
+    ValueError: values must be finite with shape (n_samples, n_outputs), both positive.
     """
 
     points: Points
@@ -359,7 +481,72 @@ class Samples:
     def from_cells(
         cls, space: BezierSpace, data: Sequence[tuple[int | Simploid, Any, Any]], *, weights: Any = None
     ) -> Samples:
-        """Pack ordered cell-local observations with different coordinate widths."""
+        """Pack ordered cell-local observations with different coordinate widths.
+
+        Parameters
+        ----------
+        space : BezierSpace
+            Compiled space used to resolve cell references and validate rows.
+        data : sequence of (cell, parameters, values) triples
+            Nonempty sequence of cell IDs or original builder handles,
+            coordinates of shape ``(n_cell_samples, cell.width)``, and
+            corresponding finite observations of shape
+            ``(n_cell_samples, n_outputs)`` or ``(n_cell_samples,)``.
+            Each entry must contain at least one row and all entries must
+            have the same ``n_outputs``.
+        weights : array-like, shape (n_samples,), optional
+            One flat vector for all concatenated rows, in entry order then
+            row order within each entry. Defaults to ones; follows the
+            finite, nonnegative, positive-sum contract of :class:`Samples`.
+
+        Returns
+        -------
+        Samples
+            Coordinates of shape ``(n_samples, space.width)`` and observations
+            of shape ``(n_samples, n_outputs)``, both on CPU in float64.
+            Narrower coordinates have zero padding on the right. Cell IDs,
+            values and weights follow the same concatenation order.
+
+        Raises
+        ------
+        ValueError
+            If data is empty, cell references or local coordinates are
+            invalid, an entry has invalid observations, or weights violate
+            the :class:`Samples` contract.
+        RuntimeError
+            If entries have inconsistent output widths, so their observed
+            values cannot be concatenated.
+
+        Notes
+        -----
+        Unlike direct construction, this helper converts coordinates and
+        observations to CPU float64 after their usual dtype inference.
+        Pass float64 inputs to avoid first rounding Python float lists to
+        the default dtype. Outputs and weights are copied.
+
+        Examples
+        --------
+        Pack a triangle row before two edge rows. The edge needs two active
+        coordinates; its third column is padding. Weights follow this order,
+        regardless of the numeric cell IDs.
+
+        >>> from torch_bsf import BezierSpace, Samples, SimploidalSet
+        >>> domain = SimploidalSet()
+        >>> edge, triangle = domain.add_simplex(1), domain.add_simplex(2)
+        >>> space = BezierSpace.on_set(domain, degree=1)
+        >>> samples = Samples.from_cells(space, [
+        ...     (triangle, [[0.25, 0.25, 0.5]], [10.0]),
+        ...     (edge, [[1.0, 0.0], [0.0, 1.0]], [20.0, 30.0]),
+        ... ], weights=[2.0, 0.0, 3.0])
+        >>> samples.points.parameters.tolist()
+        [[0.25, 0.25, 0.5], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]
+        >>> samples.points.cell_ids.tolist() == [space.cell_id(triangle), space.cell_id(edge), space.cell_id(edge)]
+        True
+        >>> tuple(samples.values.shape), samples.values[:, 0].tolist(), samples.weights.tolist()
+        ((3, 1), [10.0, 20.0, 30.0], [2.0, 0.0, 3.0])
+        >>> str(samples.points.parameters.dtype), str(samples.values.dtype), str(samples.values.device)
+        ('torch.float64', 'torch.float64', 'cpu')
+        """
         if not data:
             raise ValueError("data must contain observations.")
         points = Points.from_cells(space, [(cell, t) for cell, t, _ in data])
@@ -520,7 +707,52 @@ class BezierModel(nn.Module):
         return self.coefficients.shape[1]
 
     def forward(self, points: Points | torch.Tensor) -> torch.Tensor:
-        """Evaluate points in their original row order, differentiable in both inputs and coefficients."""
+        """Evaluate points in their original row order.
+
+        Parameters
+        ----------
+        points : Points or torch.Tensor
+            Barycentric coordinates. A raw tensor of shape
+            ``(n_samples, space.width)`` is accepted only when the space has
+            one addressable cell; all rows then belong to cell zero.
+            Multi-cell spaces require :class:`Points` with explicit IDs,
+            including when every requested row belongs to the same cell.
+            Active coordinates must be finite barycentric blocks; extra
+            padding in mixed-cell Points is ignored.
+
+        Returns
+        -------
+        torch.Tensor, shape (n_samples, n_outputs)
+            Predictions in input row order, on the coefficient dtype and
+            device. Input coordinates are copied to that dtype and device.
+            Evaluation is differentiable in coordinates and coefficients.
+
+        Raises
+        ------
+        ValueError
+            If raw coordinates are used with a multi-cell space, Points
+            construction fails, IDs are outside the space, coordinate width
+            is invalid, or active coordinates fail barycentric validation.
+
+        Examples
+        --------
+        >>> import torch
+        >>> from torch_bsf import BezierModel, BezierSpace, Points, SimploidalSet
+        >>> model = BezierModel(BezierSpace.simplex(1, degree=1), [[1.0], [3.0]])
+        >>> tuple(model(torch.tensor([[0.5, 0.5], [0.25, 0.75]])).shape)
+        (2, 1)
+        >>> domain = SimploidalSet()
+        >>> edge = domain.add_simplex(1)
+        >>> space = BezierSpace.on_set(domain, degree=1)
+        >>> model = BezierModel(space, torch.ones(space.n_controls, 2))
+        >>> points = Points.from_cells(space, [(edge, [[0.5, 0.5]])])
+        >>> model(points).tolist()
+        [[1.0, 1.0]]
+        >>> model(torch.tensor([[0.5, 0.5]]))
+        Traceback (most recent call last):
+            ...
+        ValueError: multi-cell models require explicit Points with cell IDs.
+        """
         if not isinstance(points, Points) and self.space.n_cells != 1:
             raise ValueError("multi-cell models require explicit Points with cell IDs.")
         batch = points if isinstance(points, Points) else Points(points)
