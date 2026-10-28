@@ -1,0 +1,655 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Single and assembled domains &mdash; PyTorch-BSF 0.22.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5686f5df"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="The Category of Simploidal Sets" href="simploidal_category.html" />
+    <link rel="prev" title="Explicit ensembles and active learning" href="active_learning.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#follow-a-fit-through-the-guides">Follow a fit through the guides</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="partial.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Single and assembled domains</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#choose-the-domain-before-the-degree">Choose the domain before the degree</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#read-the-square-prism-and-glued-patch-picture">Read the square, prism and glued-patch picture</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#single-simplices-and-products">Single simplices and products</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#build-a-connected-two-patch-domain">Build a connected two-patch domain</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#mix-cell-types-and-preserve-row-identity">Mix cell types and preserve row identity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#degree-propagation-across-shared-faces">Degree propagation across shared faces</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#continuity-and-exact-constraints">Continuity and exact constraints</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#sampling-and-visual-checks">Sampling and visual checks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#persistence-and-troubleshooting">Persistence and troubleshooting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#homology">Homology</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#topological-checks-complement-numerical-checks">Topological checks complement numerical checks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#plan-an-assembled-experiment-from-end-to-end">Plan an assembled experiment from end to end</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Single and assembled domains</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/simploidal.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="single-and-assembled-domains">
+<h1>Single and assembled domains<a class="headerlink" href="#single-and-assembled-domains" title="Link to this heading"></a></h1>
+<section id="choose-the-domain-before-the-degree">
+<h2>Choose the domain before the degree<a class="headerlink" href="#choose-the-domain-before-the-degree" title="Link to this heading"></a></h2>
+<p>A Bézier simplex models a response over one simplex: a segment for two
+barycentric weights, a triangle for three, or a higher-dimensional trade-off
+domain. A simploid is a product of simplices. Use a product when independent
+sets of weights vary together, such as a triangular trade-off at each setting
+of a separate interval parameter. Use an assembled domain when several local
+patches must share boundaries, or when a single simplex cannot express the
+required topology.</p>
+<p>These choices solve different problems. Increasing degree adds polynomial
+flexibility inside an existing chart. Adding a product factor introduces an
+independent parameter block. Gluing cells changes how charts meet. A higher
+degree cannot turn a segment into a loop by itself; the endpoint identification
+must be represented in the domain or enforced separately by the application.
+Likewise, choosing a square rather than a triangle changes the feasible
+combinations of parameters, not simply the number of learned controls.</p>
+<p>The unified API separates four objects. <code class="docutils literal notranslate"><span class="pre">SimploidalSet</span></code> is a mutable topology
+builder. <code class="docutils literal notranslate"><span class="pre">BezierSpace</span></code> is an immutable compiled geometry and coefficient
+layout. <code class="docutils literal notranslate"><span class="pre">Samples</span></code> contains observations with parameter rows and cell IDs.
+<code class="docutils literal notranslate"><span class="pre">BezierModel</span></code> contains learned output coefficients in that space. <code class="docutils literal notranslate"><span class="pre">fit</span></code>
+uses those objects and always returns <code class="docutils literal notranslate"><span class="pre">FitResult</span></code>. No separate regression
+entry point is needed for products or assembled domains.</p>
+</section>
+<section id="read-the-square-prism-and-glued-patch-picture">
+<h2>Read the square, prism and glued-patch picture<a class="headerlink" href="#read-the-square-prism-and-glued-patch-picture" title="Link to this heading"></a></h2>
+<p>The <a class="reference internal" href="../whatis.html#simploidal-space-overview"><span class="std std-ref">three-panel overview</span></a> gives a concrete
+picture of the domains used below. In its left panel, choosing one location
+on each of two intervals gives a square; the Bézier map bends that square
+into a saddle. In the middle, each triangle location can be combined with
+any height, giving a prism. Only its two-dimensional boundary faces are
+rendered. In the right panel, the triangle and square have separate charts
+and meet through an identified edge. Gluing does not introduce an independent
+parameter, whereas taking a product does.</p>
+<p>Keep three quantities separate when reading the figure. The <strong>type</strong> gives
+factor dimensions, the <strong>degree</strong> gives polynomial capacity per factor, and
+the <strong>output count</strong> gives the ambient dimension in which the image lies.
+A type <code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">1)</span></code> model with three outputs is a surface in three-dimensional
+space; a type <code class="docutils literal notranslate"><span class="pre">(2,</span> <span class="pre">1)</span></code> model has a three-dimensional parameter domain even
+when the renderer shows only surfaces. Red controls describe the polynomial
+and are not necessarily measured points or points on the image.</p>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-number">Table 10 </span><span class="caption-text">Domain choices and parameter rows</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 25.0%" />
+<col style="width: 30.0%" />
+<col style="width: 25.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Domain</p></th>
+<th class="head"><p>Type and dimension</p></th>
+<th class="head"><p>Active row</p></th>
+<th class="head"><p>Example interpretation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Triangle</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(2,)</span></code>, dimension 2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[w0,</span> <span class="pre">w1,</span> <span class="pre">w2]</span></code>, sum 1</p></td>
+<td><p>Three competing priorities</p></td>
+</tr>
+<tr class="row-odd"><td><p>Square</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">1)</span></code>, dimension 2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[1-u,</span> <span class="pre">u,</span> <span class="pre">1-v,</span> <span class="pre">v]</span></code></p></td>
+<td><p>Two priorities and a condition</p></td>
+</tr>
+<tr class="row-even"><td><p>Prism</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(2,</span> <span class="pre">1)</span></code>, dimension 3</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[w0,</span> <span class="pre">w1,</span> <span class="pre">w2,</span> <span class="pre">1-h,</span> <span class="pre">h]</span></code></p></td>
+<td><p>Three priorities and a condition</p></td>
+</tr>
+<tr class="row-odd"><td><p>Triangle glued to square</p></td>
+<td><p>Two maximal cells, each dimension 2</p></td>
+<td><p>Cell ID plus its local row</p></td>
+<td><p>Neighboring response regions</p></td>
+</tr>
+</tbody>
+</table>
+<p>The square allows <code class="docutils literal notranslate"><span class="pre">u</span></code> and <code class="docutils literal notranslate"><span class="pre">v</span></code> both to reach one. Replacing its four
+columns by one sum-to-one row would change the domain, not merely its
+encoding. Conversely, using a prism for three coupled priority weights and
+a height preserves both the triangular priority constraint and independent
+height variation.</p>
+</section>
+<section id="single-simplices-and-products">
+<h2>Single simplices and products<a class="headerlink" href="#single-simplices-and-products" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">Points</span><span class="p">,</span> <span class="n">Samples</span><span class="p">,</span> <span class="n">fit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.sampling</span><span class="w"> </span><span class="kn">import</span> <span class="n">sample</span><span class="p">,</span> <span class="n">grid</span>
+
+<span class="n">triangle</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">prism</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simploid</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="n">points</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">prism</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">points</span><span class="o">.</span><span class="n">parameters</span>
+<span class="k">assert</span> <span class="n">t</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">40</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">t</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">40</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
+<span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">t</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">:]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">40</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
+<span class="n">values</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">t</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">t</span><span class="p">[:,</span> <span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">square</span><span class="p">())[:,</span> <span class="kc">None</span><span class="p">]</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span><span class="n">prism</span><span class="p">,</span> <span class="n">Samples</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">values</span><span class="p">))</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="k">assert</span> <span class="n">prism</span><span class="o">.</span><span class="n">n_controls</span> <span class="o">==</span> <span class="mi">10</span> <span class="o">*</span> <span class="mi">3</span>
+<span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">"data_mse"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">1e-24</span>
+</pre></div>
+</div>
+<p>The prism’s first block contains three triangle coordinates and its second
+contains two segment coordinates. Each block sums to one. The five-column row
+therefore sums to two, which is correct for a two-factor product. Normalizing
+the whole row to one would break both factors. Factor order is meaningful:
+<code class="docutils literal notranslate"><span class="pre">(2,</span> <span class="pre">1)</span></code> and <code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">2)</span></code> have the same total dimension but different column
+block order and degree interpretation.</p>
+<p>A product’s dimension is the sum of factor dimensions. Its coordinate width
+is the sum of each dimension plus one. Its control count is the product of
+factor control counts. For dimensions <span class="math notranslate nohighlight">\((a_1,\ldots,a_k)\)</span> and degrees
+<span class="math notranslate nohighlight">\((d_1,\ldots,d_k)\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[n_{\mathrm{controls}}=\prod_{i=1}^k\binom{a_i+d_i}{d_i}.\]</div>
+<p>A degree-three triangle has ten controls; adding a degree-two interval gives
+thirty. Increasing the interval degree to four gives fifty, while leaving
+the triangle degree unchanged. This anisotropic capacity is useful when the
+response varies more strongly along one independent factor. It also increases
+the amount of data required to determine the coefficients reliably.</p>
+<p>For an integer <code class="docutils literal notranslate"><span class="pre">degree</span></code> supplied to <code class="docutils literal notranslate"><span class="pre">simploid</span></code>, every factor uses that
+degree. For a tuple, supply one entry per factor. A zero-dimensional simplex
+is a constant domain with no active parameter columns. It is distinct from
+a degree-zero function on a nonconstant domain: the latter still has input
+coordinates, although its predicted value does not vary with them.</p>
+<p>Evaluate through <code class="docutils literal notranslate"><span class="pre">result.model(points)</span></code>. The basis is a tensor product of
+factor Bernstein polynomials. Outputs can have any positive column count;
+geometry does not depend on that count. A fitted model is a PyTorch module,
+so evaluation is differentiable with respect to coefficients and parameter
+coordinates. Numerical regression itself remains a CPU float64 solve.</p>
+</section>
+<section id="build-a-connected-two-patch-domain">
+<h2>Build a connected two-patch domain<a class="headerlink" href="#build-a-connected-two-patch-domain" title="Link to this heading"></a></h2>
+<p>Suppose a response is measured on two local intervals representing adjacent
+experimental regimes. Fitting them independently can give different predictions
+at the common endpoint, especially with measurement noise. Gluing their endpoint
+vertices makes the corresponding coefficients shared, so the models agree
+there exactly while retaining independent interior controls.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.geometry</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimploidalSet</span>
+<span class="n">domain</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">left</span> <span class="o">=</span> <span class="n">domain</span><span class="o">.</span><span class="n">add_simplex</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">right</span> <span class="o">=</span> <span class="n">domain</span><span class="o">.</span><span class="n">add_simplex</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">domain</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">left</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">right</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">on_set</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">u</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="n">local</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="mi">1</span> <span class="o">-</span> <span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">left_values</span> <span class="o">=</span> <span class="p">(</span><span class="mf">.5</span> <span class="o">*</span> <span class="n">u</span><span class="p">)</span><span class="o">.</span><span class="n">square</span><span class="p">()[:,</span> <span class="kc">None</span><span class="p">]</span>
+<span class="n">right_values</span> <span class="o">=</span> <span class="p">(</span><span class="mf">.5</span> <span class="o">+</span> <span class="mf">.5</span> <span class="o">*</span> <span class="n">u</span><span class="p">)</span><span class="o">.</span><span class="n">square</span><span class="p">()[:,</span> <span class="kc">None</span><span class="p">]</span>
+<span class="n">observations</span> <span class="o">=</span> <span class="n">Samples</span><span class="o">.</span><span class="n">from_cells</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="p">[</span>
+    <span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">local</span><span class="p">,</span> <span class="n">left_values</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">right</span><span class="p">,</span> <span class="n">local</span><span class="p">,</span> <span class="n">right_values</span><span class="p">),</span>
+<span class="p">])</span>
+<span class="n">joined</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">observations</span><span class="p">)</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="n">seam</span> <span class="o">=</span> <span class="n">Points</span><span class="o">.</span><span class="n">from_cells</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="p">[</span>
+    <span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="p">[[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">]]),</span>
+    <span class="p">(</span><span class="n">right</span><span class="p">,</span> <span class="p">[[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]]),</span>
+<span class="p">])</span>
+<span class="n">seam_values</span> <span class="o">=</span> <span class="n">joined</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">seam</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">seam_values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">seam_values</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="k">assert</span> <span class="n">space</span><span class="o">.</span><span class="n">control_index</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">cell</span><span class="o">=</span><span class="n">left</span><span class="p">)</span> <span class="o">==</span> <span class="n">space</span><span class="o">.</span><span class="n">control_index</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">cell</span><span class="o">=</span><span class="n">right</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">face(i,</span> <span class="pre">j)</span></code> removes vertex <code class="docutils literal notranslate"><span class="pre">j</span></code> in factor <code class="docutils literal notranslate"><span class="pre">i</span></code>. On a segment,
+<code class="docutils literal notranslate"><span class="pre">face(0,</span> <span class="pre">0)</span></code> leaves its second endpoint and <code class="docutils literal notranslate"><span class="pre">face(0,</span> <span class="pre">1)</span></code> leaves its first.
+This indexing can initially feel reversed if you think of a face number as a
+vertex number. Verify endpoint coordinate rows explicitly before identifying
+patches. For a triangle, a face is an edge; for a product, the selected factor
+is reduced while all other factors remain.</p>
+<p>The fit above uses two local charts for one global scalar response. Local
+coordinate <code class="docutils literal notranslate"><span class="pre">u=0</span></code> on the right patch is physically different from <code class="docutils literal notranslate"><span class="pre">u=0</span></code>
+on the left. The cell ID carries that distinction. Never concatenate local
+parameter arrays and discard their IDs: equal coordinates do not mean equal
+physical locations across charts.</p>
+<figure class="align-default" id="id3">
+<a class="reference internal image-reference" href="../_images/topology.png"><img alt="Independent curve patches disagree at their seam before gluing, while a shared endpoint enforces agreement afterward." src="../_images/topology.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 18 </span><span class="caption-text">Before: independent cubic patches fit offset observations and disagree
+at the common physical endpoint. After: one compiled space shares that
+endpoint coefficient. Interior residuals may increase because continuity
+is an exact modeling requirement. The same observations are used throughout.</span><a class="headerlink" href="#id3" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>Reproduce the figure with <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">examples/generate_guide_figures.py</span></code>.
+The generator checks exact equality at the assembled seam and stores the
+before/after endpoint gap in <a class="reference download internal" download="" href="../_downloads/84af9d5d5260b756f659bd39d1ec8602/metrics.json"><code class="xref download docutils literal notranslate"><span class="pre">metrics.json</span></code></a>.
+This illustrates C0 continuity, not equal derivatives or a globally smooth
+parameterization.</p>
+</section>
+<section id="mix-cell-types-and-preserve-row-identity">
+<h2>Mix cell types and preserve row identity<a class="headerlink" href="#mix-cell-types-and-preserve-row-identity" title="Link to this heading"></a></h2>
+<p>A simploidal set can contain triangles, squares, prisms and their identified
+faces. For example, connect a triangle edge to a square edge:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">Points</span><span class="p">,</span> <span class="n">Samples</span><span class="p">,</span> <span class="n">fit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.geometry</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimploidalSet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.sampling</span><span class="w"> </span><span class="kn">import</span> <span class="n">sample</span>
+
+<span class="n">domain</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">triangle</span> <span class="o">=</span> <span class="n">domain</span><span class="o">.</span><span class="n">add_simplex</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">square</span> <span class="o">=</span> <span class="n">domain</span><span class="o">.</span><span class="n">add_simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">domain</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">triangle</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+<span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">on_set</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">triangle_points</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="mi">30</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">square_points</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">BezierSpace</span><span class="o">.</span><span class="n">simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="mi">30</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">observations</span> <span class="o">=</span> <span class="n">Samples</span><span class="o">.</span><span class="n">from_cells</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="p">[</span>
+    <span class="p">(</span><span class="n">triangle</span><span class="p">,</span> <span class="n">triangle_points</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span> <span class="n">triangle_points</span><span class="o">.</span><span class="n">parameters</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">]),</span>
+    <span class="p">(</span><span class="n">square</span><span class="p">,</span> <span class="n">square_points</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span> <span class="n">square_points</span><span class="o">.</span><span class="n">parameters</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">]),</span>
+<span class="p">])</span>
+<span class="n">mixed_result</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">observations</span><span class="p">)</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="n">prediction_points</span> <span class="o">=</span> <span class="n">Points</span><span class="o">.</span><span class="n">from_cells</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="p">[</span>
+    <span class="p">(</span><span class="n">square</span><span class="p">,</span> <span class="n">square_points</span><span class="o">.</span><span class="n">parameters</span><span class="p">[:</span><span class="mi">2</span><span class="p">]),</span>
+    <span class="p">(</span><span class="n">triangle</span><span class="p">,</span> <span class="n">triangle_points</span><span class="o">.</span><span class="n">parameters</span><span class="p">[:</span><span class="mi">3</span><span class="p">]),</span>
+<span class="p">])</span>
+<span class="k">assert</span> <span class="n">mixed_result</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">prediction_points</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">from_cells</span></code> packs rows and pads smaller charts to <code class="docutils literal notranslate"><span class="pre">space.width</span></code>. Only a
+row’s active cell coordinates are evaluated. The returned prediction order
+matches the supplied batch order, so the first two predictions above belong
+to the square and the next three to the triangle. For observations, retain
+that same order for values and weights.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Points(parameters,</span> <span class="pre">cell_ids)</span></code> offers direct construction when you already
+have padded arrays. Use integer cell IDs with one ID per row. The immutable
+space validates that coordinates belong to each cell’s simplex factors.
+Multi-cell models require explicit <code class="docutils literal notranslate"><span class="pre">Points</span></code> even if every cell has the same
+width; untagged tensors cannot choose between two charts safely.</p>
+<p><code class="docutils literal notranslate"><span class="pre">space.n_cells</span></code> includes addressable lower-dimensional faces as well as
+maximal patches. <code class="docutils literal notranslate"><span class="pre">space.main_cells</span></code> identifies maximal cells used by default
+sampling and plotting. Do not assume those IDs are consecutive top-level
+patch numbers or equal to builder insertion order. Resolve builder handles
+with <code class="docutils literal notranslate"><span class="pre">space.cell_id(handle)</span></code> and preserve the resolved IDs in exported
+observation files.</p>
+</section>
+<section id="degree-propagation-across-shared-faces">
+<h2>Degree propagation across shared faces<a class="headerlink" href="#degree-propagation-across-shared-faces" title="Link to this heading"></a></h2>
+<p>Identified faces have one polynomial representation, so their degrees must
+be compatible. <code class="docutils literal notranslate"><span class="pre">BezierSpace.on_set(domain,</span> <span class="pre">degree=2)</span></code> applies a common degree
+to every factor. A mapping can specify selected cell/factor degrees; the compiler
+propagates them through shared faces. Use <code class="docutils literal notranslate"><span class="pre">default_degree</span></code> for factors still
+undetermined after propagation. Inconsistent assignments raise rather than
+quietly elevating degrees or weakening continuity.</p>
+<p>For example, a prism’s triangle-face degree must match an attached triangle’s
+degree. Its independent interval degree can differ if no shared relation
+constrains it. This is why “one degree per cell” is not always an independent
+choice. Degrees belong to factors, and connected face relationships can tie
+together assignments that look separate in a drawing.</p>
+<p>Increasing a degree adds controls and permits more variation, while also
+increasing fitting work and potentially worsening identifiability. It does
+not repair an incorrect face identification or inconsistent chart orientation.
+Check geometry with simple endpoint and face examples before fitting noisy
+high-dimensional data. For assembled spaces, degrees must be at least one;
+use a standalone constant space for constant-domain regression.</p>
+<p>To inspect a local coefficient, use <code class="docutils literal notranslate"><span class="pre">space.control_index(index,</span> <span class="pre">cell=handle)</span></code>.
+For a product, <code class="docutils literal notranslate"><span class="pre">index</span></code> contains one multi-index per factor. Two references
+on an identified face may resolve to the same global row. The global
+coefficient matrix stores that row once, so optimizing or fixing it changes
+all incident cells consistently. Do not edit several apparent copies and
+expect independent effects; there is only one shared unknown.</p>
+<p>The immutable space snapshots the builder. Adding or identifying more cells
+later does not alter an existing model’s geometry. Compile a new space and
+fit or explicitly transfer values when the topology changes. This separation
+makes archived models independent of later mutations to experiment setup.
+It also means builder edits alone cannot update a previously created model.</p>
+</section>
+<section id="continuity-and-exact-constraints">
+<h2>Continuity and exact constraints<a class="headerlink" href="#continuity-and-exact-constraints" title="Link to this heading"></a></h2>
+<p>Shared coefficients enforce C0 continuity: cell predictions agree on the
+identified face. They do not automatically enforce tangent agreement, C1
+continuity, injectivity, manifold orientation or lack of self-intersections.
+A visually smooth projection is insufficient evidence for any of those
+properties. Evaluate the particular derivative or geometric condition your
+application requires.</p>
+<p>If an entire boundary response is known, fixing its complete control net
+prescribes that polynomial exactly. Fixing only boundary vertices prescribes
+only vertex values at higher degree. <code class="docutils literal notranslate"><span class="pre">FixedControls.from_cells</span></code> resolves
+local references into shared global rows and rejects conflicting values.
+When observations on opposite sides of a seam disagree, the fitted shared
+boundary compromises according to their relative weights unless it is fixed.</p>
+<p>Smoothness penalizes adjacent coefficient differences in the global net. It
+can reduce variation, but it is not a derivative-matching condition between
+charts. Its effect depends on degree and adjacency as well as its weight.
+Keep geometry, exact constraints and soft regularization conceptually separate
+when interpreting a before/after comparison. See <a class="reference internal" href="regularization.html"><span class="doc">Regularization and numerical evidence</span></a> and
+<a class="reference internal" href="partial.html"><span class="doc">Fixed controls</span></a> for their objectives and tuning guidance.</p>
+</section>
+<section id="sampling-and-visual-checks">
+<h2>Sampling and visual checks<a class="headerlink" href="#sampling-and-visual-checks" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">sample(space,</span> <span class="pre">n,</span> <span class="pre">seed=...)</span></code> chooses maximal cells with equal probability
+by default, then samples uniformly in their factor charts. This is not
+uniform physical area on a curved fitted surface. Supply cell weights when
+your experiment budget should favor some patches. If every patch needs
+observations, allocate them explicitly instead of relying on expected counts.</p>
+<p><code class="docutils literal notranslate"><span class="pre">grid</span></code> visits every selected maximal chart and includes its boundary lattice.
+Shared physical boundary points can appear as several chart-tagged rows.
+Keep both when checking C0 agreement, but account for duplication when
+calculating a physical integration rule or pooled region metric. A low-dimensional
+face with few observations can still be underdetermined even if the whole
+assembled data set is large.</p>
+<p><code class="docutils literal notranslate"><span class="pre">plot_model</span></code> draws all maximal cell images on common axes. It displays
+higher-dimensional domains through two-dimensional faces. For mixed patches,
+overlay observations with distinct markers and inspect residuals per cell.
+A global average error can hide failure on a small but important patch.
+Projecting to two outputs can also hide disagreement in another output.</p>
+<p>For an exact local subdivision, retain <code class="docutils literal notranslate"><span class="pre">subdivide</span></code> parameter maps and compare
+children in parent coordinates. That operation does not automatically remesh
+adjacent assembled patches. Rebuild the domain explicitly if the refined
+pieces must share new boundaries with their neighbors. See <a class="reference internal" href="splitting.html"><span class="doc">Exact local subdivision</span></a>
+for the distinction between exact reparameterization and additional local fitting.</p>
+</section>
+<section id="persistence-and-troubleshooting">
+<h2>Persistence and troubleshooting<a class="headerlink" href="#persistence-and-troubleshooting" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">save_model</span></code> preserves compiled cells, stable IDs, shared layout and learned
+coefficients. A restored model does not need the mutable builder or its original
+Python handles. For new observations after loading, use saved integer IDs and
+the recorded chart conventions. A CSV of control coordinates alone cannot
+reconstruct topology or shared coefficient relationships.</p>
+<p>If a prediction rejects a row, first check its cell ID, active width and
+per-factor sums. If two supposed boundary points disagree, check that they
+are actually paired by the declared identification and that their local
+coordinates have matching orientation. If fitting succeeds but coefficients
+are unidentifiable, inspect per-cell observation coverage and data diagnostics;
+regularizing the assembled system does not add missing measurements.</p>
+<p>When choosing between one high-degree chart and several glued low-degree
+charts, compare held-out error, total controls, boundary requirements and
+maintenance of coordinate maps. Several patches can capture local structure,
+but they require explicit chart identity and topology. Prefer the simplest
+domain that matches the experiment’s feasible parameter combinations and
+required global connectivity, then tune its degree with validation.</p>
+</section>
+<section id="homology">
+<h2>Homology<a class="headerlink" href="#homology" title="Link to this heading"></a></h2>
+<p>The topology of a simploidal set can be checked after it is built by
+computing its homology (Section 4.4 of <span class="bibtex-citation" id="id1">Peltier and Lienhardt [<a class="reference internal" href="../references.html#id41" title="Samuel Peltier and Pascal Lienhardt. Simploidal sets: a data structure for handling simploidal bézier spaces. Computer Aided Geometric Design, 62:44–62, 2018. URL: https://doi.org/10.1016/j.cagd.2018.03.010.">PL18</a>]</span>).  The
+chain group <span class="math notranslate nohighlight">\(C_k\)</span> is spanned by the <strong>non-degenerate</strong> simploids of
+dimension <span class="math notranslate nohighlight">\(k\)</span>, and the boundary of a simploid <span class="math notranslate nohighlight">\(\sigma\)</span> of type
+<span class="math notranslate nohighlight">\((a_1, \ldots, a_n)\)</span> follows the sign rule of a product of simplices:</p>
+<div class="math notranslate nohighlight">
+\[\partial \sigma = \sum_{i=1}^n \sum_{j=0}^{a_i} (-1)^{a_1 + \cdots + a_{i-1} + j} d^i_j \sigma,\]</div>
+<p>where the terms whose face <span class="math notranslate nohighlight">\(d^i_j \sigma\)</span> is degenerate are dropped.</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="../torch_bsf.html#torch_bsf.geometry.SimploidalSet.boundary_matrix" title="torch_bsf.geometry.SimploidalSet.boundary_matrix"><code class="xref py py-meth docutils literal notranslate"><span class="pre">boundary_matrix()</span></code></a> returns the
+integer matrix of <span class="math notranslate nohighlight">\(\partial_k\)</span>, with rows <code class="docutils literal notranslate"><span class="pre">simploids(k</span> <span class="pre">-</span> <span class="pre">1)</span></code> and
+columns <code class="docutils literal notranslate"><span class="pre">simploids(k)</span></code>; it satisfies
+<code class="docutils literal notranslate"><span class="pre">boundary_matrix(k)</span> <span class="pre">&#64;</span> <span class="pre">boundary_matrix(k</span> <span class="pre">+</span> <span class="pre">1)</span> <span class="pre">==</span> <span class="pre">0</span></code>.</p></li>
+<li><p><a class="reference internal" href="../torch_bsf.html#torch_bsf.geometry.SimploidalSet.betti_numbers" title="torch_bsf.geometry.SimploidalSet.betti_numbers"><code class="xref py py-meth docutils literal notranslate"><span class="pre">betti_numbers()</span></code></a> returns the Betti
+numbers <span class="math notranslate nohighlight">\(\beta_0, \ldots, \beta_{\dim}\)</span>, the ranks of the homology
+groups.  The ranks are computed exactly by integer elimination, over the
+rationals (<code class="docutils literal notranslate"><span class="pre">field=&quot;Q&quot;</span></code>, default) or over <span class="math notranslate nohighlight">\(\mathbb Z / 2\)</span>
+(<code class="docutils literal notranslate"><span class="pre">field=&quot;Z2&quot;</span></code>); the two differ only for spaces whose integral homology has
+torsion, such as non-orientable surfaces.</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.geometry</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimploidalSet</span>
+
+<span class="c1"># A torus: a square whose opposite edges are identified</span>
+<span class="n">torus</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">square</span> <span class="o">=</span> <span class="n">torus</span><span class="o">.</span><span class="n">add_simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">torus</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">torus</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">torus</span><span class="o">.</span><span class="n">betti_numbers</span><span class="p">())</span>
+
+<span class="c1"># A sphere: a square whose two edges face(1, *) are collapsed into</span>
+<span class="c1"># vertices and whose two other edges are identified</span>
+<span class="n">sphere</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">square</span> <span class="o">=</span> <span class="n">sphere</span><span class="o">.</span><span class="n">add_simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+    <span class="n">edge</span> <span class="o">=</span> <span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
+    <span class="n">sphere</span><span class="o">.</span><span class="n">degenerate</span><span class="p">(</span><span class="n">edge</span><span class="p">,</span> <span class="n">edge</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">sphere</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">square</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">sphere</span><span class="o">.</span><span class="n">betti_numbers</span><span class="p">())</span>
+
+<span class="c1"># A projective plane: two triangles glued along their edges</span>
+<span class="n">rp2</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">t1</span><span class="p">,</span> <span class="n">t2</span> <span class="o">=</span> <span class="n">rp2</span><span class="o">.</span><span class="n">add_simplex</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">rp2</span><span class="o">.</span><span class="n">add_simplex</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">rp2</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">t1</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">t2</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+<span class="n">rp2</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">t1</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">t2</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="n">rp2</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">t1</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">t2</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">rp2</span><span class="o">.</span><span class="n">betti_numbers</span><span class="p">(),</span> <span class="n">rp2</span><span class="o">.</span><span class="n">betti_numbers</span><span class="p">(</span><span class="n">field</span><span class="o">=</span><span class="s2">"Z2"</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[1, 2, 1]
+[1, 0, 1]
+[1, 0, 0] [1, 1, 1]
+</pre></div>
+</div>
+</section>
+<section id="topological-checks-complement-numerical-checks">
+<h2>Topological checks complement numerical checks<a class="headerlink" href="#topological-checks-complement-numerical-checks" title="Link to this heading"></a></h2>
+<p>Betti numbers describe connectivity and holes of the declared domain, not
+properties inferred from observations. A torus domain remains topologically a
+torus even if learned coefficients collapse its image to a point. Conversely,
+a self-intersecting plotted image does not automatically change the builder’s
+homology. Inspect the domain and its fitted image separately.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">domain.check()</span></code> before compilation, examine expected component and hole
+counts, and then verify representative identified-face predictions numerically.
+If a collapsed edge is represented through degeneracy, confirm that the fitted
+image is constant along that direction. These small checks often reveal chart
+mistakes earlier than a large regression or expensive experiment batch.
+For the categorical background and face/degeneracy relations, see
+<a class="reference internal" href="simploidal_category.html"><span class="doc">The Category of Simploidal Sets</span></a>.</p>
+</section>
+<section id="plan-an-assembled-experiment-from-end-to-end">
+<h2>Plan an assembled experiment from end to end<a class="headerlink" href="#plan-an-assembled-experiment-from-end-to-end" title="Link to this heading"></a></h2>
+<p>Begin with a small geometric sketch that names every local chart and its
+parameter convention. List which faces represent the same physical boundary
+and whether their parameter direction agrees. Then construct only those
+identifications and verify them using simple coefficient values or a known
+response. This is easier to diagnose than fitting a large noisy data set and
+trying to infer a mistaken orientation from the resulting image.</p>
+<p>Allocate observations per maximal patch and deliberately include important
+shared boundaries. Boundary measurements can be entered through their face
+cell or through either incident chart, provided the chosen coordinates and
+IDs are consistent. If the same physical measurement is entered twice, it
+receives twice the relative influence unless weights account for duplication.
+Decide whether two rows are independent experiments or two chart descriptions
+of one experiment before forming the final <code class="docutils literal notranslate"><span class="pre">Samples</span></code> object.</p>
+<p>Check control counts after compilation rather than summing standalone patch
+counts: sharing reduces the number of independent unknowns. Conversely, a
+large total observation count does not imply that every patch is sufficiently
+sampled. Build a per-cell summary of row count, total weight and held-out
+residuals. This often identifies a poorly covered patch before global data
+rank or a global error statistic makes the underlying cause obvious.</p>
+<p>When comparing topology choices, keep the measured responses and physical
+evaluation locations fixed. An independently fitted pair of patches has more
+free boundary values than a glued pair, so its training residual may be lower.
+That does not make it preferable when continuity is a requirement. Report
+both held-out accuracy and the boundary agreement condition, as the seam
+figure does. For higher-dimensional faces, compare a grid over the whole face,
+not just its corners.</p>
+<p>After the geometry and validation protocol are stable, increase degree or
+add penalties one change at a time. Recompile when topology changes, resolve
+fixed rows again, and preserve the mapping from raw-data chart names to stable
+saved IDs. That mapping makes model archives useful to future experiments
+without depending on the lifetime of the original topology builder.</p>
+<p>Retain that validated domain schema alongside every exported observation batch.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="active_learning.html" class="btn btn-neutral float-left" title="Explicit ensembles and active learning" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="simploidal_category.html" class="btn btn-neutral float-right" title="The Category of Simploidal Sets" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: perf/457-reuse-preconditioner
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/advanced/simploidal.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/advanced/simploidal.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/advanced/simploidal.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/advanced/simploidal.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="simploidal.html">perf/457-reuse-preconditioner</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,392 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grid sampling &mdash; PyTorch-BSF 0.22.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5686f5df"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Fixed controls" href="partial.html" />
+    <link rel="prev" title="Regularization and numerical evidence" href="regularization.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#follow-a-fit-through-the-guides">Follow a fit through the guides</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Grid sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#when-a-lattice-is-useful">When a lattice is useful</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#create-and-evaluate-a-grid">Create and evaluate a grid</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#meaning-of-resolution">Meaning of resolution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#choose-cells-deliberately">Choose cells deliberately</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#how-to-tune-resolution">How to tune resolution</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#common-interpretation-errors">Common interpretation errors</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="partial.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Grid sampling</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/grid_sampling.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="grid-sampling">
+<h1>Grid sampling<a class="headerlink" href="#grid-sampling" title="Link to this heading"></a></h1>
+<section id="when-a-lattice-is-useful">
+<h2>When a lattice is useful<a class="headerlink" href="#when-a-lattice-is-useful" title="Link to this heading"></a></h2>
+<p>Use a grid to inspect a fitted curve or surface at predictable locations,
+include domain boundaries, compare two models at exactly the same points, or
+prepare a structured experiment whose sample count is known in advance. A
+barycentric grid includes evenly spaced integer subdivisions of each simplex
+factor. Product domains take the tensor product of those factor grids.</p>
+<p>A grid is particularly helpful when random samples have missed an endpoint or
+when a sparse display makes a smooth curve appear angular. It can also expose
+oscillations between observations. It is not evidence of fitting accuracy by
+itself: evaluating a bad model at more points produces a more detailed picture
+of that same bad model. Compare against independently measured responses when
+making an accuracy claim.</p>
+<p>The grid API is <code class="docutils literal notranslate"><span class="pre">grid(space,</span> <span class="pre">resolution=...)</span></code> and returns <code class="docutils literal notranslate"><span class="pre">Points</span></code>. It
+uses the compiled geometry and stable cell IDs from the space, so there is no
+separate simplex-versus-simploid grid function to choose. It needs only the
+core installation; Matplotlib is needed only if you draw the resulting points.</p>
+</section>
+<section id="create-and-evaluate-a-grid">
+<h2>Create and evaluate a grid<a class="headerlink" href="#create-and-evaluate-a-grid" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">Samples</span><span class="p">,</span> <span class="n">fit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.sampling</span><span class="w"> </span><span class="kn">import</span> <span class="n">grid</span>
+
+<span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">training</span> <span class="o">=</span> <span class="n">grid</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">training</span><span class="o">.</span><span class="n">parameters</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+<span class="n">samples</span> <span class="o">=</span> <span class="n">Samples</span><span class="p">(</span><span class="n">training</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">square</span><span class="p">()[:,</span> <span class="kc">None</span><span class="p">])</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">samples</span><span class="p">)</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="n">coarse</span> <span class="o">=</span> <span class="n">grid</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">fine</span> <span class="o">=</span> <span class="n">grid</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">coarse_values</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">coarse</span><span class="p">)</span>
+<span class="n">fine_values</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">fine</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">coarse</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">fine</span><span class="p">)</span> <span class="o">==</span> <span class="mi">13</span>
+<span class="k">assert</span> <span class="n">coarse_values</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">fine_values</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">13</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Here degree two specifies three learned controls, while resolution twelve
+specifies thirteen evaluation rows. They are independent settings. Changing
+the evaluation resolution does not trigger another fit or alter the three
+controls. If you obtain true outputs at the new grid points and append them
+as observations, a subsequent fit may change, but that is a separate action.</p>
+<p>The row order follows barycentric multi-index enumeration, not necessarily
+ascending order of the particular coordinate you want on a horizontal axis.
+Sort by that coordinate before connecting scalar graph points. Keep IDs and
+values in the same reordered batch. For mixed-cell plots, split by cell first
+so that lines do not connect unrelated parameter charts.</p>
+<figure class="align-default" id="id1">
+<a class="reference internal image-reference" href="../_images/grid.png"><img alt="Four coarse evaluations and thirteen fine evaluations of the same continuous curve." src="../_images/grid.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 14 </span><span class="caption-text">Before: resolution three uses four points and straight display segments.
+After: resolution twelve resolves the same continuous function more finely.
+The dotted reference is identical in both panels; no model improvement is
+attributed to the denser display.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>The figure is reproduced by <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">examples/generate_guide_figures.py</span></code>.
+It evaluates a known smooth response to isolate resolution from regression
+error. For fitting and degree effects, compare <a class="reference internal" href="auto_degree.html"><span class="doc">Cross-validation and degree search</span></a> instead.</p>
+</section>
+<section id="meaning-of-resolution">
+<h2>Meaning of resolution<a class="headerlink" href="#meaning-of-resolution" title="Link to this heading"></a></h2>
+<p>For a simplex factor of dimension <span class="math notranslate nohighlight">\(a\)</span>, positive resolution <span class="math notranslate nohighlight">\(r\)</span>
+creates barycentric tuples <span class="math notranslate nohighlight">\((k_0/r,\ldots,k_a/r)\)</span>, where all integers
+<span class="math notranslate nohighlight">\(k_i\)</span> are nonnegative and sum to <span class="math notranslate nohighlight">\(r\)</span>. Thus the row count is</p>
+<div class="math notranslate nohighlight">
+\[N(a,r)=\binom{r+a}{a}.\]</div>
+<p>A line segment has <code class="docutils literal notranslate"><span class="pre">r+1</span></code> rows, a triangle has <code class="docutils literal notranslate"><span class="pre">(r+1)*(r+2)/2</span></code>, and a
+tetrahedron has <code class="docutils literal notranslate"><span class="pre">(r+1)*(r+2)*(r+3)/6</span></code>. Each includes vertices and all lower
+dimensional boundary lattice points. A triangle of resolution ten has 66
+rows, not a ten-by-ten rectangular array.</p>
+<p>For a product of factors, multiply their counts:</p>
+<div class="math notranslate nohighlight">
+\[N((a_1,\ldots,a_k),r)=\prod_{i=1}^{k}\binom{r+a_i}{a_i}.\]</div>
+<p>A square represented by <code class="docutils literal notranslate"><span class="pre">dimensions=(1,</span> <span class="pre">1)</span></code> has <code class="docutils literal notranslate"><span class="pre">(r+1)**2</span></code> rows. A prism
+of type <code class="docutils literal notranslate"><span class="pre">(2,</span> <span class="pre">1)</span></code> has <code class="docutils literal notranslate"><span class="pre">((r+1)*(r+2)/2)*(r+1)</span></code>. At resolution ten, those
+counts are 121 and 726 respectively. This growth is why a value convenient
+for a curve can be expensive for a high-dimensional product.</p>
+<p>Resolution zero is a special, useful case: it returns one barycenter per
+selected cell. Every coordinate in a dimension-<code class="docutils literal notranslate"><span class="pre">a</span></code> factor is <code class="docutils literal notranslate"><span class="pre">1/(a+1)</span></code>.
+It does not return all vertices, and it does not mean an empty grid. Resolution
+one gives the factor vertices and their product combinations. Noninteger,
+negative and boolean resolutions are invalid.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">triangle</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">square</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+<span class="n">prism</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simploid</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">grid</span><span class="p">(</span><span class="n">triangle</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span> <span class="o">==</span> <span class="mi">66</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">grid</span><span class="p">(</span><span class="n">square</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span> <span class="o">==</span> <span class="mi">121</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">grid</span><span class="p">(</span><span class="n">prism</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span> <span class="o">==</span> <span class="mi">726</span>
+<span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">grid</span><span class="p">(</span><span class="n">triangle</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span>
+                      <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>The current interface uses one resolution for all factors. If the physical
+response varies rapidly along one factor but slowly along another, construct
+custom <code class="docutils literal notranslate"><span class="pre">Points</span></code> with an anisotropic lattice yourself, or use random samples.
+Do not try to encode anisotropic evaluation density by increasing a factor’s
+polynomial degree: degree changes approximation capacity and fitting cost.</p>
+</section>
+<section id="choose-cells-deliberately">
+<h2>Choose cells deliberately<a class="headerlink" href="#choose-cells-deliberately" title="Link to this heading"></a></h2>
+<p>By default, <code class="docutils literal notranslate"><span class="pre">grid</span></code> visits the space’s maximal cells. Pass <code class="docutils literal notranslate"><span class="pre">cells=[id,</span> <span class="pre">...]</span></code>
+or original builder handles to restrict evaluation to selected patches. For
+example, a detailed plot of one problematic patch can use a high resolution
+without evaluating the whole assembled domain. A selected lower-dimensional
+face receives its own grid and its own cell ID.</p>
+<p>Coordinates in a mixed-cell batch are padded to <code class="docutils literal notranslate"><span class="pre">space.width</span></code>. The active
+coordinate width for each row comes from that row’s cell. Never infer a cell
+from the padding pattern: two cells can have identical dimensions but distinct
+identities. Pass the <code class="docutils literal notranslate"><span class="pre">Points</span></code> object directly to a multi-cell model so that
+prediction order and IDs are retained. Raw untagged parameter tensors are
+reserved for single-cell spaces.</p>
+<p>Boundary points from different cells are retained as distinct rows, even if
+the model images coincide on a glued face. This is useful for checking
+continuity from both charts. It also means a concatenated grid does not define
+a unique-point quadrature rule or a physical-area weighting. Simply averaging
+all rows gives more influence to cells with more lattice points and counts
+shared boundaries repeatedly. Decide the intended integration measure before
+using such an average as a global objective or metric.</p>
+<p>For an assembled space with different cell dimensions, equal resolution can
+generate very different counts per cell. A face may contribute relatively few
+rows while a high-dimensional patch contributes thousands. Restrict <code class="docutils literal notranslate"><span class="pre">cells</span></code>
+and report per-cell errors when examining coverage. Use <code class="docutils literal notranslate"><span class="pre">sample</span></code> with
+explicit cell probabilities when a fixed total budget and interpretable cell
+allocation are more important than exact lattice structure.</p>
+</section>
+<section id="how-to-tune-resolution">
+<h2>How to tune resolution<a class="headerlink" href="#how-to-tune-resolution" title="Link to this heading"></a></h2>
+<p>Start with a low resolution that makes all selected cells visible. Double it
+and compare the displayed image or error extrema. If the shape and error
+summary barely change, further display refinement may be unnecessary. If
+features appear or disappear, increase resolution locally and check whether
+they are supported by observations. A smooth-looking low-resolution surface
+can conceal high-degree oscillations.</p>
+<p>The cost of model evaluation is affected by both point count and local basis
+size. Raising degree and resolution together can multiply work in two ways.
+Estimate point counts before allocating a large product grid; use
+<code class="docutils literal notranslate"><span class="pre">space.n_controls</span></code> to understand coefficient count separately. For very
+large evaluations, process point subsets with <code class="docutils literal notranslate"><span class="pre">points.take(indices)</span></code> and
+concatenate predictions in original order rather than creating an unnecessarily
+large dense display.</p>
+<p>For scalar output graphs, use <code class="docutils literal notranslate"><span class="pre">model(points)</span></code> and ordinary Matplotlib lines
+or scatter plots against a selected parameter coordinate. <code class="docutils literal notranslate"><span class="pre">plot_model</span></code> draws
+two or three output coordinates as the model image; it is not a one-output
+versus-parameter plotter. The choice changes what the horizontal axis means,
+so label it explicitly. See <a class="reference internal" href="visualization.html"><span class="doc">Visualization</span></a> for overlays and control nets.</p>
+<p>A deterministic grid and a fixed seed solve different reproducibility needs.
+The grid itself has no random seed. Random observation noise, train/test
+partitioning, and optimization minibatches still need their own recorded
+seeds if present. Save the chosen resolution and cell list with experiment
+metadata, so a later evaluation can reproduce exactly the same locations.</p>
+</section>
+<section id="common-interpretation-errors">
+<h2>Common interpretation errors<a class="headerlink" href="#common-interpretation-errors" title="Link to this heading"></a></h2>
+<p>A grid point is not necessarily a control point. Control indices depend on
+polynomial degree, whereas evaluation locations depend on resolution. Even
+when these numbers coincide, an interior Bézier coefficient is generally not
+the function value at that lattice coordinate. Use <code class="docutils literal notranslate"><span class="pre">model(points)</span></code> for
+predicted responses, and <code class="docutils literal notranslate"><span class="pre">model.coefficients</span></code> only when you intend to inspect
+the coefficient net.</p>
+<p>Densifying predictions does not add information to the observation matrix.
+If a fit is rank deficient, sampling its output on a finer grid cannot make
+its original coefficients identifiable. Collect new true observations or
+change degree or constraints. Likewise, exact agreement of two fitted curves
+at a few vertices does not imply agreement over the interior; compare them
+on a sufficiently fine independent evaluation set.</p>
+<p>Grids include boundaries that random draws often miss, but they are still a
+finite set. They do not prove global monotonicity, boundedness, nonintersection
+or absence of extrema between points. Treat plotted evidence as a diagnostic,
+and use analytic or certified checks when the application requires those
+properties. For experiment allocation after an initial grid, see
+<a class="reference internal" href="active_learning.html"><span class="doc">Explicit ensembles and active learning</span></a>; for domain definitions, see <a class="reference internal" href="simploidal.html"><span class="doc">Single and assembled domains</span></a>.</p>
+<p>For a reusable evaluation protocol, keep one fixed grid for reports and a
+separate observation design for fitting. This prevents changes in display
+locations from being mistaken for changes in prediction quality.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="regularization.html" class="btn btn-neutral float-left" title="Regularization and numerical evidence" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="partial.html" class="btn btn-neutral float-right" title="Fixed controls" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: perf/457-reuse-preconditioner
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/advanced/grid_sampling.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/advanced/grid_sampling.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/advanced/grid_sampling.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/advanced/grid_sampling.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/advanced/grid_sampling.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/advanced/grid_sampling.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/advanced/grid_sampling.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="grid_sampling.html">perf/457-reuse-preconditioner</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
