@@ -451,7 +451,7 @@ Examples of migrated contracts:
 
 | Tests | Generated contracts |
 |-------|---------------------|
-| `tests/sampling.py` | Grid cardinality and lattice coordinates, simplex bounds, seeded reproducibility, Sobol warnings, skeleton risk coefficients against exact rationals and the paper tables, and skeleton sample allocation |
+| `tests/sampling.py` | Grid cardinality and lattice coordinates, simplex bounds, seeded reproducibility, Sobol warnings, skeleton risk coefficients against exact rationals, the paper tables and the closed forms of the theory chapter, and skeleton sample allocation |
 | `tests/preprocessing.py` | Fitted affine maps, inverse roundtrips, constant features and normalization statistics |
 | `tests/simploidal.py` | Mixed-degree index counts, nonnegative partition of unity, face restrictions and degeneracies |
 | `tests/io.py` | Exact coefficient, dtype, topology and prediction roundtrips |
