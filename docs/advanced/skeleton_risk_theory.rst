@@ -412,6 +412,98 @@ propagation to the faces with one more vertex.
    monomials span all polynomials of that degree on :math:`S`, because
    :math:`\omega_y = 1 - |\omega_I|` there.
 
+Triangular Jacobi extension
+---------------------------
+
+The orthogonal-polynomial construction does extend beyond curves, although
+it does not yet give a scalar closed form for :math:`a_1`.
+
+.. prf:proposition:: Propagation from an edge via Jacobi polynomials
+   :label: prop-skeleton-triangle-jacobi
+
+   Let :math:`m=1`, :math:`D\geq2`, :math:`N=D-2`, and let
+   :math:`I=\{1,2\}`. On the triangle with coordinates
+   :math:`(x_1,x_2,y)`, put :math:`r=x_1+x_2` and
+   :math:`z=x_1/r`. Write the boundary error polynomial as
+
+   .. math::
+
+      p_c(z,1-z,0)=z(1-z)\sum_{k=0}^N d_k P_k^{(2,2)}(2z-1).
+
+   Here :math:`P_n^{(\alpha,\beta)}(2v-1)` denotes the shifted Jacobi
+   polynomial orthogonal for the weight :math:`(1-v)^\alpha v^\beta`,
+   normalized by :math:`P_n^{(\alpha,\beta)}(1)=\binom{n+\alpha}{n}`.
+   Then the polynomial :math:`\Phi` of
+   :prf:ref:`thm-skeleton-propagation-reduction`, on this triangle, is
+
+   .. math::
+      :label: skeleton-triangle-jacobi
+
+      \Phi(x_1,x_2,y)=x_1x_2\sum_{k=0}^N d_k r^k
+      P_k^{(2,2)}(2z-1)P_{N-k}^{(0,2k+5)}(2r-1).
+
+   The expression has a polynomial extension to :math:`r=0`. Homogenize it
+   to degree :math:`D` before using
+   :eq:`skeleton-reduction-integral`. More explicitly, the homogeneous
+   polynomial is obtained by replacing the angular factor by
+
+   .. math::
+
+      H_k(x_1,x_2)=\sum_{h=0}^k(-1)^{k-h}
+      \binom{k+2}{h}\binom{k+2}{k-h}x_1^h x_2^{k-h}
+
+   and the radial factor by
+
+   .. math::
+
+      R_{N,k}(r,y)=\sum_{j=0}^{N-k}(-1)^{N-k-j}
+      \binom{N-k}{j}\binom{N+k+5}{N-k-j}r^j y^{N-k-j}.
+
+   Thus :math:`\Phi=x_1x_2\sum_k d_k H_k R_{N,k}` in homogeneous
+   coordinates. If its coefficient of :math:`x_1^a x_2^b y^n` is
+   :math:`A_{abn}`, the Bernstein control of the triangle error
+   :math:`\phi` is
+
+   .. math::
+      :label: skeleton-triangle-jacobi-controls
+
+      e((a,b),n)=\frac{A_{abn}\,a!b!n!}{D!(n+1)}.
+
+.. prf:proof::
+
+   Every error polynomial in question is divisible by :math:`x_1x_2`.
+   Write :math:`\Phi=x_1x_2 Q`. The orthogonality condition
+   :eq:`skeleton-reduction-orthogonality` becomes orthogonality of
+   :math:`Q` to all polynomials of degree at most :math:`N-1` for the
+   weight :math:`x_1^2x_2^2`. Under
+   :math:`(x_1,x_2)=(rz,r(1-z))`, this weighted area element is
+   :math:`r^5z^2(1-z)^2\,dr\,dz`.
+
+   Set :math:`A_k(z)=P_k^{(2,2)}(2z-1)`. Polynomials of total degree
+   at most :math:`N-1` are spanned by
+   :math:`r^l A_l(z)q(r)`, with :math:`0\leq l\leq N-1` and
+   :math:`\deg q\leq N-1-l`: this follows by expanding each monomial
+   :math:`r^j z^a` in the angular Jacobi basis, with :math:`a\leq j`.
+   For the :math:`k`-th summand of :math:`Q`, angular orthogonality
+   kills every :math:`l\ne k`. When :math:`l=k`, the remaining
+   integral has weight :math:`r^{2k+5}` and vanishes by the radial
+   Jacobi orthogonality. Consequently every displayed summand satisfies
+   :eq:`skeleton-reduction-orthogonality`.
+
+   The space of polynomials of degree at most :math:`N` orthogonal to
+   all degrees at most :math:`N-1` has dimension :math:`N+1`.
+   The displayed :math:`N+1` polynomials are independent: at
+   :math:`r=1`, their radial factors equal one and their restrictions
+   are the angular Jacobi basis. They therefore give the unique
+   orthogonal extension of the prescribed boundary data.
+   Since :math:`\Phi(x_1,x_2,0)=\phi(x_1,x_2,0)`, the polynomial from
+   :prf:ref:`thm-skeleton-propagation-reduction` has exactly these
+   boundary values and orthogonality, proving the formula.
+   Finally :math:`\partial_y(y\phi)=\Phi` divides each monomial
+   coefficient by :math:`n+1` when recovering :math:`\phi`;
+   conversion to Bernstein coefficients gives
+   :eq:`skeleton-triangle-jacobi-controls`.
+
 Closed forms
 ------------
 
@@ -904,16 +996,30 @@ around once the dimension is large enough.
 Open questions
 --------------
 
-- **A closed form in D for 1 ≤ m ≤ D − 3.** By
-  :prf:ref:`thm-skeleton-propagation-reduction`, :math:`a_m` is determined by the
-  propagation onto a face with :math:`m + 2 \geq 3` vertices. For
-  :math:`m = 0` this is an edge, and Legendre polynomials solve it. For
-  larger :math:`m`, the bubble functions live on a simplex of dimension at
-  least two, and no product formula is known. Exact values such as
-  :math:`a_1 = 99/28, 71/20, 188/55, 81259/25025` for :math:`M = 3` and
-  :math:`D = 3, \dots, 6` acquire large prime factors, such as
-  :math:`81259 = 23 \cdot 3533`. This suggests that no single
-  hypergeometric term gives them.
+- **A scalar closed form in D for 1 ≤ m ≤ D − 3.**
+  :prf:ref:`prop-skeleton-triangle-jacobi` solves the triangular
+  orthogonal-extension step for :math:`m=1`, using separated angular
+  and radial Jacobi polynomials. Substitution into the Gram trace gives
+  a finite exact procedure, but the resulting sums have not been
+  evaluated to a scalar closed form for :math:`a_1`.
+
+  A single radial polynomial shared by all angular modes does not
+  provide this extension. Already at :math:`D=4` (:math:`N=2`), the
+  normalized radial factors for :math:`k=0,1,2` are respectively
+  :math:`36r^2-56r+21`, :math:`9r-8`, and :math:`1`; they are different
+  polynomials, each equal to one at :math:`r=1`. Thus this particular
+  separation ansatz fails, while the mode-dependent construction above
+  succeeds. This rules out only that ansatz, not other closed forms.
+
+  Exact rational checks of every angular mode for
+  :math:`D=2,\dots,7` reproduce the independently solved propagation
+  matrices and, after reconstructing the Gram trace, give
+  :math:`a_1=3,99/28,71/20,188/55,81259/25025,\dots` for :math:`M=3`.
+  The complete checked values are fixed in ``tests/sampling.py``.
+  Large prime factors in these values do not rule out a hypergeometric
+  formula: no nonexistence claim or conjecture of that kind is made.
+  Extending the angular construction to larger faces and evaluating
+  the scalar risk sums remain open.
 - **A simpler form of a_0 for finite M ≥ 3.**
   :eq:`skeleton-vertex-double-sum` reduces the control-pair sum to a
   :math:`D\times D` sum with an explicit generating function. For example

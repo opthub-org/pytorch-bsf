@@ -802,6 +802,73 @@ def test_risk_polynomial_limits_in_high_dimensions(degree):
     assert residual and abs(2 * half - residual) < abs(residual) / 1000
 
 
+def _triangle_jacobi_modes(degree: int) -> list[dict[tuple[int, ...], Fraction]]:
+    """Edge-error modes via the documented homogeneous Jacobi sums, converted to Bernstein controls."""
+    n = degree - 2
+    modes = []
+    for k in range(n + 1):
+        polynomial: dict[tuple[int, ...], int] = {}
+        for h in range(k + 1):
+            angular = (-1) ** (k - h) * comb(k + 2, h) * comb(k + 2, k - h)
+            for j in range(n - k + 1):
+                radial = (-1) ** (n - k - j) * comb(n - k, j) * comb(n + k + 5, n - k - j)
+                for ell in range(j + 1):
+                    alpha = (1 + h + ell, 1 + k - h + j - ell, n - k - j)
+                    polynomial[alpha] = polynomial.get(alpha, 0) + angular * radial * comb(j, ell)
+        modes.append(
+            {
+                alpha: Fraction(value * math.prod(math.factorial(a) for a in alpha), math.factorial(degree) * (alpha[2] + 1))
+                for alpha, value in polynomial.items()
+            }
+        )
+    return modes
+
+
+# Every triangular edge mode and its reconstructed risk, not just a few fitted scalar values.
+_TRIANGLE_EDGE_RISKS = {
+    2: Fraction(3),
+    3: Fraction(99, 28),
+    4: Fraction(71, 20),
+    5: Fraction(188, 55),
+    6: Fraction(81259, 25025),
+    7: Fraction(123021, 40040),
+}
+
+
+@pytest.mark.parametrize("degree", sorted(_TRIANGLE_EDGE_RISKS))
+def test_triangle_jacobi_extension_matches_exact_propagation_and_risk(degree):
+    alpha = _simplex_indices(3, degree)
+    edge = [i for i, a in enumerate(alpha) if a[0] and a[1] and not a[2]]
+    modes = _triangle_jacobi_modes(degree)
+    exact, grams, errors = _exact_coefficients(3, degree)
+    boundary = [[mode.get(alpha[i], Fraction(0)) for mode in modes] for i in edge]
+    identity = [[Fraction(int(i == j)) for j in range(len(edge))] for i in range(len(edge))]
+    inverse = _exact_solve(boundary, identity)
+    # Recover all propagation columns from their independent Jacobi boundary modes.
+    reconstructed = [
+        [
+            sum((mode.get(a, Fraction(0)) * inverse[k][j] for k, mode in enumerate(modes)), Fraction(0))
+            for j in range(len(edge))
+        ]
+        for a in alpha
+    ]
+    assert reconstructed == [[row[j] for j in edge] for row in errors]
+    gram_edge = [[_bernstein_moment(alpha[i], alpha[j], frozenset((0, 1)), degree) for j in edge] for i in edge]
+    gram_full = grams[0]
+    ge = [
+        [sum((g * e[j] for g, e in zip(row, reconstructed, strict=True)), Fraction(0)) for j in range(len(edge))]
+        for row in gram_full
+    ]
+    ete = [
+        [sum((e[i] * g[j] for e, g in zip(reconstructed, ge, strict=True)), Fraction(0)) for j in range(len(edge))]
+        for i in range(len(edge))
+    ]
+    trace = _exact_solve(gram_edge, ete)
+    # Three equivalent edges, and C(3, 2) from the allocation convention.
+    risk = 9 * sum(trace[i][i] for i in range(len(edge)))
+    assert risk == exact[1] == _TRIANGLE_EDGE_RISKS[degree]
+
+
 def _curve_error(degree: int, k: int) -> Fraction:
     """The Bernstein coefficient b_k of the error along an edge from a unit error at a vertex, ``k`` = its exponent."""
     return Fraction((-1) ** (degree - k) * k * comb(degree + 2, k + 1), degree * (degree + 2))
