@@ -745,6 +745,32 @@ def test_non_conforming_mesh_is_rejected():
     assert SimplicialMesh(vertices, [[0, 1, 3, 4], [0, 2, 3, 4], [0, 1, 3, 5], [0, 2, 3, 5]]).unmatched_faces == 0
 
 
+@pytest.mark.parametrize("conforming, max_calls", [(True, 0), (False, 18)])
+def test_face_separation_batches_determinants_and_stops_when_done(monkeypatch, conforming, max_calls):
+    """Bound small determinant dispatches without a machine-dependent wall-clock threshold."""
+    vertices, simplices = _flat_quad_with_crossed_diagonals()
+    if conforming:
+        simplices = [[0, 1, 3, 4], [0, 2, 3, 4], [0, 1, 3, 5], [0, 2, 3, 5]]
+    determinant = torch.linalg.det
+    calls = 0
+
+    def count_determinants(matrices):
+        nonlocal calls
+        calls += 1
+        return determinant(matrices)
+
+    monkeypatch.setattr(torch.linalg, "det", count_determinants)
+    if conforming:
+        mesh = SimplicialMesh(vertices, simplices)
+    else:
+        with pytest.warns(UserWarning, match="not conforming"):
+            mesh = SimplicialMesh(vertices, simplices, strict=False)
+    assert mesh.unmatched_faces == (0 if conforming else 4)
+    assert calls <= max_calls
+    if not conforming:
+        assert calls > 0
+
+
 def test_hanging_vertex_and_crowded_face_are_detected():
     # A triangle against two triangles that meet at the midpoint of its edge.
     hanging = [[0.0, 0.0], [2.0, 0.0], [0.0, 2.0], [2.0, 2.0], [1.0, 1.0]]
