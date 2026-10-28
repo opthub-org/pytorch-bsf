@@ -1061,6 +1061,26 @@ def test_newest_vertex_state_is_carried_and_required():
     assert torch.equal(refine(lattice, [0], rule="newest_vertex").simplices, first.simplices)
 
 
+def test_newest_vertex_detects_a_broken_matching_condition():
+    # Retag a neighbour across the refinement edge of a simplex so that its refinement edge differs although it
+    # is of the same generation; the recursion would not be guaranteed to end, so refine refuses.
+    mesh = lattice_mesh(2, 2)
+    state = mesh._newest_vertex
+    assert state is not None
+    cells = [tuple(c) for c in mesh.simplices.tolist()]
+
+    def edge(cell: tuple[int, ...]) -> set[int]:
+        ordered, tag, _ = state[cell]
+        return {ordered[0], ordered[tag]}
+
+    k, neighbour = next((k, c) for k, t in enumerate(cells) for c in cells if c != t and edge(t) <= set(c))
+    ordered, _, generation = state[neighbour]
+    new_tag = next(t for t in range(1, len(ordered)) if {ordered[0], ordered[t]} != edge(cells[k]))
+    mesh._newest_vertex = {**state, neighbour: (ordered, new_tag, generation)}
+    with pytest.raises(RuntimeError, match="matching condition"):
+        refine(mesh, [k], rule="newest_vertex")
+
+
 @pytest.mark.parametrize("dim, levels", [(1, 300), (2, 150), (3, 90)])
 def test_newest_vertex_deep_refinement_towards_a_corner(dim, levels):
     # Cells of size about 2**-(levels / dim), far below the scale of the lattice, stay conforming.
