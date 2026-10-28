@@ -3,6 +3,7 @@ import warnings
 from fractions import Fraction
 from itertools import combinations
 from math import comb
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -420,9 +421,17 @@ def test_skeleton_risk_documented_comparison(n_vertices, degree):
     assert abs(optimum - all_at_once) > 2 * _RISK_RELATIVE_ERROR * optimum
 
 
-def test_skeleton_risk_coefficients_reject_ill_conditioned_degrees():
+@pytest.mark.parametrize(
+    ("dimension", "degree"),
+    # Ill-conditioned; binomials beyond float64; and 46376 controls, which must be rejected before allocation.
+    [(2, 40), (1, 600), (4, 30)],
+)
+def test_skeleton_risk_coefficients_reject_ill_conditioned_degrees(dimension, degree):
+    space = BezierSpace.simplex(dimension, degree=degree)
     with pytest.raises(ValueError, match="degree is too large"):
-        skeleton_risk_coefficients(BezierSpace.simplex(2, degree=40))
+        skeleton_risk_coefficients(space)
+    with pytest.raises(ValueError, match="Pass ratio explicitly"):
+        sample_skeleton(space, 4)
 
 
 @pytest.mark.parametrize(
@@ -462,6 +471,22 @@ def _face_counts(points, n_vertices):
     }
 
 
+def _assert_largest_remainder(points, fractions, n_vertices):
+    """Rows per skeleton are the floor or ceiling of n times its fraction, split among faces within one row."""
+    counts = _face_counts(points, n_vertices)
+    n = len(points.parameters)
+    assert sum(counts.values()) == n
+    # The fractions carry a few M roundings of relative error (see test_skeleton_risk_coefficients_structure).
+    slack = n * 4 * n_vertices * U
+    for size in range(1, n_vertices + 1):
+        level = [counts[face] for face in combinations(range(n_vertices), size)]
+        quota = n * fractions[size - 1]
+        assert math.floor(quota - slack) <= sum(level) <= math.ceil(quota + slack)
+        assert max(level) - min(level) <= 1
+        if fractions[size - 1] == 0:
+            assert sum(level) == 0
+
+
 @example(n_vertices=2, degree=2, n=0, seed=0, method="random")
 @example(n_vertices=3, degree=3, n=1, seed=0, method="sobol")
 @given(
@@ -479,18 +504,7 @@ def test_sample_skeleton_allocates_optimal_counts(n_vertices, degree, n, seed, m
     assert (t >= 0).all()
     # Normalizing at most n_vertices exponentials: one division and a sum of n_vertices terms per row.
     assert ((t.sum(1) - 1).abs() <= (n_vertices + 1) * U * 2).all()
-    counts = _face_counts(points, n_vertices)
-    assert sum(counts.values()) == n
-    ratio = optimal_skeleton_ratio(space)
-    for size in range(1, n_vertices + 1):
-        level = [counts[face] for face in combinations(range(n_vertices), size)]
-        # Largest-remainder rounding: each skeleton gets the floor or ceiling of its quota. The quota n * r
-        # inherits the relative error of r (a few M roundings, see test_skeleton_risk_coefficients_structure).
-        slack = n * 4 * n_vertices * U
-        assert math.floor(n * ratio[size - 1] - slack) <= sum(level) <= math.ceil(n * ratio[size - 1] + slack)
-        assert max(level) - min(level) <= 1
-        if ratio[size - 1] == 0:
-            assert sum(level) == 0
+    _assert_largest_remainder(points, optimal_skeleton_ratio(space), n_vertices)
     assert torch.equal(t, sample_skeleton(space, n, seed=seed, method=method).parameters)
 
 
@@ -507,25 +521,37 @@ def test_sample_skeleton_allocates_explicit_ratios(n_vertices, data, n, seed):
         ).filter(lambda r: max(r) > 0)
     )
     points = sample_skeleton(BezierSpace.simplex(n_vertices - 1, degree=2), n, ratio=ratio, seed=seed)
-    counts = _face_counts(points, n_vertices)
-    assert sum(counts.values()) == n
     largest = max(ratio)
     fractions = [r / largest for r in ratio]
-    fractions = [f / sum(fractions) for f in fractions]
-    for size in range(1, n_vertices + 1):
-        level = [counts[face] for face in combinations(range(n_vertices), size)]
-        # Floor or ceiling of the quota; the normalized fractions carry a few M roundings of relative error.
-        slack = n * 4 * n_vertices * U
-        assert math.floor(n * fractions[size - 1] - slack) <= sum(level) <= math.ceil(n * fractions[size - 1] + slack)
-        assert max(level) - min(level) <= 1
-        if ratio[size - 1] == 0:
-            assert sum(level) == 0
+    _assert_largest_remainder(points, [f / sum(fractions) for f in fractions], n_vertices)
+
+
+def test_sample_skeleton_chooses_extra_row_faces_at_random():
+    # Four vertices and one or three rows on the 0-skeleton: one row per chosen vertex, picked by rejection
+    # sampling (1 row) or by a random permutation (3 rows). Over 400 seeds each vertex is chosen with
+    # probability rows / 4; five binomial standard errors bound the seeded frequencies.
+    space = BezierSpace.simplex(3, degree=1)
+    seeds_ = 400
+    for rows in (1, 3):
+        hits = torch.zeros(4)
+        for seed in range(seeds_):
+            hits += (sample_skeleton(space, rows, ratio=[1, 0, 0, 0], seed=seed).parameters > 0).sum(0)
+        p = rows / 4
+        assert ((hits / seeds_ - p).abs() <= 5 * math.sqrt(p * (1 - p) / seeds_)).all()
 
 
 def test_sample_skeleton_spreads_few_rows_over_wide_skeletons():
     # 24 vertices have C(24, 12) = 2704156 faces of size 12; each of the few rows there lands on a distinct face.
     space = BezierSpace.simplex(23, degree=1)
-    points = sample_skeleton(space, 48, ratio=[1.0] * 24, seed=0)
+    real_combinations = combinations
+
+    def small_combinations(vertices, size):
+        # Listing every face of a middle skeleton would take seconds; the few rows there must not need it.
+        assert size not in range(4, 21)
+        return real_combinations(vertices, size)
+
+    with patch("torch_bsf.sampling.combinations", small_combinations):
+        points = sample_skeleton(space, 48, ratio=[1.0] * 24, seed=0)
     sizes = (points.parameters > 0).sum(1)
     assert sizes.bincount(minlength=25)[1:].tolist() == [2] * 24
     middle = points.parameters[sizes == 12] > 0
@@ -588,7 +614,12 @@ def test_sample_skeleton_accepts_ratio_entries_near_the_float64_limit():
         [True, False],
         [1j, 1.0],
         [True, 1.0],
+        [torch.tensor(True), 1.0],
+        [torch.tensor(1.0, device="meta"), 1.0],
+        [np.array(1.0), 1.0],
         np.array([True, False]),
+        np.array([1 + 1j, 1.0]),
+        np.array([1.0, 1.0], dtype=np.complex64),
         torch.tensor([True, False]),
         torch.tensor([1j, 1.0]),
         torch.ones(2, device="meta"),

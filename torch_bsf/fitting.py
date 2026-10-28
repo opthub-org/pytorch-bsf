@@ -363,10 +363,13 @@ def fit_skeleton_regression(
     ignored = int((support.sum(1) > degree).sum())
     ignored_message = f" Ignored {ignored} rows on faces with more than degree={degree} vertices." if ignored else ""
     faces = _faces_with_interior_controls(width, degree)
-    grouped: dict[tuple[int, ...], list[int]] = {face: [] for face in faces}
-    for r, row in enumerate(support.tolist()):
-        grouped.get(tuple(i for i, nonzero in enumerate(row) if nonzero), []).append(r)
-    rows = {face: torch.tensor(grouped[face], dtype=torch.long) for face in faces}
+    # Group rows by their distinct supports in one vectorized pass; row order within a face is kept.
+    supports, inverse = torch.unique(support, dim=0, return_inverse=True)
+    face_of_support = {tuple(row.nonzero().flatten().tolist()): k for k, row in enumerate(supports)}
+    empty = torch.zeros(0, dtype=torch.long)
+    rows = {
+        face: (inverse == face_of_support[face]).nonzero().flatten() if face in face_of_support else empty for face in faces
+    }
     missing = [face for face in faces if not (samples.weights[rows[face]] > 0).any()]
     if missing:
         raise ValueError(f"faces without rows of positive weight: {missing}.")
@@ -382,5 +385,7 @@ def fit_skeleton_regression(
         if not result.success:
             message = f"Face {face}: {result.message}{ignored_message}"
             return SkeletonRegressionResult(BezierModel(space, coefficients), results, False, result.status, message)
+    # Every face uses the same solver, so they share its success status ("solved" or "converged").
+    status = results[faces[-1]].status
     message = f"Every face least-squares problem was solved.{ignored_message}"
-    return SkeletonRegressionResult(BezierModel(space, coefficients), results, True, "solved", message)
+    return SkeletonRegressionResult(BezierModel(space, coefficients), results, True, status, message)

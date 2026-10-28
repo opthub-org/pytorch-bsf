@@ -692,7 +692,7 @@ def test_skeleton_regression_recovers_noiseless_models(dimension, degree, solver
     points = sample_skeleton(space, 40 * space.n_controls, seed=degree)
     samples = Samples(points, truth(points).detach())
     result = fit_skeleton_regression(space, samples, solver=solver).require_success()
-    assert result.success and result.status == "solved"
+    assert result.success and result.status == ("converged" if isinstance(solver, SparseLeastSquares) else "solved")
     expected = {face for size in range(1, min(degree, dimension + 1) + 1) for face in combinations(range(dimension + 1), size)}
     assert set(result.faces) == expected
     # Each face solve is backward stable: its controls err by about kappa * n * U relative to the data scale (1),
@@ -752,15 +752,15 @@ def test_skeleton_regression_matches_the_asymptotic_risk(dimension, degree, rati
     n = 2000
     alpha = torch.tensor(_simplex_indices(width, degree))
     interior = [int(((alpha > 0).sum(1) == k).sum()) // comb(width, k) for k in range(1, width + 1)]
-    ratios, biases = [], []
+    relative_risks, biases = [], []
     for design in range(_DESIGNS):
         points = sample_skeleton(space, n, ratio=ratio, seed=design)
         sizes = (points.parameters > 0).sum(1)
         counts = [int((sizes == k).sum()) for k in range(1, width + 1)]
         theory = sum(x * n / c for x, c in zip(a, counts, strict=True) if x)
-        ratios.append(_conditional_risk(fit_skeleton_regression, space, points) / theory)
+        relative_risks.append(_conditional_risk(fit_skeleton_regression, space, points) / theory)
         biases.append(max((interior[k] + 1) * comb(width, k + 1) / counts[k] for k in range(min(degree, width))))
-    observed = torch.tensor(ratios)
+    observed = torch.tensor(relative_risks)
     standard_error = observed.std().item() / math.sqrt(_DESIGNS)
     assert abs(observed.mean().item() - 1) <= 5 * standard_error + max(biases)
 

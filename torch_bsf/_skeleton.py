@@ -31,6 +31,7 @@ def _control_faces(width: int, degree: int) -> list[tuple[int, ...]]:
 
 def _interior_and_boundary(control_faces: list[tuple[int, ...]], face: tuple[int, ...]) -> tuple[list[int], list[int]]:
     """Indices of the controls interior to ``face`` and of those on its boundary."""
+    vertices = set(face)
     interior = [k for k, f in enumerate(control_faces) if f == face]
-    boundary = [k for k, f in enumerate(control_faces) if f != face and set(f) <= set(face)]
+    boundary = [k for k, f in enumerate(control_faces) if f != face and vertices.issuperset(f)]
     return interior, boundary

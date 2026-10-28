@@ -8,6 +8,8 @@ dimension and degree.
 from __future__ import annotations
 
 import math
+import numbers
+import sys
 from collections.abc import Mapping, Sequence
 from itertools import combinations
 from typing import Literal
@@ -141,8 +143,11 @@ def _face_gram(rows: torch.Tensor, columns: torch.Tensor, face: Sequence[int], d
     binomials = torch.tensor(
         [[float(math.comb(i, j)) for j in range(degree + 1)] for i in range(2 * degree + 1)], dtype=torch.float64
     )
-    a, b = rows[:, face], columns[:, face]
-    numerators = binomials[a[:, None] + b[None], a[:, None].expand(-1, len(b), -1)].prod(2)
+    # Multiplying one coordinate at a time keeps memory at O(len(rows) * len(columns)) for wide simplices.
+    numerators = torch.ones(len(rows), len(columns), dtype=torch.float64)
+    for i in face:
+        a, b = rows[:, i, None], columns[None, :, i]
+        numerators *= binomials[a + b, a.expand(-1, len(columns))]
     k = len(face) - 1
     return numerators / float(math.comb(2 * degree, degree) * math.comb(2 * degree + k, k))
 
@@ -185,6 +190,11 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
         with the dimension: 14 for 2 vertices, 12 for 3, 11 for 4, 9 for 5,
         8 for 6 and 7, and 7 for 8.
 
+    Notes
+    -----
+    Time and memory grow with the square of the number of controls,
+    :math:`\binom{D + M - 1}{D}`, so wide simplices are costly even at low degree.
+
     Examples
     --------
     >>> from torch_bsf import BezierSpace
@@ -193,6 +203,25 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
     [0.1464, 3.5357, 1.0]
     """
     width, degree = _skeleton_shape(space)
+    n_controls = math.comb(degree + width - 1, width - 1)
+
+    def check(kappa: float) -> None:
+        # Bernstein Gram matrices are ill-conditioned in the degree. Their entries have relative errors of at most
+        # (2 * width + 2) * U. To first order, each of the at most width levels of solves then adds
+        # (2 * width + 2 + n) * kappa * U relative error (entry perturbation plus backward-stable elimination),
+        # and the final traces add n * U, kappa being the largest condition number of the Gram matrices.
+        bound = (width * (2 * width + 2 + n_controls) * kappa + n_controls) * _UNIT_ROUNDOFF
+        if not bound <= _RISK_RELATIVE_ERROR:
+            raise ValueError(f"degree is too large for the risk coefficients in float64 (condition number {kappa:.1e}).")
+
+    # Reject hopeless degrees before allocating anything of size n_controls: the largest binomial must fit in
+    # float64, and the small Gram block of the controls interior to one edge, among those whose largest
+    # condition number enters the bound, must already pass it.
+    if math.comb(2 * degree, degree) * math.comb(2 * degree + width - 1, width - 1) > sys.float_info.max:
+        check(math.inf)
+    if degree >= 2:
+        edge = torch.tensor([[j, degree - j] for j in range(1, degree)], dtype=torch.long)
+        check(torch.linalg.cond(_face_gram(edge, edge, (0, 1), degree)).item())
     alpha = torch.tensor(_simplex_indices(width, degree), dtype=torch.long)
     control_faces = _control_faces(width, degree)
     # Control errors as linear maps of the independent face noises: on face I,
@@ -207,14 +236,7 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
         errors[interior[:, None], interior] = torch.eye(len(interior), dtype=torch.float64)
         face_grams.append((len(face), interior, g_tt))
     full = _face_gram(alpha, alpha, range(width), degree)
-    # Bernstein Gram matrices are ill-conditioned in the degree. Their entries have relative errors of at most
-    # (2 * width + 2) * U. To first order, each of the at most width levels of solves then adds
-    # (2 * width + 2 + n) * kappa * U relative error (entry perturbation plus backward-stable elimination),
-    # and the final traces add n * U, kappa being the largest condition number of the Gram matrices.
-    kappa = max(torch.linalg.cond(g).item() for g in [full] + [g_tt for _, _, g_tt in face_grams])
-    bound = (width * (2 * width + 2 + len(alpha)) * kappa + len(alpha)) * _UNIT_ROUNDOFF
-    if not bound <= _RISK_RELATIVE_ERROR:
-        raise ValueError(f"degree is too large for the risk coefficients in float64 (condition number {kappa:.1e}).")
+    check(max(torch.linalg.cond(g).item() for g in [full] + [g_tt for _, _, g_tt in face_grams]))
     coefficients = [0.0] * width
     for size, interior, g_tt in face_grams:
         # n_I = N^(m) / C(M, m + 1) observations give Cov(eta_I) = sigma^2 G_TT^{-1} / n_I.
@@ -260,6 +282,19 @@ def optimal_skeleton_ratio(space: BezierSpace) -> tuple[float, ...]:
     return tuple(r / sum(roots) for r in roots)
 
 
+def _real_entries(ratio: object) -> bool:
+    """Whether a non-tensor ratio is a NumPy array or a sequence of real, non-boolean numbers."""
+    if isinstance(ratio, np.ndarray):
+        return ratio.dtype.kind in "iuf"
+
+    def real(entry: object) -> bool:
+        if isinstance(entry, torch.Tensor):
+            return entry.ndim == 0 and entry.dtype != torch.bool and not entry.is_complex()
+        return isinstance(entry, numbers.Real) and not isinstance(entry, bool)
+
+    return isinstance(ratio, Sequence) and not isinstance(ratio, str) and all(real(entry) for entry in ratio)
+
+
 def _skeleton_fractions(ratio: Sequence[float] | torch.Tensor | None, space: BezierSpace, width: int) -> list[float]:
     """Validated skeleton fractions summing to one, the optimal ones by default."""
     if ratio is None:
@@ -276,13 +311,13 @@ def _skeleton_fractions(ratio: Sequence[float] | torch.Tensor | None, space: Bez
         except (RuntimeError, TypeError, NotImplementedError) as error:  # e.g. a meta tensor has no data to copy
             raise ValueError(message) from error
     else:
+        if not _real_entries(ratio):
+            raise ValueError(message)
         # Converting directly to float64 avoids float32 overflow of large entries and int64 overflow of huge integers.
         try:
             tensor = torch.as_tensor(ratio, dtype=torch.float64)
         except (TypeError, ValueError, RuntimeError) as error:
             raise ValueError(message) from error
-        if tensor.shape == (width,) and any(isinstance(entry, (bool, np.bool_)) for entry in ratio):
-            raise ValueError(message)
     if tensor.shape != (width,) or not torch.isfinite(tensor).all() or (tensor < 0).any() or not tensor.max() > 0:
         raise ValueError(message)
     # Scaling by the maximum first keeps the sum finite (at most width) for entries near the float64 limit.
@@ -380,7 +415,7 @@ def sample_skeleton(
     generator = _generator(seed)
     blocks = [torch.zeros(0, width, dtype=torch.float64)]
     for size, count in enumerate(counts, start=1):
-        for face, rows in _face_counts(width, size, count, generator) if count else []:
+        for face, rows in _face_counts(width, size, count, generator):
             exponentials = _exponentials(generator, rows, size, method)
             block = torch.zeros(rows, width, dtype=torch.float64)
             block[:, face] = exponentials / exponentials.sum(1, keepdim=True)
