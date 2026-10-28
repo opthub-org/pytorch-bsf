@@ -5,7 +5,7 @@ description: Implement a GitHub issue of opthub-org/pytorch-bsf end to end - rea
 
 # work-on-issue
 
-Take issue `$ARGUMENTS` (a number, with or without `#`) from reading to an open PR. Invoking this skill authorizes pushing the branch, opening the PR, and replying to and resolving review threads on that PR, including threads on older commits. Handle those threads proactively as described in step 10. Merging, closing issues, and commenting elsewhere on GitHub still require explicit user authorization.
+Take issue `$ARGUMENTS` (a number, with or without `#`) from reading to an open PR. Invoking this skill authorizes pushing the branch, opening the PR, posting `@codex review` requests on that PR, and replying to and resolving review threads on that PR, including threads on older commits. Handle those threads proactively as described in step 10. Merging, closing issues, and commenting elsewhere on GitHub still require explicit user authorization.
 
 Follow CONTRIBUTING.md throughout (commit rules, coding conventions, tests, "Bezier" vs "Bézier"). Write code, commits and the PR in English; talk to the user in their language.
 
@@ -146,12 +146,18 @@ Closes #<N>
 
 ## 10. Wait for CI and handle PR review threads
 
-After opening the PR and after every push, wait for CI and the Codex review of the current head commit. Record the head SHA and check that the results refer to that SHA; an older review is not evidence for the new head. If Codex has not reviewed it yet, keep waiting or report the pending review; do not claim it passed. Codex may post a review or a top-level PR comment, so inspect both. A successful CI check alone does not establish that the Codex review finished.
+After opening the PR and after every push, record the current head SHA and inspect the Codex Review Summary and reviews. If that exact head has no running or completed Codex review, proactively request one with a top-level `@codex review` PR comment; do not assume a push triggers a review. This request is authorized on the PR this skill opened. Avoid duplicate requests for the same head: inspect existing request comments before posting, and after an ambiguous API timeout, fetch comments to check whether the request was created before retrying. Then wait for CI and the Codex review of the current head commit. Record the head SHA and check that the results refer to that SHA; an older review is not evidence for the new head. If Codex has not reviewed it yet, keep waiting or report the pending review; do not claim it passed. Codex may post a review or a top-level PR comment, so inspect both. A successful CI check alone does not establish that the Codex review finished.
 
 ```bash
 PR=<PR-number>
 REPO=opthub-org/pytorch-bsf
 gh pr view "$PR" -R "$REPO" --json headRefOid,reviews,statusCheckRollup
+gh api --paginate "repos/$REPO/issues/$PR/comments"
+# When this head has neither a running/completed review nor an existing request:
+HEAD_SHA=$(gh pr view "$PR" -R "$REPO" --json headRefOid --jq .headRefOid) || exit 1
+gh pr comment "$PR" -R "$REPO" --body "@codex review
+
+Please review head $HEAD_SHA."
 # GitHub can take a moment to register checks after a PR opens or a push.
 # Abort on API errors; zero registered checks means pending, not failure.
 CHECK_COUNT=0
@@ -164,6 +170,8 @@ gh pr checks "$PR" -R "$REPO" --watch
 gh api --paginate "repos/$REPO/pulls/$PR/reviews"
 gh api --paginate "repos/$REPO/issues/$PR/comments"
 ```
+
+After requesting review, verify that Codex acknowledges it and that the Review Summary identifies the recorded head as running or completed. Posting a request alone does not establish that review started. If there is no acknowledgement or an access/usage error, report it explicitly and stop retrying; do not repeatedly post requests. If the head changes, inspect and request review for the new head using the same procedure.
 
 If checks remain unregistered (for example, workflows need maintainer approval), stop waiting and report CI as pending with the reason. Never treat an empty check list as success. If the head changes during registration or watch, restart the check for the new head.
 
@@ -214,7 +222,7 @@ For each unresolved thread:
      }'
    ```
 
-After a push, repeat the CI/head-review check and thread listing: bot reviewers may open new threads, and fixed threads on older commits may still be unresolved. Re-list threads after mutations to verify replies and resolution. If the head changes while waiting, repeat for the new SHA. Report any remaining CI failure, pending review or unanswered thread explicitly; do not merge or close the issue without explicit user authorization.
+After every push, repeat the review-request procedure, CI/head-review check and thread listing: bot reviewers may open new threads, and fixed threads on older commits may still be unresolved. Re-list threads after mutations to verify replies and resolution. If the head changes while waiting, repeat for the new SHA. Report any remaining CI failure, pending review or unanswered thread explicitly; do not merge or close the issue without explicit user authorization.
 
 ## 11. Report
 
