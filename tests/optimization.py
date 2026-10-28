@@ -354,3 +354,29 @@ def test_large_step_does_not_underflow_direction_before_scaling():
     # The exact implicit-ridge result is below the smallest subnormal. Compare
     # in initial-coefficient units to allow 64u of cancellation in the update.
     assert abs(result.model.coefficients.item() / 1e-300) <= 64 * 2**-53
+
+
+@pytest.mark.parametrize("preconditioner", ["none", "gram"])
+def test_unrepresentable_step_matrix_raises(preconditioner):
+    space = BezierSpace.simplex(0, degree=0)
+    initial = BezierModel(space, torch.tensor([[1e-100]], dtype=torch.float64))
+    with pytest.raises(ArithmeticError, match="metric matrix"):
+        minimize(
+            initial,
+            lambda y, p: y[:, 0] * 0,
+            points=Points(torch.empty(1, 0, dtype=torch.float64)),
+            penalty=QuadraticPenalty(ridge=1e300),
+            method=PreconditionedSGD(max_iter=1, step_size=1e100, preconditioner=preconditioner),
+        )
+
+
+def test_update_outside_model_dtype_raises():
+    space = BezierSpace.simplex(0, degree=0)
+    initial = BezierModel(space, torch.zeros(1, 1, dtype=torch.float32))
+    with pytest.raises(ArithmeticError, match="update"):
+        minimize(
+            initial,
+            lambda y, p: y[:, 0] * 1e30,
+            points=Points(torch.empty(1, 0, dtype=torch.float32)),
+            method=PreconditionedSGD(max_iter=1, step_size=1e20, preconditioner="none"),
+        )
