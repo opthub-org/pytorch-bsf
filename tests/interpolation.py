@@ -2451,6 +2451,21 @@ def test_clough_tocher_c1_overflow():
     assert (y >= lo - tol).all() and (y <= hi + tol).all()
 
 
+@pytest.mark.parametrize("clamp", [False, True])
+def test_clough_tocher_c1_with_increments_whose_terms_overflow_and_cancel(clamp):
+    """A power-of-two scaling of the gradients scales the controls exactly, also where ``dx . g`` cancels.
+
+    Regression: without clamp, the terms 64 * 2**1020 of the increment along (64, 64) overflowed alone, and their
+    sum inf - inf made the interpolant not finite, although every control is.
+    """
+    mesh = SimplicialMesh([[0.0, 0.0], [64.0, 64.0], [65.0, 64.0]], [[0, 1, 2]])
+    gradients = torch.tensor([[1.0, -1.0]] * 3, dtype=torch.float64)[:, :, None] * 2.0**1020
+    f = torch.zeros(3, dtype=torch.float64)
+    expected = _c1(mesh, f, gradients=gradients * 2.0**-20, clamp=clamp).model.coefficients.detach()
+    actual = _c1(mesh, f, gradients=gradients, clamp=clamp).model.coefficients.detach()
+    assert torch.equal(actual, expected * 2.0**20)
+
+
 def test_clough_tocher_c1_with_constant_and_linear_data():
     """Constant data give a constant interpolant, and linear data are reproduced with clamping too."""
     mesh = SimplicialMesh(*_kuhn_mesh(2, 3, jitter=0.3))

@@ -1482,20 +1482,23 @@ class _SplitMesh(SimplicialMesh):
 def _increments(dx: torch.Tensor, g: torch.Tensor, scale: torch.Tensor, origin: torch.Tensor, clamp: bool) -> torch.Tensor:
     """``dx . g / 3`` (rays, outputs) in units of ``2**scale``, for ray displacements ``dx`` (rays, d) and gradients ``g``.
 
-    Each term is formed as a mantissa times a power of two and rounded once, so that it is finite whenever its value
-    is. With ``clamp``, a gradient (of a vertex and output) whose increments would overflow is first divided by a
-    power of two, which keeps its direction: the limiter shrinks it into the data range anyway.
+    Each term is formed as a mantissa times a power of two, and the terms are summed in units of the largest, so that
+    an increment is finite whenever its value is, also where its terms overflow alone and cancel. With ``clamp``, a
+    gradient (of a vertex and output) whose increments would overflow is first divided by a power of two, which keeps
+    its direction: the limiter shrinks it into the data range anyway.
     """
     mantissa, exponent = torch.frexp(g)
     term_mantissa, term_exponent = torch.frexp(dx[:, :, None] * mantissa)
     term_exponent = term_exponent.to(torch.long) + exponent.to(torch.long) - scale
+    term_exponent = torch.where(term_mantissa == 0, -(2**20), term_exponent)
+    top = term_exponent.amax(dim=1)
     if clamp:
-        term_exponent = torch.where(term_mantissa == 0, -(2**20), term_exponent)
-        top = term_exponent.amax(dim=1)
         largest = torch.full((int(origin.max()) + 1, top.shape[1]), -(2**20), dtype=torch.long)
         largest = largest.scatter_reduce(0, origin[:, None].expand_as(top), top, "amax")
-        term_exponent = term_exponent - (largest - _HEADROOM).clamp_min(0)[origin][:, None, :]
-    return _times_power_of_two(term_mantissa, term_exponent).sum(dim=1) / 3
+        shift = (largest - _HEADROOM).clamp_min(0)[origin]
+        term_exponent, top = term_exponent - shift[:, None, :], top - shift
+    total = _times_power_of_two(term_mantissa, term_exponent - top[:, None, :]).sum(dim=1)
+    return _times_power_of_two(total / 3, top)
 
 
 def _nearest_feasible(
@@ -1977,7 +1980,9 @@ def macro_interpolant(
     mesh
         The mesh.
     values
-        Vertex data of shape ``(n_vertices, n_outputs)`` or ``(n_vertices,)``.
+        Vertex data of shape ``(n_vertices, n_outputs)`` or ``(n_vertices,)``. For the C1 construction, an output
+        with data beyond about 2**1000 is processed in units of a power of two up to 2**24, so that its sums stay
+        finite; its subnormal data are then interpolated only up to an absolute error below 2**-1050.
     split
         How each simplex is divided into pieces: :class:`NoSplit` or :class:`CloughTocher`.
     continuity
