@@ -23,6 +23,9 @@ Choose a guide by the question you need to answer
    * - Question
      - Start here
      - What to inspect afterward
+   * - Only points on a curve or surface are known; parameter coordinates are unknown.
+     - :doc:`advanced/point_cloud`
+     - Local convergence, inferred coordinates and reconstruction distances
    * - Outputs have very different scales.
      - :doc:`advanced/normalization`
      - Errors in original units
