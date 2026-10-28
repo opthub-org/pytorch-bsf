@@ -17,6 +17,7 @@ from torch_bsf._kernels._sampling import simplex_grid, simplex_random, simplex_s
 from torch_bsf._kernels.combinatorics import _simplex_indices
 from torch_bsf.sampling import (
     _RISK_RELATIVE_ERROR,
+    _exponentials,
     _face_gram,
     optimal_skeleton_ratio,
     sample,
@@ -217,6 +218,48 @@ def test_method_rejects_non_string_choice(wrap):
 def test_method_accepts_string_choice(string_type, option):
     value = string_type(option)
     sample(BezierSpace.simplex(1, degree=1), 2, seed=0, method=value)
+
+
+@pytest.mark.parametrize("sampler", [sample, sample_skeleton])
+@pytest.mark.parametrize("n", [0, 1, 2, 50])
+@pytest.mark.parametrize("seed", [0, 3])
+def test_sobol_sampling_is_independent_of_default_dtype(sampler, n, seed):
+    space = BezierSpace.simplex(2, degree=3)
+    original_dtype = torch.get_default_dtype()
+    random_state = torch.random.get_rng_state().clone()
+    results = []
+    try:
+        for dtype in (torch.float32, torch.float64):
+            torch.set_default_dtype(dtype)
+            with patch("torch.set_default_dtype", side_effect=AssertionError("sampling must not change default dtype")):
+                results.append(sampler(space, n, seed=seed, method="sobol"))
+            assert torch.get_default_dtype() == dtype
+    finally:
+        torch.set_default_dtype(original_dtype)
+    assert torch.equal(torch.random.get_rng_state(), random_state)
+    assert all(result.parameters.dtype == torch.float64 for result in results)
+    assert results[0].parameters.shape == (n, space.width)
+    assert torch.equal(results[0].parameters, results[1].parameters)
+    assert torch.equal(results[0].cell_ids, results[1].cell_ids)
+
+
+@pytest.mark.parametrize("n", [0, 1, 2, 16])
+@pytest.mark.parametrize("seed", [0, 3])
+def test_sobol_exponentials_match_float64_reference(n, seed):
+    original_dtype = torch.get_default_dtype()
+    try:
+        torch.set_default_dtype(torch.float64)
+        generator = torch.Generator().manual_seed(seed)
+        local_seed = int(torch.randint(2**31, (1,), generator=generator))
+        engine = torch.quasirandom.SobolEngine(3, scramble=True, seed=local_seed)
+        uniforms = engine.draw(n, dtype=torch.float64) if n else torch.empty(0, 3, dtype=torch.float64)
+        expected = -uniforms.clamp_min(torch.finfo(torch.float64).tiny).log()
+        torch.set_default_dtype(torch.float32)
+        actual = _exponentials(torch.Generator().manual_seed(seed), n, 3, "sobol")
+    finally:
+        torch.set_default_dtype(original_dtype)
+    assert actual.dtype == torch.float64
+    assert torch.equal(actual, expected)
 
 
 # ---------------------------------------------------------------------------
