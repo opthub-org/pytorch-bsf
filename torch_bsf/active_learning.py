@@ -10,7 +10,7 @@ from torch_bsf.ensemble import Ensemble
 
 def _disagreement_order(predictions: torch.Tensor) -> torch.Tensor:
     """Compare variance sums without materializing potentially unrepresentable scores."""
-    predictions = predictions.detach().to(device="cpu", dtype=torch.float64)
+    predictions = predictions.detach().cpu().double()
     if not torch.isfinite(predictions).all():
         raise ValueError("committee predictions must be finite.")
     values, exponents = torch.frexp(predictions)
