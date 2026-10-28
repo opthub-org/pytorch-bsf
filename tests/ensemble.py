@@ -93,3 +93,47 @@ def test_cancelling_extreme_mean_scaled_loss_has_finite_gradients(dtype):
     (2 * prediction.sum()).backward()
     for member in ensemble.models:
         torch.testing.assert_close(member.coefficients.grad, torch.ones((1, 1), dtype=dtype), atol=0, rtol=0)
+
+
+@pytest.mark.parametrize("dtype,small", [(torch.float32, 1e-16), (torch.float64, 1e-100)])
+@pytest.mark.parametrize("order", [(0, 1, 2), (0, 2, 1), (2, 0, 1)])
+def test_scaled_cancellation_preserves_finite_residual(dtype, small, order):
+    from torch_bsf._numeric import _finite_mean
+
+    maximum = torch.finfo(dtype).max
+    entries = [maximum, -maximum, small]
+    values = torch.tensor([entries[i] for i in order], dtype=dtype, requires_grad=True)
+    mean = _finite_mean(values, 0)
+    # One final division and rounding; permit two dtype epsilons.
+    torch.testing.assert_close(mean, values.detach()[order.index(2)] / 3, atol=0, rtol=2 * torch.finfo(dtype).eps)
+    (3 * mean).backward()
+    torch.testing.assert_close(values.grad, torch.ones_like(values), atol=0, rtol=0)
+
+
+def test_ordinary_mean_avoids_exact_cpu_reduction(monkeypatch):
+    import torch_bsf._numeric as numeric
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("ordinary groups must remain vectorized")
+
+    monkeypatch.setattr(numeric, "_exact_means", forbidden)
+    values = torch.tensor([[1.0, 3.0], [3.0, 5.0]], dtype=torch.float64)
+    torch.testing.assert_close(numeric._finite_mean(values, 0), values.mean(0), atol=0, rtol=0)
+
+
+def test_nonfinite_mean_preserves_native_prediction_behavior():
+    from torch_bsf._numeric import _finite_mean
+
+    values = torch.tensor([[float("inf"), float("nan"), 1.0], [2.0, 3.0, 3.0]], dtype=torch.float64)
+    torch.testing.assert_close(_finite_mean(values, 0), values.mean(0), atol=0, rtol=0, equal_nan=True)
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+@pytest.mark.parametrize("count", [3, 5, 7, 10, 17, 33])
+def test_finite_mean_near_rounded_sum_boundary(dtype, count):
+    from torch_bsf._numeric import _finite_mean
+
+    boundary = torch.tensor(torch.finfo(dtype).max / count, dtype=dtype)
+    below = torch.nextafter(boundary, torch.tensor(0.0, dtype=dtype))
+    values = below.expand(count)
+    torch.testing.assert_close(_finite_mean(values, 0), below, atol=0, rtol=0)

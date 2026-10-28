@@ -34,7 +34,9 @@ class Ensemble(nn.Module):
     def forward(self, points: Points | torch.Tensor) -> torch.Tensor:
         """Return the ensemble mean, without changing the member models.
 
-        Large finite predictions are scaled before averaging to avoid an
-        overflowing sum. Ordinary/subnormal groups retain their native scale.
+        Finite groups near sum overflow use an exact CPU reduction to retain
+        cancelling residuals. The overflow-risk check synchronizes accelerators;
+        only affected groups transfer to CPU. Ordinary groups remain vectorized on their
+        device, and finite-input gradients follow the ordinary mean.
         """
         return _finite_mean(self.members(points), 0)
