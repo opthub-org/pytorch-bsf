@@ -79,7 +79,7 @@ The `[develop]` extras include:
 
 With Conda, install them into the environment with `pip install -e ".[develop]"` as well.
 
-MLflow is an optional extra (`pip install -e ".[develop,mlflow]"`, also included in `all`). Without it, the CLI logs nothing and the MLflow tests are skipped; the `optional-deps` CI job runs the tests that way, with the configurations `minimal` (no extras), `no-lightning` and `no-mlflow`.
+MLflow is an optional extra (`pip install -e ".[develop,mlflow]"`, also included in `all`). The CLI records experiments only when `fit --track` is requested, even when MLflow is installed. Without the extra, ordinary fitting and prediction still work and the MLflow tests are skipped; the `optional-deps` CI job covers `minimal` (no extras), `no-lightning` and `no-mlflow` configurations.
 
 ### Install the git hook
 
@@ -110,8 +110,12 @@ All tests should pass.
 The repository includes sample data (`params.csv`, `values.csv`):
 
 ```bash
-python -m torch_bsf --params=params.csv --values=values.csv --degree=3
+python -m torch_bsf fit --params=params.csv --values=values.csv --degree=3 --save=model.bsf
+python -m torch_bsf predict --model=model.bsf --params=params.csv --save=predictions.csv
 ```
+
+Run from the repository root to use the bundled CSV files. Fitting writes the
+reusable model archive; prediction writes one output row per parameter row.
 
 ### 3. Run the quickstart script
 
@@ -121,12 +125,31 @@ bash examples/quickstart/run.sh
 
 ### 4. Run with MLflow
 
+Install the `mlflow` extra first. To record a local CLI run explicitly:
+
+```bash
+python -m torch_bsf fit --params=params.csv --values=values.csv --degree=3 --save=model.bsf --track
+```
+
+The MLflow project entry point also supplies `--track`:
+
 ```bash
 mlflow run . --entry-point main \
   -P params=params.csv \
   -P values=values.csv \
   -P degree=3
 ```
+
+### Keeping these examples runnable
+
+`tests/test_contributor_examples.py` executes the two CLI commands in step 2
+against the bundled CSV files in a temporary directory, then checks the saved
+model and prediction shape. It also executes the Python examples in the bug and
+feature Issue forms. These checks run with the normal pytest suite; update the
+examples and their behavioral assertions together when the API changes.
+The optional tracking commands are covered by the MLflow adapter/CLI tests,
+and `examples/quickstart/run.sh` runs separately in CI. Sphinx examples are
+checked by the existing doctest build.
 
 ---
 
