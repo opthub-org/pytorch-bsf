@@ -14,6 +14,12 @@ Create a polynomial space, observations, and an explicit fit result::
     print(result.metrics)
 
 ``BezierSpace`` contains immutable geometry and coefficient ordering.
+Dimensions, polynomial degrees and control multi-indices must be Python or
+NumPy integers. Floats (even ``2.0``), booleans and numeric strings raise
+``ValueError`` rather than being silently converted. A simplex may have
+dimension zero; simploid factor dimensions are positive. Single-cell spaces
+allow degree zero, while spaces compiled from a shared topology require
+positive degrees.
 ``BezierModel`` contains the learned coefficients and is a PyTorch module.
 ``fit`` always returns ``FitResult``; predict through ``result.model``.
 No Lightning, MLflow or Conda installation is required for this example.

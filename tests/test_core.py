@@ -1,5 +1,6 @@
 """Contract tests for the unified v0 API, independent of the private geometry kernels."""
 
+import numpy as np
 import pytest
 import torch
 from hypothesis import given
@@ -388,3 +389,59 @@ def test_grouped_operator_matches_dense_property(data, outputs):
     )
     torch.testing.assert_close(operator.rmatmat(values), reference.T @ values, atol=32 * U * float(values.abs().max()), rtol=0)
     torch.testing.assert_close(operator.to_dense(), reference, atol=8 * U, rtol=0)
+
+
+@pytest.mark.parametrize("invalid", [1.9, 2.0, True, "2"])
+def test_space_rejects_non_integer_structure(invalid):
+    with pytest.raises((ValueError, TypeError), match="dimension|simploid type"):
+        bsf.BezierSpace.simploid((invalid,), degree=2)
+    with pytest.raises((ValueError, TypeError), match="dimension"):
+        bsf.BezierSpace.simplex(invalid, degree=2)
+    for degree in (invalid, (invalid,)):
+        with pytest.raises((ValueError, TypeError), match="degree"):
+            bsf.BezierSpace.simploid((1,), degree=degree)
+    space = bsf.BezierSpace.simplex(1, degree=2)
+    for index in (((invalid, 0),), (invalid, 0)):
+        with pytest.raises((ValueError, TypeError), match="index"):
+            space.control_index(index)
+    domain = bsf.SimploidalSet()
+    cell = domain.add_simplex(1)
+    for degree in (invalid, {cell: invalid}, {cell: (invalid,)}):
+        with pytest.raises((ValueError, TypeError), match="degree"):
+            bsf.BezierSpace.on_set(domain, degree=degree)
+    with pytest.raises((ValueError, TypeError), match="default_degree"):
+        bsf.BezierSpace.on_set(domain, degree={}, default_degree=invalid)
+
+
+@pytest.mark.parametrize("integer", [int, np.int32, np.int64, np.uint64])
+def test_space_accepts_integral_structure(integer):
+    space = bsf.BezierSpace.simplex(integer(1), degree=integer(2))
+    assert space.cells[0].degree == (2,)
+    assert space.control_index(((integer(2), integer(0)),)) == 0
+    assert bsf.BezierSpace.simploid((integer(1),), degree=(integer(0),)).n_controls == 1
+    assert bsf.BezierSpace.simplex(integer(0), degree=integer(0)).n_controls == 1
+    domain = bsf.SimploidalSet()
+    cell = domain.add_simplex(1)
+    assert bsf.BezierSpace.on_set(domain, degree=integer(2)).n_controls == 3
+    assert bsf.BezierSpace.on_set(domain, degree={cell: (integer(2),)}).n_controls == 3
+    assert bsf.BezierSpace.on_set(domain, degree={}, default_degree=integer(2)).n_controls == 3
+
+
+@pytest.mark.parametrize("invalid", [np.bool_(True), np.float64(2.0), -1])
+def test_space_rejects_invalid_degrees_on_vertex(invalid):
+    with pytest.raises((ValueError, TypeError), match="degree"):
+        bsf.BezierSpace.simplex(0, degree=invalid)
+
+
+def test_space_structure_boundaries():
+    for dimensions in ((0,), (-1,)):
+        with pytest.raises(ValueError, match="dimension|simploid type"):
+            bsf.BezierSpace.simploid(dimensions, degree=1)
+    with pytest.raises(ValueError, match="degree"):
+        bsf.BezierSpace.simploid((1, 1), degree=(1,))
+    with pytest.raises(ValueError, match="index"):
+        bsf.BezierSpace.simplex(1, degree=2).control_index(((-1, 3),))
+    domain = bsf.SimploidalSet()
+    domain.add_simplex(1)
+    with pytest.raises(ValueError, match="degree"):
+        bsf.BezierSpace.on_set(domain, degree=0)
