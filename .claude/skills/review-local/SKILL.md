@@ -36,11 +36,11 @@ For a change limited to docs, skills or CI, the "always" set may drop `review-co
 ```bash
 BASE=origin/master             # or the base ref given in the arguments
 git fetch origin
-git status --porcelain          # commit or set aside tracked changes first: reviewers read HEAD
+git status --porcelain          # must print nothing: reviewers read HEAD
 git diff "$BASE"...HEAD --stat
 ```
 
-- The branch must be committed: reviewers see `git diff $BASE...HEAD`. Untracked files are ignored.
+- The worktree must be clean: commit the branch, and remove or move out untracked files (or review in a fresh worktree of the branch). Reviewers see `git diff $BASE...HEAD`, but their `PYTHONPATH=.` experiments and pytest runs would also import or collect untracked modules, tests or `conftest.py` files that the PR will not contain.
 - Create a scratch directory (`<scratchpad>/review-<issue number>`, or the branch name with `/` replaced by `-`), and write `context.md` there with: the repository path, the base ref, the branch, the issue number, title and full body (`gh issue view <N> -R opthub-org/pytorch-bsf --json title,body,comments`), and one paragraph on what the change intends. Without an issue, describe the intent and acceptance criteria yourself.
 - Choose the aspects from the table using `git diff --stat` and the content of the diff.
 
