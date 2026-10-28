@@ -54,7 +54,14 @@ def _exponentials(generator: torch.Generator, n: int, width: int, method: str) -
         uniforms = torch.rand(n, width, generator=generator, dtype=torch.float64)
     else:
         local_seed = int(torch.randint(2**31, (1,), generator=generator))
-        uniforms = torch.quasirandom.SobolEngine(width, scramble=True, seed=local_seed).draw(n, dtype=torch.float64)
+        engine = torch.quasirandom.SobolEngine(width, scramble=True, seed=local_seed)
+        uniforms = torch.empty(n, width, dtype=torch.float64)
+        if n:
+            # SobolEngine caches its first point in the default dtype; reconstruct it before rounding.
+            uniforms[0] = engine.quasi.to(torch.float64) / 2**engine.MAXBIT
+            if n > 1:
+                engine.fast_forward(1)
+                uniforms[1:] = engine.draw(n - 1, dtype=torch.float64)
     return -uniforms.clamp_min(torch.finfo(torch.float64).tiny).log()
 
 
