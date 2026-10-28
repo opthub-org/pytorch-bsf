@@ -431,7 +431,7 @@ def longest_edge_criterion(model: BezierSimploid, s: float = 0.5) -> tuple[int, 
     """
     _check_splittable(model)
     st, ds = model.simploid_type, model.degree
-    cp = model.control_points.detach().to(dtype=torch.float64, device="cpu")
+    cp = model.control_points.detach().to(device="cpu").to(dtype=torch.float64)
     pos = _positions(st, ds)
 
     def corner(vertices: Sequence[int]) -> torch.Tensor:

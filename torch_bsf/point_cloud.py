@@ -109,7 +109,7 @@ def _initial(space: BezierSpace, y: torch.Tensor, initial: BezierModel | None) -
     if initial is not None:
         if not isinstance(initial, BezierModel) or not initial.space.compatible(space) or initial.n_outputs != y.shape[1]:
             raise ValueError("initial must be a compatible BezierModel with the observed output dimension.")
-        return BezierModel(space, initial.coefficients.detach().to(device="cpu", dtype=torch.float64))
+        return BezierModel(space, initial.coefficients.detach().to(device="cpu").to(dtype=torch.float64))
     if width == 1:
         return BezierModel(space, _finite_mean(y, 0, keepdim=True))
     if y.shape[1] != width:
