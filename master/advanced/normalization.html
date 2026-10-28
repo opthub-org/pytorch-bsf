@@ -297,10 +297,11 @@ how changing output scales changes committee disagreement rankings.</p>
 </section>
 <section id="extreme-finite-values">
 <h2>Extreme finite values<a class="headerlink" href="#extreme-finite-values" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">MinMaxScaler</span></code>, <code class="docutils literal notranslate"><span class="pre">StdScaler</span></code> and <code class="docutils literal notranslate"><span class="pre">QuantileScaler</span></code> require nonempty finite
-floating input tables. Statistics and transformed outputs must fit the input
-dtype. Standard deviations and quantiles retry with scaled arithmetic when
-ordinary reductions overflow; constant and single-sample columns retain their
+<p>The scalers require nonempty finite input tables. <code class="docutils literal notranslate"><span class="pre">StdScaler</span></code> and
+<code class="docutils literal notranslate"><span class="pre">QuantileScaler</span></code> require floating values; <code class="docutils literal notranslate"><span class="pre">MinMaxScaler</span></code> also accepts
+integral tensors. For floating input, statistics and transformed outputs must
+fit the input dtype. Standard deviations and quantiles retry with scaled
+arithmetic when ordinary reductions overflow; constant and single-sample columns retain their
 unit-scale convention. Transforms and inverse transforms also retry a factored
 affine expression when a subtraction or product overflows before cancellation.</p>
 <p>The fitted public <code class="docutils literal notranslate"><span class="pre">scales</span></code> / <code class="docutils literal notranslate"><span class="pre">stds</span></code> attributes remain single tensors in the
@@ -323,6 +324,20 @@ pass-through, without numerical validation.</p>
 columns and single samples. Scale tiny original units upward before fitting;
 otherwise substituting a unit standard deviation would silently skip
 standardization of varying data.</p>
+<p>For integral <code class="docutils literal notranslate"><span class="pre">MinMaxScaler</span></code> input, fitted minima and ranges retain their
+integer dtype; a range exceeding that dtype raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> before
+subtraction can wrap. Subtraction happens before true division, preserving adjacent
+integer differences even at large offsets. Normalized values follow PyTorch’s
+default floating dtype; half outputs use float32 division before casting to
+that dtype. A remaining nonfinite integer transform uses exact rational CPU
+arithmetic before rounding once to the output dtype; this preserves the last
+finite half rounding interval. Floating inverse results have floating precision, so adjacent
+large integers can round together in that output dtype. Boolean and complex
+inputs remain unsupported. Integer extrapolation retries a floating expression
+when subtraction would wrap. Integer inputs to <code class="docutils literal notranslate"><span class="pre">inverse_transform</span></code> keep their
+promoted integer output dtype: risky multiplication or addition uses exact
+Python integers on the CPU, and a final result outside that dtype raises
+<code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. Ordinary integer inverse operations stay on the tensor device.</p>
 </section>
 </section>
 

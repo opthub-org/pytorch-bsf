@@ -181,10 +181,11 @@ how changing output scales changes committee disagreement rankings.
 Extreme finite values
 ---------------------
 
-``MinMaxScaler``, ``StdScaler`` and ``QuantileScaler`` require nonempty finite
-floating input tables. Statistics and transformed outputs must fit the input
-dtype. Standard deviations and quantiles retry with scaled arithmetic when
-ordinary reductions overflow; constant and single-sample columns retain their
+The scalers require nonempty finite input tables. ``StdScaler`` and
+``QuantileScaler`` require floating values; ``MinMaxScaler`` also accepts
+integral tensors. For floating input, statistics and transformed outputs must
+fit the input dtype. Standard deviations and quantiles retry with scaled
+arithmetic when ordinary reductions overflow; constant and single-sample columns retain their
 unit-scale convention. Transforms and inverse transforms also retry a factored
 affine expression when a subtraction or product overflows before cancellation.
 
@@ -210,3 +211,18 @@ A varying column whose nonzero standard deviation rounds to zero also raises
 columns and single samples. Scale tiny original units upward before fitting;
 otherwise substituting a unit standard deviation would silently skip
 standardization of varying data.
+
+For integral ``MinMaxScaler`` input, fitted minima and ranges retain their
+integer dtype; a range exceeding that dtype raises ``ValueError`` before
+subtraction can wrap. Subtraction happens before true division, preserving adjacent
+integer differences even at large offsets. Normalized values follow PyTorch's
+default floating dtype; half outputs use float32 division before casting to
+that dtype. A remaining nonfinite integer transform uses exact rational CPU
+arithmetic before rounding once to the output dtype; this preserves the last
+finite half rounding interval. Floating inverse results have floating precision, so adjacent
+large integers can round together in that output dtype. Boolean and complex
+inputs remain unsupported. Integer extrapolation retries a floating expression
+when subtraction would wrap. Integer inputs to ``inverse_transform`` keep their
+promoted integer output dtype: risky multiplication or addition uses exact
+Python integers on the CPU, and a final result outside that dtype raises
+``ValueError``. Ordinary integer inverse operations stay on the tensor device.

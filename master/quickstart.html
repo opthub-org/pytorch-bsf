@@ -108,6 +108,12 @@
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">BezierSpace</span></code> contains immutable geometry and coefficient ordering.
+Dimensions, polynomial degrees and control multi-indices must be Python or
+NumPy integers. Floats (even <code class="docutils literal notranslate"><span class="pre">2.0</span></code>), booleans and numeric strings raise
+<code class="docutils literal notranslate"><span class="pre">ValueError</span></code> rather than being silently converted. A simplex may have
+dimension zero; simploid factor dimensions are positive. Single-cell spaces
+allow degree zero, while spaces compiled from a shared topology require
+positive degrees.
 <code class="docutils literal notranslate"><span class="pre">BezierModel</span></code> contains the learned coefficients and is a PyTorch module.
 <code class="docutils literal notranslate"><span class="pre">fit</span></code> always returns <code class="docutils literal notranslate"><span class="pre">FitResult</span></code>; predict through <code class="docutils literal notranslate"><span class="pre">result.model</span></code>.
 No Lightning, MLflow or Conda installation is required for this example.</p>
