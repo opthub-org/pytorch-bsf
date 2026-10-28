@@ -32,7 +32,12 @@ class EdgeSplit:
 
 @dataclass(frozen=True)
 class LongestEdge:
-    """Select the longest chord of the selected cell's control-net vertices."""
+    """Select the longest chord of the selected cell's control-net vertices.
+
+    Scaled float64 length comparisons support finite extreme endpoints and subnormal distances.
+    Uniform output scaling preserves selection except for rounding near ties or lost input precision.
+    Non-finite corner values raise ``ValueError``. Equal lengths use factor/vertex lexicographic order.
+    """
 
     fraction: float = 0.5
 

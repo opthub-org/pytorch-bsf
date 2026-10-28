@@ -25,7 +25,7 @@ from torch_bsf import BezierModel, BezierSpace, Points
 from torch_bsf._kernels._splitting import longest_edge_criterion, max_error_criterion, reparametrize, split, split_by_criterion
 from torch_bsf._kernels.api import BezierSimploid
 from torch_bsf._kernels.combinatorics import _indices
-from torch_bsf.splitting import EdgeSplit, ParameterMap, subdivide, subdivide_space
+from torch_bsf.splitting import EdgeSplit, LongestEdge, ParameterMap, subdivide, subdivide_space
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -359,6 +359,59 @@ def test_reparametrize_coordinates_sum_to_one():
 # ---------------------------------------------------------------------------
 # longest_edge_criterion()
 # ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("scale", [1.0, 1e200, 1e-200, 2.0**-1073])
+@pytest.mark.parametrize("whole_space", [False, True])
+def test_longest_edge_extreme_output_scale(scale, whole_space):
+    space = BezierSpace.simplex(2, degree=1)
+    coefficients = torch.tensor([[0.0, 0.0], [scale, scale], [3 * scale, 3 * scale]], dtype=torch.float64)
+    model = BezierModel(space, coefficients)
+    if whole_space:
+        assert subdivide_space(model, policy=LongestEdge()).split == EdgeSplit(0, 2)
+    else:
+        assert subdivide(model, policy=LongestEdge()).maps[0].split == EdgeSplit(0, 2)
+
+
+@pytest.mark.parametrize("whole_space", [False, True])
+def test_longest_edge_overflowing_difference(whole_space):
+    space = BezierSpace.simplex(2, degree=1)
+    coefficients = torch.tensor([[-1e308, -1e308], [0.0, 0.0], [1e308, 1e308]], dtype=torch.float64)
+    model = BezierModel(space, coefficients)
+    if whole_space:
+        assert subdivide_space(model, policy=LongestEdge()).split == EdgeSplit(0, 2)
+    else:
+        assert subdivide(model, policy=LongestEdge()).maps[0].split == EdgeSplit(0, 2)
+
+
+@given(scale=extreme_scalings(), width=st.integers(2, 5), reverse=st.booleans())
+def test_longest_edge_power_of_two_invariance(scale, width, reverse):
+    # Powers of two preserve these dyadic endpoints exactly; edge selection needs no tolerance.
+    endpoints = torch.tensor([-1.0, 0.0, 2.0], dtype=torch.float64)[:, None].expand(-1, width)
+    if reverse:
+        endpoints = -endpoints
+    model = BezierSimploid((2,), 1, endpoints * scale)
+    assert longest_edge_criterion(model) == (0, 0, 2, 0.5)
+
+
+def test_longest_edge_zero_chord_does_not_outrank_subnormal_chord():
+    tiny = float.fromhex("0x0.0000000000001p-1022")
+    model = BezierSimploid((2,), 1, torch.tensor([[0.0, 0.0], [0.0, 0.0], [tiny, tiny]], dtype=torch.float64))
+    assert longest_edge_criterion(model) == (0, 0, 2, 0.5)
+
+
+@pytest.mark.parametrize("scale", [1.0, 1e200, 1e-200])
+def test_longest_edge_tensor_product_maximum_and_tie(scale):
+    # Factor 0 chords have lengths 1 and 3; factor 1 chords have lengths 2 and 4.
+    corners = torch.tensor([[0.0, 0.0], [2.0, 2.0], [1.0, 1.0], [5.0, 5.0]], dtype=torch.float64)
+    assert longest_edge_criterion(BezierSimploid((1, 1), 1, corners * scale)) == (1, 0, 1, 0.5)
+    square = torch.tensor([[0.0, 0.0], [0.0, 1.0], [1.0, 0.0], [1.0, 1.0]], dtype=torch.float64)
+    assert longest_edge_criterion(BezierSimploid((1, 1), 1, square * scale)) == (0, 0, 1, 0.5)
+
+
+def test_longest_edge_empty_output_preserves_zero_norm_tie():
+    model = BezierSimploid.zeros((2,), 1, n_values=0)
+    assert longest_edge_criterion(model) == (0, 0, 1, 0.5)
 
 
 def test_longest_edge_criterion_wrong_n_params():
