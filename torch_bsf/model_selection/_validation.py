@@ -136,10 +136,13 @@ def _weighted_error(
     mantissa, adjustment = torch.frexp(mantissa)
     exponent = power * (exponent + exponent_shift) + weight_exponent - total_exponent + adjustment
     exponent = torch.where(mantissa == 0, 0, exponent)
-    # torch.ldexp internally forms 2**exponent; split large exponents so its
-    # intermediate power remains finite even for a representable boundary term.
-    first = exponent.clamp(min=-1022, max=1023)
-    return torch.ldexp(torch.ldexp(mantissa, first), exponent - first).sum().item()
+    # PyTorch 2.3 ldexp forms its intermediate power in the default float32
+    # dtype even for float64 inputs. Use an explicit float64 base, and split
+    # the exponent so a power itself does not overflow at a finite boundary.
+    first = exponent.clamp(min=-512, max=512)
+    base = mantissa.new_tensor(2.0)
+    terms = mantissa * torch.pow(base, first) * torch.pow(base, exponent - first)
+    return terms.sum().item()
 
 
 def _held_out_metrics(model: BezierModel, held_out: Samples) -> dict[str, float]:
