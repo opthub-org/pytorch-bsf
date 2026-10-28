@@ -14,7 +14,14 @@ from tests.strategies import seeds
 from torch_bsf import BezierSpace
 from torch_bsf._kernels._sampling import simplex_grid, simplex_random, simplex_sobol
 from torch_bsf._kernels.combinatorics import _simplex_indices
-from torch_bsf.sampling import _face_gram, optimal_skeleton_ratio, sample, sample_skeleton, skeleton_risk_coefficients
+from torch_bsf.sampling import (
+    _RISK_RELATIVE_ERROR,
+    _face_gram,
+    optimal_skeleton_ratio,
+    sample,
+    sample_skeleton,
+    skeleton_risk_coefficients,
+)
 
 # ---------------------------------------------------------------------------
 # simplex_grid
@@ -408,8 +415,9 @@ def test_skeleton_risk_documented_comparison(n_vertices, degree):
     # All-at-once least squares on uniform rows has risk (number of controls) / N.
     all_at_once = comb(degree + n_vertices - 1, degree)
     assert (optimum < all_at_once) == ((n_vertices, degree) in _DOCS_SKELETON_WINS)
-    # The winner is decided beyond the guaranteed relative error of the coefficients (15.07 versus 15 is closest).
-    assert abs(optimum - all_at_once) > 2e-6 * optimum
+    # The winner is decided beyond the error of the optimum (15.07 versus 15 is closest): relative errors of at
+    # most _RISK_RELATIVE_ERROR in each a_m halve under the square roots and double under the square.
+    assert abs(optimum - all_at_once) > 2 * _RISK_RELATIVE_ERROR * optimum
 
 
 def test_skeleton_risk_coefficients_reject_ill_conditioned_degrees():
@@ -481,7 +489,49 @@ def test_sample_skeleton_allocates_optimal_counts(n_vertices, degree, n, seed, m
         slack = n * 4 * n_vertices * U
         assert math.floor(n * ratio[size - 1] - slack) <= sum(level) <= math.ceil(n * ratio[size - 1] + slack)
         assert max(level) - min(level) <= 1
+        if ratio[size - 1] == 0:
+            assert sum(level) == 0
     assert torch.equal(t, sample_skeleton(space, n, seed=seed, method=method).parameters)
+
+
+@given(
+    n_vertices=st.integers(2, 6),
+    data=st.data(),
+    n=st.integers(0, 500),
+    seed=seeds(),
+)
+def test_sample_skeleton_allocates_explicit_ratios(n_vertices, data, n, seed):
+    ratio = data.draw(
+        st.lists(
+            st.one_of(st.just(0.0), st.floats(0, 1e308), st.floats(0, 1)), min_size=n_vertices, max_size=n_vertices
+        ).filter(lambda r: max(r) > 0)
+    )
+    points = sample_skeleton(BezierSpace.simplex(n_vertices - 1, degree=2), n, ratio=ratio, seed=seed)
+    counts = _face_counts(points, n_vertices)
+    assert sum(counts.values()) == n
+    largest = max(ratio)
+    fractions = [r / largest for r in ratio]
+    fractions = [f / sum(fractions) for f in fractions]
+    for size in range(1, n_vertices + 1):
+        level = [counts[face] for face in combinations(range(n_vertices), size)]
+        # Floor or ceiling of the quota; the normalized fractions carry a few M roundings of relative error.
+        slack = n * 4 * n_vertices * U
+        assert math.floor(n * fractions[size - 1] - slack) <= sum(level) <= math.ceil(n * fractions[size - 1] + slack)
+        assert max(level) - min(level) <= 1
+        if ratio[size - 1] == 0:
+            assert sum(level) == 0
+
+
+def test_sample_skeleton_spreads_few_rows_over_wide_skeletons():
+    # 24 vertices have C(24, 12) = 2704156 faces of size 12; each of the few rows there lands on a distinct face.
+    space = BezierSpace.simplex(23, degree=1)
+    points = sample_skeleton(space, 48, ratio=[1.0] * 24, seed=0)
+    sizes = (points.parameters > 0).sum(1)
+    assert sizes.bincount(minlength=25)[1:].tolist() == [2] * 24
+    middle = points.parameters[sizes == 12] > 0
+    assert len({tuple(row.tolist()) for row in middle}) == 2
+    again = sample_skeleton(space, 48, ratio=[1.0] * 24, seed=0)
+    assert torch.equal(points.parameters, again.parameters)
 
 
 def test_sample_skeleton_uses_explicit_ratio_and_local_generator():
@@ -520,7 +570,7 @@ def test_sample_skeleton_faces_of_larger_simplices_are_uniform():
 
 def test_sample_skeleton_accepts_ratio_entries_near_the_float64_limit():
     space = BezierSpace.simplex(2, degree=2)
-    for ratio in ([1e308, 1e308, 1e308], torch.full((3,), 1e308, dtype=torch.float64)):
+    for ratio in ([1e308, 1e308, 1e308], torch.full((3,), 1e308, dtype=torch.float64), [2**1000] * 3):
         counts = _face_counts(sample_skeleton(space, 7, ratio=ratio, seed=0), 3)
         assert [sum(counts[f] for f in combinations(range(3), k)) for k in (1, 2, 3)] in ([3, 2, 2], [2, 3, 2], [2, 2, 3])
 
@@ -537,6 +587,11 @@ def test_sample_skeleton_accepts_ratio_entries_near_the_float64_limit():
         ["a", "b"],
         [True, False],
         [1j, 1.0],
+        [True, 1.0],
+        np.array([True, False]),
+        torch.tensor([True, False]),
+        torch.tensor([1j, 1.0]),
+        torch.ones(2, device="meta"),
         object(),
     ],
 )

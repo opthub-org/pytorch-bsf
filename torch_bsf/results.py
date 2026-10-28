@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal
 
 import torch
@@ -125,7 +125,8 @@ class SkeletonRegressionResult:
     message: str
 
     def require_success(self) -> SkeletonRegressionResult:
-        """Raise if a face fit failed."""
+        """Raise :class:`ConvergenceError` with the failed face's result if a face fit failed."""
         if not self.success:
-            raise RuntimeError(self.message)
+            failed = list(self.faces.values())[-1]
+            raise ConvergenceError(replace(failed, message=self.message))
         return self

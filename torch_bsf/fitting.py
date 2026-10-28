@@ -9,7 +9,7 @@ from typing import TypeVar
 import torch
 
 from torch_bsf._problem import LeastSquaresProblem
-from torch_bsf._skeleton import _control_faces, _skeleton_faces, _skeleton_shape
+from torch_bsf._skeleton import _control_faces, _faces_with_interior_controls, _interior_and_boundary, _skeleton_shape
 from torch_bsf.core import BezierModel, BezierSpace, FixedControls, QuadraticPenalty, Samples
 from torch_bsf.results import FitDiagnostics, FitResult, MatrixDiagnostics, SkeletonRegressionResult
 from torch_bsf.solvers import DenseLeastSquares, LeastSquaresSolver, SparseLeastSquares
@@ -319,7 +319,7 @@ def fit_skeleton_regression(
         Observations at known parameters. Every face with at most ``degree``
         vertices needs at least one row of positive weight. Rows on larger
         faces, which have no interior controls, are ignored and counted in the
-        message. Weights apply within each face.
+        result's message. Weights apply within each face.
     solver
         Least-squares configuration used for every face.
 
@@ -361,11 +361,12 @@ def fit_skeleton_regression(
     space.validate(samples.points)
     support = samples.points.parameters.cpu() != 0
     ignored = int((support.sum(1) > degree).sum())
-    faces = _skeleton_faces(width, degree)
-    rows = {
-        face: (support == support.new_zeros(width).index_fill_(0, torch.tensor(face), True)).all(1).nonzero().flatten()
-        for face in faces
-    }
+    ignored_message = f" Ignored {ignored} rows on faces with more than degree={degree} vertices." if ignored else ""
+    faces = _faces_with_interior_controls(width, degree)
+    grouped: dict[tuple[int, ...], list[int]] = {face: [] for face in faces}
+    for r, row in enumerate(support.tolist()):
+        grouped.get(tuple(i for i, nonzero in enumerate(row) if nonzero), []).append(r)
+    rows = {face: torch.tensor(grouped[face], dtype=torch.long) for face in faces}
     missing = [face for face in faces if not (samples.weights[rows[face]] > 0).any()]
     if missing:
         raise ValueError(f"faces without rows of positive weight: {missing}.")
@@ -373,15 +374,13 @@ def fit_skeleton_regression(
     coefficients = torch.zeros(space.n_controls, samples.values.shape[1], dtype=torch.float64)
     results: dict[tuple[int, ...], FitResult] = {}
     for face in faces:
-        free = [k for k, f in enumerate(control_faces) if f == face]
+        free, _ = _interior_and_boundary(control_faces, face)
         fixed = FixedControls({k: coefficients[k] for k in range(space.n_controls) if k not in free})
         result = fit(space, samples.take(rows[face]), solver=solver, fixed=fixed)
         results[face] = result
         coefficients[free] = result.model.coefficients.detach()[free]
         if not result.success:
-            message = f"Face {face}: {result.message}"
+            message = f"Face {face}: {result.message}{ignored_message}"
             return SkeletonRegressionResult(BezierModel(space, coefficients), results, False, result.status, message)
-    message = "Every face least-squares problem was solved."
-    if ignored:
-        message += f" Ignored {ignored} rows on faces with more than degree={degree} vertices."
+    message = f"Every face least-squares problem was solved.{ignored_message}"
     return SkeletonRegressionResult(BezierModel(space, coefficients), results, True, "solved", message)

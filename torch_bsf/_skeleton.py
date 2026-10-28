@@ -1,6 +1,4 @@
-"""Faces and controls shared by skeleton sampling, its risk analysis and inductive skeleton regression."""
-
-from __future__ import annotations
+"""Faces and controls shared by skeleton sampling, its risk analysis and the inductive skeleton fitters."""
 
 from itertools import combinations
 
@@ -18,11 +16,21 @@ def _skeleton_shape(space: BezierSpace) -> tuple[int, int]:
     return cell.dimensions[0] + 1, cell.degree[0]
 
 
-def _skeleton_faces(width: int, degree: int) -> list[tuple[int, ...]]:
-    """Sorted vertex tuples of the faces with interior controls, in increasing size."""
+def _faces_with_interior_controls(width: int, degree: int) -> list[tuple[int, ...]]:
+    """Sorted vertex tuples of the faces with at most ``degree`` vertices, in increasing size.
+
+    Larger faces of the skeletons have no interior controls, so face-by-face fitting skips them.
+    """
     return [face for size in range(1, min(degree, width) + 1) for face in combinations(range(width), size)]
 
 
 def _control_faces(width: int, degree: int) -> list[tuple[int, ...]]:
     """The face each control is interior to (the support of its multi-index), in control order."""
     return [tuple(i for i, a in enumerate(alpha) if a) for alpha in _simplex_indices(width, degree)]
+
+
+def _interior_and_boundary(control_faces: list[tuple[int, ...]], face: tuple[int, ...]) -> tuple[list[int], list[int]]:
+    """Indices of the controls interior to ``face`` and of those on its boundary."""
+    interior = [k for k, f in enumerate(control_faces) if f == face]
+    boundary = [k for k, f in enumerate(control_faces) if f != face and set(f) <= set(face)]
+    return interior, boundary

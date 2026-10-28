@@ -12,11 +12,12 @@ from collections.abc import Mapping, Sequence
 from itertools import combinations
 from typing import Literal
 
+import numpy as np
 import torch
 from torch.nn import functional as F
 
 from torch_bsf._kernels.combinatorics import _indices, _simplex_indices
-from torch_bsf._skeleton import _control_faces, _skeleton_faces, _skeleton_shape
+from torch_bsf._skeleton import _control_faces, _faces_with_interior_controls, _interior_and_boundary, _skeleton_shape
 from torch_bsf._validation import _choice
 from torch_bsf.core import BezierSpace, Points, _integer
 from torch_bsf.geometry import Simploid
@@ -193,14 +194,13 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
     """
     width, degree = _skeleton_shape(space)
     alpha = torch.tensor(_simplex_indices(width, degree), dtype=torch.long)
-    control_faces = [frozenset(face) for face in _control_faces(width, degree)]
+    control_faces = _control_faces(width, degree)
     # Control errors as linear maps of the independent face noises: on face I,
     # e_T = eta_I - G_TT^{-1} G_TB e_B, where T are the controls interior to I and B those on its boundary.
     errors = torch.zeros(len(alpha), len(alpha), dtype=torch.float64)
     face_grams: list[tuple[int, torch.Tensor, torch.Tensor]] = []
-    for face in _skeleton_faces(width, degree):
-        interior = torch.tensor([k for k, f in enumerate(control_faces) if f == set(face)], dtype=torch.long)
-        boundary = torch.tensor([k for k, f in enumerate(control_faces) if f < set(face)], dtype=torch.long)
+    for face in _faces_with_interior_controls(width, degree):
+        interior, boundary = (torch.tensor(k, dtype=torch.long) for k in _interior_and_boundary(control_faces, face))
         gram = _face_gram(alpha[interior], alpha[torch.cat([interior, boundary])], face, degree)
         g_tt, g_tb = gram[:, : len(interior)], gram[:, len(interior) :]
         errors[interior] = -torch.linalg.solve(g_tt, g_tb @ errors[boundary])
@@ -260,7 +260,7 @@ def optimal_skeleton_ratio(space: BezierSpace) -> tuple[float, ...]:
     return tuple(r / sum(roots) for r in roots)
 
 
-def _skeleton_weights(ratio: Sequence[float] | torch.Tensor | None, space: BezierSpace, width: int) -> list[float]:
+def _skeleton_fractions(ratio: Sequence[float] | torch.Tensor | None, space: BezierSpace, width: int) -> list[float]:
     """Validated skeleton fractions summing to one, the optimal ones by default."""
     if ratio is None:
         try:
@@ -268,31 +268,52 @@ def _skeleton_weights(ratio: Sequence[float] | torch.Tensor | None, space: Bezie
         except ValueError as error:
             raise ValueError(f"{error} Pass ratio explicitly.") from error
     message = f"ratio must have {width} finite nonnegative real entries with a positive sum."
-    try:
-        tensor = torch.as_tensor(ratio)
-    except (TypeError, ValueError, RuntimeError) as error:
-        raise ValueError(message) from error
-    if tensor.dtype == torch.bool or tensor.is_complex() or tensor.shape != (width,):
-        raise ValueError(message)
-    # Converting a non-tensor directly to float64 avoids float32 overflow of large entries.
-    tensor = (tensor.detach() if isinstance(ratio, torch.Tensor) else torch.as_tensor(ratio, dtype=torch.float64)).to(
-        torch.float64
-    )
-    if not torch.isfinite(tensor).all() or (tensor < 0).any() or not tensor.max() > 0:
+    if isinstance(ratio, torch.Tensor):
+        if ratio.dtype == torch.bool or ratio.is_complex():
+            raise ValueError(message)
+        try:
+            tensor = ratio.detach().cpu().to(torch.float64)
+        except (RuntimeError, TypeError, NotImplementedError) as error:  # e.g. a meta tensor has no data to copy
+            raise ValueError(message) from error
+    else:
+        # Converting directly to float64 avoids float32 overflow of large entries and int64 overflow of huge integers.
+        try:
+            tensor = torch.as_tensor(ratio, dtype=torch.float64)
+        except (TypeError, ValueError, RuntimeError) as error:
+            raise ValueError(message) from error
+        if tensor.shape == (width,) and any(isinstance(entry, (bool, np.bool_)) for entry in ratio):
+            raise ValueError(message)
+    if tensor.shape != (width,) or not torch.isfinite(tensor).all() or (tensor < 0).any() or not tensor.max() > 0:
         raise ValueError(message)
     # Scaling by the maximum first keeps the sum finite (at most width) for entries near the float64 limit.
     tensor = tensor / tensor.max()
     return (tensor / tensor.sum()).tolist()
 
 
-def _skeleton_counts(n: int, weights: Sequence[float]) -> list[int]:
+def _skeleton_counts(n: int, fractions: Sequence[float]) -> list[int]:
     """Largest-remainder rounding of ``n`` by fractions summing to one."""
-    quotas = [n * w for w in weights]
+    quotas = [n * f for f in fractions]
     counts = [math.floor(q) for q in quotas]
-    by_remainder = sorted(range(len(weights)), key=lambda m: (counts[m] - quotas[m], m))
+    by_remainder = sorted(range(len(fractions)), key=lambda m: (counts[m] - quotas[m], m))
     for m in by_remainder[: n - sum(counts)]:
         counts[m] += 1
     return counts
+
+
+def _face_counts(width: int, size: int, count: int, generator: torch.Generator) -> list[tuple[tuple[int, ...], int]]:
+    """Faces of one skeleton with their row counts: an equal split, the remainder on random distinct faces."""
+    n_faces = math.comb(width, size)
+    if 2 * count < n_faces:
+        # Every face gets at most one row. Rejection sampling of distinct faces costs O(count) draws on average
+        # and avoids listing all C(width, size) faces of a wide simplex.
+        chosen: set[tuple[int, ...]] = set()
+        while len(chosen) < count:
+            chosen.add(tuple(sorted(torch.randperm(width, generator=generator)[:size].tolist())))
+        return [(face, 1) for face in sorted(chosen)]
+    faces = list(combinations(range(width), size))
+    per_face = torch.full((n_faces,), count // n_faces, dtype=torch.long)
+    per_face[torch.randperm(n_faces, generator=generator)[: count % n_faces]] += 1
+    return [(face, rows) for face, rows in zip(faces, per_face.tolist(), strict=True) if rows]
 
 
 def sample_skeleton(
@@ -355,19 +376,13 @@ def sample_skeleton(
     width, _ = _skeleton_shape(space)
     _integer(n, "n")
     _choice(method, "method", ("random", "sobol"), message="method must be 'random' or 'sobol'.")
-    counts = _skeleton_counts(n, _skeleton_weights(ratio, space, width))
+    counts = _skeleton_counts(n, _skeleton_fractions(ratio, space, width))
     generator = _generator(seed)
     blocks = [torch.zeros(0, width, dtype=torch.float64)]
     for size, count in enumerate(counts, start=1):
-        if not count:
-            continue
-        faces = list(combinations(range(width), size))
-        per_face = torch.full((len(faces),), count // len(faces), dtype=torch.long)
-        per_face[torch.randperm(len(faces), generator=generator)[: count % len(faces)]] += 1
-        for face, rows in zip(faces, per_face.tolist(), strict=True):
-            if rows:
-                exponentials = _exponentials(generator, rows, size, method)
-                block = torch.zeros(rows, width, dtype=torch.float64)
-                block[:, face] = exponentials / exponentials.sum(1, keepdim=True)
-                blocks.append(block)
+        for face, rows in _face_counts(width, size, count, generator) if count else []:
+            exponentials = _exponentials(generator, rows, size, method)
+            block = torch.zeros(rows, width, dtype=torch.float64)
+            block[:, face] = exponentials / exponentials.sum(1, keepdim=True)
+            blocks.append(block)
     return Points(torch.cat(blocks))

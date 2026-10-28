@@ -11,13 +11,13 @@ import math
 import warnings
 from collections.abc import Mapping
 from dataclasses import dataclass
-from itertools import combinations
 from typing import Any
 
 import torch
 
 from torch_bsf._kernels.combinatorics import _indices, _recursive_basis, _simplex_indices
 from torch_bsf._numeric import _finite_mean
+from torch_bsf._skeleton import _faces_with_interior_controls
 from torch_bsf.core import BezierModel, BezierSpace, FixedControls, Samples, _integer
 from torch_bsf.fitting import fit
 from torch_bsf.results import ConvergenceWarning, FitResult
@@ -373,7 +373,7 @@ def fit_skeleton(
     _settings(max_iter, parameter_max_iter, tolerance, parameter_tolerance)
     y = _values(values)
     model = _initial(space, y, initial)
-    required = [face for size in range(1, min(degree, width) + 1) for face in combinations(range(width), size)]
+    required = _faces_with_interior_controls(width, degree)
     if width == 1:
         required = [(0,)]
     if face_values is None and width > 1 and y.shape[1] != width:

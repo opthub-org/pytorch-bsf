@@ -209,5 +209,5 @@ ill-conditioned as the degree grows, and
 once the float64 result can no longer be guaranteed to six significant digits
 (above degree 14 for :math:`M = 2`, 12 for :math:`M = 3`, 11 for
 :math:`M = 4`, 9 for :math:`M = 5` and 8 for :math:`M = 6`). In that case, pass
-``ratio`` to :func:`~torch_bsf.sampling.sample_skeleton` explicitly. Only a single simplex is supported, not products or
-assembled spaces.
+``ratio`` to :func:`~torch_bsf.sampling.sample_skeleton` explicitly. Only a
+single simplex is supported, not products or assembled spaces.
