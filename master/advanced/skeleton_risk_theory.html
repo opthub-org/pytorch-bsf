@@ -67,6 +67,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#setting">Setting</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#the-asymptotic-risk">The asymptotic risk</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#how-errors-propagate">How errors propagate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#triangular-jacobi-extension">Triangular Jacobi extension</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#closed-forms">Closed forms</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#curves">Curves</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fixed-degree-growing-dimension">Fixed degree, growing dimension</a></li>
@@ -466,10 +467,82 @@ monomials span all polynomials of that degree on <span class="math notranslate n
 <span class="math notranslate nohighlight">\(\omega_y = 1 - |\omega_I|\)</span> there.</p>
 </div>
 </section>
+<section id="triangular-jacobi-extension">
+<h2>Triangular Jacobi extension<a class="headerlink" href="#triangular-jacobi-extension" title="Link to this heading"></a></h2>
+<p>The orthogonal-polynomial construction does extend beyond curves, although
+it does not yet give a scalar closed form for <span class="math notranslate nohighlight">\(a_1\)</span>.</p>
+<div class="proof proposition admonition" id="prop-skeleton-triangle-jacobi">
+<p class="admonition-title"><span class="caption-number">Proposition 1 </span> (Propagation from an edge via Jacobi polynomials)</p>
+<section class="proposition-content" id="proof-content">
+<p>Let <span class="math notranslate nohighlight">\(m=1\)</span>, <span class="math notranslate nohighlight">\(D\geq2\)</span>, <span class="math notranslate nohighlight">\(N=D-2\)</span>, and let
+<span class="math notranslate nohighlight">\(I=\{1,2\}\)</span>. On the triangle with coordinates
+<span class="math notranslate nohighlight">\((x_1,x_2,y)\)</span>, put <span class="math notranslate nohighlight">\(r=x_1+x_2\)</span> and
+<span class="math notranslate nohighlight">\(z=x_1/r\)</span>. Write the boundary error polynomial as</p>
+<div class="math notranslate nohighlight">
+\[p_c(z,1-z,0)=z(1-z)\sum_{k=0}^N d_k P_k^{(2,2)}(2z-1).\]</div>
+<p>Here <span class="math notranslate nohighlight">\(P_n^{(\alpha,\beta)}(2v-1)\)</span> denotes the shifted Jacobi
+polynomial orthogonal for the weight <span class="math notranslate nohighlight">\((1-v)^\alpha v^\beta\)</span>,
+normalized by <span class="math notranslate nohighlight">\(P_n^{(\alpha,\beta)}(1)=\binom{n+\alpha}{n}\)</span>.
+Then the polynomial <span class="math notranslate nohighlight">\(\Phi\)</span> of
+<a class="reference internal" href="#thm-skeleton-propagation-reduction">Theorem 9</a>, on this triangle, is</p>
+<div class="math notranslate nohighlight" id="equation-skeleton-triangle-jacobi">
+<span class="eqno">(6)<a class="headerlink" href="#equation-skeleton-triangle-jacobi" title="Link to this equation"></a></span>\[\Phi(x_1,x_2,y)=x_1x_2\sum_{k=0}^N d_k r^k
+P_k^{(2,2)}(2z-1)P_{N-k}^{(0,2k+5)}(2r-1).\]</div>
+<p>The expression has a polynomial extension to <span class="math notranslate nohighlight">\(r=0\)</span>. Homogenize it
+to degree <span class="math notranslate nohighlight">\(D\)</span> before using
+<a class="reference internal" href="#equation-skeleton-reduction-integral">(4)</a>. More explicitly, the homogeneous
+polynomial is obtained by replacing the angular factor by</p>
+<div class="math notranslate nohighlight">
+\[H_k(x_1,x_2)=\sum_{h=0}^k(-1)^{k-h}
+\binom{k+2}{h}\binom{k+2}{k-h}x_1^h x_2^{k-h}\]</div>
+<p>and the radial factor by</p>
+<div class="math notranslate nohighlight">
+\[R_{N,k}(r,y)=\sum_{j=0}^{N-k}(-1)^{N-k-j}
+\binom{N-k}{j}\binom{N+k+5}{N-k-j}r^j y^{N-k-j}.\]</div>
+<p>Thus <span class="math notranslate nohighlight">\(\Phi=x_1x_2\sum_k d_k H_k R_{N,k}\)</span> in homogeneous
+coordinates. If its coefficient of <span class="math notranslate nohighlight">\(x_1^a x_2^b y^n\)</span> is
+<span class="math notranslate nohighlight">\(A_{abn}\)</span>, the Bernstein control of the triangle error
+<span class="math notranslate nohighlight">\(\phi\)</span> is</p>
+<div class="math notranslate nohighlight" id="equation-skeleton-triangle-jacobi-controls">
+<span class="eqno">(7)<a class="headerlink" href="#equation-skeleton-triangle-jacobi-controls" title="Link to this equation"></a></span>\[e((a,b),n)=\frac{A_{abn}\,a!b!n!}{D!(n+1)}.\]</div>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Every error polynomial in question is divisible by <span class="math notranslate nohighlight">\(x_1x_2\)</span>.
+Write <span class="math notranslate nohighlight">\(\Phi=x_1x_2 Q\)</span>. The orthogonality condition
+<a class="reference internal" href="#equation-skeleton-reduction-orthogonality">(5)</a> becomes orthogonality of
+<span class="math notranslate nohighlight">\(Q\)</span> to all polynomials of degree at most <span class="math notranslate nohighlight">\(N-1\)</span> for the
+weight <span class="math notranslate nohighlight">\(x_1^2x_2^2\)</span>. Under
+<span class="math notranslate nohighlight">\((x_1,x_2)=(rz,r(1-z))\)</span>, this weighted area element is
+<span class="math notranslate nohighlight">\(r^5z^2(1-z)^2\,dr\,dz\)</span>.</p>
+<p>Set <span class="math notranslate nohighlight">\(A_k(z)=P_k^{(2,2)}(2z-1)\)</span>. Polynomials of total degree
+at most <span class="math notranslate nohighlight">\(N-1\)</span> are spanned by
+<span class="math notranslate nohighlight">\(r^l A_l(z)q(r)\)</span>, with <span class="math notranslate nohighlight">\(0\leq l\leq N-1\)</span> and
+<span class="math notranslate nohighlight">\(\deg q\leq N-1-l\)</span>: this follows by expanding each monomial
+<span class="math notranslate nohighlight">\(r^j z^a\)</span> in the angular Jacobi basis, with <span class="math notranslate nohighlight">\(a\leq j\)</span>.
+For the <span class="math notranslate nohighlight">\(k\)</span>-th summand of <span class="math notranslate nohighlight">\(Q\)</span>, angular orthogonality
+kills every <span class="math notranslate nohighlight">\(l\ne k\)</span>. When <span class="math notranslate nohighlight">\(l=k\)</span>, the remaining
+integral has weight <span class="math notranslate nohighlight">\(r^{2k+5}\)</span> and vanishes by the radial
+Jacobi orthogonality. Consequently every displayed summand satisfies
+<a class="reference internal" href="#equation-skeleton-reduction-orthogonality">(5)</a>.</p>
+<p>The space of polynomials of degree at most <span class="math notranslate nohighlight">\(N\)</span> orthogonal to
+all degrees at most <span class="math notranslate nohighlight">\(N-1\)</span> has dimension <span class="math notranslate nohighlight">\(N+1\)</span>.
+The displayed <span class="math notranslate nohighlight">\(N+1\)</span> polynomials are independent: at
+<span class="math notranslate nohighlight">\(r=1\)</span>, their radial factors equal one and their restrictions
+are the angular Jacobi basis. They therefore give the unique
+orthogonal extension of the prescribed boundary data.
+Since <span class="math notranslate nohighlight">\(\Phi(x_1,x_2,0)=\phi(x_1,x_2,0)\)</span>, the polynomial from
+<a class="reference internal" href="#thm-skeleton-propagation-reduction">Theorem 9</a> has exactly these
+boundary values and orthogonality, proving the formula.
+Finally <span class="math notranslate nohighlight">\(\partial_y(y\phi)=\Phi\)</span> divides each monomial
+coefficient by <span class="math notranslate nohighlight">\(n+1\)</span> when recovering <span class="math notranslate nohighlight">\(\phi\)</span>;
+conversion to Bernstein coefficients gives
+<a class="reference internal" href="#equation-skeleton-triangle-jacobi-controls">(7)</a>.</p>
+</div>
+</section>
 <section id="closed-forms">
 <h2>Closed forms<a class="headerlink" href="#closed-forms" title="Link to this heading"></a></h2>
 <div class="proof proposition admonition" id="prop-skeleton-top">
-<p class="admonition-title"><span class="caption-number">Proposition 1 </span> (Top face)</p>
+<p class="admonition-title"><span class="caption-number">Proposition 2 </span> (Top face)</p>
 <section class="proposition-content" id="proof-content">
 <p>For <span class="math notranslate nohighlight">\(D \geq M\)</span>, <span class="math notranslate nohighlight">\(a_{M-1} = \binom{D-1}{M-1}\)</span>.</p>
 </section>
@@ -478,7 +551,7 @@ monomials span all polynomials of that degree on <span class="math notranslate n
 the trace is <span class="math notranslate nohighlight">\(\operatorname{tr}(G_{TT}^{-1} G_{TT}) = |T_I|\)</span>.</p>
 </div>
 <div class="proof proposition admonition" id="prop-skeleton-degree-faces">
-<p class="admonition-title"><span class="caption-number">Proposition 2 </span> (Faces with D vertices)</p>
+<p class="admonition-title"><span class="caption-number">Proposition 3 </span> (Faces with D vertices)</p>
 <section class="proposition-content" id="proof-content">
 <p>For <span class="math notranslate nohighlight">\(D \leq M\)</span>,</p>
 <div class="math notranslate nohighlight">
@@ -495,7 +568,7 @@ interior controls, so <span class="math notranslate nohighlight">\(E_I\)</span> 
 definition.</p>
 </div>
 <div class="proof proposition admonition" id="prop-skeleton-second-faces">
-<p class="admonition-title"><span class="caption-number">Proposition 3 </span> (Faces with D - 1 vertices)</p>
+<p class="admonition-title"><span class="caption-number">Proposition 4 </span> (Faces with D - 1 vertices)</p>
 <section class="proposition-content" id="proof-content">
 <p>For <span class="math notranslate nohighlight">\(2 \leq D \leq M + 1\)</span>,</p>
 <div class="math notranslate nohighlight">
@@ -531,7 +604,7 @@ Dirichlet distributed with parameters <span class="math notranslate nohighlight"
 <span class="math notranslate nohighlight">\(t_k u\)</span>, <span class="math notranslate nohighlight">\(u^2\)</span>, <span class="math notranslate nohighlight">\(u\)</span> and <span class="math notranslate nohighlight">\(1\)</span>, using
 <span class="math notranslate nohighlight">\(\sum_k t_k = 1 - u\)</span>. Collecting terms gives the formula. For
 <span class="math notranslate nohighlight">\(M = D - 1\)</span> the formula reduces to <span class="math notranslate nohighlight">\(D - 1\)</span>, which agrees with
-<a class="reference internal" href="#prop-skeleton-top">Proposition 1</a>.</p>
+<a class="reference internal" href="#prop-skeleton-top">Proposition 2</a>.</p>
 </div>
 </section>
 <section id="curves">
@@ -572,7 +645,7 @@ Integration by parts gives
 so <span class="math notranslate nohighlight">\(a_0 = \binom21 \cdot 2 \lVert \varphi \rVert^2\)</span>: the binomial
 comes from the definition of <span class="math notranslate nohighlight">\(a_m\)</span>, and the sum runs over the two
 vertices.
-<span class="math notranslate nohighlight">\(a_1 = D - 1\)</span> by <a class="reference internal" href="#prop-skeleton-top">Proposition 1</a>.</p>
+<span class="math notranslate nohighlight">\(a_1 = D - 1\)</span> by <a class="reference internal" href="#prop-skeleton-top">Proposition 2</a>.</p>
 <p><em>The Bernstein coefficients.</em> Rodrigues’ formula and the Leibniz rule give
 <span class="math notranslate nohighlight">\(\tilde P_n = \sum_k (-1)^{n-k} \binom nk \cdot \binom nk x^k (1-x)^{n-k}\)</span>,
 so the Bernstein coefficients of <span class="math notranslate nohighlight">\(\tilde P_n\)</span> are
@@ -621,13 +694,13 @@ K_r(p,q) &amp;= [x^p y^q]F(x,y)^r.\end{split}\]</div>
 <p>The quotient denotes its formal series, including at either zero
 coordinate. For every <span class="math notranslate nohighlight">\(D\geq1\)</span> and <span class="math notranslate nohighlight">\(M\geq2\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-skeleton-vertex-double-sum">
-<span class="eqno">(6)<a class="headerlink" href="#equation-skeleton-vertex-double-sum" title="Link to this equation"></a></span>\[a_0 = \frac{M^2(D!)^2}{(M)_{2D}}
+<span class="eqno">(8)<a class="headerlink" href="#equation-skeleton-vertex-double-sum" title="Link to this equation"></a></span>\[a_0 = \frac{M^2(D!)^2}{(M)_{2D}}
 \sum_{k=1}^D\sum_{l=1}^D
 w_k w_l\binom{k+l}{k}K_{M-1}(D-k,D-l).\]</div>
 <p>In particular, the polynomial <span class="math notranslate nohighlight">\(P_{D,0}\)</span> in
 <a class="reference internal" href="#thm-skeleton-rational">Theorem 12</a> has the general finite expression</p>
 <div class="math notranslate nohighlight" id="equation-skeleton-vertex-polynomial">
-<span class="eqno">(7)<a class="headerlink" href="#equation-skeleton-vertex-polynomial" title="Link to this equation"></a></span>\[P_{D,0}(M) = (D!)^2\sum_{s=0}^{2D-2}\binom{M-1}{s}
+<span class="eqno">(9)<a class="headerlink" href="#equation-skeleton-vertex-polynomial" title="Link to this equation"></a></span>\[P_{D,0}(M) = (D!)^2\sum_{s=0}^{2D-2}\binom{M-1}{s}
 \sum_{k,l=1}^D w_k w_l\binom{k+l}{k}
 [x^{D-k}y^{D-l}](F-1)^s.\]</div>
 </section>
@@ -643,13 +716,13 @@ errors are <span class="math notranslate nohighlight">\(w_k/\prod_j(u_j+1)\)</sp
 <span class="math notranslate nohighlight">\(K_{M-1}(D-k,D-l)\)</span>. The vertex Gram block is 1. The
 <span class="math notranslate nohighlight">\(M\)</span> equal vertex contributions and the allocation factor
 <span class="math notranslate nohighlight">\(\binom M1=M\)</span> give the factor <span class="math notranslate nohighlight">\(M^2\)</span> in
-<a class="reference internal" href="#equation-skeleton-vertex-double-sum">(6)</a>.</p>
+<a class="reference internal" href="#equation-skeleton-vertex-double-sum">(8)</a>.</p>
 <p>Integrating <span class="math notranslate nohighlight">\((1-x-y)^{-1}\)</span> formally once in each variable gives
 the displayed expression for <span class="math notranslate nohighlight">\(xyF\)</span>. Finally expand
 <span class="math notranslate nohighlight">\(F^{M-1}=(1+(F-1))^{M-1}\)</span>. Since <span class="math notranslate nohighlight">\(F-1\)</span> has no constant
 term, its power <span class="math notranslate nohighlight">\(s\)</span> cannot contribute above <span class="math notranslate nohighlight">\(s=p+q\)</span>.
 Here <span class="math notranslate nohighlight">\(p+q\leq2D-2\)</span>, which proves
-<a class="reference internal" href="#equation-skeleton-vertex-polynomial">(7)</a>, including the degree bound. The
+<a class="reference internal" href="#equation-skeleton-vertex-polynomial">(9)</a>, including the degree bound. The
 coefficient extraction uses a polynomial of bounded degree for every
 fixed <span class="math notranslate nohighlight">\(D\)</span>; it requires no propagation matrices or inverses.</p>
 </div>
@@ -854,8 +927,8 @@ product of the same formula within the equal-exponent groups. It compares
 the entries with an independent exact
 evaluation of the definition for small <span class="math notranslate nohighlight">\(M\)</span>. The entries for
 <span class="math notranslate nohighlight">\(m = D-1\)</span> and <span class="math notranslate nohighlight">\(m = D-2\)</span> agree with
-<a class="reference internal" href="#prop-skeleton-degree-faces">Proposition 2</a> and
-<a class="reference internal" href="#prop-skeleton-second-faces">Proposition 3</a>.</p>
+<a class="reference internal" href="#prop-skeleton-degree-faces">Proposition 3</a> and
+<a class="reference internal" href="#prop-skeleton-second-faces">Proposition 4</a>.</p>
 <div class="proof corollary admonition" id="cor-skeleton-large-dimension">
 <p class="admonition-title"><span class="caption-number">Corollary 4 </span> (Large dimension)</p>
 <section class="corollary-content" id="proof-content">
@@ -873,8 +946,8 @@ skeleton fitting wins in all sufficiently high dimensions.</p>
 </div><div class="proof admonition" id="proof">
 <p>Proof. <span class="math notranslate nohighlight">\(\binom{M}{m+1}^2 / (M)_{2D}\)</span> has degree <span class="math notranslate nohighlight">\(2(m + 1) - 2D\)</span>, so
 the degree bound of <a class="reference internal" href="#thm-skeleton-rational">Theorem 12</a> gives convergence.
-The last two limits follow from <a class="reference internal" href="#prop-skeleton-degree-faces">Proposition 2</a> and
-<a class="reference internal" href="#prop-skeleton-second-faces">Proposition 3</a>.</p>
+The last two limits follow from <a class="reference internal" href="#prop-skeleton-degree-faces">Proposition 3</a> and
+<a class="reference internal" href="#prop-skeleton-second-faces">Proposition 4</a>.</p>
 <p>For <span class="math notranslate nohighlight">\(a_0\)</span>, the leading term counts the pairs with
 <span class="math notranslate nohighlight">\(s = 2(D-1)\)</span>. These are exactly <span class="math notranslate nohighlight">\(\alpha = \mathbf 1_J\)</span> and
 <span class="math notranslate nohighlight">\(\beta = \mathbf 1_K\)</span> with <span class="math notranslate nohighlight">\(|J| = |K| = D\)</span> and
@@ -886,7 +959,7 @@ by <a class="reference internal" href="#cor-skeleton-vertex">Corollary 3</a> and
 \to 2 D^2 \gamma_D^2\)</span>.</p>
 </div>
 <div class="proof proposition admonition" id="prop-skeleton-wins">
-<p class="admonition-title"><span class="caption-number">Proposition 4 </span> (Where inductive fitting wins)</p>
+<p class="admonition-title"><span class="caption-number">Proposition 5 </span> (Where inductive fitting wins)</p>
 <section class="proposition-content" id="proof-content">
 <p>The optimal inductive risk is smaller than the all-at-once risk exactly
 for</p>
@@ -935,21 +1008,34 @@ around once the dimension is large enough.</p>
 <section id="open-questions">
 <h2>Open questions<a class="headerlink" href="#open-questions" title="Link to this heading"></a></h2>
 <ul>
-<li><p><strong>A closed form in D for 1 ≤ m ≤ D − 3.</strong> By
-<a class="reference internal" href="#thm-skeleton-propagation-reduction">Theorem 9</a>, <span class="math notranslate nohighlight">\(a_m\)</span> is determined by the
-propagation onto a face with <span class="math notranslate nohighlight">\(m + 2 \geq 3\)</span> vertices. For
-<span class="math notranslate nohighlight">\(m = 0\)</span> this is an edge, and Legendre polynomials solve it. For
-larger <span class="math notranslate nohighlight">\(m\)</span>, the bubble functions live on a simplex of dimension at
-least two, and no product formula is known. Exact values such as
-<span class="math notranslate nohighlight">\(a_1 = 99/28, 71/20, 188/55, 81259/25025\)</span> for <span class="math notranslate nohighlight">\(M = 3\)</span> and
-<span class="math notranslate nohighlight">\(D = 3, \dots, 6\)</span> acquire large prime factors, such as
-<span class="math notranslate nohighlight">\(81259 = 23 \cdot 3533\)</span>. This suggests that no single
-hypergeometric term gives them.</p></li>
+<li><p><strong>A scalar closed form in D for 1 ≤ m ≤ D − 3.</strong>
+<a class="reference internal" href="#prop-skeleton-triangle-jacobi">Proposition 1</a> solves the triangular
+orthogonal-extension step for <span class="math notranslate nohighlight">\(m=1\)</span>, using separated angular
+and radial Jacobi polynomials. Substitution into the Gram trace gives
+a finite exact procedure, but the resulting sums have not been
+evaluated to a scalar closed form for <span class="math notranslate nohighlight">\(a_1\)</span>.</p>
+<p>A single radial polynomial shared by all angular modes does not
+provide this extension. Already at <span class="math notranslate nohighlight">\(D=4\)</span> (<span class="math notranslate nohighlight">\(N=2\)</span>), the
+normalized radial factors for <span class="math notranslate nohighlight">\(k=0,1,2\)</span> are respectively
+<span class="math notranslate nohighlight">\(36r^2-56r+21\)</span>, <span class="math notranslate nohighlight">\(9r-8\)</span>, and <span class="math notranslate nohighlight">\(1\)</span>; they are different
+polynomials, each equal to one at <span class="math notranslate nohighlight">\(r=1\)</span>. Thus this particular
+separation ansatz fails, while the mode-dependent construction above
+succeeds. This rules out only that ansatz, not other closed forms.</p>
+<p>Exact rational checks of every angular mode for
+<span class="math notranslate nohighlight">\(D=2,\dots,7\)</span> reproduce the independently solved propagation
+matrices and, after reconstructing the Gram trace, give
+<span class="math notranslate nohighlight">\(a_1=3,99/28,71/20,188/55,81259/25025,\dots\)</span> for <span class="math notranslate nohighlight">\(M=3\)</span>.
+The complete checked values are fixed in <code class="docutils literal notranslate"><span class="pre">tests/sampling.py</span></code>.
+Large prime factors in these values do not rule out a hypergeometric
+formula: no nonexistence claim or conjecture of that kind is made.
+Extending the angular construction to larger faces and evaluating
+the scalar risk sums remain open.</p>
+</li>
 <li><p><strong>A simpler form of a_0 for finite M ≥ 3.</strong>
-<a class="reference internal" href="#equation-skeleton-vertex-double-sum">(6)</a> reduces the control-pair sum to a
+<a class="reference internal" href="#equation-skeleton-vertex-double-sum">(8)</a> reduces the control-pair sum to a
 <span class="math notranslate nohighlight">\(D\times D\)</span> sum with an explicit generating function. For example
 it gives <span class="math notranslate nohighlight">\(41/280,79/1120,1189/30800\)</span> at <span class="math notranslate nohighlight">\(M=3\)</span> and
-<span class="math notranslate nohighlight">\(D=3,4,5\)</span>. <a class="reference internal" href="#equation-skeleton-vertex-polynomial">(7)</a> gives every fixed-degree
+<span class="math notranslate nohighlight">\(D=3,4,5\)</span>. <a class="reference internal" href="#equation-skeleton-vertex-polynomial">(9)</a> gives every fixed-degree
 polynomial, but a scalar closed form in <span class="math notranslate nohighlight">\(D\)</span>, or a linear
 recurrence in <span class="math notranslate nohighlight">\(D\)</span> of bounded order, remains open even for
 <span class="math notranslate nohighlight">\(M=3\)</span>.</p>
@@ -973,13 +1059,13 @@ hypergeometric antidifference (SymPy <code class="docutils literal notranslate">
 This limits that direct indefinite-summation attempt; it does not rule
 out a definite-sum identity or creative telescoping. The boundary
 identity only evaluates terms with <span class="math notranslate nohighlight">\(k=D\)</span> or <span class="math notranslate nohighlight">\(l=D\)</span> in
-<a class="reference internal" href="#equation-skeleton-vertex-double-sum">(6)</a>; interior coefficients still involve
+<a class="reference internal" href="#equation-skeleton-vertex-double-sum">(8)</a>; interior coefficients still involve
 both variables. No WZ certificate or bounded-order recurrence is
 asserted.</p>
 </li>
 <li><p><strong>Exact crossover dimensions for every degree.</strong>
 <a class="reference internal" href="#cor-skeleton-large-dimension">Corollary 4</a> shows that a crossover dimension
-exists for every <span class="math notranslate nohighlight">\(D\)</span>, and <a class="reference internal" href="#prop-skeleton-wins">Proposition 4</a> determines it
+exists for every <span class="math notranslate nohighlight">\(D\)</span>, and <a class="reference internal" href="#prop-skeleton-wins">Proposition 5</a> determines it
 for <span class="math notranslate nohighlight">\(D \leq 8\)</span>. For <span class="math notranslate nohighlight">\(D=3,\ldots,8\)</span>, the crossover vertex
 counts are <span class="math notranslate nohighlight">\(11,20,29,39,49,60\)</span>. In particular the apparent arithmetic
 progression <span class="math notranslate nohighlight">\(9D-16\)</span> fails already at <span class="math notranslate nohighlight">\(D=6\)</span>, where it predicts
