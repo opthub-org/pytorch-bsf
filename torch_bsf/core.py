@@ -597,7 +597,7 @@ class FixedControls:
                 raise ValueError("fixed control values must be real.")
             if not isinstance(value, torch.Tensor) and tensor.is_floating_point():
                 tensor = torch.as_tensor(value, dtype=torch.float64)
-            tensor = tensor.to(dtype=torch.float64, device="cpu")
+            tensor = tensor.to(device="cpu").to(dtype=torch.float64)
             if tensor.ndim != 1 or not torch.isfinite(tensor).all():
                 raise ValueError("fixed control values must be finite output vectors.")
             checked[index] = tensor.clone()

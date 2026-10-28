@@ -475,7 +475,7 @@ class SimplicialMesh:
         x = _as_real_tensor(vertices)
         if x.ndim != 2 or x.shape[1] < 1 or not len(x) or x.is_complex() or not torch.isfinite(x).all():
             raise ValueError("vertices must be finite and real with shape (n_vertices, d), d >= 1.")
-        x = x.to(dtype=torch.float64, device="cpu", copy=True)
+        x = x.to(device="cpu").to(dtype=torch.float64, copy=True)
         d = x.shape[1]
         s = _check_simplices(simplices, len(x), d)
         edges = x[s[:, 1:]] - x[s[:, :1]]  # (m, d, d): row k is the edge from vertex 0 to vertex k + 1
@@ -821,7 +821,7 @@ class SimplicialMesh:
         p = _as_real_tensor(x)
         if p.ndim != 2 or p.shape[1] != self.dimension or p.is_complex() or not torch.isfinite(p).all():
             raise ValueError(f"points must be finite and real with shape (n_points, {self.dimension}).")
-        return p.to(dtype=torch.float64, device="cpu")
+        return p.to(device="cpu").to(dtype=torch.float64)
 
     def _check_values(self, values: Any) -> torch.Tensor:
         f = _as_real_tensor(values)
@@ -829,7 +829,7 @@ class SimplicialMesh:
             f = f[:, None]
         if f.ndim != 2 or len(f) != self.n_vertices or f.shape[1] < 1 or f.is_complex() or not torch.isfinite(f).all():
             raise ValueError("values must be finite and real with shape (n_vertices, n_outputs).")
-        return f.to(dtype=torch.float64, device="cpu")
+        return f.to(device="cpu").to(dtype=torch.float64)
 
 
 def lattice_mesh(dim: int, k: int) -> SimplicialMesh:
@@ -1310,7 +1310,7 @@ def hermite_interpolant(mesh: SimplicialMesh, values: Any, *, gradients: Any = N
         g = _as_real_tensor(gradients)
         if g.shape != (mesh.n_vertices, mesh.dimension, f.shape[1]) or g.is_complex() or not torch.isfinite(g).all():
             raise ValueError("gradients must be finite and real with shape (n_vertices, d, n_outputs).")
-        g = g.to(dtype=torch.float64, device="cpu")
+        g = g.to(device="cpu").to(dtype=torch.float64)
     s = mesh.simplices
     xs, fs, gs = mesh.vertices[s], f[s], g[s]
     controls = torch.tensor([mesh.space.cells[c].controls for c in mesh.cell_ids.tolist()], dtype=torch.long)
