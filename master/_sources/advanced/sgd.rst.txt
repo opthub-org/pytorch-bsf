@@ -334,7 +334,7 @@ The transform brings the surface 3 to 25 times closer to the Pareto set; the
 higher degrees have not converged in 100 iterations yet (see the optimality
 gap above).  To fit a model to the Pareto set of objectives that are increasing
 functions of convex ones, pass the transformed objectives to
-:func:`~torch_bsf.simploidal.linear_scalarization`:
+:func:`~torch_bsf.optimization.linear_scalarization`:
 
 .. code-block:: python
 
