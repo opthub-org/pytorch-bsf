@@ -560,8 +560,9 @@ included in ``OptimizationResult``.
 Numerical failures raise ``ArithmeticError`` when the combined objective,
 gradient or coefficient update is non-finite, including all-fixed and callback
 stops. A loss returning non-finite individual values raises ``ValueError``.
-Zero-weight penalties are skipped; active penalties scale coefficients before
-squaring so representable small-weight penalties avoid intermediate overflow.
+Zero-weight penalties are skipped; active penalties accumulate in float64 and
+apply weights before the final product so representable penalties avoid intermediate
+overflow. Coefficient gradients retain the model dtype.
 Rescale the model, loss or step size when a result remains unrepresentable.
 
 .. figure:: ../_static/guides/initialization.png

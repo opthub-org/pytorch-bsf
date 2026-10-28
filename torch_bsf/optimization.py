@@ -110,23 +110,28 @@ def _objective(model: BezierModel, loss: Loss, points: Points, penalty: Quadrati
     values = loss(model(points), points)
     if values.shape != (len(points),) or not torch.isfinite(values).all():
         raise ValueError("loss must return one finite value per sample.")
-    coefficients = model.coefficients
+    # Keep Python-float penalty weights representable even with float32 controls.
+    coefficients: torch.Tensor = model.coefficients
+    if penalty.ridge or penalty.smoothness:
+        coefficients = coefficients.to(dtype=torch.float64)
     objective = values.mean()
     if not torch.isfinite(objective):
         # Retry without an overflowing sum; preserve subnormal means on the usual path.
         objective = (values / len(points)).sum()
     if penalty.ridge:
-        objective = objective + (coefficients * math.sqrt(penalty.ridge)).square().sum()
+        objective = objective + ((coefficients * penalty.ridge) * coefficients).sum()
     if penalty.smoothness:
         edges = model.space.adjacency().to(coefficients.device)
         differences = coefficients[edges[:, 0]] - coefficients[edges[:, 1]]
-        scale = math.sqrt(penalty.smoothness)
         if torch.isfinite(differences).all():
-            differences = differences * scale
+            smoothness = ((differences * penalty.smoothness) * differences).sum()
         else:
-            scaled = coefficients * scale
-            differences = scaled[edges[:, 0]] - scaled[edges[:, 1]]
-        objective = objective + differences.square().sum()
+            # Halve before subtracting: the true difference can exceed float64
+            # while its weighted square remains representable.
+            half = coefficients / 2
+            differences = half[edges[:, 0]] - half[edges[:, 1]]
+            smoothness = ((differences * penalty.smoothness) * differences).sum() * 4
+        objective = objective + smoothness
     if not torch.isfinite(objective):
         raise ArithmeticError("loss and penalties produced a non-finite objective.")
     return objective
@@ -212,8 +217,9 @@ def minimize(
         The loss does not return one finite value per sample.
     ArithmeticError
         The combined objective, gradient or coefficient update is non-finite.
-        Zero-weight penalties are not evaluated. Active penalties scale before
-        squaring, but truly unrepresentable results raise on every stopping path.
+        Zero-weight penalties are not evaluated. Active penalties accumulate in
+        float64 and apply weights before the final product, while gradients retain
+        the model dtype. Truly unrepresentable results raise on every stopping path.
     """
     fitted = _model_for_optimization(model)
     p = fitted.coefficients

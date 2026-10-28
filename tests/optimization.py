@@ -170,3 +170,57 @@ def test_large_constant_controls_have_zero_smoothness():
         fixed=FixedControls({0: [1e200], 1: [1e200]}),
     )
     assert result.objective == 0
+
+
+@pytest.mark.parametrize("coefficient,weight", [(1e30, 1e-100), (1e-30, 1e100)])
+@pytest.mark.parametrize("kind", ["ridge", "smoothness"])
+def test_float32_penalty_weights_are_not_narrowed(coefficient, weight, kind):
+    space = BezierSpace.simplex(1, degree=1)
+    controls = torch.tensor([[coefficient], [-coefficient]], dtype=torch.float32)
+    initial = BezierModel(space, controls)
+    result = minimize(
+        initial,
+        lambda y, p: y[:, 0] * 0,
+        points=grid(space, 4),
+        penalty=QuadraticPenalty(**{kind: weight}),
+        fixed=FixedControls({0: controls[0], 1: controls[1]}),
+    )
+    actual = float(controls[0, 0])
+    expected = (2 if kind == "ridge" else 4) * weight * actual * actual
+    # Input rounding is captured in actual; eight float64 operations bound evaluation.
+    assert result.objective == pytest.approx(expected, rel=8 * 2**-53, abs=0)
+    assert result.model.coefficients.dtype == torch.float32
+
+
+@pytest.mark.parametrize("kind", ["ridge", "smoothness"])
+def test_penalty_near_float64_maximum(kind):
+    space = BezierSpace.simplex(1, degree=1)
+    coefficient = math.sqrt(torch.finfo(torch.float64).max / 2)
+    controls = torch.tensor([[coefficient], [0]], dtype=torch.float64)
+    initial = BezierModel(space, controls)
+    result = minimize(
+        initial,
+        lambda y, p: y[:, 0] * 0,
+        points=grid(space, 4),
+        penalty=QuadraticPenalty(**{kind: 2}),
+        fixed=FixedControls({0: controls[0], 1: controls[1]}),
+    )
+    expected = 2 * coefficient * coefficient
+    assert math.isfinite(expected)
+    # Identical multiplication order gives an exact boundary reference.
+    assert result.objective == expected
+
+
+def test_smoothness_with_unrepresentable_difference():
+    space = BezierSpace.simplex(1, degree=1)
+    controls = torch.tensor([[1e308], [-1e308]], dtype=torch.float64)
+    initial = BezierModel(space, controls)
+    result = minimize(
+        initial,
+        lambda y, p: y[:, 0] * 0,
+        points=grid(space, 4),
+        penalty=QuadraticPenalty(smoothness=1e-320),
+        fixed=FixedControls({0: controls[0], 1: controls[1]}),
+    )
+    # The half-difference is 1e308; a power-of-two rescale introduces no rounding.
+    assert result.objective == (1e308 * 1e-320) * 1e308 * 4
