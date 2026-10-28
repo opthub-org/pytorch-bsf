@@ -646,6 +646,92 @@ def _curve_error(degree: int, k: int) -> Fraction:
     return Fraction((-1) ** (degree - k) * k * comb(degree + 2, k + 1), degree * (degree + 2))
 
 
+@cache
+def _vertex_kernel_power(s: int, p: int, q: int) -> Fraction:
+    """[x^p y^q](F - 1)^s of thm-skeleton-vertex-sum, using only rational arithmetic."""
+    if s == 0:
+        return Fraction(int(p == q == 0))
+    if s > p + q:
+        return Fraction(0)
+    return sum(
+        (
+            Fraction(comb(i + j, i), (i + 1) * (j + 1)) * _vertex_kernel_power(s - 1, p - i, q - j)
+            for i in range(p + 1)
+            for j in range(q + 1)
+            if i + j
+        ),
+        Fraction(0),
+    )
+
+
+def _vertex_kernel(r: int, p: int, q: int) -> Fraction:
+    return sum((comb(r, s) * _vertex_kernel_power(s, p, q) for s in range(min(r, p + q) + 1)), Fraction(0))
+
+
+def _vertex_risk_sum(n_vertices: int, degree: int) -> Fraction:
+    numerator = sum(
+        (
+            (degree - k + 1)
+            * _curve_error(degree, k)
+            * (degree - ell + 1)
+            * _curve_error(degree, ell)
+            * comb(k + ell, k)
+            * _vertex_kernel(n_vertices - 1, degree - k, degree - ell)
+            for k in range(1, degree + 1)
+            for ell in range(1, degree + 1)
+        ),
+        Fraction(0),
+    )
+    return n_vertices**2 * math.factorial(degree) ** 2 * numerator / _rising(n_vertices, 2 * degree)
+
+
+def _vertex_risk_polynomial(degree: int) -> list[Fraction]:
+    """Coefficients of the finite binomial expansion, lowest power of M first."""
+    polynomial = [Fraction(0)] * (2 * degree - 1)
+    for s in range(2 * degree - 1):
+        coefficient = math.factorial(degree) ** 2 * sum(
+            (
+                (degree - k + 1)
+                * _curve_error(degree, k)
+                * (degree - ell + 1)
+                * _curve_error(degree, ell)
+                * comb(k + ell, k)
+                * _vertex_kernel_power(s, degree - k, degree - ell)
+                for k in range(1, degree + 1)
+                for ell in range(1, degree + 1)
+            ),
+            Fraction(0),
+        )
+        for power, value in enumerate(_falling_polynomial(1, s)):
+            polynomial[power] += coefficient * value / math.factorial(s)
+    return polynomial
+
+
+@pytest.mark.parametrize(("n_vertices", "degree"), [(m, d) for m in (3, 4) for d in range(1, 6)])
+def test_vertex_double_sum_matches_exact_coefficients(n_vertices, degree):
+    exact, _, _ = _exact_coefficients(n_vertices, degree)
+    assert _vertex_risk_sum(n_vertices, degree) == exact[0]
+
+
+@pytest.mark.parametrize("degree", range(1, 11))
+def test_vertex_double_sum_reduces_to_curve_risk(degree):
+    assert _vertex_risk_sum(2, degree) == Fraction(4, degree * (degree + 2))
+
+
+@pytest.mark.parametrize("degree", range(1, 6))
+def test_vertex_binomial_expansion_matches_polynomial_and_limit(degree):
+    polynomial = _vertex_risk_polynomial(degree)
+    assert polynomial == _risk_polynomial_coefficients(degree, 0)[::-1]
+    # M^2 / (M)_{2D} leaves the leading coefficient as the large-M limit.
+    assert polynomial[-1] == Fraction(2 * degree**2 * (degree + 1) ** 2, 4**degree)
+
+
+@pytest.mark.parametrize("p", range(11))
+def test_vertex_triangle_boundary_kernel_is_harmonic(p):
+    harmonic = sum((Fraction(1, j) for j in range(1, p + 2)), Fraction(0))
+    assert _vertex_kernel(2, p, 0) == _vertex_kernel(2, 0, p) == 2 * harmonic / (p + 2)
+
+
 @pytest.mark.parametrize("degree", range(1, 11))
 def test_curve_risk_closed_form(degree):
     exact, _, errors = _exact_coefficients(2, degree)
