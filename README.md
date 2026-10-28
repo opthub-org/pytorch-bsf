@@ -1,3 +1,3 @@
 GitHub Pages of [opthub-org/pytorch-bsf](https://github.com/opthub-org/pytorch-bsf)
 ===
-Sphinx html documentation of [948f7bb7c27ecedaeb1783b4d159a97de0428d7b](https://github.com/opthub-org/pytorch-bsf/tree/948f7bb7c27ecedaeb1783b4d159a97de0428d7b)
+Sphinx html documentation of [c5567c9b59bd3159d342e1b6473d170d10e903f2](https://github.com/opthub-org/pytorch-bsf/tree/c5567c9b59bd3159d342e1b6473d170d10e903f2)
