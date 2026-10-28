@@ -5,6 +5,7 @@ from math import comb, factorial, prod
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pytest
 import torch
 from hypothesis import example, given
@@ -2066,3 +2067,15 @@ def test_high_degree_derivative_above_polynomial_degree_is_zero():
     actual = polynomial.derivative(parameters, (0,) * (degree + 1))
     # Every derivative of order above the total degree vanishes identically.
     torch.testing.assert_close(actual, torch.zeros((3, 1), dtype=torch.float64), atol=0, rtol=0)
+
+
+@pytest.mark.parametrize("integer", [np.int32, np.int64, np.uint64])
+def test_vertex_only_space_preserves_numpy_scalar_degree(integer):
+    domain = SimploidalSet()
+    vertex = domain.add_simplex(0)
+    degenerate_edge = vertex.degeneracy(0, -1)
+    expected = SimploidalBezierSpace(domain, 3, n_values=1)
+    actual = SimploidalBezierSpace(domain, integer(3), n_values=1)
+    assert actual.degree == expected.degree == 3
+    assert actual.simploid_degree(degenerate_edge) == expected.simploid_degree(degenerate_edge) == (3,)
+    assert torch.equal(actual.control_points(degenerate_edge), expected.control_points(degenerate_edge))

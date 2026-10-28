@@ -203,6 +203,10 @@ class SimploidalBezierSpace(nn.Module):
         self.simploidal_set = simploidal_set
         self.simploids: list[Simploid] = simploidal_set.simploids()
         self._ids = {s: k for k, s in enumerate(self.simploids)}
+        if not isinstance(degree, Mapping):
+            degree = _check_min_degree(degree, "degree")
+        if default_degree is not None:
+            default_degree = _check_min_degree(default_degree, "default_degree")
         self._degrees = _assign_degrees(self.simploids, degree, default_degree)
         all_degrees = [d for ds in self._degrees.values() for d in ds]
         #: The degree of every factor if they are all equal, and their maximum otherwise.
