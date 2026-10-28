@@ -264,3 +264,21 @@ def test_minmax_still_rejects_unsupported_nonreal_or_boolean_input(dtype):
 def test_other_scalers_still_require_floating_input(scaler_class):
     with pytest.raises(ValueError, match="nonempty floating tensor"):
         scaler_class().fit(torch.tensor([[1], [3]], dtype=torch.int64))
+
+
+@pytest.mark.parametrize("dtype", [torch.int8, torch.int16, torch.int32, torch.int64])
+def test_minmax_rejects_unrepresentable_signed_integer_ranges(dtype):
+    bounds = torch.iinfo(dtype)
+    for endpoints in ((bounds.min, 0, bounds.max), (-1, 0, bounds.max), (bounds.min, -1, 0)):
+        with pytest.raises(ValueError, match="fitted integer range.*not representable"):
+            MinMaxScaler().fit(torch.tensor(endpoints, dtype=dtype).reshape(-1, 1))
+
+
+@pytest.mark.parametrize("dtype", [torch.int8, torch.int16, torch.int32, torch.int64])
+def test_minmax_accepts_largest_representable_signed_integer_range(dtype):
+    bounds = torch.iinfo(dtype)
+    for endpoints in ((bounds.min, -1), (-1, bounds.max - 1), (0, bounds.max)):
+        values = torch.tensor(endpoints, dtype=dtype).reshape(-1, 1)
+        scaler = MinMaxScaler()
+        torch.testing.assert_close(scaler.fit_transform(values), torch.tensor([[0.0], [1.0]]), atol=0, rtol=0)
+        torch.testing.assert_close(scaler.scales, torch.tensor([bounds.max], dtype=dtype), atol=0, rtol=0)

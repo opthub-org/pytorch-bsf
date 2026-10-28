@@ -98,6 +98,12 @@ class MinMaxScaler:
         _input(values, allow_integer=True)
         mins = values.amin(dim=0)
         maxs = values.amax(dim=0)
+        if not values.is_floating_point():
+            # This comparison never subtracts endpoints or adds two positive
+            # signed integers, so even a full int64 span cannot wrap.
+            largest_range = torch.iinfo(values.dtype).max
+            if bool((maxs > largest_range + mins.clamp_max(0)).any()):
+                raise ValueError("fitted integer range (max - min) is not representable in the input dtype.")
         scales = _finite(maxs - mins, "fitted range (max - min)")
         scales[scales == 0.0] = 1.0  # Avoid division by zero
         self.mins = mins
@@ -297,6 +303,12 @@ class QuantileScaler:
             maxs = scaled.quantile(1.0 - self.q, dim=0) * unit
         _finite(mins, "fitted lower quantile")
         _finite(maxs, "fitted upper quantile")
+        if not values.is_floating_point():
+            # This comparison never subtracts endpoints or adds two positive
+            # signed integers, so even a full int64 span cannot wrap.
+            largest_range = torch.iinfo(values.dtype).max
+            if bool((maxs > largest_range + mins.clamp_max(0)).any()):
+                raise ValueError("fitted integer range (max - min) is not representable in the input dtype.")
         scales = _finite(maxs - mins, "fitted range (max - min)")
         scales[scales == 0.0] = 1.0  # Avoid division by zero
         self.mins = mins
