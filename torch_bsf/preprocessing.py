@@ -22,17 +22,58 @@ def _input(values: torch.Tensor, *, allow_integer: bool = False) -> None:
     _finite(values, "values")
 
 
+def _integer_inverse(values: torch.Tensor, offset: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+    dtype = torch.promote_types(torch.promote_types(values.dtype, offset.dtype), scale.dtype)
+    values, offset, scale = torch.broadcast_tensors(values.to(dtype), offset.to(dtype), scale.to(dtype))
+    bounds = torch.iinfo(dtype)
+    product = values * scale
+    risky = (values > bounds.max // scale) | (values < torch.div(bounds.min, scale, rounding_mode="trunc"))
+    risky |= (product > bounds.max - offset.clamp_min(0)) | (product < bounds.min - offset.clamp_max(0))
+    result = product + offset
+    if bool(risky.any()):
+        # Integer inverse inputs are uncommon. Exact arithmetic only for risky
+        # entries preserves cancellation and the original integer output dtype.
+        exact = [
+            int(v) * int(s) + int(o)
+            for v, s, o in zip(values[risky].tolist(), scale[risky].tolist(), offset[risky].tolist(), strict=True)
+        ]
+        if any(v < bounds.min or v > bounds.max for v in exact):
+            raise ValueError("inverse-transformed integer values are not representable in the output dtype.")
+        result[risky] = torch.tensor(exact, dtype=dtype, device=result.device)
+    return result
+
+
+def _integer_divide(values: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+    if torch.get_default_dtype() in (torch.float16, torch.bfloat16):
+        # Half division needs floating opmath for large integer operands;
+        # MPS also lacks the mixed long/half true-division kernel.
+        return (values.to(torch.float32) / scale.to(torch.float32)).to(torch.get_default_dtype())
+    return values / scale
+
+
 def _transform(values: torch.Tensor, offset: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
     _finite(values, "values")
-    result = (values - offset) / scale
+    difference = values - offset
+    integer = not difference.is_floating_point() and not difference.is_complex()
+    result = _integer_divide(difference, scale) if integer else difference / scale
+    if integer:
+        bounds = torch.iinfo(difference.dtype)
+        left, right = values.to(difference.dtype), offset.to(difference.dtype)
+        risky = (left < bounds.min + right.clamp_min(0)) | (left > bounds.max + right.clamp_max(0))
+        if bool(risky.any()):
+            result = torch.where(risky, _integer_divide(values, scale) - _integer_divide(offset, scale), result)
     if not torch.isfinite(result).all():
-        fallback = values / scale - offset / scale
+        fallback = (
+            _integer_divide(values, scale) - _integer_divide(offset, scale) if integer else values / scale - offset / scale
+        )
         result = torch.where(torch.isfinite(result), result, fallback)
     return _finite(result, "transformed values")
 
 
 def _inverse(values: torch.Tensor, offset: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
     _finite(values, "values")
+    if not any(t.is_floating_point() or t.is_complex() for t in (values, offset, scale)):
+        return _integer_inverse(values, offset, scale)
     result = values * scale + offset
     if not torch.isfinite(result).all():
         fallback = (values + offset / scale) * scale
@@ -70,7 +111,7 @@ class MinMaxScaler:
 
     Floating statistics and returned values must be finite in the input
     dtype. Integral inputs retain integer statistics and use PyTorch's default
-    floating dtype for normalized values. An unrepresentable floating range
+    floating dtype for normalized values. An unrepresentable fitted range
     raises ``ValueError``; rescale the original data units first.
 
     Attributes
@@ -303,12 +344,6 @@ class QuantileScaler:
             maxs = scaled.quantile(1.0 - self.q, dim=0) * unit
         _finite(mins, "fitted lower quantile")
         _finite(maxs, "fitted upper quantile")
-        if not values.is_floating_point():
-            # This comparison never subtracts endpoints or adds two positive
-            # signed integers, so even a full int64 span cannot wrap.
-            largest_range = torch.iinfo(values.dtype).max
-            if bool((maxs > largest_range + mins.clamp_max(0)).any()):
-                raise ValueError("fitted integer range (max - min) is not representable in the input dtype.")
         scales = _finite(maxs - mins, "fitted range (max - min)")
         scales[scales == 0.0] = 1.0  # Avoid division by zero
         self.mins = mins

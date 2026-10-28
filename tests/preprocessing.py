@@ -282,3 +282,135 @@ def test_minmax_accepts_largest_representable_signed_integer_range(dtype):
         scaler = MinMaxScaler()
         torch.testing.assert_close(scaler.fit_transform(values), torch.tensor([[0.0], [1.0]]), atol=0, rtol=0)
         torch.testing.assert_close(scaler.scales, torch.tensor([bounds.max], dtype=dtype), atol=0, rtol=0)
+
+
+@pytest.mark.parametrize("dtype", [torch.int8, torch.int16, torch.int32, torch.int64])
+def test_minmax_integer_extrapolation_does_not_wrap(dtype):
+    bounds = torch.iinfo(dtype)
+    for fitted, query in (((-1, 0), bounds.max), ((0, 1), bounds.min), ((1, 2), bounds.min)):
+        scaler = MinMaxScaler()
+        scaler.fit(torch.tensor(fitted, dtype=dtype).reshape(-1, 1))
+        result = scaler.transform(torch.tensor([[query]], dtype=dtype))
+        expected = torch.tensor([[query - fitted[0]]], dtype=torch.get_default_dtype())
+        torch.testing.assert_close(result, expected, atol=0, rtol=0)
+
+
+def test_minmax_unsigned_integer_extrapolation_does_not_wrap():
+    scaler = MinMaxScaler()
+    scaler.fit(torch.tensor([[10], [20]], dtype=torch.uint8))
+    torch.testing.assert_close(scaler.transform(torch.tensor([[0]], dtype=torch.uint8)), torch.tensor([[-1.0]]))
+
+
+@pytest.mark.parametrize("dtype", [torch.int8, torch.int16, torch.int32, torch.int64, torch.uint8])
+def test_minmax_integer_inverse_preserves_representable_integer_results(dtype):
+    bounds = torch.iinfo(dtype)
+    scaler = MinMaxScaler()
+    scaler.fit(torch.tensor([[0], [2]], dtype=dtype))
+    torch.testing.assert_close(
+        scaler.inverse_transform(torch.tensor([[0], [1]], dtype=dtype)), torch.tensor([[0], [2]], dtype=dtype)
+    )
+    with pytest.raises(ValueError, match="inverse-transformed integer.*not representable"):
+        scaler.inverse_transform(torch.tensor([[bounds.max]], dtype=dtype))
+
+
+@pytest.mark.parametrize("dtype", [torch.int8, torch.int16, torch.int32, torch.int64])
+def test_minmax_integer_inverse_preserves_exact_product_cancellation(dtype):
+    bounds = torch.iinfo(dtype)
+    scaler = MinMaxScaler()
+    scaler.fit(torch.tensor([[bounds.min], [bounds.min + 2]], dtype=dtype))
+    # The intermediate 2*max overflows, but subtracting abs(min) fits exactly.
+    result = scaler.inverse_transform(torch.tensor([[bounds.max]], dtype=dtype))
+    torch.testing.assert_close(result, torch.tensor([[bounds.max - 1]], dtype=dtype), atol=0, rtol=0)
+    scaler.fit(torch.tensor([[0], [1]], dtype=dtype))
+    torch.testing.assert_close(
+        scaler.inverse_transform(torch.tensor([[bounds.min]], dtype=dtype)), torch.tensor([[bounds.min]], dtype=dtype)
+    )
+
+
+def test_minmax_integer_inverse_detects_addition_overflow_and_promotes_mixed_dtypes():
+    scaler = MinMaxScaler()
+    scaler.fit(torch.tensor([[1], [2]], dtype=torch.int8))
+    with pytest.raises(ValueError, match="inverse-transformed integer.*not representable"):
+        scaler.inverse_transform(torch.tensor([[127]], dtype=torch.int8))
+    torch.testing.assert_close(
+        scaler.inverse_transform(torch.tensor([[127]], dtype=torch.int64)), torch.tensor([[128]], dtype=torch.int64)
+    )
+
+
+@pytest.mark.parametrize("dtype", [torch.uint8, torch.int8, torch.int16, torch.int32, torch.int64])
+def test_minmax_integer_inverse_matches_exact_boundary_arithmetic(dtype):
+    bounds = torch.iinfo(dtype)
+    offsets = [bounds.min, -1, 0, 1, bounds.max - 2] if bounds.min < 0 else [0, 1, bounds.max - 2]
+    for offset in offsets:
+        for scale in (1, 2, bounds.max):
+            if offset + scale > bounds.max:
+                continue
+            scaler = MinMaxScaler()
+            scaler.fit(torch.tensor([[offset], [offset + scale]], dtype=dtype))
+            queries = [bounds.min, bounds.min // 2 - 1, -1, 0, 1, 2, bounds.max] if bounds.min < 0 else [0, 1, 2, bounds.max]
+            for query in queries:
+                exact = query * scale + offset
+                values = torch.tensor([[query]], dtype=dtype)
+                if bounds.min <= exact <= bounds.max:
+                    torch.testing.assert_close(
+                        scaler.inverse_transform(values), torch.tensor([[exact]], dtype=dtype), atol=0, rtol=0
+                    )
+                else:
+                    with pytest.raises(ValueError, match="inverse-transformed integer.*not representable"):
+                        scaler.inverse_transform(values)
+
+
+@pytest.mark.parametrize("default_dtype", [torch.float16, torch.bfloat16, torch.float32, torch.float64])
+def test_minmax_large_integer_division_uses_default_output_dtype_without_premature_overflow(default_dtype):
+    previous = torch.get_default_dtype()
+    try:
+        torch.set_default_dtype(default_dtype)
+        maximum = torch.iinfo(torch.int64).max
+        scaler = MinMaxScaler()
+        values = torch.tensor([[0], [maximum]], dtype=torch.int64)
+        result = scaler.fit_transform(values)
+        torch.testing.assert_close(result, torch.tensor([[0.0], [1.0]], dtype=default_dtype), atol=0, rtol=0)
+        assert result.dtype == default_dtype
+        # Overflowing integer subtraction is retried in floating arithmetic;
+        # the representable quotient still fits even a half output dtype.
+        scaler.fit(torch.tensor([[-1], [maximum - 1]], dtype=torch.int64))
+        torch.testing.assert_close(
+            scaler.transform(torch.tensor([[maximum]], dtype=torch.int64)), torch.ones((1, 1), dtype=default_dtype)
+        )
+    finally:
+        torch.set_default_dtype(previous)
+
+
+@pytest.mark.skipif(not torch.backends.mps.is_available(), reason="MPS unavailable")
+@pytest.mark.parametrize("default_dtype", [torch.float16, torch.float32])
+def test_minmax_integer_mps_normalization_uses_supported_division(default_dtype):
+    previous = torch.get_default_dtype()
+    try:
+        torch.set_default_dtype(default_dtype)
+        maximum = torch.iinfo(torch.int64).max
+        scaler = MinMaxScaler()
+        for endpoints in ((0, maximum), (maximum - 1, maximum)):
+            values = torch.tensor(endpoints, dtype=torch.int64, device="mps").reshape(-1, 1)
+            result = scaler.fit_transform(values)
+            torch.testing.assert_close(result.cpu(), torch.tensor([[0.0], [1.0]], dtype=default_dtype), atol=0, rtol=0)
+        scaler.fit(torch.tensor([[-1], [0]], dtype=torch.int64, device="mps"))
+        if default_dtype == torch.float32:
+            result = scaler.transform(torch.tensor([[maximum]], dtype=torch.int64, device="mps"))
+            torch.testing.assert_close(result.cpu(), torch.tensor([[maximum + 1]], dtype=default_dtype))
+        else:
+            with pytest.raises(ValueError, match="transformed values must be finite"):
+                scaler.transform(torch.tensor([[maximum]], dtype=torch.int64, device="mps"))
+    finally:
+        torch.set_default_dtype(previous)
+
+
+def test_minmax_integer_extrapolation_rejects_truly_unrepresentable_half_output():
+    previous = torch.get_default_dtype()
+    try:
+        torch.set_default_dtype(torch.float16)
+        scaler = MinMaxScaler()
+        scaler.fit(torch.tensor([[-1], [0]], dtype=torch.int64))
+        with pytest.raises(ValueError, match="transformed values must be finite"):
+            scaler.transform(torch.tensor([[torch.iinfo(torch.int64).max]], dtype=torch.int64))
+    finally:
+        torch.set_default_dtype(previous)
