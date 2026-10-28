@@ -445,3 +445,10 @@ def test_space_structure_boundaries():
     domain.add_simplex(1)
     with pytest.raises(ValueError, match="degree"):
         bsf.BezierSpace.on_set(domain, degree=0)
+
+
+@pytest.mark.parametrize("index", ["20", b"20"])
+def test_space_rejects_string_control_index(index):
+    space = bsf.BezierSpace.simplex(1, degree=2)
+    with pytest.raises(ValueError, match="control index must be a sequence of integer multi-indices"):
+        space.control_index(index)
