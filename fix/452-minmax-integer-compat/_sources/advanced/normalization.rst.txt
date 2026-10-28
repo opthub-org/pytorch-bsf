@@ -213,7 +213,8 @@ otherwise substituting a unit standard deviation would silently skip
 standardization of varying data.
 
 For integral ``MinMaxScaler`` input, fitted minima and ranges retain their
-integer dtype. Subtraction happens before true division, preserving adjacent
+integer dtype; a range exceeding that dtype raises ``ValueError`` before
+subtraction can wrap. Subtraction happens before true division, preserving adjacent
 integer differences even at large offsets. Normalized values follow PyTorch's
 default floating dtype. Inverse results have floating precision, so adjacent
 large integers can round together in that output dtype. Boolean and complex
