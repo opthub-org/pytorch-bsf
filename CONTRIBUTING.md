@@ -497,8 +497,9 @@ is displayed without execution. Add assertions or expected output for examples
 whose behavior should be checked.
 
 The separate GitHub Pages workflow builds multiple tags and branches with
-`sphinx-multiversion`. Historical tags keep their original configuration and
-warnings; their builds do not replace the strict checks of the current PR.
+`sphinx-multiversion`. Historical tags keep their documentation sources and
+release metadata, using the current build configuration. Their warnings do
+not replace the strict checks of the current PR.
 External link checking is not part of this PR gate.
 
 ---

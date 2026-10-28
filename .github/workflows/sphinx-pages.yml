@@ -18,7 +18,7 @@ jobs:
         pip install -r docs/requirements.txt
 
     - name: Build documentation with sphinx-multiversion
-      # Historical tags retain their original documentation configuration.
+      # Historical tags retain their documentation sources and release metadata.
       # The PyTest docs job validates the current source with warnings as errors.
       run: |
         sphinx-multiversion docs/ docs/_build
