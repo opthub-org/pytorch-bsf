@@ -5,7 +5,7 @@ description: Review the current branch of pytorch-bsf locally before opening a P
 
 # review-local
 
-Review the commits of the current branch against `origin/master` (or the base ref given in `$ARGUMENTS`, after the optional issue number) with one specialized reviewer per aspect, running in parallel, so that the PR needs as few CI and review round trips as possible. This skill fixes findings locally; it does not push or comment on GitHub.
+Review the commits of the current branch against `origin/master` (or the base ref given in `$ARGUMENTS`, after the optional issue number) with one specialized reviewer per aspect, running in parallel, so that the PR needs as few CI and review round trips as possible. This skill fixes findings locally; it does not push or comment on GitHub. That limit applies to this local review step only. When called by `work-on-issue`, the caller continues with that skill after this review; its PR review step authorizes replies to and resolution of review threads on the PR it opened.
 
 ## Aspects
 

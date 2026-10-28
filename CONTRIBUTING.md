@@ -240,9 +240,10 @@ prereleases do not.
 
 1. Push your branch and open a Pull Request targeting `master`.
 2. In the PR description, include what changed, the related issue (`Closes #XXX`), how to test it, and the result of the local review.
-3. Ensure all CI checks (GitHub Actions) pass.
-4. Address reviewer comments and merge once you have an approval.
-5. Delete the branch after merging.
+3. After opening the PR and after every push, check whether Codex is reviewing or has reviewed the current head. If neither applies and no request for that head is already pending, automatically request review with an `@codex review` PR comment and verify acknowledgement for that SHA. The `work-on-issue` skill authorizes these review-request comments on its own PR. Wait for all CI checks (GitHub Actions) and the Codex review of the current head commit. Repeat after every push; results for an older SHA do not cover the new head.
+4. Handle every unresolved review thread, including outdated threads: verify the finding, fix and test it or decide why no change is appropriate, then reply in the thread with the fixing commit SHA or a concrete reason. Resolve only threads that are fixed or substantively answered, then check for new threads after each review round. The `work-on-issue` skill authorizes and requires these replies and resolutions on the PR it opened; its [PR review step](.claude/skills/work-on-issue/SKILL.md#10-wait-for-ci-and-handle-pr-review-threads) documents paginated GraphQL `reviewThreads`, REST replies (`gh api repos/opthub-org/pytorch-bsf/pulls/<N>/comments/<id>/replies -f body=…`), and GraphQL `resolveReviewThread` commands. The `review-local` skill's no-push/no-comment limit applies only to the local review itself.
+5. Merge once you have an approval and explicit authorization to merge. Invoking `work-on-issue` does not authorize merging, closing issues, or commenting elsewhere on GitHub.
+6. Delete the branch after merging.
 
 ---
 
