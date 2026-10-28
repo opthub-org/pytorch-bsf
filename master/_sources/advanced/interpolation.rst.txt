@@ -273,10 +273,11 @@ refines a one-dimensional kink, where remeshing is just sorting.
     assert last < first / 4
 
 In higher dimensions, :func:`~torch_bsf.interpolation.refine` bisects the
-selected simplices at the midpoint of their longest edge and returns a new
-mesh. The new vertices are appended after the old ones, so the data already
-observed keep their rows; evaluate the response only at the new vertices.
-The example starts from the lattice mesh of the triangle described below.
+selected simplices at the midpoint of an edge and returns a new mesh. The new
+vertices are appended after the old ones, so the data already observed keep
+their rows; evaluate the response only at the new vertices. The example
+starts from the lattice mesh of the triangle described below and uses
+newest-vertex bisection, the rule suited to lattice meshes (see below).
 
 .. testcode:: interpolation
 
@@ -287,7 +288,7 @@ The example starts from the lattice mesh of the triangle described below.
     while adaptive.n_vertices < 20:
         worst = int(refinement_indicator(adaptive, observed).argmax())
         old = adaptive.n_vertices
-        adaptive = refine(adaptive, [worst])
+        adaptive = refine(adaptive, [worst], rule="newest_vertex")
         observed = torch.cat([observed, response(adaptive.vertices[old:])])
     assert adaptive.unmatched_faces == 0
     model = hermite_interpolant(adaptive, observed)
@@ -349,6 +350,36 @@ than one vertex. Ties between edges of equal length, common on lattices, are
 broken by vertex numbers in the same way everywhere. Starting from a lattice
 mesh, every new vertex is a lattice point of a finer lattice (degree ``2k``,
 then ``4k``, and so on).
+
+Longest-edge bisection does not respect the cubes of a lattice mesh,
+however: the longest edge of a Kuhn simplex in these coordinates is not the
+diagonal of its cube, so refining every simplex of ``lattice_mesh(3, 3)``
+three times gives 186 vertices instead of the 84 of the degree-6 lattice, and
+adaptive refinement spends part of its vertices on closure. With
+``rule="newest_vertex"``, :func:`~torch_bsf.interpolation.refine` uses the
+newest-vertex bisection of Maubach :cite:p:`maubach1995local` instead: the
+simplices of a lattice mesh are ordered along their Kuhn paths, each is cut
+across the diagonal of its cube, and the refined mesh keeps the order and the
+tags of its simplices for the next call. Then ``d`` rounds of refining every
+simplex double the lattice degree, the simplices take finitely many shapes,
+and an adaptive mesh is locally a finer lattice mesh.
+
+.. testcode:: interpolation
+
+    for rule in ("newest_vertex", "longest_edge"):
+        uniform = lattice_mesh(3, 3)
+        for _ in range(3):
+            uniform = refine(uniform, range(uniform.n_simplices), rule=rule)
+        print(rule, uniform.n_vertices, uniform.n_simplices, uniform.unmatched_faces)
+
+.. testoutput:: interpolation
+
+    newest_vertex 84 216 0
+    longest_edge 186 634 0
+
+The newest-vertex rule needs this state, so it applies to meshes from
+:func:`~torch_bsf.interpolation.lattice_mesh` and their newest-vertex
+refinements; other meshes raise ``ValueError``.
 
 Limitations
 -----------

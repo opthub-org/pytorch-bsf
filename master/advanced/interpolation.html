@@ -366,10 +366,11 @@ refines a one-dimensional kink, where remeshing is just sorting.</p>
 </pre></div>
 </div>
 <p>In higher dimensions, <a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.refine" title="torch_bsf.interpolation.refine"><code class="xref py py-func docutils literal notranslate"><span class="pre">refine()</span></code></a> bisects the
-selected simplices at the midpoint of their longest edge and returns a new
-mesh. The new vertices are appended after the old ones, so the data already
-observed keep their rows; evaluate the response only at the new vertices.
-The example starts from the lattice mesh of the triangle described below.</p>
+selected simplices at the midpoint of an edge and returns a new mesh. The new
+vertices are appended after the old ones, so the data already observed keep
+their rows; evaluate the response only at the new vertices. The example
+starts from the lattice mesh of the triangle described below and uses
+newest-vertex bisection, the rule suited to lattice meshes (see below).</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.interpolation</span><span class="w"> </span><span class="kn">import</span> <span class="n">lattice_mesh</span><span class="p">,</span> <span class="n">refine</span>
 
 <span class="n">adaptive</span> <span class="o">=</span> <span class="n">lattice_mesh</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
@@ -377,7 +378,7 @@ The example starts from the lattice mesh of the triangle described below.</p>
 <span class="k">while</span> <span class="n">adaptive</span><span class="o">.</span><span class="n">n_vertices</span> <span class="o">&lt;</span> <span class="mi">20</span><span class="p">:</span>
     <span class="n">worst</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">refinement_indicator</span><span class="p">(</span><span class="n">adaptive</span><span class="p">,</span> <span class="n">observed</span><span class="p">)</span><span class="o">.</span><span class="n">argmax</span><span class="p">())</span>
     <span class="n">old</span> <span class="o">=</span> <span class="n">adaptive</span><span class="o">.</span><span class="n">n_vertices</span>
-    <span class="n">adaptive</span> <span class="o">=</span> <span class="n">refine</span><span class="p">(</span><span class="n">adaptive</span><span class="p">,</span> <span class="p">[</span><span class="n">worst</span><span class="p">])</span>
+    <span class="n">adaptive</span> <span class="o">=</span> <span class="n">refine</span><span class="p">(</span><span class="n">adaptive</span><span class="p">,</span> <span class="p">[</span><span class="n">worst</span><span class="p">],</span> <span class="n">rule</span><span class="o">=</span><span class="s2">"newest_vertex"</span><span class="p">)</span>
     <span class="n">observed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">observed</span><span class="p">,</span> <span class="n">response</span><span class="p">(</span><span class="n">adaptive</span><span class="o">.</span><span class="n">vertices</span><span class="p">[</span><span class="n">old</span><span class="p">:])])</span>
 <span class="k">assert</span> <span class="n">adaptive</span><span class="o">.</span><span class="n">unmatched_faces</span> <span class="o">==</span> <span class="mi">0</span>
 <span class="n">model</span> <span class="o">=</span> <span class="n">hermite_interpolant</span><span class="p">(</span><span class="n">adaptive</span><span class="p">,</span> <span class="n">observed</span><span class="p">)</span>
@@ -428,11 +429,37 @@ the lattice points, in the order of
 conforming. It bisects an edge in every simplex containing it, and before
 that it refines each of those simplices whose longest edge is another one,
 recursively, which is the longest-edge bisection of Rivara
-<span class="bibtex-citation" id="id4">[<a class="reference internal" href="../references.html#id50" title="Maria-Cecilia Rivara. Algorithms for refining triangular grids suitable for adaptive and multigrid techniques. International Journal for Numerical Methods in Engineering, 20(4):745–756, 1984.">Riv84</a>]</span>. Refining one simplex can therefore add more
+<span class="bibtex-citation" id="id4">[<a class="reference internal" href="../references.html#id51" title="Maria-Cecilia Rivara. Algorithms for refining triangular grids suitable for adaptive and multigrid techniques. International Journal for Numerical Methods in Engineering, 20(4):745–756, 1984.">Riv84</a>]</span>. Refining one simplex can therefore add more
 than one vertex. Ties between edges of equal length, common on lattices, are
 broken by vertex numbers in the same way everywhere. Starting from a lattice
 mesh, every new vertex is a lattice point of a finer lattice (degree <code class="docutils literal notranslate"><span class="pre">2k</span></code>,
 then <code class="docutils literal notranslate"><span class="pre">4k</span></code>, and so on).</p>
+<p>Longest-edge bisection does not respect the cubes of a lattice mesh,
+however: the longest edge of a Kuhn simplex in these coordinates is not the
+diagonal of its cube, so refining every simplex of <code class="docutils literal notranslate"><span class="pre">lattice_mesh(3,</span> <span class="pre">3)</span></code>
+three times gives 186 vertices instead of the 84 of the degree-6 lattice, and
+adaptive refinement spends part of its vertices on closure. With
+<code class="docutils literal notranslate"><span class="pre">rule=&quot;newest_vertex&quot;</span></code>, <a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.refine" title="torch_bsf.interpolation.refine"><code class="xref py py-func docutils literal notranslate"><span class="pre">refine()</span></code></a> uses the
+newest-vertex bisection of Maubach <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../references.html#id50" title="Joseph M. Maubach. Local bisection refinement for $n$-simplicial grids generated by reflection. SIAM Journal on Scientific Computing, 16(1):210–227, 1995.">Mau95</a>]</span> instead: the
+simplices of a lattice mesh are ordered along their Kuhn paths, each is cut
+across the diagonal of its cube, and the refined mesh keeps the order and the
+tags of its simplices for the next call. Then <code class="docutils literal notranslate"><span class="pre">d</span></code> rounds of refining every
+simplex double the lattice degree, the simplices take finitely many shapes,
+and an adaptive mesh is locally a finer lattice mesh.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"newest_vertex"</span><span class="p">,</span> <span class="s2">"longest_edge"</span><span class="p">):</span>
+    <span class="n">uniform</span> <span class="o">=</span> <span class="n">lattice_mesh</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+        <span class="n">uniform</span> <span class="o">=</span> <span class="n">refine</span><span class="p">(</span><span class="n">uniform</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="n">uniform</span><span class="o">.</span><span class="n">n_simplices</span><span class="p">),</span> <span class="n">rule</span><span class="o">=</span><span class="n">rule</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="n">uniform</span><span class="o">.</span><span class="n">n_vertices</span><span class="p">,</span> <span class="n">uniform</span><span class="o">.</span><span class="n">n_simplices</span><span class="p">,</span> <span class="n">uniform</span><span class="o">.</span><span class="n">unmatched_faces</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>newest_vertex 84 216 0
+longest_edge 186 634 0
+</pre></div>
+</div>
+<p>The newest-vertex rule needs this state, so it applies to meshes from
+<a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.lattice_mesh" title="torch_bsf.interpolation.lattice_mesh"><code class="xref py py-func docutils literal notranslate"><span class="pre">lattice_mesh()</span></code></a> and their newest-vertex
+refinements; other meshes raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p>
 </section>
 <section id="limitations">
 <h2>Limitations<a class="headerlink" href="#limitations" title="Link to this heading"></a></h2>
