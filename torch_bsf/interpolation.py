@@ -252,7 +252,7 @@ class SimplicialMesh:
     Attributes
     ----------
     vertices
-        Float64 copy of the vertex coordinates.
+        Float64 snapshot of the vertex coordinates, independent of the caller's storage.
     simplices
         Each simplex with its vertex numbers sorted in ascending order. The barycentric coordinates of
         cell ``k`` (as returned by :meth:`locate`) refer to the vertices ``simplices[k]`` in this order.
@@ -260,6 +260,13 @@ class SimplicialMesh:
         The compiled degree-3 space, in which simplices sharing a face share the controls on it.
     cell_ids
         ``cell_ids[k]`` is the cell ID of simplex ``k`` in :attr:`space`.
+
+    Notes
+    -----
+    Construction copies vertex and simplex inputs, including CPU float64 tensors and NumPy arrays.
+    Treat the public ``vertices`` and ``simplices`` tensors as read-only: direct in-place edits are
+    unsupported because geometric caches and the compiled space are not rebuilt. Construct a new mesh
+    to change its geometry or topology. The vertex copy preserves autograd connections to tensor inputs.
 
     Examples
     --------
@@ -281,7 +288,7 @@ class SimplicialMesh:
         x = _as_real_tensor(vertices)
         if x.ndim != 2 or x.shape[1] < 1 or not len(x) or x.is_complex() or not torch.isfinite(x).all():
             raise ValueError("vertices must be finite and real with shape (n_vertices, d), d >= 1.")
-        x = x.to(dtype=torch.float64, device="cpu")
+        x = x.to(dtype=torch.float64, device="cpu", copy=True)
         d = x.shape[1]
         s = _check_simplices(simplices, len(x), d)
         edges = x[s[:, 1:]] - x[s[:, :1]]  # (m, d, d): row k is the edge from vertex 0 to vertex k + 1

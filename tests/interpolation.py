@@ -105,6 +105,40 @@ MESHES = [(1, 8), (2, 4), (3, 3)]
 # ---------------------------------------------------------------------------
 
 
+def test_mesh_snapshot_preserves_vertex_autograd():
+    vertices = torch.tensor([[0.0], [1.0]], dtype=torch.float64, requires_grad=True)
+    mesh = SimplicialMesh(vertices, [[0, 1]])
+    derivative = torch.autograd.grad(mesh.barycentric([[0.5]])[0, 0, 1], vertices)[0]
+    # Dyadic endpoints and midpoint give exactly representable first derivatives.
+    assert torch.equal(derivative, torch.tensor([[-0.5], [-0.5]], dtype=torch.float64))
+
+
+@pytest.mark.parametrize("as_numpy", [False, True])
+@pytest.mark.parametrize("reverse", [False, True])
+def test_mesh_snapshots_caller_storage(as_numpy, reverse):
+    """Float64 vertices and integer topology remain independent of caller mutations."""
+    vertices = torch.tensor([[0.0], [1.0]], dtype=torch.float64)
+    simplices = torch.tensor([[1, 0] if reverse else [0, 1]], dtype=torch.long)
+    mesh = SimplicialMesh(vertices.numpy() if as_numpy else vertices, simplices.numpy() if as_numpy else simplices)
+    query = torch.tensor([[0.0], [0.5], [1.0]], dtype=torch.float64)
+    barycentric = mesh.barycentric(query)
+    located = mesh.locate(query)
+    volumes = mesh.volumes().clone()
+    values = torch.tensor([[0.0], [1.0]], dtype=torch.float64)
+    before = hermite_interpolant(mesh, values)(located)
+    vertices[1, 0] = 2.0
+    simplices.fill_(0)
+    # Snapshot invariance is exact: the operations receive identical float64 operands.
+    assert torch.equal(mesh.vertices, torch.tensor([[0.0], [1.0]], dtype=torch.float64))
+    assert torch.equal(mesh.simplices, torch.tensor([[0, 1]], dtype=torch.long))
+    assert torch.equal(mesh.barycentric(query), barycentric)
+    after = mesh.locate(query)
+    assert torch.equal(after.cell_ids, located.cell_ids)
+    assert torch.equal(after.parameters[0], located.parameters[0])
+    assert torch.equal(mesh.volumes(), volumes)
+    assert torch.equal(hermite_interpolant(mesh, values)(after), before)
+
+
 @pytest.mark.parametrize("dim, n", MESHES)
 @pytest.mark.parametrize("data", [_linear, _quadratic])
 def test_reproduces_polynomials_of_degree_two(dim, n, data):

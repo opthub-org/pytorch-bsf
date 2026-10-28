@@ -80,6 +80,15 @@ within ``tol`` of its boundary are projected onto it. Point location tests
 every simplex, which is simple and exact but costs
 ``O(n_points * n_simplices)``.
 
+The mesh keeps independent snapshots of the input vertices and simplices,
+including CPU float64 tensors and NumPy arrays. Changing those original
+inputs later does not change coordinates, point location, volumes or
+interpolation. Treat ``mesh.vertices`` and ``mesh.simplices`` as read-only:
+direct in-place edits are unsupported because cached geometry and the
+compiled space would become inconsistent. Construct a new mesh to change
+its geometry or topology. Copying tensor vertices preserves their autograd
+connection.
+
 How the cubic pieces are built
 ------------------------------
 
