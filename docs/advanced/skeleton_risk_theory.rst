@@ -11,7 +11,7 @@ This chapter proves the results behind :doc:`skeleton_sampling`:
 :cite:t:`tanaka2020asymptotic` derived the risk through a recursion and
 evaluated it numerically for degrees two and three. The proofs here are
 self-contained and hold for every dimension and degree. Statements that rest
-on a finite computation are labelled computer-assisted. Questions that remain
+on a finite computation are labeled computer-assisted. Questions that remain
 open are collected at the end. ``tests/sampling.py`` checks the formulas,
 the quoted values and the computations on this page against exact rational
 arithmetic, and ``tests/fitting.py`` checks the asymptotic risks by
@@ -184,10 +184,10 @@ lemmas do this.
    :math:`|\sqrt{Q(u)} - \sqrt{Q(v)}| \leq \sqrt{Q(u - v)} \leq K |u - v|`.
    Take a :math:`(\sqrt\delta / K)`-net of the unit sphere with at most
    :math:`(3K/\sqrt\delta)^k` points; :math:`\sqrt\delta \leq 1 \leq K` for
-   :math:`\delta \leq 1`, because :math:`\int |\psi|^2 \, dU_F = k`. If :math:`\lambda \leq \delta`, some unit
-   vector :math:`u` has :math:`Q(u) \leq \delta`, and the net point :math:`v`
-   nearest to it has :math:`\sqrt{Q(v)} \leq 2\sqrt\delta`. A union bound over
-   the net gives
+   :math:`\delta \leq 1`, because :math:`\int |\psi|^2 \, dU_F = k`. If
+   :math:`\lambda \leq \delta`, some unit vector :math:`u` has
+   :math:`Q(u) \leq \delta`, and the net point :math:`v` nearest to it has
+   :math:`\sqrt{Q(v)} \leq 2\sqrt\delta`. A union bound over the net gives
 
    .. math::
 
@@ -239,10 +239,11 @@ lemmas do this.
    *Almost sure limit.* :math:`R_N` depends only on the distribution of the
    design and the noise, so we may take the rows of face :math:`I` to be the
    first :math:`n_I` terms of one independent sequence per face. Every
-   :math:`n_I` grows without bound. By the strong law of large numbers, :math:`\hat G^J \to G^J` almost surely for every face
-   :math:`J`. The blocks :math:`G^J_{T_J T_J}` are invertible, so
-   :math:`\hat E_I \to E_I`. Since :math:`N / n_I \to \binom{M}{m+1} / \rho_m`,
-   it follows that :math:`X_N \to \sum_m a_m / \rho_m` almost surely.
+   :math:`n_I` grows without bound. By the strong law of large numbers,
+   :math:`\hat G^J \to G^J` almost surely for every face :math:`J`. The
+   blocks :math:`G^J_{T_J T_J}` are invertible, so :math:`\hat E_I \to E_I`.
+   Since :math:`N / n_I \to \binom{M}{m+1} / \rho_m`, it follows that
+   :math:`X_N \to \sum_m a_m / \rho_m` almost surely.
 
    *Uniform integrability.* The entries of :math:`\hat G^J` lie in
    :math:`[0, 1]`, and :math:`N / n_I` is bounded. Unrolling
@@ -745,8 +746,9 @@ evaluation of the definition for small :math:`M`. The entries for
    :math:`p_i` are the coefficients of :math:`P_{D,m}`. The all-at-once risk
    exceeds the resulting bound on :math:`(\sum_m \sqrt{a_m})^2` for
    :math:`M \geq 55`, :math:`111` and :math:`190` when :math:`D = 3`,
-   :math:`4` and :math:`5`. Exact evaluation of the table for every smaller
-   :math:`M` gives the stated sets.
+   :math:`4` and :math:`5`. For every smaller :math:`M`, evaluating the table
+   in floating point with a bound on the rounding error gives the stated sets;
+   the closest comparison differs by a relative :math:`4.5 \cdot 10^{-3}`.
 
 These results sharpen the observation of :cite:t:`tanaka2020asymptotic` that
 inductive skeleton fitting wins for degrees below three. That observation is

@@ -586,7 +586,7 @@ def test_risk_polynomial_table_is_the_counting(degree, m):
 
 
 @pytest.mark.parametrize(
-    ("n_vertices", "degree"), [(m, d) for m in range(2, 7) for d in range(1, 5)] + [(m, 5) for m in range(2, 6)]
+    ("n_vertices", "degree"), [(n, d) for n in range(2, 7) for d in range(1, 5)] + [(n, 5) for n in range(2, 6)]
 )
 def test_risk_polynomials_match_exact_coefficients(n_vertices, degree):
     # The table comes from counting classes of control pairs; the helper evaluates the definition directly.
@@ -595,7 +595,7 @@ def test_risk_polynomials_match_exact_coefficients(n_vertices, degree):
         assert _tabulated_coefficient(degree, m, n_vertices) == (exact[m] if m < n_vertices else 0)
 
 
-@pytest.mark.parametrize(("n_vertices", "degree"), [(m, d) for m in (7, 8) for d in range(1, 6)] + [(6, 5)])
+@pytest.mark.parametrize(("n_vertices", "degree"), [(n, d) for n in (7, 8) for d in range(1, 6)] + [(6, 5)])
 def test_risk_polynomials_match_higher_dimensions(n_vertices, degree):
     coefficients = skeleton_risk_coefficients(BezierSpace.simplex(n_vertices - 1, degree=degree))
     for m in range(degree):
@@ -655,6 +655,7 @@ def test_curve_risk_closed_form(degree):
     vertex = alpha.index((degree, 0))
     for i, (k, _) in enumerate(alpha):
         assert errors[i][vertex] == _curve_error(degree, k)
+    # The corollary that inductive fitting wins on curves.
     assert (math.sqrt(degree - 1) + 2 / math.sqrt(degree * (degree + 2))) ** 2 < degree + 1
 
 
@@ -738,6 +739,7 @@ def test_open_question_values(degree, a_0, a_1):
 
 def test_open_question_prime_factor():
     # The large prime factor quoted for the numerator of a_1 at M = 3, D = 6.
+    # Trial division up to sqrt(3533) < 60.
     assert 81259 == 23 * 3533 and all(3533 % p for p in range(2, 60))
 
 
@@ -751,6 +753,7 @@ def test_degree_two_wins_in_every_dimension():
         assert _tabulated_coefficient(2, 1, n_vertices) == Fraction(30 * n_vertices * (n_vertices - 1) ** 2, cubic)
     # Clearing denominators: 9 (M+1)(M+2)(M+3) - 3M (3M^2 - 15M + 28) = 99M^2 + 15M + 54 and
     # (M+1)(M+2)(M+3) - M (M - 1)^2 = 8M^2 + 10M + 6, both positive, give a_0 < 9/2 and a_1 < 30.
+    # Identities of cubics, checked at more than four points (which need not be vertex counts).
     for n_vertices in range(-3, 4):
         cubic = (n_vertices + 1) * (n_vertices + 2) * (n_vertices + 3)
         assert (
