@@ -380,3 +380,56 @@ def test_update_outside_model_dtype_raises():
             points=Points(torch.empty(1, 0, dtype=torch.float32)),
             method=PreconditionedSGD(max_iter=1, step_size=1e20, preconditioner="none"),
         )
+
+
+@pytest.mark.parametrize("step_decay", ["constant", "sqrt"])
+def test_regularizer_topology_is_prepared_once(step_decay):
+    from unittest.mock import patch
+
+    import torch_bsf.optimization as optimization
+
+    space = BezierSpace.simplex(1, degree=2)
+    initial = BezierModel(space, torch.zeros(3, 1, dtype=torch.float64))
+    with (
+        patch("torch.zeros", wraps=torch.zeros) as zeros,
+        patch("torch_bsf.optimization._regularizer", wraps=optimization._regularizer) as assemble,
+        pytest.warns(ConvergenceWarning),
+    ):
+        minimize(
+            initial,
+            lambda y, p: (y[:, 0] - 1).square(),
+            points=grid(space, 4),
+            penalty=QuadraticPenalty(ridge=0.1, smoothness=0.1),
+            method=PreconditionedSGD(max_iter=5, preconditioner="none", step_decay=step_decay),
+        )
+    # The only zeros(3,3) allocation is the unweighted topology, irrespective
+    # of iteration count/decay. Constant matrices assemble only once.
+    assert sum(call.args[:2] == (3, 3) for call in zeros.call_args_list) == 1
+    assert assemble.call_count == (1 if step_decay == "constant" else 5)
+
+
+def test_smoothness_overflowing_difference_has_finite_gradient():
+    from torch_bsf.optimization import _objective
+
+    space = BezierSpace.simplex(1, degree=1)
+    initial = BezierModel(space, torch.tensor([[1e308], [-1e308]], dtype=torch.float64))
+    points = grid(space, 2)
+    penalty = QuadraticPenalty(smoothness=1e-310)
+
+    def loss(y, p):
+        return y[:, 0] * 0
+
+    objective = _objective(initial, loss, points, penalty)
+    (gradient,) = torch.autograd.grad(objective, initial.coefficients)
+    expected = (penalty.smoothness * 1e308) * 4
+    # Four weighted products/transfers bound gradient rounding; the subnormal
+    # input weight is included in expected rather than treated as exact1e-310.
+    torch.testing.assert_close(
+        gradient, torch.tensor([[expected], [-expected]], dtype=torch.float64), rtol=16 * 2**-53, atol=0
+    )
+    assert math.isfinite(objective.item())
+    with pytest.warns(ConvergenceWarning):
+        result = minimize(
+            initial, loss, points=points, penalty=penalty, method=PreconditionedSGD(max_iter=1, preconditioner="none")
+        )
+    assert math.isfinite(result.objective)

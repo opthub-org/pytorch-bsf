@@ -140,7 +140,9 @@ def _objective(model: BezierModel, loss: Loss, points: Points, penalty: Quadrati
             # while its weighted square remains representable.
             half = coefficients / 2
             differences = half[edges[:, 0]] - half[edges[:, 1]]
-            smoothness = ((differences * penalty.smoothness) * differences).sum() * 4
+            # Fold the exact factor into the weight so backward never forms
+            # an overflowing 4*difference before multiplying the tiny weight.
+            smoothness = ((differences * (penalty.smoothness * 4)) * differences).sum()
         objective = objective + smoothness
     if not torch.isfinite(objective):
         raise ArithmeticError("loss and penalties produced a non-finite objective.")
@@ -214,21 +216,39 @@ def _update(coefficients: torch.Tensor, free: torch.Tensor, alpha: float, direct
         coefficients[free] = updated
 
 
-def _regularizer(model: BezierModel, penalty: QuadraticPenalty, free: torch.Tensor, alpha: float) -> torch.Tensor | None:
+def _regularizer(
+    topology: torch.Tensor | None, penalty: QuadraticPenalty, alpha: float, size: int, device: torch.device
+) -> torch.Tensor:
+    # Multiply step-scaled weights by an unweighted topology, whose integer
+    # degrees cannot overflow. Topology/device transfer happens only once.
+    matrix = (
+        torch.zeros(size, size, dtype=torch.float64, device=device)
+        if topology is None
+        else topology * ((penalty.smoothness * alpha) * 2)
+    )
+    if penalty.ridge:
+        matrix.diagonal().add_((penalty.ridge * alpha) * 2)
+    return matrix
+
+
+def _prepare_regularizer(
+    model: BezierModel, penalty: QuadraticPenalty, free: torch.Tensor
+) -> Callable[[float], torch.Tensor | None]:
     if not penalty.ridge and not penalty.smoothness:
-        return None
-    # Scale before accumulating edges: the unscaled diagonal can overflow even
-    # when the step-scaled matrix required by this update is representable.
-    matrix = torch.eye(len(free), dtype=torch.float64) * ((penalty.ridge * alpha) * 2)
-    if penalty.smoothness:
-        weight = (penalty.smoothness * alpha) * 2
-        for i, j in model.space.adjacency().tolist():
-            matrix[i, i] += weight
-            matrix[j, j] += weight
-            matrix[i, j] -= weight
-            matrix[j, i] -= weight
+        return lambda alpha: None
     selected = free.cpu()
-    return matrix[selected][:, selected].to(device=_optimization_device(model.coefficients))
+    device = _optimization_device(model.coefficients)
+    topology = None
+    if penalty.smoothness:
+        topology = torch.zeros(len(free), len(free), dtype=torch.float64)
+        for i, j in model.space.adjacency().tolist():
+            topology[i, i] += 1
+            topology[j, j] += 1
+            topology[i, j] -= 1
+            topology[j, i] -= 1
+        topology = topology[selected][:, selected].to(device=device)
+    size = int(selected.sum().item())
+    return lambda alpha: _regularizer(topology, penalty, alpha, size, device)
 
 
 def minimize(
@@ -310,6 +330,8 @@ def minimize(
     )
     cpu_free = free.cpu()
     metric = metric[cpu_free][:, cpu_free].to(device=_optimization_device(p))
+    regularizer_for = _prepare_regularizer(fitted, penalty, free)
+    cached_matrix: torch.Tensor | None = None
     generator = _generator(None if seed is None else seed + 1)
     history: list[Iteration] = []
     success, status, message = False, "iteration_limit", "Iteration budget exhausted; convergence was not established."
@@ -330,8 +352,10 @@ def minimize(
             status, message = "callback_stop", "Stopped by callback; convergence was not established."
             break
         alpha = method.step_size / math.sqrt(k + 1) if method.step_decay == "sqrt" else method.step_size
-        regularizer = _regularizer(fitted, penalty, free, alpha)
-        matrix = metric if regularizer is None else metric + regularizer
+        if cached_matrix is None or method.step_decay == "sqrt":
+            regularizer = regularizer_for(alpha)
+            cached_matrix = metric if regularizer is None else metric + regularizer
+        matrix = cached_matrix
         rhs, update_alpha = _scaled_gradient(gradient[free], alpha)
         direction = torch.linalg.solve(_finite_metric(matrix), rhs)
         _update(p, free, update_alpha, direction)

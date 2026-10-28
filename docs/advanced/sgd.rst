@@ -570,7 +570,9 @@ transfers; the returned coefficients stay on MPS with their original dtype.
 Finite loss means share the stable reduction used by ensembles: ordinary groups
 use a device reduction, while values near sum overflow use an exact CPU rational
 mean with the ordinary mean gradient. Step-scaled penalty matrices apply their
-weights before accumulating adjacent edges to avoid premature diagonal overflow.
+weights on a cached unweighted topology to avoid premature diagonal overflow.
+The topology and device transfer are prepared once. Constant-step matrices are
+assembled once; varying steps reuse the topology on the solve device.
 When safe, scale the gradient by the step before solving to avoid underflowing
 a direction that a large step would restore. Rare overflowing product/subtraction
 updates use an exact CPU rational fallback to retain finite cancellation results.
