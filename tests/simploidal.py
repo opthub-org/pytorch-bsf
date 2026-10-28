@@ -2045,3 +2045,24 @@ def test_recurrent_factor_metadata_omits_unused_power_table(monkeypatch):
     assert powers.shape == (0, 4)
     assert coefficients.shape == (20, 0)
     assert powers.numel() == coefficients.numel() == 0
+
+
+def test_gram_rejects_degree_with_unrepresentable_multinomials():
+    from torch_bsf.optimization import gram_matrix
+
+    space = torch_bsf.BezierSpace.simplex(1, degree=1030)
+    with pytest.raises(ValueError, match="degree.*multinomial.*float64"):
+        gram_matrix(space)
+
+
+def test_high_degree_derivative_above_polynomial_degree_is_zero():
+    from torch_bsf.point_cloud import _Polynomial
+
+    degree = 16
+    space = torch_bsf.BezierSpace.simplex(1, degree=degree)
+    controls = torch.arange(degree + 1, dtype=torch.float64)[:, None]
+    polynomial = _Polynomial(torch_bsf.BezierModel(space, controls))
+    parameters = torch.tensor([[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]], dtype=torch.float64)
+    actual = polynomial.derivative(parameters, (0,) * (degree + 1))
+    # Every derivative of order above the total degree vanishes identically.
+    torch.testing.assert_close(actual, torch.zeros((3, 1), dtype=torch.float64), atol=0, rtol=0)
