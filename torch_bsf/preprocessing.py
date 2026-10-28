@@ -7,6 +7,34 @@ import torch
 NormalizeType = Literal["max", "std", "quantile", "none"]
 
 
+def _finite(values: torch.Tensor, name: str) -> torch.Tensor:
+    if not torch.isfinite(values).all():
+        raise ValueError(f"{name} must be finite and representable in {values.dtype}; rescale the original data units.")
+    return values
+
+
+def _input(values: torch.Tensor) -> None:
+    if values.ndim != 2 or min(values.shape) < 1 or not values.is_floating_point():
+        raise ValueError("values must be a nonempty floating tensor of shape (n_samples, n_features).")
+    _finite(values, "values")
+
+
+def _transform(values: torch.Tensor, offset: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+    _finite(values, "values")
+    result = (values - offset) / scale
+    if not torch.isfinite(result).all():
+        result = values / scale - offset / scale
+    return _finite(result, "transformed values")
+
+
+def _inverse(values: torch.Tensor, offset: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+    _finite(values, "values")
+    result = values * scale + offset
+    if not torch.isfinite(result).all():
+        result = (values + offset / scale) * scale
+    return _finite(result, "inverse-transformed values")
+
+
 class Scaler(Protocol):
     """Protocol for data scalers with a fit/transform interface.
 
@@ -35,6 +63,10 @@ class Scaler(Protocol):
 class MinMaxScaler:
     """Min-max scaler that normalizes values to the [0, 1] range.
 
+    All fitted statistics and returned values must be finite in the input
+    dtype. An unrepresentable fitted range raises ``ValueError``; rescale
+    the original data units first.
+
     Attributes
     ----------
     mins : torch.Tensor
@@ -57,9 +89,10 @@ class MinMaxScaler:
         values : torch.Tensor
             Input tensor of shape ``(n_samples, n_features)``.
         """
+        _input(values)
         mins = values.amin(dim=0)
         maxs = values.amax(dim=0)
-        scales = maxs - mins
+        scales = _finite(maxs - mins, "fitted range (max - min)")
         scales[scales == 0.0] = 1.0  # Avoid division by zero
         self.mins = mins
         self.scales = scales
@@ -94,7 +127,7 @@ class MinMaxScaler:
         torch.Tensor
             Transformed tensor of the same shape as ``values``.
         """
-        return (values - self.mins) / self.scales
+        return _transform(values, self.mins, self.scales)
 
     def inverse_transform(self, values: torch.Tensor) -> torch.Tensor:
         """Reverse the normalization applied by :meth:`fit_transform`.
@@ -109,11 +142,14 @@ class MinMaxScaler:
         torch.Tensor
             Tensor rescaled back to the original value range.
         """
-        return values * self.scales + self.mins
+        return _inverse(values, self.mins, self.scales)
 
 
 class StdScaler:
     """Standard-score (z-score) scaler that normalizes values to zero mean and unit variance.
+
+    Statistics use a scaled fallback to avoid intermediate overflow. An
+    unrepresentable standard deviation or result raises ``ValueError``.
 
     Attributes
     ----------
@@ -137,8 +173,22 @@ class StdScaler:
         values : torch.Tensor
             Input tensor of shape ``(n_samples, n_features)``.
         """
-        self.stds, self.means = torch.std_mean(values, dim=0)
-        self.stds[~(self.stds > 0.0)] = 1.0  # Avoid division by zero, or by NaN for a single sample
+        _input(values)
+        if values.shape[0] == 1:
+            stds, means = torch.ones_like(values[0]), values[0].clone()
+        else:
+            stds, means = torch.std_mean(values, dim=0)
+            if (
+                not (torch.isfinite(stds).all() and torch.isfinite(means).all())
+                or ((stds == 0) & (values.amax(0) != values.amin(0))).any()
+            ):
+                unit = values.abs().amax(dim=0).clamp_min(torch.finfo(values.dtype).tiny)
+                stds, means = torch.std_mean(values / unit, dim=0)
+                stds, means = stds * unit, means * unit
+        _finite(stds, "fitted standard deviation")
+        _finite(means, "fitted mean")
+        self.stds = torch.where(stds > 0, stds, torch.ones_like(stds))
+        self.means = means
 
     def fit_transform(self, values: torch.Tensor) -> torch.Tensor:
         """Fit the scaler to the data and return the standardized tensor.
@@ -170,7 +220,7 @@ class StdScaler:
         torch.Tensor
             Transformed tensor of the same shape as ``values``.
         """
-        return (values - self.means) / self.stds
+        return _transform(values, self.means, self.stds)
 
     def inverse_transform(self, values: torch.Tensor) -> torch.Tensor:
         """Reverse the standardization applied by :meth:`fit_transform`.
@@ -185,7 +235,7 @@ class StdScaler:
         torch.Tensor
             Tensor rescaled back to the original value range.
         """
-        return values * self.stds + self.means
+        return _inverse(values, self.means, self.stds)
 
 
 class QuantileScaler:
@@ -194,6 +244,8 @@ class QuantileScaler:
     Values are scaled so that the ``q``-th percentile maps to 0 and the
     ``(1 - q)``-th percentile maps to 1, without clipping values to this range.
     This makes the scaler robust to outliers compared to :class:`MinMaxScaler`.
+    Non-finite input, an unrepresentable fitted range, or an unrepresentable
+    transformed result raises ``ValueError``. Rescale original units first.
 
     Attributes
     ----------
@@ -221,9 +273,17 @@ class QuantileScaler:
         values : torch.Tensor
             Input tensor of shape ``(n_samples, n_features)``.
         """
+        _input(values)
         mins = values.quantile(self.q, dim=0)
         maxs = values.quantile(1.0 - self.q, dim=0)
-        scales = maxs - mins
+        if not (torch.isfinite(mins).all() and torch.isfinite(maxs).all()):
+            unit = values.abs().amax(dim=0).clamp_min(torch.finfo(values.dtype).tiny)
+            scaled = values / unit
+            mins = scaled.quantile(self.q, dim=0) * unit
+            maxs = scaled.quantile(1.0 - self.q, dim=0) * unit
+        _finite(mins, "fitted lower quantile")
+        _finite(maxs, "fitted upper quantile")
+        scales = _finite(maxs - mins, "fitted range (max - min)")
         scales[scales == 0.0] = 1.0  # Avoid division by zero
         self.mins = mins
         self.scales = scales
@@ -258,7 +318,7 @@ class QuantileScaler:
         torch.Tensor
             Transformed tensor of the same shape as ``values``.
         """
-        return (values - self.mins) / self.scales
+        return _transform(values, self.mins, self.scales)
 
     def inverse_transform(self, values: torch.Tensor) -> torch.Tensor:
         """Reverse the scaling applied by :meth:`fit_transform`.
@@ -273,7 +333,7 @@ class QuantileScaler:
         torch.Tensor
             Tensor rescaled back to the original value range.
         """
-        return values * self.scales + self.mins
+        return _inverse(values, self.mins, self.scales)
 
 
 class NoneScaler:

@@ -5,7 +5,7 @@ import torch
 from hypothesis import given
 from hypothesis import strategies as st
 
-from tests.strategies import U, feature_values, matrices, simplex_points
+from tests.strategies import U, extreme_scalings, feature_values, matrices, simplex_points
 from torch_bsf.preprocessing import MinMaxScaler, NoneScaler, QuantileScaler, StdScaler, make_scaler
 
 
@@ -102,3 +102,77 @@ def test_make_scaler(normalize, scaler_class):
 def test_make_scaler_rejects_unknown_names():
     with pytest.raises(ValueError, match="normalize"):
         make_scaler("minmax")  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+@pytest.mark.parametrize("scaler_class", [MinMaxScaler, StdScaler, QuantileScaler])
+@pytest.mark.parametrize("kind", ["constant", "signed", "tiny", "offset", "single"])
+def test_extreme_scaler_contract(scaler_class, dtype, kind):
+    magnitude = torch.finfo(dtype).max / 2
+    tiny = torch.finfo(dtype).tiny
+    table = {
+        "constant": [magnitude, magnitude],
+        "signed": [-magnitude, magnitude],
+        "tiny": [tiny, 2 * tiny],
+        "offset": [magnitude, magnitude * (1 - 8 * torch.finfo(dtype).eps)],
+        "single": [magnitude],
+    }
+    values = torch.tensor(table[kind], dtype=dtype)[:, None]
+    scaler = scaler_class()
+    normalized = scaler.fit_transform(values)
+    assert torch.isfinite(normalized).all()
+    restored = scaler.inverse_transform(normalized)
+    # At most 16 rounded arithmetic operations on either affine evaluation;
+    # the bound is relative to the input units, including cancellation.
+    bound = 16 * torch.finfo(dtype).eps * values.abs().amax()
+    assert ((restored - values).abs() <= bound).all()
+
+
+@pytest.mark.parametrize("scaler_class", [MinMaxScaler, QuantileScaler])
+def test_unrepresentable_single_fitted_range(scaler_class):
+    scaler = scaler_class()
+    with pytest.raises(ValueError, match="fitted range.*rescale"):
+        scaler.fit_transform(torch.tensor([[-1e308], [1e308]], dtype=torch.float64))
+
+
+def test_issue_452_std_extreme_signed_values():
+    values = torch.tensor([[-1e308], [1e308]], dtype=torch.float64)
+    scaler = StdScaler()
+    z = scaler.fit_transform(values)
+    assert torch.isfinite(z).all()
+    # Two samples have sample standard deviation sqrt(2)*1e308.
+    expected = torch.tensor([[-(2**-0.5)], [2**-0.5]], dtype=torch.float64)
+    torch.testing.assert_close(z, expected, atol=0, rtol=8 * U)
+    torch.testing.assert_close(scaler.inverse_transform(z), values, atol=0, rtol=8 * U)
+
+
+@pytest.mark.parametrize("scaler_class", [MinMaxScaler, StdScaler, QuantileScaler])
+def test_scaler_rejects_nonfinite_and_unrepresentable_results(scaler_class):
+    scaler = scaler_class()
+    with pytest.raises(ValueError, match="finite"):
+        scaler.fit(torch.tensor([[float("nan")], [1.0]], dtype=torch.float64))
+    scaler.fit(torch.tensor([[0.0], [2.0]], dtype=torch.float64))
+    with pytest.raises(ValueError, match="inverse-transformed"):
+        scaler.inverse_transform(torch.tensor([[torch.finfo(torch.float64).max]], dtype=torch.float64))
+
+
+def test_affine_cancellation_avoids_intermediate_overflow():
+    scaler = MinMaxScaler()
+    scaler.fit(torch.tensor([[-1e308], [0.0]], dtype=torch.float64))
+    values = torch.tensor([[1e308]], dtype=torch.float64)
+    assert scaler.transform(values).item() == 2
+    assert scaler.inverse_transform(torch.tensor([[2.0]], dtype=torch.float64)).item() == 1e308
+
+
+@pytest.mark.parametrize("scaler_class", [MinMaxScaler, StdScaler, QuantileScaler])
+@given(unit=extreme_scalings())
+def test_scaler_power_of_two_equivariance(scaler_class, unit):
+    values = torch.tensor([[-1.0], [0.0], [1.0]], dtype=torch.float64)
+    base = scaler_class().fit_transform(values)
+    scaler = scaler_class()
+    transformed = scaler.fit_transform(values * unit)
+    # Exact power-of-two rescaling commutes with the affine map up to the
+    # 16 rounded operations used by the scaled-statistics fallback.
+    torch.testing.assert_close(transformed, base, atol=16 * U, rtol=16 * U)
+    restored = scaler.inverse_transform(transformed) / unit
+    torch.testing.assert_close(restored, values, atol=16 * U, rtol=16 * U)

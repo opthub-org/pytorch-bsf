@@ -177,3 +177,30 @@ After selection, refit the scaler on all available training data and train a
 fresh model with the chosen settings. Keep a final untouched test set if one
 is needed. See :doc:`auto_degree` for metrics and :doc:`active_learning` for
 how changing output scales changes committee disagreement rankings.
+
+Extreme finite values
+---------------------
+
+``MinMaxScaler``, ``StdScaler`` and ``QuantileScaler`` require nonempty finite
+floating input tables. Statistics and transformed outputs must fit the input
+dtype. Standard deviations and quantiles retry with scaled arithmetic when
+ordinary reductions overflow; constant and single-sample columns retain their
+unit-scale convention. Transforms and inverse transforms also retry a factored
+affine expression when a subtraction or product overflows before cancellation.
+
+The fitted public ``scales`` / ``stds`` attributes remain single tensors in the
+original units. If a range or sample standard deviation itself exceeds that
+dtype, fitting raises ``ValueError`` with a recommendation to rescale the
+original units. For example, float64 ``[-1e308, 1e308]`` has an unrepresentable
+min-max range (``2e308``), although its sample standard deviation is representable.
+The min-max and default quantile scalers reject this range explicitly; the
+standard scaler returns approximately ``[-0.7071, 0.7071]``. Divide the original
+data by a suitable unit (for example ``1e308``) before fitting when needed,
+and retain that unit separately for interpreting inverse transforms.
+
+Non-finite input and genuinely unrepresentable forward or inverse results also
+raise ``ValueError`` instead of propagating NaN/Inf. A successful inverse is
+still subject to floating rounding: a spread smaller than the precision of a
+large offset may already have been lost in the supplied data. These scalers do
+not recover information absent from the input dtype. ``NoneScaler`` remains a
+pass-through, without numerical validation.
