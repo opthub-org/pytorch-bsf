@@ -100,6 +100,23 @@ for data files, shell commands and saved-model prediction.
 Upgrading from the earlier API
 ------------------------------
 
+Choose documentation for your installed version
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Check ``python -c "import torch_bsf; print(torch_bsf.__version__)"`` and
+choose the matching ``vX.Y.Z`` tag under **Other Versions** in the documentation
+sidebar. For example, version ``0.23.0`` corresponds to ``v0.23.0``. The
+``master`` pages describe development and can contain APIs not yet available
+in the latest release. The README links to the documentation home for version
+selection; its migration link explicitly targets the development guide.
+
+API **[source]** links follow the tag or branch being documented. A normal
+single-version local ``sphinx-build`` uses ``master`` as its source-link
+fallback; use ``sphinx-multiversion`` to generate links for another ref.
+
+Apply the matching migration guide
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Installing an extra does not restore removed public names or CLI flags.
 ``solver="trainer"`` is replaced by an explicit Lightning adapter, legacy
 model constructors by ``BezierSpace`` plus ``BezierModel``, and automatic

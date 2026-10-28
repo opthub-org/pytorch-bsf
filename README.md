@@ -91,10 +91,12 @@ Save and load any model, including glued geometry, with
 `torch_bsf.io.save_model` / `load_model`. The format is versioned and does not
 pickle Python classes. CSV coefficient export is a separate operation.
 
-This v0 release deliberately consolidates previous APIs without compatibility
-aliases. See the [migration guide](https://opthub-org.github.io/pytorch-bsf/master/migration.html),
+The unified pre-1.0 API consolidates previous APIs without compatibility
+aliases. See the [development migration guide (master)](https://opthub-org.github.io/pytorch-bsf/master/migration.html),
 [documentation](https://opthub-org.github.io/pytorch-bsf/) and
 [contributing guide](https://github.com/opthub-org/pytorch-bsf/blob/master/CONTRIBUTING.md).
+Choose the tag matching your installed version in the documentation's
+**Other Versions** menu; `master` can include unreleased changes.
 
 Research foundations:
 

@@ -10,9 +10,13 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+import ast
 import importlib.util
+import inspect
 import os
 import sys
+from pathlib import Path
+from urllib.parse import quote
 
 import torch_bsf
 
@@ -123,28 +127,56 @@ smv_branch_whitelist = r"^(?!gh-pages|release-please).+$"  # all branches except
 
 
 # https://www.sphinx-doc.org/ja/master/usage/extensions/linkcode.html
-# Resolve function for the linkcode extension.
+# A normal single-version build documents master. Multiversion sets these
+# from its build context, independently of the installed package's version.
+_source_ref = "master"
+_source_root = Path(__file__).resolve().parent.parent
+
+
+def _configure_source_links(app, config):
+    global _source_ref, _source_root
+    _source_ref = config.smv_current_version or "master"
+    _source_root = Path(app.srcdir).resolve().parent
+
+
+def _definition_lines(path, fullname):
+    """Find lines in the documented tree, not an imported newer checkout."""
+    nodes = ast.parse(path.read_text(encoding="utf-8")).body
+    for name in fullname.split("."):
+        node = next(
+            item
+            for item in nodes
+            if isinstance(item, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)) and item.name == name
+        )
+        nodes = node.body
+    start = min([node.lineno, *(decorator.lineno for decorator in node.decorator_list)])
+    return start, node.end_lineno
+
+
 def linkcode_resolve(domain, info):
-    def find_source():
-        # try to find the file and line number, based on code from numpy:
-        # https://github.com/numpy/numpy/blob/master/doc/source/conf.py#L286
+    """Link a public Python object to the same ref and source lines as its docs."""
+    if domain != "py" or not info.get("module"):
+        return None
+    filename = info["module"].replace(".", "/") + ".py"
+    fragment = ""
+    try:
         obj = sys.modules[info["module"]]
         for part in info["fullname"].split("."):
             obj = getattr(obj, part)
-        import inspect
-        import os
+        if isinstance(obj, property):
+            obj = obj.fget
+        obj = inspect.unwrap(obj)
+        imported_file = Path(inspect.getsourcefile(obj)).resolve()
+        relative = imported_file.relative_to(Path(torch_bsf.__file__).resolve().parent)
+        filename = (Path("torch_bsf") / relative).as_posix()
+        start, end = _definition_lines(_source_root / filename, obj.__qualname__)
+        fragment = f"#L{start}-L{end}"
+    except (AttributeError, KeyError, OSError, TypeError, ValueError, StopIteration, SyntaxError):
+        # Some generated members have no standalone definition. The file link
+        # still points to the correct ref, without guessing newer line numbers.
+        pass
+    return f"https://github.com/opthub-org/pytorch-bsf/blob/{quote(_source_ref, safe='/')}/{filename}{fragment}"
 
-        fn = inspect.getsourcefile(obj)
-        fn = os.path.relpath(fn, start=os.path.dirname(torch_bsf.__file__))
-        source, lineno = inspect.getsourcelines(obj)
-        return fn, lineno, lineno + len(source) - 1
 
-    if domain != "py" or not info["module"]:
-        return None
-    try:
-        fn, start, end = find_source()
-        filename = f"torch_bsf/{fn}#L{start}-L{end}"
-    except Exception:
-        filename = info["module"].replace(".", "/") + ".py"
-    tag = "master"  # if 'dev' in release else ('v' + release)
-    return f"https://github.com/opthub-org/pytorch-bsf/blob/{tag}/{filename}"
+def setup(app):
+    app.connect("config-inited", _configure_source_links)
