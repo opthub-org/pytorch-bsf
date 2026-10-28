@@ -83,11 +83,11 @@ def _factor_gram(a: int, d: int) -> torch.Tensor:
     """The Gram matrix of the Bernstein basis of degree ``d`` on the standard ``a``-simplex, in double precision."""
     idx, coeffs = _factor_tables(a, d)
     powers = torch.tensor(idx, dtype=torch.float64).reshape(len(idx), a + 1)
-    c = torch.tensor(coeffs, dtype=torch.float64)
+    c = torch.tensor(coeffs, dtype=torch.float64).log()
     # The moments E[t^gamma] = a! prod_k gamma_k! / (|gamma| + a)! of the flat Dirichlet distribution, at gamma = alpha + beta.
     log_factorials = torch.lgamma(powers.unsqueeze(1) + powers.unsqueeze(0) + 1).sum(dim=-1)
     log_moments = log_factorials + lgamma(a + 1) - lgamma(2 * d + a + 1)
-    return c.unsqueeze(1) * c.unsqueeze(0) * torch.exp(log_moments)
+    return torch.exp(c.unsqueeze(1) + c.unsqueeze(0) + log_moments)
 
 
 def _simploid_gram(simploid_type: SimploidType, degree: tuple[int, ...]) -> torch.Tensor:

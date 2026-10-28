@@ -3,7 +3,7 @@ r"""Simploid types, control point indices, Bernstein bases and sampling."""
 from collections.abc import Sequence
 from functools import cache
 from itertools import product as iproduct
-from math import factorial
+from math import factorial, prod
 from numbers import Integral
 from typing import Any, TypeAlias, cast
 
@@ -29,10 +29,10 @@ def _simplex_indices(n_vertices: int, degree: int) -> list[tuple[int, ...]]:
 
 def _multinomial(degree: int, index: Sequence[int]) -> float:
     r"""The multinomial coefficient :math:`\binom{D}{\boldsymbol\alpha} = D! / (\alpha_1! \cdots \alpha_M!)`."""
-    r: float = factorial(degree)
-    for i in index:
-        r /= factorial(i)
-    return r
+    try:
+        return factorial(degree) / prod(factorial(i) for i in index)
+    except OverflowError as exc:
+        raise ValueError("degree produces multinomial coefficients outside float64 range.") from exc
 
 
 def _check_type(simploid_type: Sequence[int]) -> SimploidType:
@@ -159,7 +159,9 @@ def _factor_tables(a: int, d: int) -> tuple[tuple[tuple[int, ...], ...], tuple[f
 
 def _factor_tensors(a: int, d: int, dtype: torch.dtype, device: torch.device) -> tuple[torch.Tensor, torch.Tensor]:
     """The powers ``(n_k, a + 1)`` and coefficients ``(n_k,)`` of the Bernstein basis of a factor, as tensors."""
-    idx, coeffs = _factor_tables(a, d)
+    idx = tuple(_simplex_indices(a + 1, d))
+    # High degrees use the polynomial recurrence and need no multinomials.
+    coeffs = (0.0,) * len(idx) if d >= 16 else _factor_tables(a, d)[1]
     return (
         torch.tensor(idx, dtype=torch.long, device=device).reshape(len(idx), a + 1),
         torch.tensor(coeffs, dtype=dtype, device=device),
@@ -173,9 +175,32 @@ def _tensor_product_basis(t: torch.Tensor, factors: Sequence[tuple[torch.Tensor,
     for powers, coeffs in factors:
         width = powers.shape[1]
         block = t[:, offset : offset + width]
-        factor = coeffs.to(t.dtype) * torch.pow(block.unsqueeze(1), powers.unsqueeze(0)).prod(dim=-1)
+        degree = int(powers[0].sum())
+        if degree >= 16 or not torch.isfinite(coeffs).all():
+            factor = _recursive_basis(block, degree)
+        else:
+            factor = coeffs.to(t.dtype) * torch.pow(block.unsqueeze(1), powers.unsqueeze(0)).prod(dim=-1)
         basis = (basis.unsqueeze(2) * factor.unsqueeze(1)).reshape(t.shape[0], -1)
         offset += width
+    return basis
+
+
+@cache
+def _predecessors(width: int, degree: int) -> tuple[tuple[int, ...], ...]:
+    previous = {alpha: i + 1 for i, alpha in enumerate(_simplex_indices(width, degree - 1))}
+    return tuple(
+        tuple(previous.get(tuple(v - (j == k) for j, v in enumerate(alpha)), 0) for k in range(width))
+        for alpha in _simplex_indices(width, degree)
+    )
+
+
+def _recursive_basis(t: torch.Tensor, degree: int) -> torch.Tensor:
+    """Degree elevation using additions/products only, including at zero coordinates."""
+    basis = torch.ones((len(t), 1), dtype=t.dtype, device=t.device)
+    for d in range(1, degree + 1):
+        indices = torch.tensor(_predecessors(t.shape[1], d), device=t.device)
+        padded = torch.cat((torch.zeros_like(basis[:, :1]), basis), dim=1)
+        basis = (padded[:, indices] * t[:, None, :]).sum(2)
     return basis
 
 
