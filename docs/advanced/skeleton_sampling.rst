@@ -40,7 +40,10 @@ vertices, 57.6% on edges and 30.6% inside the triangle by default, splits each
 skeleton's share equally among its faces, and draws uniformly on each face.
 Pass ``ratio`` to choose other shares. :func:`~torch_bsf.fitting.fit_skeleton_regression`
 assigns each row to the face spanned by its nonzero coordinates, so zeros must
-be exact; it reports one :class:`~torch_bsf.FitResult` per face.
+be exact; it reports one :class:`~torch_bsf.FitResult` per face. Rows on
+faces with more than :math:`D` vertices carry no information for this
+estimator and are ignored, and rows of zero weight do not count towards the
+row a face needs.
 
 Use :func:`~torch_bsf.fit` instead when observations are not on faces or when
 all of them should inform every control. Fitting stratified rows with ``fit``
@@ -172,10 +175,10 @@ value; the smaller one is in bold.
 
 The degree-two and degree-three rows agree with Tables 1 and 2 of
 :cite:t:`tanaka2020asymptotic`, which give these coefficients numerically for
-:math:`D \leq 3` and :math:`M \leq 8`. The other rows are new. They show that
-the paper's observation that the inductive skeleton fitting wins for
-:math:`D < 3` does not extend to a rule in the degree: it wins for every degree
-shown on curves (:math:`M = 2`), and again on triangles from degree five.
+:math:`D \in \{2, 3\}` and :math:`2 \leq M \leq 8`. The other rows are new.
+They show that the paper's observation that the inductive skeleton fitting wins
+for :math:`D < 3` does not extend to a rule in the degree: it wins for every
+degree shown on curves (:math:`M = 2`), and again on triangles from degree five.
 
 Notes on the original derivation
 --------------------------------
@@ -204,5 +207,7 @@ weighting of the error changes them. Bernstein Gram matrices become
 ill-conditioned as the degree grows, and
 :func:`~torch_bsf.sampling.skeleton_risk_coefficients` raises ``ValueError``
 once the float64 result can no longer be guaranteed to six significant digits
-(from about degree 12). Only a single simplex is supported, not products or
+(above degree 14 for :math:`M = 2`, 12 for :math:`M = 3`, 11 for
+:math:`M = 4`, 9 for :math:`M = 5` and 8 for :math:`M = 6`). In that case, pass
+``ratio`` to :func:`~torch_bsf.sampling.sample_skeleton` explicitly. Only a single simplex is supported, not products or
 assembled spaces.

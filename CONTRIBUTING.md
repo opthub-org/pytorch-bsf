@@ -451,7 +451,7 @@ Examples of migrated contracts:
 
 | Tests | Generated contracts |
 |-------|---------------------|
-| `tests/sampling.py` | Grid cardinality and lattice coordinates, simplex bounds, seeded reproducibility and Sobol warnings |
+| `tests/sampling.py` | Grid cardinality and lattice coordinates, simplex bounds, seeded reproducibility, Sobol warnings, skeleton risk coefficients against exact rationals and the paper tables, and skeleton sample allocation |
 | `tests/preprocessing.py` | Fitted affine maps, inverse roundtrips, constant features and normalization statistics |
 | `tests/simploidal.py` | Mixed-degree index counts, nonnegative partition of unity, face restrictions and degeneracies |
 | `tests/io.py` | Exact coefficient, dtype, topology and prediction roundtrips |
@@ -563,10 +563,11 @@ pytorch-bsf/
 │   ├── _cli_args.py                  # Shared CLI arguments and data loading
 │   ├── _numeric.py                   # Numerical reductions shared by prediction and initialization
 │   ├── _problem.py                   # Weighted, constrained least-squares problem shared by the solvers
+│   ├── _skeleton.py                  # Faces and controls shared by skeleton sampling and fitting
 │   ├── active_learning.py            # Acquisition functions (query_by_committee, farthest_points)
 │   ├── core.py                       # Spaces, observations and models (BezierSpace, Points, BezierModel, …)
 │   ├── ensemble.py                   # Ensemble of fitted models
-│   ├── fitting.py                    # fit: supervised fitting for every space and solver
+│   ├── fitting.py                    # fit for every space and solver; fit_skeleton_regression
 │   ├── geometry.py                   # Public topology builders (Simploid, SimploidalSet from _kernels/sets.py)
 │   ├── interpolation.py              # Shape-preserving cubic interpolation on simplicial complexes
 │   ├── io.py                         # Versioned model persistence (save_model, load_model, …)
@@ -575,7 +576,7 @@ pytorch-bsf/
 │   ├── point_cloud.py                # Value-only fitting (fit_point_cloud, fit_skeleton)
 │   ├── preprocessing.py              # Data scaling (MinMax, Std, Quantile, None)
 │   ├── results.py                    # Fit results, diagnostics, ConvergenceError and ConvergenceWarning
-│   ├── sampling.py                   # Domain-aware random and grid sampling (sample, grid)
+│   ├── sampling.py                   # sample, grid; optimal skeleton sampling and its risk
 │   ├── sklearn.py                    # scikit-learn regressor (BezierRegressor)
 │   ├── solvers.py                    # Least-squares solver configurations (DenseLeastSquares, …)
 │   ├── splitting.py                  # Exact local subdivision (subdivide, subdivide_space)

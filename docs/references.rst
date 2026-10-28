@@ -13,8 +13,8 @@ Fitting, approximation and statistical behavior
 :cite:t:`kobayashi2019bezier` introduces Bézier simplex fitting for Pareto
 fronts and its approximation perspective. :cite:t:`tanaka2020asymptotic`
 studies statistical risk; :doc:`advanced/skeleton_sampling` extends its
-optimal sample ratio to every dimension and degree. Read these alongside :doc:`whatis` and
-:doc:`advanced/auto_degree`: expressiveness at a sufficiently large degree
+optimal sample ratio to every dimension and degree. Read these alongside
+:doc:`whatis` and :doc:`advanced/auto_degree`: expressiveness at a sufficiently large degree
 and accuracy from a particular finite sample are distinct questions.
 
 :cite:t:`hikima2025stochastic` concerns objective-based stochastic

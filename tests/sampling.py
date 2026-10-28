@@ -376,10 +376,40 @@ def test_skeleton_risk_coefficients_structure(n_vertices, degree):
     # Square roots, a sum of M terms and divisions: a few M roundings in total.
     assert all(r >= 0 for r in ratio) and abs(sum(ratio) - 1) <= 4 * n_vertices * U
     optimum = sum(math.sqrt(a) for a in coefficients) ** 2
-    # Cauchy-Schwarz: the optimal ratio beats any other, e.g. equal shares on the skeletons with controls.
-    assert optimum <= sum(a * degree for a in coefficients if a) * (1 + 8 * n_vertices * U)
+    # Cauchy-Schwarz: the optimal ratio beats any other, e.g. equal shares on the k skeletons with controls.
+    k = min(degree, n_vertices)
+    assert optimum <= sum(a * k for a in coefficients if a) * (1 + 8 * n_vertices * U)
     achieved = sum(a / r for a, r in zip(coefficients, ratio, strict=True) if a)
     assert abs(achieved - optimum) <= 8 * n_vertices * U * optimum
+
+
+# The table of docs/advanced/skeleton_sampling.rst: degree -> N R* / (sigma^2 L) for M = 2, ..., 6, as printed.
+_DOCS_OPTIMAL_RISKS = {
+    1: ("1.333", "1.5", "1.6", "1.667", "1.714"),
+    2: ("2.914", "5.496", "8.667", "11.99", "15.17"),
+    3: ("3.727", "10.65", "23.88", "44.75", "73.14"),
+    4: ("4.581", "15.07", "43.04", "104.9", "220.2"),
+    5: ("5.467", "20.20", "64.12", "184.3", "471.8"),
+    6: ("6.374", "26.17", "90.36", "283.9", "824.0"),
+}
+
+# Entries of that table in which inductive skeleton fitting beats all-at-once least squares.
+_DOCS_SKELETON_WINS = {(m, 1) for m in range(2, 7)} | {(m, 2) for m in range(2, 7)} | {(2, d) for d in range(1, 7)}
+_DOCS_SKELETON_WINS |= {(3, 5), (3, 6)}
+
+
+@pytest.mark.parametrize("degree", sorted(_DOCS_OPTIMAL_RISKS))
+@pytest.mark.parametrize("n_vertices", range(2, 7))
+def test_skeleton_risk_documented_comparison(n_vertices, degree):
+    text = _DOCS_OPTIMAL_RISKS[degree][n_vertices - 2]
+    optimum = sum(math.sqrt(a) for a in skeleton_risk_coefficients(BezierSpace.simplex(n_vertices - 1, degree=degree))) ** 2
+    # Printed to four significant digits, rounded to nearest.
+    assert abs(optimum - float(text)) <= _printed_unit(text) / 2
+    # All-at-once least squares on uniform rows has risk (number of controls) / N.
+    all_at_once = comb(degree + n_vertices - 1, degree)
+    assert (optimum < all_at_once) == ((n_vertices, degree) in _DOCS_SKELETON_WINS)
+    # The winner is decided beyond the guaranteed relative error of the coefficients (15.07 versus 15 is closest).
+    assert abs(optimum - all_at_once) > 2e-6 * optimum
 
 
 def test_skeleton_risk_coefficients_reject_ill_conditioned_degrees():
@@ -396,6 +426,13 @@ def test_skeleton_methods_reject_other_spaces(space):
         skeleton_risk_coefficients(space)
     with pytest.raises(ValueError, match="single simplex"):
         sample_skeleton(space, 4)
+
+
+def test_sample_skeleton_default_ratio_needs_a_well_conditioned_degree():
+    space = BezierSpace.simplex(2, degree=13)
+    with pytest.raises(ValueError, match="Pass ratio explicitly"):
+        sample_skeleton(space, 4)
+    assert len(sample_skeleton(space, 4, ratio=[1, 1, 1], seed=0).parameters) == 4
 
 
 def test_skeleton_methods_reject_non_spaces():
@@ -439,8 +476,10 @@ def test_sample_skeleton_allocates_optimal_counts(n_vertices, degree, n, seed, m
     ratio = optimal_skeleton_ratio(space)
     for size in range(1, n_vertices + 1):
         level = [counts[face] for face in combinations(range(n_vertices), size)]
-        # Largest-remainder rounding: each skeleton gets the floor or ceiling of its quota, up to quota roundoff.
-        assert math.floor(n * ratio[size - 1] - 1e-9) <= sum(level) <= math.ceil(n * ratio[size - 1] + 1e-9)
+        # Largest-remainder rounding: each skeleton gets the floor or ceiling of its quota. The quota n * r
+        # inherits the relative error of r (a few M roundings, see test_skeleton_risk_coefficients_structure).
+        slack = n * 4 * n_vertices * U
+        assert math.floor(n * ratio[size - 1] - slack) <= sum(level) <= math.ceil(n * ratio[size - 1] + slack)
         assert max(level) - min(level) <= 1
     assert torch.equal(t, sample_skeleton(space, n, seed=seed, method=method).parameters)
 
@@ -467,7 +506,40 @@ def test_sample_skeleton_faces_are_uniform():
     assert abs(t.var().item() - 1 / 12) <= 5 * math.sqrt(1 / 180 / n)
 
 
-@pytest.mark.parametrize("ratio", [[1.0], [1.0, -1.0], [0.0, 0.0], [float("nan"), 1.0], [[1.0, 1.0]]])
+def test_sample_skeleton_faces_of_larger_simplices_are_uniform():
+    # Uniform on a triangle face of a tetrahedron: E t_i = 1/3 and E t_i^2 = 1/6 (variances 2/9 - 1/9 and
+    # 2/15 - 1/36 per row), zero off the face.
+    space = BezierSpace.simplex(3, degree=3)
+    n = 20000
+    t = sample_skeleton(space, n, ratio=[0, 0, 1, 0], seed=0).parameters
+    face = t[(t[:, 3] == 0) & (t[:, :3] > 0).all(1)]
+    assert len(face) * 4 >= n - 3 and ((t > 0).sum(1) == 3).all()
+    assert (face[:, :3].mean(0) - 1 / 3).abs().max() <= 5 * math.sqrt(1 / 18 / len(face))
+    assert ((face[:, :3] ** 2).mean(0) - 1 / 6).abs().max() <= 5 * math.sqrt((2 / 15 - 1 / 36) / len(face))
+
+
+def test_sample_skeleton_accepts_ratio_entries_near_the_float64_limit():
+    space = BezierSpace.simplex(2, degree=2)
+    for ratio in ([1e308, 1e308, 1e308], torch.full((3,), 1e308, dtype=torch.float64)):
+        counts = _face_counts(sample_skeleton(space, 7, ratio=ratio, seed=0), 3)
+        assert [sum(counts[f] for f in combinations(range(3), k)) for k in (1, 2, 3)] in ([3, 2, 2], [2, 3, 2], [2, 2, 3])
+
+
+@pytest.mark.parametrize(
+    "ratio",
+    [
+        [1.0],
+        [1.0, -1.0],
+        [0.0, 0.0],
+        [float("nan"), 1.0],
+        [float("inf"), 1.0],
+        [[1.0, 1.0]],
+        ["a", "b"],
+        [True, False],
+        [1j, 1.0],
+        object(),
+    ],
+)
 def test_sample_skeleton_rejects_bad_ratio(ratio):
     with pytest.raises(ValueError, match="ratio"):
         sample_skeleton(BezierSpace.simplex(1, degree=2), 4, ratio=ratio)

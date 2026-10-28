@@ -3,17 +3,19 @@
 import math
 import sys
 from itertools import combinations
+from math import comb
 from unittest.mock import patch
 
 import pytest
 import torch
 
 from torch_bsf import BezierModel, BezierSpace, FixedControls, Points, QuadraticPenalty, Samples, SimploidalSet, fit
+from torch_bsf._kernels.combinatorics import _simplex_indices
 from torch_bsf._problem import LeastSquaresProblem
 from torch_bsf.core import BasisOperator
 from torch_bsf.fitting import fit_skeleton_regression
 from torch_bsf.results import ConvergenceError, ConvergenceWarning
-from torch_bsf.sampling import optimal_skeleton_ratio, sample, sample_skeleton, skeleton_risk_coefficients
+from torch_bsf.sampling import _face_gram, sample, sample_skeleton, skeleton_risk_coefficients
 from torch_bsf.solvers import DenseLeastSquares, SparseLeastSquares
 
 
@@ -679,57 +681,108 @@ def test_constant_weighted_mean_reference(backend):
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.parametrize("solver", [DenseLeastSquares(), SparseLeastSquares()])
 @pytest.mark.parametrize(("dimension", "degree"), [(1, 1), (1, 3), (2, 2), (2, 3), (3, 3), (3, 4)])
-def test_skeleton_regression_recovers_noiseless_models(dimension, degree):
+def test_skeleton_regression_recovers_noiseless_models(dimension, degree, solver):
+    if isinstance(solver, SparseLeastSquares):
+        pytest.importorskip("scipy")
     space = BezierSpace.simplex(dimension, degree=degree)
     generator = torch.Generator().manual_seed(dimension * 10 + degree)
     truth = BezierModel(space, torch.rand(space.n_controls, 2, generator=generator, dtype=torch.float64) * 2 - 1)
     points = sample_skeleton(space, 40 * space.n_controls, seed=degree)
-    result = fit_skeleton_regression(space, Samples(points, truth(points).detach())).require_success()
+    samples = Samples(points, truth(points).detach())
+    result = fit_skeleton_regression(space, samples, solver=solver).require_success()
     assert result.success and result.status == "solved"
     expected = {face for size in range(1, min(degree, dimension + 1) + 1) for face in combinations(range(dimension + 1), size)}
     assert set(result.faces) == expected
     # Each face solve is backward stable: its controls err by about kappa * n * U relative to the data scale (1),
     # and boundary errors propagate through at most dimension + 1 levels, each amplified by at most kappa.
-    conditions = [face.diagnostics.data.condition_number for face in result.faces.values()]
+    # The sparse solver reports no condition numbers, so take them from the dense fit of the same rows.
+    dense = fit_skeleton_regression(space, samples)
+    conditions = [face.diagnostics.data.condition_number for face in dense.faces.values()]
     assert all(c is not None for c in conditions)
     kappa = max(c for c in conditions if c is not None)
     n = space.n_controls
     bound = (kappa * n * 2**-53) * (1 + kappa) ** (dimension + 1)
+    if isinstance(solver, SparseLeastSquares):
+        # LSMR stops at a backward error of atol + btol instead of roundoff, amplified the same way.
+        bound = max(bound, (solver.atol + solver.btol) * kappa * (1 + kappa) ** (dimension + 1))
     assert (result.model.coefficients - truth.coefficients).abs().max().item() <= bound
 
 
 def test_skeleton_regression_uses_only_rows_on_each_face():
     space = BezierSpace.simplex(1, degree=2)
     t = torch.tensor([[1.0, 0.0], [1.0, 0.0], [0.0, 1.0], [0.5, 0.5]], dtype=torch.float64)
-    result = fit_skeleton_regression(space, Samples(t, [[1.0], [3.0], [5.0], [10.0]], weights=[1.0, 1.0, 2.0, 1.0]))
+    result = fit_skeleton_regression(space, Samples(t, [[1.0], [3.0], [5.0], [10.0]], weights=[1.0, 3.0, 2.0, 1.0]))
     p = result.model.coefficients[:, 0].tolist()
-    # Vertex means 2 and 5; the edge row 10 = (2 + 2 p_11 + 5) / 4 fixes the middle control.
-    # Exact in binary except the 1/2 and 1/4 basis products and a few roundings in the least-squares solves.
-    assert p == pytest.approx([2.0, 16.5, 5.0], rel=16 * 2**-53, abs=0)
+    # Weighted vertex means (1 + 9) / 4 = 2.5 and 5; the edge row 10 = (2.5 + 2 p_11 + 5) / 4 fixes the middle
+    # control at 16.25. Exact in binary except a few roundings in the least-squares solves.
+    assert p == pytest.approx([2.5, 16.25, 5.0], rel=16 * 2**-53, abs=0)
     assert result.faces[(0,)].diagnostics.data.shape == (2, 1)
 
 
-def test_skeleton_regression_matches_the_asymptotic_risk():
-    # With the optimal ratio, N times the integrated squared error tends to sum_m a_m / r_m (sigma = L = 1).
-    # The replicate mean has standard error s / sqrt(R); five standard errors and the O(1 / N) relative bias
-    # of a finite sample (about n_controls / N per face) bound the gap for this seeded run.
-    space = BezierSpace.simplex(1, degree=2)
-    a, ratio = skeleton_risk_coefficients(space), optimal_skeleton_ratio(space)
-    theory = sum(x / r for x, r in zip(a, ratio, strict=True))
+def _integrated_squared_error(model, truth, alpha, degree):
+    """Exact integral over the uniform simplex: tr(dc^T G dc) for the control differences dc."""
+    gram = _face_gram(alpha, alpha, range(alpha.shape[1]), degree)
+    difference = model.coefficients - truth.coefficients
+    return (difference * (gram @ difference)).sum().item()
+
+
+@pytest.mark.parametrize(
+    ("dimension", "degree", "ratio"),
+    [(1, 2, None), (1, 3, None), (2, 2, None), (2, 2, (0.2, 0.5, 0.3)), (2, 3, None)],
+)
+def test_skeleton_regression_matches_the_asymptotic_risk(dimension, degree, ratio):
+    # N times the integrated squared error tends to sum_m a_m / r_m (sigma = L = 1), for any ratio r.
+    # The integral is exact, so the gap has two parts: the replicate mean's standard error s / sqrt(R), allowed
+    # five times, and the finite-sample bias of least squares on each face. That bias inflates the face
+    # covariance by about n_I / (n_I - p_I - 1) for n_I rows and p_I interior controls, so a relative bias of
+    # twice the largest (p_I + 1) / n_I bounds it for this seeded run.
+    space = BezierSpace.simplex(dimension, degree=degree)
+    width = dimension + 1
+    a = skeleton_risk_coefficients(space)
+    n, replicates = 600, 300
+    points = sample_skeleton(space, n, ratio=ratio, seed=0)
+    support = points.parameters > 0
+    shares = [int((support.sum(1) == k).sum()) / n for k in range(1, width + 1)]
+    theory = sum(x / r for x, r in zip(a, shares, strict=True) if x)
+    alpha = torch.tensor(_simplex_indices(width, degree))
+    interior = [int(((alpha > 0).sum(1) == k).sum()) // comb(width, k) for k in range(1, width + 1)]
+    bias = 2 * max((interior[k - 1] + 1) / (n * shares[k - 1] / comb(width, k)) for k in range(1, min(degree, width) + 1))
     generator = torch.Generator().manual_seed(0)
     truth = BezierModel(space, torch.randn(space.n_controls, 1, generator=generator, dtype=torch.float64))
-    evaluation = sample(space, 4000, seed=1)
-    n, replicates = 400, 200
     errors = []
     for replicate in range(replicates):
-        points = sample_skeleton(space, n, seed=replicate)
+        points = sample_skeleton(space, n, ratio=ratio, seed=replicate)
         noise = torch.randn(n, 1, generator=generator, dtype=torch.float64)
         model = fit_skeleton_regression(space, Samples(points, truth(points).detach() + noise)).model
-        errors.append(n * (model(evaluation) - truth(evaluation)).square().mean().item())
+        errors.append(n * _integrated_squared_error(model, truth, alpha, degree))
     observed = torch.tensor(errors)
     standard_error = observed.std().item() / math.sqrt(replicates)
-    assert abs(observed.mean().item() - theory) <= 5 * standard_error + theory * space.n_controls / n
+    assert abs(observed.mean().item() - theory) <= 5 * standard_error + bias * theory
+
+
+@pytest.mark.parametrize(("dimension", "degree"), [(1, 2), (2, 2)])
+def test_all_at_once_risk_is_the_number_of_controls(dimension, degree):
+    # The comparison of docs/advanced/skeleton_sampling.rst: ordinary least squares on N uniform rows has
+    # N R -> C(D + M - 1, D) (sigma = L = 1). Same tolerance as the skeleton risk test, with a single face
+    # holding all controls.
+    space = BezierSpace.simplex(dimension, degree=degree)
+    width = dimension + 1
+    alpha = torch.tensor(_simplex_indices(width, degree))
+    n, replicates = 600, 300
+    theory = comb(degree + width - 1, degree)
+    generator = torch.Generator().manual_seed(0)
+    truth = BezierModel(space, torch.randn(space.n_controls, 1, generator=generator, dtype=torch.float64))
+    errors = []
+    for replicate in range(replicates):
+        points = sample(space, n, seed=replicate)
+        noise = torch.randn(n, 1, generator=generator, dtype=torch.float64)
+        model = fit(space, Samples(points, truth(points).detach() + noise)).model
+        errors.append(n * _integrated_squared_error(model, truth, alpha, degree))
+    observed = torch.tensor(errors)
+    standard_error = observed.std().item() / math.sqrt(replicates)
+    assert abs(observed.mean().item() - theory) <= 5 * standard_error + 2 * (space.n_controls + 1) / n * theory
 
 
 def test_skeleton_regression_reports_failed_faces():
@@ -741,8 +794,29 @@ def test_skeleton_regression_reports_failed_faces():
     with patch("torch_bsf.fitting.fit", return_value=failed):
         result = fit_skeleton_regression(space, samples)
     assert not result.success and result.status == "numerical_failure" and list(result.faces) == [(0,)]
+    # The failed face's controls are kept; controls of later faces stay zero.
+    vertex = _simplex_indices(2, 2).index((2, 0))
+    expected = torch.zeros_like(failed.model.coefficients)
+    expected[vertex] = failed.model.coefficients[vertex]
+    assert torch.equal(result.model.coefficients, expected)
     with pytest.raises(RuntimeError, match=r"Face \(0,\): boom"):
         result.require_success()
+
+
+def test_skeleton_regression_ignores_rows_on_faces_without_interior_controls():
+    space = BezierSpace.simplex(2, degree=1)
+    t = torch.cat([torch.eye(3, dtype=torch.float64), torch.full((2, 3), 1 / 3, dtype=torch.float64)])
+    result = fit_skeleton_regression(space, Samples(t, [[1.0], [2.0], [3.0], [100.0], [100.0]])).require_success()
+    # Each vertex control is its single row's value; the two interior rows would pull every control towards 100.
+    assert result.model.coefficients[:, 0].tolist() == [1.0, 2.0, 3.0]
+    assert "Ignored 2 rows" in result.message and set(result.faces) == {(0,), (1,), (2,)}
+
+
+def test_skeleton_regression_needs_rows_of_positive_weight():
+    space = BezierSpace.simplex(1, degree=2)
+    t = torch.tensor([[1.0, 0.0], [0.0, 1.0], [0.5, 0.5]], dtype=torch.float64)
+    with pytest.raises(ValueError, match=r"faces without rows of positive weight: \[\(1,\)\]"):
+        fit_skeleton_regression(space, Samples(t, [[1.0], [2.0], [3.0]], weights=[1.0, 0.0, 1.0]))
 
 
 def test_skeleton_regression_rejects_invalid_inputs():
@@ -755,9 +829,6 @@ def test_skeleton_regression_rejects_invalid_inputs():
         fit_skeleton_regression("space", Samples(on_edges, values))  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="single simplex"):
         fit_skeleton_regression(BezierSpace.simploid((1, 1), degree=1), Samples(torch.ones(2, 4) / 2, [1.0, 2.0]))
-    interior = Samples(torch.full((1, 3), 1 / 3, dtype=torch.float64), [1.0])
-    with pytest.raises(ValueError, match="at most degree=2 vertices"):
-        fit_skeleton_regression(space, interior)
     vertices_only = Samples(torch.eye(3, dtype=torch.float64), [1.0, 2.0, 3.0])
-    with pytest.raises(ValueError, match=r"faces without rows: \[\(0, 1\), \(0, 2\), \(1, 2\)\]"):
+    with pytest.raises(ValueError, match=r"faces without rows of positive weight: \[\(0, 1\), \(0, 2\), \(1, 2\)\]"):
         fit_skeleton_regression(space, vertices_only)

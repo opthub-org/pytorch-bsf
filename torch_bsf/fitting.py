@@ -1,19 +1,17 @@
-"""One supervised fitting entry point for every space and numerical solver."""
+"""Supervised fitting at known parameters: one entry point for every space and solver, and face-by-face simplex fitting."""
 
 from __future__ import annotations
 
 import math
 from dataclasses import replace
-from itertools import combinations
 from typing import TypeVar
 
 import torch
 
-from torch_bsf._kernels.combinatorics import _simplex_indices
 from torch_bsf._problem import LeastSquaresProblem
+from torch_bsf._skeleton import _control_faces, _skeleton_faces, _skeleton_shape
 from torch_bsf.core import BezierModel, BezierSpace, FixedControls, QuadraticPenalty, Samples
 from torch_bsf.results import FitDiagnostics, FitResult, MatrixDiagnostics, SkeletonRegressionResult
-from torch_bsf.sampling import _skeleton_shape
 from torch_bsf.solvers import DenseLeastSquares, LeastSquaresSolver, SparseLeastSquares
 
 
@@ -318,8 +316,10 @@ def fit_skeleton_regression(
     space
         A single simplex of positive dimension and degree.
     samples
-        Observations on faces with at most ``degree`` vertices. Every such
-        face needs at least one row. Weights apply within each face.
+        Observations at known parameters. Every face with at most ``degree``
+        vertices needs at least one row of positive weight. Rows on larger
+        faces, which have no interior controls, are ignored and counted in the
+        message. Weights apply within each face.
     solver
         Least-squares configuration used for every face.
 
@@ -328,7 +328,11 @@ def fit_skeleton_regression(
     SkeletonRegressionResult
         The assembled model and each face's :class:`FitResult`. A face whose
         rows do not identify its interior controls is not a failure; inspect
-        that face's ``diagnostics.data.rank``.
+        that face's ``diagnostics.data.rank``. If a face's solve fails, as
+        reported by its :class:`FitResult` (with a
+        :class:`~torch_bsf.ConvergenceWarning`), fitting stops there:
+        ``success`` is ``False``, ``faces`` ends with the failed face, and
+        controls of later faces stay zero.
 
     Raises
     ------
@@ -336,8 +340,7 @@ def fit_skeleton_regression(
         If ``space`` or ``samples`` has the wrong type.
     ValueError
         If ``space`` is not a single simplex of positive dimension and degree,
-        a row lies on a face with more than ``degree`` vertices, which has no
-        interior controls, or a face with interior controls has no rows.
+        or a face with interior controls has no row of positive weight.
 
     Examples
     --------
@@ -357,20 +360,20 @@ def fit_skeleton_regression(
         raise TypeError("samples must be Samples.")
     space.validate(samples.points)
     support = samples.points.parameters.cpu() != 0
-    sizes = support.sum(1)
-    if (sizes > degree).any():
-        raise ValueError(f"every row must lie on a face with at most degree={degree} vertices.")
-    faces = [face for size in range(1, min(degree, width) + 1) for face in combinations(range(width), size)]
-    masks = {face: torch.zeros(width, dtype=torch.bool).index_fill_(0, torch.tensor(face), True) for face in faces}
-    rows = {face: (support == masks[face]).all(1).nonzero().flatten() for face in faces}
-    missing = [face for face in faces if not len(rows[face])]
+    ignored = int((support.sum(1) > degree).sum())
+    faces = _skeleton_faces(width, degree)
+    rows = {
+        face: (support == support.new_zeros(width).index_fill_(0, torch.tensor(face), True)).all(1).nonzero().flatten()
+        for face in faces
+    }
+    missing = [face for face in faces if not (samples.weights[rows[face]] > 0).any()]
     if missing:
-        raise ValueError(f"faces without rows: {missing}.")
-    control_support = [tuple(i for i, a in enumerate(alpha) if a) for alpha in _simplex_indices(width, degree)]
+        raise ValueError(f"faces without rows of positive weight: {missing}.")
+    control_faces = _control_faces(width, degree)
     coefficients = torch.zeros(space.n_controls, samples.values.shape[1], dtype=torch.float64)
     results: dict[tuple[int, ...], FitResult] = {}
     for face in faces:
-        free = [k for k, s in enumerate(control_support) if s == face]
+        free = [k for k, f in enumerate(control_faces) if f == face]
         fixed = FixedControls({k: coefficients[k] for k in range(space.n_controls) if k not in free})
         result = fit(space, samples.take(rows[face]), solver=solver, fixed=fixed)
         results[face] = result
@@ -379,4 +382,6 @@ def fit_skeleton_regression(
             message = f"Face {face}: {result.message}"
             return SkeletonRegressionResult(BezierModel(space, coefficients), results, False, result.status, message)
     message = "Every face least-squares problem was solved."
+    if ignored:
+        message += f" Ignored {ignored} rows on faces with more than degree={degree} vertices."
     return SkeletonRegressionResult(BezierModel(space, coefficients), results, True, "solved", message)

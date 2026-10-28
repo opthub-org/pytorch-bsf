@@ -16,6 +16,7 @@ import torch
 from torch.nn import functional as F
 
 from torch_bsf._kernels.combinatorics import _indices, _simplex_indices
+from torch_bsf._skeleton import _control_faces, _skeleton_faces, _skeleton_shape
 from torch_bsf._validation import _choice
 from torch_bsf.core import BezierSpace, Points, _integer
 from torch_bsf.geometry import Simploid
@@ -123,15 +124,7 @@ def grid(space: BezierSpace, resolution: int = 10, *, cells: Sequence[int | Simp
 _RISK_RELATIVE_ERROR = 1e-6
 """Largest first-order relative error bound accepted by :func:`skeleton_risk_coefficients`."""
 
-
-def _skeleton_shape(space: BezierSpace) -> tuple[int, int]:
-    """The vertex count and degree of a single simplex of positive dimension and degree."""
-    if not isinstance(space, BezierSpace):
-        raise TypeError("space must be a BezierSpace.")
-    cell = space.cells[0]
-    if space.n_cells != 1 or len(cell.dimensions) != 1 or cell.degree[0] < 1:
-        raise ValueError("skeleton methods require a single simplex of positive dimension and degree.")
-    return cell.dimensions[0] + 1, cell.degree[0]
+_UNIT_ROUNDOFF = torch.finfo(torch.float64).eps / 2
 
 
 def _face_gram(rows: torch.Tensor, columns: torch.Tensor, face: Sequence[int], degree: int) -> torch.Tensor:
@@ -140,6 +133,8 @@ def _face_gram(rows: torch.Tensor, columns: torch.Tensor, face: Sequence[int], d
     On a :math:`k`-simplex, :math:`E[t^\alpha] = k!\,\alpha! / (|\alpha| + k)!`, so the entry for
     :math:`a, b` is :math:`\prod_i \binom{a_i + b_i}{a_i} / (\binom{2D}{D} \binom{2D + k}{k})`.
     Each binomial is rounded once, so an entry has a relative error of at most ``(2 * len(face) + 2) * U``.
+    This bound, which the conditioning check of :func:`skeleton_risk_coefficients` relies on, is why the
+    lgamma-based Gram matrix of ``torch_bsf._kernels.sgd`` is not reused.
     """
     face = list(face)
     binomials = torch.tensor(
@@ -185,7 +180,9 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
     ValueError
         If ``space`` is not a single simplex of positive dimension and degree,
         or if its Bernstein Gram matrices are too ill-conditioned to bound the
-        float64 relative error by ``1e-6`` (from about degree 12).
+        float64 relative error by ``1e-6``. The largest accepted degree falls
+        with the dimension: 14 for 2 vertices, 12 for 3, 11 for 4, 9 for 5,
+        8 for 6 and 7, and 7 for 8.
 
     Examples
     --------
@@ -196,26 +193,26 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
     """
     width, degree = _skeleton_shape(space)
     alpha = torch.tensor(_simplex_indices(width, degree), dtype=torch.long)
-    support = alpha > 0
+    control_faces = [frozenset(face) for face in _control_faces(width, degree)]
     # Control errors as linear maps of the independent face noises: on face I,
     # e_T = eta_I - G_TT^{-1} G_TB e_B, where T are the controls interior to I and B those on its boundary.
     errors = torch.zeros(len(alpha), len(alpha), dtype=torch.float64)
     face_grams: list[tuple[int, torch.Tensor, torch.Tensor]] = []
-    for size in range(1, min(degree, width) + 1):
-        for face in combinations(range(width), size):
-            inside = ~support[:, [i for i in range(width) if i not in face]].any(1)
-            interior = (inside & (support.sum(1) == size)).nonzero().flatten()
-            boundary = (inside & (support.sum(1) < size)).nonzero().flatten()
-            gram = _face_gram(alpha[interior], alpha[torch.cat([interior, boundary])], face, degree)
-            g_tt, g_tb = gram[:, : len(interior)], gram[:, len(interior) :]
-            errors[interior] = -torch.linalg.solve(g_tt, g_tb @ errors[boundary])
-            errors[interior[:, None], interior] = torch.eye(len(interior), dtype=torch.float64)
-            face_grams.append((size, interior, g_tt))
+    for face in _skeleton_faces(width, degree):
+        interior = torch.tensor([k for k, f in enumerate(control_faces) if f == set(face)], dtype=torch.long)
+        boundary = torch.tensor([k for k, f in enumerate(control_faces) if f < set(face)], dtype=torch.long)
+        gram = _face_gram(alpha[interior], alpha[torch.cat([interior, boundary])], face, degree)
+        g_tt, g_tb = gram[:, : len(interior)], gram[:, len(interior) :]
+        errors[interior] = -torch.linalg.solve(g_tt, g_tb @ errors[boundary])
+        errors[interior[:, None], interior] = torch.eye(len(interior), dtype=torch.float64)
+        face_grams.append((len(face), interior, g_tt))
     full = _face_gram(alpha, alpha, range(width), degree)
-    # Bernstein Gram matrices are ill-conditioned in the degree. To first order, the relative error of a
-    # coefficient is at most width * (2 * width + 2 + n) * kappa * U (see tests/sampling.py).
+    # Bernstein Gram matrices are ill-conditioned in the degree. Their entries have relative errors of at most
+    # (2 * width + 2) * U. To first order, each of the at most width levels of solves then adds
+    # (2 * width + 2 + n) * kappa * U relative error (entry perturbation plus backward-stable elimination),
+    # and the final traces add n * U, kappa being the largest condition number of the Gram matrices.
     kappa = max(torch.linalg.cond(g).item() for g in [full] + [g_tt for _, _, g_tt in face_grams])
-    bound = width * (2 * width + 2 + len(alpha)) * kappa * 2**-53
+    bound = (width * (2 * width + 2 + len(alpha)) * kappa + len(alpha)) * _UNIT_ROUNDOFF
     if not bound <= _RISK_RELATIVE_ERROR:
         raise ValueError(f"degree is too large for the risk coefficients in float64 (condition number {kappa:.1e}).")
     coefficients = [0.0] * width
@@ -243,7 +240,14 @@ def optimal_skeleton_ratio(space: BezierSpace) -> tuple[float, ...]:
     Returns
     -------
     tuple of float
-        Nonnegative fractions for the 0-, 1-, ... skeletons, summing to one.
+        Nonnegative fractions for the 0-, 1-, ..., (M-1)-skeletons, summing to one.
+
+    Raises
+    ------
+    TypeError
+        If ``space`` is not a :class:`~torch_bsf.BezierSpace`.
+    ValueError
+        As :func:`skeleton_risk_coefficients`, including degrees too high for float64.
 
     Examples
     --------
@@ -256,18 +260,36 @@ def optimal_skeleton_ratio(space: BezierSpace) -> tuple[float, ...]:
     return tuple(r / sum(roots) for r in roots)
 
 
-def _skeleton_counts(n: int, ratio: Sequence[float] | None, space: BezierSpace, width: int) -> list[int]:
-    """Largest-remainder rounding of ``n`` by a validated skeleton ratio."""
+def _skeleton_weights(ratio: Sequence[float] | torch.Tensor | None, space: BezierSpace, width: int) -> list[float]:
+    """Validated skeleton fractions summing to one, the optimal ones by default."""
     if ratio is None:
-        weights = list(optimal_skeleton_ratio(space))
-    else:
-        tensor = torch.as_tensor(ratio, dtype=torch.float64)
-        if tensor.shape != (width,) or not torch.isfinite(tensor).all() or (tensor < 0).any() or not tensor.sum() > 0:
-            raise ValueError(f"ratio must have {width} finite nonnegative entries with a positive sum.")
-        weights = (tensor / tensor.sum()).tolist()
+        try:
+            return list(optimal_skeleton_ratio(space))
+        except ValueError as error:
+            raise ValueError(f"{error} Pass ratio explicitly.") from error
+    message = f"ratio must have {width} finite nonnegative real entries with a positive sum."
+    try:
+        tensor = torch.as_tensor(ratio)
+    except (TypeError, ValueError, RuntimeError) as error:
+        raise ValueError(message) from error
+    if tensor.dtype == torch.bool or tensor.is_complex() or tensor.shape != (width,):
+        raise ValueError(message)
+    # Converting a non-tensor directly to float64 avoids float32 overflow of large entries.
+    tensor = (tensor.detach() if isinstance(ratio, torch.Tensor) else torch.as_tensor(ratio, dtype=torch.float64)).to(
+        torch.float64
+    )
+    if not torch.isfinite(tensor).all() or (tensor < 0).any() or not tensor.max() > 0:
+        raise ValueError(message)
+    # Scaling by the maximum first keeps the sum finite (at most width) for entries near the float64 limit.
+    tensor = tensor / tensor.max()
+    return (tensor / tensor.sum()).tolist()
+
+
+def _skeleton_counts(n: int, weights: Sequence[float]) -> list[int]:
+    """Largest-remainder rounding of ``n`` by fractions summing to one."""
     quotas = [n * w for w in weights]
     counts = [math.floor(q) for q in quotas]
-    by_remainder = sorted(range(width), key=lambda m: (counts[m] - quotas[m], m))
+    by_remainder = sorted(range(len(weights)), key=lambda m: (counts[m] - quotas[m], m))
     for m in by_remainder[: n - sum(counts)]:
         counts[m] += 1
     return counts
@@ -277,7 +299,7 @@ def sample_skeleton(
     space: BezierSpace,
     n: int,
     *,
-    ratio: Sequence[float] | None = None,
+    ratio: Sequence[float] | torch.Tensor | None = None,
     method: Literal["random", "sobol"] = "random",
     seed: int | None = None,
 ) -> Points:
@@ -296,9 +318,12 @@ def sample_skeleton(
     n
         Number of rows.
     ratio
-        Relative sizes of the skeletons, one nonnegative entry per vertex
-        count. Defaults to :func:`optimal_skeleton_ratio`, which places no
-        rows on skeletons without interior controls.
+        Relative sizes of the 0-, 1-, ..., (M-1)-skeletons of a simplex with
+        M vertices: M finite nonnegative real entries with a positive sum.
+        Defaults to :func:`optimal_skeleton_ratio`, which places no rows on
+        skeletons without interior controls. Rows on such skeletons (faces with
+        more than ``degree`` vertices) are not used by
+        :func:`~torch_bsf.fitting.fit_skeleton_regression`.
     method
         ``"random"`` or ``"sobol"`` coordinates within each face, as in :func:`sample`.
     seed
@@ -316,7 +341,8 @@ def sample_skeleton(
     ValueError
         If ``space`` is not a single simplex of positive dimension and degree,
         ``n`` is not a nonnegative integer, ``method`` is unknown, or ``ratio``
-        is malformed.
+        is malformed. With the default ``ratio``, also if the degree is too
+        high for :func:`skeleton_risk_coefficients`; pass ``ratio`` then.
 
     Examples
     --------
@@ -329,9 +355,12 @@ def sample_skeleton(
     width, _ = _skeleton_shape(space)
     _integer(n, "n")
     _choice(method, "method", ("random", "sobol"), message="method must be 'random' or 'sobol'.")
+    counts = _skeleton_counts(n, _skeleton_weights(ratio, space, width))
     generator = _generator(seed)
     blocks = [torch.zeros(0, width, dtype=torch.float64)]
-    for size, count in enumerate(_skeleton_counts(n, ratio, space, width), start=1):
+    for size, count in enumerate(counts, start=1):
+        if not count:
+            continue
         faces = list(combinations(range(width), size))
         per_face = torch.full((len(faces),), count // len(faces), dtype=torch.long)
         per_face[torch.randperm(len(faces), generator=generator)[: count % len(faces)]] += 1
