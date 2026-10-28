@@ -1,0 +1,101 @@
+---
+name: review-local
+description: Review the current branch of pytorch-bsf locally before opening a PR - run one specialised reviewer agent per aspect (requirements, design, correctness, numerics, edge cases, tests, docs, compatibility, …) in parallel, verify their findings, and fix them. Use when the user asks for a local review / ローカルレビュー / PR 前レビュー, and as step 8 of work-on-issue. Args - optional issue number and base ref.
+---
+
+# review-local
+
+Review the commits of the current branch against `origin/master` (or the base ref in `$ARGUMENTS`) with one specialised reviewer per aspect, running in parallel, so that the PR needs as few CI and review round trips as possible. This skill fixes findings locally; it does not push or comment on GitHub.
+
+## Aspects
+
+Each reviewer is a read-only agent in `.claude/agents/review-<aspect>.md`; all follow `protocol.md` in this directory.
+
+| Aspect | Agent | Run |
+|--------|-------|-----|
+| Requirements and scope (acceptance criteria, scope creep, completeness) | `review-requirements` | always |
+| Design and API | `review-design` | always |
+| Correctness and logic | `review-correctness` | always |
+| Edge cases and input validation | `review-edge-cases` | always |
+| Test quality and patch coverage | `review-tests` | always |
+| Documentation consistency | `review-docs` | always |
+| Project conventions | `review-conventions` | always |
+| Readability and maintainability | `review-readability` | always |
+| Numerical robustness | `review-numerics` | floating-point code changed |
+| PyTorch and framework integration | `review-frameworks` | torch, Lightning, sklearn or MLflow code changed |
+| Performance | `review-performance` | library code under `torch_bsf/` changed |
+| Backward compatibility | `review-compatibility` | public API, CLI, file formats or `MLproject` changed |
+| Security and safety | `review-security` | I/O, deserialisation, subprocess, workflows or new dependencies changed |
+| Reproducibility and side effects | `review-reproducibility` | randomness, global state or argument mutation involved |
+| Dependencies and packaging | `review-packaging` | imports of third-party packages, `pyproject.toml`, `environment.yml` or package data changed |
+
+For a change limited to docs, skills or CI, the "always" set may drop `review-correctness` and `review-edge-cases` when there is no code to run; say so in the summary. When in doubt, run the reviewer: an unneeded one answers `not applicable` cheaply.
+
+## 1. Prepare the context
+
+```bash
+BASE=${BASE:-origin/master}
+git fetch origin
+git status --porcelain          # commit or set aside tracked changes first: reviewers read HEAD
+git diff "$BASE"...HEAD --stat
+```
+
+- The branch must be committed: reviewers see `git diff $BASE...HEAD`. Untracked files are ignored.
+- Create a scratch directory (`<scratchpad>/review-<branch>`), and write `context.md` there with: the repository path, the base ref, the branch, the issue number, title and full body (`gh issue view <N> -R opthub-org/pytorch-bsf --json title,body,comments`), and one paragraph on what the change intends. Without an issue, describe the intent and acceptance criteria yourself.
+- Choose the aspects from the table using `git diff --stat` and the content of the diff.
+
+## 2. Run the reviewers in parallel
+
+Launch every chosen reviewer **in a single message** with one Agent call each (`subagent_type: review-<aspect>`), so they run concurrently. Give each the same brief:
+
+```text
+Review branch <branch> of the pytorch-bsf worktree at <path> against <BASE> for your aspect.
+Context (issue, acceptance criteria, intent): <scratch>/context.md
+Scratch directory for temporary files: <scratch>/<aspect>
+Python: <path to the pytorch-bsf env python>
+Follow .claude/skills/review-local/protocol.md and return its report format only.
+```
+
+Do not pass your own opinion of the change: an anchored reviewer tends to confirm it.
+
+## 3. Consolidate and verify
+
+1. Collect the reports. Merge duplicates (same location and cause) and keep the highest severity.
+2. **Verify every `blocker` and `major` yourself** before acting: read the cited lines, run the reproducer or write one. Mark each finding `confirmed`, `rejected` (with the reason, e.g. "input is rejected earlier at validator.py:42") or `uncertain`. Reviewers are wrong sometimes; do not "fix" a non-bug.
+3. Write the consolidated list to `<scratch>/findings.md`, sorted by severity, with the verdict of each.
+
+## 4. Fix
+
+- Fix every confirmed `blocker` and `major`. Fix `minor` and `nit` when cheap and within the issue's scope; otherwise list them as follow-ups.
+- A finding outside the issue's scope that is a real problem: file an issue with the `create-issue` skill and list it in the PR's "Out of scope / follow-ups".
+- A design question that the issue leaves to the user ("Ask in this issue…"): ask the user instead of deciding.
+- After fixing, rerun the checks of work-on-issue step 5 and commit the fixes.
+
+## 5. Re-review
+
+Rerun only the reviewers whose aspect covers the lines changed by the fixes, in parallel, with the same brief plus "Previous findings: <scratch>/findings.md; check that they are fixed and that the fixes introduced no new problems". Stop when no confirmed `blocker` or `major` remains, or after two re-review rounds; if one remains then, report it to the user instead of opening the PR.
+
+## 6. Record the result
+
+Add a `## Local review` section to the PR body:
+
+```markdown
+## Local review
+Aspects: requirements, design, correctness, edge cases, tests, docs, conventions, readability, numerics, performance (N reviewers, R rounds)
+
+| Severity | Found | Fixed | Rejected | Deferred |
+|----------|-------|-------|----------|----------|
+| blocker | 0 | 0 | 0 | 0 |
+| major | 2 | 2 | 0 | 0 |
+| minor | 3 | 1 | 1 | 1 |
+
+- Fixed: <one line per blocker/major>
+- Rejected: <finding — reason>
+- Deferred: <finding — issue link>
+```
+
+When run on its own (not from work-on-issue), report the same table and lists to the user.
+
+## Without Claude Code
+
+Other agents and humans can run the same review: use each `.claude/agents/review-<aspect>.md` body together with `protocol.md` as the prompt of one reviewer, run them in parallel, and follow steps 3–6.

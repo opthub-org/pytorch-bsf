@@ -99,7 +99,11 @@ git rebase origin/master
 
 If master moved, resolve conflicts and re-run step 5.
 
-## 8. Open the PR
+## 8. Review locally
+
+Follow the `review-local` skill (`.claude/skills/review-local/SKILL.md`) with this issue number: specialised reviewer agents check the branch in parallel, one per aspect (requirements, design, correctness, edge cases, tests, docs, conventions, readability, and numerics, performance, compatibility, … when relevant). Verify their findings, fix every confirmed blocker and major, re-run step 5, and commit the fixes. Do not open the PR while a confirmed blocker or major remains; report it to the user instead.
+
+## 9. Open the PR
 
 ```bash
 git push -u origin <branch>
@@ -133,10 +137,13 @@ Closes #<N>
 - `ruff check` / `ruff format --check`: <result>
 - `sphinx-build -b doctest`: <result>
 
+## Local review
+<Aspects run, and the findings table and lists from step 6 of the review-local skill.>
+
 ## Out of scope / follow-ups
 <Unrelated issues noticed. Omit if none.>
 ```
 
-## 9. Report
+## 10. Report
 
-Give the user the PR URL, a short summary, any design decisions made, and anything left unverified or skipped (with the reason). If a check could not be made to pass, do not open the PR; report the failure output instead.
+Give the user the PR URL, a short summary, any design decisions made, the local review result, and anything left unverified or skipped (with the reason). If a check could not be made to pass, do not open the PR; report the failure output instead.
