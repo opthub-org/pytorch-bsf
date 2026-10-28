@@ -203,3 +203,19 @@ def test_scalers_reject_non_tabular_or_empty_input(scaler_class, shape):
     values = torch.empty(shape, dtype=torch.float64)
     with pytest.raises(ValueError, match="nonempty floating tensor.*n_samples, n_features"):
         scaler_class().fit(values)
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_std_rejects_underflowed_deviation_of_varying_column(dtype):
+    smallest = torch.nextafter(torch.tensor(0.0, dtype=dtype), torch.tensor(1.0, dtype=dtype))
+    values = torch.zeros((5, 1), dtype=dtype)
+    values[-1] = smallest
+    # The nonzero sample standard deviation is smallest/sqrt(5), which rounds
+    # to zero; treating this varying column as constant would skip scaling.
+    with pytest.raises(ValueError, match="standard deviation.*too small.*rescale"):
+        StdScaler().fit(values)
+    constant = torch.full((5, 1), smallest.item(), dtype=dtype)
+    scaler = StdScaler()
+    normalized = scaler.fit_transform(constant)
+    torch.testing.assert_close(normalized, torch.zeros_like(constant), atol=0, rtol=0)
+    torch.testing.assert_close(scaler.inverse_transform(normalized), constant, atol=0, rtol=0)

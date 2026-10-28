@@ -195,6 +195,8 @@ class StdScaler:
                 means = torch.where(retry, recovered_means, means)
         _finite(stds, "fitted standard deviation")
         _finite(means, "fitted mean")
+        if ((stds == 0) & (values.amax(0) != values.amin(0))).any():
+            raise ValueError("fitted standard deviation is too small to represent; rescale the original data units.")
         self.stds = torch.where(stds > 0, stds, torch.ones_like(stds))
         self.means = means
 
