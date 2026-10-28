@@ -37,9 +37,9 @@ def peak_rss_bytes() -> int:
 
 
 def dense_reference(candidates: Points, observed: Points, n: int) -> Points:
-    """Original one-cell full distance matrix, for comparison only."""
+    """One-cell full distance matrix with the same direct kernel, for comparison only."""
     coordinates, existing = candidates.parameters, observed.parameters
-    distances = torch.cdist(coordinates, existing).min(1).values
+    distances = torch.cdist(coordinates, existing, compute_mode="donot_use_mm_for_euclid_dist").min(1).values
     selected: list[int] = []
     for _ in range(n):
         index = int(distances.argmax())
