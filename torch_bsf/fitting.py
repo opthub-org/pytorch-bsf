@@ -4,13 +4,16 @@ from __future__ import annotations
 
 import math
 from dataclasses import replace
+from itertools import combinations
 from typing import TypeVar
 
 import torch
 
+from torch_bsf._kernels.combinatorics import _simplex_indices
 from torch_bsf._problem import LeastSquaresProblem
 from torch_bsf.core import BezierModel, BezierSpace, FixedControls, QuadraticPenalty, Samples
-from torch_bsf.results import FitDiagnostics, FitResult, MatrixDiagnostics
+from torch_bsf.results import FitDiagnostics, FitResult, MatrixDiagnostics, SkeletonRegressionResult
+from torch_bsf.sampling import _skeleton_shape
 from torch_bsf.solvers import DenseLeastSquares, LeastSquaresSolver, SparseLeastSquares
 
 
@@ -287,3 +290,93 @@ def fit(
     if not all(math.isfinite(value) for value in metrics.values()):
         success, status, message = False, "numerical_failure", "Objective evaluation overflowed."
     return FitResult(BezierModel(space, coefficients), metrics, diagnostics, success, status, message).warn_if_failed()
+
+
+def fit_skeleton_regression(
+    space: BezierSpace,
+    samples: Samples,
+    *,
+    solver: LeastSquaresSolver = DenseLeastSquares(),
+) -> SkeletonRegressionResult:
+    """Fit a simplex face by face from observations at known parameters.
+
+    This is the inductive skeleton fitting analyzed by Tanaka et al. (AAAI 2020).
+    Vertices are fitted first, then edges, then larger faces. On each face,
+    ordinary least squares on the observations lying on that face estimates
+    the controls interior to it, with the controls on its boundary fixed at
+    their estimates. Contrast :func:`fit`, which uses every observation for
+    every control, and :func:`~torch_bsf.point_cloud.fit_skeleton`, which
+    infers unknown parameters.
+
+    A row lies on the face spanned by its nonzero coordinates; zeros must be
+    exact. Draw rows with :func:`~torch_bsf.sampling.sample_skeleton` and the
+    :func:`~torch_bsf.sampling.optimal_skeleton_ratio` to minimize the
+    asymptotic risk given by :func:`~torch_bsf.sampling.skeleton_risk_coefficients`.
+
+    Parameters
+    ----------
+    space
+        A single simplex of positive dimension and degree.
+    samples
+        Observations on faces with at most ``degree`` vertices. Every such
+        face needs at least one row. Weights apply within each face.
+    solver
+        Least-squares configuration used for every face.
+
+    Returns
+    -------
+    SkeletonRegressionResult
+        The assembled model and each face's :class:`FitResult`. A face whose
+        rows do not identify its interior controls is not a failure; inspect
+        that face's ``diagnostics.data.rank``.
+
+    Raises
+    ------
+    TypeError
+        If ``space`` or ``samples`` has the wrong type.
+    ValueError
+        If ``space`` is not a single simplex of positive dimension and degree,
+        a row lies on a face with more than ``degree`` vertices, which has no
+        interior controls, or a face with interior controls has no rows.
+
+    Examples
+    --------
+    >>> import torch
+    >>> from torch_bsf import BezierSpace, Samples
+    >>> from torch_bsf.fitting import fit_skeleton_regression
+    >>> from torch_bsf.sampling import sample_skeleton
+    >>> space = BezierSpace.simplex(1, degree=2)
+    >>> points = sample_skeleton(space, 8, seed=0)
+    >>> t = points.parameters
+    >>> result = fit_skeleton_regression(space, Samples(points, (t[:, 1] ** 2)[:, None]))
+    >>> sorted(result.faces), torch.allclose(result.model(t), (t[:, 1] ** 2)[:, None])
+    ([(0,), (0, 1), (1,)], True)
+    """
+    width, degree = _skeleton_shape(space)
+    if not isinstance(samples, Samples):
+        raise TypeError("samples must be Samples.")
+    space.validate(samples.points)
+    support = samples.points.parameters.cpu() != 0
+    sizes = support.sum(1)
+    if (sizes > degree).any():
+        raise ValueError(f"every row must lie on a face with at most degree={degree} vertices.")
+    faces = [face for size in range(1, min(degree, width) + 1) for face in combinations(range(width), size)]
+    masks = {face: torch.zeros(width, dtype=torch.bool).index_fill_(0, torch.tensor(face), True) for face in faces}
+    rows = {face: (support == masks[face]).all(1).nonzero().flatten() for face in faces}
+    missing = [face for face in faces if not len(rows[face])]
+    if missing:
+        raise ValueError(f"faces without rows: {missing}.")
+    control_support = [tuple(i for i, a in enumerate(alpha) if a) for alpha in _simplex_indices(width, degree)]
+    coefficients = torch.zeros(space.n_controls, samples.values.shape[1], dtype=torch.float64)
+    results: dict[tuple[int, ...], FitResult] = {}
+    for face in faces:
+        free = [k for k, s in enumerate(control_support) if s == face]
+        fixed = FixedControls({k: coefficients[k] for k in range(space.n_controls) if k not in free})
+        result = fit(space, samples.take(rows[face]), solver=solver, fixed=fixed)
+        results[face] = result
+        coefficients[free] = result.model.coefficients.detach()[free]
+        if not result.success:
+            message = f"Face {face}: {result.message}"
+            return SkeletonRegressionResult(BezierModel(space, coefficients), results, False, result.status, message)
+    message = "Every face least-squares problem was solved."
+    return SkeletonRegressionResult(BezierModel(space, coefficients), results, True, "solved", message)

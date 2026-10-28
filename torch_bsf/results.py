@@ -107,3 +107,25 @@ class FitResult:
         if not self.success:
             warnings.warn(self.message, ConvergenceWarning, stacklevel=3)
         return self
+
+
+@dataclass(frozen=True)
+class SkeletonRegressionResult:
+    """Assembled model and face least-squares results keyed by sorted zero-based vertex IDs.
+
+    Each face result solves for that face's interior controls with every other
+    control fixed. Faces are fitted in increasing size; a failed face stops
+    assembly, leaving later faces absent and their controls zero.
+    """
+
+    model: BezierModel
+    faces: dict[tuple[int, ...], FitResult]
+    success: bool
+    status: str
+    message: str
+
+    def require_success(self) -> SkeletonRegressionResult:
+        """Raise if a face fit failed."""
+        if not self.success:
+            raise RuntimeError(self.message)
+        return self

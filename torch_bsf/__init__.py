@@ -10,7 +10,7 @@ except PackageNotFoundError:
 
 from torch_bsf.core import BezierModel, BezierSpace, FixedControls, Points, QuadraticPenalty, Samples
 from torch_bsf.ensemble import Ensemble
-from torch_bsf.fitting import fit
+from torch_bsf.fitting import fit, fit_skeleton_regression
 from torch_bsf.geometry import Simploid, SimploidalSet
 from torch_bsf.interpolation import (
     SimplicialMesh,
@@ -22,7 +22,14 @@ from torch_bsf.interpolation import (
 )
 from torch_bsf.optimization import OptimizationResult, PreconditionedSGD, linear_scalarization, minimize
 from torch_bsf.point_cloud import PointCloudFitResult, SkeletonFitResult, fit_point_cloud, fit_skeleton
-from torch_bsf.results import ConvergenceError, ConvergenceWarning, FitDiagnostics, FitResult, MatrixDiagnostics
+from torch_bsf.results import (
+    ConvergenceError,
+    ConvergenceWarning,
+    FitDiagnostics,
+    FitResult,
+    MatrixDiagnostics,
+    SkeletonRegressionResult,
+)
 
 __all__ = [
     "BezierSpace",
@@ -42,8 +49,10 @@ __all__ = [
     "fit",
     "fit_point_cloud",
     "fit_skeleton",
+    "fit_skeleton_regression",
     "PointCloudFitResult",
     "SkeletonFitResult",
+    "SkeletonRegressionResult",
     "FitResult",
     "FitDiagnostics",
     "MatrixDiagnostics",

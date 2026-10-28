@@ -1,15 +1,21 @@
-"""Domain-aware random and deterministic sampling, using local random generators."""
+"""Domain-aware random and deterministic sampling, using local random generators.
+
+Skeleton sampling and its optimal ratio follow the asymptotic risk analysis of
+inductive skeleton fitting by Tanaka et al. (AAAI 2020), extended to every
+dimension and degree.
+"""
 
 from __future__ import annotations
 
 import math
 from collections.abc import Mapping, Sequence
+from itertools import combinations
 from typing import Literal
 
 import torch
 from torch.nn import functional as F
 
-from torch_bsf._kernels.combinatorics import _indices
+from torch_bsf._kernels.combinatorics import _indices, _simplex_indices
 from torch_bsf._validation import _choice
 from torch_bsf.core import BezierSpace, Points, _integer
 from torch_bsf.geometry import Simploid
@@ -36,6 +42,16 @@ def _probabilities(space: BezierSpace, weights: Mapping[int | Simploid, float] |
     if not torch.isfinite(probability.sum()) or not probability.sum() > 0:
         raise ValueError("cell_weights must have a positive sum.")
     return probability / probability.sum()
+
+
+def _exponentials(generator: torch.Generator, n: int, width: int, method: str) -> torch.Tensor:
+    """Standard exponential draws whose normalized blocks are uniform on simplices."""
+    if method == "random":
+        uniforms = torch.rand(n, width, generator=generator, dtype=torch.float64)
+    else:
+        local_seed = int(torch.randint(2**31, (1,), generator=generator))
+        uniforms = torch.quasirandom.SobolEngine(width, scramble=True, seed=local_seed).draw(n, dtype=torch.float64)
+    return -uniforms.clamp_min(torch.finfo(torch.float64).tiny).log()
 
 
 def sample(
@@ -71,14 +87,7 @@ def sample(
         rows = torch.nonzero(ids == cid).flatten()
         if not info.width:
             continue
-        if method == "random":
-            uniforms = torch.rand(len(rows), info.width, generator=generator, dtype=torch.float64)
-        else:
-            local_seed = int(torch.randint(2**31, (1,), generator=generator))
-            uniforms = torch.quasirandom.SobolEngine(info.width, scramble=True, seed=local_seed).draw(
-                len(rows), dtype=torch.float64
-            )
-        exponentials = -uniforms.clamp_min(torch.finfo(torch.float64).tiny).log()
+        exponentials = _exponentials(generator, len(rows), info.width, method)
         offset = 0
         for dimension in info.dimensions:
             block = exponentials[:, offset : offset + dimension + 1]
@@ -109,3 +118,227 @@ def grid(space: BezierSpace, resolution: int = 10, *, cells: Sequence[int | Simp
     if not coordinates:
         return Points(torch.empty(0, space.width), torch.empty(0, dtype=torch.long))
     return Points(torch.cat(coordinates), torch.cat(identifiers))
+
+
+_RISK_RELATIVE_ERROR = 1e-6
+"""Largest first-order relative error bound accepted by :func:`skeleton_risk_coefficients`."""
+
+
+def _skeleton_shape(space: BezierSpace) -> tuple[int, int]:
+    """The vertex count and degree of a single simplex of positive dimension and degree."""
+    if not isinstance(space, BezierSpace):
+        raise TypeError("space must be a BezierSpace.")
+    cell = space.cells[0]
+    if space.n_cells != 1 or len(cell.dimensions) != 1 or cell.degree[0] < 1:
+        raise ValueError("skeleton methods require a single simplex of positive dimension and degree.")
+    return cell.dimensions[0] + 1, cell.degree[0]
+
+
+def _face_gram(rows: torch.Tensor, columns: torch.Tensor, face: Sequence[int], degree: int) -> torch.Tensor:
+    r"""Gram matrix of Bernstein polynomials under the uniform distribution on a face.
+
+    On a :math:`k`-simplex, :math:`E[t^\alpha] = k!\,\alpha! / (|\alpha| + k)!`, so the entry for
+    :math:`a, b` is :math:`\prod_i \binom{a_i + b_i}{a_i} / (\binom{2D}{D} \binom{2D + k}{k})`.
+    Each binomial is rounded once, so an entry has a relative error of at most ``(2 * len(face) + 2) * U``.
+    """
+    face = list(face)
+    binomials = torch.tensor(
+        [[float(math.comb(i, j)) for j in range(degree + 1)] for i in range(2 * degree + 1)], dtype=torch.float64
+    )
+    a, b = rows[:, face], columns[:, face]
+    numerators = binomials[a[:, None] + b[None], a[:, None].expand(-1, len(b), -1)].prod(2)
+    k = len(face) - 1
+    return numerators / float(math.comb(2 * degree, degree) * math.comb(2 * degree + k, k))
+
+
+def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
+    r"""Asymptotic risk coefficients of inductive skeleton fitting on a simplex.
+
+    Inductive skeleton fitting estimates the controls interior to each face by
+    least squares on that face's observations, holding the controls of lower
+    faces at their estimates (see :func:`torch_bsf.fitting.fit_skeleton_regression`).
+    With :math:`N^{(m)}` observations on the :math:`m`-skeleton, split equally
+    among its faces and drawn uniformly on each, outputs of dimension :math:`L`
+    and independent noise of variance :math:`\sigma^2`, the mean integrated
+    squared error over the uniform simplex satisfies
+
+    .. math:: R = \sigma^2 L \sum_{m} a_m / N^{(m)} + o(1 / N).
+
+    Coefficient ``m`` is :math:`a_m`. It is zero for skeletons whose faces
+    have no interior controls (:math:`m \geq` degree). This extends the
+    numerical tables of Tanaka et al. (AAAI 2020) to every dimension and degree.
+
+    Parameters
+    ----------
+    space
+        A single simplex of positive dimension and degree.
+
+    Returns
+    -------
+    tuple of float
+        :math:`a_0, \dots, a_{M-1}` for a simplex with :math:`M` vertices.
+
+    Raises
+    ------
+    TypeError
+        If ``space`` is not a :class:`~torch_bsf.BezierSpace`.
+    ValueError
+        If ``space`` is not a single simplex of positive dimension and degree,
+        or if its Bernstein Gram matrices are too ill-conditioned to bound the
+        float64 relative error by ``1e-6`` (from about degree 12).
+
+    Examples
+    --------
+    >>> from torch_bsf import BezierSpace
+    >>> from torch_bsf.sampling import skeleton_risk_coefficients
+    >>> [round(a, 4) for a in skeleton_risk_coefficients(BezierSpace.simplex(2, degree=3))]
+    [0.1464, 3.5357, 1.0]
+    """
+    width, degree = _skeleton_shape(space)
+    alpha = torch.tensor(_simplex_indices(width, degree), dtype=torch.long)
+    support = alpha > 0
+    # Control errors as linear maps of the independent face noises: on face I,
+    # e_T = eta_I - G_TT^{-1} G_TB e_B, where T are the controls interior to I and B those on its boundary.
+    errors = torch.zeros(len(alpha), len(alpha), dtype=torch.float64)
+    face_grams: list[tuple[int, torch.Tensor, torch.Tensor]] = []
+    for size in range(1, min(degree, width) + 1):
+        for face in combinations(range(width), size):
+            inside = ~support[:, [i for i in range(width) if i not in face]].any(1)
+            interior = (inside & (support.sum(1) == size)).nonzero().flatten()
+            boundary = (inside & (support.sum(1) < size)).nonzero().flatten()
+            gram = _face_gram(alpha[interior], alpha[torch.cat([interior, boundary])], face, degree)
+            g_tt, g_tb = gram[:, : len(interior)], gram[:, len(interior) :]
+            errors[interior] = -torch.linalg.solve(g_tt, g_tb @ errors[boundary])
+            errors[interior[:, None], interior] = torch.eye(len(interior), dtype=torch.float64)
+            face_grams.append((size, interior, g_tt))
+    full = _face_gram(alpha, alpha, range(width), degree)
+    # Bernstein Gram matrices are ill-conditioned in the degree. To first order, the relative error of a
+    # coefficient is at most width * (2 * width + 2 + n) * kappa * U (see tests/sampling.py).
+    kappa = max(torch.linalg.cond(g).item() for g in [full] + [g_tt for _, _, g_tt in face_grams])
+    bound = width * (2 * width + 2 + len(alpha)) * kappa * 2**-53
+    if not bound <= _RISK_RELATIVE_ERROR:
+        raise ValueError(f"degree is too large for the risk coefficients in float64 (condition number {kappa:.1e}).")
+    coefficients = [0.0] * width
+    for size, interior, g_tt in face_grams:
+        # n_I = N^(m) / C(M, m + 1) observations give Cov(eta_I) = sigma^2 G_TT^{-1} / n_I.
+        propagated = errors[:, interior]
+        trace = torch.linalg.solve(g_tt, propagated.T @ full @ propagated).trace().item()
+        coefficients[size - 1] += math.comb(width, size) * trace
+    return tuple(coefficients)
+
+
+def optimal_skeleton_ratio(space: BezierSpace) -> tuple[float, ...]:
+    r"""Skeleton sample fractions that minimize the asymptotic risk of inductive skeleton fitting.
+
+    Minimizing :math:`\sum_m a_m / N^{(m)}` subject to :math:`\sum_m N^{(m)} = N`
+    gives :math:`N^{(m)} / N = \sqrt{a_m} / \sum_k \sqrt{a_k}` and the minimum
+    :math:`(\sum_m \sqrt{a_m})^2 / N` (Cauchy-Schwarz), where :math:`a_m` are
+    :func:`skeleton_risk_coefficients`.
+
+    Parameters
+    ----------
+    space
+        A single simplex of positive dimension and degree.
+
+    Returns
+    -------
+    tuple of float
+        Nonnegative fractions for the 0-, 1-, ... skeletons, summing to one.
+
+    Examples
+    --------
+    >>> from torch_bsf import BezierSpace
+    >>> from torch_bsf.sampling import optimal_skeleton_ratio
+    >>> [round(r, 4) for r in optimal_skeleton_ratio(BezierSpace.simplex(1, degree=2))]
+    [0.4142, 0.5858]
+    """
+    roots = [math.sqrt(a) for a in skeleton_risk_coefficients(space)]
+    return tuple(r / sum(roots) for r in roots)
+
+
+def _skeleton_counts(n: int, ratio: Sequence[float] | None, space: BezierSpace, width: int) -> list[int]:
+    """Largest-remainder rounding of ``n`` by a validated skeleton ratio."""
+    if ratio is None:
+        weights = list(optimal_skeleton_ratio(space))
+    else:
+        tensor = torch.as_tensor(ratio, dtype=torch.float64)
+        if tensor.shape != (width,) or not torch.isfinite(tensor).all() or (tensor < 0).any() or not tensor.sum() > 0:
+            raise ValueError(f"ratio must have {width} finite nonnegative entries with a positive sum.")
+        weights = (tensor / tensor.sum()).tolist()
+    quotas = [n * w for w in weights]
+    counts = [math.floor(q) for q in quotas]
+    by_remainder = sorted(range(width), key=lambda m: (counts[m] - quotas[m], m))
+    for m in by_remainder[: n - sum(counts)]:
+        counts[m] += 1
+    return counts
+
+
+def sample_skeleton(
+    space: BezierSpace,
+    n: int,
+    *,
+    ratio: Sequence[float] | None = None,
+    method: Literal["random", "sobol"] = "random",
+    seed: int | None = None,
+) -> Points:
+    """Stratified sample of a simplex's skeletons for inductive skeleton fitting.
+
+    The ``n`` rows are split among the 0-skeleton (vertices), 1-skeleton
+    (edges), ... in proportion to ``ratio`` by largest-remainder rounding.
+    Each skeleton's count is split equally among its faces; when it does not
+    divide, randomly chosen faces receive one extra row. Rows are uniform on
+    their face, with exact zeros outside it, and are ordered by face size.
+
+    Parameters
+    ----------
+    space
+        A single simplex of positive dimension and degree.
+    n
+        Number of rows.
+    ratio
+        Relative sizes of the skeletons, one nonnegative entry per vertex
+        count. Defaults to :func:`optimal_skeleton_ratio`, which places no
+        rows on skeletons without interior controls.
+    method
+        ``"random"`` or ``"sobol"`` coordinates within each face, as in :func:`sample`.
+    seed
+        Seed of the local generator; global random state is not used.
+
+    Returns
+    -------
+    Points
+        Barycentric rows of the single cell.
+
+    Raises
+    ------
+    TypeError
+        If ``space`` is not a :class:`~torch_bsf.BezierSpace`.
+    ValueError
+        If ``space`` is not a single simplex of positive dimension and degree,
+        ``n`` is not a nonnegative integer, ``method`` is unknown, or ``ratio``
+        is malformed.
+
+    Examples
+    --------
+    >>> from torch_bsf import BezierSpace
+    >>> from torch_bsf.sampling import sample_skeleton
+    >>> points = sample_skeleton(BezierSpace.simplex(2, degree=2), 100, seed=0)
+    >>> (points.parameters > 0).sum(1).bincount().tolist()
+    [0, 26, 74]
+    """
+    width, _ = _skeleton_shape(space)
+    _integer(n, "n")
+    _choice(method, "method", ("random", "sobol"), message="method must be 'random' or 'sobol'.")
+    generator = _generator(seed)
+    blocks = [torch.zeros(0, width, dtype=torch.float64)]
+    for size, count in enumerate(_skeleton_counts(n, ratio, space, width), start=1):
+        faces = list(combinations(range(width), size))
+        per_face = torch.full((len(faces),), count // len(faces), dtype=torch.long)
+        per_face[torch.randperm(len(faces), generator=generator)[: count % len(faces)]] += 1
+        for face, rows in zip(faces, per_face.tolist(), strict=True):
+            if rows:
+                exponentials = _exponentials(generator, rows, size, method)
+                block = torch.zeros(rows, width, dtype=torch.float64)
+                block[:, face] = exponentials / exponentials.sum(1, keepdim=True)
+                blocks.append(block)
+    return Points(torch.cat(blocks))
