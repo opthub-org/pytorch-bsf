@@ -40,6 +40,7 @@ interpretation of numerical evidence for the unified API.
    whatis
    installation
    quickstart
+   cli
    migration
    advanced
    applications
