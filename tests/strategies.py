@@ -228,3 +228,23 @@ def points_in_cells(
     lam = draw(simplex_points(simplices.shape[1], n_points))
     corners = vertices[torch.sort(simplices, dim=1).values[rows]]
     return rows, lam, torch.einsum("nk,nkd->nd", lam, corners)
+
+
+@st.composite
+def nearby_acquisition_points(draw: st.DrawFn) -> tuple[torch.Tensor, torch.Tensor, int]:
+    """Dyadic simplex coordinates, including separations below the squared-norm resolution.
+
+    Every addition/subtraction is exact in float64; distances reduce to integer
+    multiples of sqrt(2), allowing exact comparisons of greedy selection order.
+    Both pool sizes cross the distance kernel's 25-row algorithm threshold.
+    """
+    n_candidates = draw(st.integers(24, 31))
+    n_observed = draw(st.integers(1, 31))
+    exponent = draw(st.integers(20, 45))
+    offset = draw(st.sampled_from([0.25, 0.5, 0.75]))
+    candidate_steps = draw(st.lists(st.integers(0, 1000), min_size=n_candidates, max_size=n_candidates))
+    observed_steps = draw(st.lists(st.integers(0, 1000), min_size=n_observed, max_size=n_observed))
+    t = offset + torch.tensor(candidate_steps, dtype=torch.float64) * 2.0**-exponent
+    u = offset + torch.tensor(observed_steps, dtype=torch.float64) * 2.0**-exponent
+    chunk_size = draw(st.sampled_from([1, 7, 25, 26, 1024]))
+    return torch.stack([t, 1 - t], dim=1), torch.stack([u, 1 - u], dim=1), chunk_size

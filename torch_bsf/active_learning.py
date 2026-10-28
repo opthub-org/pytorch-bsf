@@ -27,6 +27,8 @@ def farthest_points(candidates: Points, observed: Points, n: int = 1, *, chunk_s
     bounds both axes of each temporary distance matrix, using at most
     ``chunk_size ** 2`` float64 distances. Smaller chunks reduce memory at
     the cost of more distance-kernel calls; arithmetic work is unchanged.
+    Distances use direct coordinate differences to retain small separations
+    between nearby points, independently of the candidate/observation count.
 
     Parameters
     ----------
@@ -67,13 +69,13 @@ def farthest_points(candidates: Points, observed: Points, n: int = 1, *, chunk_s
         rows = torch.nonzero(candidate_ids == cid).flatten()
         other = existing[existing_ids == cid]
         if len(other):
-            # Retain the dense call's algorithm choice even for tiny chunks:
-            # PyTorch otherwise switches at 25 rows, changing roundoff/ties.
-            mode = "use_mm_for_euclid_dist" if len(rows) > 25 or len(other) > 25 else "donot_use_mm_for_euclid_dist"
             for batch in rows.split(chunk_size):
                 nearest = distances[batch]
                 for observations in other.split(chunk_size):
-                    block = torch.cdist(coordinates[batch], observations, compute_mode=mode)
+                    # Squared-norm expansion loses small separations through
+                    # cancellation. Always use coordinate differences, even
+                    # above PyTorch's 25-row matrix-multiplication threshold.
+                    block = torch.cdist(coordinates[batch], observations, compute_mode="donot_use_mm_for_euclid_dist")
                     nearest = torch.minimum(nearest, block.min(1).values)
                 distances[batch] = nearest
     for _ in range(n):

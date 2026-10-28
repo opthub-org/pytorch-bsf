@@ -1,7 +1,11 @@
+import math
+
 import pytest
 import torch
 import torch.nn as nn
+from hypothesis import given
 
+from tests.strategies import nearby_acquisition_points
 from torch_bsf import Points
 from torch_bsf._kernels._active_learning import suggest_next_points
 from torch_bsf._kernels.api import BezierSimploid
@@ -9,20 +13,31 @@ from torch_bsf.active_learning import farthest_points
 
 
 def _dense_farthest(candidates, observed, n):
-    coordinates = candidates.parameters.cpu().double()
-    distances = torch.full((len(candidates),), float("inf"), dtype=torch.float64)
-    for cid in torch.unique(candidates.cell_ids).tolist():
-        rows = candidates.cell_ids.cpu() == cid
-        other = observed.parameters.cpu().double()[observed.cell_ids.cpu() == cid]
-        if len(other):
-            distances[rows] = torch.cdist(coordinates[rows], other).min(1).values
+    """Independent scalar reference: no torch distance kernels or matrix products."""
+    coordinates = candidates.parameters.tolist()
+    observed_coordinates = observed.parameters.tolist()
+    candidate_ids = candidates.cell_ids.tolist()
+    observed_ids = observed.cell_ids.tolist()
+    distances = [
+        min(
+            (
+                math.dist(point, other)
+                for other, other_id in zip(observed_coordinates, observed_ids, strict=True)
+                if cid == other_id
+            ),
+            default=math.inf,
+        )
+        for point, cid in zip(coordinates, candidate_ids, strict=True)
+    ]
     selected = []
     for _ in range(n):
-        index = int(distances.argmax())
+        index = max(range(len(distances)), key=distances.__getitem__)
         selected.append(index)
-        same = candidates.cell_ids.cpu() == candidates.cell_ids[index].item()
-        distances[same] = torch.minimum(distances[same], (coordinates[same] - coordinates[index]).norm(dim=1))
-        distances[selected] = -1
+        for row, cid in enumerate(candidate_ids):
+            if cid == candidate_ids[index]:
+                distances[row] = min(distances[row], math.dist(coordinates[row], coordinates[index]))
+        for row in selected:
+            distances[row] = -1
     return candidates.take(torch.tensor(selected))
 
 
@@ -39,6 +54,28 @@ def test_chunked_farthest_matches_dense_order(chunk_size, observations, cells):
     actual = farthest_points(candidates, observed, len(candidates), chunk_size=chunk_size)
     torch.testing.assert_close(actual.parameters, expected.parameters, rtol=0, atol=0)
     torch.testing.assert_close(actual.cell_ids, expected.cell_ids)
+
+
+@pytest.mark.parametrize("chunk_size", [1, 7, 25, 26, 1024])
+@pytest.mark.parametrize("n_candidates,n_observed", [(25, 1), (26, 1), (2, 26), (26, 26)])
+def test_farthest_preserves_nearby_simplex_distances(chunk_size, n_candidates, n_observed):
+    t = torch.linspace(0.5, 0.5 + 2.5e-9, n_candidates, dtype=torch.float64)
+    # Include both sides of PyTorch's 25-row algorithm threshold on each axis.
+    candidates = Points(torch.stack([t, 1 - t], dim=1))
+    observed = Points(torch.full((n_observed, 2), 0.5, dtype=torch.float64))
+    result = farthest_points(candidates, observed, min(5, n_candidates), chunk_size=chunk_size)
+    expected = _dense_farthest(candidates, observed, min(5, n_candidates))
+    assert torch.equal(result.parameters, expected.parameters)
+    assert torch.equal(result.parameters[0], candidates.parameters[-1])
+
+
+@given(nearby_acquisition_points())
+def test_farthest_nearby_points_match_reference(case):
+    parameters, observations, chunk_size = case
+    candidates, observed = Points(parameters), Points(observations)
+    expected = _dense_farthest(candidates, observed, 5)
+    actual = farthest_points(candidates, observed, 5, chunk_size=chunk_size)
+    assert torch.equal(actual.parameters, expected.parameters)
 
 
 def test_chunked_farthest_ties_duplicates_and_autograd():

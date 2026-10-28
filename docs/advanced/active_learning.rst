@@ -126,8 +126,12 @@ queries, arithmetic work remains ``O(C * O * D + n * C * D)``. Auxiliary
 memory is ``O(C + O + chunk_size**2 + chunk_size * D)`` in addition to input
 coordinates and CPU float64 conversion. Smaller chunks trade lower peak
 memory for more Python and kernel calls. The dense and chunked algorithms
-use the same distance-kernel mode; ordinary floating-point roundoff can
-still depend on block size for nearly equal distances.
+use direct coordinate differences rather than expanding squared norms into
+matrix products. This retains tiny separations between nearby points even
+when a cell has more than 25 candidates or observations, where PyTorch would
+otherwise switch distance algorithms. Direct differences may be slower than
+matrix multiplication for large blocks; the distance-matrix memory bound
+and arithmetic complexity above are unchanged.
 
 Measure this tradeoff on your machine from the repository root::
 
