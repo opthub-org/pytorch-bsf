@@ -25,7 +25,7 @@ from collections.abc import Sequence
 from fractions import Fraction
 from itertools import accumulate, combinations, combinations_with_replacement
 from math import factorial
-from typing import Any
+from typing import Any, Literal
 
 import torch
 
@@ -36,6 +36,7 @@ from torch_bsf.core import BezierModel, BezierSpace, Points
 __all__ = ["SimplicialMesh", "estimate_gradients", "hermite_interpolant", "lattice_mesh", "refine", "refinement_indicator"]
 
 _DEGREE = 3
+_Tagged = tuple[tuple[int, ...], int, int]  # a simplex of newest-vertex bisection: (ordered vertices, tag, generation)
 _ROUNDING = 1  # lengths differing by this many units of rounding (times d) are equal
 
 
@@ -510,6 +511,9 @@ class SimplicialMesh:
         self._volume_mantissa = det.abs() / factorial(d)
         self._volume_exponent = self._edge_exponent.sum(dim=1) + self._axis_exponent.sum(dim=1)
         self._volumes: torch.Tensor = _times_power_of_two(self._volume_mantissa, self._volume_exponent)
+        # Newest-vertex bisection state (set by lattice_mesh and refine): sorted simplex -> (ordered vertices, tag,
+        # generation), the generation being the number of bisections since the lattice mesh.
+        self._newest_vertex: dict[tuple[int, ...], _Tagged] | None = None
         self._unmatched = self._count_unmatched_faces()
         if self._unmatched:
             message = (
@@ -830,6 +834,8 @@ def lattice_mesh(dim: int, k: int) -> SimplicialMesh:
     In the staircase coordinates :math:`z_j = a_0 + \dots + a_j` (:math:`j < d`) the lattice is
     :math:`\{0 \le z_0 \le \dots \le z_{d-1} \le k\}`, and the simplices are the Kuhn simplices
     :math:`(c, c + e_{\pi(1)}, c + e_{\pi(1)} + e_{\pi(2)}, \dots)` of unit cubes whose vertices all lie in it.
+    The mesh records these paths, so that :func:`refine` with ``rule="newest_vertex"`` can bisect each
+    simplex across the diagonal of its cube.
 
     Lattice points are co-spherical, so their Delaunay triangulation is not unique; qhull returns flat
     simplices, and removing them leaves a mesh that is not conforming. Use this mesh instead.
@@ -861,6 +867,7 @@ def lattice_mesh(dim: int, k: int) -> SimplicialMesh:
     lattice = [alpha for (alpha,) in _indices((dim,), (k,))]
     number = {tuple(accumulate(a[:dim])): n for n, a in enumerate(lattice)}
     simplices = []
+    order_of: dict[tuple[int, ...], _Tagged] = {}
     # A Kuhn simplex stays in the lattice exactly when its corner is non-decreasing with entries below k and,
     # wherever two consecutive entries are equal, the later axis is stepped first; every such simplex is
     # generated once, in the lexicographic order of (corner, axis order).
@@ -872,8 +879,12 @@ def lattice_mesh(dim: int, k: int) -> SimplicialMesh:
                 z[axis] += 1
                 path.append(number[tuple(z)])
             simplices.append(path)
+            order_of[tuple(sorted(path))] = (tuple(path), dim, 0)
     vertices = torch.tensor(lattice, dtype=torch.float64)[:, :dim] / k
-    return SimplicialMesh(vertices, simplices)
+    mesh = SimplicialMesh(vertices, simplices)
+    # Newest-vertex bisection starts from the Kuhn paths with tag d: the refinement edge is the cube diagonal.
+    mesh._newest_vertex = order_of
+    return mesh
 
 
 def _orders(corner: tuple[int, ...]) -> list[list[int]]:
@@ -901,12 +912,22 @@ def _orders(corner: tuple[int, ...]) -> list[list[int]]:
 
 
 class _Bisection:
-    """Mutable state of :func:`refine`: vertices, live simplices and the simplices around each edge."""
+    """Mutable state of :func:`refine`: vertices, live simplices and the simplices around each edge.
 
-    def __init__(self, x: list[torch.Tensor], cells: list[tuple[int, ...]]):
+    With ``order`` (newest-vertex bisection), every live simplex also has its ordered vertices, tag and
+    generation.
+    """
+
+    def __init__(
+        self,
+        x: list[torch.Tensor],
+        cells: list[tuple[int, ...]],
+        order: dict[tuple[int, ...], _Tagged] | None = None,
+    ):
         self.x = x
         self.alive: set[tuple[int, ...]] = set()
         self.cells_of: dict[tuple[int, int], set[tuple[int, ...]]] = {}
+        self.order = None if order is None else dict(order)
         for cell in cells:
             self.add(cell)
 
@@ -919,6 +940,14 @@ class _Bisection:
         self.alive.discard(cell)
         for e in combinations(cell, 2):
             self.cells_of[e].discard(cell)
+
+    def edge(self, cell: tuple[int, ...]) -> tuple[int, int]:
+        """The refinement edge: ``x0 xk`` of the ordered vertices with tag ``k``, or else the longest edge."""
+        if self.order is not None:
+            ordered, tag, _ = self.order[cell]
+            a, b = ordered[0], ordered[tag]
+            return (a, b) if a < b else (b, a)
+        return self.longest(cell)
 
     def longest(self, cell: tuple[int, ...]) -> tuple[int, int]:
         """The longest edge; ties are broken by vertex numbers, the same way in every simplex."""
@@ -934,8 +963,20 @@ class _Bisection:
         self.x.append(torch.where(torch.isfinite(total), total / 2, a / 2 + b / 2))
         for cell in sorted(self.cells_of[e]):
             self.remove(cell)
-            for v in e:
-                self.add(tuple(sorted(m if w == v else w for w in cell)))
+            if self.order is None:
+                children = [tuple(sorted(m if w == v else w for w in cell)) for v in e]
+            else:
+                # Maubach: (x0, ..., x_{k-1}, z, x_{k+1}, ...) and (x1, ..., xk, z, x_{k+1}, ...), tag k - 1 or d.
+                ordered, tag, generation = self.order.pop(cell)
+                new_tag = tag - 1 if tag > 1 else len(cell) - 1
+                halves = (ordered[:tag] + (m,) + ordered[tag + 1 :], ordered[1 : tag + 1] + (m,) + ordered[tag + 1 :])
+                children = []
+                for half in halves:
+                    child = tuple(sorted(half))
+                    self.order[child] = (half, new_tag, generation + 1)
+                    children.append(child)
+            for child in children:
+                self.add(child)
         del self.cells_of[e]
 
     def refine(self, target: tuple[int, ...]) -> None:
@@ -945,35 +986,68 @@ class _Bisection:
             if cell not in self.alive:
                 stack.pop()
                 continue
-            e = self.longest(cell)
-            other = next((c for c in sorted(self.cells_of[e]) if self.longest(c) != e), None)
+            e = self.edge(cell)
+            other = next((c for c in sorted(self.cells_of[e]) if self.edge(c) != e), None)
             if other is None:
                 self.bisect(e)
-            else:  # its longest edge comes after e, so the recursion ends
+            else:
+                # Longest edge: the refinement edge of `other` is longer than e, so the recursion ends. Newest vertex:
+                # on Kuhn meshes `other` is of an earlier generation (Maubach 1995; Stevenson 2008), so it ends too.
+                if self.order is not None and self.order[other][2] >= self.order[cell][2]:
+                    raise RuntimeError("newest-vertex bisection lost its matching condition; please report this.")
                 stack.append(other)
 
 
-def refine(mesh: SimplicialMesh, simplices: Sequence[int]) -> SimplicialMesh:
-    """Bisect simplices at the midpoint of their longest edge, keeping the mesh conforming.
+def refine(
+    mesh: SimplicialMesh,
+    simplices: Sequence[int],
+    *,
+    rule: Literal["longest_edge", "newest_vertex"] = "longest_edge",
+) -> SimplicialMesh:
+    r"""Bisect simplices at the midpoint of their refinement edge, keeping the mesh conforming.
 
     An edge is bisected in every simplex that contains it, which keeps the mesh conforming. Before an
-    edge is bisected, every simplex containing it whose longest edge is a different one is refined
-    first, recursively (the longest-edge bisection of Rivara), so that cells are always cut across their
-    longest edge. Ties between edges of equal length are broken by their vertex numbers, consistently
-    over the whole mesh. Refining one simplex may therefore add several vertices.
+    edge is bisected, every simplex containing it whose refinement edge is a different one is refined
+    first, recursively, so that cells are always cut across their own refinement edge. Refining one
+    simplex may therefore add several vertices. The refinement edge depends on ``rule``:
+
+    * ``"longest_edge"`` (Rivara): the longest edge, measured in the vertex coordinates. Ties between
+      edges of equal length are broken by their vertex numbers, consistently over the whole mesh.
+    * ``"newest_vertex"`` (Maubach :cite:p:`maubach1995local`): every simplex is an ordered vertex tuple
+      :math:`(x_0, \dots, x_d)` with a tag :math:`k \in \{1, \dots, d\}`, its refinement edge is
+      :math:`x_0 x_k`, and the children :math:`(x_0, \dots, x_{k-1}, z, x_{k+1}, \dots, x_d)` and
+      :math:`(x_1, \dots, x_k, z, x_{k+1}, \dots, x_d)` get the tag :math:`k - 1` (:math:`d` after 1). It
+      starts from a mesh of :func:`lattice_mesh`, whose simplices are the Kuhn paths with tag :math:`d`,
+      and the refined mesh carries the ordered simplices and tags for the next call. It cuts a Kuhn
+      simplex across the diagonal of its cube, so ``dim`` rounds of refining every simplex of
+      ``lattice_mesh(dim, k)`` give a triangulation of the degree-``2k`` lattice, and the simplices take
+      only finitely many shapes up to similarity :cite:p:`maubach1995local`. Longest-edge bisection of a
+      Kuhn mesh does neither: the longest edge of a Kuhn simplex is not the cube diagonal in the
+      coordinates of :func:`lattice_mesh`, so rounds of refinement do not return to a lattice mesh and
+      closure adds vertices that were not asked for.
 
     Parameters
     ----------
     mesh
-        A conforming mesh.
+        A conforming mesh. For ``rule="newest_vertex"``, a mesh returned by :func:`lattice_mesh` or by
+        this function with ``rule="newest_vertex"``.
     simplices
         Integer indices into ``mesh.simplices`` of the simplices to bisect.
+    rule
+        ``"longest_edge"`` (default) or ``"newest_vertex"``.
 
     Returns
     -------
     SimplicialMesh
         The refined mesh. It keeps the vertices of ``mesh`` with their numbers and appends the new
         vertices (edge midpoints) in the order they were created. Its simplices are sorted.
+
+    Raises
+    ------
+    ValueError
+        If ``rule`` is unknown, if an index is not one of a simplex, or if ``rule="newest_vertex"`` is
+        used on a mesh that carries no newest-vertex state (e.g. one built directly with
+        :class:`SimplicialMesh`).
 
     Examples
     --------
@@ -982,7 +1056,24 @@ def refine(mesh: SimplicialMesh, simplices: Sequence[int]) -> SimplicialMesh:
     >>> fine = refine(coarse, [0])
     >>> fine.n_vertices - coarse.n_vertices, fine.n_simplices - coarse.n_simplices, fine.unmatched_faces
     (1, 2, 0)
+
+    Two rounds of newest-vertex bisection of every triangle double the lattice degree:
+
+    >>> mesh = lattice_mesh(2, 2)
+    >>> for _ in range(2):
+    ...     mesh = refine(mesh, range(mesh.n_simplices), rule="newest_vertex")
+    >>> mesh.n_vertices, mesh.n_simplices, mesh.unmatched_faces
+    (15, 16, 0)
+    >>> sorted(set((4 * mesh.vertices).flatten().tolist()))
+    [0.0, 1.0, 2.0, 3.0, 4.0]
     """
+    if rule not in ("longest_edge", "newest_vertex"):
+        raise ValueError(f"rule must be 'longest_edge' or 'newest_vertex', not {rule!r}.")
+    order = None
+    if rule == "newest_vertex":
+        order = mesh._newest_vertex
+        if order is None:
+            raise ValueError("rule='newest_vertex' needs a mesh from lattice_mesh or from refine(..., rule='newest_vertex').")
     cells = [tuple(c) for c in mesh.simplices.tolist()]
     try:
         # operator.index accepts integers of any kind (Python, NumPy, 0-d tensors) but not floats or strings.
@@ -991,10 +1082,12 @@ def refine(mesh: SimplicialMesh, simplices: Sequence[int]) -> SimplicialMesh:
         targets = [cells[operator.index(k)] for k in simplices]
     except (IndexError, TypeError):
         raise ValueError("simplices must be indices into mesh.simplices.") from None
-    state = _Bisection(list(mesh.vertices), cells)
+    state = _Bisection(list(mesh.vertices), cells, order)
     for target in targets:
         state.refine(target)
-    return SimplicialMesh(torch.stack(state.x), sorted(state.alive))
+    refined = SimplicialMesh(torch.stack(state.x), sorted(state.alive))
+    refined._newest_vertex = state.order
+    return refined
 
 
 def _gradient_at(v: int, x: torch.Tensor, f: torch.Tensor, ring: list[list[int]], max_rings: int) -> torch.Tensor:
