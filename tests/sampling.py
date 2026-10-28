@@ -879,7 +879,7 @@ def test_vertex_double_sum_reduces_to_curve_risk(degree):
     assert _vertex_risk_sum(2, degree) == Fraction(4, degree * (degree + 2))
 
 
-@pytest.mark.parametrize("degree", range(1, 6))
+@pytest.mark.parametrize("degree", sorted({d for d, m in _RISK_POLYNOMIALS if m == 0}))
 def test_vertex_binomial_expansion_matches_polynomial_and_limit(degree):
     polynomial = _vertex_risk_polynomial(degree)
     assert polynomial == _risk_polynomial_coefficients(degree, 0)[::-1]
