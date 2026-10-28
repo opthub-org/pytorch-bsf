@@ -17,6 +17,7 @@ from typing import Any
 import torch
 
 from torch_bsf._kernels.combinatorics import _indices, _recursive_basis, _simplex_indices
+from torch_bsf._numeric import _finite_mean
 from torch_bsf.core import BezierModel, BezierSpace, FixedControls, Samples, _integer
 from torch_bsf.fitting import fit
 from torch_bsf.results import ConvergenceWarning, FitResult
@@ -110,7 +111,7 @@ def _initial(space: BezierSpace, y: torch.Tensor, initial: BezierModel | None) -
             raise ValueError("initial must be a compatible BezierModel with the observed output dimension.")
         return BezierModel(space, initial.coefficients.detach().to(device="cpu", dtype=torch.float64))
     if width == 1:
-        return BezierModel(space, y.mean(0, keepdim=True))
+        return BezierModel(space, _finite_mean(y, 0, keepdim=True))
     if y.shape[1] != width:
         raise ValueError("automatic initialization requires one output per vertex; supply initial for other embeddings.")
     vertices = y[y.argmin(0)]
@@ -293,6 +294,8 @@ def fit_point_cloud(
         message = "Initial point-cloud objective overflowed."
         warnings.warn(message, ConvergenceWarning, stacklevel=2)
         return PointCloudFitResult(model, t, tuple(history), False, "numerical_failure", message, 0, False, None)
+    if width == 1 and history[0] == 0:
+        return PointCloudFitResult(model, t, tuple(history), True, "converged", "Exact initial fit.", 0, True, None)
     success, status, message, parameter_converged = False, "iteration_limit", "Alternating iteration limit reached.", False
     for _ in range(max_iter):
         try:
