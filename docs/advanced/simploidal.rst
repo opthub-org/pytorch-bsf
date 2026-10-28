@@ -490,7 +490,9 @@ small basis entries can still underflow in the requested dtype.
 
 The recurrence retains intermediate bases for autograd and performs work
 proportional to the sum of control counts over all lower degrees. Large
-control counts are still limited by available memory. Extrapolation outside
+control counts are still limited by available memory. Predecessor index tables
+are cached per degree, factor width and device for the lifetime of the process
+to avoid rebuilding and transferring them on repeated evaluations. Extrapolation outside
 the simplex can overflow when the polynomial itself is not representable.
 Gram integration combines moments and multinomials in the log domain.
 Its explicit multinomials must fit float64, otherwise it raises ``ValueError``

@@ -195,11 +195,17 @@ def _predecessors(width: int, degree: int) -> tuple[tuple[int, ...], ...]:
     )
 
 
+@cache
+def _predecessor_tensor(width: int, degree: int, device: torch.device) -> torch.Tensor:
+    """Device-local indices, shared by repeated evaluations of a basis."""
+    return torch.tensor(_predecessors(width, degree), device=device)
+
+
 def _recursive_basis(t: torch.Tensor, degree: int) -> torch.Tensor:
     """Degree elevation using additions/products only, including at zero coordinates."""
     basis = torch.ones((len(t), 1), dtype=t.dtype, device=t.device)
     for d in range(1, degree + 1):
-        indices = torch.tensor(_predecessors(t.shape[1], d), device=t.device)
+        indices = _predecessor_tensor(t.shape[1], d, t.device)
         padded = torch.cat((torch.zeros_like(basis[:, :1]), basis), dim=1)
         basis = (padded[:, indices] * t[:, None, :]).sum(2)
     return basis

@@ -2018,3 +2018,17 @@ def test_low_degree_basis_avoids_host_scalar_reads(monkeypatch):
         monkeypatch.setattr(torch.Tensor, method, forbidden)
     b = bernstein_basis((1,), 3, t)
     assert b.shape == (1, 4)
+
+
+def test_recurrent_basis_reuses_device_predecessor_tensors(monkeypatch):
+    from torch_bsf._kernels.combinatorics import _recursive_basis
+
+    t = torch.tensor([[0.25, 0.75]], dtype=torch.float64)
+    expected = _recursive_basis(t, 20)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("recurrent forward must reuse cached device indices")
+
+    monkeypatch.setattr(torch, "tensor", forbidden)
+    actual = _recursive_basis(t, 20)
+    torch.testing.assert_close(actual, expected, atol=0, rtol=0)
