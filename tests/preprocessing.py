@@ -414,3 +414,53 @@ def test_minmax_integer_extrapolation_rejects_truly_unrepresentable_half_output(
             scaler.transform(torch.tensor([[torch.iinfo(torch.int64).max]], dtype=torch.int64))
     finally:
         torch.set_default_dtype(previous)
+
+
+@pytest.mark.parametrize("default_dtype", [torch.float16, torch.bfloat16, torch.float32, torch.float64])
+def test_minmax_integer_extrapolation_rounds_only_the_complete_quotient(default_dtype):
+    previous = torch.get_default_dtype()
+    try:
+        torch.set_default_dtype(default_dtype)
+        maximum = torch.iinfo(torch.int64).max
+        scale = round(maximum / 65490)
+        offset = -20 * scale
+        scaler = MinMaxScaler()
+        scaler.fit(torch.tensor([[offset], [offset + scale]], dtype=torch.int64))
+        result = scaler.transform(torch.tensor([[maximum]], dtype=torch.int64))
+        expected = torch.tensor([[(maximum - offset) / scale]], dtype=default_dtype)
+        torch.testing.assert_close(result, expected)
+        assert torch.isfinite(result).all()
+    finally:
+        torch.set_default_dtype(previous)
+
+
+@pytest.mark.parametrize("sign", [-1, 1])
+def test_minmax_half_integer_transform_keeps_the_last_finite_rounding_interval(sign):
+    previous = torch.get_default_dtype()
+    try:
+        torch.set_default_dtype(torch.float16)
+        scale = 10**14
+        scaler = MinMaxScaler()
+        scaler.fit(torch.tensor([[0], [scale]], dtype=torch.int64))
+        values = torch.tensor([[sign * (65520 * scale - 1)]], dtype=torch.int64)
+        torch.testing.assert_close(scaler.transform(values), torch.tensor([[sign * 65504.0]]), atol=0, rtol=0)
+        with pytest.raises(ValueError, match="transformed values must be finite"):
+            scaler.transform(torch.tensor([[sign * 65520 * scale]], dtype=torch.int64))
+    finally:
+        torch.set_default_dtype(previous)
+
+
+def test_minmax_ordinary_integer_transform_does_not_need_exact_cpu_arithmetic(monkeypatch):
+    def unexpected(*args):
+        raise AssertionError("ordinary integer normalization must stay on the tensor path")
+
+    monkeypatch.setattr("torch_bsf.preprocessing._round_fraction", unexpected)
+    for dtype in (torch.float16, torch.float32, torch.float64):
+        previous = torch.get_default_dtype()
+        try:
+            torch.set_default_dtype(dtype)
+            maximum = torch.iinfo(torch.int64).max
+            result = MinMaxScaler().fit_transform(torch.tensor([[maximum - 1], [maximum]], dtype=torch.int64))
+            torch.testing.assert_close(result, torch.tensor([[0.0], [1.0]]), atol=0, rtol=0)
+        finally:
+            torch.set_default_dtype(previous)

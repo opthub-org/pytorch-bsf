@@ -1,6 +1,9 @@
+from fractions import Fraction
 from typing import Literal, Protocol
 
 import torch
+
+from ._numeric import _round_fraction
 
 #: The value normalization methods: ``"max"`` (:class:`MinMaxScaler`), ``"std"`` (:class:`StdScaler`),
 #: ``"quantile"`` (:class:`QuantileScaler`) and ``"none"`` (:class:`NoneScaler`).
@@ -43,7 +46,11 @@ def _integer_inverse(values: torch.Tensor, offset: torch.Tensor, scale: torch.Te
     return result
 
 
-def _integer_divide(values: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+def _integer_divide(values: torch.Tensor, scale: torch.Tensor, offset: torch.Tensor | None = None) -> torch.Tensor:
+    if offset is not None:
+        dtype = torch.get_default_dtype()
+        wide = torch.float64 if dtype == torch.float64 else torch.float32
+        return ((values.to(wide) - offset.to(wide)) / scale.to(wide)).to(dtype)
     if torch.get_default_dtype() in (torch.float16, torch.bfloat16):
         # Half division needs floating opmath for large integer operands;
         # MPS also lacks the mixed long/half true-division kernel.
@@ -61,12 +68,19 @@ def _transform(values: torch.Tensor, offset: torch.Tensor, scale: torch.Tensor) 
         left, right = values.to(difference.dtype), offset.to(difference.dtype)
         risky = (left < bounds.min + right.clamp_min(0)) | (left > bounds.max + right.clamp_max(0))
         if bool(risky.any()):
-            result = torch.where(risky, _integer_divide(values, scale) - _integer_divide(offset, scale), result)
+            result = torch.where(risky, _integer_divide(values, scale, offset), result)
     if not torch.isfinite(result).all():
-        fallback = (
-            _integer_divide(values, scale) - _integer_divide(offset, scale) if integer else values / scale - offset / scale
-        )
+        fallback = _integer_divide(values, scale, offset) if integer else values / scale - offset / scale
         result = torch.where(torch.isfinite(result), result, fallback)
+    if integer and not torch.isfinite(result).all():
+        # Resolve the rare half overflow boundary without double rounding.
+        selected = ~torch.isfinite(result)
+        left, right, divisor = torch.broadcast_tensors(values, offset, scale)
+        exact = [
+            _round_fraction(Fraction(int(v) - int(o), int(s)), result.dtype)
+            for v, o, s in zip(left[selected].tolist(), right[selected].tolist(), divisor[selected].tolist(), strict=True)
+        ]
+        result[selected] = torch.tensor(exact, dtype=result.dtype, device=result.device)
     return _finite(result, "transformed values")
 
 
