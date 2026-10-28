@@ -124,8 +124,11 @@ surface and its domain coordinate is unknown. The existing <code class="docutils
 a different problem: regression from known parameter/value pairs.</p>
 <p>The value-only methods implement Algorithms 2 and 3 of
 <span class="bibtex-citation" id="id1">Kobayashi <em>et al.</em> [<a class="reference internal" href="../references.html#id11" title="Ken Kobayashi, Naoki Hamada, Akiyoshi Sannai, Aiko Tanaka, Kenichi Bannai, and Masashi Sugiyama. Bézier simplex fitting: describing pareto fronts of simplicial problems with small samples in multi-objective optimization. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 33, 2304–2313. 2019. URL: https://doi.org/10.1609/aaai.v33i01.33012304.">KHS+19</a>]</span>. Both currently support a single simplex.
-They return ordinary <code class="docutils literal notranslate"><span class="pre">BezierModel</span></code> objects, so prediction, plotting and
-model serialization use the existing interfaces.</p>
+<code class="docutils literal notranslate"><span class="pre">fit_point_cloud</span></code> returns a <code class="docutils literal notranslate"><span class="pre">PointCloudFitResult</span></code>; <code class="docutils literal notranslate"><span class="pre">fit_skeleton</span></code>
+returns a <code class="docutils literal notranslate"><span class="pre">SkeletonFitResult</span></code>. Each result holds an ordinary <code class="docutils literal notranslate"><span class="pre">BezierModel</span></code>
+in <code class="docutils literal notranslate"><span class="pre">result.model</span></code> for prediction, plotting and serialization. Inspect
+<code class="docutils literal notranslate"><span class="pre">result.success</span></code>, <code class="docutils literal notranslate"><span class="pre">result.status</span></code> and <code class="docutils literal notranslate"><span class="pre">result.message</span></code> for numerical
+termination, or call <code class="docutils literal notranslate"><span class="pre">result.require_success()</span></code> to raise on failure.</p>
 <section id="all-at-once-fitting">
 <h2>All-at-once fitting<a class="headerlink" href="#all-at-once-fitting" title="Link to this heading"></a></h2>
 <p>The unknowns are both the control points and a barycentric coordinate
@@ -137,7 +140,9 @@ the surface using analytic first and second derivatives and Newton steps.</p></l
 the existing float64 SVD least-squares implementation.</p></li>
 </ol>
 <p>For example, fit a two-objective Schaffer front without providing its
-parameter coordinates to the fitting routine:</p>
+parameter coordinates to the fitting routine. The three examples on this
+page share the named <code class="docutils literal notranslate"><span class="pre">point-cloud-demo</span></code> session: run them in page order;
+the later examples reuse <code class="docutils literal notranslate"><span class="pre">torch</span></code>, <code class="docutils literal notranslate"><span class="pre">space</span></code> and <code class="docutils literal notranslate"><span class="pre">values</span></code> from this one.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">fit_point_cloud</span>
 
@@ -146,13 +151,24 @@ parameter coordinates to the fitting routine:</p>
 <span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="n">dimension</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">fit_point_cloud</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
 
+<span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">success</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"converged"</span>
+<span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">parameters</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
+<span class="n">torch</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_close</span><span class="p">(</span>
+    <span class="n">result</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span>
+    <span class="n">rtol</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mi">8</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="n">fitted_values</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
-<span class="n">error</span> <span class="o">=</span> <span class="p">(</span><span class="n">fitted_values</span> <span class="o">-</span> <span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">square</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-<span class="k">assert</span> <span class="n">error</span> <span class="o">&lt;</span> <span class="mf">1e-12</span>
+<span class="c1"># Row i reconstructs values[i], rather than a reordered cloud.</span>
+<span class="n">row_errors</span> <span class="o">=</span> <span class="p">(</span><span class="n">fitted_values</span> <span class="o">-</span> <span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">square</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">row_errors</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mf">1e-12</span>
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">result.parameters</span></code> contains the inferred barycentric rows in the
-original observation order. A zero-dimensional simplex uses empty
+original observation order, with shape <code class="docutils literal notranslate"><span class="pre">(n_observations,</span> <span class="pre">dimension</span> <span class="pre">+</span> <span class="pre">1)</span></code>
+for a positive-dimensional simplex. Here the 21 observations have two
+barycentric coordinates each; <code class="docutils literal notranslate"><span class="pre">result.model(result.parameters)[i]</span></code>
+approximates <code class="docutils literal notranslate"><span class="pre">values[i]</span></code>. A zero-dimensional simplex uses empty
 coordinate rows, consistent with <code class="docutils literal notranslate"><span class="pre">BezierSpace</span></code>. <code class="docutils literal notranslate"><span class="pre">objective_history</span></code>
 records mean squared Euclidean distances, starting with the initial model
 and coordinates; <code class="docutils literal notranslate"><span class="pre">control_result</span></code> retains the last linear solve’s
@@ -174,11 +190,26 @@ needed: a degree-three simplex has no controls supported on four or more
 vertices, even when its domain dimension is larger.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">fit_skeleton</span>
 
-<span class="n">result</span> <span class="o">=</span> <span class="n">fit_skeleton</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
-<span class="n">model</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">model</span>
-<span class="n">edge_result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">faces</span><span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span>
+<span class="n">skeleton</span> <span class="o">=</span> <span class="n">fit_skeleton</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">skeleton</span><span class="o">.</span><span class="n">model</span>
+<span class="k">assert</span> <span class="n">skeleton</span><span class="o">.</span><span class="n">success</span> <span class="ow">and</span> <span class="n">skeleton</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"converged"</span>
+<span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">skeleton</span><span class="o">.</span><span class="n">faces</span><span class="p">)</span> <span class="o">==</span> <span class="p">{(</span><span class="mi">0</span><span class="p">,),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)}</span>
+<span class="n">edge_result</span> <span class="o">=</span> <span class="n">skeleton</span><span class="o">.</span><span class="n">faces</span><span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span>
+<span class="k">assert</span> <span class="n">edge_result</span><span class="o">.</span><span class="n">success</span>
+<span class="k">assert</span> <span class="n">edge_result</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+<span class="c1"># The assembled edge retains the fitted vertex controls exactly.</span>
+<span class="k">for</span> <span class="n">vertex</span><span class="p">,</span> <span class="n">powers</span> <span class="ow">in</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">))]:</span>
+    <span class="n">vertex_result</span> <span class="o">=</span> <span class="n">skeleton</span><span class="o">.</span><span class="n">faces</span><span class="p">[(</span><span class="n">vertex</span><span class="p">,)]</span>
+    <span class="k">assert</span> <span class="n">vertex_result</span><span class="o">.</span><span class="n">success</span>
+    <span class="n">control</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">coefficients</span><span class="p">[</span><span class="n">space</span><span class="o">.</span><span class="n">control_index</span><span class="p">(</span><span class="n">powers</span><span class="p">)]</span>
+    <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">control</span><span class="p">,</span> <span class="n">vertex_result</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">coefficients</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 </pre></div>
 </div>
+<p><code class="docutils literal notranslate"><span class="pre">skeleton.faces</span></code> maps sorted vertex-ID tuples to <code class="docutils literal notranslate"><span class="pre">PointCloudFitResult</span></code>
+objects. In this segment example, <code class="docutils literal notranslate"><span class="pre">(0,)</span></code> and <code class="docutils literal notranslate"><span class="pre">(1,)</span></code> identify the vertices
+and <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">1)</span></code> identifies the whole edge. Each face has its own numerical
+status and locally inferred coordinates; the assembled predictor is
+<code class="docutils literal notranslate"><span class="pre">skeleton.model</span></code>.</p>
 <p>By default, a face’s samples are the points nondominated under the
 objectives corresponding to its vertices, using the paper’s definition
 of <code class="docutils literal notranslate"><span class="pre">X_J</span></code>. All output columns are retained. This extraction assumes that
@@ -191,7 +222,15 @@ already separated by subproblem, supply the samples explicitly:</p>
     <span class="p">(</span><span class="mi">1</span><span class="p">,):</span> <span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:],</span>
     <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span> <span class="n">values</span><span class="p">,</span>
 <span class="p">}</span>
-<span class="n">result</span> <span class="o">=</span> <span class="n">fit_skeleton</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">face_values</span><span class="o">=</span><span class="n">faces</span><span class="p">)</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="n">explicit</span> <span class="o">=</span> <span class="n">fit_skeleton</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">face_values</span><span class="o">=</span><span class="n">faces</span><span class="p">)</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">face</span><span class="o">.</span><span class="n">success</span> <span class="k">for</span> <span class="n">face</span> <span class="ow">in</span> <span class="n">explicit</span><span class="o">.</span><span class="n">faces</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+<span class="k">for</span> <span class="n">vertex</span><span class="p">,</span> <span class="n">powers</span> <span class="ow">in</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">))]:</span>
+    <span class="n">control</span> <span class="o">=</span> <span class="n">explicit</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">coefficients</span><span class="p">[</span><span class="n">space</span><span class="o">.</span><span class="n">control_index</span><span class="p">(</span><span class="n">powers</span><span class="p">)]</span>
+    <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">control</span><span class="p">,</span> <span class="n">faces</span><span class="p">[(</span><span class="n">vertex</span><span class="p">,)][</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">edge</span> <span class="o">=</span> <span class="n">explicit</span><span class="o">.</span><span class="n">faces</span><span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span>
+<span class="k">assert</span> <span class="n">edge</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">row_errors</span> <span class="o">=</span> <span class="p">(</span><span class="n">edge</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">edge</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span> <span class="o">-</span> <span class="n">faces</span><span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)])</span><span class="o">.</span><span class="n">square</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">row_errors</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mf">1e-12</span>
 </pre></div>
 </div>
 <p>Face keys are sorted tuples of zero-based vertex IDs. Supply exactly all
@@ -214,8 +253,8 @@ parameterizations are generally not identifiable from values alone.</p>
 <code class="docutils literal notranslate"><span class="pre">parameter_tolerance</span></code> bounds the projected gradient residual. The code
 uses an absolute change rather than the signed stopping expression printed
 in the paper. Success requires both stopping checks. Iteration exhaustion
-returns <code class="docutils literal notranslate"><span class="pre">success=False</span></code> and emits <code class="docutils literal notranslate"><span class="pre">ConvergenceWarning</span></code>, preserving the
-finite model. Use <code class="docutils literal notranslate"><span class="pre">require_success()</span></code> when a failed fit must halt a
+returns <code class="docutils literal notranslate"><span class="pre">success=False</span></code>, <code class="docutils literal notranslate"><span class="pre">status=&quot;iteration_limit&quot;</span></code> and emits
+<code class="docutils literal notranslate"><span class="pre">ConvergenceWarning</span></code>, preserving the finite model. Use <code class="docutils literal notranslate"><span class="pre">require_success()</span></code> when a failed fit must halt a
 workflow. Convergence is a numerical stopping statement, not a certificate
 of global optimality or reconstruction accuracy.</p>
 <p>Distances and tolerances use the original output units. Normalize outputs
