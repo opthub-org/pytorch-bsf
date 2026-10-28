@@ -23,8 +23,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="References" href="references.html" />
-    <link rel="prev" title="Facility Location and Continuous Approximations" href="applications/facility_location.html" /> 
+    <link rel="next" title="Python API reference" href="api.html" />
+    <link rel="prev" title="Supply Chain and Logistics Optimization" href="applications/supply_chain.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -47,13 +47,15 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="cli.html">Command-line reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Frequently asked questions</a><ul>
@@ -79,11 +81,12 @@
 <li class="toctree-l2"><a class="reference internal" href="#can-i-compare-before-after-runs-with-different-evaluation-points">Can I compare before/after runs with different evaluation points?</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="modules.html">API reference guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
 </ul>
 
         </div>
@@ -129,7 +132,7 @@ a system without supplying missing observational information. See
 <section id="how-do-i-choose-a-degree">
 <h2>How do I choose a degree?<a class="headerlink" href="#how-do-i-choose-a-degree" title="Link to this heading"></a></h2>
 <p>Use <code class="docutils literal notranslate"><span class="pre">select_degree</span></code> with explicit candidates and held-out folds, then
-explicitly refit the chosen space. See <a class="reference internal" href="advanced/auto_degree.html"><span class="doc">Cross-validation and degree search</span></a>.</p>
+explicitly refit the chosen space. See <a class="reference internal" href="advanced/model_selection.html"><span class="doc">Cross-validation and degree search</span></a>.</p>
 </section>
 <section id="where-did-the-old-apis-go">
 <h2>Where did the old APIs go?<a class="headerlink" href="#where-did-the-old-apis-go" title="Link to this heading"></a></h2>
@@ -238,7 +241,7 @@ every incident cell.</p>
 keep it as a weighted observation. Fixing all rows returns the prescribed
 model without factorization; a large resulting error means the prescribed
 model conflicts with the observations, not that the constraints were ignored.
-See <a class="reference internal" href="advanced/partial.html"><span class="doc">Fixed controls</span></a> for examples and a before/after endpoint plot.</p>
+See <a class="reference internal" href="advanced/fixed_controls.html"><span class="doc">Fixed controls</span></a> for examples and a before/after endpoint plot.</p>
 </section>
 <section id="will-splitting-reduce-my-prediction-error">
 <h2>Will splitting reduce my prediction error?<a class="headerlink" href="#will-splitting-reduce-my-prediction-error" title="Link to this heading"></a></h2>
@@ -280,7 +283,7 @@ predictions agree.</p>
 It uses an application-owned single-device Trainer and the complete regression
 objective at each step. GPU execution is not automatically faster for small
 problems, and sparse-regression benchmarks do not measure this adapter. See
-<a class="reference internal" href="advanced/acceleration.html"><span class="doc">Solvers and optional execution</span></a> for measured scaling and an adapter example.</p>
+<a class="reference internal" href="advanced/solvers_and_execution.html"><span class="doc">Solvers, performance and optional execution</span></a> for measured scaling and an adapter example.</p>
 </section>
 <section id="why-does-optimization-report-failure-after-using-every-iteration">
 <h2>Why does optimization report failure after using every iteration?<a class="headerlink" href="#why-does-optimization-report-failure-after-using-every-iteration" title="Link to this heading"></a></h2>
@@ -292,8 +295,8 @@ loss and gradient path. Callback stops likewise do not certify convergence.</p>
 <p>Histories describe pre-update minibatch values. The final objective describes
 the complete fixed sample set after stopping. They need not match. More
 iterations improve optimization of that fixed empirical set, not its coverage
-of the continuous domain. See <a class="reference internal" href="advanced/sgd.html"><span class="doc">Objective minimization</span></a> for parameter effects and
-<a class="reference internal" href="advanced/initialization.html"><span class="doc">Explicit initial models</span></a> for sensitivity to the starting model.</p>
+of the continuous domain. See <a class="reference internal" href="advanced/objective_minimization.html"><span class="doc">Objective minimization</span></a> for parameter effects and
+<a class="reference internal" href="advanced/initial_models.html"><span class="doc">Explicit initial models</span></a> for sensitivity to the starting model.</p>
 </section>
 <section id="what-happens-after-a-numerical-solve-fails">
 <h2>What happens after a numerical solve fails?<a class="headerlink" href="#what-happens-after-a-numerical-solve-fails" title="Link to this heading"></a></h2>
@@ -338,8 +341,8 @@ new evaluation metrics so that readers can distinguish the effects.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="applications/facility_location.html" class="btn btn-neutral float-left" title="Facility Location and Continuous Approximations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="references.html" class="btn btn-neutral float-right" title="References" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="applications/supply_chain.html" class="btn btn-neutral float-left" title="Supply Chain and Logistics Optimization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="api.html" class="btn btn-neutral float-right" title="Python API reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

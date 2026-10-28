@@ -23,7 +23,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Command-line reference" href="cli.html" />
+    <link rel="next" title="What is Bézier simplex fitting?" href="whatis.html" />
     <link rel="prev" title="Installation" href="installation.html" /> 
 </head>
 
@@ -47,9 +47,8 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Quickstart</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#verified-python-workflow">Verified Python workflow</a></li>
@@ -58,16 +57,20 @@
 <li class="toctree-l2"><a class="reference internal" href="#next-steps-and-reproducibility">Next steps and reproducibility</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="cli.html">Command-line reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently asked questions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="modules.html">API reference guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
 </ul>
 
         </div>
@@ -229,9 +232,9 @@ the polynomial space and which only choose coefficients within it.</p>
 <a class="reference internal image-reference" href="_images/degree.png"><img alt="Candidate polynomial curves before degree selection and validation errors used to select a final degree." src="_images/degree.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 6 </span><span class="caption-text">A separate noisy-response example shows why training a higher-degree
+<p><span class="caption-number">Fig. 1 </span><span class="caption-text">A separate noisy-response example shows why training a higher-degree
 curve is not automatically an improvement. Choose with held-out error,
-then explicitly refit. See <a class="reference internal" href="advanced/auto_degree.html"><span class="doc">Cross-validation and degree search</span></a> for the exact data,
+then explicitly refit. See <a class="reference internal" href="advanced/model_selection.html"><span class="doc">Cross-validation and degree search</span></a> for the exact data,
 seed, candidate list and executable search.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
 </figcaption>
 </figure>
@@ -243,7 +246,7 @@ seed, candidate list and executable search.</span><a class="headerlink" href="#i
 <a class="reference internal" href="advanced/sampling.html"><span class="doc">Sampling and grids</span></a> to choose additional evaluation or measurement points.
 For an expensive experiment, <a class="reference internal" href="advanced/active_learning.html"><span class="doc">Explicit ensembles and active learning</span></a> shows how to
 query new true responses, append them and refit. For a cost defined by
-objectives rather than measured targets, use <a class="reference internal" href="advanced/sgd.html"><span class="doc">Objective minimization</span></a>.</p>
+objectives rather than measured targets, use <a class="reference internal" href="advanced/objective_minimization.html"><span class="doc">Objective minimization</span></a>.</p>
 <p>The CLI exposes operation-specific help, for example
 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">torch_bsf</span> <span class="pre">fit</span> <span class="pre">--help</span></code>. Tracking is explicit and requires the MLflow
 extra. Docker users can run the same subcommands inside the repository image
@@ -264,7 +267,7 @@ not automatically preserve every decision that led to it.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="installation.html" class="btn btn-neutral float-left" title="Installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="cli.html" class="btn btn-neutral float-right" title="Command-line reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="whatis.html" class="btn btn-neutral float-right" title="What is Bézier simplex fitting?" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

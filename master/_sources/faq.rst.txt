@@ -18,7 +18,7 @@ a system without supplying missing observational information. See
 How do I choose a degree?
 -------------------------
 Use ``select_degree`` with explicit candidates and held-out folds, then
-explicitly refit the chosen space. See :doc:`advanced/auto_degree`.
+explicitly refit the chosen space. See :doc:`advanced/model_selection`.
 
 Where did the old APIs go?
 --------------------------
@@ -143,7 +143,7 @@ There is no strength parameter for a fixed row. If the value is uncertain,
 keep it as a weighted observation. Fixing all rows returns the prescribed
 model without factorization; a large resulting error means the prescribed
 model conflicts with the observations, not that the constraints were ignored.
-See :doc:`advanced/partial` for examples and a before/after endpoint plot.
+See :doc:`advanced/fixed_controls` for examples and a before/after endpoint plot.
 
 Will splitting reduce my prediction error?
 ------------------------------------------
@@ -191,7 +191,7 @@ Lightning is an explicit optional execution adapter, not a ``fit`` solver flag.
 It uses an application-owned single-device Trainer and the complete regression
 objective at each step. GPU execution is not automatically faster for small
 problems, and sparse-regression benchmarks do not measure this adapter. See
-:doc:`advanced/acceleration` for measured scaling and an adapter example.
+:doc:`advanced/solvers_and_execution` for measured scaling and an adapter example.
 
 Why does optimization report failure after using every iteration?
 -----------------------------------------------------------------
@@ -205,8 +205,8 @@ loss and gradient path. Callback stops likewise do not certify convergence.
 Histories describe pre-update minibatch values. The final objective describes
 the complete fixed sample set after stopping. They need not match. More
 iterations improve optimization of that fixed empirical set, not its coverage
-of the continuous domain. See :doc:`advanced/sgd` for parameter effects and
-:doc:`advanced/initialization` for sensitivity to the starting model.
+of the continuous domain. See :doc:`advanced/objective_minimization` for parameter effects and
+:doc:`advanced/initial_models` for sensitivity to the starting model.
 
 What happens after a numerical solve fails?
 -------------------------------------------

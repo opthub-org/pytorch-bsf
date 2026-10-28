@@ -24,7 +24,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Optimal skeleton sampling" href="skeleton_sampling.html" />
-    <link rel="prev" title="Fixed controls" href="partial.html" /> 
+    <link rel="prev" title="Output scaling" href="normalization.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -47,27 +47,19 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../advanced.html#follow-a-fit-through-the-guides">Follow a fit through the guides</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
-<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
-<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
-<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
-<li class="toctree-l3"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
-<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
-<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
-<li class="toctree-l3"><a class="reference internal" href="partial.html">Fixed controls</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Sampling and grids</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#choose-points-for-the-task">Choose points for the task</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#generate-observations-and-evaluation-points">Generate observations and evaluation points</a></li>
@@ -77,23 +69,33 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
-<li class="toctree-l3"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
 <li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
 <li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
-<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
 <li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
 </ul>
 
         </div>
@@ -169,7 +171,7 @@ but cannot establish its accuracy without independent true responses.</p>
 <a class="reference internal image-reference" href="../_images/sampling.png"><img alt="Random, Sobol-derived and barycentric grid points on the same triangular domain." src="../_images/sampling.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 16 </span><span class="caption-text">Three ways to evaluate the same triangle: 64 random points, 64 Sobol-derived
+<p><span class="caption-number">Fig. 8 </span><span class="caption-text">Three ways to evaluate the same triangle: 64 random points, 64 Sobol-derived
 points, and a resolution-ten lattice with 66 points. The scatter plots
 show coverage rather than regression accuracy. Grid points include edges
 and vertices; interior random draws almost surely do not.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
@@ -237,7 +239,7 @@ checks errors on a separate evaluation set. Increase the count or add boundary
 points where independent residuals remain large. If measurements are costly,
 compare this uniform expansion with <a class="reference internal" href="active_learning.html"><span class="doc">Explicit ensembles and active learning</span></a>. If the model is
 underparameterized, more observations cannot replace the missing flexibility;
-check degree using <a class="reference internal" href="auto_degree.html"><span class="doc">Cross-validation and degree search</span></a>.</p>
+check degree using <a class="reference internal" href="model_selection.html"><span class="doc">Cross-validation and degree search</span></a>.</p>
 <p>For deterministic point counts and product-grid growth, continue to
 <a class="reference internal" href="grid_sampling.html"><span class="doc">Grid sampling</span></a>. When using points for <code class="docutils literal notranslate"><span class="pre">minimize</span></code>, note that its sample
 set stays fixed across iterations; increasing iteration count alone does not
@@ -272,7 +274,7 @@ slices does not conceal interpolation error between operating conditions.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="partial.html" class="btn btn-neutral float-left" title="Fixed controls" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="normalization.html" class="btn btn-neutral float-left" title="Output scaling" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="skeleton_sampling.html" class="btn btn-neutral float-right" title="Optimal skeleton sampling" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

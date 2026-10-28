@@ -25,7 +25,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Multi-Objective Model Predictive Control" href="model_predictive_control.html" />
-    <link rel="prev" title="Distributed Smart Grids and Energy Operations" href="smart_grids.html" /> 
+    <link rel="prev" title="Communication Systems and Routing" href="communications.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -48,21 +48,27 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../advanced.html">Advanced Topics</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../applications.html">Applications</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../applications.html#what-is-fitted-in-each-application">What is fitted in each application?</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../applications.html#a-common-reproduction-and-validation-workflow">A common reproduction and validation workflow</a></li>
-<li class="toctree-l2 current"><a class="reference internal" href="../applications.html#choosing-a-domain-and-a-next-guide">Choosing a domain and a next guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../applications.html#choosing-a-domain-and-a-next-guide">Choosing a domain and a next guide</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../applications.html#application-guides">Application guides</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="elastic_net.html">Elastic Net Model Selection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="medical_imaging.html">Medical Imaging and Radiation Therapy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="facility_location.html">Facility Location and Continuous Approximations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="portfolio.html">Robust Portfolio Management</a></li>
 <li class="toctree-l3"><a class="reference internal" href="smart_grids.html">Distributed Smart Grids and Energy Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="communications.html">Communication Systems and Routing</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Multi-Task and Federated Learning</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#numerical-experiments">Numerical Experiments</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#what-the-two-fitted-maps-represent">What the two fitted maps represent</a></li>
@@ -71,20 +77,18 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
-<li class="toctree-l3"><a class="reference internal" href="communications.html">Communication Systems and Routing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="supply_chain.html">Supply Chain and Logistics Optimization</a></li>
-<li class="toctree-l3"><a class="reference internal" href="medical_imaging.html">Medical Imaging and Radiation Therapy</a></li>
-<li class="toctree-l3"><a class="reference internal" href="facility_location.html">Facility Location and Continuous Approximations</a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
 </ul>
 
         </div>
@@ -223,7 +227,7 @@ direct parameter interpolation unreliable even when their losses are similar.</p
 <p>If a separate operating variable such as a regularization level varies
 independently of task priorities, encode it as another simplex factor; see
 <a class="reference internal" href="../advanced/simploidal.html"><span class="doc">Single and assembled domains</span></a>. For fitting choices, use
-<a class="reference internal" href="../advanced/auto_degree.html"><span class="doc">Cross-validation and degree search</span></a> and <a class="reference internal" href="../advanced/regularization.html"><span class="doc">Regularization and numerical evidence</span></a>.</p>
+<a class="reference internal" href="../advanced/model_selection.html"><span class="doc">Cross-validation and degree search</span></a> and <a class="reference internal" href="../advanced/regularization.html"><span class="doc">Regularization and numerical evidence</span></a>.</p>
 </section>
 </section>
 
@@ -231,7 +235,7 @@ independently of task priorities, encode it as another simplex factor; see
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="smart_grids.html" class="btn btn-neutral float-left" title="Distributed Smart Grids and Energy Operations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="communications.html" class="btn btn-neutral float-left" title="Communication Systems and Routing" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="model_predictive_control.html" class="btn btn-neutral float-right" title="Multi-Objective Model Predictive Control" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

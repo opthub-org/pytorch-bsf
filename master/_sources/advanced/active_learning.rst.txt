@@ -258,5 +258,5 @@ budget is exhausted, or several rounds cease to improve the relevant metric.
 Keep the original observations, the exact candidate pool and each round's
 queries to make the result reproducible. Recompute the committee after each
 round: reusing old members ranks uncertainty under an outdated training set.
-For model selection before acquisition, see :doc:`auto_degree`; for exploratory
+For model selection before acquisition, see :doc:`model_selection`; for exploratory
 candidate generation and coverage, see :doc:`sampling` and :doc:`grid_sampling`.

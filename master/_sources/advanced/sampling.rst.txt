@@ -128,7 +128,7 @@ checks errors on a separate evaluation set. Increase the count or add boundary
 points where independent residuals remain large. If measurements are costly,
 compare this uniform expansion with :doc:`active_learning`. If the model is
 underparameterized, more observations cannot replace the missing flexibility;
-check degree using :doc:`auto_degree`.
+check degree using :doc:`model_selection`.
 
 For deterministic point counts and product-grid growth, continue to
 :doc:`grid_sampling`. When using points for ``minimize``, note that its sample

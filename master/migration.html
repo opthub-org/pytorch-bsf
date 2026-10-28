@@ -23,8 +23,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Advanced Topics" href="advanced.html" />
-    <link rel="prev" title="Command-line reference" href="cli.html" /> 
+    <link rel="next" title="References" href="references.html" />
+    <link rel="prev" title="Python API reference" href="api.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -47,12 +47,22 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="cli.html">Command-line reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="api.html">Python API reference</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Migrating to the unified v0 API</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#separate-geometry-observations-and-fitted-state">Separate geometry, observations and fitted state</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#translate-penalties-and-constraints-deliberately">Translate penalties and constraints deliberately</a></li>
@@ -60,14 +70,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#validation-and-integration-changes">Validation and integration changes</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
-<li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a></li>
-<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently asked questions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="modules.html">API reference guide</a></li>
 </ul>
 
         </div>
@@ -200,12 +203,12 @@ guess is not an exact constraint and should not automatically become a
 fixed row. Conversely, a boundary that must remain exact should not be
 represented only by a large sample weight. Resolve rows with
 <code class="docutils literal notranslate"><span class="pre">space.control_index</span></code> because coefficient ordering is a property of the
-compiled space. See <a class="reference internal" href="advanced/partial.html"><span class="doc">Fixed controls</span></a>.</p>
+compiled space. See <a class="reference internal" href="advanced/fixed_controls.html"><span class="doc">Fixed controls</span></a>.</p>
 <p>For an original differentiable cost, construct a <code class="docutils literal notranslate"><span class="pre">BezierModel</span></code> with
 explicit coefficients and pass it to <code class="docutils literal notranslate"><span class="pre">minimize</span></code> with a typed method.
 Regression <code class="docutils literal notranslate"><span class="pre">fit</span></code> has no iterative initial model. Lightning is an optional
 adapter around the common model rather than a regression solver selector.
-See <a class="reference internal" href="advanced/initialization.html"><span class="doc">Explicit initial models</span></a> and <a class="reference internal" href="advanced/sgd.html"><span class="doc">Objective minimization</span></a>.</p>
+See <a class="reference internal" href="advanced/initial_models.html"><span class="doc">Explicit initial models</span></a> and <a class="reference internal" href="advanced/objective_minimization.html"><span class="doc">Objective minimization</span></a>.</p>
 </section>
 <section id="replace-implicit-preprocessing-and-model-storage">
 <h2>Replace implicit preprocessing and model storage<a class="headerlink" href="#replace-implicit-preprocessing-and-model-storage" title="Link to this heading"></a></h2>
@@ -238,7 +241,7 @@ the new format. A control-point CSV alone does not reconstruct glued topology.</
 explicitly when that is the intended predictor. Selecting a degree does
 not by itself refit on all observations; perform that final fit with the
 selected configuration. The scikit-learn <code class="docutils literal notranslate"><span class="pre">GridSearchCV</span></code> adapter follows
-its own default refit policy. See <a class="reference internal" href="advanced/auto_degree.html"><span class="doc">Cross-validation and degree search</span></a> and
+its own default refit policy. See <a class="reference internal" href="advanced/model_selection.html"><span class="doc">Cross-validation and degree search</span></a> and
 <a class="reference internal" href="advanced/sklearn.html"><span class="doc">Scikit-learn integration</span></a>.</p>
 <p>Before replacing an existing workflow, compare a fixed batch of predictions,
 boundary values, transformed outputs and save/load results. Inspect
@@ -253,8 +256,8 @@ identify which configuration is being compared.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="cli.html" class="btn btn-neutral float-left" title="Command-line reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="advanced.html" class="btn btn-neutral float-right" title="Advanced Topics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="api.html" class="btn btn-neutral float-left" title="Python API reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="references.html" class="btn btn-neutral float-right" title="References" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

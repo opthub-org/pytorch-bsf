@@ -139,7 +139,7 @@ If a known endpoint is 1000 in original units, fixing it to 1000 inside a
 standardized fit imposes an entirely different constraint. Transform its
 one-row output tensor, then create ``FixedControls`` from that transformed
 value. Invert predictions before checking agreement with physical boundary
-conditions. See :doc:`partial` for resolving coefficient indices.
+conditions. See :doc:`fixed_controls` for resolving coefficient indices.
 
 .. figure:: ../_static/guides/scaling.png
    :width: 100%
@@ -175,7 +175,7 @@ output-specific tolerances.
 
 After selection, refit the scaler on all available training data and train a
 fresh model with the chosen settings. Keep a final untouched test set if one
-is needed. See :doc:`auto_degree` for metrics and :doc:`active_learning` for
+is needed. See :doc:`model_selection` for metrics and :doc:`active_learning` for
 how changing output scales changes committee disagreement rankings.
 
 Extreme finite values

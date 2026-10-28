@@ -33,25 +33,35 @@ The project is on `GitHub`_.
 Practical guides include reproducible comparisons, parameter tuning and
 interpretation of numerical evidence for the unified API.
 
+Start with installation and the quickstart to run your first fit, then read
+the geometric introduction for the underlying concepts. Continue with the
+practical guides for your workflow, and consult the reference when you need
+exact arguments or migration details.
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Getting started
+
+   installation
+   quickstart
+   whatis
+
 .. toctree::
    :maxdepth: 2
    :caption: User guide
 
-   whatis
-   installation
-   quickstart
    cli
-   migration
    advanced
    applications
    faq
-   references
 
 .. toctree::
    :maxdepth: 2
-   :caption: API reference
+   :caption: Reference
 
-   modules
+   api
+   migration
+   references
 
 
 Indices and tables

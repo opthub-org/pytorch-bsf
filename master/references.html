@@ -23,8 +23,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="API reference guide" href="modules.html" />
-    <link rel="prev" title="Frequently asked questions" href="faq.html" /> 
+    <link rel="prev" title="Migrating to the unified v0 API" href="migration.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -47,16 +46,23 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="cli.html">Command-line reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
 <li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">References</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#fitting-approximation-and-statistical-behavior">Fitting, approximation and statistical behavior</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#topology-and-domain-construction">Topology and domain construction</a></li>
@@ -64,10 +70,6 @@
 <li class="toctree-l2"><a class="reference internal" href="#bibliography">Bibliography</a></li>
 </ul>
 </li>
-</ul>
-<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="modules.html">API reference guide</a></li>
 </ul>
 
         </div>
@@ -107,11 +109,11 @@ bound for a finite-data Bézier fit.</p>
 fronts and its approximation perspective. <span class="bibtex-citation" id="id2">Tanaka <em>et al.</em> [<a class="reference internal" href="#id13" title="Aiko Tanaka, Akiyoshi Sannai, Ken Kobayashi, and Naoki Hamada. Asymptotic risk of bézier simplex fitting. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 34, 2416–2424. 2020. URL: https://doi.org/10.1609/aaai.v34i03.5622.">TSKH20</a>]</span>
 studies statistical risk; <a class="reference internal" href="advanced/skeleton_sampling.html"><span class="doc">Optimal skeleton sampling</span></a> extends its
 optimal sample ratio to every dimension and degree. Read these alongside
-<a class="reference internal" href="whatis.html"><span class="doc">What is Bézier simplex fitting?</span></a> and <a class="reference internal" href="advanced/auto_degree.html"><span class="doc">Cross-validation and degree search</span></a>: expressiveness at a sufficiently large degree
+<a class="reference internal" href="whatis.html"><span class="doc">What is Bézier simplex fitting?</span></a> and <a class="reference internal" href="advanced/model_selection.html"><span class="doc">Cross-validation and degree search</span></a>: expressiveness at a sufficiently large degree
 and accuracy from a particular finite sample are distinct questions.</p>
 <p><span class="bibtex-citation" id="id3">Hikima <em>et al.</em> [<a class="reference internal" href="#id12" title="Yasunari Hikima, Ken Kobayashi, Akinori Tanaka, Akiyoshi Sannai, and Naoki Hamada. Stochastic gradient descent for bézier simplex representation of pareto set in multi-objective optimization. In Proceedings of The 28th International Conference on Artificial Intelligence and Statistics, volume 258 of Proceedings of Machine Learning Research. 2025. URL: https://proceedings.mlr.press/v258/hikima25a.html.">HKT+25</a>]</span> concerns objective-based stochastic
 optimization of a Bézier representation. Its setting is discussed in
-<a class="reference internal" href="advanced/sgd.html"><span class="doc">Objective minimization</span></a>; it should be distinguished from linear least-squares
+<a class="reference internal" href="advanced/objective_minimization.html"><span class="doc">Objective minimization</span></a>; it should be distinguished from linear least-squares
 regression on known parameter-response pairs.</p>
 </section>
 <section id="topology-and-domain-construction">
@@ -272,8 +274,7 @@ the toy experiment an implementation of that complete system.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="faq.html" class="btn btn-neutral float-left" title="Frequently asked questions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="modules.html" class="btn btn-neutral float-right" title="API reference guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="migration.html" class="btn btn-neutral float-left" title="Migrating to the unified v0 API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>

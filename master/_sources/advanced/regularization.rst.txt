@@ -65,7 +65,7 @@ controls. They select a different model *inside the same polynomial space*.
 They do not add cells or lower the degree. In contrast, ``FixedControls``
 restricts admissible coefficient matrices to an affine subset: known endpoint
 values hold exactly, while a penalty only encourages a preference. See
-:doc:`partial` for choosing fixed rows.
+:doc:`fixed_controls` for choosing fixed rows.
 
 .. figure:: ../_static/fit_comparison.svg
    :width: 100%
@@ -89,7 +89,7 @@ Start with zero penalties and inspect held-out prediction error and data rank.
 Try zero and logarithmically spaced positive weights with the same validation
 splits, for example ``0, 1e-5, 1e-3, 1e-1``. Expand the range if the best value
 lies at an endpoint. Select using held-out error, then refit all observations
-with the chosen weights. See :doc:`auto_degree` for validation results.
+with the chosen weights. See :doc:`model_selection` for validation results.
 
 There is no noise-level-only rule such as "0.01 is light regularization": degree,
 topology and the number of control-net edges also affect penalty size. Recheck

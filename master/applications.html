@@ -24,7 +24,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Elastic Net Model Selection" href="applications/elastic_net.html" />
-    <link rel="prev" title="Objective minimization" href="advanced/sgd.html" /> 
+    <link rel="prev" title="Solvers, performance and optional execution" href="advanced/solvers_and_execution.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -47,37 +47,41 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="cli.html">Command-line reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Applications</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#what-is-fitted-in-each-application">What is fitted in each application?</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#a-common-reproduction-and-validation-workflow">A common reproduction and validation workflow</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#choosing-a-domain-and-a-next-guide">Choosing a domain and a next guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#choosing-a-domain-and-a-next-guide">Choosing a domain and a next guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#application-guides">Application guides</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="applications/elastic_net.html">Elastic Net Model Selection</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/portfolio.html">Robust Portfolio Management</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/smart_grids.html">Distributed Smart Grids and Energy Operations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/federated_learning.html">Multi-Task and Federated Learning</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/communications.html">Communication Systems and Routing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/supply_chain.html">Supply Chain and Logistics Optimization</a></li>
 <li class="toctree-l3"><a class="reference internal" href="applications/medical_imaging.html">Medical Imaging and Radiation Therapy</a></li>
 <li class="toctree-l3"><a class="reference internal" href="applications/facility_location.html">Facility Location and Continuous Approximations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/portfolio.html">Robust Portfolio Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/smart_grids.html">Distributed Smart Grids and Energy Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/communications.html">Communication Systems and Routing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/federated_learning.html">Multi-Task and Federated Learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/supply_chain.html">Supply Chain and Logistics Optimization</a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently asked questions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="modules.html">API reference guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
 </ul>
 
         </div>
@@ -140,6 +144,14 @@ row needs its generating parameter row.</p>
 <td><p>Loss and penalty weights on a triangle</p></td>
 <td><p>Regression coefficients</p></td>
 </tr>
+<tr class="row-odd"><td><p>Medical imaging</p></td>
+<td><p>Logarithmic regularization coordinate</p></td>
+<td><p>256 image pixels</p></td>
+</tr>
+<tr class="row-even"><td><p>Facility location</p></td>
+<td><p>Weights for two, three or four centers</p></td>
+<td><p>Two spatial coordinates</p></td>
+</tr>
 <tr class="row-odd"><td><p>Portfolio</p></td>
 <td><p>Two regularized objective weights</p></td>
 <td><p>Three unconstrained allocation variables</p></td>
@@ -148,29 +160,21 @@ row needs its generating parameter row.</p>
 <td><p>Cost versus emissions weights</p></td>
 <td><p>Three generator outputs</p></td>
 </tr>
-<tr class="row-odd"><td><p>Federated learning</p></td>
-<td><p>Two task weights</p></td>
-<td><p>Two model parameters in the toy problem</p></td>
-</tr>
-<tr class="row-even"><td><p>Model predictive control</p></td>
-<td><p>Priority weights and independent initial state</p></td>
-<td><p>Five future inputs</p></td>
-</tr>
 <tr class="row-odd"><td><p>Communications</p></td>
 <td><p>Two or three priority weights</p></td>
 <td><p>Two allocation variables in the toy problem</p></td>
 </tr>
+<tr class="row-even"><td><p>Federated learning</p></td>
+<td><p>Two task weights</p></td>
+<td><p>Two model parameters in the toy problem</p></td>
+</tr>
+<tr class="row-odd"><td><p>Model predictive control</p></td>
+<td><p>Priority weights and independent initial state</p></td>
+<td><p>Five future inputs</p></td>
+</tr>
 <tr class="row-even"><td><p>Supply chain</p></td>
 <td><p>Inventory versus ordering-cost weights</p></td>
 <td><p>Five future orders</p></td>
-</tr>
-<tr class="row-odd"><td><p>Medical imaging</p></td>
-<td><p>Logarithmic regularization coordinate</p></td>
-<td><p>256 image pixels</p></td>
-</tr>
-<tr class="row-even"><td><p>Facility location</p></td>
-<td><p>Weights for two, three or four centers</p></td>
-<td><p>Two spatial coordinates</p></td>
 </tr>
 </tbody>
 </table>
@@ -208,21 +212,40 @@ state give a square, as in the MPC example. This geometric distinction is
 illustrated in the <a class="reference internal" href="whatis.html#simploidal-space-overview"><span class="std std-ref">simploid overview</span></a>.
 More output variables do not require more domain factors.</p>
 <p>Use <a class="reference internal" href="quickstart.html"><span class="doc">Quickstart</span></a> for the fitting API, <a class="reference internal" href="advanced/normalization.html"><span class="doc">Output scaling</span></a> for
-units and transforms, and <a class="reference internal" href="advanced/auto_degree.html"><span class="doc">Cross-validation and degree search</span></a> for model selection.
+units and transforms, and <a class="reference internal" href="advanced/model_selection.html"><span class="doc">Cross-validation and degree search</span></a> for model selection.
 For an original differentiable objective without reference target values,
-use <a class="reference internal" href="advanced/sgd.html"><span class="doc">Objective minimization</span></a>; that is a different operation from regression on
+use <a class="reference internal" href="advanced/objective_minimization.html"><span class="doc">Objective minimization</span></a>; that is a different operation from regression on
 solver-generated observations.</p>
+</section>
+<section id="application-guides">
+<h2>Application guides<a class="headerlink" href="#application-guides" title="Link to this heading"></a></h2>
+<p>Choose a group by the map you want to approximate. The regularization
+examples trace fitted solutions as penalty weights change. The trade-off
+examples map objective priorities to decisions, starting with geometric
+facility location. The planning and control examples use sequences of
+decisions, with MPC also introducing an independent initial-state input.</p>
 <div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Regularization paths</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="applications/elastic_net.html">Elastic Net Model Selection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications/medical_imaging.html">Medical Imaging and Radiation Therapy</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Weighted objective trade-offs</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="applications/facility_location.html">Facility Location and Continuous Approximations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="applications/portfolio.html">Robust Portfolio Management</a></li>
 <li class="toctree-l1"><a class="reference internal" href="applications/smart_grids.html">Distributed Smart Grids and Energy Operations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="applications/federated_learning.html">Multi-Task and Federated Learning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="applications/model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
 <li class="toctree-l1"><a class="reference internal" href="applications/communications.html">Communication Systems and Routing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications/federated_learning.html">Multi-Task and Federated Learning</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Planning and control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="applications/model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
 <li class="toctree-l1"><a class="reference internal" href="applications/supply_chain.html">Supply Chain and Logistics Optimization</a></li>
-<li class="toctree-l1"><a class="reference internal" href="applications/medical_imaging.html">Medical Imaging and Radiation Therapy</a></li>
-<li class="toctree-l1"><a class="reference internal" href="applications/facility_location.html">Facility Location and Continuous Approximations</a></li>
 </ul>
 </div>
 </section>
@@ -232,7 +255,7 @@ solver-generated observations.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="advanced/sgd.html" class="btn btn-neutral float-left" title="Objective minimization" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="advanced/solvers_and_execution.html" class="btn btn-neutral float-left" title="Solvers, performance and optional execution" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="applications/elastic_net.html" class="btn btn-neutral float-right" title="Elastic Net Model Selection" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

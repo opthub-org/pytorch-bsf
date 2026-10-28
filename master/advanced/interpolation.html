@@ -24,8 +24,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Objective minimization" href="sgd.html" />
-    <link rel="prev" title="The Category of Simploidal Sets" href="simploidal_category.html" /> 
+    <link rel="next" title="Exact local subdivision" href="splitting.html" />
+    <link rel="prev" title="Single and assembled domains" href="simploidal.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -48,33 +48,29 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../advanced.html#follow-a-fit-through-the-guides">Follow a fit through the guides</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
-<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
-<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
-<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
-<li class="toctree-l3"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
-<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
-<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
-<li class="toctree-l3"><a class="reference internal" href="partial.html">Fixed controls</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
-<li class="toctree-l3"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
 <li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
 <li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
-<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Shape-preserving interpolation on simplicial meshes</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#when-to-interpolate-instead-of-fitting">When to interpolate instead of fitting</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#interpolate-on-a-mesh">Interpolate on a mesh</a></li>
@@ -85,18 +81,24 @@
 <li class="toctree-l4"><a class="reference internal" href="#limitations">Limitations</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
 </ul>
 
         </div>
@@ -134,7 +136,7 @@ set or a regime changes, a global polynomial of moderate degree oscillates
 between design points and can overshoot the data. If the response is
 optimized afterwards, an overshoot becomes a spurious optimum that the data
 never showed.</p>
-<p><a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.hermite_interpolant" title="torch_bsf.interpolation.hermite_interpolant"><code class="xref py py-func docutils literal notranslate"><span class="pre">hermite_interpolant()</span></code></a> builds a local
+<p><a class="reference internal" href="../api.html#torch_bsf.interpolation.hermite_interpolant" title="torch_bsf.interpolation.hermite_interpolant"><code class="xref py py-func docutils literal notranslate"><span class="pre">hermite_interpolant()</span></code></a> builds a local
 alternative from data at the vertices of a simplicial mesh: a continuous
 piecewise cubic Bézier model that passes through every datum and, with the
 default <code class="docutils literal notranslate"><span class="pre">clamp=True</span></code>, never leaves the range of the data at the vertices of
@@ -149,7 +151,7 @@ noise.</p>
 </section>
 <section id="interpolate-on-a-mesh">
 <h2>Interpolate on a mesh<a class="headerlink" href="#interpolate-on-a-mesh" title="Link to this heading"></a></h2>
-<p>A <a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.SimplicialMesh" title="torch_bsf.interpolation.SimplicialMesh"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimplicialMesh</span></code></a> takes vertex coordinates
+<p>A <a class="reference internal" href="../api.html#torch_bsf.interpolation.SimplicialMesh" title="torch_bsf.interpolation.SimplicialMesh"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimplicialMesh</span></code></a> takes vertex coordinates
 of shape <code class="docutils literal notranslate"><span class="pre">(n_vertices,</span> <span class="pre">d)</span></code> and simplices of shape <code class="docutils literal notranslate"><span class="pre">(n_simplices,</span> <span class="pre">d</span> <span class="pre">+</span> <span class="pre">1)</span></code>
 given by vertex numbers. The simplices must not be degenerate and must meet
 face to face (the mesh must be <em>conforming</em>); <code class="docutils literal notranslate"><span class="pre">SimplicialMesh</span></code> checks this
@@ -181,13 +183,13 @@ with a kink along a diagonal.</p>
 <span class="k">assert</span> <span class="n">prediction</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">mesh.locate</span></code> returns <a class="reference internal" href="../torch_bsf.html#torch_bsf.core.Points" title="torch_bsf.core.Points"><code class="xref py py-class docutils literal notranslate"><span class="pre">Points</span></code></a>: the cell ID of the
+<p><code class="docutils literal notranslate"><span class="pre">mesh.locate</span></code> returns <a class="reference internal" href="../api.html#torch_bsf.core.Points" title="torch_bsf.core.Points"><code class="xref py py-class docutils literal notranslate"><span class="pre">Points</span></code></a>: the cell ID of the
 simplex containing each point and its barycentric coordinates there.
-<code class="docutils literal notranslate"><span class="pre">model</span></code> is an ordinary <a class="reference internal" href="../torch_bsf.html#torch_bsf.core.BezierModel" title="torch_bsf.core.BezierModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">BezierModel</span></code></a> on
-<code class="docutils literal notranslate"><span class="pre">mesh.space</span></code>, a <a class="reference internal" href="../torch_bsf.html#torch_bsf.core.BezierSpace" title="torch_bsf.core.BezierSpace"><code class="xref py py-class docutils literal notranslate"><span class="pre">BezierSpace</span></code></a> of degree three
+<code class="docutils literal notranslate"><span class="pre">model</span></code> is an ordinary <a class="reference internal" href="../api.html#torch_bsf.core.BezierModel" title="torch_bsf.core.BezierModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">BezierModel</span></code></a> on
+<code class="docutils literal notranslate"><span class="pre">mesh.space</span></code>, a <a class="reference internal" href="../api.html#torch_bsf.core.BezierSpace" title="torch_bsf.core.BezierSpace"><code class="xref py py-class docutils literal notranslate"><span class="pre">BezierSpace</span></code></a> of degree three
 compiled from the mesh. Everything that accepts a model, such as
 differentiation with respect to the points or
-<a class="reference internal" href="../torch_bsf.html#torch_bsf.splitting.subdivide" title="torch_bsf.splitting.subdivide"><code class="xref py py-func docutils literal notranslate"><span class="pre">subdivide()</span></code></a>, accepts this one.</p>
+<a class="reference internal" href="../api.html#torch_bsf.splitting.subdivide" title="torch_bsf.splitting.subdivide"><code class="xref py py-func docutils literal notranslate"><span class="pre">subdivide()</span></code></a>, accepts this one.</p>
 <p>The barycentric coordinates of cell <code class="docutils literal notranslate"><span class="pre">mesh.cell_ids[k]</span></code> refer to the
 vertices <code class="docutils literal notranslate"><span class="pre">mesh.simplices[k]</span></code>, which lists the vertex numbers of simplex
 <code class="docutils literal notranslate"><span class="pre">k</span></code> in ascending order (the order you passed is not kept). A point on a
@@ -263,7 +265,7 @@ controls are the same coefficient rows from both sides, which makes the
 interpolant continuous (C0). It is not C1 in general: gradients across a
 shared face can jump.</p>
 <p>When <code class="docutils literal notranslate"><span class="pre">gradients</span></code> is omitted,
-<a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.estimate_gradients" title="torch_bsf.interpolation.estimate_gradients"><code class="xref py py-func docutils literal notranslate"><span class="pre">estimate_gradients()</span></code></a> fits a quadratic by
+<a class="reference internal" href="../api.html#torch_bsf.interpolation.estimate_gradients" title="torch_bsf.interpolation.estimate_gradients"><code class="xref py py-func docutils literal notranslate"><span class="pre">estimate_gradients()</span></code></a> fits a quadratic by
 weighted least squares (weights <span class="math notranslate nohighlight">\(1/|x_w - x_v|^2\)</span>) to the data on the
 smallest <span class="math notranslate nohighlight">\(k\)</span>-ring of mesh neighbours, <span class="math notranslate nohighlight">\(k \ge 2\)</span>, that has two
 points more than the quadratic has unknowns, and falls back to a linear fit
@@ -341,7 +343,7 @@ guarantee.</p>
 </section>
 <section id="choose-where-to-add-design-points">
 <h2>Choose where to add design points<a class="headerlink" href="#choose-where-to-add-design-points" title="Link to this heading"></a></h2>
-<p><a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.refinement_indicator" title="torch_bsf.interpolation.refinement_indicator"><code class="xref py py-func docutils literal notranslate"><span class="pre">refinement_indicator()</span></code></a> scores each simplex by
+<p><a class="reference internal" href="../api.html#torch_bsf.interpolation.refinement_indicator" title="torch_bsf.interpolation.refinement_indicator"><code class="xref py py-func docutils literal notranslate"><span class="pre">refinement_indicator()</span></code></a> scores each simplex by
 its volume times the difference between the cubic interpolant and linear
 interpolation at its centroid. A large score means the data bend within a
 large cell. Evaluating the response near the midpoint of the longest edge of
@@ -367,7 +369,7 @@ refines a one-dimensional kink, where remeshing is just sorting.</p>
 <span class="k">assert</span> <span class="n">last</span> <span class="o">&lt;</span> <span class="n">first</span> <span class="o">/</span> <span class="mi">4</span>
 </pre></div>
 </div>
-<p>In higher dimensions, <a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.refine" title="torch_bsf.interpolation.refine"><code class="xref py py-func docutils literal notranslate"><span class="pre">refine()</span></code></a> bisects the
+<p>In higher dimensions, <a class="reference internal" href="../api.html#torch_bsf.interpolation.refine" title="torch_bsf.interpolation.refine"><code class="xref py py-func docutils literal notranslate"><span class="pre">refine()</span></code></a> bisects the
 selected simplices at the midpoint of an edge and returns a new mesh. The new
 vertices are appended after the old ones, so the data already observed keep
 their rows; evaluate the response only at the new vertices. The example
@@ -414,11 +416,11 @@ their Delaunay triangulation is not unique. Qhull then returns flat
 simplices, which <code class="docutils literal notranslate"><span class="pre">SimplicialMesh</span></code> rejects as degenerate, and removing them
 leaves cells that split a flat polygon in different ways on its two sides:
 the mesh is not conforming. For the degree-<code class="docutils literal notranslate"><span class="pre">k</span></code> lattice of a simplex, use
-<a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.lattice_mesh" title="torch_bsf.interpolation.lattice_mesh"><code class="xref py py-func docutils literal notranslate"><span class="pre">lattice_mesh()</span></code></a> instead. It returns the Kuhn
+<a class="reference internal" href="../api.html#torch_bsf.interpolation.lattice_mesh" title="torch_bsf.interpolation.lattice_mesh"><code class="xref py py-func docutils literal notranslate"><span class="pre">lattice_mesh()</span></code></a> instead. It returns the Kuhn
 (Freudenthal) triangulation <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../references.html#id49" title="Harold W. Kuhn. Some combinatorial lemmas in topology. IBM Journal of Research and Development, 4(5):518–524, 1960.">Kuh60</a>]</span>: <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">**</span> <span class="pre">d</span></code>
 simplices of equal volume (not congruent for <code class="docutils literal notranslate"><span class="pre">d</span> <span class="pre">&gt;=</span> <span class="pre">3</span></code>) whose vertices are
 the lattice points, in the order of
-<a class="reference internal" href="../torch_bsf.html#torch_bsf.sampling.grid" title="torch_bsf.sampling.grid"><code class="xref py py-func docutils literal notranslate"><span class="pre">grid()</span></code></a> with <code class="docutils literal notranslate"><span class="pre">resolution=k</span></code>, given by their first
+<a class="reference internal" href="../api.html#torch_bsf.sampling.grid" title="torch_bsf.sampling.grid"><code class="xref py py-func docutils literal notranslate"><span class="pre">grid()</span></code></a> with <code class="docutils literal notranslate"><span class="pre">resolution=k</span></code>, given by their first
 <code class="docutils literal notranslate"><span class="pre">d</span></code> barycentric coordinates.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">mixtures</span> <span class="o">=</span> <span class="n">lattice_mesh</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">mixtures</span><span class="o">.</span><span class="n">n_vertices</span><span class="p">,</span> <span class="n">mixtures</span><span class="o">.</span><span class="n">n_simplices</span><span class="p">,</span> <span class="n">mixtures</span><span class="o">.</span><span class="n">unmatched_faces</span><span class="p">)</span>
@@ -427,7 +429,7 @@ the lattice points, in the order of
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>35 64 0
 </pre></div>
 </div>
-<p>Refinement by <a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.refine" title="torch_bsf.interpolation.refine"><code class="xref py py-func docutils literal notranslate"><span class="pre">refine()</span></code></a> keeps a mesh
+<p>Refinement by <a class="reference internal" href="../api.html#torch_bsf.interpolation.refine" title="torch_bsf.interpolation.refine"><code class="xref py py-func docutils literal notranslate"><span class="pre">refine()</span></code></a> keeps a mesh
 conforming. Every simplex has a refinement edge, which <code class="docutils literal notranslate"><span class="pre">rule</span></code> selects. A
 simplex is cut at the midpoint of its refinement edge; the edge is bisected
 in every simplex containing it, and before that each of those simplices
@@ -444,7 +446,7 @@ however: the longest edge of a Kuhn simplex in these coordinates is not the
 diagonal of its cube, so refining every simplex of <code class="docutils literal notranslate"><span class="pre">lattice_mesh(3,</span> <span class="pre">3)</span></code>
 three times gives 186 vertices instead of the 84 of the degree-6 lattice, and
 adaptive refinement spends part of its vertices on closure. With
-<code class="docutils literal notranslate"><span class="pre">rule=&quot;newest_vertex&quot;</span></code>, <a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.refine" title="torch_bsf.interpolation.refine"><code class="xref py py-func docutils literal notranslate"><span class="pre">refine()</span></code></a> uses the
+<code class="docutils literal notranslate"><span class="pre">rule=&quot;newest_vertex&quot;</span></code>, <a class="reference internal" href="../api.html#torch_bsf.interpolation.refine" title="torch_bsf.interpolation.refine"><code class="xref py py-func docutils literal notranslate"><span class="pre">refine()</span></code></a> uses the
 newest-vertex bisection of Maubach <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../references.html#id50" title="Joseph M. Maubach. Local bisection refinement for $n$-simplicial grids generated by reflection. SIAM Journal on Scientific Computing, 16(1):210–227, 1995.">Mau95</a>]</span> instead: the
 simplices of a lattice mesh are ordered along their Kuhn paths, each is cut
 across the diagonal of its cube, and the refined mesh keeps the order and the
@@ -463,7 +465,7 @@ longest_edge 186 634 0
 </pre></div>
 </div>
 <p>The newest-vertex rule needs this state, so it applies to meshes from
-<a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.lattice_mesh" title="torch_bsf.interpolation.lattice_mesh"><code class="xref py py-func docutils literal notranslate"><span class="pre">lattice_mesh()</span></code></a> and their newest-vertex
+<a class="reference internal" href="../api.html#torch_bsf.interpolation.lattice_mesh" title="torch_bsf.interpolation.lattice_mesh"><code class="xref py py-func docutils literal notranslate"><span class="pre">lattice_mesh()</span></code></a> and their newest-vertex
 refinements; other meshes raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p>
 </section>
 <section id="limitations">
@@ -479,11 +481,11 @@ Powell–Sabin) and non-simplicial cells such as prisms are not provided.</p></l
 the gradient estimate; near a sparse boundary only linear data are
 reproduced unless you pass gradients.</p></li>
 <li><p>Computation is in float64 on the CPU.
-<a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.estimate_gradients" title="torch_bsf.interpolation.estimate_gradients"><code class="xref py py-func docutils literal notranslate"><span class="pre">estimate_gradients()</span></code></a> returns signed infinity
+<a class="reference internal" href="../api.html#torch_bsf.interpolation.estimate_gradients" title="torch_bsf.interpolation.estimate_gradients"><code class="xref py py-func docutils literal notranslate"><span class="pre">estimate_gradients()</span></code></a> returns signed infinity
 without a warning for gradient components beyond the float64 range, even
 when the vertex data are finite (for example, on very short edges).
-<a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.hermite_interpolant" title="torch_bsf.interpolation.hermite_interpolant"><code class="xref py py-func docutils literal notranslate"><span class="pre">hermite_interpolant()</span></code></a> and
-<a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.refinement_indicator" title="torch_bsf.interpolation.refinement_indicator"><code class="xref py py-func docutils literal notranslate"><span class="pre">refinement_indicator()</span></code></a> raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>
+<a class="reference internal" href="../api.html#torch_bsf.interpolation.hermite_interpolant" title="torch_bsf.interpolation.hermite_interpolant"><code class="xref py py-func docutils literal notranslate"><span class="pre">hermite_interpolant()</span></code></a> and
+<a class="reference internal" href="../api.html#torch_bsf.interpolation.refinement_indicator" title="torch_bsf.interpolation.refinement_indicator"><code class="xref py py-func docutils literal notranslate"><span class="pre">refinement_indicator()</span></code></a> raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>
 identifying overflow in the interpolant when its controls are non-finite.
 Clamping can clip infinite controls into the vertex data range, but cannot
 repair NaN controls. Rescale the vertex data or coordinates if this occurs.</p></li>
@@ -495,8 +497,8 @@ repair NaN controls. Rescale the vertex data or coordinates if this occurs.</p><
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="simploidal_category.html" class="btn btn-neutral float-left" title="The Category of Simploidal Sets" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="sgd.html" class="btn btn-neutral float-right" title="Objective minimization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="simploidal.html" class="btn btn-neutral float-left" title="Single and assembled domains" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="splitting.html" class="btn btn-neutral float-right" title="Exact local subdivision" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

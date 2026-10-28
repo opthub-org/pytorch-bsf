@@ -100,13 +100,13 @@ guess is not an exact constraint and should not automatically become a
 fixed row. Conversely, a boundary that must remain exact should not be
 represented only by a large sample weight. Resolve rows with
 ``space.control_index`` because coefficient ordering is a property of the
-compiled space. See :doc:`advanced/partial`.
+compiled space. See :doc:`advanced/fixed_controls`.
 
 For an original differentiable cost, construct a ``BezierModel`` with
 explicit coefficients and pass it to ``minimize`` with a typed method.
 Regression ``fit`` has no iterative initial model. Lightning is an optional
 adapter around the common model rather than a regression solver selector.
-See :doc:`advanced/initialization` and :doc:`advanced/sgd`.
+See :doc:`advanced/initial_models` and :doc:`advanced/objective_minimization`.
 
 Replace implicit preprocessing and model storage
 ------------------------------------------------
@@ -144,7 +144,7 @@ Validation and integration changes
 explicitly when that is the intended predictor. Selecting a degree does
 not by itself refit on all observations; perform that final fit with the
 selected configuration. The scikit-learn ``GridSearchCV`` adapter follows
-its own default refit policy. See :doc:`advanced/auto_degree` and
+its own default refit policy. See :doc:`advanced/model_selection` and
 :doc:`advanced/sklearn`.
 
 Before replacing an existing workflow, compare a fixed batch of predictions,

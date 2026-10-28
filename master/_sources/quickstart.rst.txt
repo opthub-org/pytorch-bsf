@@ -150,7 +150,7 @@ the polynomial space and which only choose coefficients within it.
 
    A separate noisy-response example shows why training a higher-degree
    curve is not automatically an improvement. Choose with held-out error,
-   then explicitly refit. See :doc:`advanced/auto_degree` for the exact data,
+   then explicitly refit. See :doc:`advanced/model_selection` for the exact data,
    seed, candidate list and executable search.
 
 Next steps and reproducibility
@@ -161,7 +161,7 @@ Use :doc:`advanced/visualization` to overlay observations and fitted images,
 :doc:`advanced/sampling` to choose additional evaluation or measurement points.
 For an expensive experiment, :doc:`advanced/active_learning` shows how to
 query new true responses, append them and refit. For a cost defined by
-objectives rather than measured targets, use :doc:`advanced/sgd`.
+objectives rather than measured targets, use :doc:`advanced/objective_minimization`.
 
 The CLI exposes operation-specific help, for example
 ``python -m torch_bsf fit --help``. Tracking is explicit and requires the MLflow

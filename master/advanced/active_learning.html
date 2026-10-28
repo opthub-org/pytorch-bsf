@@ -25,7 +25,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Single and assembled domains" href="simploidal.html" />
-    <link rel="prev" title="Solvers and optional execution" href="acceleration.html" /> 
+    <link rel="prev" title="Fixed controls" href="fixed_controls.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -48,30 +48,27 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../advanced.html#follow-a-fit-through-the-guides">Follow a fit through the guides</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
-<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
-<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
-<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
-<li class="toctree-l3"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
-<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
-<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
-<li class="toctree-l3"><a class="reference internal" href="partial.html">Fixed controls</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
-<li class="toctree-l3"><a class="reference internal" href="acceleration.html">Solvers and optional execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Explicit ensembles and active learning</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#when-observations-are-expensive">When observations are expensive</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#build-a-committee">Build a committee</a></li>
@@ -82,20 +79,25 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
-<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
 <li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
 </ul>
 
         </div>
@@ -270,7 +272,7 @@ selection, without promising a speedup or using a fixed timing threshold.</p>
 <section id="tune-the-observation-budget-and-candidate-pool">
 <h2>Tune the observation budget and candidate pool<a class="headerlink" href="#tune-the-observation-budget-and-candidate-pool" title="Link to this heading"></a></h2>
 <table class="docutils align-default" id="id1">
-<caption><span class="caption-number">Table 16 </span><span class="caption-text">Acquisition choices and their effects</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<caption><span class="caption-number">Table 13 </span><span class="caption-text">Acquisition choices and their effects</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
 <colgroup>
 <col style="width: 24.0%" />
 <col style="width: 39.0%" />
@@ -352,7 +354,7 @@ of the failure, or revise the feasible candidate domain.</p>
 <a class="reference internal image-reference" href="../_images/acquisition.png"><img alt="Fold-model predictions and selected experiments, followed by prediction errors before and after acquisition." src="../_images/acquisition.png" style="width: 100%;" />
 </a>
 <figcaption>
-<p><span class="caption-number">Fig. 17 </span><span class="caption-text">Left: four fold models, eight observations, three committee queries and
+<p><span class="caption-number">Fig. 14 </span><span class="caption-text">Left: four fold models, eight observations, three committee queries and
 three coverage queries. Right: absolute error before and after observing
 the exact response at the committee queries and refitting the same cubic
 space. Error can improve in one region and worsen in another.</span><a class="headerlink" href="#id2" title="Link to this image"></a></p>
@@ -371,7 +373,7 @@ budget is exhausted, or several rounds cease to improve the relevant metric.
 Keep the original observations, the exact candidate pool and each round’s
 queries to make the result reproducible. Recompute the committee after each
 round: reusing old members ranks uncertainty under an outdated training set.
-For model selection before acquisition, see <a class="reference internal" href="auto_degree.html"><span class="doc">Cross-validation and degree search</span></a>; for exploratory
+For model selection before acquisition, see <a class="reference internal" href="model_selection.html"><span class="doc">Cross-validation and degree search</span></a>; for exploratory
 candidate generation and coverage, see <a class="reference internal" href="sampling.html"><span class="doc">Sampling and grids</span></a> and <a class="reference internal" href="grid_sampling.html"><span class="doc">Grid sampling</span></a>.</p>
 </section>
 </section>
@@ -380,7 +382,7 @@ candidate generation and coverage, see <a class="reference internal" href="sampl
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="acceleration.html" class="btn btn-neutral float-left" title="Solvers and optional execution" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="fixed_controls.html" class="btn btn-neutral float-left" title="Fixed controls" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="simploidal.html" class="btn btn-neutral float-right" title="Single and assembled domains" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
