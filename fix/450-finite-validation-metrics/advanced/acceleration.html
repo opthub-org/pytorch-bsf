@@ -74,6 +74,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#measured-scaling-on-a-connected-cell-chain">Measured scaling on a connected cell chain</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#optional-execution-and-recording">Optional execution and recording</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#a-complete-single-device-lightning-example">A complete single-device Lightning example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cell-local-prediction-and-transpose-products">Cell-local prediction and transpose products</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
@@ -355,6 +356,44 @@ execution is rejected. Changing precision changes numerical execution and may
 reduce attainable accuracy. Benchmark the actual problem, including transfer
 and setup costs, before choosing a device for speed. These settings belong
 to the application Trainer rather than the core <code class="docutils literal notranslate"><span class="pre">fit</span></code> operation.</p>
+</section>
+<section id="cell-local-prediction-and-transpose-products">
+<h2>Cell-local prediction and transpose products<a class="headerlink" href="#cell-local-prediction-and-transpose-products" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">BasisOperator</span></code> groups observation rows once by cell using a stable sort,
+then reuses those row groups for validation and local basis assembly.
+Grouping costs <code class="docutils literal notranslate"><span class="pre">O(N</span> <span class="pre">log</span> <span class="pre">N)</span></code> and stores <code class="docutils literal notranslate"><span class="pre">O(N)</span></code> row indices, replacing one
+full observation scan per active cell. Products write or add local results
+into one output tensor. They do not copy the complete output once per cell
+or introduce an implicit global dense design matrix. <code class="docutils literal notranslate"><span class="pre">to_dense()</span></code> remains
+an explicit dense allocation, and accumulates repeated control columns
+directly into that matrix. Coordinates and coefficient matrices retain
+first and higher derivatives through these writes.</p>
+<p>Run the reproducible CPU comparison against the previous implementation:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">examples</span><span class="o">/</span><span class="n">benchmark_basis_operator</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">cells</span> <span class="mi">16</span> <span class="mi">64</span> <span class="mi">256</span> \
+    <span class="o">--</span><span class="n">rows</span><span class="o">-</span><span class="n">per</span><span class="o">-</span><span class="n">cell</span> <span class="mi">1</span> <span class="mi">16</span> <span class="o">--</span><span class="n">outputs</span> <span class="mi">1</span> <span class="mi">8</span> <span class="o">--</span><span class="n">repeats</span> <span class="mi">5</span> <span class="o">--</span><span class="n">output</span> <span class="n">basis_operator</span><span class="o">.</span><span class="n">json</span>
+</pre></div>
+</div>
+<p>Each implementation/configuration uses a fresh process and one CPU thread.
+The report contains local operator assembly and product median times,
+profiler counts of full-output copy operations, cumulative copied output
+bytes (call count times output size), profiler-attributed net copy memory,
+and peak process RSS. Assembly timings exclude validation. RSS includes
+Python, imports, input tensors, warmups and profiling; cumulative copy bytes
+are neither peak live memory nor total allocator traffic. In-place local
+writes and autograd intermediates can still allocate memory.</p>
+<p><code class="docutils literal notranslate"><span class="pre">docs/benchmarks/basis_operator_macos.json</span></code> records Python 3.13.12,
+PyTorch 2.10.0 on macOS arm64, using independent degree-1 interval cells,
+interleaved observations and float64. Across all 12 configurations,
+full-output copy calls and cumulative output bytes fall to zero for both
+products. At 256 cells, 16 observations per cell and 8 outputs, forward
+products copy 64 MiB cumulatively in the previous implementation and zero
+with local writes; transpose products drop from 8 MiB to zero. Median
+product times for that case are 2.224 to 0.870 ms (forward) and 1.389 to
+0.943 ms (transpose); process peak RSS is 332.9 versus 327.7 MiB. These
+measurements include process noise: at 64 cells and one observation/output,
+assembly was slower (1.515 to 1.773 ms). The removed scan/copy work is a
+complexity improvement, not a claim of universal speedup. GPU synchronization
+and GPU memory were not measured.</p>
 </section>
 </section>
 
