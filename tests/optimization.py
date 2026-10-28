@@ -433,3 +433,108 @@ def test_smoothness_overflowing_difference_has_finite_gradient():
             initial, loss, points=points, penalty=penalty, method=PreconditionedSGD(max_iter=1, preconditioner="none")
         )
     assert math.isfinite(result.objective)
+
+
+@pytest.mark.parametrize("ridge", [0, 0.1])
+def test_plain_sgd_does_not_allocate_dense_metric(ridge):
+    from unittest.mock import patch
+
+    space = BezierSpace.simplex(1, degree=3)
+    initial = BezierModel(space, torch.zeros(4, 2, dtype=torch.float64))
+    with (
+        patch("torch.eye", side_effect=AssertionError("unexpected identity")),
+        patch("torch.linalg.solve", side_effect=AssertionError("unexpected solve")),
+        patch("torch.linalg.lu_factor", side_effect=AssertionError("unexpected factorization")),
+        pytest.warns(ConvergenceWarning),
+    ):
+        result = minimize(
+            initial,
+            lambda y, p: (y - 1).square().sum(1),
+            points=grid(space, 4),
+            penalty=QuadraticPenalty(ridge=ridge),
+            method=PreconditionedSGD(max_iter=5, preconditioner="none"),
+        )
+    assert result.n_iterations == 5
+
+
+@pytest.mark.parametrize("step_decay", ["constant", "sqrt"])
+@pytest.mark.parametrize("smoothness", [0, 0.1])
+def test_preconditioner_factorization_reused(step_decay, smoothness):
+    from unittest.mock import patch
+
+    space = BezierSpace.simplex(1, degree=3)
+    initial = BezierModel(space, torch.zeros(4, 1, dtype=torch.float64))
+    with patch("torch.linalg.lu_factor", wraps=torch.linalg.lu_factor) as factor, pytest.warns(ConvergenceWarning):
+        minimize(
+            initial,
+            lambda y, p: (y[:, 0] - 1).square(),
+            points=grid(space, 4),
+            penalty=QuadraticPenalty(smoothness=smoothness),
+            method=PreconditionedSGD(max_iter=5, step_decay=step_decay),
+        )
+    assert factor.call_count == (5 if smoothness and step_decay == "sqrt" else 1)
+
+
+@pytest.mark.parametrize("preconditioner", ["none", "gram"])
+@pytest.mark.parametrize("step_decay", ["constant", "sqrt"])
+@pytest.mark.parametrize("ridge,smoothness", [(0, 0), (0.1, 0), (0, 0.1), (0.1, 0.1)])
+@pytest.mark.parametrize("constrained", [True, False])
+def test_cached_updates_match_reference(preconditioner, step_decay, ridge, smoothness, constrained):
+    from torch_bsf.optimization import gram_matrix
+
+    space = BezierSpace.simplex(1, degree=2)
+    points = grid(space, 4)
+    initial = BezierModel(space, torch.tensor([[0.0, 0.1], [0.2, 0.3], [0.4, 0.5]], dtype=torch.float64))
+    reference = initial.coefficients.detach().clone().requires_grad_()
+    free = torch.tensor([not constrained, True, True])
+    metric = gram_matrix(space) if preconditioner == "gram" else torch.eye(3, dtype=torch.float64)
+    regularizer = torch.eye(3, dtype=torch.float64) * ridge
+    for i, j in space.adjacency().tolist():
+        regularizer[i, i] += smoothness
+        regularizer[j, j] += smoothness
+        regularizer[i, j] -= smoothness
+        regularizer[j, i] -= smoothness
+    basis = space.basis(points)
+    for k in range(5):
+        value = (basis.matmat(reference) - 1).square().sum(1).mean() + ridge * reference.square().sum()
+        edges = space.adjacency()
+        value = value + smoothness * (reference[edges[:, 0]] - reference[edges[:, 1]]).square().sum()
+        (gradient,) = torch.autograd.grad(value, reference)
+        alpha = 0.01 / math.sqrt(k + 1) if step_decay == "sqrt" else 0.01
+        direction = torch.linalg.solve((metric + 2 * alpha * regularizer)[free][:, free], gradient[free])
+        with torch.no_grad():
+            reference[free] -= alpha * direction
+    with pytest.warns(ConvergenceWarning):
+        result = minimize(
+            initial,
+            lambda y, p: (y - 1).square().sum(1),
+            points=points,
+            fixed=FixedControls({0: initial.coefficients[0]}) if constrained else None,
+            penalty=QuadraticPenalty(ridge=ridge, smoothness=smoothness),
+            method=PreconditionedSGD(max_iter=5, step_size=0.01, preconditioner=preconditioner, step_decay=step_decay),
+            seed=0,
+        )
+    # Five small updates with <=3 control solves, summations and penalty scaling:
+    # 512u allows accumulated float64 roundoff in equivalent LU/diagonal paths.
+    torch.testing.assert_close(result.model.coefficients, reference, rtol=512 * 2**-53, atol=512 * 2**-53)
+
+
+@given(scale=extreme_scalings(400))
+def test_diagonal_sgd_scale_invariance(scale):
+    space = BezierSpace.simplex(1, degree=1)
+    controls = torch.tensor([[scale], [-scale]], dtype=torch.float64)
+    initial = BezierModel(space, controls)
+    with pytest.warns(ConvergenceWarning):
+        result = minimize(
+            initial,
+            lambda y, p: y[:, 0].square(),
+            points=grid(space, 1),
+            penalty=QuadraticPenalty(ridge=0.25),
+            method=PreconditionedSGD(max_iter=1, step_size=0.1, preconditioner="none"),
+            seed=0,
+        )
+    # Endpoints give gradient=P, so the regularized update multiplies by 6/7.
+    # Six scalar operations in the update plus penalty gradients fit within 32u.
+    torch.testing.assert_close(
+        result.model.coefficients / scale, torch.tensor([[6 / 7], [-6 / 7]], dtype=torch.float64), rtol=32 * 2**-53, atol=0
+    )

@@ -251,6 +251,49 @@ def _prepare_regularizer(
     return lambda alpha: _regularizer(topology, penalty, alpha, size, device)
 
 
+def _prepare_step(
+    model: BezierModel,
+    method: PreconditionedSGD,
+    penalty: QuadraticPenalty,
+    free: torch.Tensor,
+    cell_weights: Mapping[int | Simploid, float] | None,
+) -> Callable[[torch.Tensor, float], tuple[torch.Tensor, float]]:
+    if method.preconditioner == "none" and not penalty.smoothness:
+        if not penalty.ridge:
+            return lambda gradient, alpha: (gradient, alpha)
+
+        def diagonal_step(gradient: torch.Tensor, alpha: float) -> tuple[torch.Tensor, float]:
+            denominator = 1 + (penalty.ridge * alpha) * 2
+            if not math.isfinite(denominator):
+                raise ArithmeticError("optimization metric matrix is not representable in float64.")
+            rhs, update_alpha = _scaled_gradient(gradient, alpha)
+            return rhs / denominator, update_alpha
+
+        return diagonal_step
+    metric = (
+        gram_matrix(model.space, cell_weights=cell_weights)
+        if method.preconditioner == "gram"
+        else torch.eye(len(free), dtype=torch.float64)
+    )
+    selected = free.cpu()
+    metric = metric[selected][:, selected].to(device=_optimization_device(model.coefficients))
+    regularizer_for = _prepare_regularizer(model, penalty, free)
+    regularized = bool(penalty.ridge or penalty.smoothness)
+    factor: tuple[torch.Tensor, torch.Tensor] | None = None
+
+    def step(gradient: torch.Tensor, alpha: float) -> tuple[torch.Tensor, float]:
+        nonlocal factor
+        if factor is None or (regularized and method.step_decay == "sqrt"):
+            regularizer = regularizer_for(alpha)
+            matrix = metric if regularizer is None else metric + regularizer
+            factor = torch.linalg.lu_factor(_finite_metric(matrix))
+        rhs, update_alpha = _scaled_gradient(gradient, alpha)
+        result: torch.Tensor = torch.linalg.lu_solve(factor[0], factor[1], rhs)
+        return result, update_alpha
+
+    return step
+
+
 def minimize(
     model: BezierModel,
     loss: Loss,
@@ -323,15 +366,7 @@ def minimize(
             0,
             seed,
         )
-    metric = (
-        gram_matrix(model.space, cell_weights=cell_weights)
-        if method.preconditioner == "gram"
-        else torch.eye(len(p), dtype=torch.float64)
-    )
-    cpu_free = free.cpu()
-    metric = metric[cpu_free][:, cpu_free].to(device=_optimization_device(p))
-    regularizer_for = _prepare_regularizer(fitted, penalty, free)
-    cached_matrix: torch.Tensor | None = None
+    step_for = _prepare_step(fitted, method, penalty, free, cell_weights)
     generator = _generator(None if seed is None else seed + 1)
     history: list[Iteration] = []
     success, status, message = False, "iteration_limit", "Iteration budget exhausted; convergence was not established."
@@ -352,12 +387,7 @@ def minimize(
             status, message = "callback_stop", "Stopped by callback; convergence was not established."
             break
         alpha = method.step_size / math.sqrt(k + 1) if method.step_decay == "sqrt" else method.step_size
-        if cached_matrix is None or method.step_decay == "sqrt":
-            regularizer = regularizer_for(alpha)
-            cached_matrix = metric if regularizer is None else metric + regularizer
-        matrix = cached_matrix
-        rhs, update_alpha = _scaled_gradient(gradient[free], alpha)
-        direction = torch.linalg.solve(_finite_metric(matrix), rhs)
+        direction, update_alpha = step_for(gradient[free], alpha)
         _update(p, free, update_alpha, direction)
     final = _objective(fitted, loss, batch, penalty).item()
     result = OptimizationResult(fitted, tuple(history), success, status, message, final, len(history), seed)

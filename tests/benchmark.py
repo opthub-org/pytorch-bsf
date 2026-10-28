@@ -90,3 +90,22 @@ def test_benchmark_fit_lstsq(benchmark):
     params = simplex_grid(n_params=3, degree=10)
     values = params.pow(2).sum(dim=1, keepdim=True)
     benchmark(lambda: engine_api.fit(params=params, values=values, degree=4))
+
+
+@pytest.mark.benchmark(group="minimize-public")
+@pytest.mark.parametrize("preconditioner", ["none", "gram"])
+def test_benchmark_public_minimize(benchmark, preconditioner):
+    """Keep the current public optimization path in the benchmark suite."""
+    import warnings
+
+    from torch_bsf import BezierModel, BezierSpace, PreconditionedSGD, minimize
+    from torch_bsf.results import ConvergenceWarning
+    from torch_bsf.sampling import sample
+
+    space = BezierSpace.simplex(2, degree=3)
+    initial = BezierModel(space, torch.zeros(space.n_controls, 2, dtype=torch.float64))
+    points = sample(space, 100, seed=7)
+    method = PreconditionedSGD(max_iter=5, preconditioner=preconditioner)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ConvergenceWarning)
+        benchmark(lambda: minimize(initial, lambda y, p: (y - 1).square().sum(1), points=points, method=method, seed=7))

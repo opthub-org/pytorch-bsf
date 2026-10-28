@@ -632,3 +632,45 @@ seeds and complete method settings. The saved numerical model predicts outputs,
 but it does not serialize the Python callable defining the optimization task.
 A later user needs that callable and its objective units to interpret the
 reported final objective or continue an experiment reliably.
+
+Preconditioner storage and repeated solves
+------------------------------------------
+
+With ``preconditioner="none"`` and no smoothness penalty, updates use elementwise
+arithmetic. No control-by-control matrix is constructed, including ridge-only
+runs, where the denominator is ``1 + 2 * alpha * ridge`` with ``alpha`` the current
+decayed step size. Gram metrics and
+smoothness still require dense control matrices. Their LU factorization is
+reused when the matrix is constant: constant learning rates, or either decay
+schedule without penalties. A square-root learning-rate schedule with active
+regularization changes the matrix and recomputes its factorization each update.
+Fixed controls select the same free-control submatrix as the reference solve.
+
+Run the public optimizer benchmark from a checkout with::
+
+    PYTHONPATH=. python examples/benchmark_minimize.py \
+        --controls 16 64 256 --iterations 5 20 --repeats 3 \
+        --output minimize-benchmark.json
+
+Each size, budget and preconditioner runs in a fresh CPU process. JSON records
+Python/PyTorch/platform versions, float64 precision, threads, two output columns,
+elapsed optimizer time, pre-optimizer high-water RSS and total peak RSS. Imports
+and input construction are outside the timer but contribute to RSS; use multiple
+trials on the same machine to assess variation. Unit tests count allocations and
+factorizations and compare mathematical updates rather than asserting seconds.
+The legacy ``tests/benchmark.py`` suite also includes public ``minimize`` cases.
+
+One macOS arm64/Python 3.13.12/PyTorch 2.10.0 CPU run with one thread compared the
+previous solves with these updates. At 16 controls and 20 updates, plain SGD took
+0.033 s before and 0.036 s after, with peak RSS 222.0/223.1 MiB. At 64 controls it
+took 0.092/0.092 s and 223.4/222.9 MiB; Gram updates took 0.092/0.092 s and
+226.7/223.8 MiB. These single trials illustrate the benchmark format; they do not
+establish a reliable speedup or a reduction in whole-process peak memory. The
+allocation and factorization counts establish the computational savings.
+
+The benchmark separately profiles basis construction, outside its time/RSS
+measurement: fixed full batches currently construct local bases once per update
+plus the final evaluation. Reusing those blocks would require preserving the
+parameter-coordinate autograd graph across updates and handling minibatch row
+selection. That change is deferred; this optimization does not introduce a global
+dense basis or change differentiation through sample coordinates.
