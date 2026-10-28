@@ -1,0 +1,489 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solvers and optional execution &mdash; PyTorch-BSF 0.23.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2753bf86"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Explicit ensembles and active learning" href="active_learning.html" />
+    <link rel="prev" title="Optimal skeleton sampling" href="skeleton_sampling.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#follow-a-fit-through-the-guides">Follow a fit through the guides</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initialization.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="auto_degree.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="partial.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Solvers and optional execution</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#choosing-a-solver">Choosing a solver</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lsmr-settings-and-termination">LSMR settings and termination</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#measured-scaling-on-a-connected-cell-chain">Measured scaling on a connected cell chain</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#optional-execution-and-recording">Optional execution and recording</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#a-complete-single-device-lightning-example">A complete single-device Lightning example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cell-local-prediction-and-transpose-products">Cell-local prediction and transpose products</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sgd.html">Objective minimization</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">API reference guide</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Solvers and optional execution</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/acceleration.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="solvers-and-optional-execution">
+<h1>Solvers and optional execution<a class="headerlink" href="#solvers-and-optional-execution" title="Link to this heading"></a></h1>
+<p>Use typed solver settings in core regression:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.solvers</span><span class="w"> </span><span class="kn">import</span> <span class="n">DenseLeastSquares</span><span class="p">,</span> <span class="n">SparseLeastSquares</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="n">SparseLeastSquares</span><span class="p">(</span><span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">,</span> <span class="n">btol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>SciPy is imported only when a sparse solve executes. The sparse backend
+assembles local basis blocks and penalty entries directly into CSR without a
+global dense design matrix. Dense solves use augmented SVD, not normal equations.</p>
+<section id="choosing-a-solver">
+<h2>Choosing a solver<a class="headerlink" href="#choosing-a-solver" title="Link to this heading"></a></h2>
+<p>Start with <code class="docutils literal notranslate"><span class="pre">DenseLeastSquares()</span></code> for small and medium problems. It computes
+a direct SVD solution with rank and singular values. <code class="docutils literal notranslate"><span class="pre">SparseLeastSquares</span></code> is
+useful when there are many cells and each observation touches only a few of the
+global controls. Install <code class="docutils literal notranslate"><span class="pre">pytorch-bsf[sparse]</span></code> to execute it. Constructing the
+configuration object requires no SciPy import.</p>
+<p>Switching solvers preserves the Bezier space: domain, degrees, shared controls,
+fixed values and the mathematical objective all stay the same. It changes how
+the linear problem is stored and solved. Sparse predictions approach the dense
+solution as LSMR converges; the tolerance and stopping budget can affect the
+approximation. The comparison in <a class="reference internal" href="regularization.html"><span class="doc">Regularization and numerical evidence</span></a> uses both backends and
+checks their predictions before drawing each curve.</p>
+<p>For an augmented matrix with <code class="docutils literal notranslate"><span class="pre">R</span></code> rows, <code class="docutils literal notranslate"><span class="pre">C</span></code> free columns and <code class="docutils literal notranslate"><span class="pre">nnz</span></code> nonzero
+entries, dense storage grows as <code class="docutils literal notranslate"><span class="pre">R</span> <span class="pre">*</span> <span class="pre">C</span></code>. Sparse CSR stores nonzero entries and
+indices, so it helps when <code class="docutils literal notranslate"><span class="pre">nnz</span></code> is much smaller. It is assembled directly from
+local Bernstein blocks and penalty entries, summing contributions that refer
+to the same shared row. A single large simploid can have a generally dense
+observation matrix and need not benefit from the sparse backend.</p>
+</section>
+<section id="lsmr-settings-and-termination">
+<h2>LSMR settings and termination<a class="headerlink" href="#lsmr-settings-and-termination" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">atol</span></code> and <code class="docutils literal notranslate"><span class="pre">btol</span></code> are backward-error tolerances, not requested digits in the
+control points or prediction MSE. For the augmented matrix <code class="docutils literal notranslate"><span class="pre">A</span></code>, right-hand
+side <code class="docutils literal notranslate"><span class="pre">b</span></code> and residual <code class="docutils literal notranslate"><span class="pre">r=b-Ax</span></code>, compatible-system termination tests
+<code class="docutils literal notranslate"><span class="pre">norm(r)</span> <span class="pre">&lt;=</span> <span class="pre">atol*norm(A)*norm(x)</span> <span class="pre">+</span> <span class="pre">btol*norm(b)</span></code>; least-squares termination
+tests <code class="docutils literal notranslate"><span class="pre">norm(A.T&#64;r)</span> <span class="pre">&lt;=</span> <span class="pre">atol*norm(A)*norm(r)</span></code>. Set tolerances in light of input
+accuracy; tighter tolerances can require more iterations without improving
+statistical prediction accuracy.</p>
+<p><code class="docutils literal notranslate"><span class="pre">conlim</span></code> stops on an estimated condition-number limit; zero disables that
+limit. Raising it permits more ill-conditioned iterations, which does not
+repair missing data. <code class="docutils literal notranslate"><span class="pre">max_iter</span></code> is a per-output budget; <code class="docutils literal notranslate"><span class="pre">None</span></code> uses LSMR’s
+default, the smaller augmented matrix dimension. Increase the budget after
+examining why an earlier run stopped. There is no automatic dense fallback.</p>
+<p>These settings follow the
+<a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.lsmr.html">SciPy LSMR specification</a>.
+Ridge is represented by explicit augmented rows shared with the dense solver;
+an additional LSMR damping term is not applied.</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-number">Table 14 </span><span class="caption-text">LSMR termination reported for every output column</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 60.0%" />
+<col style="width: 25.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Stop code</p></th>
+<th class="head"><p>Meaning</p></th>
+<th class="head"><p>Output success</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>Zero is a solution</p></td>
+<td><p>True</p></td>
+</tr>
+<tr class="row-odd"><td><p>1 / 2</p></td>
+<td><p>Compatible / least-squares backward-error tolerance reached</p></td>
+<td><p>True</p></td>
+</tr>
+<tr class="row-even"><td><p>4 / 5</p></td>
+<td><p>Corresponding machine-precision tolerance reached</p></td>
+<td><p>True</p></td>
+</tr>
+<tr class="row-odd"><td><p>3 / 6</p></td>
+<td><p>Configured / machine-precision condition limit reached</p></td>
+<td><p>False</p></td>
+</tr>
+<tr class="row-even"><td><p>7</p></td>
+<td><p>Iteration budget exhausted</p></td>
+<td><p>False</p></td>
+</tr>
+</tbody>
+</table>
+<p>Non-finite output or diagnostic quantities override any apparent success.
+Inspect <code class="docutils literal notranslate"><span class="pre">diagnostics.output_success</span></code>, <code class="docutils literal notranslate"><span class="pre">output_statuses</span></code>, <code class="docutils literal notranslate"><span class="pre">stop_codes</span></code>,
+<code class="docutils literal notranslate"><span class="pre">iterations</span></code>, <code class="docutils literal notranslate"><span class="pre">residual_norms</span></code>, <code class="docutils literal notranslate"><span class="pre">normal_residual_norms</span></code> and
+<code class="docutils literal notranslate"><span class="pre">condition_estimates</span></code>. These residuals refer to the <em>augmented</em> problem, not
+the unpenalized observation error. <code class="docutils literal notranslate"><span class="pre">result.success</span></code> is true only if every
+output succeeds; <code class="docutils literal notranslate"><span class="pre">require_success()</span></code> raises with the result attached otherwise.</p>
+<p>Sparse condition numbers are estimates. Rank and singular values remain
+<code class="docutils literal notranslate"><span class="pre">None</span></code>; requesting a sparse fit never densifies the matrix for diagnostics.
+With zero initial iterate, an unregularized rank-deficient or underdetermined
+problem is approached in the minimum-norm free-coefficient subspace. Compare
+predictions and objective values first: finite-precision stopping can leave
+weakly determined coefficients different from a truncated-SVD solution.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">Samples</span><span class="p">,</span> <span class="n">fit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.solvers</span><span class="w"> </span><span class="kn">import</span> <span class="n">SparseLeastSquares</span>
+
+<span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">Samples</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="p">[[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">2.</span><span class="p">],</span> <span class="p">[</span><span class="mf">3.</span><span class="p">,</span> <span class="mf">4.</span><span class="p">]])</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="n">SparseLeastSquares</span><span class="p">(</span><span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">,</span> <span class="n">btol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">))</span>
+<span class="n">result</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">diagnostics</span><span class="o">.</span><span class="n">driver</span> <span class="o">==</span> <span class="s2">"lsmr"</span>
+<span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">diagnostics</span><span class="o">.</span><span class="n">output_success</span> <span class="o">==</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">diagnostics</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">rank</span> <span class="ow">is</span> <span class="kc">None</span>
+</pre></div>
+</div>
+</section>
+<section id="measured-scaling-on-a-connected-cell-chain">
+<h2>Measured scaling on a connected cell chain<a class="headerlink" href="#measured-scaling-on-a-connected-cell-chain" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">examples/benchmark_least_squares.py</span></code> measures each backend in a fresh process,
+including basis/penalty assembly and solving in elapsed fit time. Inputs and
+imports precede the timer. Peak RSS is the OS process high-water resident set
+through the solve, including Python, imports and inputs; it is not just matrix
+storage, GPU memory or Python <code class="docutils literal notranslate"><span class="pre">tracemalloc</span></code> allocations. The script captures
+peak RSS before inspecting <code class="docutils literal notranslate"><span class="pre">nnz</span></code>. Each process runs one fit with one CPU thread.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"pytorch-bsf[sparse]"</span><span class="w"> </span>psutil
+python<span class="w"> </span>examples/benchmark_least_squares.py<span class="w"> </span>--cells<span class="w"> </span><span class="m">16</span><span class="w"> </span><span class="m">64</span><span class="w"> </span><span class="m">256</span><span class="w"> </span>--repeats<span class="w"> </span><span class="m">3</span><span class="w"> </span>--output<span class="w"> </span>benchmark.json
+</pre></div>
+</div>
+<p>The following medians are one Windows measurement with Python 3.12.6,
+PyTorch 2.4.1, NumPy 2.1.1 and SciPy 1.14.1, an Intel Family 6 Model 191 CPU
+(16 logical processors, one compute thread). All trials succeeded. The chain
+has degree 3, two outputs and 20 observations per cell, with ridge <code class="docutils literal notranslate"><span class="pre">1e-4</span></code>
+and smoothness <code class="docutils literal notranslate"><span class="pre">1e-3</span></code>. Sparse tolerances were <code class="docutils literal notranslate"><span class="pre">atol=btol=1e-10</span></code> and the
+per-output iteration budget was 2000.</p>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-number">Table 15 </span><span class="caption-text">Median of three fresh-process trials</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Cells</p></th>
+<th class="head"><p>Observations</p></th>
+<th class="head"><p>Controls</p></th>
+<th class="head"><p>nnz</p></th>
+<th class="head"><p>Dense seconds</p></th>
+<th class="head"><p>Sparse seconds</p></th>
+<th class="head"><p>Dense peak MiB</p></th>
+<th class="head"><p>Sparse peak MiB</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>16</p></td>
+<td><p>320</p></td>
+<td><p>49</p></td>
+<td><p>1,329</p></td>
+<td><p>0.012</p></td>
+<td><p>0.364</p></td>
+<td><p>182.3</p></td>
+<td><p>193.3</p></td>
+</tr>
+<tr class="row-odd"><td><p>64</p></td>
+<td><p>1,280</p></td>
+<td><p>193</p></td>
+<td><p>5,313</p></td>
+<td><p>0.040</p></td>
+<td><p>0.292</p></td>
+<td><p>193.5</p></td>
+<td><p>194.8</p></td>
+</tr>
+<tr class="row-even"><td><p>256</p></td>
+<td><p>5,120</p></td>
+<td><p>769</p></td>
+<td><p>21,249</p></td>
+<td><p>1.746</p></td>
+<td><p>0.383</p></td>
+<td><p>301.4</p></td>
+<td><p>199.4</p></td>
+</tr>
+</tbody>
+</table>
+<p>The sparse backend saved memory and time at 256 cells in this run; the dense
+backend was faster for the smaller cases. Startup costs and the machine affect
+the crossover. This is evidence for this connected chain, not a general speedup
+claim for all spaces. The complete per-trial records, objective values, stop
+codes, matrix dimensions and machine metadata are available in
+<a class="reference download internal" download="" href="../_downloads/4025ae4b3286d54e11857dc6d906c20f/least_squares_windows.json"><code class="xref download docutils literal notranslate"><span class="pre">the</span> <span class="pre">raw</span> <span class="pre">JSON</span></code></a>.</p>
+</section>
+<section id="optional-execution-and-recording">
+<h2>Optional execution and recording<a class="headerlink" href="#optional-execution-and-recording" title="Link to this heading"></a></h2>
+<p>Lightning is a separate opt-in execution adapter:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.integrations.lightning</span><span class="w"> </span><span class="kn">import</span> <span class="n">regression_module</span>
+<span class="n">module</span> <span class="o">=</span> <span class="n">regression_module</span><span class="p">(</span><span class="n">initial_model</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">learning_rate</span><span class="o">=</span><span class="mf">.01</span><span class="p">)</span>
+<span class="c1"># Trainer is owned by the application; use one device and a one-item loader.</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">train_dataloaders</span><span class="o">=</span><span class="n">loader</span><span class="p">)</span>
+<span class="n">trained_model</span> <span class="o">=</span> <span class="n">module</span><span class="o">.</span><span class="n">bezier_model</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The adapter uses the same complete weighted penalized regression objective.
+Trainer precision, scheduling and device settings do not leak into <code class="docutils literal notranslate"><span class="pre">fit</span></code>.
+The adapter rejects distributed execution rather than silently changing weights.</p>
+<p>MLflow recording is explicit:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.integrations.mlflow</span><span class="w"> </span><span class="kn">import</span> <span class="n">log_result</span>
+<span class="n">run_id</span> <span class="o">=</span> <span class="n">log_result</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">tracking_uri</span><span class="o">=</span><span class="s2">"sqlite:///experiments.db"</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Metrics, diagnostics and the versioned model artifact are recorded. Importing
+or executing core fitting never enables autologging or starts an experiment.</p>
+</section>
+<section id="a-complete-single-device-lightning-example">
+<h2>A complete single-device Lightning example<a class="headerlink" href="#a-complete-single-device-lightning-example" title="Link to this heading"></a></h2>
+<p>Use this adapter when an application already owns a Trainer and needs its
+execution lifecycle. A one-item loader triggers one complete-objective update
+per epoch; it does not split observation weights into independently normalized
+minibatches. Keep a direct least-squares fit as a reference when assessing an
+iterative run’s convergence.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataLoader</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lightning.pytorch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Trainer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">BezierModel</span><span class="p">,</span> <span class="n">Samples</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.integrations.lightning</span><span class="w"> </span><span class="kn">import</span> <span class="n">regression_module</span>
+
+<span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">initial</span> <span class="o">=</span> <span class="n">BezierModel</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">space</span><span class="o">.</span><span class="n">n_controls</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
+<span class="n">samples</span> <span class="o">=</span> <span class="n">Samples</span><span class="p">([[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">]],</span> <span class="p">[[</span><span class="mf">1.</span><span class="p">],</span> <span class="p">[</span><span class="mf">2.</span><span class="p">]])</span>
+<span class="n">module</span> <span class="o">=</span> <span class="n">regression_module</span><span class="p">(</span><span class="n">initial</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">learning_rate</span><span class="o">=</span><span class="mf">.01</span><span class="p">)</span>
+<span class="n">trainer</span> <span class="o">=</span> <span class="n">Trainer</span><span class="p">(</span><span class="n">accelerator</span><span class="o">=</span><span class="s2">"cpu"</span><span class="p">,</span> <span class="n">devices</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_epochs</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                  <span class="n">logger</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">enable_checkpointing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                  <span class="n">enable_progress_bar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">enable_model_summary</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">trainer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="n">train_dataloaders</span><span class="o">=</span><span class="n">DataLoader</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+<span class="n">trained</span> <span class="o">=</span> <span class="n">module</span><span class="o">.</span><span class="n">bezier_model</span><span class="p">()</span>
+<span class="k">assert</span> <span class="n">trained</span><span class="o">.</span><span class="n">coefficients</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">float64</span>
+<span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">initial</span><span class="o">.</span><span class="n">coefficients</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">initial</span><span class="o">.</span><span class="n">coefficients</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>This is an execution smoke example, not a claim of convergence in three
+updates. <code class="docutils literal notranslate"><span class="pre">learning_rate</span></code> controls Adam’s update scale: increasing it can
+accelerate early progress but overshoot; decreasing it can improve late-stage
+stability while requiring more updates. <code class="docutils literal notranslate"><span class="pre">max_epochs</span></code> changes the number of
+updates with this loader. Compare the full objective and predictions with
+the direct regression reference before declaring an iterative fit complete.</p>
+<p>Increasing devices does not distribute this adapter’s objective; distributed
+execution is rejected. Changing precision changes numerical execution and may
+reduce attainable accuracy. Benchmark the actual problem, including transfer
+and setup costs, before choosing a device for speed. These settings belong
+to the application Trainer rather than the core <code class="docutils literal notranslate"><span class="pre">fit</span></code> operation.</p>
+</section>
+<section id="cell-local-prediction-and-transpose-products">
+<h2>Cell-local prediction and transpose products<a class="headerlink" href="#cell-local-prediction-and-transpose-products" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">BasisOperator</span></code> groups observation rows once by cell using a stable sort,
+then reuses those row groups for validation and local basis assembly.
+Grouping costs <code class="docutils literal notranslate"><span class="pre">O(N</span> <span class="pre">log</span> <span class="pre">N)</span></code> and stores <code class="docutils literal notranslate"><span class="pre">O(N)</span></code> row indices, replacing one
+full observation scan per active cell. Products write or add local results
+into one output tensor. They do not copy the complete output once per cell
+or introduce an implicit global dense design matrix. <code class="docutils literal notranslate"><span class="pre">to_dense()</span></code> remains
+an explicit dense allocation, and accumulates repeated control columns
+directly into that matrix. Coordinates and coefficient matrices retain
+first and higher derivatives through these writes.</p>
+<p>Run the reproducible CPU comparison against the previous implementation:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">examples</span><span class="o">/</span><span class="n">benchmark_basis_operator</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">cells</span> <span class="mi">16</span> <span class="mi">64</span> <span class="mi">256</span> \
+    <span class="o">--</span><span class="n">rows</span><span class="o">-</span><span class="n">per</span><span class="o">-</span><span class="n">cell</span> <span class="mi">1</span> <span class="mi">16</span> <span class="o">--</span><span class="n">outputs</span> <span class="mi">1</span> <span class="mi">8</span> <span class="o">--</span><span class="n">repeats</span> <span class="mi">5</span> <span class="o">--</span><span class="n">output</span> <span class="n">basis_operator</span><span class="o">.</span><span class="n">json</span>
+</pre></div>
+</div>
+<p>Each implementation/configuration uses a fresh process and one CPU thread.
+The report contains local operator assembly and product median times,
+profiler counts of full-output copy operations, cumulative copied output
+bytes (call count times output size), profiler-attributed net copy memory,
+and peak process RSS. Assembly timings exclude validation. RSS includes
+Python, imports, input tensors, warmups and profiling; cumulative copy bytes
+are neither peak live memory nor total allocator traffic. In-place local
+writes and autograd intermediates can still allocate memory.</p>
+<p><code class="docutils literal notranslate"><span class="pre">docs/benchmarks/basis_operator_macos.json</span></code> records Python 3.13.12,
+PyTorch 2.10.0 on macOS arm64, using independent degree-1 interval cells,
+interleaved observations and float64. Across all 12 configurations,
+full-output copy calls and cumulative output bytes fall to zero for both
+products. At 256 cells, 16 observations per cell and 8 outputs, forward
+products copy 64 MiB cumulatively in the previous implementation and zero
+with local writes; transpose products drop from 8 MiB to zero. Median
+product times for that case are 2.224 to 0.870 ms (forward) and 1.389 to
+0.943 ms (transpose); process peak RSS is 332.9 versus 327.7 MiB. These
+measurements include process noise: at 64 cells and one observation/output,
+assembly was slower (1.515 to 1.773 ms). The removed scan/copy work is a
+complexity improvement, not a claim of universal speedup. GPU synchronization
+and GPU memory were not measured.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="skeleton_sampling.html" class="btn btn-neutral float-left" title="Optimal skeleton sampling" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="active_learning.html" class="btn btn-neutral float-right" title="Explicit ensembles and active learning" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: fix/515-sobol-default-dtype
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/advanced/acceleration.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/advanced/acceleration.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/advanced/acceleration.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/advanced/acceleration.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/advanced/acceleration.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/advanced/acceleration.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/advanced/acceleration.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/advanced/acceleration.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/advanced/acceleration.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/advanced/acceleration.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/advanced/acceleration.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/advanced/acceleration.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="acceleration.html">fix/515-sobol-default-dtype</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
