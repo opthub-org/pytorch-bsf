@@ -2079,3 +2079,14 @@ def test_vertex_only_space_preserves_numpy_scalar_degree(integer):
     assert actual.degree == expected.degree == 3
     assert actual.simploid_degree(degenerate_edge) == expected.simploid_degree(degenerate_edge) == (3,)
     assert torch.equal(actual.control_points(degenerate_edge), expected.control_points(degenerate_edge))
+
+
+def test_scalar_degree_ignores_default_degree():
+    domain = SimploidalSet()
+    domain.add_simplex(1)
+    expected = SimploidalBezierSpace(domain, 2, n_values=1)
+    actual = SimploidalBezierSpace(domain, 2, n_values=1, default_degree=0)
+    assert actual.degree == expected.degree
+    from torch_bsf import BezierSpace
+
+    assert BezierSpace.on_set(domain, degree=2, default_degree=0).compatible(BezierSpace.on_set(domain, degree=2))

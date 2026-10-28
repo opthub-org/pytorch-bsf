@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from numbers import Integral
 
 import torch
 
@@ -150,14 +151,16 @@ def select_degree(
     Invalid degrees raise; failed numerical solves remain visible and cannot
     win. To refit, explicitly call ``fit(result.best_space, samples, ...)``.
     """
-    if not degrees:
+    if len(degrees) == 0:
         raise ValueError("degrees must contain at least one candidate.")
     candidates = []
     splits = cv.split(len(samples))
     for degree in degrees:
         compiled = space.with_degree(degree)
         evaluated = _cross_validate(compiled, samples, splits, solver, penalty, None)
-        candidates.append(DegreeCandidate(degree if isinstance(degree, int) else tuple(degree), compiled, evaluated))
+        candidates.append(
+            DegreeCandidate(int(degree) if isinstance(degree, (int, Integral)) else tuple(degree), compiled, evaluated)
+        )
     eligible = [k for k, c in enumerate(candidates) if c.validation.success]
     best = min(eligible, key=lambda k: candidates[k].validation.metrics["pooled_mse"]) if eligible else None
     return DegreeSearchResult(tuple(candidates), best)

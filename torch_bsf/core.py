@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
+from numbers import Integral
 from types import MappingProxyType
 from typing import Any
 
@@ -190,8 +191,9 @@ class BezierSpace:
         """Recompile the same frozen domain at another degree for model selection."""
         if not self._topology:
             return BezierSpace.simploid(self.cells[0].dimensions, degree=degree)
-        if not isinstance(degree, int):
+        if not isinstance(degree, Integral):
             raise ValueError("a multi-cell degree candidate must be a scalar degree.")
+        degree = _structural_integer(degree, "degree", 1)
         from torch_bsf._kernels.sets import _canonical
 
         nodes = [Simploid(cell.dimensions) for cell in self.cells]

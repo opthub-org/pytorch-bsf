@@ -205,7 +205,7 @@ class SimploidalBezierSpace(nn.Module):
         self._ids = {s: k for k, s in enumerate(self.simploids)}
         if not isinstance(degree, Mapping):
             degree = _check_min_degree(degree, "degree")
-        if default_degree is not None:
+        elif default_degree is not None:
             default_degree = _check_min_degree(default_degree, "default_degree")
         self._degrees = _assign_degrees(self.simploids, degree, default_degree)
         all_degrees = [d for ds in self._degrees.values() for d in ds]
