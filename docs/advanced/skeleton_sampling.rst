@@ -197,7 +197,8 @@ degree shown on curves (:math:`M = 2`), and again on triangles from degree five.
 - on curves at every degree;
 - for :math:`D \leq 2` in every dimension;
 - for every degree once the dimension is large enough, for example from
-  :math:`M = 11` at degree three and from :math:`M = 20` at degree four.
+  :math:`M = 11` at degree three, from :math:`M = 20` at degree four and from
+  :math:`M = 29` at degree five.
 
 Notes on the original derivation
 --------------------------------

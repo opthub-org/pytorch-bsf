@@ -12,8 +12,10 @@ This chapter proves the results behind :doc:`skeleton_sampling`:
 evaluated it numerically for degrees two and three. The proofs here are
 self-contained and hold for every dimension and degree. Statements that rest
 on a finite computation are labelled computer-assisted. Questions that remain
-open are collected at the end. ``tests/sampling.py`` checks every formula on
-this page against exact rational arithmetic.
+open are collected at the end. ``tests/sampling.py`` checks the formulas,
+the quoted values and the computations on this page against exact rational
+arithmetic, and ``tests/fitting.py`` checks the asymptotic risks by
+simulation.
 
 Setting
 -------
@@ -124,7 +126,7 @@ The proof needs to control the inverse of an empirical Gram matrix. Two
 lemmas do this.
 
 .. prf:lemma:: Small balls of sums
-   :label: lem-small-ball
+   :label: lem-skeleton-small-ball
 
    Let :math:`X_1, \dots, X_n \geq 0` be independent copies of :math:`X`, and
    suppose :math:`P(X \leq x) \leq (A x)^a` for all :math:`x > 0` and some
@@ -144,12 +146,12 @@ lemmas do this.
    Take :math:`\lambda = 1/\delta`.
 
 .. prf:lemma:: Inverse moments of empirical Gram matrices
-   :label: lem-inverse-moments
+   :label: lem-skeleton-inverse-moments
 
-   Let :math:`F` be a face and :math:`\varphi = (B_\alpha)_{\alpha \in T}` for a
+   Let :math:`F` be a face and :math:`\chi = (B_\alpha)_{\alpha \in T}` for a
    set :math:`T` of :math:`k` controls with supports in :math:`F`, such that
-   :math:`H = \int \varphi \varphi^\top dU_F` is positive definite. Let
-   :math:`\hat H_n = \frac1n \sum_{r=1}^n \varphi(t_r) \varphi(t_r)^\top`,
+   :math:`H = \int \chi \chi^\top dU_F` is positive definite. Let
+   :math:`\hat H_n = \frac1n \sum_{r=1}^n \chi(t_r) \chi(t_r)^\top`,
    where the :math:`t_r` are drawn independently from :math:`U_F`. Then for every
    :math:`q > 0` there is an :math:`n_0` such that
    :math:`\sup_{n \geq n_0} E \lVert \hat H_n^{-1} \rVert^q < \infty`. In
@@ -158,7 +160,7 @@ lemmas do this.
 
 .. prf:proof::
 
-   Let :math:`\psi = H^{-1/2} \varphi` and
+   Let :math:`\psi = H^{-1/2} \chi` and
    :math:`Q(u) = \frac1n \sum_r (u^\top \psi(t_r))^2`. Let :math:`\lambda`
    be the minimum of :math:`Q` on the unit sphere. Then
    :math:`\lVert \hat H_n^{-1} \rVert \leq \lVert H^{-1} \rVert / \lambda`,
@@ -169,7 +171,7 @@ lemmas do this.
    :math:`\int f^2 \, dU_F = 1`. The uniform distribution on a convex set is
    log-concave, so the inequality of :cite:t:`carbery2001distributional` gives
    :math:`P(|f(t)| \leq s) \leq C D s^{1/D}`, with an absolute constant
-   :math:`C`. Hence :math:`X = f(t)^2` satisfies :prf:ref:`lem-small-ball` with
+   :math:`C`. Hence :math:`X = f(t)^2` satisfies :prf:ref:`lem-skeleton-small-ball` with
    :math:`a = 1/(2D)` and :math:`A = (CD)^{2D}`, and
 
    .. math::
@@ -181,7 +183,8 @@ lemmas do this.
    :math:`[0, 1]`, so :math:`|\psi| \leq K = \lVert H^{-1/2} \rVert \sqrt k` and
    :math:`|\sqrt{Q(u)} - \sqrt{Q(v)}| \leq \sqrt{Q(u - v)} \leq K |u - v|`.
    Take a :math:`(\sqrt\delta / K)`-net of the unit sphere with at most
-   :math:`(3K/\sqrt\delta)^k` points. If :math:`\lambda \leq \delta`, some unit
+   :math:`(3K/\sqrt\delta)^k` points; :math:`\sqrt\delta \leq 1 \leq K` for
+   :math:`\delta \leq 1`, because :math:`\int |\psi|^2 \, dU_F = k`. If :math:`\lambda \leq \delta`, some unit
    vector :math:`u` has :math:`Q(u) \leq \delta`, and the net point :math:`v`
    nearest to it has :math:`\sqrt{Q(v)} \leq 2\sqrt\delta`. A union bound over
    the net gives
@@ -192,13 +195,15 @@ lemmas do this.
 
    *Moment bound.* Choose :math:`\delta_1 \leq 1` with
    :math:`c_1 \delta_1^a \leq 1` and an integer :math:`n_0 > (q + k/2)/a`.
-   For :math:`n \geq n_0` and :math:`\delta \leq \delta_1`, the right-hand side
-   is at most :math:`(3K)^k \delta^{a n_0 - k/2}`. Therefore
+   For :math:`n \geq n_0` and :math:`\delta \leq \delta_1`,
+   :math:`c_1 \delta^a \leq (\delta / \delta_1)^a \leq 1`, so the right-hand
+   side is at most :math:`(3K)^k \delta_1^{-a n_0} \delta^{a n_0 - k/2}`.
+   Therefore
 
    .. math::
 
       E \lambda^{-q} = \int_0^\infty q \delta^{-q-1} P(\lambda \leq \delta) \, d\delta
-      \leq \delta_1^{-q} + q (3K)^k \int_0^{\delta_1} \delta^{a n_0 - k/2 - q - 1} \, d\delta,
+      \leq \delta_1^{-q} + q (3K)^k \delta_1^{-a n_0} \int_0^{\delta_1} \delta^{a n_0 - k/2 - q - 1} \, d\delta,
 
    which is finite and does not depend on :math:`n`.
 
@@ -231,8 +236,10 @@ lemmas do this.
       N R_N = \sigma^2 L\, E X_N, \qquad
       X_N = \sum_I \frac{N}{n_I} \operatorname{tr}\Bigl(\bigl(\hat G^I_{TT}\bigr)^{-1} \hat E_I^\top G \hat E_I\Bigr).
 
-   *Almost sure limit.* Every :math:`n_I` grows without bound. By the strong
-   law of large numbers, :math:`\hat G^J \to G^J` almost surely for every face
+   *Almost sure limit.* :math:`R_N` depends only on the distribution of the
+   design and the noise, so we may take the rows of face :math:`I` to be the
+   first :math:`n_I` terms of one independent sequence per face. Every
+   :math:`n_I` grows without bound. By the strong law of large numbers, :math:`\hat G^J \to G^J` almost surely for every face
    :math:`J`. The blocks :math:`G^J_{T_J T_J}` are invertible, so
    :math:`\hat E_I \to E_I`. Since :math:`N / n_I \to \binom{M}{m+1} / \rho_m`,
    it follows that :math:`X_N \to \sum_m a_m / \rho_m` almost surely.
@@ -242,7 +249,7 @@ lemmas do this.
    :eq:`skeleton-propagation` therefore bounds :math:`X_N` by a constant
    times :math:`\prod_J (1 + \lVert (\hat G^J_{T_J T_J})^{-1} \rVert)^r`, for a
    fixed :math:`r` and the product over the :math:`F` faces with interior
-   controls. By Hölder's inequality and :prf:ref:`lem-inverse-moments` with
+   controls. By Hölder's inequality and :prf:ref:`lem-skeleton-inverse-moments` with
    :math:`q = 2rF`, :math:`\sup_{N \geq N_0} E X_N^2 < \infty`. Hence
    :math:`R_N` is finite for :math:`N \geq N_0`, the family :math:`X_N` is
    uniformly integrable, and :math:`E X_N` converges to the almost sure
@@ -252,7 +259,7 @@ The same argument with a single face, the whole simplex, and all controls
 gives the all-at-once risk.
 
 .. prf:corollary:: All-at-once fitting
-   :label: cor-aao-risk
+   :label: cor-skeleton-aao-risk
 
    For ordinary least squares with all controls on :math:`N` rows drawn
    independently from :math:`U_{[M]}`,
@@ -286,9 +293,9 @@ Fix a face :math:`I` with :math:`|I| = m + 1 \leq D` and a vector
 :math:`\{B_\alpha : \alpha \in T_J\}` on :math:`J`.
 
 .. prf:lemma:: Characterization
-   :label: lem-propagation-characterization
+   :label: lem-skeleton-propagation-characterization
 
-   :math:`p_c` is the unique polynomial of degree :math:`D` such that
+   :math:`p_c` is the unique polynomial of degree at most :math:`D` such that
 
    (i) its controls in :math:`T_I` are :math:`c`;
    (ii) its controls whose support does not contain :math:`I` vanish;
@@ -311,7 +318,7 @@ The propagation from :math:`I` to every larger face is determined by the
 propagation to the faces with one more vertex.
 
 .. prf:theorem:: Reduction to one more vertex
-   :label: thm-propagation-reduction
+   :label: thm-skeleton-propagation-reduction
 
    Fix :math:`j \notin I`. Let :math:`e(\beta, n)` be the control of
    :math:`p_c` on the face :math:`I \cup \{j\}` with entries :math:`\beta` on
@@ -347,21 +354,21 @@ propagation to the faces with one more vertex.
    If :math:`\alpha_i = 0` for some :math:`i \in I`, then
    :math:`e(\alpha|_I, n)` is a control of :math:`I \cup \{j\}` whose
    support does not contain :math:`I`, so it vanishes. It remains to check
-   condition (iii) of :prf:ref:`lem-propagation-characterization`.
+   condition (iii) of :prf:ref:`lem-skeleton-propagation-characterization`.
 
-   *Reducing (iii) to an integral over a cone.* Let :math:`J = I \cup E` with
-   :math:`k = |E| \geq 1` and :math:`|J| \leq D`, and let :math:`g` be a
+   *Reducing (iii) to an integral over a cone.* Let :math:`J = I \cup K` with
+   :math:`k = |K| \geq 1` and :math:`|J| \leq D`, and let :math:`g` be a
    polynomial of degree at most :math:`D - |J|`. Write :math:`x = t_I`,
    :math:`|x| = \sum_i x_i`, and parametrize :math:`U_J` by :math:`x` and by
-   :math:`t_E` on the slice :math:`\sum t_E = 1 - |x|`. By
+   :math:`t_K` on the slice :math:`\sum t_K = 1 - |x|`. By
    :eq:`skeleton-reduction-integral` with :math:`w_l = s_l t_l`,
 
    .. math::
 
-      \prod_{l \in E} t_l \; p = \int_{0 \leq w_l \leq t_l} \Phi\Bigl(x, \sum_l w_l\Bigr) dw.
+      \prod_{l \in K} t_l \; p = \int_{0 \leq w_l \leq t_l} \Phi\Bigl(x, \sum_l w_l\Bigr) dw.
 
    Substitute this into :math:`\int p\, t^{\mathbf 1_J} g \, dU_J`, exchange the
-   integrals, and write :math:`t_E = w + v` with :math:`v \geq 0` and
+   integrals, and write :math:`t_K = w + v` with :math:`v \geq 0` and
    :math:`\sum v = r = 1 - |x| - \sum w`. The integral of :math:`g(x, w + v)`
    over the simplex of such :math:`v` is :math:`r^{k-1}` times a polynomial in
    :math:`(x, w, r)` of degree at most :math:`D - |J|`. Integrating over
@@ -373,11 +380,11 @@ propagation to the faces with one more vertex.
       \int_{x, y \geq 0,\ |x| + y \leq 1} x^{\mathbf 1_I} \Phi(x, y)\, y^{k-1} r^{k-1} x^a y^b r^c \, dx\, dy,
       \qquad r = 1 - |x| - y, \quad |a| + b + c \leq D - |J|.
 
-   *Factoring out the radius.* Substitute :math:`(x, y) = \rho\,\omega`, where
-   :math:`\rho \in (0, 1]` and :math:`\omega` lies in the simplex :math:`S`
-   with :math:`m + 2` vertices, so that :math:`dx\,dy = \rho^{m+1} d\rho\, d\omega`.
+   *Factoring out the radius.* Substitute :math:`(x, y) = \tau\,\omega`, where
+   :math:`\tau \in (0, 1]` and :math:`\omega` lies in the simplex :math:`S`
+   with :math:`m + 2` vertices, so that :math:`dx\,dy = \tau^{m+1} d\tau\, d\omega`.
    Since :math:`\Phi` is homogeneous of degree :math:`D`, each integral
-   factors into a :math:`\rho`-integral times
+   factors into a :math:`\tau`-integral times
 
    .. math::
 
@@ -397,7 +404,7 @@ propagation to the faces with one more vertex.
    :math:`\int_0^1 \partial_y(y\phi)(x, sy)\, ds = \phi(x, y)`. The inner
    integral is :math:`g(x, 1 - |x|)`, an arbitrary polynomial in :math:`x` of
    degree at most :math:`D - m - 2`. Take :math:`g = x^a`. Then the whole
-   integral is a positive :math:`\rho`-integral times the integral in
+   integral is a positive :math:`\tau`-integral times the integral in
    :eq:`skeleton-reduction-orthogonality` with :math:`h = \omega_I^a`. The
    orthogonality of :math:`\phi` on :math:`I \cup \{j\}` therefore gives
    :eq:`skeleton-reduction-orthogonality` for these :math:`h`. These
@@ -452,24 +459,24 @@ Closed forms
 
    *The error polynomial.* Let :math:`|I| = D - 1`. Then
    :math:`T_I = \{\mathbf 1_I + \mathbf e_k : k \in I\}`; write
-   :math:`\eta_k` for the coefficient of its :math:`k`-th control. Only the
+   :math:`c_k` for the coefficient of its :math:`k`-th control. Only the
    faces :math:`J = I \cup \{j\}` have interior controls above :math:`I`, each
    the single control :math:`\mathbf 1_J`. By :eq:`skeleton-moments`,
    :math:`G^J_{\mathbf 1_J,\, \mathbf 1_I + \mathbf e_k} / G^J_{\mathbf 1_J \mathbf 1_J} = 3/4`.
    So by :eq:`skeleton-propagation`, :math:`\mathbf 1_J` has error
-   :math:`-\frac34 \sum_k \eta_k`, and the error polynomial is
+   :math:`-\frac34 \sum_k c_k`, and the error polynomial is
 
    .. math::
 
-      p(t) = D!\, t^{\mathbf 1_I} \Bigl(\tfrac12 \sum_{k \in I} \eta_k t_k - \tfrac34 \bigl(\textstyle\sum_k \eta_k\bigr) u\Bigr),
+      p(t) = D!\, t^{\mathbf 1_I} \Bigl(\tfrac12 \sum_{k \in I} c_k t_k - \tfrac34 \bigl(\textstyle\sum_k c_k\bigr) u\Bigr),
       \qquad u = \sum_{j \notin I} t_j.
 
    *The trace as an expectation.* By :eq:`skeleton-moments`,
-   :math:`G^I_{T_I T_I} = \kappa (3 I + 9 \mathbf 1 \mathbf 1^\top)` with
+   :math:`G^I_{T_I T_I} = \kappa (3\,\mathrm{Id} + 9 \mathbf 1 \mathbf 1^\top)` with
    :math:`\kappa = (D!)^2 (D-2)!\, 2^{D-1} / (4 (3D-2)!)`. Its inverse is
-   :math:`\frac{1}{3\kappa}(I - \frac{3}{3D-2} \mathbf 1 \mathbf 1^\top)`.
+   :math:`\frac{1}{3\kappa}(\mathrm{Id} - \frac{3}{3D-2} \mathbf 1 \mathbf 1^\top)`.
    Hence the trace in :math:`a_{D-2}` equals :math:`E \int p^2 \, dU_{[M]}` for
-   :math:`\eta` with this covariance, that is, the integral of
+   :math:`c` with this covariance, that is, the integral of
    :math:`(D!)^2 t^{2 \cdot \mathbf 1_I} v^\top (G^I_{T_I T_I})^{-1} v`, where
    :math:`v_k = \frac12 t_k - \frac34 u`.
 
@@ -530,7 +537,9 @@ Curves
    :math:`\lVert \varphi \rVert^2 = \frac14 \bigl(\frac{2}{D(D+1)} + \frac{2}{(D+1)(D+2)}\bigr) = \frac{1}{D(D+2)}`.
 
    *The coefficients a_0 and a_1.* A vertex block of the Gram matrix is one,
-   so :math:`a_0 = 2 \cdot 2 \lVert \varphi \rVert^2`.
+   so :math:`a_0 = \binom21 \cdot 2 \lVert \varphi \rVert^2`: the binomial
+   comes from the definition of :math:`a_m`, and the sum runs over the two
+   vertices.
    :math:`a_1 = D - 1` by :prf:ref:`prop-skeleton-top`.
 
    *The Bernstein coefficients.* Rodrigues' formula and the Leibniz rule give
@@ -542,8 +551,9 @@ Curves
 .. prf:corollary:: Inductive fitting beats all-at-once fitting on curves
    :label: cor-skeleton-curves-win
 
-   For :math:`M = 2` and every degree,
-   :math:`N R^\ast / (\sigma^2 L) = \bigl(\sqrt{D-1} + 2/\sqrt{D(D+2)}\bigr)^2 < D + 1`.
+   For :math:`M = 2` and every degree, the optimal inductive risk
+   :math:`(\sum_m \sqrt{a_m})^2 = \bigl(\sqrt{D-1} + 2/\sqrt{D(D+2)}\bigr)^2`
+   is smaller than the all-at-once risk :math:`D + 1`.
 
 .. prf:proof::
 
@@ -552,7 +562,7 @@ Curves
    Squaring gives :math:`0 < (D^2 - 2)^2`, which holds for every integer
    :math:`D`.
 
-:prf:ref:`thm-propagation-reduction` with :math:`m = 0` turns the curve
+:prf:ref:`thm-skeleton-propagation-reduction` with :math:`m = 0` turns the curve
 coefficients into the propagation from a vertex in any dimension.
 
 .. prf:corollary:: Propagation from a vertex
@@ -663,11 +673,14 @@ Fixed degree, growing dimension
      - 4
      - :math:`3632428800`
 
-The table was computed exactly from the counting in the proof, starting
-from one face per class. The entries for :math:`m = D-1` and :math:`m = D-2`
-agree with :prf:ref:`prop-skeleton-degree-faces` and
-:prf:ref:`prop-skeleton-second-faces`. The tests compare every entry with
-an independent exact evaluation of the definition.
+The table is computer-assisted: it is computed exactly from the counting in
+the proof, starting from one face per class on a simplex with
+:math:`2D - m - 1` vertices, which contains every class. ``tests/sampling.py``
+repeats this computation, and compares the entries with an independent exact
+evaluation of the definition for small :math:`M`. The entries for
+:math:`m = D-1` and :math:`m = D-2` agree with
+:prf:ref:`prop-skeleton-degree-faces` and
+:prf:ref:`prop-skeleton-second-faces`.
 
 .. prf:corollary:: Large dimension
    :label: cor-skeleton-large-dimension
@@ -744,14 +757,15 @@ Open questions
 --------------
 
 - **A closed form in D for 1 ≤ m ≤ D − 3.** By
-  :prf:ref:`thm-propagation-reduction`, :math:`a_m` is determined by the
+  :prf:ref:`thm-skeleton-propagation-reduction`, :math:`a_m` is determined by the
   propagation onto a face with :math:`m + 2 \geq 3` vertices. For
   :math:`m = 0` this is an edge, and Legendre polynomials solve it. For
   larger :math:`m`, the bubble functions live on a simplex of dimension at
   least two, and no product formula is known. Exact values such as
   :math:`a_1 = 99/28, 71/20, 188/55, 81259/25025` for :math:`M = 3` and
-  :math:`D = 3, \dots, 6` have large prime factors. This suggests that no
-  single hypergeometric term gives them.
+  :math:`D = 3, \dots, 6` acquire large prime factors, such as
+  :math:`81259 = 23 \cdot 3533`. This suggests that no single
+  hypergeometric term gives them.
 - **A simpler form of a_0 for finite M ≥ 3.** :prf:ref:`cor-skeleton-vertex`
   makes :math:`a_0` an explicit finite double sum over pairs of controls, for
   example :math:`41/280, 79/1120, 1189/30800` for :math:`M = 3` and
