@@ -85,11 +85,11 @@ def suggest_next_points(
 
     Examples
     --------
-    >>> import torch_bsf
+    >>> from torch_bsf._kernels.fitting import fit_kfold
     >>> from torch_bsf._kernels._active_learning import suggest_next_points
     >>> from torch_bsf._kernels import sample_simploid
     >>> t = sample_simploid((1, 1), 30, seed=0)
-    >>> models = torch_bsf.fit_kfold(t, t[:, :1] * t[:, 2:3], degree=2, simploid_type=(1, 1), seed=0)
+    >>> models = fit_kfold(t, t[:, :1] * t[:, 2:3], degree=2, simploid_type=(1, 1), seed=0)
     >>> suggest_next_points(models, n_suggestions=3).shape
     torch.Size([3, 4])
     """
