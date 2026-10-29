@@ -44,9 +44,14 @@ in :doc:`advanced/simploidal_category` uses the category-theory background
 of :cite:t:`maclane1998categories,maclane1992sheaves`.
 
 Shape-preserving interpolation on simplicial meshes
-(:doc:`advanced/interpolation`) generalizes the monotone piecewise cubic
-interpolation of :cite:t:`fritsch1980monotone`. Its face controls use the
-degree elevation of Bézier triangles described by :cite:t:`farin2002curves`.
+(:doc:`advanced/interpolation`) uses the square part of the
+Fritsch–Carlson monotonicity region :cite:p:`fritsch1980monotone` to limit
+one-dimensional cubic Hermite segments. The default interpolant is C0,
+not generally C1. Supplying PCHIP slopes, with the Fritsch–Butland weighted
+harmonic mean at interior vertices :cite:p:`fritsch1984method` and PCHIP's
+one-sided endpoint rule, recovers PCHIP up to float64 roundoff. Its face
+controls use the degree elevation of Bézier triangles described by
+:cite:t:`farin2002curves`.
 
 Application sources and reproducible examples
 ---------------------------------------------

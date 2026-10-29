@@ -15,10 +15,16 @@ never showed.
 alternative from data at the vertices of a simplicial mesh: a continuous
 piecewise cubic Bézier model that passes through every datum and, with the
 default ``clamp=True``, never leaves the range of the data at the vertices of
-the simplex it is evaluated in. On a chain of intervals it is the familiar
-monotone piecewise cubic Hermite interpolation (PCHIP)
-:cite:p:`fritsch1980monotone`; on triangles and tetrahedra it is its natural
-generalization, which we call simplicial PCHIP.
+the simplex it is evaluated in. On a chain of intervals it is a C0 piecewise
+cubic Hermite interpolant whose endpoint slopes are limited independently
+on each interval. The limiter satisfies the square part of the
+Fritsch–Carlson monotonicity conditions :cite:p:`fritsch1980monotone`, but
+the default gradients do not give the usual C1 PCHIP interpolant. Supplying
+PCHIP slopes as ``gradients`` recovers PCHIP up to float64 roundoff: its
+interior slopes use the Fritsch–Butland weighted harmonic mean
+:cite:p:`fritsch1984method` and its endpoints use a one-sided rule. We call
+the construction on simplicial meshes *simplicial PCHIP* in reference to
+its shape preservation.
 
 Use it when evaluations are exact (or nearly so) and the design points are
 given, for example a grid or the points chosen by an adaptive loop. With
@@ -148,7 +154,33 @@ Each control depends only on the data of the edge or face that carries it.
 ``SimplicialMesh`` glues simplices that share a face so that the face's
 controls are the same coefficient rows from both sides, which makes the
 interpolant continuous (C0). It is not C1 in general: gradients across a
-shared face can jump.
+shared face can jump. This also happens at an interior vertex of a chain
+of intervals: clamping acts separately on the two incident intervals.
+For C1 interpolation in two dimensions, use
+:func:`~torch_bsf.interpolation.macro_interpolant` with
+``split=CloughTocher(), continuity=C1()`` (see `Smooth interpolation in two dimensions`_).
+
+On an interval with secant slope :math:`\Delta`, clipping its two edge
+controls replaces each endpoint slope :math:`g` by
+:math:`\operatorname{median}(0, g, 3\Delta)`. For :math:`\Delta \ne 0`,
+the normalized slopes :math:`\alpha,\beta` therefore lie in
+:math:`[0,3]^2`, a sufficient square within the Fritsch–Carlson monotonicity
+region :cite:p:`fritsch1980monotone`. If :math:`\Delta=0`, both limited
+slopes are zero. A shared vertex can have different limited slopes on its
+left and right, so the result is generally C0 rather than C1. For example,
+with ``x = (0, 1, 2)``, ``f = (0, 1, 1.1)`` and supplied slopes ``g = 2``,
+the left derivative at ``x = 1`` is ``2`` and the right derivative is
+``0.3``; with the default estimates they are ``0.55`` and ``0.3``.
+
+PCHIP's slopes already satisfy these bounds on every interval. To recover
+SciPy's ``scipy.interpolate.PchipInterpolator`` on a one-dimensional
+chain, pass ``pchip.derivative()(x)[:, None, :]`` as ``gradients`` for
+multi-output data (or ``pchip.derivative()(x)[:, None, None]`` for scalar
+data). The Fritsch–Butland rule :cite:p:`fritsch1984method` uses zero at
+an interior vertex next to a flat interval or a sign change, and a
+weighted harmonic mean of the adjacent secant slopes otherwise. Include
+PCHIP's one-sided endpoint slopes as well. The limiter then leaves the
+cubic Hermite segments unchanged, up to float64 roundoff.
 
 When ``gradients`` is omitted,
 :func:`~torch_bsf.interpolation.estimate_gradients` fits a quadratic by
