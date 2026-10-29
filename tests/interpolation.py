@@ -3065,3 +3065,83 @@ def test_interpolant_piece_boundary_hessians_match_quadratic(continuity):
 
             actual = torch.autograd.functional.hessian(evaluate, point)
             torch.testing.assert_close(actual, expected, atol=512 * U * float(expected.abs().max()), rtol=0)
+
+
+def _assert_strongly_limited_c1(mesh: SimplicialMesh, values: torch.Tensor) -> None:
+    """Check all original and split edges in one batched autograd evaluation."""
+    gradients = 1e3 * estimate_gradients(mesh, values)
+    interpolant = _c1(mesh, values, gradients=gradients, clamp=True)
+    model, pieces = interpolant.model, interpolant.pieces
+    loose = _c1(mesh, values, gradients=gradients, clamp=False)
+    assert not torch.equal(model.coefficients, loose.model.coefficients)  # The limiter really acts.
+
+    corners = values[mesh.simplices[interpolant.parent]]
+    controls = torch.tensor([pieces.space.cells[c].controls for c in pieces.cell_ids.tolist()])
+    coefficients = model.coefficients.detach()[controls]
+    assert (coefficients >= corners.amin(dim=1)[:, None]).all()
+    assert (coefficients <= corners.amax(dim=1)[:, None]).all()
+
+    incident: dict[tuple[int, int], list[int]] = {}
+    for cell, vertices in enumerate(pieces.simplices.tolist()):
+        for i, j in _EDGES:
+            edge = tuple(sorted((vertices[i], vertices[j])))
+            incident.setdefault(edge, []).append(cell)
+    shared = [(edge, cells) for edge, cells in incident.items() if len(cells) == 2]
+    # Every parent has three internal split edges; all remaining shared edges are original mesh edges.
+    internal = sum(edge[1] >= mesh.n_vertices for edge, _ in shared)
+    assert internal == 3 * mesh.n_simplices and len(shared) > internal
+    edges = torch.tensor([edge for edge, _ in shared])
+    sides = torch.tensor([cells for _, cells in shared]).T.repeat_interleave(3, dim=1).flatten()
+    weights = torch.tensor([[0.25, 0.75], [0.5, 0.5], [0.75, 0.25]], dtype=torch.float64)
+    x = (weights @ pieces.vertices[edges]).reshape(-1, 2).repeat(2, 1).requires_grad_(True)
+    # Solve only for the incident pieces; all-pieces barycentric coordinates would be quadratic in mesh size.
+    corners = pieces.vertices[pieces.simplices[sides]]
+    tail = torch.linalg.solve((corners[:, 1:] - corners[:, :1]).mT, (x - corners[:, 0]).unsqueeze(-1)).squeeze(-1)
+    barycentric = torch.cat([1 - tail.sum(dim=1, keepdim=True), tail], dim=1)
+    y = model(Points(barycentric, pieces.cell_ids[sides]))
+    both = torch.stack([torch.autograd.grad(y[:, o].sum(), x, retain_graph=True)[0] for o in range(y.shape[1])], -1)
+    both = both.reshape(2, -1, 2, values.shape[1])
+    # As in test_clough_tocher_c1_interpolates_and_is_c1: O(64) roundings of controls of size M,
+    # amplified by L/h**2 in the physical gradient (barycentric solve and differentiation).
+    # The bound is independent of how far the supplied gradients were limited; subnormals add FLOAT64_TINY.
+    magnitude = float(coefficients.abs().max())
+    bound = 64 * (U * magnitude + FLOAT64_TINY) * _gradient_scale(pieces)
+    assert (both[0] - both[1]).abs().max() <= bound
+
+
+@given(data=st.data())
+@example(data=2).via("lattice k=2")
+@example(data=3).via("lattice k=3")
+@example(data=4).via("lattice k=4")
+def test_strongly_limited_clough_tocher_is_c1_on_every_edge(data):
+    """Gradients amplified by 1e3 retain C1 and control bounds at three interior points of every shared edge."""
+    if isinstance(data, int):
+        mesh = lattice_mesh(2, data)
+        values = _quadratic(mesh.vertices)
+    else:
+        if importlib.util.find_spec("scipy"):
+            x, simplices = data.draw(delaunay_meshes(max_points=10), label="Delaunay mesh")
+            mesh = SimplicialMesh(x, simplices)
+            assume(mesh.n_simplices > 1)  # Include an original shared edge, besides the internal split rays.
+        else:
+            mesh = lattice_mesh(2, data.draw(st.integers(2, 4), label="k"))
+        # A nonconstant linear first output guarantees active limiting, even if the generated output is constant.
+        values = torch.cat([mesh.vertices[:, :1], data.draw(matrices(mesh.n_vertices, 1), label="values")], dim=1)
+    _assert_strongly_limited_c1(mesh, values)
+
+
+@pytest.mark.parametrize("construction", [hermite_interpolant, _c1], ids=["hermite", "clough-tocher-c1"])
+@given(a=st.integers(2, 4), gap=st.integers(1, 4), scale=signed(extreme_scalings()))
+@example(a=2, gap=1, scale=1.0).via("unclipped quadratic from issue 552")
+def test_clamp_leaves_unclipped_quadratic_coefficients_bitwise_equal(construction, a, gap, scale):
+    """Clamping is an exact no-op for these monotone quadratics, including power-of-two data scalings."""
+    mesh = lattice_mesh(2, 4)
+    x = mesh.vertices
+    shifted = x + torch.tensor([a, a + gap], dtype=torch.float64)
+    values = shifted.square().sum(dim=1, keepdim=True) * scale
+    gradients = 2 * shifted[:, :, None] * scale
+    tight = construction(mesh, values, gradients=gradients, clamp=True)
+    loose = construction(mesh, values, gradients=gradients, clamp=False)
+    tight_model = tight.model if isinstance(tight, MacroInterpolant) else tight
+    loose_model = loose.model if isinstance(loose, MacroInterpolant) else loose
+    assert torch.equal(tight_model.coefficients, loose_model.coefficients)
