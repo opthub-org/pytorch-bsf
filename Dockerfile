@@ -1,4 +1,4 @@
-FROM condaforge/miniforge3:26.7.2-0
+FROM condaforge/miniforge3:26.9.4-0
 
 # Install pytorch-bsf with PyTorch from the conda-forge channel only
 # (Miniforge does not configure the Anaconda `defaults` channel).
