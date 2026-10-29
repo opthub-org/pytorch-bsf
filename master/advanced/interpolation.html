@@ -422,6 +422,13 @@ interpolation at its centroid. A large score means the data bend within a
 large cell. Evaluating the response near the midpoint of the longest edge of
 the top-scoring cell and remeshing is a simple adaptive design. The example
 refines a one-dimensional kink, where remeshing is just sorting.</p>
+<p>The score applies the volume before rounding reductions near the float64
+limits. It therefore keeps finite scores when a vertex mean or an intermediate
+correction would overflow, or when a small mean would underflow before being
+multiplied by a large volume. These rare rows use exact rational arithmetic
+on the finite centroid predictions and vertex data; ordinary rows retain
+vectorized floating-point reductions. A true score beyond float64 is positive
+infinity. A non-finite centroid prediction raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.interpolation</span><span class="w"> </span><span class="kn">import</span> <span class="n">refinement_indicator</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">kink</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
