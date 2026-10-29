@@ -222,7 +222,10 @@ same Gram matrix it was fitted with.</p></li>
 <li><p>For <span class="math notranslate nohighlight">\(D \leq M\)</span>,
 <span class="math notranslate nohighlight">\(a_{D-1} = \binom{M}{D}^2 (3D-1)! / ((D-1)!\,(M)_{2D})\)</span>, where
 <span class="math notranslate nohighlight">\((M)_k = M (M+1) \cdots (M+k-1)\)</span>. For <span class="math notranslate nohighlight">\(D = 1\)</span> this is
-<span class="math notranslate nohighlight">\(a_0 = 2M / (M + 1)\)</span>. <span class="math notranslate nohighlight">\(a_{D-2}\)</span> has a closed form too.</p></li>
+<span class="math notranslate nohighlight">\(a_0 = 2M / (M + 1)\)</span>. <span class="math notranslate nohighlight">\(a_{D-2}\)</span> and <span class="math notranslate nohighlight">\(a_{D-3}\)</span>
+also have closed forms in both <span class="math notranslate nohighlight">\(D\)</span> and <span class="math notranslate nohighlight">\(M\)</span>; see
+<a class="reference internal" href="skeleton_risk_theory.html#prop-skeleton-second-faces">Proposition 4</a> and
+<a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-third-faces">Theorem 10</a>.</p></li>
 <li><p>On curves (<span class="math notranslate nohighlight">\(M = 2\)</span>), <span class="math notranslate nohighlight">\(a_0 = 4 / (D (D + 2))\)</span> and
 <span class="math notranslate nohighlight">\(a_1 = D - 1\)</span>.</p></li>
 <li><p>For a fixed degree, every <span class="math notranslate nohighlight">\(a_m\)</span> is a rational function of <span class="math notranslate nohighlight">\(M\)</span>
@@ -231,7 +234,10 @@ and converges as <span class="math notranslate nohighlight">\(M\)</span> grows; 
 </ul>
 <p>These closed forms rest on a structure theorem: the errors that a face
 passes to larger faces are determined by the errors it passes to the faces
-with one more vertex.</p>
+with one more vertex. More generally, <a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-scalar-sum">Theorem 13</a>
+gives every coefficient as a finite scalar sum, without Gram-matrix
+inversion or propagation recursion. Simplification to a bounded number of
+functions remains open in the ranges listed in the theory chapter.</p>
 </section>
 <section id="the-optimal-ratio">
 <h2>The optimal ratio<a class="headerlink" href="#the-optimal-ratio" title="Link to this heading"></a></h2>

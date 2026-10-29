@@ -587,6 +587,63 @@ Closed forms
    :math:`M = D - 1` the formula reduces to :math:`D - 1`, which agrees with
    :prf:ref:`prop-skeleton-top`.
 
+.. prf:theorem:: Faces with D - 2 vertices
+   :label: thm-skeleton-third-faces
+
+   Let :math:`D\geq3`, :math:`s=D-2`, and :math:`q=M-s\geq0`. Then
+
+   .. math::
+
+      a_{D-3}=\binom Ms^2\frac{(3s-1)!}{(s-1)!\,(M)_{2D}}
+      \frac{s^2(3s+1)}{64}\,Q_s(q),
+
+   where the following quartic applies to every such :math:`D,M`:
+
+   .. math::
+
+      Q_s(q)={}&9(3s+1)q^4-78(3s+1)q^3
+        +(432s^2+1209s+547)q^2\\
+        &-2(648s^2+1221s+623)q
+        +288(s+1)^2(3s+2).
+
+   In particular, this includes the full range :math:`D\geq4` requested
+   for :math:`a_{D-3}`, and also :math:`a_0` at :math:`D=3`.
+
+.. prf:proof::
+
+   Apply :prf:ref:`thm-skeleton-scalar-sum` below with :math:`n=2`.
+   The angular degrees :math:`k=0,1,2` have multiplicities
+   :math:`1,s-1,s(s-1)/2`. At :math:`s=1` only the first is present.
+   The radial coefficient vectors :math:`(A_{k,h})_h` are
+
+   .. math::
+
+      (1,-2(3s+1),3s(3s+1)/2),\qquad (1,-(3s+2)),\qquad(1).
+
+   The needed kernel coefficients, obtained by multiplying the constant,
+   linear and quadratic terms of :math:`F^q`, are
+
+   .. math::
+
+      K_q(0,0)&=1,&K_q(1,0)&=q/2,\\
+      K_q(2,0)&=q(3q+5)/24,&K_q(1,1)&=q(q+1)/4,\\
+      K_q(2,1)&=q(q+2)(3q+5)/48,\\
+      K_q(2,2)&=q(9q^3+66q^2+163q+146)/576.
+
+   Use symmetry for the reversed arguments. Substitution into the scalar
+   sum gives the displayed quartic after factoring out
+   :math:`(3s-1)!s^2(3s+1)/(64(s-1)!)`. This is a symbolic evaluation
+   with arbitrary :math:`s,q`, rather than an interpolation in the degree.
+   At :math:`q=0` the expression is
+   :math:`s(s+1)/2=\binom{D-1}{M-1}`, as required by
+   :prf:ref:`prop-skeleton-top`.
+
+``tests/sampling.py`` compares all five polynomial coefficients with the
+existing exact tables at :math:`D=3,\ldots,8`, and independently regenerates
+the :math:`D=9` polynomial by local Gram solves and orbit counting. The
+degree-nine check took about 0.23 seconds on the development machine and
+runs in the normal test suite. Boundary checks also cover :math:`D=12,30`.
+
 Curves
 ------
 
@@ -735,6 +792,118 @@ coefficients into the propagation from a vertex in any dimension.
    :eq:`skeleton-vertex-polynomial`, including the degree bound. The
    coefficient extraction uses a polynomial of bounded degree for every
    fixed :math:`D`; it requires no propagation matrices or inverses.
+
+A scalar finite sum for every coefficient
+------------------------------------------
+
+The angular construction extends to every face. Its angular norms cancel
+in the risk trace, leaving only multiplicities and a scalar kernel. This
+gives a finite closed expression for every dimension, degree and skeleton,
+without constructing propagation matrices or inverting Gram matrices.
+It does not assert that these finite sums always simplify to a bounded
+number of elementary or special functions.
+
+.. prf:theorem:: Scalar risk sum
+   :label: thm-skeleton-scalar-sum
+
+   Let :math:`1\leq s\leq\min(D,M)`, :math:`n=D-s`, and :math:`q=M-s`.
+   Use :math:`K_q(h,l)=[x^h y^l]F(x,y)^q` with :math:`F` defined in
+   :prf:ref:`thm-skeleton-vertex-sum`, including
+   :math:`K_0(h,l)=\mathbf1_{h=l=0}`. Put
+
+   .. math::
+
+      d_s(k)&=\binom{k+s-2}{s-2}\quad(s\geq2),&
+      d_1(k)&=\mathbf1_{k=0},\\
+      A_{k,h}&=(-1)^h\binom{n-k}{h}\binom{n+k+3s-1}{h}
+        \quad(0\leq h\leq n-k).
+
+   Then
+
+   .. math::
+      :label: skeleton-scalar-sum
+
+      a_{s-1}=\frac{\binom Ms^2}{(s-1)!\,(M)_{2D}}
+      \sum_{k=0}^n d_s(k)\sum_{h,l=0}^{n-k}
+      A_{k,h}A_{k,l}(2D+s-h-l-1)!\,h!l!K_q(h,l).
+
+   All factorial arguments are nonnegative. Each coefficient extraction
+   uses only terms of degree at most :math:`n` in each variable, so every
+   operation is finite, also when :math:`q=0` or :math:`s=1`.
+
+.. prf:proof::
+
+   *Angular modes.* On the face with :math:`s\geq2` vertices, choose an
+   orthogonal basis :math:`Q_{k,\nu}` of polynomials of exact orthogonal
+   degree :math:`k` for the weight :math:`\prod_i z_i^2` under :math:`U_I`.
+   Here exact orthogonal degree means orthogonal to all polynomials of
+   degree less than :math:`k`; its dimension is
+   :math:`d_s(k)=\binom{k+s-2}{s-2}`. The face bubbles
+   :math:`f_{k,\nu}(z)=\prod_i z_i Q_{k,\nu}(z)` for
+   :math:`0\leq k\leq n` are an orthogonal basis of all face bubbles of
+   degree at most :math:`D`. For :math:`s=1`, use only :math:`Q_{0,1}=1`
+   and :math:`f_{0,1}=1` on the one-point face.
+
+   *Extension by one vertex.* Write :math:`x=rz`, :math:`r=\sum_i x_i`
+   and let :math:`y` be the new coordinate. The homogeneous polynomial
+   :math:`\Phi` for the boundary mode :math:`f_{k,\nu}` is
+
+   .. math::
+
+      \Phi_{k,\nu}(x,y)=\prod_i x_i\,r^k Q_{k,\nu}(z)
+        \sum_{h=0}^{n-k} A_{k,h}r^{n-k-h}y^h.
+
+   Indeed the sum, restricted to :math:`r+y=1`, is
+   :math:`P_{n-k}^{(0,\,3s+2k-1)}(2r-1)`. To verify
+   :eq:`skeleton-reduction-orthogonality`, divide :math:`\Phi` by
+   :math:`\prod_i x_i`. The weighted volume element is
+   :math:`r^{3s-1}\prod_i z_i^2\,dr\,dz`. Expand a test polynomial of
+   degree at most :math:`n-1` into homogeneous angular modes. Angular
+   orthogonality leaves only its degree :math:`k` components. Their
+   remaining radial degrees are at most :math:`n-k-1`, with weight
+   :math:`r^{3s+2k-1}`. Jacobi orthogonality makes these integrals zero.
+   At :math:`y=0` the radial sum is :math:`r^{n-k}`, giving the required
+   boundary mode. This proves the extension by the characterization and
+   reduction theorems. At :math:`n=0` there are no test polynomials.
+
+   *The remaining coordinates.* By
+   :eq:`skeleton-reduction-integral`, replace each :math:`y^h` by
+
+   .. math::
+
+      T_h(t_{I^c})=E_u\Bigl(\sum_{j\notin I}u_jt_j\Bigr)^h
+        =\sum_{|b|=h}\frac{h!}{b!}\prod_{j\notin I}\frac{t_j^{b_j}}{b_j+1},
+
+   where the :math:`u_j` are independent uniform variables on
+   :math:`[0,1]`. If :math:`q\geq1`, write
+   :math:`t_{I^c}=(1-r)v`, with :math:`v` uniform on its
+   :math:`q`-vertex simplex. The Dirichlet moments give
+
+   .. math::
+
+      E_v[T_h(v)T_l(v)]=\frac{h!l!}{(q)_{h+l}}K_q(h,l).
+
+   The aggregation :math:`t_I=rz` has independent :math:`z\sim U_I`
+   and :math:`r\sim\operatorname{Beta}(s,q)`. Thus the ratio of the
+   squared full-simplex norm of the extended mode to its face norm is
+
+   .. math::
+
+      \frac{1}{(s-1)!\,(M)_{2D}}
+      \sum_{h,l=0}^{n-k} A_{k,h}A_{k,l}
+        (2D+s-h-l-1)!\,h!l!K_q(h,l).
+
+   Specifically, the radial beta integral has exponents
+   :math:`2D+s-h-l-1` and :math:`q+h+l-1`; its factor
+   :math:`(q+h+l-1)!` cancels the corresponding denominator in the
+   preceding moment. The angular norm cancels as well. Trace is invariant
+   under a change of bubble basis, so summing these norm ratios, with
+   :math:`d_s(k)` modes, gives the trace for one face. Multiply by
+   :math:`\binom Ms^2` for the equal faces and the allocation convention.
+
+   When :math:`q=0` there is no extension. Only :math:`h=l=0` survives
+   in the stated formula, each norm ratio equals one, and the sum is
+   :math:`\sum_k d_s(k)=\binom{D-1}{s-1}`, including :math:`s=1`.
 
 Fixed degree, growing dimension
 -------------------------------
@@ -996,7 +1165,11 @@ around once the dimension is large enough.
 Open questions
 --------------
 
-- **A scalar closed form in D for 1 ≤ m ≤ D − 3.**
+- **Further simplification of the scalar sums for 1 ≤ m ≤ D − 4.**
+  :prf:ref:`thm-skeleton-third-faces` evaluates the entire
+  :math:`m=D-3` family, and :prf:ref:`thm-skeleton-scalar-sum` gives a
+  finite scalar expression in every remaining case. Reducing those sums
+  to a bounded number of functions remains open.
   :prf:ref:`prop-skeleton-triangle-jacobi` solves the triangular
   orthogonal-extension step for :math:`m=1`, using separated angular
   and radial Jacobi polynomials. Substitution into the Gram trace gives
@@ -1018,8 +1191,8 @@ Open questions
   The complete checked values are fixed in ``tests/sampling.py``.
   Large prime factors in these values do not rule out a hypergeometric
   formula: no nonexistence claim or conjecture of that kind is made.
-  Extending the angular construction to larger faces and evaluating
-  the scalar risk sums remain open.
+  The angular construction now applies to every face; further evaluation
+  of the resulting scalar risk sums remains open.
 - **A simpler form of a_0 for finite M ≥ 3.**
   :eq:`skeleton-vertex-double-sum` reduces the control-pair sum to a
   :math:`D\times D` sum with an explicit generating function. For example

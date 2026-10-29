@@ -70,6 +70,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#triangular-jacobi-extension">Triangular Jacobi extension</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#closed-forms">Closed forms</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#curves">Curves</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#a-scalar-finite-sum-for-every-coefficient">A scalar finite sum for every coefficient</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fixed-degree-growing-dimension">Fixed degree, growing dimension</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#open-questions">Open questions</a></li>
 </ul>
@@ -606,11 +607,54 @@ Dirichlet distributed with parameters <span class="math notranslate nohighlight"
 <span class="math notranslate nohighlight">\(M = D - 1\)</span> the formula reduces to <span class="math notranslate nohighlight">\(D - 1\)</span>, which agrees with
 <a class="reference internal" href="#prop-skeleton-top">Proposition 2</a>.</p>
 </div>
+<div class="proof theorem admonition" id="thm-skeleton-third-faces">
+<p class="admonition-title"><span class="caption-number">Theorem 10 </span> (Faces with D - 2 vertices)</p>
+<section class="theorem-content" id="proof-content">
+<p>Let <span class="math notranslate nohighlight">\(D\geq3\)</span>, <span class="math notranslate nohighlight">\(s=D-2\)</span>, and <span class="math notranslate nohighlight">\(q=M-s\geq0\)</span>. Then</p>
+<div class="math notranslate nohighlight">
+\[a_{D-3}=\binom Ms^2\frac{(3s-1)!}{(s-1)!\,(M)_{2D}}
+\frac{s^2(3s+1)}{64}\,Q_s(q),\]</div>
+<p>where the following quartic applies to every such <span class="math notranslate nohighlight">\(D,M\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}Q_s(q)={}&amp;9(3s+1)q^4-78(3s+1)q^3
+  +(432s^2+1209s+547)q^2\\
+  &amp;-2(648s^2+1221s+623)q
+  +288(s+1)^2(3s+2).\end{split}\]</div>
+<p>In particular, this includes the full range <span class="math notranslate nohighlight">\(D\geq4\)</span> requested
+for <span class="math notranslate nohighlight">\(a_{D-3}\)</span>, and also <span class="math notranslate nohighlight">\(a_0\)</span> at <span class="math notranslate nohighlight">\(D=3\)</span>.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Apply <a class="reference internal" href="#thm-skeleton-scalar-sum">Theorem 13</a> below with <span class="math notranslate nohighlight">\(n=2\)</span>.
+The angular degrees <span class="math notranslate nohighlight">\(k=0,1,2\)</span> have multiplicities
+<span class="math notranslate nohighlight">\(1,s-1,s(s-1)/2\)</span>. At <span class="math notranslate nohighlight">\(s=1\)</span> only the first is present.
+The radial coefficient vectors <span class="math notranslate nohighlight">\((A_{k,h})_h\)</span> are</p>
+<div class="math notranslate nohighlight">
+\[(1,-2(3s+1),3s(3s+1)/2),\qquad (1,-(3s+2)),\qquad(1).\]</div>
+<p>The needed kernel coefficients, obtained by multiplying the constant,
+linear and quadratic terms of <span class="math notranslate nohighlight">\(F^q\)</span>, are</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}K_q(0,0)&amp;=1,&amp;K_q(1,0)&amp;=q/2,\\
+K_q(2,0)&amp;=q(3q+5)/24,&amp;K_q(1,1)&amp;=q(q+1)/4,\\
+K_q(2,1)&amp;=q(q+2)(3q+5)/48,\\
+K_q(2,2)&amp;=q(9q^3+66q^2+163q+146)/576.\end{split}\]</div>
+<p>Use symmetry for the reversed arguments. Substitution into the scalar
+sum gives the displayed quartic after factoring out
+<span class="math notranslate nohighlight">\((3s-1)!s^2(3s+1)/(64(s-1)!)\)</span>. This is a symbolic evaluation
+with arbitrary <span class="math notranslate nohighlight">\(s,q\)</span>, rather than an interpolation in the degree.
+At <span class="math notranslate nohighlight">\(q=0\)</span> the expression is
+<span class="math notranslate nohighlight">\(s(s+1)/2=\binom{D-1}{M-1}\)</span>, as required by
+<a class="reference internal" href="#prop-skeleton-top">Proposition 2</a>.</p>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">tests/sampling.py</span></code> compares all five polynomial coefficients with the
+existing exact tables at <span class="math notranslate nohighlight">\(D=3,\ldots,8\)</span>, and independently regenerates
+the <span class="math notranslate nohighlight">\(D=9\)</span> polynomial by local Gram solves and orbit counting. The
+degree-nine check took about 0.23 seconds on the development machine and
+runs in the normal test suite. Boundary checks also cover <span class="math notranslate nohighlight">\(D=12,30\)</span>.</p>
 </section>
 <section id="curves">
 <h2>Curves<a class="headerlink" href="#curves" title="Link to this heading"></a></h2>
 <div class="proof theorem admonition" id="thm-skeleton-curves">
-<p class="admonition-title"><span class="caption-number">Theorem 10 </span> (Curves)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 11 </span> (Curves)</p>
 <section class="theorem-content" id="proof-content">
 <p>For <span class="math notranslate nohighlight">\(M = 2\)</span>, <span class="math notranslate nohighlight">\(a_0 = \dfrac{4}{D(D+2)}\)</span> and <span class="math notranslate nohighlight">\(a_1 = D - 1\)</span>.
 A unit error at a vertex has the error polynomial
@@ -682,10 +726,10 @@ with <span class="math notranslate nohighlight">\(\alpha_i \geq 1\)</span>,</p>
 <span class="math notranslate nohighlight">\(\alpha_i = 1\)</span> and <span class="math notranslate nohighlight">\(D b_1 = (-1)^{D-1} (D+1)/2\)</span>.</p>
 </div>
 <div class="proof theorem admonition" id="thm-skeleton-vertex-sum">
-<p class="admonition-title"><span class="caption-number">Theorem 11 </span> (A generating function for the vertex risk)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 12 </span> (A generating function for the vertex risk)</p>
 <section class="theorem-content" id="proof-content">
 <p>Put <span class="math notranslate nohighlight">\(w_k=(D-k+1)b_k\)</span>, with <span class="math notranslate nohighlight">\(b_k\)</span> as in
-<a class="reference internal" href="#thm-skeleton-curves">Theorem 10</a>, and define the formal power series</p>
+<a class="reference internal" href="#thm-skeleton-curves">Theorem 11</a>, and define the formal power series</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}F(x,y) &amp;= \sum_{p,q\geq0}\frac{\binom{p+q}{p}}{(p+1)(q+1)}x^p y^q \\
 &amp;= \frac{(1-x-y)\log(1-x-y)-(1-x)\log(1-x)
@@ -698,7 +742,7 @@ coordinate. For every <span class="math notranslate nohighlight">\(D\geq1\)</spa
 \sum_{k=1}^D\sum_{l=1}^D
 w_k w_l\binom{k+l}{k}K_{M-1}(D-k,D-l).\]</div>
 <p>In particular, the polynomial <span class="math notranslate nohighlight">\(P_{D,0}\)</span> in
-<a class="reference internal" href="#thm-skeleton-rational">Theorem 12</a> has the general finite expression</p>
+<a class="reference internal" href="#thm-skeleton-rational">Theorem 14</a> has the general finite expression</p>
 <div class="math notranslate nohighlight" id="equation-skeleton-vertex-polynomial">
 <span class="eqno">(9)<a class="headerlink" href="#equation-skeleton-vertex-polynomial" title="Link to this equation"></a></span>\[P_{D,0}(M) = (D!)^2\sum_{s=0}^{2D-2}\binom{M-1}{s}
 \sum_{k,l=1}^D w_k w_l\binom{k+l}{k}
@@ -727,10 +771,98 @@ coefficient extraction uses a polynomial of bounded degree for every
 fixed <span class="math notranslate nohighlight">\(D\)</span>; it requires no propagation matrices or inverses.</p>
 </div>
 </section>
+<section id="a-scalar-finite-sum-for-every-coefficient">
+<h2>A scalar finite sum for every coefficient<a class="headerlink" href="#a-scalar-finite-sum-for-every-coefficient" title="Link to this heading"></a></h2>
+<p>The angular construction extends to every face. Its angular norms cancel
+in the risk trace, leaving only multiplicities and a scalar kernel. This
+gives a finite closed expression for every dimension, degree and skeleton,
+without constructing propagation matrices or inverting Gram matrices.
+It does not assert that these finite sums always simplify to a bounded
+number of elementary or special functions.</p>
+<div class="proof theorem admonition" id="thm-skeleton-scalar-sum">
+<p class="admonition-title"><span class="caption-number">Theorem 13 </span> (Scalar risk sum)</p>
+<section class="theorem-content" id="proof-content">
+<p>Let <span class="math notranslate nohighlight">\(1\leq s\leq\min(D,M)\)</span>, <span class="math notranslate nohighlight">\(n=D-s\)</span>, and <span class="math notranslate nohighlight">\(q=M-s\)</span>.
+Use <span class="math notranslate nohighlight">\(K_q(h,l)=[x^h y^l]F(x,y)^q\)</span> with <span class="math notranslate nohighlight">\(F\)</span> defined in
+<a class="reference internal" href="#thm-skeleton-vertex-sum">Theorem 12</a>, including
+<span class="math notranslate nohighlight">\(K_0(h,l)=\mathbf1_{h=l=0}\)</span>. Put</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}d_s(k)&amp;=\binom{k+s-2}{s-2}\quad(s\geq2),&amp;
+d_1(k)&amp;=\mathbf1_{k=0},\\
+A_{k,h}&amp;=(-1)^h\binom{n-k}{h}\binom{n+k+3s-1}{h}
+  \quad(0\leq h\leq n-k).\end{split}\]</div>
+<p>Then</p>
+<div class="math notranslate nohighlight" id="equation-skeleton-scalar-sum">
+<span class="eqno">(10)<a class="headerlink" href="#equation-skeleton-scalar-sum" title="Link to this equation"></a></span>\[a_{s-1}=\frac{\binom Ms^2}{(s-1)!\,(M)_{2D}}
+\sum_{k=0}^n d_s(k)\sum_{h,l=0}^{n-k}
+A_{k,h}A_{k,l}(2D+s-h-l-1)!\,h!l!K_q(h,l).\]</div>
+<p>All factorial arguments are nonnegative. Each coefficient extraction
+uses only terms of degree at most <span class="math notranslate nohighlight">\(n\)</span> in each variable, so every
+operation is finite, also when <span class="math notranslate nohighlight">\(q=0\)</span> or <span class="math notranslate nohighlight">\(s=1\)</span>.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. <em>Angular modes.</em> On the face with <span class="math notranslate nohighlight">\(s\geq2\)</span> vertices, choose an
+orthogonal basis <span class="math notranslate nohighlight">\(Q_{k,\nu}\)</span> of polynomials of exact orthogonal
+degree <span class="math notranslate nohighlight">\(k\)</span> for the weight <span class="math notranslate nohighlight">\(\prod_i z_i^2\)</span> under <span class="math notranslate nohighlight">\(U_I\)</span>.
+Here exact orthogonal degree means orthogonal to all polynomials of
+degree less than <span class="math notranslate nohighlight">\(k\)</span>; its dimension is
+<span class="math notranslate nohighlight">\(d_s(k)=\binom{k+s-2}{s-2}\)</span>. The face bubbles
+<span class="math notranslate nohighlight">\(f_{k,\nu}(z)=\prod_i z_i Q_{k,\nu}(z)\)</span> for
+<span class="math notranslate nohighlight">\(0\leq k\leq n\)</span> are an orthogonal basis of all face bubbles of
+degree at most <span class="math notranslate nohighlight">\(D\)</span>. For <span class="math notranslate nohighlight">\(s=1\)</span>, use only <span class="math notranslate nohighlight">\(Q_{0,1}=1\)</span>
+and <span class="math notranslate nohighlight">\(f_{0,1}=1\)</span> on the one-point face.</p>
+<p><em>Extension by one vertex.</em> Write <span class="math notranslate nohighlight">\(x=rz\)</span>, <span class="math notranslate nohighlight">\(r=\sum_i x_i\)</span>
+and let <span class="math notranslate nohighlight">\(y\)</span> be the new coordinate. The homogeneous polynomial
+<span class="math notranslate nohighlight">\(\Phi\)</span> for the boundary mode <span class="math notranslate nohighlight">\(f_{k,\nu}\)</span> is</p>
+<div class="math notranslate nohighlight">
+\[\Phi_{k,\nu}(x,y)=\prod_i x_i\,r^k Q_{k,\nu}(z)
+  \sum_{h=0}^{n-k} A_{k,h}r^{n-k-h}y^h.\]</div>
+<p>Indeed the sum, restricted to <span class="math notranslate nohighlight">\(r+y=1\)</span>, is
+<span class="math notranslate nohighlight">\(P_{n-k}^{(0,\,3s+2k-1)}(2r-1)\)</span>. To verify
+<a class="reference internal" href="#equation-skeleton-reduction-orthogonality">(5)</a>, divide <span class="math notranslate nohighlight">\(\Phi\)</span> by
+<span class="math notranslate nohighlight">\(\prod_i x_i\)</span>. The weighted volume element is
+<span class="math notranslate nohighlight">\(r^{3s-1}\prod_i z_i^2\,dr\,dz\)</span>. Expand a test polynomial of
+degree at most <span class="math notranslate nohighlight">\(n-1\)</span> into homogeneous angular modes. Angular
+orthogonality leaves only its degree <span class="math notranslate nohighlight">\(k\)</span> components. Their
+remaining radial degrees are at most <span class="math notranslate nohighlight">\(n-k-1\)</span>, with weight
+<span class="math notranslate nohighlight">\(r^{3s+2k-1}\)</span>. Jacobi orthogonality makes these integrals zero.
+At <span class="math notranslate nohighlight">\(y=0\)</span> the radial sum is <span class="math notranslate nohighlight">\(r^{n-k}\)</span>, giving the required
+boundary mode. This proves the extension by the characterization and
+reduction theorems. At <span class="math notranslate nohighlight">\(n=0\)</span> there are no test polynomials.</p>
+<p><em>The remaining coordinates.</em> By
+<a class="reference internal" href="#equation-skeleton-reduction-integral">(4)</a>, replace each <span class="math notranslate nohighlight">\(y^h\)</span> by</p>
+<div class="math notranslate nohighlight">
+\[T_h(t_{I^c})=E_u\Bigl(\sum_{j\notin I}u_jt_j\Bigr)^h
+  =\sum_{|b|=h}\frac{h!}{b!}\prod_{j\notin I}\frac{t_j^{b_j}}{b_j+1},\]</div>
+<p>where the <span class="math notranslate nohighlight">\(u_j\)</span> are independent uniform variables on
+<span class="math notranslate nohighlight">\([0,1]\)</span>. If <span class="math notranslate nohighlight">\(q\geq1\)</span>, write
+<span class="math notranslate nohighlight">\(t_{I^c}=(1-r)v\)</span>, with <span class="math notranslate nohighlight">\(v\)</span> uniform on its
+<span class="math notranslate nohighlight">\(q\)</span>-vertex simplex. The Dirichlet moments give</p>
+<div class="math notranslate nohighlight">
+\[E_v[T_h(v)T_l(v)]=\frac{h!l!}{(q)_{h+l}}K_q(h,l).\]</div>
+<p>The aggregation <span class="math notranslate nohighlight">\(t_I=rz\)</span> has independent <span class="math notranslate nohighlight">\(z\sim U_I\)</span>
+and <span class="math notranslate nohighlight">\(r\sim\operatorname{Beta}(s,q)\)</span>. Thus the ratio of the
+squared full-simplex norm of the extended mode to its face norm is</p>
+<div class="math notranslate nohighlight">
+\[\frac{1}{(s-1)!\,(M)_{2D}}
+\sum_{h,l=0}^{n-k} A_{k,h}A_{k,l}
+  (2D+s-h-l-1)!\,h!l!K_q(h,l).\]</div>
+<p>Specifically, the radial beta integral has exponents
+<span class="math notranslate nohighlight">\(2D+s-h-l-1\)</span> and <span class="math notranslate nohighlight">\(q+h+l-1\)</span>; its factor
+<span class="math notranslate nohighlight">\((q+h+l-1)!\)</span> cancels the corresponding denominator in the
+preceding moment. The angular norm cancels as well. Trace is invariant
+under a change of bubble basis, so summing these norm ratios, with
+<span class="math notranslate nohighlight">\(d_s(k)\)</span> modes, gives the trace for one face. Multiply by
+<span class="math notranslate nohighlight">\(\binom Ms^2\)</span> for the equal faces and the allocation convention.</p>
+<p>When <span class="math notranslate nohighlight">\(q=0\)</span> there is no extension. Only <span class="math notranslate nohighlight">\(h=l=0\)</span> survives
+in the stated formula, each norm ratio equals one, and the sum is
+<span class="math notranslate nohighlight">\(\sum_k d_s(k)=\binom{D-1}{s-1}\)</span>, including <span class="math notranslate nohighlight">\(s=1\)</span>.</p>
+</div>
+</section>
 <section id="fixed-degree-growing-dimension">
 <h2>Fixed degree, growing dimension<a class="headerlink" href="#fixed-degree-growing-dimension" title="Link to this heading"></a></h2>
 <div class="proof theorem admonition" id="thm-skeleton-rational">
-<p class="admonition-title"><span class="caption-number">Theorem 12 </span> (Rational dependence on the dimension)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 14 </span> (Rational dependence on the dimension)</p>
 <section class="theorem-content" id="proof-content">
 <p>For fixed <span class="math notranslate nohighlight">\(D\)</span> and <span class="math notranslate nohighlight">\(m &lt; D\)</span>, there is a polynomial
 <span class="math notranslate nohighlight">\(P_{D,m}\)</span> of degree at most <span class="math notranslate nohighlight">\(2(D - m - 1)\)</span> such that, for every
@@ -945,7 +1077,7 @@ skeleton fitting wins in all sufficiently high dimensions.</p>
 </section>
 </div><div class="proof admonition" id="proof">
 <p>Proof. <span class="math notranslate nohighlight">\(\binom{M}{m+1}^2 / (M)_{2D}\)</span> has degree <span class="math notranslate nohighlight">\(2(m + 1) - 2D\)</span>, so
-the degree bound of <a class="reference internal" href="#thm-skeleton-rational">Theorem 12</a> gives convergence.
+the degree bound of <a class="reference internal" href="#thm-skeleton-rational">Theorem 14</a> gives convergence.
 The last two limits follow from <a class="reference internal" href="#prop-skeleton-degree-faces">Proposition 3</a> and
 <a class="reference internal" href="#prop-skeleton-second-faces">Proposition 4</a>.</p>
 <p>For <span class="math notranslate nohighlight">\(a_0\)</span>, the leading term counts the pairs with
@@ -1008,7 +1140,11 @@ around once the dimension is large enough.</p>
 <section id="open-questions">
 <h2>Open questions<a class="headerlink" href="#open-questions" title="Link to this heading"></a></h2>
 <ul>
-<li><p><strong>A scalar closed form in D for 1 ≤ m ≤ D − 3.</strong>
+<li><p><strong>Further simplification of the scalar sums for 1 ≤ m ≤ D − 4.</strong>
+<a class="reference internal" href="#thm-skeleton-third-faces">Theorem 10</a> evaluates the entire
+<span class="math notranslate nohighlight">\(m=D-3\)</span> family, and <a class="reference internal" href="#thm-skeleton-scalar-sum">Theorem 13</a> gives a
+finite scalar expression in every remaining case. Reducing those sums
+to a bounded number of functions remains open.
 <a class="reference internal" href="#prop-skeleton-triangle-jacobi">Proposition 1</a> solves the triangular
 orthogonal-extension step for <span class="math notranslate nohighlight">\(m=1\)</span>, using separated angular
 and radial Jacobi polynomials. Substitution into the Gram trace gives
@@ -1028,8 +1164,8 @@ matrices and, after reconstructing the Gram trace, give
 The complete checked values are fixed in <code class="docutils literal notranslate"><span class="pre">tests/sampling.py</span></code>.
 Large prime factors in these values do not rule out a hypergeometric
 formula: no nonexistence claim or conjecture of that kind is made.
-Extending the angular construction to larger faces and evaluating
-the scalar risk sums remain open.</p>
+The angular construction now applies to every face; further evaluation
+of the resulting scalar risk sums remains open.</p>
 </li>
 <li><p><strong>A simpler form of a_0 for finite M ≥ 3.</strong>
 <a class="reference internal" href="#equation-skeleton-vertex-double-sum">(8)</a> reduces the control-pair sum to a
