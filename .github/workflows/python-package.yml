@@ -49,12 +49,13 @@ jobs:
       with:
         path: ~/.cache/pre-commit
         key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
-    - name: Lint and check formatting with ruff
+    - name: Run the pre-commit hooks (Ruff, numpydoc-validation)
       env:
         RUFF_OUTPUT_FORMAT: github  # annotate violations on the PR diff
+        SKIP: typos  # typos runs only in the local git hook while its false positives are observed
       run: |
         python -m pip install pre-commit
-        # rules and line length are configured in [tool.ruff] of pyproject.toml
+        # hooks and versions are in .pre-commit-config.yaml; checks are configured in [tool.ruff] and [tool.numpydoc_validation] of pyproject.toml
         pre-commit run --all-files --show-diff-on-failure
     - name: Test dependency lifecycle tooling
       run: python -m unittest discover -s tools/tests -v

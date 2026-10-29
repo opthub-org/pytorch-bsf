@@ -1,7 +1,5 @@
 """Spaces, observations and differentiable models shared by every fitting backend."""
 
-from __future__ import annotations
-
 import copy
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -98,13 +96,13 @@ class BezierSpace:
         object.__setattr__(self, "_source_ids", MappingProxyType(dict(self._source_ids)))
 
     @classmethod
-    def simplex(cls, dimension: int, *, degree: int) -> BezierSpace:
+    def simplex(cls, dimension: int, *, degree: int) -> "BezierSpace":
         """Create a single simplex, including a zero-dimensional constant."""
         dimension = _structural_integer(dimension, "dimension")
         return cls.simploid((dimension,) if dimension else (), degree=degree)
 
     @classmethod
-    def simploid(cls, dimensions: Sequence[int], *, degree: int | Sequence[int]) -> BezierSpace:
+    def simploid(cls, dimensions: Sequence[int], *, degree: int | Sequence[int]) -> "BezierSpace":
         """Create a tensor product of simplices with one degree per factor."""
         st = _check_type(dimensions)
         ds = _check_degree(degree, len(st))
@@ -113,7 +111,7 @@ class BezierSpace:
         return cls((cell,), n, (0,), _adjacent_pairs(st, ds))
 
     @classmethod
-    def on_set(cls, domain: SimploidalSet, *, degree: DegreeAssignment, default_degree: int | None = None) -> BezierSpace:
+    def on_set(cls, domain: SimploidalSet, *, degree: DegreeAssignment, default_degree: int | None = None) -> "BezierSpace":
         """Snapshot a simploidal set, propagating compatible degrees across shared faces.
 
         The builder's cell handles remain usable for addressing this snapshot;
@@ -178,7 +176,7 @@ class BezierSpace:
         """Return a copy of the undirected control-net edges."""
         return torch.tensor(self._edges, dtype=torch.long).reshape(-1, 2)
 
-    def compatible(self, other: BezierSpace) -> bool:
+    def compatible(self, other: "BezierSpace") -> bool:
         """Whether coefficient ordering and all addressable cells agree."""
         return (self.cells, self.n_controls, self.main_cells, self._topology) == (
             other.cells,
@@ -187,7 +185,7 @@ class BezierSpace:
             other._topology,
         )
 
-    def with_degree(self, degree: int | Sequence[int]) -> BezierSpace:
+    def with_degree(self, degree: int | Sequence[int]) -> "BezierSpace":
         """Recompile the same frozen domain at another degree for model selection."""
         if not self._topology:
             return BezierSpace.simploid(self.cells[0].dimensions, degree=degree)
@@ -204,7 +202,7 @@ class BezierSpace:
         domain._simploids = nodes
         return BezierSpace.on_set(domain, degree=degree)
 
-    def validate(self, points: Points) -> None:
+    def validate(self, points: "Points") -> None:
         """Check IDs, finite coordinates and simplex membership of each factor."""
         if self.n_cells == 1 and points.parameters.shape[1] != self.width:
             raise ValueError("parameter width does not match the single-cell space.")
@@ -212,7 +210,7 @@ class BezierSpace:
             raise ValueError("points contain an invalid cell ID.")
         self._validate_groups(points, _point_groups(points.cell_ids))
 
-    def _validate_groups(self, points: Points, groups: list[tuple[int, torch.Tensor]]) -> None:
+    def _validate_groups(self, points: "Points", groups: list[tuple[int, torch.Tensor]]) -> None:
         """Validate each active cell after a single grouping of observation rows."""
         for cid, rows in groups:
             info = self.cells[cid]
@@ -230,7 +228,7 @@ class BezierSpace:
                     raise ValueError("parameters must be barycentric coordinates on each simplex factor.")
                 offset += a + 1
 
-    def basis(self, points: Points | torch.Tensor) -> BasisOperator:
+    def basis(self, points: "Points | torch.Tensor") -> "BasisOperator":
         """Build a cell-local linear operator without a global dense allocation."""
         if not isinstance(points, Points) and self.n_cells != 1:
             raise ValueError("multi-cell spaces require explicit Points with cell IDs.")
@@ -307,7 +305,7 @@ class Points:
         object.__setattr__(self, "cell_ids", ids.to(torch.long).clone())
 
     @classmethod
-    def from_cells(cls, space: BezierSpace, data: Sequence[tuple[int | Simploid, Any]]) -> Points:
+    def from_cells(cls, space: BezierSpace, data: Sequence[tuple[int | Simploid, Any]]) -> "Points":
         """Pack ordered cell-local coordinates without manual padding.
 
         Parameters
@@ -370,12 +368,12 @@ class Points:
     def __len__(self) -> int:
         return len(self.parameters)
 
-    def take(self, indices: torch.Tensor) -> Points:
+    def take(self, indices: torch.Tensor) -> "Points":
         """Select rows while preserving their cell identities."""
         rows = indices.to(self.parameters.device)
         return Points(self.parameters[rows], self.cell_ids[rows])
 
-    def to(self, *, device: torch.device | str = "cpu", dtype: torch.dtype = torch.float64) -> Points:
+    def to(self, *, device: torch.device | str = "cpu", dtype: torch.dtype = torch.float64) -> "Points":
         """Copy coordinates to an explicit compute dtype and device."""
         # MPS-to-CPU casts must transfer before changing dtype: MPS has no
         # float64, and a combined transfer/cast can silently return zeros.
@@ -483,7 +481,7 @@ class Samples:
     def __len__(self) -> int:
         return len(self.points)
 
-    def take(self, indices: torch.Tensor) -> Samples:
+    def take(self, indices: torch.Tensor) -> "Samples":
         """Select observations, keeping coordinates, outputs and weights aligned."""
         return Samples(
             self.points.take(indices), self.values[indices.to(self.values.device)], weights=self.weights[indices.cpu()]
@@ -492,7 +490,7 @@ class Samples:
     @classmethod
     def from_cells(
         cls, space: BezierSpace, data: Sequence[tuple[int | Simploid, Any, Any]], *, weights: Any = None
-    ) -> Samples:
+    ) -> "Samples":
         """Pack ordered cell-local observations with different coordinate widths.
 
         Parameters
@@ -615,14 +613,14 @@ class FixedControls:
             checked[index] = tensor.clone()
         object.__setattr__(self, "values", MappingProxyType(checked))
 
-    def __deepcopy__(self, memo: dict[int, Any]) -> FixedControls:
+    def __deepcopy__(self, memo: dict[int, Any]) -> "FixedControls":
         """Copy constraint tensors for independent estimator cloning."""
         copied = FixedControls({row: value.detach() for row, value in self.values.items()})
         memo[id(self)] = copied
         return copied
 
     @classmethod
-    def from_cells(cls, space: BezierSpace, values: Sequence[tuple[int | Simploid, Sequence[Any], Any]]) -> FixedControls:
+    def from_cells(cls, space: BezierSpace, values: Sequence[tuple[int | Simploid, Sequence[Any], Any]]) -> "FixedControls":
         """Resolve local references and reject contradictory shared values."""
         checked: dict[int, torch.Tensor] = {}
         for cell, index, value in values:
@@ -772,6 +770,6 @@ class BezierModel(nn.Module):
         batch = batch.to(device=self.coefficients.device, dtype=self.coefficients.dtype)
         return self.space.basis(batch).matmat(self.coefficients)
 
-    def copy(self) -> BezierModel:
+    def copy(self) -> "BezierModel":
         """Copy coefficients without mutating or duplicating immutable geometry."""
         return BezierModel(self.space, self.coefficients)

@@ -1,7 +1,5 @@
 """Explicit ensembling, independent of cross-validation and model selection."""
 
-from __future__ import annotations
-
 from collections.abc import Sequence
 
 import torch

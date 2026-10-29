@@ -1,7 +1,7 @@
 # pre-commit hooks: https://pre-commit.com/
 # Install the git hook once per clone with `pre-commit install`; it also applies to all `git worktree`s of the clone.
-# The Ruff version below is the single source of truth: CI runs these same hooks with `pre-commit run --all-files`,
-# and Dependabot (`package-ecosystem: "pre-commit"` in .github/dependabot.yml) bumps `rev`.
+# The hook versions below are the single source of truth: CI runs these same hooks (except typos, see SKIP in
+# .github/workflows/python-package.yml) with `pre-commit run --all-files`, and Dependabot (`package-ecosystem: "pre-commit"` in .github/dependabot.yml) bumps `rev`.
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.17.2
@@ -11,3 +11,19 @@ repos:
         args: [--fix]
       # Format code
       - id: ruff-format
+  - repo: https://github.com/numpy/numpydoc
+    rev: v1.11.0
+    hooks:
+      # Validate NumPy-style docstrings of the public modules; checks are configured in [tool.numpydoc_validation] of pyproject.toml
+      - id: numpydoc-validation
+        files: ^torch_bsf/
+        # Private modules and packages (a path component starting with "_", except __init__.py)
+        exclude: ^torch_bsf/(.*/)?_(?!_init__\.py$)
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.51.1
+    hooks:
+      # Find misspellings; false positives are suppressed in _typos.toml.
+      # Local only for now: CI skips this hook (SKIP in .github/workflows/python-package.yml) while the rate of
+      # false positives is observed. Without the default --write-changes, findings are reported, never rewritten.
+      - id: typos
+        args: [--force-exclude]

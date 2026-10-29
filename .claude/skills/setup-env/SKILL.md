@@ -58,7 +58,7 @@ If conda is not installed, see "Without conda" below.
 "$PY" -m pre_commit install
 ```
 
-This makes every `git commit` run Ruff (`ruff check --fix` and `ruff format`) with the version pinned in `.pre-commit-config.yaml`. The hook goes into the shared hooks directory of the clone (`git rev-parse --git-path hooks`), so one install covers the main checkout and all its worktrees, including `.claude/worktrees/`; skip this step if the check in step 1 printed `ok git hook`. If a commit is aborted because a hook changed files, review the changes, stage them and commit again.
+This makes every `git commit` run Ruff (`ruff check --fix` and `ruff format`), numpydoc-validation and typos with the versions pinned in `.pre-commit-config.yaml`. The hook goes into the shared hooks directory of the clone (`git rev-parse --git-path hooks`), so one install covers the main checkout and all its worktrees, including `.claude/worktrees/`; skip this step if the check in step 1 printed `ok git hook`. If a commit is aborted because a hook changed files, review the changes, stage them and commit again.
 
 ## 5. Make sure the editable install points to this checkout
 

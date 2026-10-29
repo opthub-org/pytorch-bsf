@@ -15,10 +15,10 @@ except ModuleNotFoundError as error:
         raise
 
     class BaseEstimator:  # type: ignore[no-redef]
-        pass
+        """Stand-in for :class:`sklearn.base.BaseEstimator` when scikit-learn is not installed."""
 
     class RegressorMixin:  # type: ignore[no-redef]
-        pass
+        """Stand-in for :class:`sklearn.base.RegressorMixin` when scikit-learn is not installed."""
 
     _sklearn_available = False
 

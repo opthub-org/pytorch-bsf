@@ -67,17 +67,15 @@ If anything is missing or `torch_bsf` comes from elsewhere, follow the `setup-en
 Run all of these and fix every failure:
 
 ```bash
-"$PY" -m ruff check --fix <changed .py files>
-"$PY" -m ruff format <changed .py files>
-"$PY" -m ruff check .
-"$PY" -m ruff format --check .
+SKIP=typos "$PY" -m pre_commit run --all-files    # the CI lint job: Ruff and numpydoc-validation
+"$PY" -m pre_commit run typos --files <changed files>  # local only; report false positives in the PR
 "$PY" -m mypy torch_bsf tests
 "$PY" -m pytest
 git fetch origin master && "$PY" -m diff_cover.diff_cover_tool coverage.xml --compare-branch=origin/master
 "$PY" -m sphinx -b doctest docs docs/_build/doctest
 ```
 
-- Format only the files you changed, to keep the diff clean.
+- The Ruff hooks fix and format files in place; review what they changed before committing. They leave unchanged files alone, because `master` already passes them.
 - `diff_cover` reports the changed lines that no test runs, as the `codecov/patch` check does; cover them with tests.
 - If CLI code (`torch_bsf/__main__.py`, `_cli_args.py`) changed, also run `PATH="$(dirname "$PY"):$PATH" bash examples/quickstart/run.sh`.
 - If docs changed, also run `"$PY" -m sphinx -b html docs docs/_build/html` and check for new warnings.
@@ -134,7 +132,7 @@ Closes #<N>
 ## Verification
 - `python -m pytest`: <N passed>
 - `python -m mypy torch_bsf tests`: <result>
-- `ruff check` / `ruff format --check`: <result>
+- `SKIP=typos pre-commit run --all-files` / `pre-commit run typos --files <changed files>`: <result>
 - `sphinx-build -b doctest`: <result>
 
 ## Local review

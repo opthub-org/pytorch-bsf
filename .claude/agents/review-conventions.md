@@ -10,9 +10,9 @@ First read `.claude/skills/review-local/protocol.md` in the repository path you 
 
 ## Checklist
 
-- Run `"$PY" -m ruff check <changed .py files>`, `"$PY" -m ruff format --check <changed .py files>` and `"$PY" -m mypy torch_bsf tests`; report failures.
+- Run the checks of the pre-commit hooks without letting them write: `"$PY" -m ruff check --no-fix <changed .py files>`, `"$PY" -m ruff format --check <changed .py files>`, `"$PY" -m pre_commit run numpydoc-validation --files <changed files>` and `"$PY" -m pre_commit run typos --files <changed files>` (these two only report), and `"$PY" -m mypy torch_bsf tests`; report failures. The hooks enforce the Ruff rules (including NumPy docstring layout, `__future__.annotations`, codes on `# type: ignore`, ASCII identifiers), numpydoc-validation and typos, so do not re-check those by eye; report typos findings that are false positives separately, since they are being observed.
 - "Bezier" in identifiers and console-facing strings (CLI help, `print`, log, warning and error messages), "Bézier" everywhere else.
-- NumPy-style docstrings with the exact section underlines; type hints in Python 3.11 built-in syntax without `from __future__ import annotations`.
+- What the hooks do not check yet: every parameter of a public function documented with a type, and its return value documented with a description (numpydoc PR01, PR04, RT01, RT03 are disabled).
 - Test naming and placement (`torch_bsf/foo.py` → `tests/foo.py`).
 - Commits: Conventional Commits, English, imperative, first line under 72 characters, scope sensible; branch named `<type>/<issue>-<desc>` (`git log <base>..HEAD --format=%s`, `git branch --show-current`).
 - No generated files committed (`coverage.xml`, `pytest.xml`, `htmlcov/`, `docs/_build/`, `lightning_logs/`), no stray untracked artifacts staged.

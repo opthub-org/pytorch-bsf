@@ -1,3 +1,5 @@
+"""Invertible scalers for the responses of a Bézier model."""
+
 from fractions import Fraction
 from typing import Literal, Protocol
 
