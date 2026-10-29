@@ -415,8 +415,9 @@ propagation to the faces with one more vertex.
 Triangular Jacobi extension
 ---------------------------
 
-The orthogonal-polynomial construction does extend beyond curves, although
-it does not yet give a scalar closed form for :math:`a_1`.
+The orthogonal-polynomial construction extends beyond curves. Evaluating
+its mode norms below gives a harmonic-number closed form for :math:`a_1`
+on triangles.
 
 .. prf:proposition:: Propagation from an edge via Jacobi polynomials
    :label: prop-skeleton-triangle-jacobi
@@ -905,6 +906,97 @@ number of elementary or special functions.
    in the stated formula, each norm ratio equals one, and the sum is
    :math:`\sum_k d_s(k)=\binom{D-1}{s-1}`, including :math:`s=1`.
 
+Codimension one and the triangle edge risk
+-------------------------------------------
+
+.. prf:theorem:: Faces of codimension one
+   :label: thm-skeleton-codimension-one
+
+   For :math:`s\geq1`, :math:`M=s+1`, and :math:`D\geq s`, put
+   :math:`n=D-s` and use :math:`d_s(k)` from
+   :prf:ref:`thm-skeleton-scalar-sum`. Then
+
+   .. math::
+
+      a_{s-1}(s+1,D)=s(s+1)^2\sum_{k=0}^n
+       \frac{d_s(k)}{(n-k+1)(n+k+3s)}.
+
+   Thus the two radial sums and the kernel extraction reduce to a single
+   sum of :math:`n+1` rational terms; there are no polynomial integrals,
+   Gram matrices or propagation coefficients to compute.
+
+.. prf:proof::
+
+   In the mode extension of :prf:ref:`thm-skeleton-scalar-sum`, there is
+   just one outside coordinate :math:`y`. Averaging :math:`y^h` multiplies
+   its coefficient by :math:`1/(h+1)`. Write :math:`L=n-k` and
+   :math:`\beta=3s+2k-1`. The homogeneous radial polynomial therefore
+   becomes, on :math:`r+y=1`,
+
+   .. math::
+
+      \sum_{h=0}^L\frac{(-1)^h}{h+1}\binom Lh\binom{L+\beta}{h}
+        r^{L-h}(1-r)^h
+      =\frac{P_L^{(1,\beta)}(2r-1)}{L+1}.
+
+   The beta density of :math:`r` is :math:`sr^{s-1}`. After the angular
+   norm cancels, the full-to-face squared-norm ratio of this mode is
+
+   .. math::
+
+      \frac{s}{(L+1)^2}\int_0^1 r^\beta
+         P_L^{(1,\beta)}(2r-1)^2\,dr
+      =\frac{s}{(L+1)(L+\beta+1)}.
+
+   For completeness, the last integral follows from the reproducing
+   kernel for polynomials of degree at most :math:`L` with weight
+   :math:`r^\beta`. The shifted polynomials
+   :math:`P_j^{(0,\beta)}` have squared norms
+   :math:`1/(2j+\beta+1)` and endpoint value one. Hence its kernel at
+   endpoint one is
+   :math:`C_L(r)=\sum_{j=0}^L(2j+\beta+1)P_j^{(0,\beta)}(2r-1)`,
+   with :math:`\int r^\beta C_L(r)g(r)\,dr=g(1)`.
+   Taking :math:`g=(1-r)h`, :math:`\deg h<L`, identifies
+   :math:`C_L=(L+\beta+1)P_L^{(1,\beta)}` by orthogonality and
+   :math:`C_L(1)=(L+1)(L+\beta+1)`. Taking :math:`g=C_L` proves
+   :math:`\int r^\beta P_L^{(1,\beta)}(2r-1)^2\,dr
+   =(L+1)/(L+\beta+1)`.
+   Sum the mode ratios with their multiplicities and multiply by
+   :math:`\binom{s+1}s^2=(s+1)^2`.
+
+.. prf:corollary:: Triangle edge risk in harmonic numbers
+   :label: cor-skeleton-triangle-edge-risk
+
+   For every :math:`D\geq2`,
+
+   .. math::
+      :label: skeleton-triangle-edge-risk
+
+      a_1(3,D)=\frac{18}{2D+3}
+        \bigl(H_{D-1}+H_{2D+2}-H_{D+3}\bigr),
+      \qquad H_j=\sum_{i=1}^j\frac1i,\quad H_0=0.
+
+   At :math:`D=1` there are no edge controls and :math:`a_1=0`.
+
+.. prf:proof::
+
+   Take :math:`s=2`, so every :math:`d_2(k)=1`, and set
+   :math:`j=D-1-k`. The preceding sum is
+   :math:`18\sum_{j=1}^{D-1}1/(j(2D+3-j))`. Partial fractions give
+   :math:`1/(j(C-j))=(1/j+1/(C-j))/C` with :math:`C=2D+3`.
+   The two sums are :math:`H_{D-1}` and
+   :math:`H_{2D+2}-H_{D+3}`, respectively.
+
+In particular, :math:`a_1(3,D)=9\log D/D+O(1/D)` as
+:math:`D\to\infty`. The exact formula reproduces
+:math:`3,99/28,71/20,188/55,81259/25025,123021/40040` at
+:math:`D=2,\ldots,7`. The tests also compare all Jacobi modes and their
+risks with independent rational Gram solves at :math:`D=8,9,10`, beyond
+the original table. These are checks of the proof, not data used to infer
+the formula. On the development machine the complete mode-and-risk checks
+took about 0.14, 0.27 and 0.52 seconds at these degrees, respectively, and
+run in the normal test suite.
+
 Fixed degree, growing dimension
 -------------------------------
 
@@ -1170,11 +1262,11 @@ Open questions
   :math:`m=D-3` family, and :prf:ref:`thm-skeleton-scalar-sum` gives a
   finite scalar expression in every remaining case. Reducing those sums
   to a bounded number of functions remains open.
-  :prf:ref:`prop-skeleton-triangle-jacobi` solves the triangular
-  orthogonal-extension step for :math:`m=1`, using separated angular
-  and radial Jacobi polynomials. Substitution into the Gram trace gives
-  a finite exact procedure, but the resulting sums have not been
-  evaluated to a scalar closed form for :math:`a_1`.
+  :prf:ref:`thm-skeleton-codimension-one` further reduces every
+  codimension-one coefficient to a single rational sum, and
+  :prf:ref:`cor-skeleton-triangle-edge-risk` evaluates the triangular
+  edge coefficient for every degree in harmonic numbers. The remaining
+  simplification question concerns other dimensions and skeletons.
 
   A single radial polynomial shared by all angular modes does not
   provide this extension. Already at :math:`D=4` (:math:`N=2`), the
@@ -1184,15 +1276,10 @@ Open questions
   separation ansatz fails, while the mode-dependent construction above
   succeeds. This rules out only that ansatz, not other closed forms.
 
-  Exact rational checks of every angular mode for
-  :math:`D=2,\dots,7` reproduce the independently solved propagation
-  matrices and, after reconstructing the Gram trace, give
-  :math:`a_1=3,99/28,71/20,188/55,81259/25025,\dots` for :math:`M=3`.
-  The complete checked values are fixed in ``tests/sampling.py``.
-  Large prime factors in these values do not rule out a hypergeometric
-  formula: no nonexistence claim or conjecture of that kind is made.
-  The angular construction now applies to every face; further evaluation
-  of the resulting scalar risk sums remains open.
+  Exact rational checks of every triangular angular mode for
+  :math:`D=2,\dots,10` reproduce the independently solved propagation
+  matrices and the harmonic-number formula. Prime factors in individual
+  risk values give no obstruction to such formulas.
 - **A simpler form of a_0 for finite M ≥ 3.**
   :eq:`skeleton-vertex-double-sum` reduces the control-pair sum to a
   :math:`D\times D` sum with an explicit generating function. For example
