@@ -1,0 +1,463 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Optimal skeleton sampling &mdash; PyTorch-BSF 0.23.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2753bf86"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Theory of the skeleton risk" href="skeleton_risk_theory.html" />
+    <link rel="prev" title="Sampling and grids" href="sampling.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Optimal skeleton sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sample-fit-and-compare">Sample, fit and compare</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#the-risk-and-its-coefficients">The risk and its coefficients</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#the-optimal-ratio">The optimal ratio</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#notes-on-the-original-derivation">Notes on the original derivation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#limits-of-the-result">Limits of the result</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Optimal skeleton sampling</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/skeleton_sampling.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="optimal-skeleton-sampling">
+<h1>Optimal skeleton sampling<a class="headerlink" href="#optimal-skeleton-sampling" title="Link to this heading"></a></h1>
+<p>When responses can be measured at chosen parameters, a simplex can be fitted
+face by face: vertices first, then edges, then larger faces, each time
+estimating only the controls interior to the face from observations on that
+face. This is the inductive skeleton fitting of <span class="bibtex-citation" id="id1">Tanaka <em>et al.</em> [<a class="reference internal" href="../references.html#id14" title="Aiko Tanaka, Akiyoshi Sannai, Ken Kobayashi, and Naoki Hamada. Asymptotic risk of bézier simplex fitting. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 34, 2416–2424. 2020. URL: https://doi.org/10.1609/aaai.v34i03.5622.">TSKH20</a>]</span>.
+Its accuracy depends on how a budget of <span class="math notranslate nohighlight">\(N\)</span> observations is split among
+the skeletons. This chapter gives the asymptotic risk for every dimension and
+degree, the split that minimizes it, and the functions that compute, sample and
+fit with it.</p>
+<section id="sample-fit-and-compare">
+<h2>Sample, fit and compare<a class="headerlink" href="#sample-fit-and-compare" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierModel</span><span class="p">,</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">Samples</span><span class="p">,</span> <span class="n">fit_skeleton_regression</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.sampling</span><span class="w"> </span><span class="kn">import</span> <span class="n">optimal_skeleton_ratio</span><span class="p">,</span> <span class="n">sample_skeleton</span><span class="p">,</span> <span class="n">skeleton_risk_coefficients</span>
+
+<span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">([</span><span class="nb">round</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">skeleton_risk_coefficients</span><span class="p">(</span><span class="n">space</span><span class="p">)])</span>
+<span class="nb">print</span><span class="p">([</span><span class="nb">round</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">optimal_skeleton_ratio</span><span class="p">(</span><span class="n">space</span><span class="p">)])</span>
+
+<span class="n">truth</span> <span class="o">=</span> <span class="n">BezierModel</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">space</span><span class="o">.</span><span class="n">n_controls</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">])</span>
+<span class="n">points</span> <span class="o">=</span> <span class="n">sample_skeleton</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">noise</span> <span class="o">=</span> <span class="mf">0.01</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">300</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">generator</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">Generator</span><span class="p">()</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">fit_skeleton_regression</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">Samples</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">truth</span><span class="p">(</span><span class="n">points</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="o">+</span> <span class="n">noise</span><span class="p">))</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="k">assert</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">faces</span><span class="p">)[:</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)]</span>
+<span class="k">assert</span> <span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">coefficients</span> <span class="o">-</span> <span class="n">truth</span><span class="o">.</span><span class="n">coefficients</span><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mf">0.1</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[0.1464, 3.5357, 1.0]
+[0.117, 0.576, 0.306]
+</pre></div>
+</div>
+<p><a class="reference internal" href="../api.html#torch_bsf.sampling.sample_skeleton" title="torch_bsf.sampling.sample_skeleton"><code class="xref py py-func docutils literal notranslate"><span class="pre">sample_skeleton()</span></code></a> places 11.7% of the rows on
+vertices, 57.6% on edges and 30.6% inside the triangle by default, splits each
+skeleton’s share equally among its faces, and draws uniformly on each face.
+Pass <code class="docutils literal notranslate"><span class="pre">ratio</span></code> to choose other shares. <a class="reference internal" href="../api.html#torch_bsf.fitting.fit_skeleton_regression" title="torch_bsf.fitting.fit_skeleton_regression"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_skeleton_regression()</span></code></a>
+assigns each row to the face spanned by its nonzero coordinates, so zeros must
+be exact; it reports one <code class="xref py py-class docutils literal notranslate"><span class="pre">FitResult</span></code> per face. Rows on
+faces with more than <span class="math notranslate nohighlight">\(D\)</span> vertices carry no information for this
+estimator and are ignored, and rows of zero weight do not count towards the
+row a face needs.</p>
+<p>Use <code class="xref py py-func docutils literal notranslate"><span class="pre">fit()</span></code> instead when observations are not on faces or when
+all of them should inform every control. Fitting stratified rows with <code class="docutils literal notranslate"><span class="pre">fit</span></code>
+is a different estimator, and the ratio below is not optimal for it.
+<code class="xref py py-func docutils literal notranslate"><span class="pre">fit_skeleton()</span></code> is the value-only variant for unknown
+parameters, discussed in <a class="reference internal" href="point_cloud.html"><span class="doc">Fitting from values alone</span></a>.</p>
+</section>
+<section id="the-risk-and-its-coefficients">
+<h2>The risk and its coefficients<a class="headerlink" href="#the-risk-and-its-coefficients" title="Link to this heading"></a></h2>
+<p>Let the simplex have <span class="math notranslate nohighlight">\(M\)</span> vertices and degree <span class="math notranslate nohighlight">\(D\)</span>, let responses
+<span class="math notranslate nohighlight">\(x = b(t) + \varepsilon\)</span> have <span class="math notranslate nohighlight">\(L\)</span> outputs with independent noise of
+variance <span class="math notranslate nohighlight">\(\sigma^2\)</span>, and let <span class="math notranslate nohighlight">\(N^{(m)}\)</span> rows lie on the
+<span class="math notranslate nohighlight">\(m\)</span>-skeleton (the union of faces with <span class="math notranslate nohighlight">\(m + 1\)</span> vertices), split
+equally among its <span class="math notranslate nohighlight">\(\binom{M}{m+1}\)</span> faces and uniform on each. Measure the
+error by</p>
+<div class="math notranslate nohighlight">
+\[R = E \int_{\Delta^{M-1}} \lVert \hat b(t) - b(t) \rVert^2 \, dU(t),\]</div>
+<p>with <span class="math notranslate nohighlight">\(U\)</span> uniform on the simplex. Then</p>
+<div class="math notranslate nohighlight">
+\[R = \sigma^2 L \sum_{m=0}^{M-1} \frac{a_m}{N^{(m)}} + o\!\left(\frac{1}{N}\right).\]</div>
+<p><a class="reference internal" href="../api.html#torch_bsf.sampling.skeleton_risk_coefficients" title="torch_bsf.sampling.skeleton_risk_coefficients"><code class="xref py py-func docutils literal notranslate"><span class="pre">skeleton_risk_coefficients()</span></code></a> returns
+<span class="math notranslate nohighlight">\(a_0, \dots, a_{M-1}\)</span>. They follow from three facts, proved in
+<a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a>.</p>
+<ol class="arabic">
+<li><p>On a face <span class="math notranslate nohighlight">\(I\)</span>, let <span class="math notranslate nohighlight">\(T\)</span> be the controls whose multi-index has
+support exactly <span class="math notranslate nohighlight">\(I\)</span> and <span class="math notranslate nohighlight">\(B\)</span> those with smaller support. Only
+these controls are nonzero on the face. With <span class="math notranslate nohighlight">\(n_I\)</span> rows, least squares
+for <span class="math notranslate nohighlight">\(T\)</span> with <span class="math notranslate nohighlight">\(B\)</span> fixed gives, to first order, the error</p>
+<div class="math notranslate nohighlight">
+\[e_T = \eta_I - G^I_{TT}{}^{-1} G^I_{TB}\, e_B,\]</div>
+<p>where <span class="math notranslate nohighlight">\(G^I\)</span> is the Gram matrix of the Bernstein basis under the
+uniform distribution on the face. The innovations <span class="math notranslate nohighlight">\(\eta_I\)</span> are
+independent across faces, with covariance
+<span class="math notranslate nohighlight">\(\sigma^2 G^I_{TT}{}^{-1} / n_I\)</span> to first order.
+Fluctuations of the empirical Gram matrices contribute only
+<span class="math notranslate nohighlight">\(o(1/N)\)</span>.</p>
+</li>
+<li><p>Starting from the vertices, the errors of all controls are therefore a
+linear map <span class="math notranslate nohighlight">\(e = \sum_I E_I \eta_I\)</span> of the independent face noises.</p></li>
+<li><p>The risk is <span class="math notranslate nohighlight">\(E\,\mathrm{tr}(e^\top G e)\)</span> with <span class="math notranslate nohighlight">\(G\)</span> the Gram
+matrix on the whole simplex. With <span class="math notranslate nohighlight">\(n_I = N^{(m)} / \binom{M}{m+1}\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[a_m = \binom{M}{m+1} \sum_{|I| = m+1} \mathrm{tr}\!\left(G^I_{TT}{}^{-1} E_I^\top G E_I\right).\]</div>
+</li>
+</ol>
+<p>The Gram entries are exact moments of the uniform distribution on a simplex,
+<span class="math notranslate nohighlight">\(E[t^\alpha] = k!\,\alpha! / (|\alpha| + k)!\)</span> on a <span class="math notranslate nohighlight">\(k\)</span>-simplex.</p>
+<p>The available formulas are summarized below. Their proofs and exact ranges
+are in <a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a>; independent checks and reference
+polynomials are in <a class="reference internal" href="skeleton_risk_verification.html"><span class="doc">Exact verification of the skeleton risk</span></a>.</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(a_m = 0\)</span> for <span class="math notranslate nohighlight">\(m \geq D\)</span>: faces with more than <span class="math notranslate nohighlight">\(D\)</span>
+vertices have no interior controls, and the optimal ratio gives them no rows.</p></li>
+<li><p>For <span class="math notranslate nohighlight">\(D \geq M\)</span>, <span class="math notranslate nohighlight">\(a_{M-1} = \binom{D-1}{M-1}\)</span>, the number of
+controls interior to the whole simplex. Their estimate is measured with the
+same Gram matrix it was fitted with.</p></li>
+<li><p>For <span class="math notranslate nohighlight">\(D \leq M\)</span>,
+<span class="math notranslate nohighlight">\(a_{D-1} = \binom{M}{D}^2 (3D-1)! / ((D-1)!\,(M)_{2D})\)</span>, where
+<span class="math notranslate nohighlight">\((M)_k = M (M+1) \cdots (M+k-1)\)</span>. For <span class="math notranslate nohighlight">\(D = 1\)</span> this is
+<span class="math notranslate nohighlight">\(a_0 = 2M / (M + 1)\)</span>. <span class="math notranslate nohighlight">\(a_{D-2}\)</span> and <span class="math notranslate nohighlight">\(a_{D-3}\)</span>
+also have closed forms in both <span class="math notranslate nohighlight">\(D\)</span> and <span class="math notranslate nohighlight">\(M\)</span>; see
+<a class="reference internal" href="skeleton_risk_theory.html#prop-skeleton-second-faces">Proposition 3</a> and
+<a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-third-faces">Theorem 11</a>.</p></li>
+<li><p>On curves (<span class="math notranslate nohighlight">\(M = 2\)</span>), <span class="math notranslate nohighlight">\(a_0 = 4 / (D (D + 2))\)</span> and
+<span class="math notranslate nohighlight">\(a_1 = D - 1\)</span>.</p></li>
+<li><p>On triangles (<span class="math notranslate nohighlight">\(M=3\)</span>), all coefficients are closed for every degree:
+<a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-triangle-vertex-risk">Theorem 15</a> gives
+<span class="math notranslate nohighlight">\(a_0(3,D)\)</span> in harmonic numbers and <span class="math notranslate nohighlight">\(\binom{2D}{D}\)</span> for
+<span class="math notranslate nohighlight">\(D\geq1\)</span>;
+<span class="math notranslate nohighlight">\(a_1=18(H_{D-1}+H_{2D+2}-H_{D+3})/(2D+3)\)</span> for
+<span class="math notranslate nohighlight">\(D\geq2\)</span>; and <span class="math notranslate nohighlight">\(a_2=\binom{D-1}{2}\)</span> for <span class="math notranslate nohighlight">\(D\geq3\)</span>.
+Here <span class="math notranslate nohighlight">\(H_j=\sum_{i=1}^j1/i\)</span>; inactive skeletons have coefficient zero. Hence
+<span class="math notranslate nohighlight">\((\sqrt{a_0}+\sqrt{a_1}+\sqrt{a_2})^2\)</span> is an explicit formula
+for the optimal normalized triangle risk at every degree.</p></li>
+<li><p>Every codimension-one coefficient has a single finite rational sum:
+see <a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-codimension-one">Theorem 12</a>.</p></li>
+<li><p>For a fixed degree, every <span class="math notranslate nohighlight">\(a_m\)</span> is a rational function of <span class="math notranslate nohighlight">\(M\)</span>
+and converges as <span class="math notranslate nohighlight">\(M\)</span> grows.
+<a class="reference internal" href="skeleton_risk_theory.html#cor-skeleton-large-dimension">Corollary 5</a> gives every limit; for example,
+<span class="math notranslate nohighlight">\(a_0 \to 2 D^2 (D+1)^2 / 4^D\)</span>.</p></li>
+</ul>
+<p>These closed forms rest on a structure theorem: the errors that a face
+passes to larger faces are determined by the errors it passes to the faces
+with one more vertex. More generally, <a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-scalar-sum">Theorem 10</a>
+gives every coefficient as a finite scalar sum, without Gram-matrix
+inversion or propagation recursion. Simplification to a bounded number of
+functions remains open in the ranges listed in the theory chapter.</p>
+</section>
+<section id="the-optimal-ratio">
+<h2>The optimal ratio<a class="headerlink" href="#the-optimal-ratio" title="Link to this heading"></a></h2>
+<p>Minimizing <span class="math notranslate nohighlight">\(\sum_m a_m / N^{(m)}\)</span> subject to <span class="math notranslate nohighlight">\(\sum_m N^{(m)} = N\)</span>
+gives, by the Cauchy-Schwarz inequality,</p>
+<div class="math notranslate nohighlight">
+\[\frac{N^{(m)}}{N} = \frac{\sqrt{a_m}}{\sum_k \sqrt{a_k}}, \qquad
+R^\ast = \frac{\sigma^2 L}{N} \Bigl(\sum_m \sqrt{a_m}\Bigr)^2.\]</div>
+<p><a class="reference internal" href="../api.html#torch_bsf.sampling.optimal_skeleton_ratio" title="torch_bsf.sampling.optimal_skeleton_ratio"><code class="xref py py-func docutils literal notranslate"><span class="pre">optimal_skeleton_ratio()</span></code></a> returns these fractions.
+For comparison, ordinary least squares on <span class="math notranslate nohighlight">\(N\)</span> uniform rows on the whole
+simplex (all-at-once fitting) has risk
+<span class="math notranslate nohighlight">\(\sigma^2 L \binom{D+M-1}{D} / N\)</span>, the number of controls over
+<span class="math notranslate nohighlight">\(N\)</span>. The table lists <span class="math notranslate nohighlight">\(N R^\ast / (\sigma^2 L)\)</span> and the all-at-once
+value; the smaller one is in bold.</p>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-number">Table 10 </span><span class="caption-text">Optimal inductive skeleton risk versus all-at-once risk</span><a class="headerlink" href="#id3" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head stub"><p>Degree</p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(M = 2\)</span></p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(M = 3\)</span></p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(M = 4\)</span></p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(M = 5\)</span></p></th>
+<th class="head"><p><span class="math notranslate nohighlight">\(M = 6\)</span></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><th class="stub"><p>1</p></th>
+<td><p><strong>1.333</strong> / 2</p></td>
+<td><p><strong>1.5</strong> / 3</p></td>
+<td><p><strong>1.6</strong> / 4</p></td>
+<td><p><strong>1.667</strong> / 5</p></td>
+<td><p><strong>1.714</strong> / 6</p></td>
+</tr>
+<tr class="row-odd"><th class="stub"><p>2</p></th>
+<td><p><strong>2.914</strong> / 3</p></td>
+<td><p><strong>5.496</strong> / 6</p></td>
+<td><p><strong>8.667</strong> / 10</p></td>
+<td><p><strong>11.99</strong> / 15</p></td>
+<td><p><strong>15.17</strong> / 21</p></td>
+</tr>
+<tr class="row-even"><th class="stub"><p>3</p></th>
+<td><p><strong>3.727</strong> / 4</p></td>
+<td><p>10.65 / <strong>10</strong></p></td>
+<td><p>23.88 / <strong>20</strong></p></td>
+<td><p>44.75 / <strong>35</strong></p></td>
+<td><p>73.14 / <strong>56</strong></p></td>
+</tr>
+<tr class="row-odd"><th class="stub"><p>4</p></th>
+<td><p><strong>4.581</strong> / 5</p></td>
+<td><p>15.07 / <strong>15</strong></p></td>
+<td><p>43.04 / <strong>35</strong></p></td>
+<td><p>104.9 / <strong>70</strong></p></td>
+<td><p>220.2 / <strong>126</strong></p></td>
+</tr>
+<tr class="row-even"><th class="stub"><p>5</p></th>
+<td><p><strong>5.467</strong> / 6</p></td>
+<td><p><strong>20.20</strong> / 21</p></td>
+<td><p>64.12 / <strong>56</strong></p></td>
+<td><p>184.3 / <strong>126</strong></p></td>
+<td><p>471.8 / <strong>252</strong></p></td>
+</tr>
+<tr class="row-odd"><th class="stub"><p>6</p></th>
+<td><p><strong>6.374</strong> / 7</p></td>
+<td><p><strong>26.17</strong> / 28</p></td>
+<td><p>90.36 / <strong>84</strong></p></td>
+<td><p>283.9 / <strong>210</strong></p></td>
+<td><p>824.0 / <strong>462</strong></p></td>
+</tr>
+</tbody>
+</table>
+<p>The degree-two and degree-three rows agree with Tables 1 and 2 of
+<span class="bibtex-citation" id="id2">Tanaka <em>et al.</em> [<a class="reference internal" href="../references.html#id14" title="Aiko Tanaka, Akiyoshi Sannai, Ken Kobayashi, and Naoki Hamada. Asymptotic risk of bézier simplex fitting. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 34, 2416–2424. 2020. URL: https://doi.org/10.1609/aaai.v34i03.5622.">TSKH20</a>]</span>, which give these coefficients numerically for
+<span class="math notranslate nohighlight">\(D \in \{2, 3\}\)</span> and <span class="math notranslate nohighlight">\(2 \leq M \leq 8\)</span>. The other rows are new.
+They show that the paper’s observation that the inductive skeleton fitting wins
+for <span class="math notranslate nohighlight">\(D &lt; 3\)</span> does not extend to a rule in the degree: it wins for every
+degree shown on curves (<span class="math notranslate nohighlight">\(M = 2\)</span>), and on triangles at degrees five and six.
+<a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a> proves that it wins:</p>
+<ul class="simple">
+<li><p>on curves at every degree;</p></li>
+<li><p>for <span class="math notranslate nohighlight">\(D \leq 2\)</span> in every dimension;</p></li>
+<li><p>for every degree once the dimension is large enough, for example from
+<span class="math notranslate nohighlight">\(M = 11\)</span> at degree three, from <span class="math notranslate nohighlight">\(M = 20\)</span> at degree four and from
+<span class="math notranslate nohighlight">\(M = 29\)</span> at degree five, <span class="math notranslate nohighlight">\(M = 39\)</span> at degree six,
+<span class="math notranslate nohighlight">\(M = 49\)</span> at degree seven and <span class="math notranslate nohighlight">\(M = 60\)</span> at degree eight.</p></li>
+</ul>
+</section>
+<section id="notes-on-the-original-derivation">
+<h2>Notes on the original derivation<a class="headerlink" href="#notes-on-the-original-derivation" title="Link to this heading"></a></h2>
+<p>The numerical results of the paper are correct; the statements around them
+need three qualifications.</p>
+<ul class="simple">
+<li><p>The risk is an expectation, so the limit concerns <span class="math notranslate nohighlight">\(N R_N\)</span>; writing
+convergence in probability of <span class="math notranslate nohighlight">\(E[(Z^\top Z)^{-1}]\)</span> mixes two notions.</p></li>
+<li><p>If rows are assigned to faces at random, some face receives no rows with
+positive probability for every finite <span class="math notranslate nohighlight">\(N\)</span>, and the estimator and
+<span class="math notranslate nohighlight">\(R_N\)</span> are undefined. The analysis needs a deterministic split, which
+<a class="reference internal" href="../api.html#torch_bsf.sampling.sample_skeleton" title="torch_bsf.sampling.sample_skeleton"><code class="xref py py-func docutils literal notranslate"><span class="pre">sample_skeleton()</span></code></a> uses (up to one row per face).</p></li>
+<li><p>The matrices <span class="math notranslate nohighlight">\(\Lambda^{(m)[k]}\)</span> of the paper’s recursion are indexed
+inconsistently. The derivation above avoids them by propagating the control
+errors face by face.</p></li>
+</ul>
+</section>
+<section id="limits-of-the-result">
+<h2>Limits of the result<a class="headerlink" href="#limits-of-the-result" title="Link to this heading"></a></h2>
+<p>The coefficients describe the limit as every active face receives more rows;
+they are not finite-sample error bounds. With few rows per face, a design can
+be rank deficient or have large inverse-Gram moments. The formulas
+assume the uniform distribution on each face, an equal split among faces of
+the same size, and risk averaged uniformly over the simplex; a different
+weighting of the error changes them. Bernstein Gram matrices become
+ill-conditioned as the degree grows, and
+<a class="reference internal" href="../api.html#torch_bsf.sampling.skeleton_risk_coefficients" title="torch_bsf.sampling.skeleton_risk_coefficients"><code class="xref py py-func docutils literal notranslate"><span class="pre">skeleton_risk_coefficients()</span></code></a> raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>
+once the float64 result can no longer be guaranteed to six significant digits
+(above degree 14 for <span class="math notranslate nohighlight">\(M = 2\)</span>, 12 for <span class="math notranslate nohighlight">\(M = 3\)</span>, 11 for
+<span class="math notranslate nohighlight">\(M = 4\)</span>, 9 for <span class="math notranslate nohighlight">\(M = 5\)</span> and 8 for <span class="math notranslate nohighlight">\(M = 6\)</span>). In that case, pass
+<code class="docutils literal notranslate"><span class="pre">ratio</span></code> to <a class="reference internal" href="../api.html#torch_bsf.sampling.sample_skeleton" title="torch_bsf.sampling.sample_skeleton"><code class="xref py py-func docutils literal notranslate"><span class="pre">sample_skeleton()</span></code></a> explicitly. Only a
+single simplex is supported, not products or assembled spaces.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="sampling.html" class="btn btn-neutral float-left" title="Sampling and grids" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="skeleton_risk_theory.html" class="btn btn-neutral float-right" title="Theory of the skeleton risk" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: fix/538-boundary-hessians
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="skeleton_sampling.html">fix/538-boundary-hessians</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
