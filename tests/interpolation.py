@@ -2466,6 +2466,20 @@ def test_clough_tocher_c1_with_increments_whose_terms_overflow_and_cancel(clamp)
     assert torch.equal(actual, expected * 2.0**20)
 
 
+def test_clough_tocher_c1_with_controls_near_overflow_from_small_data():
+    """Without clamp, controls near the float64 overflow from small data scale exactly with the gradients.
+
+    Regression: the split-point controls 9.9e307 of the piece opposite (0, 0) overflowed in their sum, although the
+    control Q = 1.69e308 next to its edge is finite.
+    """
+    mesh = SimplicialMesh([[0.0, 0.0], [10.0, 0.0], [0.0, 10.0]], [[0, 1, 2]])
+    gradients = torch.tensor([[0.0, 0.0], [-4.2e307, 0.0], [0.0, -4.2e307]], dtype=torch.float64)[:, :, None]
+    f = torch.zeros(3, dtype=torch.float64)
+    expected = _c1(mesh, f, gradients=gradients * 2.0**-100, clamp=False).model.coefficients.detach()
+    actual = _c1(mesh, f, gradients=gradients, clamp=False).model.coefficients.detach()
+    assert torch.equal(actual, expected * 2.0**100)
+
+
 @pytest.mark.parametrize("clamp", [False, True])
 def test_clough_tocher_c1_with_subnormal_sides_is_unchanged_by_an_axis_scaling(clamp):
     """Scaling an axis by 2**1000, and the gradients along it by 2**-1000, leaves the controls exactly unchanged.

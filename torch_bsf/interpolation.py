@@ -1503,6 +1503,22 @@ def _increments(dx: torch.Tensor, g: torch.Tensor, scale: torch.Tensor, origin: 
     return _times_power_of_two(total / 3, top)
 
 
+def _unclamped_increments(
+    dx: torch.Tensor, g: torch.Tensor, scale: torch.Tensor, origin: torch.Tensor
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """The increments of :func:`_increments` without clamp, and the power of two added to ``scale`` for them.
+
+    Increments beyond 2**_HEADROOM raise the scale of their output as such data do, so that the controls they make
+    stay finite in the sums of the construction (the limiter keeps them in the data range with clamp).
+    """
+    increment = _increments(dx, g, scale, origin, False)
+    _, top = torch.frexp(increment.abs().amax(dim=0))
+    extra = (top.to(torch.long) - _HEADROOM).clamp_min(0)
+    if extra.any():
+        increment = _increments(dx, g, scale + extra, origin, False)
+    return increment, extra
+
+
 def _nearest_feasible(
     q: torch.Tensor, r: torch.Tensor, target: torch.Tensor, lower: torch.Tensor, upper: torch.Tensor
 ) -> torch.Tensor:
@@ -1727,10 +1743,14 @@ def _clough_tocher_c1(mesh: SimplicialMesh, pieces: _Pieces, f: torch.Tensor, gr
     ray_lo = torch.cat([edge_lo.repeat_interleave(2, dim=0), lo.repeat_interleave(3, dim=0)])
     ray_hi = torch.cat([edge_hi.repeat_interleave(2, dim=0), hi.repeat_interleave(3, dim=0)])
 
-    increment = _increments(dx, g[origin], scale, origin, clamp)
     if clamp:
+        increment = _increments(dx, g[origin], scale, origin, clamp)
         lower, upper = ray_lo - f[origin], ray_hi - f[origin]
         increment = _limit_increments(dx, increment, lower, upper, origin).clamp(lower, upper)
+    else:
+        # lo and hi, used only with clamp, keep the scale of the data.
+        increment, extra = _unclamped_increments(dx, g[origin], scale, origin)
+        scale, f = scale + extra, _times_power_of_two(f, -extra)
     ordinate = f[origin] + increment
     if clamp:
         ordinate = ordinate.clamp(ray_lo, ray_hi)
@@ -1988,8 +2008,9 @@ def macro_interpolant(
         The mesh.
     values
         Vertex data of shape ``(n_vertices, n_outputs)`` or ``(n_vertices,)``. For the C1 construction, an output
-        with data beyond about 2**1000 is processed in units of a power of two up to 2**24, so that its sums stay
-        finite; its subnormal data are then interpolated only up to an absolute error below 2**-1050.
+        with data beyond about 2**1000 (or, without ``clamp``, controls beyond it) is processed in units of a power
+        of two up to 2**24, so that its sums stay finite; its subnormal data are then interpolated only up to an
+        absolute error below 2**-1050.
     split
         How each simplex is divided into pieces: :class:`NoSplit` or :class:`CloughTocher`.
     continuity
