@@ -83,8 +83,9 @@ with :math:`U` uniform on the simplex. Then
    .. math:: e_T = \eta_I - G^I_{TT}{}^{-1} G^I_{TB}\, e_B,
 
    where :math:`G^I` is the Gram matrix of the Bernstein basis under the
-   uniform distribution on the face and :math:`\eta_I` is independent of
-   everything else with covariance :math:`\sigma^2 G^I_{TT}{}^{-1} / n_I`.
+   uniform distribution on the face. The innovations :math:`\eta_I` are
+   independent across faces, with covariance
+   :math:`\sigma^2 G^I_{TT}{}^{-1} / n_I` to first order.
    Fluctuations of the empirical Gram matrices contribute only
    :math:`o(1/N)`.
 2. Starting from the vertices, the errors of all controls are therefore a
@@ -99,8 +100,9 @@ with :math:`U` uniform on the simplex. Then
 The Gram entries are exact moments of the uniform distribution on a simplex,
 :math:`E[t^\alpha] = k!\,\alpha! / (|\alpha| + k)!` on a :math:`k`-simplex.
 
-Several coefficients have closed forms. :doc:`skeleton_risk_theory` proves
-them:
+The available formulas are summarized below. Their proofs and exact ranges
+are in :doc:`skeleton_risk_theory`; independent checks and reference
+polynomials are in :doc:`skeleton_risk_verification`.
 
 - :math:`a_m = 0` for :math:`m \geq D`: faces with more than :math:`D`
   vertices have no interior controls, and the optimal ratio gives them no rows.
@@ -116,21 +118,20 @@ them:
   :prf:ref:`thm-skeleton-third-faces`.
 - On curves (:math:`M = 2`), :math:`a_0 = 4 / (D (D + 2))` and
   :math:`a_1 = D - 1`.
-- On triangles (:math:`M=3`) and for every :math:`D\geq2`,
-  :math:`a_1=18(H_{D-1}+H_{2D+2}-H_{D+3})/(2D+3)`, where
-  :math:`H_j=\sum_{i=1}^j1/i`. More generally,
-  :prf:ref:`thm-skeleton-codimension-one` gives every coefficient of
-  codimension one as a single finite rational sum.
-- All triangle coefficients are now closed for every degree:
+- On triangles (:math:`M=3`), all coefficients are closed for every degree:
   :prf:ref:`thm-skeleton-triangle-vertex-risk` gives
   :math:`a_0(3,D)` in harmonic numbers and :math:`\binom{2D}{D}` for
-  :math:`D\geq1`; the edge formula above gives :math:`a_1` for
+  :math:`D\geq1`;
+  :math:`a_1=18(H_{D-1}+H_{2D+2}-H_{D+3})/(2D+3)` for
   :math:`D\geq2`; and :math:`a_2=\binom{D-1}{2}` for :math:`D\geq3`.
-  Missing skeletons have coefficient zero. Hence
+  Here :math:`H_j=\sum_{i=1}^j1/i`; inactive skeletons have coefficient zero. Hence
   :math:`(\sqrt{a_0}+\sqrt{a_1}+\sqrt{a_2})^2` is an explicit formula
   for the optimal normalized triangle risk at every degree.
+- Every codimension-one coefficient has a single finite rational sum:
+  see :prf:ref:`thm-skeleton-codimension-one`.
 - For a fixed degree, every :math:`a_m` is a rational function of :math:`M`
-  and converges as :math:`M` grows; for example,
+  and converges as :math:`M` grows.
+  :prf:ref:`cor-skeleton-large-dimension` gives every limit; for example,
   :math:`a_0 \to 2 D^2 (D+1)^2 / 4^D`.
 
 These closed forms rest on a structure theorem: the errors that a face
@@ -210,7 +211,7 @@ The degree-two and degree-three rows agree with Tables 1 and 2 of
 :math:`D \in \{2, 3\}` and :math:`2 \leq M \leq 8`. The other rows are new.
 They show that the paper's observation that the inductive skeleton fitting wins
 for :math:`D < 3` does not extend to a rule in the degree: it wins for every
-degree shown on curves (:math:`M = 2`), and again on triangles from degree five.
+degree shown on curves (:math:`M = 2`), and on triangles at degrees five and six.
 :doc:`skeleton_risk_theory` proves that it wins:
 
 - on curves at every degree;
@@ -239,8 +240,9 @@ need three qualifications.
 Limits of the result
 --------------------
 
-The coefficients are asymptotic: with few rows per face, finite-sample terms
-of relative size about (controls per face) / (rows per face) remain. They
+The coefficients describe the limit as every active face receives more rows;
+they are not finite-sample error bounds. With few rows per face, a design can
+be rank deficient or have large inverse-Gram moments. The formulas
 assume the uniform distribution on each face, an equal split among faces of
 the same size, and risk averaged uniformly over the simplex; a different
 weighting of the error changes them. Bernstein Gram matrices become

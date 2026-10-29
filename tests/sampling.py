@@ -783,6 +783,16 @@ def test_risk_polynomials_match_the_closed_forms(degree):
         assert _tabulated_coefficient(degree, degree - 2, n_vertices) == second
 
 
+def _large_dimension_limit(degree: int, m: int) -> Fraction:
+    """The uniform limit in the theory, including vertices and the two highest active skeletons."""
+    size = m + 1
+    n = degree - size
+    return Fraction(
+        math.factorial(3 * size - 1) * comb(n + 3 * size - 1, n) ** 2,
+        math.factorial(size - 1) * math.factorial(size) ** 2 * 4**n,
+    )
+
+
 @pytest.mark.parametrize("degree", range(1, 9))
 def test_risk_polynomial_limits_in_high_dimensions(degree):
     # The degree bound 2(D - m - 1) is attained, so a_m tends to the leading coefficient over (m + 1)!^2.
@@ -791,6 +801,7 @@ def test_risk_polynomial_limits_in_high_dimensions(degree):
         coefficients = _risk_polynomial_coefficients(degree, m)
         assert len(coefficients) == 2 * (degree - m - 1) + 1
         limits.append(coefficients[0] / math.factorial(m + 1) ** 2)
+        assert limits[-1] == _large_dimension_limit(degree, m)
     assert limits[0] == Fraction(2 * degree**2 * (degree + 1) ** 2, 4**degree)
     top = Fraction(math.factorial(3 * degree - 1), math.factorial(degree - 1) * math.factorial(degree) ** 2)
     assert limits[degree - 1] == top
@@ -986,6 +997,8 @@ def test_third_face_quartic_matches_all_tabulated_polynomial_coefficients(degree
 def test_third_face_quartic_outside_the_degree_table():
     # Independent local Gram solve and orbit counting at D=9; no quartic data is used by the reference.
     coefficients = _counted_risk_polynomial(9, 6)
+    assert len(coefficients) == 5
+    assert coefficients[-1] / math.factorial(7) ** 2 == _large_dimension_limit(9, 6)
     for n_vertices in range(7, 12):
         reference = sum((c * n_vertices**i for i, c in enumerate(coefficients)), Fraction(0))
         assert _third_face_polynomial(9, n_vertices) == reference
@@ -1195,20 +1208,15 @@ def test_vertex_error_at_the_center_of_a_degree_face(degree):
         (3, Fraction(41, 280), Fraction(99, 28)),
         (4, Fraction(79, 1120), Fraction(71, 20)),
         (5, Fraction(1189, 30800), Fraction(188, 55)),
-        (6, None, Fraction(81259, 25025)),
+        (6, Fraction(2557, 110880), Fraction(81259, 25025)),
     ],
 )
-def test_open_question_values(degree, a_0, a_1):
+def test_triangle_closed_forms_match_documented_values(degree, a_0, a_1):
     exact, _, _ = _exact_coefficients(3, degree)
     assert exact[1] == a_1
-    if a_0 is not None:
-        assert exact[0] == a_0
-
-
-def test_open_question_prime_factor():
-    # The large prime factor quoted for the numerator of a_1 at M = 3, D = 6.
-    # Trial division up to sqrt(3533) < 60.
-    assert 81259 == 23 * 3533 and all(3533 % p for p in range(2, 60))
+    assert exact[0] == a_0
+    assert _triangle_vertex_risk(degree) == a_0
+    assert _triangle_edge_risk(degree) == a_1
 
 
 def test_degree_two_wins_in_every_dimension():
