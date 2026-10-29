@@ -14,7 +14,8 @@ def index_list(val: str) -> list[list[int]]:
 
     Returns
     -------
-        The persed indices.
+    list of list of int
+        Parsed indices from the supplied expression.
     """
     val = val.replace("(", "[").replace(")", "]").replace("{", "[").replace("}", "]")
     indices = cast(list[list[int]], json.loads(val))

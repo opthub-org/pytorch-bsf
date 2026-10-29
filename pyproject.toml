@@ -188,18 +188,14 @@ module = "mpl_toolkits.*"
 ignore_missing_imports = true
 
 [tool.numpydoc_validation]
-# Start with the checks on the structure of docstrings; the ones disabled below are enabled step by step in #561.
+# Validate public docstrings, parameters, returns, and NumPy-style structure.
 checks = [
   "all",
-  "ES01",  # No extended summary found
-  "EX01",  # No examples section found
-  "GL08",  # The object does not have a docstring
-  "PR01",  # Parameters not documented
-  "PR04",  # Parameter has no type
-  "RT01",  # No Returns section found
-  "RT03",  # Return value has no description
-  "SA01",  # See Also section not found
-  "SS05",  # Summary must start with infinitive verb, not third person
+  "ES01",  # Extended summaries add no value for self-explanatory accessors.
+  "EX01",  # Keep examples a manual review item: accessors can share class examples.
+  "PR04",  # Type hints already specify types; require useful prose, not duplicated types.
+  "SA01",  # Related objects are optional; not every API has a useful See Also target.
 ]
-# Private objects (_name), which include special methods (__name__); private modules are excluded in .pre-commit-config.yaml
-exclude = ['\._\w*$']
+# Private objects (_name), including special methods (__name__) and their descendants;
+# private modules are excluded in .pre-commit-config.yaml, which keeps __init__.py.
+exclude = ['\._\w*(?:\.|$)']

@@ -17,6 +17,18 @@ def log_result(result: FitResult, *, tracking_uri: str | None = None) -> str:
     Returns the run ID. No autologging or pickled Python models are used.
     Unavailable placeholder models are never written; failure metrics and
     diagnostics are still recorded with ``bsf.solution_available=False``.
+
+    Parameters
+    ----------
+    result : FitResult
+        Solve result with diagnostics and any available model to record.
+    tracking_uri : str, optional
+        MLflow tracking destination; omitted to retain the current configuration.
+
+    Returns
+    -------
+    str
+        ID of the active or newly created MLflow run.
     """
     try:
         import mlflow

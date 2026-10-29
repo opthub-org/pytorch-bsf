@@ -14,7 +14,13 @@ class ConvergenceWarning(UserWarning):
 
 
 class ConvergenceError(RuntimeError):
-    """Failure requested by ``require_success()``, retaining the numerical result."""
+    """Failure requested by ``require_success()``, retaining the numerical result.
+
+    Parameters
+    ----------
+    result : FitResult
+        Failed solve retained on ``result`` with its termination message.
+    """
 
     def __init__(self, result: "FitResult"):
         self.result = result
@@ -95,13 +101,25 @@ class FitResult:
     message: str
 
     def require_success(self) -> "FitResult":
-        """Return this result, or raise a :class:`ConvergenceError` containing it."""
+        """Return this result, or raise a :class:`ConvergenceError` containing it.
+
+        Returns
+        -------
+        FitResult
+            This result when the solve succeeded.
+        """
         if not self.success:
             raise ConvergenceError(self)
         return self
 
     def warn_if_failed(self) -> "FitResult":
-        """Expose a failed numerical solve without hiding its partial result."""
+        """Expose a failed numerical solve without hiding its partial result.
+
+        Returns
+        -------
+        FitResult
+            This result, also returned after emitting a failure warning.
+        """
         if not self.success:
             warnings.warn(self.message, ConvergenceWarning, stacklevel=3)
         return self
@@ -123,7 +141,13 @@ class SkeletonRegressionResult:
     message: str
 
     def require_success(self) -> "SkeletonRegressionResult":
-        """Raise :class:`ConvergenceError` with the failed face's result if a face fit failed."""
+        """Raise :class:`ConvergenceError` with the failed face's result if a face fit failed.
+
+        Returns
+        -------
+        SkeletonRegressionResult
+            This result when every required face fit succeeded.
+        """
         if not self.success:
             failed = list(self.faces.values())[-1]
             raise ConvergenceError(replace(failed, message=self.message))
