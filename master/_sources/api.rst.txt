@@ -36,8 +36,11 @@ NumPy array dtypes. Python float lists use ``torch.get_default_dtype()``
 (normally float32). To retain double-precision coordinates, observations
 and coefficients, construct float64 tensors or NumPy arrays before passing
 them in; converting an already rounded float32 tensor cannot recover precision.
-Integer coordinates and coefficients become float64; integer observations
-remain integers. ``Samples`` weights are stored as CPU float64 tensors.
+Integer coordinates and coefficients become float64; on MPS, these integer
+inputs move to CPU for that promotion because MPS does not support float64.
+Integer observations remain integers. ``Samples`` weights are stored as CPU float64 tensors.
+Device inputs converted to CPU float64 move to CPU before changing dtype,
+preserving coordinate values and their autograd connection.
 
 The constructor contracts and executable examples below use ``n_samples``
 for the number of aligned rows, ``coordinate_width`` for the number of
