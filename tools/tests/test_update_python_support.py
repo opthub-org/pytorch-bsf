@@ -65,6 +65,7 @@ class PythonLifecycleTests(unittest.TestCase):
             path = self.root / name
             text = path.read_text(encoding="utf-8").replace(f"Python {current}", "Python 3.10")
             text = re.sub(r"`python_version = 3\.\d+`", "`python_version = 3.10`", text)
+            text = re.sub(r'`target-version = "py\d+"`', '`target-version = "py310"`', text)
             text = re.sub(r"once on Python 3\.\d+\.", "once on Python 3.14.", text)
             path.write_text(text, encoding="utf-8")
         environment = self.root / "environment.yml"
@@ -103,7 +104,12 @@ class PythonLifecycleTests(unittest.TestCase):
         self.assertEqual(configured["minimum"], "3.11")
         self.assertEqual(configured["latest"], "3.15")
         self.assertEqual(json.loads(configured["matrix"]), ["3.11", "3.12", "3.13", "3.14", "3.15"])
-        self.assertIn("- python=3.15", (self.root / "environment.yml").read_text(encoding="utf-8"))
+        self.assertIn("- python=3.14", (self.root / "environment.yml").read_text(encoding="utf-8"))
+        self.assertEqual(configured["integrations"], "3.14")
+        self.assertEqual(json.loads(configured["integration-matrix"]), ["3.11", "3.12", "3.13", "3.14"])
+        contributing = (self.root / "CONTRIBUTING.md").read_text(encoding="utf-8")
+        self.assertIn('`target-version = "py311"`', contributing)
+        self.assertIn("once on Python 3.14.", contributing)
         for name in ("README.md", "CONTRIBUTING.md", "docs/installation.rst"):
             self.assertIn("Python 3.11", (self.root / name).read_text(encoding="utf-8"))
         self.assertFalse(any(path.suffix in {".yaml", ".yml"} and path.parent.name == "workflows" for path in changes))
@@ -119,6 +125,35 @@ class PythonLifecycleTests(unittest.TestCase):
         self.assertEqual(configured["minimum"], "3.10")
         self.assertEqual(configured["latest"], "3.14")
         self.assertEqual(json.loads(configured["matrix"]), ["3.10", "3.11", "3.12", "3.13", "3.14"])
+
+    def test_eol_conda_python_is_raised_to_a_supported_version(self):
+        self.apply_plan()
+        environment = self.root / "environment.yml"
+        environment.write_text(environment.read_text(encoding="utf-8").replace("python=3.14", "python=3.11"), encoding="utf-8")
+        self.data["3.11"]["status"] = "end-of-life"
+        self.apply_plan(today=date(2027, 11, 1))
+        configured = self.ci_outputs()
+        self.assertEqual(configured["minimum"], "3.12")
+        self.assertEqual(configured["integrations"], "3.12")
+        self.assertIn("python=3.12", environment.read_text(encoding="utf-8"))
+
+    def test_conda_pin_can_advance_when_optional_dependencies_are_ready(self):
+        self.apply_plan()
+        environment = self.root / "environment.yml"
+        environment.write_text(environment.read_text(encoding="utf-8").replace("python=3.14", "python=3.15"), encoding="utf-8")
+        configured = self.ci_outputs()
+        self.assertEqual(configured["integrations"], "3.15")
+        self.assertEqual(json.loads(configured["integration-matrix"]), json.loads(configured["matrix"]))
+
+    def test_newer_pythons_still_enter_the_matrix_with_a_conda_pin(self):
+        self.apply_plan()
+        self.data["3.16"]["status"] = "bugfix"
+        self.apply_plan(today=date(2027, 10, 10))
+        configured = self.ci_outputs()
+        self.assertEqual(configured["latest"], "3.16")
+        self.assertIn("3.16", json.loads(configured["matrix"]))
+        self.assertNotIn("3.16", json.loads(configured["integration-matrix"]))
+        self.assertEqual(configured["integrations"], "3.14")
 
     def test_invalid_project_support_cannot_reach_ci_outputs(self):
         for project in ('requires-python = ">=3.10"', 'requires-python = ">=3.10,<4"'):
@@ -193,7 +228,7 @@ class PythonLifecycleTests(unittest.TestCase):
         path = self.root / "environment.yml"
         path.write_text("dependencies: []\n", encoding="utf-8")
         project = (self.root / "pyproject.toml").read_bytes()
-        with self.assertRaisesRegex(ValueError, "Expected 1 matches"):
+        with self.assertRaisesRegex(ValueError, "pinned Python 3 version"):
             updater.plan_updates(self.root, self.data, self.today)
         self.assertEqual((self.root / "pyproject.toml").read_bytes(), project)
 

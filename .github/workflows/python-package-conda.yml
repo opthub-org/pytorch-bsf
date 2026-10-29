@@ -76,7 +76,7 @@ jobs:
         conda-remove-defaults: "true"
         auto-update-conda: true
         activate-environment: test-env
-        python-version: ${{ steps.python.outputs.latest }}
+        python-version: ${{ steps.python.outputs.integrations }}
     - name: Install dependencies
       run: |
         # Install only mlflow; `mlflow run` below creates the full conda env from environment.yml

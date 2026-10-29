@@ -86,7 +86,7 @@ The path must be inside the current repository (or worktree). If it points elsew
 
 ## Without conda
 
-Use a virtual environment in `.venv/` (git-ignored) with Python 3.10 or later:
+Use a virtual environment in `.venv/` (git-ignored) with Python 3.11 or later:
 
 ```bash
 python3 -m venv .venv

@@ -56,7 +56,7 @@ jobs:
       - name: Create or update the Python support PR
         uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7
         with:
-          # Optional App/PAT token makes PR CI run without manual approval.
+          # App/PAT enables automatic PR CI; built-in-token CI instructions are in the PR body.
           token: ${{ secrets.DEPENDENCY_UPDATE_TOKEN || github.token }}
           branch: automation/python-support
           base: master

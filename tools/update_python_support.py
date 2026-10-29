@@ -65,13 +65,27 @@ def configured_versions(project: str) -> list[str]:
     return sorted({version for version in declared if version_key(version) >= version_key(minimum[1])}, key=version_key)
 
 
-def update_documentation(content: str, name: str, old_minimum: str, minimum: str, latest: str) -> str:
+def integration_versions(versions: list[str], environment: str) -> list[str]:
+    """Retain the Conda Python while supported; raise it when it reaches EOL."""
+    match = re.search(r"^- python=(3\.\d+)$", environment, re.MULTILINE)
+    if match is None:
+        raise ValueError("Expected a pinned Python 3 version in environment.yml")
+    candidates = [version for version in versions if version_key(version) >= version_key(match[1])]
+    if not candidates:
+        raise ValueError("Refusing to downgrade the Conda Python version")
+    return [version for version in versions if version_key(version) <= version_key(candidates[0])]
+
+
+def update_documentation(content: str, name: str, old_minimum: str, minimum: str, integrations: str) -> str:
     if f"Python {old_minimum}" not in content:
         raise ValueError(f"Missing Python minimum in {name}")
     content = content.replace(f"Python {old_minimum}", f"Python {minimum}")
     if name == "CONTRIBUTING.md":
         content = replace_required(content, r"`python_version = 3\.\d+`", f"`python_version = {minimum}`")
-        content = replace_required(content, r"once on Python 3\.\d+\.", f"once on Python {latest}.")
+        content = replace_required(
+            content, r'`target-version = "py\d+"`', f'`target-version = "py{minimum.replace(".", "")}"`'
+        )
+        content = replace_required(content, r"once on Python 3\.\d+\.", f"once on Python {integrations}.")
     return content
 
 
@@ -96,10 +110,12 @@ def plan_updates(root: Path, data: dict[str, dict[str, str]], today: date) -> tu
     proposed = {root / "pyproject.toml": project}
 
     path = root / "environment.yml"
-    proposed[path] = replace_required(path.read_text(encoding="utf-8"), r"^- python=3\.\d+$", f"- python={latest}")
+    environment = path.read_text(encoding="utf-8")
+    integrations = integration_versions(versions, environment)[-1]
+    proposed[path] = replace_required(environment, r"^- python=3\.\d+$", f"- python={integrations}")
     for name in ("README.md", "CONTRIBUTING.md", "docs/installation.rst"):
         path = root / name
-        proposed[path] = update_documentation(path.read_text(encoding="utf-8"), name, old_minimum, minimum, latest)
+        proposed[path] = update_documentation(path.read_text(encoding="utf-8"), name, old_minimum, minimum, integrations)
 
     changes = {path: content for path, content in proposed.items() if path.read_text(encoding="utf-8") != content}
     breaking = "!" if minimum != old_minimum else ""
@@ -108,10 +124,15 @@ def plan_updates(root: Path, data: dict[str, dict[str, str]], today: date) -> tu
         f"Synchronize Python support with the [official release-cycle data]({SOURCE}).\n\n"
         f"- Minimum Python: {old_minimum} → {minimum}\n"
         f"- Supported stable Python versions: {', '.join(versions)}\n"
+        f"- Full integrations and Conda: Python {integrations}\n"
         "- Synchronize package metadata, Ruff/mypy, CI, Conda and installation documentation.\n"
         "- Refresh uv.lock; dependency lower bounds remain governed by the lowest-dependency CI job.\n\n"
         "Only released bugfix/security branches are included. Prereleases are excluded. "
         "Review CI results for dependency availability and compatibility before merging.\n"
+        "\nIf checks have not started after this bot creates or updates the PR, close and reopen it "
+        "from your GitHub account to trigger the existing `reopened` CI workflows. "
+        "Repeat after subsequent bot updates if needed. If GitHub shows pending workflow approval, "
+        "select **Approve workflows to run**. Configure `DEPENDENCY_UPDATE_TOKEN` for automatic PR CI.\n"
     )
     if breaking:
         summary += f"\nBREAKING CHANGE: Python {old_minimum} is no longer supported because it has reached end of life.\n"
@@ -131,8 +152,10 @@ def main() -> None:
     args = parser.parse_args()
     if args.ci_output:
         versions = configured_versions((args.root / "pyproject.toml").read_text(encoding="utf-8"))
+        integrations = integration_versions(versions, (args.root / "environment.yml").read_text(encoding="utf-8"))
         with args.ci_output.open("a", encoding="utf-8") as output:
             output.write(f"minimum={versions[0]}\nlatest={versions[-1]}\nmatrix={json.dumps(versions)}\n")
+            output.write(f"integrations={integrations[-1]}\nintegration-matrix={json.dumps(integrations)}\n")
         return
     if args.data_file:
         data = json.loads(args.data_file.read_text(encoding="utf-8"))

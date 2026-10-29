@@ -29,7 +29,7 @@ pytorch-bsf is a Python library for Bézier Simploid Fitting (formerly Bézier S
 
 pytorch-bsf is a library installed alongside other packages, so `[project].dependencies` in `pyproject.toml` declares the widest ranges that work, not the latest versions:
 
-- **Lower bound**: the oldest version that passes the tests. The `lowest` job of `.github/workflows/python-package.yml` installs every lower bound on Python 3.10 (`uv pip install --resolution lowest-direct '.[lightning,mlflow]'`, so the bounds of the optional `lightning` and `mlflow` are checked too) and runs pytest, so a bound that does not work fails CI. Raise a lower bound only when the code needs a newer feature or a bug fix, and say why in the PR.
+- **Lower bound**: the oldest version that passes the tests. The `lowest` job of `.github/workflows/python-package.yml` installs every lower bound on Python 3.11 (`uv pip install --resolution lowest-direct '.[lightning,mlflow]'`, so the bounds of the optional `lightning` and `mlflow` are checked too) and runs pytest, so a bound that does not work fails CI. Raise a lower bound only when the code needs a newer feature or a bug fix, and say why in the PR.
 - **Upper bound**: below the next major version (`<3`). Widen it after checking that the new major version works.
 - **Dependabot** uses `versioning-strategy: increase-if-necessary` for pip: it leaves a range alone while it admits a new release and opens a PR when a release falls outside it. Review any proposed lower-bound change against the policy above. It also checks pre-commit hooks, GitHub Actions and the Docker base image weekly.
 - Declare only packages that `torch_bsf` imports. Do not pin transitive dependencies to work around a bug in another package; if one is unavoidable, add a comment with the upstream issue.
@@ -60,11 +60,23 @@ lock refresh is reported in the PR and must be fixed before merging.
 
 Repository **Settings → Actions → General → Workflow permissions** must allow
 GitHub Actions to create pull requests. The built-in `GITHUB_TOKEN` needs no new
-secret; PR workflows may require a maintainer to select **Approve workflows to run**.
+secret. If no CI runs appear after the bot creates or updates a PR, close and
+reopen that PR from a maintainer's GitHub account. This human `reopened` event
+starts the PyTest, Conda and CodeQL workflows; repeat after later bot updates if
+checks do not start. If GitHub instead shows pending workflow approval, select
+**Approve workflows to run**. Generated PR bodies include these instructions.
 For fully automatic CI, optionally set `DEPENDENCY_UPDATE_TOKEN` to an App/PAT
 token with repository contents and pull-request write access.
 The CI workflows read their minimum, latest and matrix versions directly from
 the package metadata, so generated PRs do not need to edit workflow files.
+
+`environment.yml` also selects the Python used for full optional integrations,
+documentation and Codecov. Keep that version while it is supported, and advance
+it after checking dependency compatibility. Currently MLflow's PyArrow constraint
+keeps these jobs on Python 3.14; newer matrix entries test the other integrations.
+The updater raises the Conda Python automatically if it reaches EOL, so this
+compatibility pin cannot retain an EOL interpreter. CI then exposes any remaining
+dependency incompatibility in the generated PR.
 
 Preview the generated patch without changing files:
 
@@ -85,7 +97,7 @@ python -m unittest discover -s tools/tests -v
 
 ### Prerequisites
 
-- Python 3.10 or later
+- Python 3.11 or later
 - [Conda](https://docs.conda.io/) or pip
 
 ### With Conda (recommended)
@@ -381,7 +393,7 @@ The Ruff version is pinned by `rev` in `.pre-commit-config.yaml`, which is the s
 Configuration in `pyproject.toml` (`[tool.ruff]` section):
 
 - `line-length = 127`
-- `target-version = "py310"`
+- `target-version = "py311"`
 - `select = ["E", "F", "W", "I", "UP", "B", "SIM", "C90"]` (pycodestyle errors and warnings, Pyflakes, isort, pyupgrade, flake8-bugbear, flake8-simplify, McCabe complexity)
 - `max-complexity = 10` (`[tool.ruff.lint.mccabe]` section): split a function whose cyclomatic complexity exceeds 10 into smaller helpers
 
@@ -407,7 +419,7 @@ mypy torch_bsf tests
 
 Configuration in `pyproject.toml` (`[tool.mypy]` section):
 
-- `python_version = 3.10` (type checking targets the minimum supported version)
+- `python_version = 3.11` (type checking targets the minimum supported version)
 - `warn_return_any`, `warn_unused_configs`, `warn_unused_ignores`, `warn_redundant_casts`
 - `disallow_untyped_defs`, `disallow_incomplete_defs`: every function in `torch_bsf` must be fully annotated
 - `check_untyped_defs`: the bodies of unannotated functions (e.g., tests) are type-checked too
@@ -423,7 +435,7 @@ Every `# type: ignore` must name its error code, e.g. `# type: ignore[arg-type]`
 - **Maximum line length**: 127 characters (`line-length` in `[tool.ruff]`)
 - **Strings**: Double quotes (`ruff format` default)
 - **Docstrings**: NumPy style (use ``Parameters\n----------``, ``Returns\n-------``, ``Raises\n------`` sections)
-- **Type hints**: Use Python 3.10 built-in type hint syntax without `from __future__ import annotations`
+- **Type hints**: Use Python 3.11 built-in type hint syntax without `from __future__ import annotations`
 
 ### "Bezier" vs "Bézier" spelling
 
