@@ -1484,7 +1484,10 @@ def _increments(dx: torch.Tensor, g: torch.Tensor, scale: torch.Tensor, origin: 
 
     Each term is formed as the product of the mantissas of ``dx`` and ``g`` times a power of two, so that it neither
     overflows nor underflows before it is placed, and the terms are summed in units of the largest, so that an
-    increment is finite whenever its value is, also where its terms overflow alone and cancel. With ``clamp``, a
+    increment is finite whenever its value is, also where its terms overflow alone and cancel. Each term is rounded
+    once, as in a float64 dot product, so an increment is accurate up to a few units of rounding of its largest term
+    (not of its value where the terms cancel), and scaling ``dx`` or ``g`` by a power of two scales it exactly
+    whether or not its terms overflow. With ``clamp``, a
     gradient (of a vertex and output) whose increments would overflow is first divided by a power of two, which keeps
     its direction: the limiter shrinks it into the data range anyway.
     """
