@@ -275,7 +275,7 @@ def linear_scalarization(objective: Callable[[torch.Tensor], torch.Tensor]) -> S
         if fs.shape != t.shape:
             raise ValueError(
                 f"The objective values must have the shape {tuple(t.shape)} of the parameters, but {tuple(fs.shape)} "
-                "is given; linear_scalarization needs a Bézier simplex with one vertex per objective."
+                "is given; linear_scalarization needs a Bezier simplex with one vertex per objective."
             )
         return (t * fs).sum(dim=-1)
 

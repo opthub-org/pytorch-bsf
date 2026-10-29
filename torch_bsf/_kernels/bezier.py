@@ -208,7 +208,7 @@ class BezierSimploid(nn.Module):
             return _positions(self._simploid_type, self._degree)[_canonical_index(self._simploid_type, index)]
         except (KeyError, TypeError, ValueError):
             raise ValueError(
-                f"{index!r} is not a control point index of a Bézier simploid of type {self._simploid_type} "
+                f"{index!r} is not a control point index of a Bezier simploid of type {self._simploid_type} "
                 f"and degree {self._degree}."
             ) from None
 

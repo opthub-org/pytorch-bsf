@@ -18,7 +18,7 @@ from torch_bsf.optimization import PreconditionedSGD, linear_scalarization, mini
 
 
 def _build_parser() -> ArgumentParser:
-    parser = ArgumentParser(prog="python -m torch_bsf", description="Bézier fitting and objective minimization")
+    parser = ArgumentParser(prog="python -m torch_bsf", description="Bezier fitting and objective minimization")
     commands = parser.add_subparsers(dest="command", required=True)
     fitting = commands.add_parser("fit", help="Solve weighted least squares")
     add_data(fitting)

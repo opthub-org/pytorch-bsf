@@ -122,7 +122,7 @@ def plot_bezier_simplex(
     """
     if len(model.simploid_type) != 1:
         raise ValueError(
-            "plot_bezier_simplex requires a Bézier simplex (a simploid type with a single factor), "
+            "plot_bezier_simplex requires a Bezier simplex (a simploid type with a single factor), "
             f"but the type is {model.simploid_type}; use plot_bezier_simploid instead."
         )
     if model.n_params == 2:
