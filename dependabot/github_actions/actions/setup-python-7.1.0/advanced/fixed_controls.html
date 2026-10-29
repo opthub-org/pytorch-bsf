@@ -1,0 +1,360 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fixed controls &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Explicit ensembles and active learning" href="active_learning.html" />
+    <link rel="prev" title="Regularization and numerical evidence" href="regularization.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Fixed controls</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#when-exact-prior-knowledge-is-available">When exact prior knowledge is available</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#fit-a-curve-with-known-endpoints">Fit a curve with known endpoints</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#tune-the-amount-of-prior-information">Tune the amount of prior information</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#penalties-transforms-and-optimization">Penalties, transforms and optimization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#prescribe-a-complete-quadratic-edge">Prescribe a complete quadratic edge</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Fixed controls</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/fixed_controls.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="fixed-controls">
+<h1>Fixed controls<a class="headerlink" href="#fixed-controls" title="Link to this heading"></a></h1>
+<section id="when-exact-prior-knowledge-is-available">
+<h2>When exact prior knowledge is available<a class="headerlink" href="#when-exact-prior-knowledge-is-available" title="Link to this heading"></a></h2>
+<p>Sometimes data fitting must preserve a known endpoint, a prescribed boundary,
+or the value shared by several cells. A trajectory may have to start at a
+specified state, or an extreme trade-off solution may already be known much
+more accurately than the interior samples. Use <code class="docutils literal notranslate"><span class="pre">FixedControls</span></code> to impose
+exact coefficient values while fitting the remaining free rows.</p>
+<p>Increasing an observation’s weight only encourages agreement and can worsen
+conditioning. Ridge and smoothness encode soft preferences. A fixed control
+is an exact equality, enforced by eliminating that coefficient from the
+unknowns. Use it for actual prior knowledge; an uncertain measurement should
+usually remain an observation with an appropriate relative weight.</p>
+<p>A vertex coefficient equals the model’s value at that vertex. An interior
+control usually is not a sampled surface value at the corresponding lattice
+point. Do not fix an interior row to an arbitrary measurement and expect that
+to impose interpolation there. General linear interpolation constraints are
+not provided by this mapping of coefficient rows to values.</p>
+</section>
+<section id="fit-a-curve-with-known-endpoints">
+<h2>Fit a curve with known endpoints<a class="headerlink" href="#fit-a-curve-with-known-endpoints" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">FixedControls</span><span class="p">,</span> <span class="n">Samples</span><span class="p">,</span> <span class="n">fit</span>
+
+<span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">18</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="mf">.2</span> <span class="o">*</span> <span class="n">x</span> <span class="o">+</span> <span class="mf">.05</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mi">9</span> <span class="o">*</span> <span class="n">x</span><span class="p">))[:,</span> <span class="kc">None</span><span class="p">]</span>
+<span class="n">samples</span> <span class="o">=</span> <span class="n">Samples</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+<span class="n">fixed</span> <span class="o">=</span> <span class="n">FixedControls</span><span class="o">.</span><span class="n">from_cells</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="p">[</span>
+    <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">[</span><span class="mf">0.</span><span class="p">]),</span>
+    <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">[</span><span class="mf">.2</span><span class="p">]),</span>
+<span class="p">])</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">fixed</span><span class="o">=</span><span class="n">fixed</span><span class="p">)</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="n">endpoints</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">endpoints</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">.2</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
+<span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">diagnostics</span><span class="o">.</span><span class="n">n_free_controls</span> <span class="o">==</span> <span class="mi">2</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">(3,</span> <span class="pre">0)</span></code> and <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">3)</span></code> are degree-three Bernstein multi-indices for the two
+vertices. They are mathematical references, not assumptions about row order.
+Alternatively obtain a global row with
+<code class="docutils literal notranslate"><span class="pre">space.control_index((3,</span> <span class="pre">0),</span> <span class="pre">cell=0)</span></code> and pass
+<code class="docutils literal notranslate"><span class="pre">FixedControls({row:</span> <span class="pre">[0.]})</span></code>. Every value is an output vector whose length
+must match the observation output count.</p>
+<figure class="align-default" id="id1">
+<a class="reference internal image-reference" href="../_images/fixed.png"><img alt="Cubic curve fits before and after imposing known endpoint values." src="../_images/fixed.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 13 </span><span class="caption-text">Before: all four cubic controls are free. After: the same observations
+are fitted with both endpoints fixed, leaving two free rows. The curve
+passes through the known values even when noisy endpoint observations
+disagree. This can increase training MSE.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>Reproduce the comparison with <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">examples/generate_guide_figures.py</span></code>.
+The generated <a class="reference download internal" download="" href="../_downloads/84af9d5d5260b756f659bd39d1ec8602/metrics.json"><code class="xref download docutils literal notranslate"><span class="pre">metrics</span> <span class="pre">JSON</span></code></a> records
+both training errors. Smaller error is not the sole goal of imposing a
+physical boundary condition; exact endpoint agreement is checked separately.</p>
+</section>
+<section id="tune-the-amount-of-prior-information">
+<h2>Tune the amount of prior information<a class="headerlink" href="#tune-the-amount-of-prior-information" title="Link to this heading"></a></h2>
+<p>There is no strength parameter for a fixed row. Adding fixed rows reduces
+the number of free controls and can stabilize a sparse-data problem, but also
+reduces the class of admissible functions. Start with values that are known
+exactly and examine the interior residuals before adding more constraints.
+If the fit cannot reconcile the data with its fixed boundary, check data units,
+index choice and domain orientation before increasing polynomial degree.</p>
+<p>Fixing all controls skips factorization and returns <code class="docutils literal notranslate"><span class="pre">status=&quot;all_fixed&quot;</span></code>.
+That model is fully specified by the constraints, regardless of the number of
+observations. Its error can still be large. Numerical success is not evidence
+that the prior values are correct. Inspect <code class="docutils literal notranslate"><span class="pre">result.metrics</span></code> even in an
+all-fixed problem.</p>
+<p>For a product domain, a local coefficient index contains one multi-index per
+factor, for example <code class="docutils literal notranslate"><span class="pre">((2,</span> <span class="pre">0),</span> <span class="pre">(0,</span> <span class="pre">2))</span></code> on a degree <code class="docutils literal notranslate"><span class="pre">(2,</span> <span class="pre">2)</span></code> square. For an
+assembled domain, supply the builder cell handle or stable cell ID to
+<code class="docutils literal notranslate"><span class="pre">from_cells</span></code>. Shared references resolve to a single global row. Contradictory
+values for the same shared coefficient raise instead of choosing the last
+assignment. Fixing a shared row affects every incident cell.</p>
+<p>Fixing every coefficient along a boundary face prescribes its entire Bézier
+polynomial, not just its vertices. Fixing only the vertices leaves edge and
+face interior controls free at higher degree. Shared controls guarantee C0
+agreement across identified faces, but these value constraints alone do not
+impose equal derivatives or C1 smoothness. See <a class="reference internal" href="simploidal.html"><span class="doc">Single and assembled domains</span></a> for topology.</p>
+</section>
+<section id="penalties-transforms-and-optimization">
+<h2>Penalties, transforms and optimization<a class="headerlink" href="#penalties-transforms-and-optimization" title="Link to this heading"></a></h2>
+<p>Constraints participate in data, ridge and smoothness consistently. In
+particular, a fixed control adjacent to a free control contributes its known
+value to the smoothness right-hand side. It is not deleted from the objective.
+A positive ridge cannot move a fixed endpoint toward zero, though it can move
+the remaining free controls. Compare with <a class="reference internal" href="regularization.html"><span class="doc">Regularization and numerical evidence</span></a> when the prior
+is approximate rather than exact.</p>
+<p>If you scale outputs explicitly, transform fixed values using the same
+statistics before fitting. When changing degree, resolve the multi-indices
+again: copying a global row number into a different space can target another
+coefficient. Persist the final model rather than treating a collection of row
+numbers as a topology-independent constraint specification.</p>
+<p><code class="docutils literal notranslate"><span class="pre">minimize</span></code> accepts the same <code class="docutils literal notranslate"><span class="pre">fixed</span></code> object. It sets those rows in the
+optimized copy and excludes them from updates; the initial model is preserved.
+Thus fixed values are constraints on the result, not requests to initialize
+some rows and then let them move. See <a class="reference internal" href="initial_models.html"><span class="doc">Explicit initial models</span></a> and <a class="reference internal" href="objective_minimization.html"><span class="doc">Objective minimization</span></a> for
+how initial guesses and optimizer tolerances serve different purposes.</p>
+</section>
+<section id="prescribe-a-complete-quadratic-edge">
+<h2>Prescribe a complete quadratic edge<a class="headerlink" href="#prescribe-a-complete-quadratic-edge" title="Link to this heading"></a></h2>
+<p>On a triangle, fixing an edge requires its interior coefficient as well as
+its endpoints. The example sets the edge <code class="docutils literal notranslate"><span class="pre">t2=0</span></code> to the scalar response
+<span class="math notranslate nohighlight">\(t_1^2\)</span> and lets the remaining controls fit observations.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">Samples</span><span class="p">,</span> <span class="n">FixedControls</span><span class="p">,</span> <span class="n">fit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.sampling</span><span class="w"> </span><span class="kn">import</span> <span class="n">sample</span>
+
+<span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">points</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">points</span><span class="o">.</span><span class="n">parameters</span>
+<span class="n">values</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">square</span><span class="p">()</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">t</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]))[:,</span> <span class="kc">None</span><span class="p">]</span>
+<span class="n">fixed</span> <span class="o">=</span> <span class="n">FixedControls</span><span class="o">.</span><span class="n">from_cells</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="p">[</span>
+    <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">[</span><span class="mf">0.</span><span class="p">]),</span>
+    <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">[</span><span class="mf">0.</span><span class="p">]),</span>
+    <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">[</span><span class="mf">1.</span><span class="p">]),</span>
+<span class="p">])</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">Samples</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">values</span><span class="p">),</span> <span class="n">fixed</span><span class="o">=</span><span class="n">fixed</span><span class="p">)</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="n">u</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="n">edge</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="mi">1</span> <span class="o">-</span> <span class="n">u</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">u</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">edge</span><span class="p">)[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">u</span><span class="o">.</span><span class="n">square</span><span class="p">(),</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">diagnostics</span><span class="o">.</span><span class="n">n_free_controls</span> <span class="o">==</span> <span class="mi">3</span>
+</pre></div>
+</div>
+<p>The zero final component selects controls lying on that triangle edge.
+The other three controls remain free. Testing multiple edge locations
+checks the whole prescribed quadratic rather than merely its endpoint
+values. At a different degree, the same edge polynomial needs its
+representation in that degree; reusing these multi-indices is invalid.</p>
+<p>For a vector response, prescribe every output component of each fixed row.
+For an assembled space, resolve the local edge references through its cell
+handle so neighboring charts use the shared global rows. A fixed boundary
+can coexist with interior approximation error, which should be assessed
+on independent points using the original output units.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="regularization.html" class="btn btn-neutral float-left" title="Regularization and numerical evidence" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="active_learning.html" class="btn btn-neutral float-right" title="Explicit ensembles and active learning" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: dependabot/github_actions/actions/setup-python-7.1.0
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../../../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../../../../v0.24.0/advanced/fixed_controls.html">v0.24.0</a></dd>
+            <dd><a href="../../../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="fixed_controls.html">dependabot/github_actions/actions/setup-python-7.1.0</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
