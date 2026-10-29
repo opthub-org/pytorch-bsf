@@ -1037,6 +1037,58 @@ def _vertex_risk_polynomial(degree: int) -> list[Fraction]:
     return polynomial
 
 
+def _triangle_vertex_risk(degree: int) -> Fraction:
+    d = degree
+    bracket = (
+        4 * _harmonic(d)
+        - 2 * _harmonic(2 * d + 1)
+        + Fraction(1, d)
+        + Fraction(1, d + 1)
+        + Fraction(1, d + 2)
+        - Fraction(1, d * (2 * d + 1) * comb(2 * d, d))
+    )
+    return Fraction(18, d * (d + 1) * (d + 2) * (d + 3)) * bracket
+
+
+def _triangle_vertex_single_sum(degree: int) -> Fraction:
+    weighted = sum(
+        (comb(degree + 1, h + 2) * comb(degree + 1, h) * _harmonic(h + 1) for h in range(degree)),
+        Fraction(0),
+    )
+    return Fraction(36, degree * (degree + 1) * (degree + 2) * (degree + 3) * comb(2 * degree + 2, degree - 1)) * weighted
+
+
+@pytest.mark.parametrize("degree", range(1, 11))
+def test_triangle_vertex_closed_form_matches_independent_gram_recursion(degree):
+    exact, _, _ = _exact_coefficients(3, degree)
+    assert _triangle_vertex_risk(degree) == exact[0]
+
+
+@pytest.mark.parametrize("degree", range(1, 13))
+def test_triangle_vertex_closed_form_matches_the_original_kernel_sum(degree):
+    assert _triangle_vertex_risk(degree) == _vertex_risk_sum(3, degree)
+
+
+@pytest.mark.parametrize("degree", [1, 2, 3, 8, 10, 20, 81, 100])
+def test_triangle_vertex_closed_form_matches_the_single_sum_beyond_exploration(degree):
+    assert _triangle_vertex_risk(degree) == _triangle_vertex_single_sum(degree)
+
+
+@pytest.mark.parametrize("degree", [1, 2, 3, 8, 12, 81, 100])
+def test_triangle_vertex_telescoping_certificate_and_boundary_terms(degree):
+    d = degree
+    denominator = d * (d + 1) * (d + 2) * (d + 3)
+    c = Fraction((2 * d + 3) * (d**2 + 2 * d - 1), denominator)
+    weights = [comb(d + 1, h + 2) * comb(d + 1, h) for h in range(d + 1)]
+    certificate = [weights[h] * Fraction((h + 2) * ((d**2 + 2 * d - 1) * h - 1), denominator * (h + 1)) for h in range(d + 1)]
+    for h in range(d):
+        assert weights[h] * (Fraction(1, h + 2) - c) == certificate[h + 1] - certificate[h]
+    assert certificate[0] == Fraction(-1, (d + 2) * (d + 3))
+    assert certificate[d] == 0
+    weighted_reciprocals = sum((Fraction(weights[h], h + 2) for h in range(d)), Fraction(0))
+    assert weighted_reciprocals == c * comb(2 * d + 2, d - 1) + Fraction(1, (d + 2) * (d + 3))
+
+
 @pytest.mark.parametrize(("n_vertices", "degree"), [(m, d) for m in (3, 4) for d in range(1, 6)])
 def test_vertex_double_sum_matches_exact_coefficients(n_vertices, degree):
     exact, _, _ = _exact_coefficients(n_vertices, degree)

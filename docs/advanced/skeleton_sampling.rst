@@ -121,6 +121,14 @@ them:
   :math:`H_j=\sum_{i=1}^j1/i`. More generally,
   :prf:ref:`thm-skeleton-codimension-one` gives every coefficient of
   codimension one as a single finite rational sum.
+- All triangle coefficients are now closed for every degree:
+  :prf:ref:`thm-skeleton-triangle-vertex-risk` gives
+  :math:`a_0(3,D)` in harmonic numbers and :math:`\binom{2D}{D}` for
+  :math:`D\geq1`; the edge formula above gives :math:`a_1` for
+  :math:`D\geq2`; and :math:`a_2=\binom{D-1}{2}` for :math:`D\geq3`.
+  Missing skeletons have coefficient zero. Hence
+  :math:`(\sqrt{a_0}+\sqrt{a_1}+\sqrt{a_2})^2` is an explicit formula
+  for the optimal normalized triangle risk at every degree.
 - For a fixed degree, every :math:`a_m` is a rational function of :math:`M`
   and converges as :math:`M` grows; for example,
   :math:`a_0 \to 2 D^2 (D+1)^2 / 4^D`.
