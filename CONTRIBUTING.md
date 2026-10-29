@@ -31,9 +31,53 @@ pytorch-bsf is a library installed alongside other packages, so `[project].depen
 
 - **Lower bound**: the oldest version that passes the tests. The `lowest` job of `.github/workflows/python-package.yml` installs every lower bound on Python 3.10 (`uv pip install --resolution lowest-direct '.[lightning,mlflow]'`, so the bounds of the optional `lightning` and `mlflow` are checked too) and runs pytest, so a bound that does not work fails CI. Raise a lower bound only when the code needs a newer feature or a bug fix, and say why in the PR.
 - **Upper bound**: below the next major version (`<3`). Widen it after checking that the new major version works.
-- **Dependabot** uses `versioning-strategy: widen`: it opens a PR only when a new release falls outside a range, and never raises a lower bound.
+- **Dependabot** uses `versioning-strategy: increase-if-necessary` for pip: it leaves a range alone while it admits a new release and opens a PR when a release falls outside it. Review any proposed lower-bound change against the policy above. It also checks pre-commit hooks, GitHub Actions and the Docker base image weekly.
 - Declare only packages that `torch_bsf` imports. Do not pin transitive dependencies to work around a bug in another package; if one is unavoidable, add a comment with the upstream issue.
 - Keep `environment.yml` in sync with `pyproject.toml`.
+
+### Python lifecycle updates
+
+The **Dependency lifecycle** workflow runs every Monday at 04:23 UTC (13:23 JST),
+and can also be run from Actions with **Run workflow**. After this workflow is
+merged into `master`, its first run catches up with any existing EOLs or releases.
+It uses the [official Python release-cycle API](https://peps.python.org/api/release-cycle.json),
+the same source used by the Python Developer's Guide.
+
+The updater removes Python 3 versions at EOL and adds released versions in the
+`bugfix` or `security` phases. It excludes prereleases, never lowers the existing
+minimum, and rejects incomplete or invalid upstream data. It synchronizes
+`requires-python`, classifiers, Ruff/mypy targets, the lowest/latest CI jobs,
+the test matrix and coverage upload, Conda, and installation documentation, then
+runs `uv lock`. It keeps package dependency lower bounds under the policy above;
+package releases, Actions and Docker updates are handled by Dependabot. EOL
+monitoring currently covers Python; other products need their own lifecycle policy.
+
+Changes go into one PR on `automation/python-support`; repeated runs update that
+PR and runs without changes open no PR. Raising the Python minimum uses a breaking
+Conventional Commit. The PR requires compatibility review and passing CI, since
+new Python releases can precede dependency wheels or Conda packages. A failed
+lock refresh is reported in the PR and must be fixed before merging.
+
+Repository **Settings → Actions → General → Workflow permissions** must allow
+GitHub Actions to create pull requests. The built-in `GITHUB_TOKEN` needs no new
+secret; PR workflows may require a maintainer to select **Approve workflows to run**.
+For fully automatic CI, optionally set `DEPENDENCY_UPDATE_TOKEN` to an App/PAT
+token with repository contents and pull-request write access.
+The CI workflows read their minimum, latest and matrix versions directly from
+the package metadata, so generated PRs do not need to edit workflow files.
+
+Preview the generated patch without changing files:
+
+```bash
+python tools/update_python_support.py --check
+```
+
+The preview exits 1 if changes are needed. Use `--data-file path/to/release-cycle.json`
+for an offline preview. Run the updater's tests without installing numerical dependencies:
+
+```bash
+python -m unittest discover -s tools/tests -v
+```
 
 ---
 

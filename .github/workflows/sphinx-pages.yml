@@ -15,10 +15,13 @@ jobs:
       with:
         persist-credentials: false
         fetch-depth: 0
+    - name: Read supported Python versions from package metadata
+      id: python
+      run: python tools/update_python_support.py --ci-output "$GITHUB_OUTPUT"
     - name: Setup Python and Install Dependencies
       uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
       with:
-        python-version: "3.14"
+        python-version: ${{ steps.python.outputs.latest }}
     - run: |
         pip install -r docs/requirements.txt
 

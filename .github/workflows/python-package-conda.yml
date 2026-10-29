@@ -65,6 +65,9 @@ jobs:
     - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       with:
         persist-credentials: false
+    - name: Read supported Python versions from package metadata
+      id: python
+      run: python tools/update_python_support.py --ci-output "$GITHUB_OUTPUT"
     - name: Set up Miniforge
       uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
       with:
@@ -73,7 +76,7 @@ jobs:
         conda-remove-defaults: "true"
         auto-update-conda: true
         activate-environment: test-env
-        python-version: "3.14"
+        python-version: ${{ steps.python.outputs.latest }}
     - name: Install dependencies
       run: |
         # Install only mlflow; `mlflow run` below creates the full conda env from environment.yml
