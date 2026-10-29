@@ -24,7 +24,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Fitting from values alone" href="point_cloud.html" />
+    <link rel="next" title="Exact verification of the skeleton risk" href="skeleton_risk_verification.html" />
     <link rel="prev" title="Optimal skeleton sampling" href="skeleton_sampling.html" /> 
 </head>
 
@@ -67,16 +67,17 @@
 <li class="toctree-l4"><a class="reference internal" href="#setting">Setting</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#the-asymptotic-risk">The asymptotic risk</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#how-errors-propagate">How errors propagate</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#triangular-jacobi-extension">Triangular Jacobi extension</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#closed-forms">Closed forms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#scalar-evaluation-of-every-coefficient">Scalar evaluation of every coefficient</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#closed-forms-near-the-degree">Closed forms near the degree</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#faces-of-codimension-one">Faces of codimension one</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#curves">Curves</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#a-scalar-finite-sum-for-every-coefficient">A scalar finite sum for every coefficient</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#codimension-one-and-the-triangle-edge-risk">Codimension one and the triangle edge risk</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#the-triangle-vertex-risk">The triangle vertex risk</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vertex-coefficients-in-arbitrary-dimension">Vertex coefficients in arbitrary dimension</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#triangles-all-degrees">Triangles: all degrees</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fixed-degree-growing-dimension">Fixed degree, growing dimension</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#open-questions">Open questions</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
 <li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
 <li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
@@ -133,25 +134,58 @@
              
   <section id="theory-of-the-skeleton-risk">
 <h1>Theory of the skeleton risk<a class="headerlink" href="#theory-of-the-skeleton-risk" title="Link to this heading"></a></h1>
-<p>This chapter proves the results behind <a class="reference internal" href="skeleton_sampling.html"><span class="doc">Optimal skeleton sampling</span></a>:</p>
-<ul class="simple">
-<li><p>the asymptotic risk of inductive skeleton fitting,</p></li>
-<li><p>its optimal ratio,</p></li>
-<li><p>a structure theorem for how estimation errors propagate from face to face,</p></li>
-<li><p>the closed forms that follow from that theorem.</p></li>
-</ul>
-<p><span class="bibtex-citation" id="id1">Tanaka <em>et al.</em> [<a class="reference internal" href="../references.html#id14" title="Aiko Tanaka, Akiyoshi Sannai, Ken Kobayashi, and Naoki Hamada. Asymptotic risk of bézier simplex fitting. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 34, 2416–2424. 2020. URL: https://doi.org/10.1609/aaai.v34i03.5622.">TSKH20</a>]</span> derived the risk through a recursion and
-evaluated it numerically for degrees two and three. The proofs here are
-self-contained and hold for every dimension and degree. Statements that rest
-on a finite computation are labeled computer-assisted. Questions that remain
-open are collected at the end. <code class="docutils literal notranslate"><span class="pre">tests/sampling.py</span></code> checks the formulas,
-the quoted values and the computations on this page against exact rational
-arithmetic, and <code class="docutils literal notranslate"><span class="pre">tests/fitting.py</span></code> checks the asymptotic risks by
-simulation.</p>
+<p>This chapter develops the asymptotic risk of inductive skeleton fitting
+from its assumptions to the general scalar formula, then derives the
+closed forms and comparisons used in <a class="reference internal" href="skeleton_sampling.html"><span class="doc">Optimal skeleton sampling</span></a>.
+The results are organized by mathematical dependence; finite verification
+and reference tables are collected in <a class="reference internal" href="skeleton_risk_verification.html"><span class="doc">Exact verification of the skeleton risk</span></a>.</p>
+<p><span class="bibtex-citation" id="id1">Tanaka <em>et al.</em> [<a class="reference internal" href="../references.html#id14" title="Aiko Tanaka, Akiyoshi Sannai, Ken Kobayashi, and Naoki Hamada. Asymptotic risk of bézier simplex fitting. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 34, 2416–2424. 2020. URL: https://doi.org/10.1609/aaai.v34i03.5622.">TSKH20</a>]</span> derived a Gram recursion and evaluated degrees
+two and three. The results here give the asymptotic risk and optimal
+allocation for every dimension and degree, as well as the following
+explicit evaluations. The conditions in each row are part of the result.</p>
+<table class="docutils align-default" id="id4">
+<caption><span class="caption-number">Table 11 </span><span class="caption-text">Results and their scope</span><a class="headerlink" href="#id4" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Range</p></th>
+<th class="head"><p>Result</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Every <span class="math notranslate nohighlight">\(M,D\)</span> and active <span class="math notranslate nohighlight">\(m\)</span></p></td>
+<td><p><a class="reference internal" href="#thm-skeleton-scalar-sum">Theorem 10</a>: finite scalar sum, with no Gram inverse.</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(D\geq M\)</span></p></td>
+<td><p><a class="reference internal" href="#prop-skeleton-top">Proposition 1</a>: <span class="math notranslate nohighlight">\(a_{M-1}=\binom{D-1}{M-1}\)</span>.</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(m=D-1,D-2,D-3\)</span>, where the skeleton exists</p></td>
+<td><p><a class="reference internal" href="#prop-skeleton-degree-faces">Proposition 2</a>, <a class="reference internal" href="#prop-skeleton-second-faces">Proposition 3</a>
+and <a class="reference internal" href="#thm-skeleton-third-faces">Theorem 11</a>: formulas uniform in <span class="math notranslate nohighlight">\(M,D\)</span>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(M=2\)</span> or <span class="math notranslate nohighlight">\(M=3\)</span>, every degree</p></td>
+<td><p><a class="reference internal" href="#thm-skeleton-curves">Theorem 13</a>, <a class="reference internal" href="#cor-skeleton-triangle-edge-risk">Corollary 4</a>
+and <a class="reference internal" href="#thm-skeleton-triangle-vertex-risk">Theorem 15</a>: all coefficients in closed form.</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(m=M-2\)</span> and <span class="math notranslate nohighlight">\(D\geq M-1\)</span></p></td>
+<td><p><a class="reference internal" href="#thm-skeleton-codimension-one">Theorem 12</a>: one rational sum.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Fixed <span class="math notranslate nohighlight">\(D\)</span>, growing <span class="math notranslate nohighlight">\(M\)</span></p></td>
+<td><p><a class="reference internal" href="#thm-skeleton-rational">Theorem 16</a>: dimension polynomials;
+<a class="reference internal" href="#cor-skeleton-large-dimension">Corollary 5</a>: the limit of every coefficient.</p></td>
+</tr>
+<tr class="row-even"><td><p>Risk comparison</p></td>
+<td><p>Curves win at every degree; <a class="reference internal" href="#prop-skeleton-wins">Proposition 5</a> classifies
+all vertex counts for <span class="math notranslate nohighlight">\(D\leq8\)</span>; every fixed degree wins for sufficiently large <span class="math notranslate nohighlight">\(M\)</span>.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The proofs are self-contained apart from the cited small-ball inequality.
+Statements certified by a finite computation are labeled computer-assisted.
+The final section lists the ranges where further simplification or a
+complete risk comparison is still open.</p>
 <section id="setting">
 <h2>Setting<a class="headerlink" href="#setting" title="Link to this heading"></a></h2>
-<p>Let the simplex have the vertex set <span class="math notranslate nohighlight">\([M] = \{1, \dots, M\}\)</span> and degree
-<span class="math notranslate nohighlight">\(D \geq 1\)</span>.</p>
+<p>Let the simplex have <span class="math notranslate nohighlight">\(M\geq2\)</span> vertices
+<span class="math notranslate nohighlight">\([M]=\{1,\dots,M\}\)</span> and degree <span class="math notranslate nohighlight">\(D\geq1\)</span>.</p>
 <p><strong>Controls and faces.</strong> Controls are indexed by
 <span class="math notranslate nohighlight">\(\alpha \in \mathbb N^M\)</span> with <span class="math notranslate nohighlight">\(|\alpha| = D\)</span>. The Bernstein
 polynomials are <span class="math notranslate nohighlight">\(B_\alpha(t) = \frac{D!}{\alpha!} t^\alpha\)</span>, and
@@ -356,13 +390,19 @@ the number of controls.</p>
 <p>Over fractions <span class="math notranslate nohighlight">\(\rho_m \geq 0\)</span> with <span class="math notranslate nohighlight">\(\sum_m \rho_m = 1\)</span>,
 <span class="math notranslate nohighlight">\(\sum_m a_m / \rho_m\)</span> is minimized by
 <span class="math notranslate nohighlight">\(\rho_m = \sqrt{a_m} / \sum_k \sqrt{a_k}\)</span>, and the minimum is
-<span class="math notranslate nohighlight">\((\sum_m \sqrt{a_m})^2\)</span>.</p>
+<span class="math notranslate nohighlight">\((\sum_m \sqrt{a_m})^2\)</span>. A zero coefficient receives no rows;
+the corresponding term is defined as <span class="math notranslate nohighlight">\(0/0=0\)</span>, while
+<span class="math notranslate nohighlight">\(a_m/0=+\infty\)</span> for <span class="math notranslate nohighlight">\(a_m&gt;0\)</span>.</p>
 </section>
 </div><div class="proof admonition" id="proof">
-<p>Proof. By the Cauchy-Schwarz inequality,
+<p>Proof. An allocation with <span class="math notranslate nohighlight">\(a_m&gt;0\)</span> and <span class="math notranslate nohighlight">\(\rho_m=0\)</span> has infinite
+risk. For the remaining allocations, apply Cauchy-Schwarz on the
+indices with positive coefficients:
 <span class="math notranslate nohighlight">\((\sum_m \sqrt{a_m})^2 = (\sum_m \sqrt{a_m / \rho_m} \sqrt{\rho_m})^2
-\leq \sum_m (a_m / \rho_m) \sum_m \rho_m\)</span>. Equality holds exactly when
-<span class="math notranslate nohighlight">\(\sqrt{a_m/\rho_m}\)</span> is proportional to <span class="math notranslate nohighlight">\(\sqrt{\rho_m}\)</span>.</p>
+\leq \sum_m (a_m / \rho_m) \sum_{m:a_m&gt;0} \rho_m
+\leq \sum_m a_m/\rho_m\)</span>. Equality requires zero share on inactive
+indices and <span class="math notranslate nohighlight">\(\sqrt{a_m/\rho_m}\)</span> proportional to
+<span class="math notranslate nohighlight">\(\sqrt{\rho_m}\)</span> on the active ones, giving the stated ratio.</p>
 </div>
 </section>
 <section id="how-errors-propagate">
@@ -470,325 +510,52 @@ monomials span all polynomials of that degree on <span class="math notranslate n
 <span class="math notranslate nohighlight">\(\omega_y = 1 - |\omega_I|\)</span> there.</p>
 </div>
 </section>
-<section id="triangular-jacobi-extension">
-<h2>Triangular Jacobi extension<a class="headerlink" href="#triangular-jacobi-extension" title="Link to this heading"></a></h2>
-<p>The orthogonal-polynomial construction extends beyond curves. Evaluating
-its mode norms below gives a harmonic-number closed form for <span class="math notranslate nohighlight">\(a_1\)</span>
-on triangles.</p>
-<div class="proof proposition admonition" id="prop-skeleton-triangle-jacobi">
-<p class="admonition-title"><span class="caption-number">Proposition 1 </span> (Propagation from an edge via Jacobi polynomials)</p>
-<section class="proposition-content" id="proof-content">
-<p>Let <span class="math notranslate nohighlight">\(m=1\)</span>, <span class="math notranslate nohighlight">\(D\geq2\)</span>, <span class="math notranslate nohighlight">\(N=D-2\)</span>, and let
-<span class="math notranslate nohighlight">\(I=\{1,2\}\)</span>. On the triangle with coordinates
-<span class="math notranslate nohighlight">\((x_1,x_2,y)\)</span>, put <span class="math notranslate nohighlight">\(r=x_1+x_2\)</span> and
-<span class="math notranslate nohighlight">\(z=x_1/r\)</span>. Write the boundary error polynomial as</p>
+<section id="scalar-evaluation-of-every-coefficient">
+<h2>Scalar evaluation of every coefficient<a class="headerlink" href="#scalar-evaluation-of-every-coefficient" title="Link to this heading"></a></h2>
+<p>The propagation theorem leads to one formula for all dimensions, degrees
+and skeletons. It separates the angular modes on a face from the moments
+of the remaining coordinates. Closed forms below are specializations of
+this formula; a finite sum is available even when no shorter evaluation
+is known.</p>
+<div class="proof lemma admonition" id="lem-skeleton-kernel">
+<p class="admonition-title"><span class="caption-number">Lemma 4 </span> (The outside-coordinate kernel)</p>
+<section class="lemma-content" id="proof-content">
+<p>Define the formal power series</p>
 <div class="math notranslate nohighlight">
-\[p_c(z,1-z,0)=z(1-z)\sum_{k=0}^N d_k P_k^{(2,2)}(2z-1).\]</div>
-<p>Here <span class="math notranslate nohighlight">\(P_n^{(\alpha,\beta)}(2v-1)\)</span> denotes the shifted Jacobi
-polynomial orthogonal for the weight <span class="math notranslate nohighlight">\((1-v)^\alpha v^\beta\)</span>,
-normalized by <span class="math notranslate nohighlight">\(P_n^{(\alpha,\beta)}(1)=\binom{n+\alpha}{n}\)</span>.
-Then the polynomial <span class="math notranslate nohighlight">\(\Phi\)</span> of
-<a class="reference internal" href="#thm-skeleton-propagation-reduction">Theorem 9</a>, on this triangle, is</p>
-<div class="math notranslate nohighlight" id="equation-skeleton-triangle-jacobi">
-<span class="eqno">(6)<a class="headerlink" href="#equation-skeleton-triangle-jacobi" title="Link to this equation"></a></span>\[\Phi(x_1,x_2,y)=x_1x_2\sum_{k=0}^N d_k r^k
-P_k^{(2,2)}(2z-1)P_{N-k}^{(0,2k+5)}(2r-1).\]</div>
-<p>The expression has a polynomial extension to <span class="math notranslate nohighlight">\(r=0\)</span>. Homogenize it
-to degree <span class="math notranslate nohighlight">\(D\)</span> before using
-<a class="reference internal" href="#equation-skeleton-reduction-integral">(4)</a>. More explicitly, the homogeneous
-polynomial is obtained by replacing the angular factor by</p>
-<div class="math notranslate nohighlight">
-\[H_k(x_1,x_2)=\sum_{h=0}^k(-1)^{k-h}
-\binom{k+2}{h}\binom{k+2}{k-h}x_1^h x_2^{k-h}\]</div>
-<p>and the radial factor by</p>
-<div class="math notranslate nohighlight">
-\[R_{N,k}(r,y)=\sum_{j=0}^{N-k}(-1)^{N-k-j}
-\binom{N-k}{j}\binom{N+k+5}{N-k-j}r^j y^{N-k-j}.\]</div>
-<p>Thus <span class="math notranslate nohighlight">\(\Phi=x_1x_2\sum_k d_k H_k R_{N,k}\)</span> in homogeneous
-coordinates. If its coefficient of <span class="math notranslate nohighlight">\(x_1^a x_2^b y^n\)</span> is
-<span class="math notranslate nohighlight">\(A_{abn}\)</span>, the Bernstein control of the triangle error
-<span class="math notranslate nohighlight">\(\phi\)</span> is</p>
-<div class="math notranslate nohighlight" id="equation-skeleton-triangle-jacobi-controls">
-<span class="eqno">(7)<a class="headerlink" href="#equation-skeleton-triangle-jacobi-controls" title="Link to this equation"></a></span>\[e((a,b),n)=\frac{A_{abn}\,a!b!n!}{D!(n+1)}.\]</div>
+\[\begin{split}F(x,y)&amp;=\sum_{h,l\geq0}\frac{\binom{h+l}{h}}{(h+1)(l+1)}x^hy^l\\
+  &amp;=\frac{(1-x-y)\log(1-x-y)-(1-x)\log(1-x)
+      -(1-y)\log(1-y)}{xy},\\
+K_q(h,l)&amp;=[x^hy^l]F(x,y)^q,\qquad q,h,l\in\mathbb N.\end{split}\]</div>
+<p>The quotient is interpreted by its formal series, including on the
+coordinate axes. In particular,
+<span class="math notranslate nohighlight">\(K_0(h,l)=\mathbf1_{h=l=0}\)</span> and
+<span class="math notranslate nohighlight">\(K_1(h,l)=\binom{h+l}{h}/((h+1)(l+1))\)</span>. For fixed <span class="math notranslate nohighlight">\(h,l\)</span>,
+the coefficient is a polynomial in <span class="math notranslate nohighlight">\(q\)</span> of degree at most
+<span class="math notranslate nohighlight">\(h+l\)</span>, given by the finite expansion</p>
+<div class="math notranslate nohighlight" id="equation-skeleton-kernel-polynomial">
+<span class="eqno">(6)<a class="headerlink" href="#equation-skeleton-kernel-polynomial" title="Link to this equation"></a></span>\[K_q(h,l)=\sum_{j=0}^{h+l}\binom qj[x^hy^l](F-1)^j.\]</div>
+<p>Here <span class="math notranslate nohighlight">\(\binom qj=0\)</span> for <span class="math notranslate nohighlight">\(j&gt;q\)</span>. A useful boundary value is
+<span class="math notranslate nohighlight">\(K_2(h,0)=K_2(0,h)=2H_{h+1}/(h+2)\)</span>, with
+<span class="math notranslate nohighlight">\(H_j=\sum_{i=1}^j1/i\)</span> and <span class="math notranslate nohighlight">\(H_0=0\)</span>.</p>
 </section>
 </div><div class="proof admonition" id="proof">
-<p>Proof. Every error polynomial in question is divisible by <span class="math notranslate nohighlight">\(x_1x_2\)</span>.
-Write <span class="math notranslate nohighlight">\(\Phi=x_1x_2 Q\)</span>. The orthogonality condition
-<a class="reference internal" href="#equation-skeleton-reduction-orthogonality">(5)</a> becomes orthogonality of
-<span class="math notranslate nohighlight">\(Q\)</span> to all polynomials of degree at most <span class="math notranslate nohighlight">\(N-1\)</span> for the
-weight <span class="math notranslate nohighlight">\(x_1^2x_2^2\)</span>. Under
-<span class="math notranslate nohighlight">\((x_1,x_2)=(rz,r(1-z))\)</span>, this weighted area element is
-<span class="math notranslate nohighlight">\(r^5z^2(1-z)^2\,dr\,dz\)</span>.</p>
-<p>Set <span class="math notranslate nohighlight">\(A_k(z)=P_k^{(2,2)}(2z-1)\)</span>. Polynomials of total degree
-at most <span class="math notranslate nohighlight">\(N-1\)</span> are spanned by
-<span class="math notranslate nohighlight">\(r^l A_l(z)q(r)\)</span>, with <span class="math notranslate nohighlight">\(0\leq l\leq N-1\)</span> and
-<span class="math notranslate nohighlight">\(\deg q\leq N-1-l\)</span>: this follows by expanding each monomial
-<span class="math notranslate nohighlight">\(r^j z^a\)</span> in the angular Jacobi basis, with <span class="math notranslate nohighlight">\(a\leq j\)</span>.
-For the <span class="math notranslate nohighlight">\(k\)</span>-th summand of <span class="math notranslate nohighlight">\(Q\)</span>, angular orthogonality
-kills every <span class="math notranslate nohighlight">\(l\ne k\)</span>. When <span class="math notranslate nohighlight">\(l=k\)</span>, the remaining
-integral has weight <span class="math notranslate nohighlight">\(r^{2k+5}\)</span> and vanishes by the radial
-Jacobi orthogonality. Consequently every displayed summand satisfies
-<a class="reference internal" href="#equation-skeleton-reduction-orthogonality">(5)</a>.</p>
-<p>The space of polynomials of degree at most <span class="math notranslate nohighlight">\(N\)</span> orthogonal to
-all degrees at most <span class="math notranslate nohighlight">\(N-1\)</span> has dimension <span class="math notranslate nohighlight">\(N+1\)</span>.
-The displayed <span class="math notranslate nohighlight">\(N+1\)</span> polynomials are independent: at
-<span class="math notranslate nohighlight">\(r=1\)</span>, their radial factors equal one and their restrictions
-are the angular Jacobi basis. They therefore give the unique
-orthogonal extension of the prescribed boundary data.
-Since <span class="math notranslate nohighlight">\(\Phi(x_1,x_2,0)=\phi(x_1,x_2,0)\)</span>, the polynomial from
-<a class="reference internal" href="#thm-skeleton-propagation-reduction">Theorem 9</a> has exactly these
-boundary values and orthogonality, proving the formula.
-Finally <span class="math notranslate nohighlight">\(\partial_y(y\phi)=\Phi\)</span> divides each monomial
-coefficient by <span class="math notranslate nohighlight">\(n+1\)</span> when recovering <span class="math notranslate nohighlight">\(\phi\)</span>;
-conversion to Bernstein coefficients gives
-<a class="reference internal" href="#equation-skeleton-triangle-jacobi-controls">(7)</a>.</p>
+<p>Proof. Integrating <span class="math notranslate nohighlight">\((1-x-y)^{-1}\)</span> formally once in each variable gives
+<span class="math notranslate nohighlight">\(xyF\)</span> and the displayed logarithmic expression. Expand
+<span class="math notranslate nohighlight">\(F^q=(1+(F-1))^q\)</span>; since <span class="math notranslate nohighlight">\(F-1\)</span> has no constant term, only
+<span class="math notranslate nohighlight">\(j\leq h+l\)</span> can contribute to the coefficient. On an axis,
+<span class="math notranslate nohighlight">\(F(x,0)=\sum_{h\geq0}x^h/(h+1)\)</span>. Squaring and using
+<span class="math notranslate nohighlight">\(1/((j+1)(h-j+1))=((j+1)^{-1}+(h-j+1)^{-1})/(h+2)\)</span>
+proves the boundary value.</p>
 </div>
-</section>
-<section id="closed-forms">
-<h2>Closed forms<a class="headerlink" href="#closed-forms" title="Link to this heading"></a></h2>
-<div class="proof proposition admonition" id="prop-skeleton-top">
-<p class="admonition-title"><span class="caption-number">Proposition 2 </span> (Top face)</p>
-<section class="proposition-content" id="proof-content">
-<p>For <span class="math notranslate nohighlight">\(D \geq M\)</span>, <span class="math notranslate nohighlight">\(a_{M-1} = \binom{D-1}{M-1}\)</span>.</p>
-</section>
-</div><div class="proof admonition" id="proof">
-<p>Proof. For <span class="math notranslate nohighlight">\(I = [M]\)</span>, <span class="math notranslate nohighlight">\(E_I\)</span> embeds <span class="math notranslate nohighlight">\(T_I\)</span> and <span class="math notranslate nohighlight">\(G^I = G\)</span>, so
-the trace is <span class="math notranslate nohighlight">\(\operatorname{tr}(G_{TT}^{-1} G_{TT}) = |T_I|\)</span>.</p>
-</div>
-<div class="proof proposition admonition" id="prop-skeleton-degree-faces">
-<p class="admonition-title"><span class="caption-number">Proposition 3 </span> (Faces with D vertices)</p>
-<section class="proposition-content" id="proof-content">
-<p>For <span class="math notranslate nohighlight">\(D \leq M\)</span>,</p>
-<div class="math notranslate nohighlight">
-\[a_{D-1} = \binom{M}{D}^2 \frac{(3D-1)!}{(D-1)!\,(M)_{2D}}.\]</div>
-<p>In particular, <span class="math notranslate nohighlight">\(a_0 = 2M/(M+1)\)</span> for <span class="math notranslate nohighlight">\(D = 1\)</span>.</p>
-</section>
-</div><div class="proof admonition" id="proof">
-<p>Proof. For <span class="math notranslate nohighlight">\(|I| = D\)</span>, <span class="math notranslate nohighlight">\(T_I = \{\mathbf 1_I\}\)</span>. No larger face has
-interior controls, so <span class="math notranslate nohighlight">\(E_I\)</span> is a unit vector and the trace is
-<span class="math notranslate nohighlight">\(G_{\mathbf 1_I \mathbf 1_I} / G^I_{\mathbf 1_I \mathbf 1_I}\)</span>. By
-<a class="reference internal" href="#equation-skeleton-moments">(1)</a> this equals
-<span class="math notranslate nohighlight">\(\frac{(M-1)!}{(2D+M-1)!} \cdot \frac{(3D-1)!}{(D-1)!}\)</span>. Multiply by
-<span class="math notranslate nohighlight">\(\binom{M}{D}\)</span> for the faces and by <span class="math notranslate nohighlight">\(\binom{M}{D}\)</span> from the
-definition.</p>
-</div>
-<div class="proof proposition admonition" id="prop-skeleton-second-faces">
-<p class="admonition-title"><span class="caption-number">Proposition 4 </span> (Faces with D - 1 vertices)</p>
-<section class="proposition-content" id="proof-content">
-<p>For <span class="math notranslate nohighlight">\(2 \leq D \leq M + 1\)</span>,</p>
-<div class="math notranslate nohighlight">
-\[a_{D-2} = \binom{M}{D-1}^2 \frac{(D-1)\,(3D-3)!}{4\,(D-2)!\,(M)_{2D}}
-\bigl(3M^2 - (6D+3) M + 3D^2 + 15D - 14\bigr).\]</div>
-</section>
-</div><div class="proof admonition" id="proof">
-<p>Proof. <em>The error polynomial.</em> Let <span class="math notranslate nohighlight">\(|I| = D - 1\)</span>. Then
-<span class="math notranslate nohighlight">\(T_I = \{\mathbf 1_I + \mathbf e_k : k \in I\}\)</span>; write
-<span class="math notranslate nohighlight">\(c_k\)</span> for the coefficient of its <span class="math notranslate nohighlight">\(k\)</span>-th control. Only the
-faces <span class="math notranslate nohighlight">\(J = I \cup \{j\}\)</span> have interior controls above <span class="math notranslate nohighlight">\(I\)</span>, each
-the single control <span class="math notranslate nohighlight">\(\mathbf 1_J\)</span>. By <a class="reference internal" href="#equation-skeleton-moments">(1)</a>,
-<span class="math notranslate nohighlight">\(G^J_{\mathbf 1_J,\, \mathbf 1_I + \mathbf e_k} / G^J_{\mathbf 1_J \mathbf 1_J} = 3/4\)</span>.
-So by <a class="reference internal" href="#equation-skeleton-propagation">(2)</a>, <span class="math notranslate nohighlight">\(\mathbf 1_J\)</span> has error
-<span class="math notranslate nohighlight">\(-\frac34 \sum_k c_k\)</span>, and the error polynomial is</p>
-<div class="math notranslate nohighlight">
-\[p(t) = D!\, t^{\mathbf 1_I} \Bigl(\tfrac12 \sum_{k \in I} c_k t_k - \tfrac34 \bigl(\textstyle\sum_k c_k\bigr) u\Bigr),
-\qquad u = \sum_{j \notin I} t_j.\]</div>
-<p><em>The trace as an expectation.</em> By <a class="reference internal" href="#equation-skeleton-moments">(1)</a>,
-<span class="math notranslate nohighlight">\(G^I_{T_I T_I} = \kappa (3\,\mathrm{Id} + 9 \mathbf 1 \mathbf 1^\top)\)</span> with
-<span class="math notranslate nohighlight">\(\kappa = (D!)^2 (D-2)!\, 2^{D-1} / (4 (3D-2)!)\)</span>. Its inverse is
-<span class="math notranslate nohighlight">\(\frac{1}{3\kappa}(\mathrm{Id} - \frac{3}{3D-2} \mathbf 1 \mathbf 1^\top)\)</span>.
-Hence the trace in <span class="math notranslate nohighlight">\(a_{D-2}\)</span> equals <span class="math notranslate nohighlight">\(E \int p^2 \, dU_{[M]}\)</span> for
-<span class="math notranslate nohighlight">\(c\)</span> with this covariance, that is, the integral of
-<span class="math notranslate nohighlight">\((D!)^2 t^{2 \cdot \mathbf 1_I} v^\top (G^I_{T_I T_I})^{-1} v\)</span>, where
-<span class="math notranslate nohighlight">\(v_k = \frac12 t_k - \frac34 u\)</span>.</p>
-<p><em>The integral.</em> For <span class="math notranslate nohighlight">\(M \geq D\)</span>, the vector <span class="math notranslate nohighlight">\((t_I, u)\)</span> is
-Dirichlet distributed with parameters <span class="math notranslate nohighlight">\((1, \dots, 1, M - D + 1)\)</span>, so</p>
-<div class="math notranslate nohighlight">
-\[\int t_I^\gamma u^b \, dU_{[M]} = \frac{(M-1)!\, \gamma!\, (M-D+1)_b}{(M - 1 + |\gamma| + b)!}.\]</div>
-<p>Expanding the quadratic form needs only the moments of
-<span class="math notranslate nohighlight">\(t^{2 \cdot \mathbf 1_I}\)</span> times <span class="math notranslate nohighlight">\(t_k^2\)</span>, <span class="math notranslate nohighlight">\(t_k t_l\)</span>,
-<span class="math notranslate nohighlight">\(t_k u\)</span>, <span class="math notranslate nohighlight">\(u^2\)</span>, <span class="math notranslate nohighlight">\(u\)</span> and <span class="math notranslate nohighlight">\(1\)</span>, using
-<span class="math notranslate nohighlight">\(\sum_k t_k = 1 - u\)</span>. Collecting terms gives the formula. For
-<span class="math notranslate nohighlight">\(M = D - 1\)</span> the formula reduces to <span class="math notranslate nohighlight">\(D - 1\)</span>, which agrees with
-<a class="reference internal" href="#prop-skeleton-top">Proposition 2</a>.</p>
-</div>
-<div class="proof theorem admonition" id="thm-skeleton-third-faces">
-<p class="admonition-title"><span class="caption-number">Theorem 10 </span> (Faces with D - 2 vertices)</p>
-<section class="theorem-content" id="proof-content">
-<p>Let <span class="math notranslate nohighlight">\(D\geq3\)</span>, <span class="math notranslate nohighlight">\(s=D-2\)</span>, and <span class="math notranslate nohighlight">\(q=M-s\geq0\)</span>. Then</p>
-<div class="math notranslate nohighlight">
-\[a_{D-3}=\binom Ms^2\frac{(3s-1)!}{(s-1)!\,(M)_{2D}}
-\frac{s^2(3s+1)}{64}\,Q_s(q),\]</div>
-<p>where the following quartic applies to every such <span class="math notranslate nohighlight">\(D,M\)</span>:</p>
-<div class="math notranslate nohighlight">
-\[\begin{split}Q_s(q)={}&amp;9(3s+1)q^4-78(3s+1)q^3
-  +(432s^2+1209s+547)q^2\\
-  &amp;-2(648s^2+1221s+623)q
-  +288(s+1)^2(3s+2).\end{split}\]</div>
-<p>In particular, this includes the full range <span class="math notranslate nohighlight">\(D\geq4\)</span> requested
-for <span class="math notranslate nohighlight">\(a_{D-3}\)</span>, and also <span class="math notranslate nohighlight">\(a_0\)</span> at <span class="math notranslate nohighlight">\(D=3\)</span>.</p>
-</section>
-</div><div class="proof admonition" id="proof">
-<p>Proof. Apply <a class="reference internal" href="#thm-skeleton-scalar-sum">Theorem 13</a> below with <span class="math notranslate nohighlight">\(n=2\)</span>.
-The angular degrees <span class="math notranslate nohighlight">\(k=0,1,2\)</span> have multiplicities
-<span class="math notranslate nohighlight">\(1,s-1,s(s-1)/2\)</span>. At <span class="math notranslate nohighlight">\(s=1\)</span> only the first is present.
-The radial coefficient vectors <span class="math notranslate nohighlight">\((A_{k,h})_h\)</span> are</p>
-<div class="math notranslate nohighlight">
-\[(1,-2(3s+1),3s(3s+1)/2),\qquad (1,-(3s+2)),\qquad(1).\]</div>
-<p>The needed kernel coefficients, obtained by multiplying the constant,
-linear and quadratic terms of <span class="math notranslate nohighlight">\(F^q\)</span>, are</p>
-<div class="math notranslate nohighlight">
-\[\begin{split}K_q(0,0)&amp;=1,&amp;K_q(1,0)&amp;=q/2,\\
-K_q(2,0)&amp;=q(3q+5)/24,&amp;K_q(1,1)&amp;=q(q+1)/4,\\
-K_q(2,1)&amp;=q(q+2)(3q+5)/48,\\
-K_q(2,2)&amp;=q(9q^3+66q^2+163q+146)/576.\end{split}\]</div>
-<p>Use symmetry for the reversed arguments. Substitution into the scalar
-sum gives the displayed quartic after factoring out
-<span class="math notranslate nohighlight">\((3s-1)!s^2(3s+1)/(64(s-1)!)\)</span>. This is a symbolic evaluation
-with arbitrary <span class="math notranslate nohighlight">\(s,q\)</span>, rather than an interpolation in the degree.
-At <span class="math notranslate nohighlight">\(q=0\)</span> the expression is
-<span class="math notranslate nohighlight">\(s(s+1)/2=\binom{D-1}{M-1}\)</span>, as required by
-<a class="reference internal" href="#prop-skeleton-top">Proposition 2</a>.</p>
-</div>
-<p><code class="docutils literal notranslate"><span class="pre">tests/sampling.py</span></code> compares all five polynomial coefficients with the
-existing exact tables at <span class="math notranslate nohighlight">\(D=3,\ldots,8\)</span>, and independently regenerates
-the <span class="math notranslate nohighlight">\(D=9\)</span> polynomial by local Gram solves and orbit counting. The
-degree-nine check took about 0.23 seconds on the development machine and
-runs in the normal test suite. Boundary checks also cover <span class="math notranslate nohighlight">\(D=12,30\)</span>.</p>
-</section>
-<section id="curves">
-<h2>Curves<a class="headerlink" href="#curves" title="Link to this heading"></a></h2>
-<div class="proof theorem admonition" id="thm-skeleton-curves">
-<p class="admonition-title"><span class="caption-number">Theorem 11 </span> (Curves)</p>
-<section class="theorem-content" id="proof-content">
-<p>For <span class="math notranslate nohighlight">\(M = 2\)</span>, <span class="math notranslate nohighlight">\(a_0 = \dfrac{4}{D(D+2)}\)</span> and <span class="math notranslate nohighlight">\(a_1 = D - 1\)</span>.
-A unit error at a vertex has the error polynomial
-<span class="math notranslate nohighlight">\(\varphi(x) = \sum_k b_k \binom Dk x^k (1-x)^{D-k}\)</span> along the edge,
-where <span class="math notranslate nohighlight">\(x\)</span> is the coordinate of that vertex and</p>
-<div class="math notranslate nohighlight">
-\[b_k = (-1)^{D-k} \frac{k}{D(D+2)} \binom{D+2}{k+1}, \qquad
-\varphi = \frac12 \Bigl(\frac{\tilde P_D'}{D(D+1)} + \frac{\tilde P_{D+1}'}{(D+1)(D+2)}\Bigr),\]</div>
-<p>with <span class="math notranslate nohighlight">\(\tilde P_n(x) = P_n(2x - 1)\)</span> the shifted Legendre polynomials.</p>
-</section>
-</div><div class="proof admonition" id="proof">
-<p>Proof. <em>The orthogonal complement of the bubbles.</em> The bubble functions of the
-edge are <span class="math notranslate nohighlight">\(x(1-x) g\)</span> with <span class="math notranslate nohighlight">\(\deg g \leq D - 2\)</span>. For
-<span class="math notranslate nohighlight">\(n \geq D\)</span>, integration by parts gives
-<span class="math notranslate nohighlight">\(\int_0^1 \tilde P_n'\, x(1-x) g \, dx = -\int_0^1 \tilde P_n \bigl(x(1-x) g\bigr)' dx = 0\)</span>.
-Both boundary terms vanish, and <span class="math notranslate nohighlight">\((x(1-x)g)'\)</span> has degree at most
-<span class="math notranslate nohighlight">\(D - 1\)</span>. The polynomials <span class="math notranslate nohighlight">\(\tilde P_D'\)</span> and
-<span class="math notranslate nohighlight">\(\tilde P_{D+1}'\)</span> have degrees <span class="math notranslate nohighlight">\(D - 1\)</span> and <span class="math notranslate nohighlight">\(D\)</span>. They are
-independent and span the orthogonal complement of the bubbles in the
-polynomials of degree at most <span class="math notranslate nohighlight">\(D\)</span>, which has dimension two.</p>
-<p><em>The coefficients of φ.</em> <span class="math notranslate nohighlight">\(\tilde P_n'(1) = n(n+1)\)</span> and
-<span class="math notranslate nohighlight">\(\tilde P_n'(0) = (-1)^{n-1} n(n+1)\)</span>. So
-<span class="math notranslate nohighlight">\(\varphi(1) = 1\)</span> and <span class="math notranslate nohighlight">\(\varphi(0) = 0\)</span> give the stated
-combination.</p>
-<p><em>The norm of φ.</em> <span class="math notranslate nohighlight">\(\tilde P_D'\)</span> and <span class="math notranslate nohighlight">\(\tilde P_{D+1}'\)</span> are
-orthogonal, because they have opposite parity about <span class="math notranslate nohighlight">\(x = 1/2\)</span>.
-Integration by parts gives
-<span class="math notranslate nohighlight">\(\int_{-1}^1 P_n'^2 = P_n(1)P_n'(1) - P_n(-1)P_n'(-1) = n(n+1)\)</span>, so
-<span class="math notranslate nohighlight">\(\lVert \tilde P_n' \rVert^2 = 2n(n+1)\)</span>. Therefore
-<span class="math notranslate nohighlight">\(\lVert \varphi \rVert^2 = \frac14 \bigl(\frac{2}{D(D+1)} + \frac{2}{(D+1)(D+2)}\bigr) = \frac{1}{D(D+2)}\)</span>.</p>
-<p><em>The coefficients a_0 and a_1.</em> A vertex block of the Gram matrix is one,
-so <span class="math notranslate nohighlight">\(a_0 = \binom21 \cdot 2 \lVert \varphi \rVert^2\)</span>: the binomial
-comes from the definition of <span class="math notranslate nohighlight">\(a_m\)</span>, and the sum runs over the two
-vertices.
-<span class="math notranslate nohighlight">\(a_1 = D - 1\)</span> by <a class="reference internal" href="#prop-skeleton-top">Proposition 2</a>.</p>
-<p><em>The Bernstein coefficients.</em> Rodrigues’ formula and the Leibniz rule give
-<span class="math notranslate nohighlight">\(\tilde P_n = \sum_k (-1)^{n-k} \binom nk \cdot \binom nk x^k (1-x)^{n-k}\)</span>,
-so the Bernstein coefficients of <span class="math notranslate nohighlight">\(\tilde P_n\)</span> are
-<span class="math notranslate nohighlight">\((-1)^{n-k}\binom nk\)</span>. Differentiating, raising the degree of
-<span class="math notranslate nohighlight">\(\tilde P_D'\)</span> to <span class="math notranslate nohighlight">\(D\)</span>, and adding gives <span class="math notranslate nohighlight">\(b_k\)</span>.</p>
-</div>
-<div class="proof corollary admonition" id="cor-skeleton-curves-win">
-<p class="admonition-title"><span class="caption-number">Corollary 2 </span> (Inductive fitting beats all-at-once fitting on curves)</p>
-<section class="corollary-content" id="proof-content">
-<p>For <span class="math notranslate nohighlight">\(M = 2\)</span> and every degree, the optimal inductive risk
-<span class="math notranslate nohighlight">\((\sum_m \sqrt{a_m})^2 = \bigl(\sqrt{D-1} + 2/\sqrt{D(D+2)}\bigr)^2\)</span>
-is smaller than the all-at-once risk <span class="math notranslate nohighlight">\(D + 1\)</span>.</p>
-</section>
-</div><div class="proof admonition" id="proof">
-<p>Proof. Expanding, the inequality is
-<span class="math notranslate nohighlight">\(2\sqrt{(D-1)D(D+2)} &lt; D^2 + 2D - 2\)</span>. Both sides are nonnegative.
-Squaring gives <span class="math notranslate nohighlight">\(0 &lt; (D^2 - 2)^2\)</span>, which holds for every integer
-<span class="math notranslate nohighlight">\(D\)</span>.</p>
-</div>
-<p><a class="reference internal" href="#thm-skeleton-propagation-reduction">Theorem 9</a> with <span class="math notranslate nohighlight">\(m = 0\)</span> turns the curve
-coefficients into the propagation from a vertex in any dimension.</p>
-<div class="proof corollary admonition" id="cor-skeleton-vertex">
-<p class="admonition-title"><span class="caption-number">Corollary 3 </span> (Propagation from a vertex)</p>
-<section class="corollary-content" id="proof-content">
-<p>For a unit error at vertex <span class="math notranslate nohighlight">\(i\)</span> and every control <span class="math notranslate nohighlight">\(\alpha\)</span>
-with <span class="math notranslate nohighlight">\(\alpha_i \geq 1\)</span>,</p>
-<div class="math notranslate nohighlight">
-\[\bigl(E_{\{i\}}\bigr)_\alpha = (D - \alpha_i + 1)\, b_{\alpha_i} \prod_{l \neq i} \frac{1}{\alpha_l + 1}.\]</div>
-<p>At the control <span class="math notranslate nohighlight">\(\mathbf 1_J\)</span> of a face <span class="math notranslate nohighlight">\(J \ni i\)</span> with
-<span class="math notranslate nohighlight">\(D\)</span> vertices, the error is <span class="math notranslate nohighlight">\(\gamma_D = (-1)^{D-1} (D+1) / 2^D\)</span>.</p>
-</section>
-</div><div class="proof admonition" id="proof">
-<p>Proof. On the edge, <span class="math notranslate nohighlight">\(e(k, D - k) = b_k\)</span>. For <span class="math notranslate nohighlight">\(\mathbf 1_J\)</span>,
-<span class="math notranslate nohighlight">\(\alpha_i = 1\)</span> and <span class="math notranslate nohighlight">\(D b_1 = (-1)^{D-1} (D+1)/2\)</span>.</p>
-</div>
-<div class="proof theorem admonition" id="thm-skeleton-vertex-sum">
-<p class="admonition-title"><span class="caption-number">Theorem 12 </span> (A generating function for the vertex risk)</p>
-<section class="theorem-content" id="proof-content">
-<p>Put <span class="math notranslate nohighlight">\(w_k=(D-k+1)b_k\)</span>, with <span class="math notranslate nohighlight">\(b_k\)</span> as in
-<a class="reference internal" href="#thm-skeleton-curves">Theorem 11</a>, and define the formal power series</p>
-<div class="math notranslate nohighlight">
-\[\begin{split}F(x,y) &amp;= \sum_{p,q\geq0}\frac{\binom{p+q}{p}}{(p+1)(q+1)}x^p y^q \\
-&amp;= \frac{(1-x-y)\log(1-x-y)-(1-x)\log(1-x)
-   -(1-y)\log(1-y)}{xy}, \\
-K_r(p,q) &amp;= [x^p y^q]F(x,y)^r.\end{split}\]</div>
-<p>The quotient denotes its formal series, including at either zero
-coordinate. For every <span class="math notranslate nohighlight">\(D\geq1\)</span> and <span class="math notranslate nohighlight">\(M\geq2\)</span>,</p>
-<div class="math notranslate nohighlight" id="equation-skeleton-vertex-double-sum">
-<span class="eqno">(8)<a class="headerlink" href="#equation-skeleton-vertex-double-sum" title="Link to this equation"></a></span>\[a_0 = \frac{M^2(D!)^2}{(M)_{2D}}
-\sum_{k=1}^D\sum_{l=1}^D
-w_k w_l\binom{k+l}{k}K_{M-1}(D-k,D-l).\]</div>
-<p>In particular, the polynomial <span class="math notranslate nohighlight">\(P_{D,0}\)</span> in
-<a class="reference internal" href="#thm-skeleton-rational">Theorem 16</a> has the general finite expression</p>
-<div class="math notranslate nohighlight" id="equation-skeleton-vertex-polynomial">
-<span class="eqno">(9)<a class="headerlink" href="#equation-skeleton-vertex-polynomial" title="Link to this equation"></a></span>\[P_{D,0}(M) = (D!)^2\sum_{s=0}^{2D-2}\binom{M-1}{s}
-\sum_{k,l=1}^D w_k w_l\binom{k+l}{k}
-[x^{D-k}y^{D-l}](F-1)^s.\]</div>
-</section>
-</div><div class="proof admonition" id="proof">
-<p>Proof. Fix vertex 1 and write <span class="math notranslate nohighlight">\(\alpha=(k,u)\)</span> and
-<span class="math notranslate nohighlight">\(\beta=(l,v)\)</span>. By <a class="reference internal" href="#cor-skeleton-vertex">Corollary 3</a>, their propagated
-errors are <span class="math notranslate nohighlight">\(w_k/\prod_j(u_j+1)\)</span> and
-<span class="math notranslate nohighlight">\(w_l/\prod_j(v_j+1)\)</span>. The full Gram entry is</p>
-<div class="math notranslate nohighlight">
-\[G_{\alpha\beta}=\frac{(D!)^2}{(M)_{2D}}
-\binom{k+l}{k}\prod_{j=1}^{M-1}\binom{u_j+v_j}{u_j}.\]</div>
-<p>Summing over <span class="math notranslate nohighlight">\(|u|=D-k\)</span> and <span class="math notranslate nohighlight">\(|v|=D-l\)</span> gives exactly
-<span class="math notranslate nohighlight">\(K_{M-1}(D-k,D-l)\)</span>. The vertex Gram block is 1. The
-<span class="math notranslate nohighlight">\(M\)</span> equal vertex contributions and the allocation factor
-<span class="math notranslate nohighlight">\(\binom M1=M\)</span> give the factor <span class="math notranslate nohighlight">\(M^2\)</span> in
-<a class="reference internal" href="#equation-skeleton-vertex-double-sum">(8)</a>.</p>
-<p>Integrating <span class="math notranslate nohighlight">\((1-x-y)^{-1}\)</span> formally once in each variable gives
-the displayed expression for <span class="math notranslate nohighlight">\(xyF\)</span>. Finally expand
-<span class="math notranslate nohighlight">\(F^{M-1}=(1+(F-1))^{M-1}\)</span>. Since <span class="math notranslate nohighlight">\(F-1\)</span> has no constant
-term, its power <span class="math notranslate nohighlight">\(s\)</span> cannot contribute above <span class="math notranslate nohighlight">\(s=p+q\)</span>.
-Here <span class="math notranslate nohighlight">\(p+q\leq2D-2\)</span>, which proves
-<a class="reference internal" href="#equation-skeleton-vertex-polynomial">(9)</a>, including the degree bound. The
-coefficient extraction uses a polynomial of bounded degree for every
-fixed <span class="math notranslate nohighlight">\(D\)</span>; it requires no propagation matrices or inverses.</p>
-</div>
-</section>
-<section id="a-scalar-finite-sum-for-every-coefficient">
-<h2>A scalar finite sum for every coefficient<a class="headerlink" href="#a-scalar-finite-sum-for-every-coefficient" title="Link to this heading"></a></h2>
-<p>The angular construction extends to every face. Its angular norms cancel
-in the risk trace, leaving only multiplicities and a scalar kernel. This
-gives a finite closed expression for every dimension, degree and skeleton,
-without constructing propagation matrices or inverting Gram matrices.
-It does not assert that these finite sums always simplify to a bounded
-number of elementary or special functions.</p>
+<p>We use shifted Jacobi polynomials
+<span class="math notranslate nohighlight">\(P_j^{(\alpha,\beta)}(2v-1)\)</span>, orthogonal for
+<span class="math notranslate nohighlight">\((1-v)^\alpha v^\beta\)</span>, with endpoint normalization
+<span class="math notranslate nohighlight">\(P_j^{(\alpha,\beta)}(1)=\binom{j+\alpha}{j}\)</span>.</p>
 <div class="proof theorem admonition" id="thm-skeleton-scalar-sum">
-<p class="admonition-title"><span class="caption-number">Theorem 13 </span> (Scalar risk sum)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 10 </span> (Scalar risk sum)</p>
 <section class="theorem-content" id="proof-content">
 <p>Let <span class="math notranslate nohighlight">\(1\leq s\leq\min(D,M)\)</span>, <span class="math notranslate nohighlight">\(n=D-s\)</span>, and <span class="math notranslate nohighlight">\(q=M-s\)</span>.
-Use <span class="math notranslate nohighlight">\(K_q(h,l)=[x^h y^l]F(x,y)^q\)</span> with <span class="math notranslate nohighlight">\(F\)</span> defined in
-<a class="reference internal" href="#thm-skeleton-vertex-sum">Theorem 12</a>, including
-<span class="math notranslate nohighlight">\(K_0(h,l)=\mathbf1_{h=l=0}\)</span>. Put</p>
+Use the kernel of <a class="reference internal" href="#lem-skeleton-kernel">Lemma 4</a>. Put</p>
 <div class="math notranslate nohighlight">
 \[\begin{split}d_s(k)&amp;=\binom{k+s-2}{s-2}\quad(s\geq2),&amp;
 d_1(k)&amp;=\mathbf1_{k=0},\\
@@ -796,7 +563,7 @@ A_{k,h}&amp;=(-1)^h\binom{n-k}{h}\binom{n+k+3s-1}{h}
   \quad(0\leq h\leq n-k).\end{split}\]</div>
 <p>Then</p>
 <div class="math notranslate nohighlight" id="equation-skeleton-scalar-sum">
-<span class="eqno">(10)<a class="headerlink" href="#equation-skeleton-scalar-sum" title="Link to this equation"></a></span>\[a_{s-1}=\frac{\binom Ms^2}{(s-1)!\,(M)_{2D}}
+<span class="eqno">(7)<a class="headerlink" href="#equation-skeleton-scalar-sum" title="Link to this equation"></a></span>\[a_{s-1}=\frac{\binom Ms^2}{(s-1)!\,(M)_{2D}}
 \sum_{k=0}^n d_s(k)\sum_{h,l=0}^{n-k}
 A_{k,h}A_{k,l}(2D+s-h-l-1)!\,h!l!K_q(h,l).\]</div>
 <p>All factorial arguments are nonnegative. Each coefficient extraction
@@ -817,8 +584,8 @@ and <span class="math notranslate nohighlight">\(f_{0,1}=1\)</span> on the one-p
 <p><em>Extension by one vertex.</em> Write <span class="math notranslate nohighlight">\(x=rz\)</span>, <span class="math notranslate nohighlight">\(r=\sum_i x_i\)</span>
 and let <span class="math notranslate nohighlight">\(y\)</span> be the new coordinate. The homogeneous polynomial
 <span class="math notranslate nohighlight">\(\Phi\)</span> for the boundary mode <span class="math notranslate nohighlight">\(f_{k,\nu}\)</span> is</p>
-<div class="math notranslate nohighlight">
-\[\Phi_{k,\nu}(x,y)=\prod_i x_i\,r^k Q_{k,\nu}(z)
+<div class="math notranslate nohighlight" id="equation-skeleton-mode-extension">
+<span class="eqno">(8)<a class="headerlink" href="#equation-skeleton-mode-extension" title="Link to this equation"></a></span>\[\Phi_{k,\nu}(x,y)=\prod_i x_i\,r^k Q_{k,\nu}(z)
   \sum_{h=0}^{n-k} A_{k,h}r^{n-k-h}y^h.\]</div>
 <p>Indeed the sum, restricted to <span class="math notranslate nohighlight">\(r+y=1\)</span>, is
 <span class="math notranslate nohighlight">\(P_{n-k}^{(0,\,3s+2k-1)}(2r-1)\)</span>. To verify
@@ -862,14 +629,103 @@ in the stated formula, each norm ratio equals one, and the sum is
 <span class="math notranslate nohighlight">\(\sum_k d_s(k)=\binom{D-1}{s-1}\)</span>, including <span class="math notranslate nohighlight">\(s=1\)</span>.</p>
 </div>
 </section>
-<section id="codimension-one-and-the-triangle-edge-risk">
-<h2>Codimension one and the triangle edge risk<a class="headerlink" href="#codimension-one-and-the-triangle-edge-risk" title="Link to this heading"></a></h2>
+<section id="closed-forms-near-the-degree">
+<h2>Closed forms near the degree<a class="headerlink" href="#closed-forms-near-the-degree" title="Link to this heading"></a></h2>
+<div class="proof proposition admonition" id="prop-skeleton-top">
+<p class="admonition-title"><span class="caption-number">Proposition 1 </span> (Top face)</p>
+<section class="proposition-content" id="proof-content">
+<p>For <span class="math notranslate nohighlight">\(D \geq M\)</span>, <span class="math notranslate nohighlight">\(a_{M-1} = \binom{D-1}{M-1}\)</span>.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. For <span class="math notranslate nohighlight">\(I = [M]\)</span>, <span class="math notranslate nohighlight">\(E_I\)</span> embeds <span class="math notranslate nohighlight">\(T_I\)</span> and <span class="math notranslate nohighlight">\(G^I = G\)</span>, so
+the trace is <span class="math notranslate nohighlight">\(\operatorname{tr}(G_{TT}^{-1} G_{TT}) = |T_I|\)</span>.</p>
+</div>
+<div class="proof proposition admonition" id="prop-skeleton-degree-faces">
+<p class="admonition-title"><span class="caption-number">Proposition 2 </span> (Faces with D vertices)</p>
+<section class="proposition-content" id="proof-content">
+<p>For <span class="math notranslate nohighlight">\(D \leq M\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[a_{D-1} = \binom{M}{D}^2 \frac{(3D-1)!}{(D-1)!\,(M)_{2D}}.\]</div>
+<p>In particular, <span class="math notranslate nohighlight">\(a_0 = 2M/(M+1)\)</span> for <span class="math notranslate nohighlight">\(D = 1\)</span>.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. For <span class="math notranslate nohighlight">\(|I| = D\)</span>, <span class="math notranslate nohighlight">\(T_I = \{\mathbf 1_I\}\)</span>. No larger face has
+interior controls, so <span class="math notranslate nohighlight">\(E_I\)</span> is a unit vector and the trace is
+<span class="math notranslate nohighlight">\(G_{\mathbf 1_I \mathbf 1_I} / G^I_{\mathbf 1_I \mathbf 1_I}\)</span>. By
+<a class="reference internal" href="#equation-skeleton-moments">(1)</a> this equals
+<span class="math notranslate nohighlight">\(\frac{(M-1)!}{(2D+M-1)!} \cdot \frac{(3D-1)!}{(D-1)!}\)</span>. Multiply by
+<span class="math notranslate nohighlight">\(\binom{M}{D}\)</span> for the faces and by <span class="math notranslate nohighlight">\(\binom{M}{D}\)</span> from the
+definition.</p>
+</div>
+<div class="proof proposition admonition" id="prop-skeleton-second-faces">
+<p class="admonition-title"><span class="caption-number">Proposition 3 </span> (Faces with D - 1 vertices)</p>
+<section class="proposition-content" id="proof-content">
+<p>For <span class="math notranslate nohighlight">\(2 \leq D \leq M + 1\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[a_{D-2} = \binom{M}{D-1}^2 \frac{(D-1)\,(3D-3)!}{4\,(D-2)!\,(M)_{2D}}
+\bigl(3M^2 - (6D+3) M + 3D^2 + 15D - 14\bigr).\]</div>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Put <span class="math notranslate nohighlight">\(s=D-1\)</span>, <span class="math notranslate nohighlight">\(n=1\)</span> and <span class="math notranslate nohighlight">\(q=M-s\)</span> in
+<a class="reference internal" href="#thm-skeleton-scalar-sum">Theorem 10</a>. The angular degrees <span class="math notranslate nohighlight">\(k=0,1\)</span>
+have multiplicities <span class="math notranslate nohighlight">\(1,s-1\)</span>; the radial vectors are
+<span class="math notranslate nohighlight">\((1,-3s)\)</span> and <span class="math notranslate nohighlight">\((1)\)</span>. With
+<span class="math notranslate nohighlight">\(K_q(0,0)=1\)</span>, <span class="math notranslate nohighlight">\(K_q(1,0)=q/2\)</span> and
+<span class="math notranslate nohighlight">\(K_q(1,1)=q(q+1)/4\)</span>, substitution gives</p>
+<div class="math notranslate nohighlight">
+\[P_{D,D-2}(M)=\frac{s(3s)!}{4(s-1)!}
+              \bigl(3q^2-9q+12s+4\bigr).\]</div>
+<p>Replacing <span class="math notranslate nohighlight">\(s=D-1\)</span> and <span class="math notranslate nohighlight">\(q=M-D+1\)</span> gives the stated
+quadratic. At <span class="math notranslate nohighlight">\(q=0\)</span> it reduces to <span class="math notranslate nohighlight">\(s\)</span>, agreeing with
+<a class="reference internal" href="#prop-skeleton-top">Proposition 1</a>, including <span class="math notranslate nohighlight">\(s=1\)</span>.</p>
+</div>
+<div class="proof theorem admonition" id="thm-skeleton-third-faces">
+<p class="admonition-title"><span class="caption-number">Theorem 11 </span> (Faces with D - 2 vertices)</p>
+<section class="theorem-content" id="proof-content">
+<p>Let <span class="math notranslate nohighlight">\(D\geq3\)</span>, <span class="math notranslate nohighlight">\(s=D-2\)</span>, and <span class="math notranslate nohighlight">\(q=M-s\geq0\)</span>. Then</p>
+<div class="math notranslate nohighlight">
+\[a_{D-3}=\binom Ms^2\frac{(3s-1)!}{(s-1)!\,(M)_{2D}}
+\frac{s^2(3s+1)}{64}\,Q_s(q),\]</div>
+<p>where the following quartic applies to every such <span class="math notranslate nohighlight">\(D,M\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}Q_s(q)={}&amp;9(3s+1)q^4-78(3s+1)q^3
+  +(432s^2+1209s+547)q^2\\
+  &amp;-2(648s^2+1221s+623)q
+  +288(s+1)^2(3s+2).\end{split}\]</div>
+<p>In particular, this includes the full range <span class="math notranslate nohighlight">\(D\geq4\)</span> requested
+for <span class="math notranslate nohighlight">\(a_{D-3}\)</span>, and also <span class="math notranslate nohighlight">\(a_0\)</span> at <span class="math notranslate nohighlight">\(D=3\)</span>.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Apply <a class="reference internal" href="#thm-skeleton-scalar-sum">Theorem 10</a> with <span class="math notranslate nohighlight">\(n=2\)</span>.
+The angular degrees <span class="math notranslate nohighlight">\(k=0,1,2\)</span> have multiplicities
+<span class="math notranslate nohighlight">\(1,s-1,s(s-1)/2\)</span>. At <span class="math notranslate nohighlight">\(s=1\)</span> only the first is present.
+The radial coefficient vectors <span class="math notranslate nohighlight">\((A_{k,h})_h\)</span> are</p>
+<div class="math notranslate nohighlight">
+\[(1,-2(3s+1),3s(3s+1)/2),\qquad (1,-(3s+2)),\qquad(1).\]</div>
+<p>The needed kernel coefficients, obtained by multiplying the constant,
+linear and quadratic terms of <span class="math notranslate nohighlight">\(F^q\)</span>, are</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}K_q(0,0)&amp;=1,&amp;K_q(1,0)&amp;=q/2,\\
+K_q(2,0)&amp;=q(3q+5)/24,&amp;K_q(1,1)&amp;=q(q+1)/4,\\
+K_q(2,1)&amp;=q(q+2)(3q+5)/48,\\
+K_q(2,2)&amp;=q(9q^3+66q^2+163q+146)/576.\end{split}\]</div>
+<p>Use symmetry for the reversed arguments. Substitution into the scalar
+sum gives the displayed quartic after factoring out
+<span class="math notranslate nohighlight">\((3s-1)!s^2(3s+1)/(64(s-1)!)\)</span>. This is a symbolic evaluation
+with arbitrary <span class="math notranslate nohighlight">\(s,q\)</span>, rather than an interpolation in the degree.
+At <span class="math notranslate nohighlight">\(q=0\)</span> the expression is
+<span class="math notranslate nohighlight">\(s(s+1)/2=\binom{D-1}{M-1}\)</span>, as required by
+<a class="reference internal" href="#prop-skeleton-top">Proposition 1</a>.</p>
+</div>
+</section>
+<section id="faces-of-codimension-one">
+<h2>Faces of codimension one<a class="headerlink" href="#faces-of-codimension-one" title="Link to this heading"></a></h2>
 <div class="proof theorem admonition" id="thm-skeleton-codimension-one">
-<p class="admonition-title"><span class="caption-number">Theorem 14 </span> (Faces of codimension one)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 12 </span> (Faces of codimension one)</p>
 <section class="theorem-content" id="proof-content">
 <p>For <span class="math notranslate nohighlight">\(s\geq1\)</span>, <span class="math notranslate nohighlight">\(M=s+1\)</span>, and <span class="math notranslate nohighlight">\(D\geq s\)</span>, put
 <span class="math notranslate nohighlight">\(n=D-s\)</span> and use <span class="math notranslate nohighlight">\(d_s(k)\)</span> from
-<a class="reference internal" href="#thm-skeleton-scalar-sum">Theorem 13</a>. Then</p>
+<a class="reference internal" href="#thm-skeleton-scalar-sum">Theorem 10</a>. Then</p>
 <div class="math notranslate nohighlight">
 \[a_{s-1}(s+1,D)=s(s+1)^2\sum_{k=0}^n
  \frac{d_s(k)}{(n-k+1)(n+k+3s)}.\]</div>
@@ -878,7 +734,7 @@ sum of <span class="math notranslate nohighlight">\(n+1\)</span> rational terms;
 Gram matrices or propagation coefficients to compute.</p>
 </section>
 </div><div class="proof admonition" id="proof">
-<p>Proof. In the mode extension of <a class="reference internal" href="#thm-skeleton-scalar-sum">Theorem 13</a>, there is
+<p>Proof. In the mode extension of <a class="reference internal" href="#thm-skeleton-scalar-sum">Theorem 10</a>, there is
 just one outside coordinate <span class="math notranslate nohighlight">\(y\)</span>. Averaging <span class="math notranslate nohighlight">\(y^h\)</span> multiplies
 its coefficient by <span class="math notranslate nohighlight">\(1/(h+1)\)</span>. Write <span class="math notranslate nohighlight">\(L=n-k\)</span> and
 <span class="math notranslate nohighlight">\(\beta=3s+2k-1\)</span>. The homogeneous radial polynomial therefore
@@ -909,6 +765,132 @@ Taking <span class="math notranslate nohighlight">\(g=(1-r)h\)</span>, <span cla
 Sum the mode ratios with their multiplicities and multiply by
 <span class="math notranslate nohighlight">\(\binom{s+1}s^2=(s+1)^2\)</span>.</p>
 </div>
+</section>
+<section id="curves">
+<h2>Curves<a class="headerlink" href="#curves" title="Link to this heading"></a></h2>
+<div class="proof theorem admonition" id="thm-skeleton-curves">
+<p class="admonition-title"><span class="caption-number">Theorem 13 </span> (Curves)</p>
+<section class="theorem-content" id="proof-content">
+<p>For <span class="math notranslate nohighlight">\(M = 2\)</span>, <span class="math notranslate nohighlight">\(a_0 = \dfrac{4}{D(D+2)}\)</span> and <span class="math notranslate nohighlight">\(a_1 = D - 1\)</span>.
+A unit error at a vertex has the error polynomial
+<span class="math notranslate nohighlight">\(\varphi(x) = \sum_k b_k \binom Dk x^k (1-x)^{D-k}\)</span> along the edge,
+where <span class="math notranslate nohighlight">\(x\)</span> is the coordinate of that vertex and</p>
+<div class="math notranslate nohighlight">
+\[b_k = (-1)^{D-k} \frac{k}{D(D+2)} \binom{D+2}{k+1}, \qquad
+\varphi = \frac12 \Bigl(\frac{\tilde P_D'}{D(D+1)} + \frac{\tilde P_{D+1}'}{(D+1)(D+2)}\Bigr),\]</div>
+<p>with <span class="math notranslate nohighlight">\(\tilde P_n(x) = P_n(2x - 1)\)</span> the shifted Legendre polynomials.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. <em>The orthogonal complement of the bubbles.</em> The bubble functions of the
+edge are <span class="math notranslate nohighlight">\(x(1-x) g\)</span> with <span class="math notranslate nohighlight">\(\deg g \leq D - 2\)</span>. For
+<span class="math notranslate nohighlight">\(n \geq D\)</span>, integration by parts gives
+<span class="math notranslate nohighlight">\(\int_0^1 \tilde P_n'\, x(1-x) g \, dx = -\int_0^1 \tilde P_n \bigl(x(1-x) g\bigr)' dx = 0\)</span>.
+Both boundary terms vanish, and <span class="math notranslate nohighlight">\((x(1-x)g)'\)</span> has degree at most
+<span class="math notranslate nohighlight">\(D - 1\)</span>. The polynomials <span class="math notranslate nohighlight">\(\tilde P_D'\)</span> and
+<span class="math notranslate nohighlight">\(\tilde P_{D+1}'\)</span> have degrees <span class="math notranslate nohighlight">\(D - 1\)</span> and <span class="math notranslate nohighlight">\(D\)</span>. They are
+independent and span the orthogonal complement of the bubbles in the
+polynomials of degree at most <span class="math notranslate nohighlight">\(D\)</span>, which has dimension two.</p>
+<p><em>The coefficients of φ.</em> <span class="math notranslate nohighlight">\(\tilde P_n'(1) = n(n+1)\)</span> and
+<span class="math notranslate nohighlight">\(\tilde P_n'(0) = (-1)^{n-1} n(n+1)\)</span>. So
+<span class="math notranslate nohighlight">\(\varphi(1) = 1\)</span> and <span class="math notranslate nohighlight">\(\varphi(0) = 0\)</span> give the stated
+combination.</p>
+<p><em>The norm of φ.</em> <span class="math notranslate nohighlight">\(\tilde P_D'\)</span> and <span class="math notranslate nohighlight">\(\tilde P_{D+1}'\)</span> are
+orthogonal, because they have opposite parity about <span class="math notranslate nohighlight">\(x = 1/2\)</span>.
+Integration by parts gives
+<span class="math notranslate nohighlight">\(\int_{-1}^1 P_n'^2 = P_n(1)P_n'(1) - P_n(-1)P_n'(-1) = n(n+1)\)</span>, so
+<span class="math notranslate nohighlight">\(\lVert \tilde P_n' \rVert^2 = 2n(n+1)\)</span>. Therefore
+<span class="math notranslate nohighlight">\(\lVert \varphi \rVert^2 = \frac14 \bigl(\frac{2}{D(D+1)} + \frac{2}{(D+1)(D+2)}\bigr) = \frac{1}{D(D+2)}\)</span>.</p>
+<p><em>The coefficients a_0 and a_1.</em> A vertex block of the Gram matrix is one,
+so <span class="math notranslate nohighlight">\(a_0 = \binom21 \cdot 2 \lVert \varphi \rVert^2\)</span>: the binomial
+comes from the definition of <span class="math notranslate nohighlight">\(a_m\)</span>, and the sum runs over the two
+vertices.
+<span class="math notranslate nohighlight">\(a_1 = D - 1\)</span> by <a class="reference internal" href="#prop-skeleton-top">Proposition 1</a>.</p>
+<p><em>The Bernstein coefficients.</em> Rodrigues’ formula and the Leibniz rule give
+<span class="math notranslate nohighlight">\(\tilde P_n = \sum_k (-1)^{n-k} \binom nk \cdot \binom nk x^k (1-x)^{n-k}\)</span>,
+so the Bernstein coefficients of <span class="math notranslate nohighlight">\(\tilde P_n\)</span> are
+<span class="math notranslate nohighlight">\((-1)^{n-k}\binom nk\)</span>. Differentiating, raising the degree of
+<span class="math notranslate nohighlight">\(\tilde P_D'\)</span> to <span class="math notranslate nohighlight">\(D\)</span>, and adding gives <span class="math notranslate nohighlight">\(b_k\)</span>.</p>
+</div>
+<div class="proof corollary admonition" id="cor-skeleton-curves-win">
+<p class="admonition-title"><span class="caption-number">Corollary 2 </span> (Inductive fitting beats all-at-once fitting on curves)</p>
+<section class="corollary-content" id="proof-content">
+<p>For <span class="math notranslate nohighlight">\(M = 2\)</span> and every degree, the optimal inductive risk
+<span class="math notranslate nohighlight">\((\sum_m \sqrt{a_m})^2 = \bigl(\sqrt{D-1} + 2/\sqrt{D(D+2)}\bigr)^2\)</span>
+is smaller than the all-at-once risk <span class="math notranslate nohighlight">\(D + 1\)</span>.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Expanding, the inequality is
+<span class="math notranslate nohighlight">\(2\sqrt{(D-1)D(D+2)} &lt; D^2 + 2D - 2\)</span>. Both sides are nonnegative.
+Squaring gives <span class="math notranslate nohighlight">\(0 &lt; (D^2 - 2)^2\)</span>, which holds for every integer
+<span class="math notranslate nohighlight">\(D\)</span>.</p>
+</div>
+<p><a class="reference internal" href="#thm-skeleton-propagation-reduction">Theorem 9</a> with <span class="math notranslate nohighlight">\(m = 0\)</span> turns the curve
+coefficients into the propagation from a vertex in any dimension.</p>
+<div class="proof corollary admonition" id="cor-skeleton-vertex">
+<p class="admonition-title"><span class="caption-number">Corollary 3 </span> (Propagation from a vertex)</p>
+<section class="corollary-content" id="proof-content">
+<p>For a unit error at vertex <span class="math notranslate nohighlight">\(i\)</span> and every control <span class="math notranslate nohighlight">\(\alpha\)</span>
+with <span class="math notranslate nohighlight">\(\alpha_i \geq 1\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[\bigl(E_{\{i\}}\bigr)_\alpha = (D - \alpha_i + 1)\, b_{\alpha_i} \prod_{l \neq i} \frac{1}{\alpha_l + 1}.\]</div>
+<p>At the control <span class="math notranslate nohighlight">\(\mathbf 1_J\)</span> of a face <span class="math notranslate nohighlight">\(J \ni i\)</span> with
+<span class="math notranslate nohighlight">\(D\)</span> vertices, the error is <span class="math notranslate nohighlight">\(\gamma_D = (-1)^{D-1} (D+1) / 2^D\)</span>.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. On the edge, <span class="math notranslate nohighlight">\(e(k, D - k) = b_k\)</span>. For <span class="math notranslate nohighlight">\(\mathbf 1_J\)</span>,
+<span class="math notranslate nohighlight">\(\alpha_i = 1\)</span> and <span class="math notranslate nohighlight">\(D b_1 = (-1)^{D-1} (D+1)/2\)</span>.</p>
+</div>
+</section>
+<section id="vertex-coefficients-in-arbitrary-dimension">
+<h2>Vertex coefficients in arbitrary dimension<a class="headerlink" href="#vertex-coefficients-in-arbitrary-dimension" title="Link to this heading"></a></h2>
+<p>This specialization gives the vertex coefficient and its dimension
+polynomial directly from the curve controls. It is useful for exact
+evaluation at fixed <span class="math notranslate nohighlight">\(M\)</span> or <span class="math notranslate nohighlight">\(D\)</span>.</p>
+<div class="proof theorem admonition" id="thm-skeleton-vertex-sum">
+<p class="admonition-title"><span class="caption-number">Theorem 14 </span> (Vertex specialization and dimension polynomial)</p>
+<section class="theorem-content" id="proof-content">
+<p>Put <span class="math notranslate nohighlight">\(w_k=(D-k+1)b_k\)</span>, with <span class="math notranslate nohighlight">\(b_k\)</span> as in
+<a class="reference internal" href="#thm-skeleton-curves">Theorem 13</a>, and use <span class="math notranslate nohighlight">\(F,K_q\)</span> from
+<a class="reference internal" href="#lem-skeleton-kernel">Lemma 4</a>. For every <span class="math notranslate nohighlight">\(D\geq1\)</span> and
+<span class="math notranslate nohighlight">\(M\geq2\)</span>,</p>
+<div class="math notranslate nohighlight" id="equation-skeleton-vertex-double-sum">
+<span class="eqno">(9)<a class="headerlink" href="#equation-skeleton-vertex-double-sum" title="Link to this equation"></a></span>\[a_0 = \frac{M^2(D!)^2}{(M)_{2D}}
+\sum_{k=1}^D\sum_{l=1}^D
+w_k w_l\binom{k+l}{k}K_{M-1}(D-k,D-l).\]</div>
+<p>In particular, the polynomial <span class="math notranslate nohighlight">\(P_{D,0}\)</span> in
+<a class="reference internal" href="#thm-skeleton-rational">Theorem 16</a> has the general finite expression</p>
+<div class="math notranslate nohighlight" id="equation-skeleton-vertex-polynomial">
+<span class="eqno">(10)<a class="headerlink" href="#equation-skeleton-vertex-polynomial" title="Link to this equation"></a></span>\[P_{D,0}(M) = (D!)^2\sum_{s=0}^{2D-2}\binom{M-1}{s}
+\sum_{k,l=1}^D w_k w_l\binom{k+l}{k}
+[x^{D-k}y^{D-l}](F-1)^s.\]</div>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Fix vertex 1 and write <span class="math notranslate nohighlight">\(\alpha=(k,u)\)</span> and
+<span class="math notranslate nohighlight">\(\beta=(l,v)\)</span>. By <a class="reference internal" href="#cor-skeleton-vertex">Corollary 3</a>, their propagated
+errors are <span class="math notranslate nohighlight">\(w_k/\prod_j(u_j+1)\)</span> and
+<span class="math notranslate nohighlight">\(w_l/\prod_j(v_j+1)\)</span>. The full Gram entry is</p>
+<div class="math notranslate nohighlight">
+\[G_{\alpha\beta}=\frac{(D!)^2}{(M)_{2D}}
+\binom{k+l}{k}\prod_{j=1}^{M-1}\binom{u_j+v_j}{u_j}.\]</div>
+<p>Summing over <span class="math notranslate nohighlight">\(|u|=D-k\)</span> and <span class="math notranslate nohighlight">\(|v|=D-l\)</span> gives exactly
+<span class="math notranslate nohighlight">\(K_{M-1}(D-k,D-l)\)</span>. The vertex Gram block is 1. The
+<span class="math notranslate nohighlight">\(M\)</span> equal vertex contributions and the allocation factor
+<span class="math notranslate nohighlight">\(\binom M1=M\)</span> give the factor <span class="math notranslate nohighlight">\(M^2\)</span> in
+<a class="reference internal" href="#equation-skeleton-vertex-double-sum">(9)</a>.</p>
+<p>For the dimension polynomial, expand
+<span class="math notranslate nohighlight">\(F^{M-1}=(1+(F-1))^{M-1}\)</span>. Since <span class="math notranslate nohighlight">\(F-1\)</span> has no constant
+term, its power <span class="math notranslate nohighlight">\(s\)</span> cannot contribute above <span class="math notranslate nohighlight">\(s=p+q\)</span>.
+Here <span class="math notranslate nohighlight">\(p+q\leq2D-2\)</span>, which proves
+<a class="reference internal" href="#equation-skeleton-vertex-polynomial">(10)</a>, including the degree bound. The
+coefficient extraction uses a polynomial of bounded degree for every
+fixed <span class="math notranslate nohighlight">\(D\)</span>; it requires no propagation matrices or inverses.</p>
+</div>
+</section>
+<section id="triangles-all-degrees">
+<h2>Triangles: all degrees<a class="headerlink" href="#triangles-all-degrees" title="Link to this heading"></a></h2>
+<p>For <span class="math notranslate nohighlight">\(M=3\)</span>, the following formulas determine every coefficient and
+therefore the optimal risk for every degree. Edge and interior coefficients
+are zero when the degree is too small to contain their controls.</p>
 <div class="proof corollary admonition" id="cor-skeleton-triangle-edge-risk">
 <p class="admonition-title"><span class="caption-number">Corollary 4 </span> (Triangle edge risk in harmonic numbers)</p>
 <section class="corollary-content" id="proof-content">
@@ -921,24 +903,12 @@ Sum the mode ratios with their multiplicities and multiply by
 </section>
 </div><div class="proof admonition" id="proof">
 <p>Proof. Take <span class="math notranslate nohighlight">\(s=2\)</span>, so every <span class="math notranslate nohighlight">\(d_2(k)=1\)</span>, and set
-<span class="math notranslate nohighlight">\(j=D-1-k\)</span>. The preceding sum is
+<span class="math notranslate nohighlight">\(j=D-1-k\)</span> in <a class="reference internal" href="#thm-skeleton-codimension-one">Theorem 12</a>. Its sum is
 <span class="math notranslate nohighlight">\(18\sum_{j=1}^{D-1}1/(j(2D+3-j))\)</span>. Partial fractions give
 <span class="math notranslate nohighlight">\(1/(j(C-j))=(1/j+1/(C-j))/C\)</span> with <span class="math notranslate nohighlight">\(C=2D+3\)</span>.
 The two sums are <span class="math notranslate nohighlight">\(H_{D-1}\)</span> and
 <span class="math notranslate nohighlight">\(H_{2D+2}-H_{D+3}\)</span>, respectively.</p>
 </div>
-<p>In particular, <span class="math notranslate nohighlight">\(a_1(3,D)=9\log D/D+O(1/D)\)</span> as
-<span class="math notranslate nohighlight">\(D\to\infty\)</span>. The exact formula reproduces
-<span class="math notranslate nohighlight">\(3,99/28,71/20,188/55,81259/25025,123021/40040\)</span> at
-<span class="math notranslate nohighlight">\(D=2,\ldots,7\)</span>. The tests also compare all Jacobi modes and their
-risks with independent rational Gram solves at <span class="math notranslate nohighlight">\(D=8,9,10\)</span>, beyond
-the original table. These are checks of the proof, not data used to infer
-the formula. On the development machine the complete mode-and-risk checks
-took about 0.14, 0.27 and 0.52 seconds at these degrees, respectively, and
-run in the normal test suite.</p>
-</section>
-<section id="the-triangle-vertex-risk">
-<h2>The triangle vertex risk<a class="headerlink" href="#the-triangle-vertex-risk" title="Link to this heading"></a></h2>
 <div class="proof theorem admonition" id="thm-skeleton-triangle-vertex-risk">
 <p class="admonition-title"><span class="caption-number">Theorem 15 </span> (Triangle vertex risk in harmonic numbers)</p>
 <section class="theorem-content" id="proof-content">
@@ -958,7 +928,7 @@ propagation solve.</p>
 <p>Proof. <em>Replace a squared norm by a mixed product.</em> Write <span class="math notranslate nohighlight">\(p_D(x,y,z)\)</span>
 for the error from a unit error at the vertex <span class="math notranslate nohighlight">\(x=1\)</span>, and
 <span class="math notranslate nohighlight">\(\varphi_D(x)\)</span> for the curve error in
-<a class="reference internal" href="#thm-skeleton-curves">Theorem 11</a>. On both incident edges their traces
+<a class="reference internal" href="#thm-skeleton-curves">Theorem 13</a>. On both incident edges their traces
 agree, and both vanish on <span class="math notranslate nohighlight">\(x=0\)</span>. Therefore
 <span class="math notranslate nohighlight">\(p_D-\varphi_D(x)\)</span> is a triangle bubble of degree at most
 <span class="math notranslate nohighlight">\(D\)</span>. The propagation characterization gives</p>
@@ -1032,41 +1002,61 @@ Simplifying, with
 This proves the formula for all <span class="math notranslate nohighlight">\(D\geq1\)</span>, including all boundary
 terms, without a computer-algebra dependency or an inferred recurrence.</p>
 </div>
-<p>The certificate can also be regenerated with the existing SymPy
-dependency. This optional search is outside the test suite; the proof
-above only needs the rational identity and its boundary values:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">sympy</span><span class="w"> </span><span class="kn">import</span> <span class="n">binomial</span><span class="p">,</span> <span class="n">cancel</span><span class="p">,</span> <span class="n">symbols</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">sympy.concrete.gosper</span><span class="w"> </span><span class="kn">import</span> <span class="n">gosper_sum</span>
-
-<span class="n">d</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">symbols</span><span class="p">(</span><span class="s2">"d h"</span><span class="p">,</span> <span class="n">integer</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nonnegative</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">denominator</span> <span class="o">=</span> <span class="n">d</span> <span class="o">*</span> <span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">3</span><span class="p">)</span>
-<span class="n">w</span> <span class="o">=</span> <span class="n">binomial</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">h</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">binomial</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
-<span class="n">c</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">d</span> <span class="o">+</span> <span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">d</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">d</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">denominator</span>
-<span class="n">r</span> <span class="o">=</span> <span class="p">(</span><span class="n">h</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">((</span><span class="n">d</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">d</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">h</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">denominator</span> <span class="o">*</span> <span class="p">(</span><span class="n">h</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
-<span class="k">assert</span> <span class="n">cancel</span><span class="p">(</span><span class="n">gosper_sum</span><span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">h</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">c</span><span class="p">),</span> <span class="n">h</span><span class="p">)</span> <span class="o">/</span> <span class="n">w</span> <span class="o">-</span> <span class="n">r</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
-<span class="n">ratio</span> <span class="o">=</span> <span class="p">(</span><span class="n">d</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">h</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">h</span><span class="p">)</span> <span class="o">/</span> <span class="p">((</span><span class="n">h</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">h</span> <span class="o">+</span> <span class="mi">3</span><span class="p">))</span>
-<span class="k">assert</span> <span class="n">cancel</span><span class="p">(</span><span class="n">ratio</span> <span class="o">*</span> <span class="n">r</span><span class="o">.</span><span class="n">subs</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">h</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">r</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">h</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">c</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
-</pre></div>
-</div>
-<p>The exact tests compare the formula with independent full Gram recursion
-at <span class="math notranslate nohighlight">\(D=1,\ldots,10\)</span> and with the earlier two-variable kernel sum at
-<span class="math notranslate nohighlight">\(D=1,\ldots,12\)</span>. The candidate was explored with exact rationals
-through degree 80 before this proof was obtained. The independent single
-sum also checks <span class="math notranslate nohighlight">\(D=81,100\)</span>, outside that exploratory range;
-degree 1000 was checked separately during development. The rational
-certificate, including both endpoints, is checked in the normal test suite.</p>
 <p>Together with <a class="reference internal" href="#cor-skeleton-triangle-edge-risk">Corollary 4</a> and
-<a class="reference internal" href="#prop-skeleton-top">Proposition 2</a>, this closes every triangle coefficient at
+<a class="reference internal" href="#prop-skeleton-top">Proposition 1</a>, this closes every triangle coefficient at
 every degree: <span class="math notranslate nohighlight">\(a_2(3,D)=\binom{D-1}{2}\)</span> for <span class="math notranslate nohighlight">\(D\geq3\)</span>,
 and <span class="math notranslate nohighlight">\(a_2=0\)</span> otherwise. The optimal risk follows by substituting
 these three coefficients in <a class="reference internal" href="#thm-skeleton-ratio">Theorem 8</a>. In particular,</p>
 <div class="math notranslate nohighlight">
 \[a_0(3,D)=\frac{36\log D+O(1)}{D^4},\qquad
 a_1(3,D)=\frac{9\log D+O(1)}D.\]</div>
-<p>The remaining finite-dimensional vertex simplification problem starts at
-<span class="math notranslate nohighlight">\(M=4\)</span>; the general finite kernel sum still applies there. The
-triangle formula makes no claim about changing <span class="math notranslate nohighlight">\(M\)</span>, the curve
-formula, or the fixed-degree large-<span class="math notranslate nohighlight">\(M\)</span> limit.</p>
+<section id="explicit-triangular-propagation-modes">
+<h3>Explicit triangular propagation modes<a class="headerlink" href="#explicit-triangular-propagation-modes" title="Link to this heading"></a></h3>
+<p>The general extension also gives the following control-level formula, used
+by the independent exact verification of the triangle risks.</p>
+<div class="proof proposition admonition" id="prop-skeleton-triangle-jacobi">
+<p class="admonition-title"><span class="caption-number">Proposition 4 </span> (Propagation from an edge via Jacobi polynomials)</p>
+<section class="proposition-content" id="proof-content">
+<p>Let <span class="math notranslate nohighlight">\(m=1\)</span>, <span class="math notranslate nohighlight">\(D\geq2\)</span>, <span class="math notranslate nohighlight">\(N=D-2\)</span>, and let
+<span class="math notranslate nohighlight">\(I=\{1,2\}\)</span>. On the triangle with coordinates
+<span class="math notranslate nohighlight">\((x_1,x_2,y)\)</span>, put <span class="math notranslate nohighlight">\(r=x_1+x_2\)</span> and
+<span class="math notranslate nohighlight">\(z=x_1/r\)</span>. Write the boundary error polynomial as</p>
+<div class="math notranslate nohighlight">
+\[p_c(z,1-z,0)=z(1-z)\sum_{k=0}^N d_k P_k^{(2,2)}(2z-1).\]</div>
+<p>The polynomial <span class="math notranslate nohighlight">\(\Phi\)</span> of
+<a class="reference internal" href="#thm-skeleton-propagation-reduction">Theorem 9</a>, on this triangle, is</p>
+<div class="math notranslate nohighlight" id="equation-skeleton-triangle-jacobi">
+<span class="eqno">(15)<a class="headerlink" href="#equation-skeleton-triangle-jacobi" title="Link to this equation"></a></span>\[\Phi(x_1,x_2,y)=x_1x_2\sum_{k=0}^N d_k r^k
+P_k^{(2,2)}(2z-1)P_{N-k}^{(0,2k+5)}(2r-1).\]</div>
+<p>The expression has a polynomial extension to <span class="math notranslate nohighlight">\(r=0\)</span>. Homogenize it
+to degree <span class="math notranslate nohighlight">\(D\)</span> before using
+<a class="reference internal" href="#equation-skeleton-reduction-integral">(4)</a>. More explicitly, the homogeneous
+polynomial is obtained by replacing the angular factor by</p>
+<div class="math notranslate nohighlight">
+\[H_k(x_1,x_2)=\sum_{h=0}^k(-1)^{k-h}
+\binom{k+2}{h}\binom{k+2}{k-h}x_1^h x_2^{k-h}\]</div>
+<p>and the radial factor by</p>
+<div class="math notranslate nohighlight">
+\[R_{N,k}(r,y)=\sum_{j=0}^{N-k}(-1)^{N-k-j}
+\binom{N-k}{j}\binom{N+k+5}{N-k-j}r^j y^{N-k-j}.\]</div>
+<p>Thus <span class="math notranslate nohighlight">\(\Phi=x_1x_2\sum_k d_k H_k R_{N,k}\)</span> in homogeneous
+coordinates. If its coefficient of <span class="math notranslate nohighlight">\(x_1^a x_2^b y^n\)</span> is
+<span class="math notranslate nohighlight">\(A_{abn}\)</span>, the Bernstein control of the triangle error
+<span class="math notranslate nohighlight">\(\phi\)</span> is</p>
+<div class="math notranslate nohighlight" id="equation-skeleton-triangle-jacobi-controls">
+<span class="eqno">(16)<a class="headerlink" href="#equation-skeleton-triangle-jacobi-controls" title="Link to this equation"></a></span>\[e((a,b),n)=\frac{A_{abn}\,a!b!n!}{D!(n+1)}.\]</div>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Specialize <a class="reference internal" href="#equation-skeleton-mode-extension">(8)</a> to <span class="math notranslate nohighlight">\(s=2\)</span> and use
+<span class="math notranslate nohighlight">\(Q_k(z)=P_k^{(2,2)}(2z-1)\)</span>. Then <span class="math notranslate nohighlight">\(n=N\)</span>, each angular
+multiplicity is one, and the radial parameter is <span class="math notranslate nohighlight">\(2k+5\)</span>.
+The displayed homogeneous sums are the binomial expansions of those
+two Jacobi factors. Finally <span class="math notranslate nohighlight">\(\partial_y(y\phi)=\Phi\)</span> divides
+the coefficient of <span class="math notranslate nohighlight">\(y^n\)</span> by <span class="math notranslate nohighlight">\(n+1\)</span>; conversion from
+monomials to Bernstein controls gives
+<a class="reference internal" href="#equation-skeleton-triangle-jacobi-controls">(16)</a>.</p>
+</div>
+</section>
 </section>
 <section id="fixed-degree-growing-dimension">
 <h2>Fixed degree, growing dimension<a class="headerlink" href="#fixed-degree-growing-dimension" title="Link to this heading"></a></h2>
@@ -1080,224 +1070,49 @@ formula, or the fixed-degree large-<span class="math notranslate nohighlight">\(
 \[a_m = \binom{M}{m+1}^2 \frac{P_{D,m}(M)}{(M)_{2D}}.\]</div>
 </section>
 </div><div class="proof admonition" id="proof">
-<p>Proof. By symmetry every face with <span class="math notranslate nohighlight">\(m + 1\)</span> vertices contributes equally.
-Fix one such face <span class="math notranslate nohighlight">\(I\)</span>. The entries of <span class="math notranslate nohighlight">\(E_I\)</span> on the faces
-<span class="math notranslate nohighlight">\(J \supseteq I\)</span> with <span class="math notranslate nohighlight">\(|J| \leq D\)</span> are computed from
-<span class="math notranslate nohighlight">\(G^J\)</span> alone, so they do not depend on <span class="math notranslate nohighlight">\(M\)</span>. They are equivariant
-under permutations that fix <span class="math notranslate nohighlight">\(I\)</span> pointwise. With
-<span class="math notranslate nohighlight">\(C = E_I (G^I_{T_I T_I})^{-1} E_I^\top\)</span>, <a class="reference internal" href="#equation-skeleton-moments">(1)</a> gives</p>
-<div class="math notranslate nohighlight">
-\[\operatorname{tr}\bigl((G^I_{T_I T_I})^{-1} E_I^\top G E_I\bigr)
-= \sum_{\alpha, \beta} C_{\alpha\beta} \frac{(D!)^2 (\alpha + \beta)!}{\alpha!\,\beta!} \cdot \frac{1}{(M)_{2D}}.\]</div>
-<p>Group the pairs <span class="math notranslate nohighlight">\((\alpha, \beta)\)</span> into classes under these
-permutations. A class whose union of supports has <span class="math notranslate nohighlight">\(s\)</span> vertices
-outside <span class="math notranslate nohighlight">\(I\)</span> has
-<span class="math notranslate nohighlight">\((M - m - 1)(M - m - 2) \cdots (M - m - s)\)</span> members up to a constant
-factor, a polynomial in <span class="math notranslate nohighlight">\(M\)</span> of degree <span class="math notranslate nohighlight">\(s\)</span>. Every member makes
-the same contribution, which does not depend on <span class="math notranslate nohighlight">\(M\)</span>. Each support has
-at most <span class="math notranslate nohighlight">\(D - m - 1\)</span> vertices outside <span class="math notranslate nohighlight">\(I\)</span>, so
-<span class="math notranslate nohighlight">\(s \leq 2(D - m - 1)\)</span>.</p>
+<p>Proof. Set <span class="math notranslate nohighlight">\(s=m+1\)</span> and <span class="math notranslate nohighlight">\(n=D-s\)</span> in
+<a class="reference internal" href="#equation-skeleton-scalar-sum">(7)</a>. After multiplying by
+<span class="math notranslate nohighlight">\((M)_{2D}/\binom Ms^2\)</span>, all factors except
+<span class="math notranslate nohighlight">\(K_{M-s}(h,l)\)</span> are independent of <span class="math notranslate nohighlight">\(M\)</span>.
+By <a class="reference internal" href="#equation-skeleton-kernel-polynomial">(6)</a>, this kernel is a polynomial of
+degree at most <span class="math notranslate nohighlight">\(h+l\leq2(n-k)\leq2n\)</span>. Summing gives the claim,
+including the boundary <span class="math notranslate nohighlight">\(M=s\)</span>.</p>
 </div>
-<table class="docutils align-default" id="id4">
-<caption><span class="caption-number">Table 11 </span><span class="caption-text"><span class="math notranslate nohighlight">\(P_{D,m}(M)\)</span> for <span class="math notranslate nohighlight">\(D \leq 8\)</span></span><a class="headerlink" href="#id4" title="Link to this table"></a></caption>
-<thead>
-<tr class="row-odd"><th class="head stub"><p><span class="math notranslate nohighlight">\(D\)</span></p></th>
-<th class="head stub"><p><span class="math notranslate nohighlight">\(m\)</span></p></th>
-<th class="head"><p><span class="math notranslate nohighlight">\(P_{D,m}(M)\)</span></p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><th class="stub"><p>1</p></th>
-<th class="stub"><p>0</p></th>
-<td><p><span class="math notranslate nohighlight">\(2\)</span></p></td>
-</tr>
-<tr class="row-odd"><th class="stub"><p>2</p></th>
-<th class="stub"><p>0</p></th>
-<td><p><span class="math notranslate nohighlight">\(\frac32 (3M^2 - 15M + 28)\)</span></p></td>
-</tr>
-<tr class="row-even"><th class="stub"><p>2</p></th>
-<th class="stub"><p>1</p></th>
-<td><p><span class="math notranslate nohighlight">\(120\)</span></p></td>
-</tr>
-<tr class="row-odd"><th class="stub"><p>3</p></th>
-<th class="stub"><p>0</p></th>
-<td><p><span class="math notranslate nohighlight">\(\frac12 (9M^4 - 114M^3 + 835M^2 - 2610M + 3320)\)</span></p></td>
-</tr>
-<tr class="row-even"><th class="stub"><p>3</p></th>
-<th class="stub"><p>1</p></th>
-<td><p><span class="math notranslate nohighlight">\(360 (3M^2 - 21M + 58)\)</span></p></td>
-</tr>
-<tr class="row-odd"><th class="stub"><p>3</p></th>
-<th class="stub"><p>2</p></th>
-<td><p><span class="math notranslate nohighlight">\(20160\)</span></p></td>
-</tr>
-<tr class="row-even"><th class="stub"><p>4</p></th>
-<th class="stub"><p>0</p></th>
-<td><p><span class="math notranslate nohighlight">\(\frac58 (5M^6 - 115M^5 + 1825M^4 - 14765M^3 + 71250M^2 - 174840M + 181152)\)</span></p></td>
-</tr>
-<tr class="row-odd"><th class="stub"><p>4</p></th>
-<th class="stub"><p>1</p></th>
-<td><p><span class="math notranslate nohighlight">\(\frac{105}{2} (63M^4 - 1050M^3 + 9481M^2 - 38654M + 67512)\)</span></p></td>
-</tr>
-<tr class="row-even"><th class="stub"><p>4</p></th>
-<th class="stub"><p>2</p></th>
-<td><p><span class="math notranslate nohighlight">\(136080 (3M^2 - 27M + 94)\)</span></p></td>
-</tr>
-<tr class="row-odd"><th class="stub"><p>4</p></th>
-<th class="stub"><p>3</p></th>
-<td><p><span class="math notranslate nohighlight">\(6652800\)</span></p></td>
-</tr>
-<tr class="row-even"><th class="stub"><p>5</p></th>
-<th class="stub"><p>0</p></th>
-<td><p><span class="math notranslate nohighlight">\(\frac{1}{128} (225M^8 - 8100M^7 + 223650M^6 - 3352440M^5 + 33885265M^4 - 210684820M^3 + 810530924M^2 - 1692775952M + 1526667648)\)</span></p></td>
-</tr>
-<tr class="row-odd"><th class="stub"><p>5</p></th>
-<th class="stub"><p>1</p></th>
-<td><p><span class="math notranslate nohighlight">\(840 (7M^6 - 203M^5 + 3573M^4 - 34441M^3 + 201644M^2 - 629700M + 867312)\)</span></p></td>
-</tr>
-<tr class="row-even"><th class="stub"><p>5</p></th>
-<th class="stub"><p>2</p></th>
-<td><p><span class="math notranslate nohighlight">\(56700 (45M^4 - 930M^3 + 9971M^2 - 49694M + 106152)\)</span></p></td>
-</tr>
-<tr class="row-odd"><th class="stub"><p>5</p></th>
-<th class="stub"><p>3</p></th>
-<td><p><span class="math notranslate nohighlight">\(79833600 (3M^2 - 33M + 136)\)</span></p></td>
-</tr>
-<tr class="row-even"><th class="stub"><p>5</p></th>
-<th class="stub"><p>4</p></th>
-<td><p><span class="math notranslate nohighlight">\(3632428800\)</span></p></td>
-</tr>
-<tr class="row-odd"><th class="stub"><p>6</p></th>
-<th class="stub"><p>0</p></th>
-<td><p><span class="math notranslate nohighlight">\(\frac{7}{1536} (189M^{10} - 9765M^{9} + 416010M^{8} - 9917418M^{7} + 170241981M^{6} - 1939736421M^{5} + 15319824604M^{4} - 79461497164M^{3} + 261855225632M^{2} - 485208011456M + 394380100608)\)</span></p></td>
-</tr>
-<tr class="row-even"><th class="stub"><p>6</p></th>
-<th class="stub"><p>1</p></th>
-<td><p><span class="math notranslate nohighlight">\(\frac{63}{40} (4725M^{8} - 207900M^{7} + 5933250M^{6} - 99912240M^{5} + 1132957965M^{4} - 8261943780M^{3} + 38361752764M^{2} - 100723167440M + 118578731904)\)</span></p></td>
-</tr>
-<tr class="row-odd"><th class="stub"><p>6</p></th>
-<th class="stub"><p>2</p></th>
-<td><p><span class="math notranslate nohighlight">\(155925 (55M^{6} - 1925M^{5} + 38401M^{4} - 431519M^{3} + 2952160M^{2} - 11026484M + 18273744)\)</span></p></td>
-</tr>
-<tr class="row-even"><th class="stub"><p>6</p></th>
-<th class="stub"><p>3</p></th>
-<td><p><span class="math notranslate nohighlight">\(21621600 (117M^{4} - 2886M^{3} + 35695M^{2} - 208734M + 519368)\)</span></p></td>
-</tr>
-<tr class="row-odd"><th class="stub"><p>6</p></th>
-<th class="stub"><p>4</p></th>
-<td><p><span class="math notranslate nohighlight">\(68108040000 (3M^{2} - 39M + 184)\)</span></p></td>
-</tr>
-<tr class="row-even"><th class="stub"><p>6</p></th>
-<th class="stub"><p>5</p></th>
-<td><p><span class="math notranslate nohighlight">\(2964061900800\)</span></p></td>
-</tr>
-<tr class="row-odd"><th class="stub"><p>7</p></th>
-<th class="stub"><p>0</p></th>
-<td><p><span class="math notranslate nohighlight">\(\frac{1}{10368} (3969M^{12} - 277830M^{11} + 16911909M^{10} - 585892314M^{9} + 15245701191M^{8} - 274563067842M^{7} + 3631411308511M^{6} - 34078439471286M^{5} + 227106974533684M^{4} - 1028193132036840M^{3} + 3014866953859072M^{2} - 5083595030097792M + 3804385671687168)\)</span></p></td>
-</tr>
-<tr class="row-even"><th class="stub"><p>7</p></th>
-<th class="stub"><p>1</p></th>
-<td><p><span class="math notranslate nohighlight">\(\frac{315}{8} (189M^{10} - 11655M^{9} + 488100M^{8} - 12550518M^{7} + 229047537M^{6} - 2894482743M^{5} + 25831659094M^{4} - 156730040300M^{3} + 621915070424M^{2} - 1437930406240M + 1507450665216)\)</span></p></td>
-</tr>
-<tr class="row-odd"><th class="stub"><p>7</p></th>
-<th class="stub"><p>2</p></th>
-<td><p><span class="math notranslate nohighlight">\(\frac{31185}{4} (2475M^{8} - 128700M^{7} + 4016430M^{6} - 76100640M^{5} + 969732275M^{4} - 8107098420M^{3} + 43614175604M^{2} - 135327928048M + 189756997248)\)</span></p></td>
-</tr>
-<tr class="row-even"><th class="stub"><p>7</p></th>
-<th class="stub"><p>3</p></th>
-<td><p><span class="math notranslate nohighlight">\(151351200 (91M^{6} - 3731M^{5} + 83699M^{4} - 1072645M^{3} + 8358906M^{2} - 36008544M + 68795424)\)</span></p></td>
-</tr>
-<tr class="row-odd"><th class="stub"><p>7</p></th>
-<th class="stub"><p>4</p></th>
-<td><p><span class="math notranslate nohighlight">\(363242880000 (9M^{4} - 258M^{3} + 3607M^{2} - 24086M + 67896)\)</span></p></td>
-</tr>
-<tr class="row-even"><th class="stub"><p>7</p></th>
-<th class="stub"><p>5</p></th>
-<td><p><span class="math notranslate nohighlight">\(80029671321600 (3M^{2} - 45M + 238)\)</span></p></td>
-</tr>
-<tr class="row-odd"><th class="stub"><p>7</p></th>
-<th class="stub"><p>6</p></th>
-<td><p><span class="math notranslate nohighlight">\(3379030566912000\)</span></p></td>
-</tr>
-<tr class="row-even"><th class="stub"><p>8</p></th>
-<th class="stub"><p>0</p></th>
-<td><p><span class="math notranslate nohighlight">\(\frac{1}{1536} (243M^{14} - 22113M^{13} + 1822905M^{12} - 86413257M^{11} + 3170012139M^{10} - 82654759071M^{9} + 1640539616043M^{8} - 24125599635171M^{7} + 266382561743494M^{6} - 2157428183555988M^{5} + 12638903353801912M^{4} - 51381774261439680M^{3} + 137262734136374272M^{2} - 214224590422872576M + 149755742713294848)\)</span></p></td>
-</tr>
-<tr class="row-odd"><th class="stub"><p>8</p></th>
-<th class="stub"><p>1</p></th>
-<td><p><span class="math notranslate nohighlight">\(\frac{55}{384} (43659M^{12} - 3580038M^{11} + 206363619M^{10} - 7485895494M^{9} + 199202107797M^{8} - 3823026542874M^{7} + 54535243641473M^{6} - 568795558812642M^{5} + 4306623724542524M^{4} - 22811488486847928M^{3} + 80426058871064384M^{2} - 168310145729971584M + 161038581507542016)\)</span></p></td>
-</tr>
-<tr class="row-even"><th class="stub"><p>8</p></th>
-<th class="stub"><p>2</p></th>
-<td><p><span class="math notranslate nohighlight">\(\frac{27027}{16} (19305M^{10} - 1383525M^{9} + 61604400M^{8} - 1734571410M^{7} + 34500231285M^{6} - 483666978405M^{5} + 4831926907690M^{4} - 33375332254980M^{3} + 152661774969416M^{2} - 413966621739552M + 513284796940032)\)</span></p></td>
-</tr>
-<tr class="row-odd"><th class="stub"><p>8</p></th>
-<th class="stub"><p>3</p></th>
-<td><p><span class="math notranslate nohighlight">\(\frac{4729725}{2} (20475M^{8} - 1228500M^{7} + 42200550M^{6} - 891274440M^{5} + 12638555275M^{4} - 118800088180M^{3} + 722231576084M^{2} - 2559256843376M + 4107713331840)\)</span></p></td>
-</tr>
-<tr class="row-even"><th class="stub"><p>8</p></th>
-<th class="stub"><p>4</p></th>
-<td><p><span class="math notranslate nohighlight">\(1543782240000 (17M^{6} - 799M^{5} + 19941M^{4} - 286433M^{3} + 2496802M^{2} - 12115512M + 26028000)\)</span></p></td>
-</tr>
-<tr class="row-odd"><th class="stub"><p>8</p></th>
-<th class="stub"><p>5</p></th>
-<td><p><span class="math notranslate nohighlight">\(31678411564800 (171M^{4} - 5586M^{3} + 86965M^{2} - 650590M + 2040000)\)</span></p></td>
-</tr>
-<tr class="row-even"><th class="stub"><p>8</p></th>
-<th class="stub"><p>6</p></th>
-<td><p><span class="math notranslate nohighlight">\(124179373334016000 (3M^{2} - 51M + 298)\)</span></p></td>
-</tr>
-<tr class="row-odd"><th class="stub"><p>8</p></th>
-<th class="stub"><p>7</p></th>
-<td><p><span class="math notranslate nohighlight">\(5129368400572416000\)</span></p></td>
-</tr>
-</tbody>
-</table>
-<p>The table is computer-assisted: it is computed exactly from the counting in
-the proof, starting from one face per class on a simplex with
-<span class="math notranslate nohighlight">\(2D - m - 1\)</span> vertices, which contains every class. <code class="docutils literal notranslate"><span class="pre">tests/sampling.py</span></code>
-repeats this computation, using <a class="reference internal" href="#thm-skeleton-propagation-reduction">Theorem 9</a>
-to solve on only <span class="math notranslate nohighlight">\(m+2\)</span> vertices. In the pair sum it keeps one first
-control per orbit under permutations outside the fixed face. For each first
-control it keeps one second control per orbit of the stabilizer, which
-permutes positions with equal outside exponents. If the outside exponents
-have multiplicities
-<span class="math notranslate nohighlight">\(n_k\)</span> (including <span class="math notranslate nohighlight">\(n_0\)</span>), the orbit size is
-<span class="math notranslate nohighlight">\((2D-2m-2)!/\prod_k n_k!\)</span>; the second-control multiplicity is the
-product of the same formula within the equal-exponent groups. It compares
-the entries with an independent exact
-evaluation of the definition for small <span class="math notranslate nohighlight">\(M\)</span>. The entries for
-<span class="math notranslate nohighlight">\(m = D-1\)</span> and <span class="math notranslate nohighlight">\(m = D-2\)</span> agree with
-<a class="reference internal" href="#prop-skeleton-degree-faces">Proposition 3</a> and
-<a class="reference internal" href="#prop-skeleton-second-faces">Proposition 4</a>.</p>
+<p>The polynomials through degree eight and their independent orbit-counting
+verification are in <a class="reference internal" href="skeleton_risk_verification.html"><span class="doc">Exact verification of the skeleton risk</span></a>. They provide exact
+reference values and the finite calculations needed for the comparison
+below; they are not substitutes for the all-degree formulas above.</p>
 <div class="proof corollary admonition" id="cor-skeleton-large-dimension">
 <p class="admonition-title"><span class="caption-number">Corollary 5 </span> (Large dimension)</p>
 <section class="corollary-content" id="proof-content">
-<p>For fixed <span class="math notranslate nohighlight">\(D\)</span>, every <span class="math notranslate nohighlight">\(a_m\)</span> converges as <span class="math notranslate nohighlight">\(M \to \infty\)</span>.
-In particular</p>
-<div class="math notranslate nohighlight">
-\[\lim_{M \to \infty} a_0 = \frac{2 D^2 (D+1)^2}{4^D}, \qquad
-\lim_{M \to \infty} a_{D-1} = \frac{(3D-1)!}{(D-1)!\,(D!)^2}, \qquad
-\lim_{M \to \infty} a_{D-2} = \frac{3 (3D-3)!}{4\,(D-2)!^2\,(D-1)!}.\]</div>
-<p>The optimal inductive risk <span class="math notranslate nohighlight">\((\sum_m \sqrt{a_m})^2\)</span> is therefore
-bounded in <span class="math notranslate nohighlight">\(M\)</span>, while the all-at-once risk
-<span class="math notranslate nohighlight">\(\binom{D+M-1}{D}\)</span> grows without bound. For every degree, inductive
-skeleton fitting wins in all sufficiently high dimensions.</p>
+<p>Fix <span class="math notranslate nohighlight">\(D\geq1\)</span> and <span class="math notranslate nohighlight">\(1\leq s\leq D\)</span>, and put <span class="math notranslate nohighlight">\(n=D-s\)</span>.
+Every active coefficient has the positive limit</p>
+<div class="math notranslate nohighlight" id="equation-skeleton-large-dimension-limit">
+<span class="eqno">(17)<a class="headerlink" href="#equation-skeleton-large-dimension-limit" title="Link to this equation"></a></span>\[\lim_{M\to\infty}a_{s-1}(M,D)
+ =\frac{(3s-1)!}{(s-1)!(s!)^2\,4^n}
+   \binom{n+3s-1}{n}^{\!2}.\]</div>
+<p>Thus the degree bound in <a class="reference internal" href="#thm-skeleton-rational">Theorem 16</a> is attained
+for every coefficient. For example,
+<span class="math notranslate nohighlight">\(\lim_{M\to\infty}a_0=2D^2(D+1)^2/4^D\)</span>.
+The optimal inductive risk <span class="math notranslate nohighlight">\((\sum_m\sqrt{a_m})^2\)</span> is bounded
+in <span class="math notranslate nohighlight">\(M\)</span>, while the all-at-once risk <span class="math notranslate nohighlight">\(\binom{D+M-1}{D}\)</span>
+grows without bound. Inductive fitting therefore wins in all
+sufficiently high dimensions for every degree.</p>
 </section>
 </div><div class="proof admonition" id="proof">
-<p>Proof. <span class="math notranslate nohighlight">\(\binom{M}{m+1}^2 / (M)_{2D}\)</span> has degree <span class="math notranslate nohighlight">\(2(m + 1) - 2D\)</span>, so
-the degree bound of <a class="reference internal" href="#thm-skeleton-rational">Theorem 16</a> gives convergence.
-The last two limits follow from <a class="reference internal" href="#prop-skeleton-degree-faces">Proposition 3</a> and
-<a class="reference internal" href="#prop-skeleton-second-faces">Proposition 4</a>.</p>
-<p>For <span class="math notranslate nohighlight">\(a_0\)</span>, the leading term counts the pairs with
-<span class="math notranslate nohighlight">\(s = 2(D-1)\)</span>. These are exactly <span class="math notranslate nohighlight">\(\alpha = \mathbf 1_J\)</span> and
-<span class="math notranslate nohighlight">\(\beta = \mathbf 1_K\)</span> with <span class="math notranslate nohighlight">\(|J| = |K| = D\)</span> and
-<span class="math notranslate nohighlight">\(J \cap K = I\)</span>. Each such pair has <span class="math notranslate nohighlight">\(C_{\alpha\beta} = \gamma_D^2\)</span>
-by <a class="reference internal" href="#cor-skeleton-vertex">Corollary 3</a> and
-<span class="math notranslate nohighlight">\((\alpha+\beta)!/(\alpha!\,\beta!) = 2\)</span>. There are
-<span class="math notranslate nohighlight">\(M^{2D-2} / (D-1)!^2 + O(M^{2D-3})\)</span> ordered pairs. Hence
-<span class="math notranslate nohighlight">\(a_0 = M^2 \cdot 2 (D!)^2 \gamma_D^2 M^{2D-2} / ((D-1)!^2 M^{2D}) + O(1/M)
-\to 2 D^2 \gamma_D^2\)</span>.</p>
+<p>Proof. Since <span class="math notranslate nohighlight">\(F-1=(x+y)/2+O((|x|+|y|)^2)\)</span>, the coefficient of
+<span class="math notranslate nohighlight">\(q^{h+l}\)</span> in <span class="math notranslate nohighlight">\(K_q(h,l)\)</span> is
+<span class="math notranslate nohighlight">\(1/(2^{h+l}h!l!)\)</span>. In <a class="reference internal" href="#equation-skeleton-scalar-sum">(7)</a>, the only
+term of degree <span class="math notranslate nohighlight">\(2n\)</span> in <span class="math notranslate nohighlight">\(q=M-s\)</span> has
+<span class="math notranslate nohighlight">\(k=0\)</span> and <span class="math notranslate nohighlight">\(h=l=n\)</span>. Its factors are
+<span class="math notranslate nohighlight">\(d_s(0)=1\)</span>,
+<span class="math notranslate nohighlight">\(A_{0,n}=(-1)^n\binom{n+3s-1}{n}\)</span> and
+<span class="math notranslate nohighlight">\((2D+s-2n-1)!=(3s-1)!\)</span>.
+Finally <span class="math notranslate nohighlight">\(\binom Ms^2/(M)_{2D}\sim M^{-2n}/(s!)^2\)</span>.
+Substitution gives the stated limit, including <span class="math notranslate nohighlight">\(n=0\)</span> and
+<span class="math notranslate nohighlight">\(s=1\)</span>. Its positivity proves that the polynomial degree is
+exactly <span class="math notranslate nohighlight">\(2n\)</span>. There are only <span class="math notranslate nohighlight">\(D\)</span> active skeletons, so their
+optimal risk remains bounded as <span class="math notranslate nohighlight">\(M\)</span> grows.</p>
 </div>
 <div class="proof proposition admonition" id="prop-skeleton-wins">
 <p class="admonition-title"><span class="caption-number">Proposition 5 </span> (Where inductive fitting wins)</p>
@@ -1317,7 +1132,8 @@ for</p>
 </section>
 </div><div class="proof admonition" id="proof">
 <p>Proof. <em>D = 1.</em> <span class="math notranslate nohighlight">\(a_0 = 2M/(M+1) &lt; 2 \leq M\)</span>.</p>
-<p><em>D = 2.</em> By the table, <span class="math notranslate nohighlight">\(a_0 = \frac{3M(3M^2 - 15M + 28)}{2(M+1)(M+2)(M+3)} &lt; \frac92\)</span>
+<p><em>D = 2.</em> By <a class="reference internal" href="#prop-skeleton-second-faces">Proposition 3</a> and
+<a class="reference internal" href="#prop-skeleton-degree-faces">Proposition 2</a>, <span class="math notranslate nohighlight">\(a_0 = \frac{3M(3M^2 - 15M + 28)}{2(M+1)(M+2)(M+3)} &lt; \frac92\)</span>
 and <span class="math notranslate nohighlight">\(a_1 = \frac{30 M (M-1)^2}{(M+1)(M+2)(M+3)} &lt; 30\)</span>. Clearing
 denominators shows both inequalities. So
 <span class="math notranslate nohighlight">\((\sqrt{a_0} + \sqrt{a_1})^2 &lt; 58 &lt; \binom{M+1}{2}\)</span> for
@@ -1328,18 +1144,13 @@ denominators shows both inequalities. So
 <span class="math notranslate nohighlight">\(p_i\)</span> are the coefficients of <span class="math notranslate nohighlight">\(P_{D,m}\)</span>. The all-at-once risk
 exceeds the resulting bound on <span class="math notranslate nohighlight">\((\sum_m \sqrt{a_m})^2\)</span> for
 <span class="math notranslate nohighlight">\(M \geq 55, 111, 190, 295, 429, 593\)</span> for
-<span class="math notranslate nohighlight">\(D = 3, 4, 5, 6, 7, 8\)</span>, respectively. For every smaller <span class="math notranslate nohighlight">\(M\)</span>, evaluating the table
+<span class="math notranslate nohighlight">\(D = 3, 4, 5, 6, 7, 8\)</span>, respectively. For every smaller <span class="math notranslate nohighlight">\(M\)</span>,
+evaluating the reference polynomials
 in floating point with a bound on the rounding error gives the stated sets;
 the closest comparison differs by a relative <span class="math notranslate nohighlight">\(4.5 \cdot 10^{-3}\)</span>.
 Converting each exact coefficient to float, taking square roots, summing,
 and squaring has relative error at most <span class="math notranslate nohighlight">\(4(D+1)u\)</span>, where
 <span class="math notranslate nohighlight">\(u = 2^{-53}\)</span>. Every comparison lies beyond this error bound.</p>
-<p>On the development machine, regenerating all polynomials took about
-<span class="math notranslate nohighlight">\(0.09\)</span>, <span class="math notranslate nohighlight">\(0.75\)</span> and <span class="math notranslate nohighlight">\(6.6\)</span> seconds for <span class="math notranslate nohighlight">\(D=6,7,8\)</span>.
-The unreduced <span class="math notranslate nohighlight">\(D=6,m=0\)</span> computation alone took <span class="math notranslate nohighlight">\(31.6\)</span> seconds;
-the reduced version took about <span class="math notranslate nohighlight">\(0.04\)</span> seconds. Full exact regeneration
-remains in the test suite; the additional degree-eight cases dominate
-its added runtime.</p>
 </div>
 <p>These results sharpen the observation of <span class="bibtex-citation" id="id3">Tanaka <em>et al.</em> [<a class="reference internal" href="../references.html#id14" title="Aiko Tanaka, Akiyoshi Sannai, Ken Kobayashi, and Naoki Hamada. Asymptotic risk of bézier simplex fitting. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 34, 2416–2424. 2020. URL: https://doi.org/10.1609/aaai.v34i03.5622.">TSKH20</a>]</span> that
 inductive skeleton fitting wins for degrees below three. That observation is
@@ -1348,77 +1159,38 @@ around once the dimension is large enough.</p>
 </section>
 <section id="open-questions">
 <h2>Open questions<a class="headerlink" href="#open-questions" title="Link to this heading"></a></h2>
-<ul>
-<li><p><strong>Further simplification of the scalar sums for 1 ≤ m ≤ D − 4.</strong>
-<a class="reference internal" href="#thm-skeleton-third-faces">Theorem 10</a> evaluates the entire
-<span class="math notranslate nohighlight">\(m=D-3\)</span> family, and <a class="reference internal" href="#thm-skeleton-scalar-sum">Theorem 13</a> gives a
-finite scalar expression in every remaining case. Reducing those sums
-to a bounded number of functions remains open.
-<a class="reference internal" href="#thm-skeleton-codimension-one">Theorem 14</a> further reduces every
-codimension-one coefficient to a single rational sum, and
-<a class="reference internal" href="#cor-skeleton-triangle-edge-risk">Corollary 4</a> evaluates the triangular
-edge coefficient for every degree in harmonic numbers. The remaining
-simplification question concerns other dimensions and skeletons.</p>
-<p>A single radial polynomial shared by all angular modes does not
-provide this extension. Already at <span class="math notranslate nohighlight">\(D=4\)</span> (<span class="math notranslate nohighlight">\(N=2\)</span>), the
-normalized radial factors for <span class="math notranslate nohighlight">\(k=0,1,2\)</span> are respectively
-<span class="math notranslate nohighlight">\(36r^2-56r+21\)</span>, <span class="math notranslate nohighlight">\(9r-8\)</span>, and <span class="math notranslate nohighlight">\(1\)</span>; they are different
-polynomials, each equal to one at <span class="math notranslate nohighlight">\(r=1\)</span>. Thus this particular
-separation ansatz fails, while the mode-dependent construction above
-succeeds. This rules out only that ansatz, not other closed forms.</p>
-<p>Exact rational checks of every triangular angular mode for
-<span class="math notranslate nohighlight">\(D=2,\dots,10\)</span> reproduce the independently solved propagation
-matrices and the harmonic-number formula. Prime factors in individual
-risk values give no obstruction to such formulas.</p>
-</li>
-<li><p><strong>A simpler form of a_0 for finite M ≥ 4.</strong>
-<a class="reference internal" href="#thm-skeleton-triangle-vertex-risk">Theorem 15</a> solves <span class="math notranslate nohighlight">\(M=3\)</span> for
-every degree in harmonic numbers and a central binomial coefficient.
-<a class="reference internal" href="#equation-skeleton-vertex-double-sum">(8)</a> reduces the control-pair sum to a
-<span class="math notranslate nohighlight">\(D\times D\)</span> sum with an explicit generating function. For example
-it gives <span class="math notranslate nohighlight">\(41/280,79/1120,1189/30800\)</span> at <span class="math notranslate nohighlight">\(M=3\)</span> and
-<span class="math notranslate nohighlight">\(D=3,4,5\)</span>. <a class="reference internal" href="#equation-skeleton-vertex-polynomial">(9)</a> gives every fixed-degree
-polynomial, but further simplification in <span class="math notranslate nohighlight">\(D\)</span>, or a linear
-recurrence in <span class="math notranslate nohighlight">\(D\)</span> of bounded order, remains open for
-<span class="math notranslate nohighlight">\(M\geq4\)</span>.</p>
-<p>Two simplification attempts give the following concrete partial results.
-Removing the factors <span class="math notranslate nohighlight">\((p+1)^{-1}(q+1)^{-1}\)</span> from <span class="math notranslate nohighlight">\(F\)</span>
-would give <span class="math notranslate nohighlight">\((1-x-y)^{-1}\)</span>, whose powers have coefficients
-<span class="math notranslate nohighlight">\((r)_{p+q}/(p!q!)\)</span> by Vandermonde convolution. Keeping these
-factors instead gives the logarithmic generating function above;
-the same unweighted convolution therefore does not evaluate
-<span class="math notranslate nohighlight">\(K_r\)</span>.</p>
-<p>For <span class="math notranslate nohighlight">\(M=3\)</span>, the boundary coefficient can be simplified by partial
-fractions:</p>
-<div class="math notranslate nohighlight">
-\[K_2(p,0)=\sum_{j=0}^p\frac{1}{(j+1)(p-j+1)}
-  =\frac{2H_{p+1}}{p+2},\qquad
-H_n=\sum_{j=1}^n\frac1j.\]</div>
-<p>Indeed the summand is
-<span class="math notranslate nohighlight">\(((j+1)^{-1}+(p-j+1)^{-1})/(p+2)\)</span>.
-Gosper summation of this summand with symbolic <span class="math notranslate nohighlight">\(p\)</span> returns no
-hypergeometric antidifference (SymPy <code class="docutils literal notranslate"><span class="pre">gosper_sum</span></code> returns <code class="docutils literal notranslate"><span class="pre">None</span></code>).
-This limits that direct indefinite-summation attempt; it does not rule
-out a definite-sum identity or creative telescoping. The boundary
-identity alone only evaluates terms with <span class="math notranslate nohighlight">\(k=D\)</span> or <span class="math notranslate nohighlight">\(l=D\)</span>
-in <a class="reference internal" href="#equation-skeleton-vertex-double-sum">(8)</a>. For the full triangle risk, the
-mixed-product argument above instead reduces everything to one weighted
-harmonic sum, and <a class="reference internal" href="#equation-skeleton-triangle-vertex-certificate">(14)</a> supplies
-its boundary-aware telescoping certificate. No bounded-order recurrence
-for general <span class="math notranslate nohighlight">\(M\geq4\)</span> is asserted.</p>
-</li>
-<li><p><strong>Exact crossover dimensions for every degree.</strong>
-<a class="reference internal" href="#cor-skeleton-large-dimension">Corollary 5</a> shows that a crossover dimension
-exists for every <span class="math notranslate nohighlight">\(D\)</span>, and <a class="reference internal" href="#prop-skeleton-wins">Proposition 5</a> determines it
-for <span class="math notranslate nohighlight">\(D \leq 8\)</span>. For <span class="math notranslate nohighlight">\(D=3,\ldots,8\)</span>, the crossover vertex
-counts are <span class="math notranslate nohighlight">\(11,20,29,39,49,60\)</span>. In particular the apparent arithmetic
-progression <span class="math notranslate nohighlight">\(9D-16\)</span> fails already at <span class="math notranslate nohighlight">\(D=6\)</span>, where it predicts
-<span class="math notranslate nohighlight">\(38\)</span> instead of <span class="math notranslate nohighlight">\(39\)</span>. The successive differences
-<span class="math notranslate nohighlight">\(9,9,10,10,11\)</span> do not establish a general formula or an asymptotic
-law as <span class="math notranslate nohighlight">\(D\to\infty\)</span>; those remain open. The exceptional wins below
-the crossover are <span class="math notranslate nohighlight">\(\{2\}\)</span> for <span class="math notranslate nohighlight">\(D=3,4\)</span>,
-<span class="math notranslate nohighlight">\(\{2,3\}\)</span> for <span class="math notranslate nohighlight">\(D=5,6,7\)</span>, and <span class="math notranslate nohighlight">\(\{2,3,4\}\)</span> for
-<span class="math notranslate nohighlight">\(D=8\)</span>.</p></li>
+<p>The asymptotic risk, optimal allocation and a finite scalar expression for
+every coefficient are proved above. The questions below concern further
+evaluation of those expressions and the comparison with all-at-once
+fitting. The curves, all triangle coefficients, the top face, and the
+families <span class="math notranslate nohighlight">\(m=D-1,D-2,D-3\)</span> are already resolved in closed form.</p>
+<ul class="simple">
+<li><p><strong>Shorter evaluations of the remaining nonvertex coefficients.</strong>
+The remaining range is <span class="math notranslate nohighlight">\(M\geq4\)</span>, <span class="math notranslate nohighlight">\(D\geq5\)</span> and
+<span class="math notranslate nohighlight">\(1\leq m\leq\min(D-4,M-2)\)</span>.
+<a class="reference internal" href="#thm-skeleton-scalar-sum">Theorem 10</a> evaluates every such coefficient by
+a finite sum. When <span class="math notranslate nohighlight">\(m=M-2\)</span>,
+<a class="reference internal" href="#thm-skeleton-codimension-one">Theorem 12</a> already reduces it to a single
+rational sum. A uniform evaluation without sums whose lengths grow
+with <span class="math notranslate nohighlight">\(D\)</span>, for example in rational functions, harmonic numbers or
+standard hypergeometric functions, remains to be obtained in this range.</p></li>
+<li><p><strong>Finite-dimensional vertex coefficients beyond triangles.</strong>
+For <span class="math notranslate nohighlight">\(M\geq4\)</span> and <span class="math notranslate nohighlight">\(D\geq4\)</span>, simplify
+<a class="reference internal" href="#thm-skeleton-vertex-sum">Theorem 14</a> uniformly in the degree, or give an
+explicit fixed-order recurrence in <span class="math notranslate nohighlight">\(D\)</span>, including its
+coefficients, initial values and exceptional indices. The triangle
+formula in <a class="reference internal" href="#thm-skeleton-triangle-vertex-risk">Theorem 15</a> and the
+fixed-degree dimension polynomials do not supply that general
+evaluation.</p></li>
+<li><p><strong>The full comparison at degrees above eight.</strong>
+<a class="reference internal" href="#prop-skeleton-wins">Proposition 5</a> classifies every <span class="math notranslate nohighlight">\(M\)</span> at
+<span class="math notranslate nohighlight">\(D\leq8\)</span>. For <span class="math notranslate nohighlight">\(D\geq9\)</span>, determine the exact set of
+winning vertex counts, including any small-dimensional exceptions,
+and the growth of the eventual crossover as <span class="math notranslate nohighlight">\(D\to\infty\)</span>.
+<a class="reference internal" href="#cor-skeleton-large-dimension">Corollary 5</a> proves eventual winning for
+each fixed degree; it gives no exact crossover law. Closed formulas
+for a fixed dimension also require a separate inequality analysis
+before they yield a classification over all degrees.</p></li>
 </ul>
 </section>
 </section>
@@ -1428,7 +1200,7 @@ the crossover are <span class="math notranslate nohighlight">\(\{2\}\)</span> fo
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="skeleton_sampling.html" class="btn btn-neutral float-left" title="Optimal skeleton sampling" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="point_cloud.html" class="btn btn-neutral float-right" title="Fitting from values alone" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="skeleton_risk_verification.html" class="btn btn-neutral float-right" title="Exact verification of the skeleton risk" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

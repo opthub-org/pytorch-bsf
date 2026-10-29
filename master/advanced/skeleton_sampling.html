@@ -71,6 +71,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
 <li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
 <li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
@@ -196,8 +197,9 @@ for <span class="math notranslate nohighlight">\(T\)</span> with <span class="ma
 <div class="math notranslate nohighlight">
 \[e_T = \eta_I - G^I_{TT}{}^{-1} G^I_{TB}\, e_B,\]</div>
 <p>where <span class="math notranslate nohighlight">\(G^I\)</span> is the Gram matrix of the Bernstein basis under the
-uniform distribution on the face and <span class="math notranslate nohighlight">\(\eta_I\)</span> is independent of
-everything else with covariance <span class="math notranslate nohighlight">\(\sigma^2 G^I_{TT}{}^{-1} / n_I\)</span>.
+uniform distribution on the face. The innovations <span class="math notranslate nohighlight">\(\eta_I\)</span> are
+independent across faces, with covariance
+<span class="math notranslate nohighlight">\(\sigma^2 G^I_{TT}{}^{-1} / n_I\)</span> to first order.
 Fluctuations of the empirical Gram matrices contribute only
 <span class="math notranslate nohighlight">\(o(1/N)\)</span>.</p>
 </li>
@@ -211,8 +213,9 @@ matrix on the whole simplex. With <span class="math notranslate nohighlight">\(n
 </ol>
 <p>The Gram entries are exact moments of the uniform distribution on a simplex,
 <span class="math notranslate nohighlight">\(E[t^\alpha] = k!\,\alpha! / (|\alpha| + k)!\)</span> on a <span class="math notranslate nohighlight">\(k\)</span>-simplex.</p>
-<p>Several coefficients have closed forms. <a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a> proves
-them:</p>
+<p>The available formulas are summarized below. Their proofs and exact ranges
+are in <a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a>; independent checks and reference
+polynomials are in <a class="reference internal" href="skeleton_risk_verification.html"><span class="doc">Exact verification of the skeleton risk</span></a>.</p>
 <ul class="simple">
 <li><p><span class="math notranslate nohighlight">\(a_m = 0\)</span> for <span class="math notranslate nohighlight">\(m \geq D\)</span>: faces with more than <span class="math notranslate nohighlight">\(D\)</span>
 vertices have no interior controls, and the optimal ratio gives them no rows.</p></li>
@@ -224,30 +227,29 @@ same Gram matrix it was fitted with.</p></li>
 <span class="math notranslate nohighlight">\((M)_k = M (M+1) \cdots (M+k-1)\)</span>. For <span class="math notranslate nohighlight">\(D = 1\)</span> this is
 <span class="math notranslate nohighlight">\(a_0 = 2M / (M + 1)\)</span>. <span class="math notranslate nohighlight">\(a_{D-2}\)</span> and <span class="math notranslate nohighlight">\(a_{D-3}\)</span>
 also have closed forms in both <span class="math notranslate nohighlight">\(D\)</span> and <span class="math notranslate nohighlight">\(M\)</span>; see
-<a class="reference internal" href="skeleton_risk_theory.html#prop-skeleton-second-faces">Proposition 4</a> and
-<a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-third-faces">Theorem 10</a>.</p></li>
+<a class="reference internal" href="skeleton_risk_theory.html#prop-skeleton-second-faces">Proposition 3</a> and
+<a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-third-faces">Theorem 11</a>.</p></li>
 <li><p>On curves (<span class="math notranslate nohighlight">\(M = 2\)</span>), <span class="math notranslate nohighlight">\(a_0 = 4 / (D (D + 2))\)</span> and
 <span class="math notranslate nohighlight">\(a_1 = D - 1\)</span>.</p></li>
-<li><p>On triangles (<span class="math notranslate nohighlight">\(M=3\)</span>) and for every <span class="math notranslate nohighlight">\(D\geq2\)</span>,
-<span class="math notranslate nohighlight">\(a_1=18(H_{D-1}+H_{2D+2}-H_{D+3})/(2D+3)\)</span>, where
-<span class="math notranslate nohighlight">\(H_j=\sum_{i=1}^j1/i\)</span>. More generally,
-<a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-codimension-one">Theorem 14</a> gives every coefficient of
-codimension one as a single finite rational sum.</p></li>
-<li><p>All triangle coefficients are now closed for every degree:
+<li><p>On triangles (<span class="math notranslate nohighlight">\(M=3\)</span>), all coefficients are closed for every degree:
 <a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-triangle-vertex-risk">Theorem 15</a> gives
 <span class="math notranslate nohighlight">\(a_0(3,D)\)</span> in harmonic numbers and <span class="math notranslate nohighlight">\(\binom{2D}{D}\)</span> for
-<span class="math notranslate nohighlight">\(D\geq1\)</span>; the edge formula above gives <span class="math notranslate nohighlight">\(a_1\)</span> for
+<span class="math notranslate nohighlight">\(D\geq1\)</span>;
+<span class="math notranslate nohighlight">\(a_1=18(H_{D-1}+H_{2D+2}-H_{D+3})/(2D+3)\)</span> for
 <span class="math notranslate nohighlight">\(D\geq2\)</span>; and <span class="math notranslate nohighlight">\(a_2=\binom{D-1}{2}\)</span> for <span class="math notranslate nohighlight">\(D\geq3\)</span>.
-Missing skeletons have coefficient zero. Hence
+Here <span class="math notranslate nohighlight">\(H_j=\sum_{i=1}^j1/i\)</span>; inactive skeletons have coefficient zero. Hence
 <span class="math notranslate nohighlight">\((\sqrt{a_0}+\sqrt{a_1}+\sqrt{a_2})^2\)</span> is an explicit formula
 for the optimal normalized triangle risk at every degree.</p></li>
+<li><p>Every codimension-one coefficient has a single finite rational sum:
+see <a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-codimension-one">Theorem 12</a>.</p></li>
 <li><p>For a fixed degree, every <span class="math notranslate nohighlight">\(a_m\)</span> is a rational function of <span class="math notranslate nohighlight">\(M\)</span>
-and converges as <span class="math notranslate nohighlight">\(M\)</span> grows; for example,
+and converges as <span class="math notranslate nohighlight">\(M\)</span> grows.
+<a class="reference internal" href="skeleton_risk_theory.html#cor-skeleton-large-dimension">Corollary 5</a> gives every limit; for example,
 <span class="math notranslate nohighlight">\(a_0 \to 2 D^2 (D+1)^2 / 4^D\)</span>.</p></li>
 </ul>
 <p>These closed forms rest on a structure theorem: the errors that a face
 passes to larger faces are determined by the errors it passes to the faces
-with one more vertex. More generally, <a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-scalar-sum">Theorem 13</a>
+with one more vertex. More generally, <a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-scalar-sum">Theorem 10</a>
 gives every coefficient as a finite scalar sum, without Gram-matrix
 inversion or propagation recursion. Simplification to a bounded number of
 functions remains open in the ranges listed in the theory chapter.</p>
@@ -326,7 +328,7 @@ value; the smaller one is in bold.</p>
 <span class="math notranslate nohighlight">\(D \in \{2, 3\}\)</span> and <span class="math notranslate nohighlight">\(2 \leq M \leq 8\)</span>. The other rows are new.
 They show that the paper’s observation that the inductive skeleton fitting wins
 for <span class="math notranslate nohighlight">\(D &lt; 3\)</span> does not extend to a rule in the degree: it wins for every
-degree shown on curves (<span class="math notranslate nohighlight">\(M = 2\)</span>), and again on triangles from degree five.
+degree shown on curves (<span class="math notranslate nohighlight">\(M = 2\)</span>), and on triangles at degrees five and six.
 <a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a> proves that it wins:</p>
 <ul class="simple">
 <li><p>on curves at every degree;</p></li>
@@ -355,8 +357,9 @@ errors face by face.</p></li>
 </section>
 <section id="limits-of-the-result">
 <h2>Limits of the result<a class="headerlink" href="#limits-of-the-result" title="Link to this heading"></a></h2>
-<p>The coefficients are asymptotic: with few rows per face, finite-sample terms
-of relative size about (controls per face) / (rows per face) remain. They
+<p>The coefficients describe the limit as every active face receives more rows;
+they are not finite-sample error bounds. With few rows per face, a design can
+be rank deficient or have large inverse-Gram moments. The formulas
 assume the uniform distribution on each face, an equal split among faces of
 the same size, and risk averaged uniformly over the simplex; a different
 weighting of the error changes them. Bernstein Gram matrices become

@@ -1,27 +1,51 @@
 Theory of the skeleton risk
 ===========================
 
-This chapter proves the results behind :doc:`skeleton_sampling`:
+This chapter develops the asymptotic risk of inductive skeleton fitting
+from its assumptions to the general scalar formula, then derives the
+closed forms and comparisons used in :doc:`skeleton_sampling`.
+The results are organized by mathematical dependence; finite verification
+and reference tables are collected in :doc:`skeleton_risk_verification`.
 
-- the asymptotic risk of inductive skeleton fitting,
-- its optimal ratio,
-- a structure theorem for how estimation errors propagate from face to face,
-- the closed forms that follow from that theorem.
+:cite:t:`tanaka2020asymptotic` derived a Gram recursion and evaluated degrees
+two and three. The results here give the asymptotic risk and optimal
+allocation for every dimension and degree, as well as the following
+explicit evaluations. The conditions in each row are part of the result.
 
-:cite:t:`tanaka2020asymptotic` derived the risk through a recursion and
-evaluated it numerically for degrees two and three. The proofs here are
-self-contained and hold for every dimension and degree. Statements that rest
-on a finite computation are labeled computer-assisted. Questions that remain
-open are collected at the end. ``tests/sampling.py`` checks the formulas,
-the quoted values and the computations on this page against exact rational
-arithmetic, and ``tests/fitting.py`` checks the asymptotic risks by
-simulation.
+.. list-table:: Results and their scope
+   :header-rows: 1
+
+   * - Range
+     - Result
+   * - Every :math:`M,D` and active :math:`m`
+     - :prf:ref:`thm-skeleton-scalar-sum`: finite scalar sum, with no Gram inverse.
+   * - :math:`D\geq M`
+     - :prf:ref:`prop-skeleton-top`: :math:`a_{M-1}=\binom{D-1}{M-1}`.
+   * - :math:`m=D-1,D-2,D-3`, where the skeleton exists
+     - :prf:ref:`prop-skeleton-degree-faces`, :prf:ref:`prop-skeleton-second-faces`
+       and :prf:ref:`thm-skeleton-third-faces`: formulas uniform in :math:`M,D`.
+   * - :math:`M=2` or :math:`M=3`, every degree
+     - :prf:ref:`thm-skeleton-curves`, :prf:ref:`cor-skeleton-triangle-edge-risk`
+       and :prf:ref:`thm-skeleton-triangle-vertex-risk`: all coefficients in closed form.
+   * - :math:`m=M-2` and :math:`D\geq M-1`
+     - :prf:ref:`thm-skeleton-codimension-one`: one rational sum.
+   * - Fixed :math:`D`, growing :math:`M`
+     - :prf:ref:`thm-skeleton-rational`: dimension polynomials;
+       :prf:ref:`cor-skeleton-large-dimension`: the limit of every coefficient.
+   * - Risk comparison
+     - Curves win at every degree; :prf:ref:`prop-skeleton-wins` classifies
+       all vertex counts for :math:`D\leq8`; every fixed degree wins for sufficiently large :math:`M`.
+
+The proofs are self-contained apart from the cited small-ball inequality.
+Statements certified by a finite computation are labeled computer-assisted.
+The final section lists the ranges where further simplification or a
+complete risk comparison is still open.
 
 Setting
 -------
 
-Let the simplex have the vertex set :math:`[M] = \{1, \dots, M\}` and degree
-:math:`D \geq 1`.
+Let the simplex have :math:`M\geq2` vertices
+:math:`[M]=\{1,\dots,M\}` and degree :math:`D\geq1`.
 
 **Controls and faces.** Controls are indexed by
 :math:`\alpha \in \mathbb N^M` with :math:`|\alpha| = D`. The Bernstein
@@ -273,14 +297,20 @@ gives the all-at-once risk.
    Over fractions :math:`\rho_m \geq 0` with :math:`\sum_m \rho_m = 1`,
    :math:`\sum_m a_m / \rho_m` is minimized by
    :math:`\rho_m = \sqrt{a_m} / \sum_k \sqrt{a_k}`, and the minimum is
-   :math:`(\sum_m \sqrt{a_m})^2`.
+   :math:`(\sum_m \sqrt{a_m})^2`. A zero coefficient receives no rows;
+   the corresponding term is defined as :math:`0/0=0`, while
+   :math:`a_m/0=+\infty` for :math:`a_m>0`.
 
 .. prf:proof::
 
-   By the Cauchy-Schwarz inequality,
+   An allocation with :math:`a_m>0` and :math:`\rho_m=0` has infinite
+   risk. For the remaining allocations, apply Cauchy-Schwarz on the
+   indices with positive coefficients:
    :math:`(\sum_m \sqrt{a_m})^2 = (\sum_m \sqrt{a_m / \rho_m} \sqrt{\rho_m})^2
-   \leq \sum_m (a_m / \rho_m) \sum_m \rho_m`. Equality holds exactly when
-   :math:`\sqrt{a_m/\rho_m}` is proportional to :math:`\sqrt{\rho_m}`.
+   \leq \sum_m (a_m / \rho_m) \sum_{m:a_m>0} \rho_m
+   \leq \sum_m a_m/\rho_m`. Equality requires zero share on inactive
+   indices and :math:`\sqrt{a_m/\rho_m}` proportional to
+   :math:`\sqrt{\rho_m}` on the active ones, giving the stated ratio.
 
 How errors propagate
 --------------------
@@ -412,101 +442,161 @@ propagation to the faces with one more vertex.
    monomials span all polynomials of that degree on :math:`S`, because
    :math:`\omega_y = 1 - |\omega_I|` there.
 
-Triangular Jacobi extension
----------------------------
+Scalar evaluation of every coefficient
+---------------------------------------
 
-The orthogonal-polynomial construction extends beyond curves. Evaluating
-its mode norms below gives a harmonic-number closed form for :math:`a_1`
-on triangles.
+The propagation theorem leads to one formula for all dimensions, degrees
+and skeletons. It separates the angular modes on a face from the moments
+of the remaining coordinates. Closed forms below are specializations of
+this formula; a finite sum is available even when no shorter evaluation
+is known.
 
-.. prf:proposition:: Propagation from an edge via Jacobi polynomials
-   :label: prop-skeleton-triangle-jacobi
+.. prf:lemma:: The outside-coordinate kernel
+   :label: lem-skeleton-kernel
 
-   Let :math:`m=1`, :math:`D\geq2`, :math:`N=D-2`, and let
-   :math:`I=\{1,2\}`. On the triangle with coordinates
-   :math:`(x_1,x_2,y)`, put :math:`r=x_1+x_2` and
-   :math:`z=x_1/r`. Write the boundary error polynomial as
-
-   .. math::
-
-      p_c(z,1-z,0)=z(1-z)\sum_{k=0}^N d_k P_k^{(2,2)}(2z-1).
-
-   Here :math:`P_n^{(\alpha,\beta)}(2v-1)` denotes the shifted Jacobi
-   polynomial orthogonal for the weight :math:`(1-v)^\alpha v^\beta`,
-   normalized by :math:`P_n^{(\alpha,\beta)}(1)=\binom{n+\alpha}{n}`.
-   Then the polynomial :math:`\Phi` of
-   :prf:ref:`thm-skeleton-propagation-reduction`, on this triangle, is
-
-   .. math::
-      :label: skeleton-triangle-jacobi
-
-      \Phi(x_1,x_2,y)=x_1x_2\sum_{k=0}^N d_k r^k
-      P_k^{(2,2)}(2z-1)P_{N-k}^{(0,2k+5)}(2r-1).
-
-   The expression has a polynomial extension to :math:`r=0`. Homogenize it
-   to degree :math:`D` before using
-   :eq:`skeleton-reduction-integral`. More explicitly, the homogeneous
-   polynomial is obtained by replacing the angular factor by
+   Define the formal power series
 
    .. math::
 
-      H_k(x_1,x_2)=\sum_{h=0}^k(-1)^{k-h}
-      \binom{k+2}{h}\binom{k+2}{k-h}x_1^h x_2^{k-h}
+      F(x,y)&=\sum_{h,l\geq0}\frac{\binom{h+l}{h}}{(h+1)(l+1)}x^hy^l\\
+        &=\frac{(1-x-y)\log(1-x-y)-(1-x)\log(1-x)
+            -(1-y)\log(1-y)}{xy},\\
+      K_q(h,l)&=[x^hy^l]F(x,y)^q,\qquad q,h,l\in\mathbb N.
 
-   and the radial factor by
-
-   .. math::
-
-      R_{N,k}(r,y)=\sum_{j=0}^{N-k}(-1)^{N-k-j}
-      \binom{N-k}{j}\binom{N+k+5}{N-k-j}r^j y^{N-k-j}.
-
-   Thus :math:`\Phi=x_1x_2\sum_k d_k H_k R_{N,k}` in homogeneous
-   coordinates. If its coefficient of :math:`x_1^a x_2^b y^n` is
-   :math:`A_{abn}`, the Bernstein control of the triangle error
-   :math:`\phi` is
+   The quotient is interpreted by its formal series, including on the
+   coordinate axes. In particular,
+   :math:`K_0(h,l)=\mathbf1_{h=l=0}` and
+   :math:`K_1(h,l)=\binom{h+l}{h}/((h+1)(l+1))`. For fixed :math:`h,l`,
+   the coefficient is a polynomial in :math:`q` of degree at most
+   :math:`h+l`, given by the finite expansion
 
    .. math::
-      :label: skeleton-triangle-jacobi-controls
+      :label: skeleton-kernel-polynomial
 
-      e((a,b),n)=\frac{A_{abn}\,a!b!n!}{D!(n+1)}.
+      K_q(h,l)=\sum_{j=0}^{h+l}\binom qj[x^hy^l](F-1)^j.
+
+   Here :math:`\binom qj=0` for :math:`j>q`. A useful boundary value is
+   :math:`K_2(h,0)=K_2(0,h)=2H_{h+1}/(h+2)`, with
+   :math:`H_j=\sum_{i=1}^j1/i` and :math:`H_0=0`.
 
 .. prf:proof::
 
-   Every error polynomial in question is divisible by :math:`x_1x_2`.
-   Write :math:`\Phi=x_1x_2 Q`. The orthogonality condition
-   :eq:`skeleton-reduction-orthogonality` becomes orthogonality of
-   :math:`Q` to all polynomials of degree at most :math:`N-1` for the
-   weight :math:`x_1^2x_2^2`. Under
-   :math:`(x_1,x_2)=(rz,r(1-z))`, this weighted area element is
-   :math:`r^5z^2(1-z)^2\,dr\,dz`.
+   Integrating :math:`(1-x-y)^{-1}` formally once in each variable gives
+   :math:`xyF` and the displayed logarithmic expression. Expand
+   :math:`F^q=(1+(F-1))^q`; since :math:`F-1` has no constant term, only
+   :math:`j\leq h+l` can contribute to the coefficient. On an axis,
+   :math:`F(x,0)=\sum_{h\geq0}x^h/(h+1)`. Squaring and using
+   :math:`1/((j+1)(h-j+1))=((j+1)^{-1}+(h-j+1)^{-1})/(h+2)`
+   proves the boundary value.
 
-   Set :math:`A_k(z)=P_k^{(2,2)}(2z-1)`. Polynomials of total degree
-   at most :math:`N-1` are spanned by
-   :math:`r^l A_l(z)q(r)`, with :math:`0\leq l\leq N-1` and
-   :math:`\deg q\leq N-1-l`: this follows by expanding each monomial
-   :math:`r^j z^a` in the angular Jacobi basis, with :math:`a\leq j`.
-   For the :math:`k`-th summand of :math:`Q`, angular orthogonality
-   kills every :math:`l\ne k`. When :math:`l=k`, the remaining
-   integral has weight :math:`r^{2k+5}` and vanishes by the radial
-   Jacobi orthogonality. Consequently every displayed summand satisfies
-   :eq:`skeleton-reduction-orthogonality`.
+We use shifted Jacobi polynomials
+:math:`P_j^{(\alpha,\beta)}(2v-1)`, orthogonal for
+:math:`(1-v)^\alpha v^\beta`, with endpoint normalization
+:math:`P_j^{(\alpha,\beta)}(1)=\binom{j+\alpha}{j}`.
 
-   The space of polynomials of degree at most :math:`N` orthogonal to
-   all degrees at most :math:`N-1` has dimension :math:`N+1`.
-   The displayed :math:`N+1` polynomials are independent: at
-   :math:`r=1`, their radial factors equal one and their restrictions
-   are the angular Jacobi basis. They therefore give the unique
-   orthogonal extension of the prescribed boundary data.
-   Since :math:`\Phi(x_1,x_2,0)=\phi(x_1,x_2,0)`, the polynomial from
-   :prf:ref:`thm-skeleton-propagation-reduction` has exactly these
-   boundary values and orthogonality, proving the formula.
-   Finally :math:`\partial_y(y\phi)=\Phi` divides each monomial
-   coefficient by :math:`n+1` when recovering :math:`\phi`;
-   conversion to Bernstein coefficients gives
-   :eq:`skeleton-triangle-jacobi-controls`.
+.. prf:theorem:: Scalar risk sum
+   :label: thm-skeleton-scalar-sum
 
-Closed forms
-------------
+   Let :math:`1\leq s\leq\min(D,M)`, :math:`n=D-s`, and :math:`q=M-s`.
+   Use the kernel of :prf:ref:`lem-skeleton-kernel`. Put
+
+   .. math::
+
+      d_s(k)&=\binom{k+s-2}{s-2}\quad(s\geq2),&
+      d_1(k)&=\mathbf1_{k=0},\\
+      A_{k,h}&=(-1)^h\binom{n-k}{h}\binom{n+k+3s-1}{h}
+        \quad(0\leq h\leq n-k).
+
+   Then
+
+   .. math::
+      :label: skeleton-scalar-sum
+
+      a_{s-1}=\frac{\binom Ms^2}{(s-1)!\,(M)_{2D}}
+      \sum_{k=0}^n d_s(k)\sum_{h,l=0}^{n-k}
+      A_{k,h}A_{k,l}(2D+s-h-l-1)!\,h!l!K_q(h,l).
+
+   All factorial arguments are nonnegative. Each coefficient extraction
+   uses only terms of degree at most :math:`n` in each variable, so every
+   operation is finite, also when :math:`q=0` or :math:`s=1`.
+
+.. prf:proof::
+
+   *Angular modes.* On the face with :math:`s\geq2` vertices, choose an
+   orthogonal basis :math:`Q_{k,\nu}` of polynomials of exact orthogonal
+   degree :math:`k` for the weight :math:`\prod_i z_i^2` under :math:`U_I`.
+   Here exact orthogonal degree means orthogonal to all polynomials of
+   degree less than :math:`k`; its dimension is
+   :math:`d_s(k)=\binom{k+s-2}{s-2}`. The face bubbles
+   :math:`f_{k,\nu}(z)=\prod_i z_i Q_{k,\nu}(z)` for
+   :math:`0\leq k\leq n` are an orthogonal basis of all face bubbles of
+   degree at most :math:`D`. For :math:`s=1`, use only :math:`Q_{0,1}=1`
+   and :math:`f_{0,1}=1` on the one-point face.
+
+   *Extension by one vertex.* Write :math:`x=rz`, :math:`r=\sum_i x_i`
+   and let :math:`y` be the new coordinate. The homogeneous polynomial
+   :math:`\Phi` for the boundary mode :math:`f_{k,\nu}` is
+
+   .. math::
+      :label: skeleton-mode-extension
+
+      \Phi_{k,\nu}(x,y)=\prod_i x_i\,r^k Q_{k,\nu}(z)
+        \sum_{h=0}^{n-k} A_{k,h}r^{n-k-h}y^h.
+
+   Indeed the sum, restricted to :math:`r+y=1`, is
+   :math:`P_{n-k}^{(0,\,3s+2k-1)}(2r-1)`. To verify
+   :eq:`skeleton-reduction-orthogonality`, divide :math:`\Phi` by
+   :math:`\prod_i x_i`. The weighted volume element is
+   :math:`r^{3s-1}\prod_i z_i^2\,dr\,dz`. Expand a test polynomial of
+   degree at most :math:`n-1` into homogeneous angular modes. Angular
+   orthogonality leaves only its degree :math:`k` components. Their
+   remaining radial degrees are at most :math:`n-k-1`, with weight
+   :math:`r^{3s+2k-1}`. Jacobi orthogonality makes these integrals zero.
+   At :math:`y=0` the radial sum is :math:`r^{n-k}`, giving the required
+   boundary mode. This proves the extension by the characterization and
+   reduction theorems. At :math:`n=0` there are no test polynomials.
+
+   *The remaining coordinates.* By
+   :eq:`skeleton-reduction-integral`, replace each :math:`y^h` by
+
+   .. math::
+
+      T_h(t_{I^c})=E_u\Bigl(\sum_{j\notin I}u_jt_j\Bigr)^h
+        =\sum_{|b|=h}\frac{h!}{b!}\prod_{j\notin I}\frac{t_j^{b_j}}{b_j+1},
+
+   where the :math:`u_j` are independent uniform variables on
+   :math:`[0,1]`. If :math:`q\geq1`, write
+   :math:`t_{I^c}=(1-r)v`, with :math:`v` uniform on its
+   :math:`q`-vertex simplex. The Dirichlet moments give
+
+   .. math::
+
+      E_v[T_h(v)T_l(v)]=\frac{h!l!}{(q)_{h+l}}K_q(h,l).
+
+   The aggregation :math:`t_I=rz` has independent :math:`z\sim U_I`
+   and :math:`r\sim\operatorname{Beta}(s,q)`. Thus the ratio of the
+   squared full-simplex norm of the extended mode to its face norm is
+
+   .. math::
+
+      \frac{1}{(s-1)!\,(M)_{2D}}
+      \sum_{h,l=0}^{n-k} A_{k,h}A_{k,l}
+        (2D+s-h-l-1)!\,h!l!K_q(h,l).
+
+   Specifically, the radial beta integral has exponents
+   :math:`2D+s-h-l-1` and :math:`q+h+l-1`; its factor
+   :math:`(q+h+l-1)!` cancels the corresponding denominator in the
+   preceding moment. The angular norm cancels as well. Trace is invariant
+   under a change of bubble basis, so summing these norm ratios, with
+   :math:`d_s(k)` modes, gives the trace for one face. Multiply by
+   :math:`\binom Ms^2` for the equal faces and the allocation convention.
+
+   When :math:`q=0` there is no extension. Only :math:`h=l=0` survives
+   in the stated formula, each norm ratio equals one, and the sum is
+   :math:`\sum_k d_s(k)=\binom{D-1}{s-1}`, including :math:`s=1`.
+
+Closed forms near the degree
+----------------------------
 
 .. prf:proposition:: Top face
    :label: prop-skeleton-top
@@ -551,42 +641,21 @@ Closed forms
 
 .. prf:proof::
 
-   *The error polynomial.* Let :math:`|I| = D - 1`. Then
-   :math:`T_I = \{\mathbf 1_I + \mathbf e_k : k \in I\}`; write
-   :math:`c_k` for the coefficient of its :math:`k`-th control. Only the
-   faces :math:`J = I \cup \{j\}` have interior controls above :math:`I`, each
-   the single control :math:`\mathbf 1_J`. By :eq:`skeleton-moments`,
-   :math:`G^J_{\mathbf 1_J,\, \mathbf 1_I + \mathbf e_k} / G^J_{\mathbf 1_J \mathbf 1_J} = 3/4`.
-   So by :eq:`skeleton-propagation`, :math:`\mathbf 1_J` has error
-   :math:`-\frac34 \sum_k c_k`, and the error polynomial is
+   Put :math:`s=D-1`, :math:`n=1` and :math:`q=M-s` in
+   :prf:ref:`thm-skeleton-scalar-sum`. The angular degrees :math:`k=0,1`
+   have multiplicities :math:`1,s-1`; the radial vectors are
+   :math:`(1,-3s)` and :math:`(1)`. With
+   :math:`K_q(0,0)=1`, :math:`K_q(1,0)=q/2` and
+   :math:`K_q(1,1)=q(q+1)/4`, substitution gives
 
    .. math::
 
-      p(t) = D!\, t^{\mathbf 1_I} \Bigl(\tfrac12 \sum_{k \in I} c_k t_k - \tfrac34 \bigl(\textstyle\sum_k c_k\bigr) u\Bigr),
-      \qquad u = \sum_{j \notin I} t_j.
+      P_{D,D-2}(M)=\frac{s(3s)!}{4(s-1)!}
+                    \bigl(3q^2-9q+12s+4\bigr).
 
-   *The trace as an expectation.* By :eq:`skeleton-moments`,
-   :math:`G^I_{T_I T_I} = \kappa (3\,\mathrm{Id} + 9 \mathbf 1 \mathbf 1^\top)` with
-   :math:`\kappa = (D!)^2 (D-2)!\, 2^{D-1} / (4 (3D-2)!)`. Its inverse is
-   :math:`\frac{1}{3\kappa}(\mathrm{Id} - \frac{3}{3D-2} \mathbf 1 \mathbf 1^\top)`.
-   Hence the trace in :math:`a_{D-2}` equals :math:`E \int p^2 \, dU_{[M]}` for
-   :math:`c` with this covariance, that is, the integral of
-   :math:`(D!)^2 t^{2 \cdot \mathbf 1_I} v^\top (G^I_{T_I T_I})^{-1} v`, where
-   :math:`v_k = \frac12 t_k - \frac34 u`.
-
-   *The integral.* For :math:`M \geq D`, the vector :math:`(t_I, u)` is
-   Dirichlet distributed with parameters :math:`(1, \dots, 1, M - D + 1)`, so
-
-   .. math::
-
-      \int t_I^\gamma u^b \, dU_{[M]} = \frac{(M-1)!\, \gamma!\, (M-D+1)_b}{(M - 1 + |\gamma| + b)!}.
-
-   Expanding the quadratic form needs only the moments of
-   :math:`t^{2 \cdot \mathbf 1_I}` times :math:`t_k^2`, :math:`t_k t_l`,
-   :math:`t_k u`, :math:`u^2`, :math:`u` and :math:`1`, using
-   :math:`\sum_k t_k = 1 - u`. Collecting terms gives the formula. For
-   :math:`M = D - 1` the formula reduces to :math:`D - 1`, which agrees with
-   :prf:ref:`prop-skeleton-top`.
+   Replacing :math:`s=D-1` and :math:`q=M-D+1` gives the stated
+   quadratic. At :math:`q=0` it reduces to :math:`s`, agreeing with
+   :prf:ref:`prop-skeleton-top`, including :math:`s=1`.
 
 .. prf:theorem:: Faces with D - 2 vertices
    :label: thm-skeleton-third-faces
@@ -612,7 +681,7 @@ Closed forms
 
 .. prf:proof::
 
-   Apply :prf:ref:`thm-skeleton-scalar-sum` below with :math:`n=2`.
+   Apply :prf:ref:`thm-skeleton-scalar-sum` with :math:`n=2`.
    The angular degrees :math:`k=0,1,2` have multiplicities
    :math:`1,s-1,s(s-1)/2`. At :math:`s=1` only the first is present.
    The radial coefficient vectors :math:`(A_{k,h})_h` are
@@ -639,11 +708,63 @@ Closed forms
    :math:`s(s+1)/2=\binom{D-1}{M-1}`, as required by
    :prf:ref:`prop-skeleton-top`.
 
-``tests/sampling.py`` compares all five polynomial coefficients with the
-existing exact tables at :math:`D=3,\ldots,8`, and independently regenerates
-the :math:`D=9` polynomial by local Gram solves and orbit counting. The
-degree-nine check took about 0.23 seconds on the development machine and
-runs in the normal test suite. Boundary checks also cover :math:`D=12,30`.
+Faces of codimension one
+------------------------
+
+.. prf:theorem:: Faces of codimension one
+   :label: thm-skeleton-codimension-one
+
+   For :math:`s\geq1`, :math:`M=s+1`, and :math:`D\geq s`, put
+   :math:`n=D-s` and use :math:`d_s(k)` from
+   :prf:ref:`thm-skeleton-scalar-sum`. Then
+
+   .. math::
+
+      a_{s-1}(s+1,D)=s(s+1)^2\sum_{k=0}^n
+       \frac{d_s(k)}{(n-k+1)(n+k+3s)}.
+
+   Thus the two radial sums and the kernel extraction reduce to a single
+   sum of :math:`n+1` rational terms; there are no polynomial integrals,
+   Gram matrices or propagation coefficients to compute.
+
+.. prf:proof::
+
+   In the mode extension of :prf:ref:`thm-skeleton-scalar-sum`, there is
+   just one outside coordinate :math:`y`. Averaging :math:`y^h` multiplies
+   its coefficient by :math:`1/(h+1)`. Write :math:`L=n-k` and
+   :math:`\beta=3s+2k-1`. The homogeneous radial polynomial therefore
+   becomes, on :math:`r+y=1`,
+
+   .. math::
+
+      \sum_{h=0}^L\frac{(-1)^h}{h+1}\binom Lh\binom{L+\beta}{h}
+        r^{L-h}(1-r)^h
+      =\frac{P_L^{(1,\beta)}(2r-1)}{L+1}.
+
+   The beta density of :math:`r` is :math:`sr^{s-1}`. After the angular
+   norm cancels, the full-to-face squared-norm ratio of this mode is
+
+   .. math::
+
+      \frac{s}{(L+1)^2}\int_0^1 r^\beta
+         P_L^{(1,\beta)}(2r-1)^2\,dr
+      =\frac{s}{(L+1)(L+\beta+1)}.
+
+   For completeness, the last integral follows from the reproducing
+   kernel for polynomials of degree at most :math:`L` with weight
+   :math:`r^\beta`. The shifted polynomials
+   :math:`P_j^{(0,\beta)}` have squared norms
+   :math:`1/(2j+\beta+1)` and endpoint value one. Hence its kernel at
+   endpoint one is
+   :math:`C_L(r)=\sum_{j=0}^L(2j+\beta+1)P_j^{(0,\beta)}(2r-1)`,
+   with :math:`\int r^\beta C_L(r)g(r)\,dr=g(1)`.
+   Taking :math:`g=(1-r)h`, :math:`\deg h<L`, identifies
+   :math:`C_L=(L+\beta+1)P_L^{(1,\beta)}` by orthogonality and
+   :math:`C_L(1)=(L+1)(L+\beta+1)`. Taking :math:`g=C_L` proves
+   :math:`\int r^\beta P_L^{(1,\beta)}(2r-1)^2\,dr
+   =(L+1)/(L+\beta+1)`.
+   Sum the mode ratios with their multiplicities and multiply by
+   :math:`\binom{s+1}s^2=(s+1)^2`.
 
 Curves
 ------
@@ -734,21 +855,20 @@ coefficients into the propagation from a vertex in any dimension.
    On the edge, :math:`e(k, D - k) = b_k`. For :math:`\mathbf 1_J`,
    :math:`\alpha_i = 1` and :math:`D b_1 = (-1)^{D-1} (D+1)/2`.
 
-.. prf:theorem:: A generating function for the vertex risk
+Vertex coefficients in arbitrary dimension
+------------------------------------------
+
+This specialization gives the vertex coefficient and its dimension
+polynomial directly from the curve controls. It is useful for exact
+evaluation at fixed :math:`M` or :math:`D`.
+
+.. prf:theorem:: Vertex specialization and dimension polynomial
    :label: thm-skeleton-vertex-sum
 
    Put :math:`w_k=(D-k+1)b_k`, with :math:`b_k` as in
-   :prf:ref:`thm-skeleton-curves`, and define the formal power series
-
-   .. math::
-
-      F(x,y) &= \sum_{p,q\geq0}\frac{\binom{p+q}{p}}{(p+1)(q+1)}x^p y^q \\
-      &= \frac{(1-x-y)\log(1-x-y)-(1-x)\log(1-x)
-         -(1-y)\log(1-y)}{xy}, \\
-      K_r(p,q) &= [x^p y^q]F(x,y)^r.
-
-   The quotient denotes its formal series, including at either zero
-   coordinate. For every :math:`D\geq1` and :math:`M\geq2`,
+   :prf:ref:`thm-skeleton-curves`, and use :math:`F,K_q` from
+   :prf:ref:`lem-skeleton-kernel`. For every :math:`D\geq1` and
+   :math:`M\geq2`,
 
    .. math::
       :label: skeleton-vertex-double-sum
@@ -785,8 +905,7 @@ coefficients into the propagation from a vertex in any dimension.
    :math:`\binom M1=M` give the factor :math:`M^2` in
    :eq:`skeleton-vertex-double-sum`.
 
-   Integrating :math:`(1-x-y)^{-1}` formally once in each variable gives
-   the displayed expression for :math:`xyF`. Finally expand
+   For the dimension polynomial, expand
    :math:`F^{M-1}=(1+(F-1))^{M-1}`. Since :math:`F-1` has no constant
    term, its power :math:`s` cannot contribute above :math:`s=p+q`.
    Here :math:`p+q\leq2D-2`, which proves
@@ -794,175 +913,12 @@ coefficients into the propagation from a vertex in any dimension.
    coefficient extraction uses a polynomial of bounded degree for every
    fixed :math:`D`; it requires no propagation matrices or inverses.
 
-A scalar finite sum for every coefficient
-------------------------------------------
+Triangles: all degrees
+----------------------
 
-The angular construction extends to every face. Its angular norms cancel
-in the risk trace, leaving only multiplicities and a scalar kernel. This
-gives a finite closed expression for every dimension, degree and skeleton,
-without constructing propagation matrices or inverting Gram matrices.
-It does not assert that these finite sums always simplify to a bounded
-number of elementary or special functions.
-
-.. prf:theorem:: Scalar risk sum
-   :label: thm-skeleton-scalar-sum
-
-   Let :math:`1\leq s\leq\min(D,M)`, :math:`n=D-s`, and :math:`q=M-s`.
-   Use :math:`K_q(h,l)=[x^h y^l]F(x,y)^q` with :math:`F` defined in
-   :prf:ref:`thm-skeleton-vertex-sum`, including
-   :math:`K_0(h,l)=\mathbf1_{h=l=0}`. Put
-
-   .. math::
-
-      d_s(k)&=\binom{k+s-2}{s-2}\quad(s\geq2),&
-      d_1(k)&=\mathbf1_{k=0},\\
-      A_{k,h}&=(-1)^h\binom{n-k}{h}\binom{n+k+3s-1}{h}
-        \quad(0\leq h\leq n-k).
-
-   Then
-
-   .. math::
-      :label: skeleton-scalar-sum
-
-      a_{s-1}=\frac{\binom Ms^2}{(s-1)!\,(M)_{2D}}
-      \sum_{k=0}^n d_s(k)\sum_{h,l=0}^{n-k}
-      A_{k,h}A_{k,l}(2D+s-h-l-1)!\,h!l!K_q(h,l).
-
-   All factorial arguments are nonnegative. Each coefficient extraction
-   uses only terms of degree at most :math:`n` in each variable, so every
-   operation is finite, also when :math:`q=0` or :math:`s=1`.
-
-.. prf:proof::
-
-   *Angular modes.* On the face with :math:`s\geq2` vertices, choose an
-   orthogonal basis :math:`Q_{k,\nu}` of polynomials of exact orthogonal
-   degree :math:`k` for the weight :math:`\prod_i z_i^2` under :math:`U_I`.
-   Here exact orthogonal degree means orthogonal to all polynomials of
-   degree less than :math:`k`; its dimension is
-   :math:`d_s(k)=\binom{k+s-2}{s-2}`. The face bubbles
-   :math:`f_{k,\nu}(z)=\prod_i z_i Q_{k,\nu}(z)` for
-   :math:`0\leq k\leq n` are an orthogonal basis of all face bubbles of
-   degree at most :math:`D`. For :math:`s=1`, use only :math:`Q_{0,1}=1`
-   and :math:`f_{0,1}=1` on the one-point face.
-
-   *Extension by one vertex.* Write :math:`x=rz`, :math:`r=\sum_i x_i`
-   and let :math:`y` be the new coordinate. The homogeneous polynomial
-   :math:`\Phi` for the boundary mode :math:`f_{k,\nu}` is
-
-   .. math::
-
-      \Phi_{k,\nu}(x,y)=\prod_i x_i\,r^k Q_{k,\nu}(z)
-        \sum_{h=0}^{n-k} A_{k,h}r^{n-k-h}y^h.
-
-   Indeed the sum, restricted to :math:`r+y=1`, is
-   :math:`P_{n-k}^{(0,\,3s+2k-1)}(2r-1)`. To verify
-   :eq:`skeleton-reduction-orthogonality`, divide :math:`\Phi` by
-   :math:`\prod_i x_i`. The weighted volume element is
-   :math:`r^{3s-1}\prod_i z_i^2\,dr\,dz`. Expand a test polynomial of
-   degree at most :math:`n-1` into homogeneous angular modes. Angular
-   orthogonality leaves only its degree :math:`k` components. Their
-   remaining radial degrees are at most :math:`n-k-1`, with weight
-   :math:`r^{3s+2k-1}`. Jacobi orthogonality makes these integrals zero.
-   At :math:`y=0` the radial sum is :math:`r^{n-k}`, giving the required
-   boundary mode. This proves the extension by the characterization and
-   reduction theorems. At :math:`n=0` there are no test polynomials.
-
-   *The remaining coordinates.* By
-   :eq:`skeleton-reduction-integral`, replace each :math:`y^h` by
-
-   .. math::
-
-      T_h(t_{I^c})=E_u\Bigl(\sum_{j\notin I}u_jt_j\Bigr)^h
-        =\sum_{|b|=h}\frac{h!}{b!}\prod_{j\notin I}\frac{t_j^{b_j}}{b_j+1},
-
-   where the :math:`u_j` are independent uniform variables on
-   :math:`[0,1]`. If :math:`q\geq1`, write
-   :math:`t_{I^c}=(1-r)v`, with :math:`v` uniform on its
-   :math:`q`-vertex simplex. The Dirichlet moments give
-
-   .. math::
-
-      E_v[T_h(v)T_l(v)]=\frac{h!l!}{(q)_{h+l}}K_q(h,l).
-
-   The aggregation :math:`t_I=rz` has independent :math:`z\sim U_I`
-   and :math:`r\sim\operatorname{Beta}(s,q)`. Thus the ratio of the
-   squared full-simplex norm of the extended mode to its face norm is
-
-   .. math::
-
-      \frac{1}{(s-1)!\,(M)_{2D}}
-      \sum_{h,l=0}^{n-k} A_{k,h}A_{k,l}
-        (2D+s-h-l-1)!\,h!l!K_q(h,l).
-
-   Specifically, the radial beta integral has exponents
-   :math:`2D+s-h-l-1` and :math:`q+h+l-1`; its factor
-   :math:`(q+h+l-1)!` cancels the corresponding denominator in the
-   preceding moment. The angular norm cancels as well. Trace is invariant
-   under a change of bubble basis, so summing these norm ratios, with
-   :math:`d_s(k)` modes, gives the trace for one face. Multiply by
-   :math:`\binom Ms^2` for the equal faces and the allocation convention.
-
-   When :math:`q=0` there is no extension. Only :math:`h=l=0` survives
-   in the stated formula, each norm ratio equals one, and the sum is
-   :math:`\sum_k d_s(k)=\binom{D-1}{s-1}`, including :math:`s=1`.
-
-Codimension one and the triangle edge risk
--------------------------------------------
-
-.. prf:theorem:: Faces of codimension one
-   :label: thm-skeleton-codimension-one
-
-   For :math:`s\geq1`, :math:`M=s+1`, and :math:`D\geq s`, put
-   :math:`n=D-s` and use :math:`d_s(k)` from
-   :prf:ref:`thm-skeleton-scalar-sum`. Then
-
-   .. math::
-
-      a_{s-1}(s+1,D)=s(s+1)^2\sum_{k=0}^n
-       \frac{d_s(k)}{(n-k+1)(n+k+3s)}.
-
-   Thus the two radial sums and the kernel extraction reduce to a single
-   sum of :math:`n+1` rational terms; there are no polynomial integrals,
-   Gram matrices or propagation coefficients to compute.
-
-.. prf:proof::
-
-   In the mode extension of :prf:ref:`thm-skeleton-scalar-sum`, there is
-   just one outside coordinate :math:`y`. Averaging :math:`y^h` multiplies
-   its coefficient by :math:`1/(h+1)`. Write :math:`L=n-k` and
-   :math:`\beta=3s+2k-1`. The homogeneous radial polynomial therefore
-   becomes, on :math:`r+y=1`,
-
-   .. math::
-
-      \sum_{h=0}^L\frac{(-1)^h}{h+1}\binom Lh\binom{L+\beta}{h}
-        r^{L-h}(1-r)^h
-      =\frac{P_L^{(1,\beta)}(2r-1)}{L+1}.
-
-   The beta density of :math:`r` is :math:`sr^{s-1}`. After the angular
-   norm cancels, the full-to-face squared-norm ratio of this mode is
-
-   .. math::
-
-      \frac{s}{(L+1)^2}\int_0^1 r^\beta
-         P_L^{(1,\beta)}(2r-1)^2\,dr
-      =\frac{s}{(L+1)(L+\beta+1)}.
-
-   For completeness, the last integral follows from the reproducing
-   kernel for polynomials of degree at most :math:`L` with weight
-   :math:`r^\beta`. The shifted polynomials
-   :math:`P_j^{(0,\beta)}` have squared norms
-   :math:`1/(2j+\beta+1)` and endpoint value one. Hence its kernel at
-   endpoint one is
-   :math:`C_L(r)=\sum_{j=0}^L(2j+\beta+1)P_j^{(0,\beta)}(2r-1)`,
-   with :math:`\int r^\beta C_L(r)g(r)\,dr=g(1)`.
-   Taking :math:`g=(1-r)h`, :math:`\deg h<L`, identifies
-   :math:`C_L=(L+\beta+1)P_L^{(1,\beta)}` by orthogonality and
-   :math:`C_L(1)=(L+1)(L+\beta+1)`. Taking :math:`g=C_L` proves
-   :math:`\int r^\beta P_L^{(1,\beta)}(2r-1)^2\,dr
-   =(L+1)/(L+\beta+1)`.
-   Sum the mode ratios with their multiplicities and multiply by
-   :math:`\binom{s+1}s^2=(s+1)^2`.
+For :math:`M=3`, the following formulas determine every coefficient and
+therefore the optimal risk for every degree. Edge and interior coefficients
+are zero when the degree is too small to contain their controls.
 
 .. prf:corollary:: Triangle edge risk in harmonic numbers
    :label: cor-skeleton-triangle-edge-risk
@@ -981,24 +937,11 @@ Codimension one and the triangle edge risk
 .. prf:proof::
 
    Take :math:`s=2`, so every :math:`d_2(k)=1`, and set
-   :math:`j=D-1-k`. The preceding sum is
+   :math:`j=D-1-k` in :prf:ref:`thm-skeleton-codimension-one`. Its sum is
    :math:`18\sum_{j=1}^{D-1}1/(j(2D+3-j))`. Partial fractions give
    :math:`1/(j(C-j))=(1/j+1/(C-j))/C` with :math:`C=2D+3`.
    The two sums are :math:`H_{D-1}` and
    :math:`H_{2D+2}-H_{D+3}`, respectively.
-
-In particular, :math:`a_1(3,D)=9\log D/D+O(1/D)` as
-:math:`D\to\infty`. The exact formula reproduces
-:math:`3,99/28,71/20,188/55,81259/25025,123021/40040` at
-:math:`D=2,\ldots,7`. The tests also compare all Jacobi modes and their
-risks with independent rational Gram solves at :math:`D=8,9,10`, beyond
-the original table. These are checks of the proof, not data used to infer
-the formula. On the development machine the complete mode-and-risk checks
-took about 0.14, 0.27 and 0.52 seconds at these degrees, respectively, and
-run in the normal test suite.
-
-The triangle vertex risk
---------------------------
 
 .. prf:theorem:: Triangle vertex risk in harmonic numbers
    :label: thm-skeleton-triangle-vertex-risk
@@ -1131,32 +1074,6 @@ The triangle vertex risk
    This proves the formula for all :math:`D\geq1`, including all boundary
    terms, without a computer-algebra dependency or an inferred recurrence.
 
-The certificate can also be regenerated with the existing SymPy
-dependency. This optional search is outside the test suite; the proof
-above only needs the rational identity and its boundary values:
-
-.. code-block:: python
-
-   from sympy import binomial, cancel, symbols
-   from sympy.concrete.gosper import gosper_sum
-
-   d, h = symbols("d h", integer=True, nonnegative=True)
-   denominator = d * (d + 1) * (d + 2) * (d + 3)
-   w = binomial(d + 1, h + 2) * binomial(d + 1, h)
-   c = (2 * d + 3) * (d**2 + 2 * d - 1) / denominator
-   r = (h + 2) * ((d**2 + 2 * d - 1) * h - 1) / (denominator * (h + 1))
-   assert cancel(gosper_sum(w * (1 / (h + 2) - c), h) / w - r) == 0
-   ratio = (d - 1 - h) * (d + 1 - h) / ((h + 1) * (h + 3))
-   assert cancel(ratio * r.subs(h, h + 1) - r - 1 / (h + 2) + c) == 0
-
-The exact tests compare the formula with independent full Gram recursion
-at :math:`D=1,\ldots,10` and with the earlier two-variable kernel sum at
-:math:`D=1,\ldots,12`. The candidate was explored with exact rationals
-through degree 80 before this proof was obtained. The independent single
-sum also checks :math:`D=81,100`, outside that exploratory range;
-degree 1000 was checked separately during development. The rational
-certificate, including both endpoints, is checked in the normal test suite.
-
 Together with :prf:ref:`cor-skeleton-triangle-edge-risk` and
 :prf:ref:`prop-skeleton-top`, this closes every triangle coefficient at
 every degree: :math:`a_2(3,D)=\binom{D-1}{2}` for :math:`D\geq3`,
@@ -1168,10 +1085,70 @@ these three coefficients in :prf:ref:`thm-skeleton-ratio`. In particular,
    a_0(3,D)=\frac{36\log D+O(1)}{D^4},\qquad
    a_1(3,D)=\frac{9\log D+O(1)}D.
 
-The remaining finite-dimensional vertex simplification problem starts at
-:math:`M=4`; the general finite kernel sum still applies there. The
-triangle formula makes no claim about changing :math:`M`, the curve
-formula, or the fixed-degree large-:math:`M` limit.
+Explicit triangular propagation modes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The general extension also gives the following control-level formula, used
+by the independent exact verification of the triangle risks.
+
+.. prf:proposition:: Propagation from an edge via Jacobi polynomials
+   :label: prop-skeleton-triangle-jacobi
+
+   Let :math:`m=1`, :math:`D\geq2`, :math:`N=D-2`, and let
+   :math:`I=\{1,2\}`. On the triangle with coordinates
+   :math:`(x_1,x_2,y)`, put :math:`r=x_1+x_2` and
+   :math:`z=x_1/r`. Write the boundary error polynomial as
+
+   .. math::
+
+      p_c(z,1-z,0)=z(1-z)\sum_{k=0}^N d_k P_k^{(2,2)}(2z-1).
+
+   The polynomial :math:`\Phi` of
+   :prf:ref:`thm-skeleton-propagation-reduction`, on this triangle, is
+
+   .. math::
+      :label: skeleton-triangle-jacobi
+
+      \Phi(x_1,x_2,y)=x_1x_2\sum_{k=0}^N d_k r^k
+      P_k^{(2,2)}(2z-1)P_{N-k}^{(0,2k+5)}(2r-1).
+
+   The expression has a polynomial extension to :math:`r=0`. Homogenize it
+   to degree :math:`D` before using
+   :eq:`skeleton-reduction-integral`. More explicitly, the homogeneous
+   polynomial is obtained by replacing the angular factor by
+
+   .. math::
+
+      H_k(x_1,x_2)=\sum_{h=0}^k(-1)^{k-h}
+      \binom{k+2}{h}\binom{k+2}{k-h}x_1^h x_2^{k-h}
+
+   and the radial factor by
+
+   .. math::
+
+      R_{N,k}(r,y)=\sum_{j=0}^{N-k}(-1)^{N-k-j}
+      \binom{N-k}{j}\binom{N+k+5}{N-k-j}r^j y^{N-k-j}.
+
+   Thus :math:`\Phi=x_1x_2\sum_k d_k H_k R_{N,k}` in homogeneous
+   coordinates. If its coefficient of :math:`x_1^a x_2^b y^n` is
+   :math:`A_{abn}`, the Bernstein control of the triangle error
+   :math:`\phi` is
+
+   .. math::
+      :label: skeleton-triangle-jacobi-controls
+
+      e((a,b),n)=\frac{A_{abn}\,a!b!n!}{D!(n+1)}.
+
+.. prf:proof::
+
+   Specialize :eq:`skeleton-mode-extension` to :math:`s=2` and use
+   :math:`Q_k(z)=P_k^{(2,2)}(2z-1)`. Then :math:`n=N`, each angular
+   multiplicity is one, and the radial parameter is :math:`2k+5`.
+   The displayed homogeneous sums are the binomial expansions of those
+   two Jacobi factors. Finally :math:`\partial_y(y\phi)=\Phi` divides
+   the coefficient of :math:`y^n` by :math:`n+1`; conversion from
+   monomials to Bernstein controls gives
+   :eq:`skeleton-triangle-jacobi-controls`.
 
 Fixed degree, growing dimension
 -------------------------------
@@ -1189,195 +1166,55 @@ Fixed degree, growing dimension
 
 .. prf:proof::
 
-   By symmetry every face with :math:`m + 1` vertices contributes equally.
-   Fix one such face :math:`I`. The entries of :math:`E_I` on the faces
-   :math:`J \supseteq I` with :math:`|J| \leq D` are computed from
-   :math:`G^J` alone, so they do not depend on :math:`M`. They are equivariant
-   under permutations that fix :math:`I` pointwise. With
-   :math:`C = E_I (G^I_{T_I T_I})^{-1} E_I^\top`, :eq:`skeleton-moments` gives
+   Set :math:`s=m+1` and :math:`n=D-s` in
+   :eq:`skeleton-scalar-sum`. After multiplying by
+   :math:`(M)_{2D}/\binom Ms^2`, all factors except
+   :math:`K_{M-s}(h,l)` are independent of :math:`M`.
+   By :eq:`skeleton-kernel-polynomial`, this kernel is a polynomial of
+   degree at most :math:`h+l\leq2(n-k)\leq2n`. Summing gives the claim,
+   including the boundary :math:`M=s`.
 
-   .. math::
-
-      \operatorname{tr}\bigl((G^I_{T_I T_I})^{-1} E_I^\top G E_I\bigr)
-      = \sum_{\alpha, \beta} C_{\alpha\beta} \frac{(D!)^2 (\alpha + \beta)!}{\alpha!\,\beta!} \cdot \frac{1}{(M)_{2D}}.
-
-   Group the pairs :math:`(\alpha, \beta)` into classes under these
-   permutations. A class whose union of supports has :math:`s` vertices
-   outside :math:`I` has
-   :math:`(M - m - 1)(M - m - 2) \cdots (M - m - s)` members up to a constant
-   factor, a polynomial in :math:`M` of degree :math:`s`. Every member makes
-   the same contribution, which does not depend on :math:`M`. Each support has
-   at most :math:`D - m - 1` vertices outside :math:`I`, so
-   :math:`s \leq 2(D - m - 1)`.
-
-.. list-table:: :math:`P_{D,m}(M)` for :math:`D \leq 8`
-   :header-rows: 1
-   :stub-columns: 2
-
-   * - :math:`D`
-     - :math:`m`
-     - :math:`P_{D,m}(M)`
-   * - 1
-     - 0
-     - :math:`2`
-   * - 2
-     - 0
-     - :math:`\frac32 (3M^2 - 15M + 28)`
-   * - 2
-     - 1
-     - :math:`120`
-   * - 3
-     - 0
-     - :math:`\frac12 (9M^4 - 114M^3 + 835M^2 - 2610M + 3320)`
-   * - 3
-     - 1
-     - :math:`360 (3M^2 - 21M + 58)`
-   * - 3
-     - 2
-     - :math:`20160`
-   * - 4
-     - 0
-     - :math:`\frac58 (5M^6 - 115M^5 + 1825M^4 - 14765M^3 + 71250M^2 - 174840M + 181152)`
-   * - 4
-     - 1
-     - :math:`\frac{105}{2} (63M^4 - 1050M^3 + 9481M^2 - 38654M + 67512)`
-   * - 4
-     - 2
-     - :math:`136080 (3M^2 - 27M + 94)`
-   * - 4
-     - 3
-     - :math:`6652800`
-   * - 5
-     - 0
-     - :math:`\frac{1}{128} (225M^8 - 8100M^7 + 223650M^6 - 3352440M^5 + 33885265M^4 - 210684820M^3 + 810530924M^2 - 1692775952M + 1526667648)`
-   * - 5
-     - 1
-     - :math:`840 (7M^6 - 203M^5 + 3573M^4 - 34441M^3 + 201644M^2 - 629700M + 867312)`
-   * - 5
-     - 2
-     - :math:`56700 (45M^4 - 930M^3 + 9971M^2 - 49694M + 106152)`
-   * - 5
-     - 3
-     - :math:`79833600 (3M^2 - 33M + 136)`
-   * - 5
-     - 4
-     - :math:`3632428800`
-
-   * - 6
-     - 0
-     - :math:`\frac{7}{1536} (189M^{10} - 9765M^{9} + 416010M^{8} - 9917418M^{7} + 170241981M^{6} - 1939736421M^{5} + 15319824604M^{4} - 79461497164M^{3} + 261855225632M^{2} - 485208011456M + 394380100608)`
-   * - 6
-     - 1
-     - :math:`\frac{63}{40} (4725M^{8} - 207900M^{7} + 5933250M^{6} - 99912240M^{5} + 1132957965M^{4} - 8261943780M^{3} + 38361752764M^{2} - 100723167440M + 118578731904)`
-   * - 6
-     - 2
-     - :math:`155925 (55M^{6} - 1925M^{5} + 38401M^{4} - 431519M^{3} + 2952160M^{2} - 11026484M + 18273744)`
-   * - 6
-     - 3
-     - :math:`21621600 (117M^{4} - 2886M^{3} + 35695M^{2} - 208734M + 519368)`
-   * - 6
-     - 4
-     - :math:`68108040000 (3M^{2} - 39M + 184)`
-   * - 6
-     - 5
-     - :math:`2964061900800`
-   * - 7
-     - 0
-     - :math:`\frac{1}{10368} (3969M^{12} - 277830M^{11} + 16911909M^{10} - 585892314M^{9} + 15245701191M^{8} - 274563067842M^{7} + 3631411308511M^{6} - 34078439471286M^{5} + 227106974533684M^{4} - 1028193132036840M^{3} + 3014866953859072M^{2} - 5083595030097792M + 3804385671687168)`
-   * - 7
-     - 1
-     - :math:`\frac{315}{8} (189M^{10} - 11655M^{9} + 488100M^{8} - 12550518M^{7} + 229047537M^{6} - 2894482743M^{5} + 25831659094M^{4} - 156730040300M^{3} + 621915070424M^{2} - 1437930406240M + 1507450665216)`
-   * - 7
-     - 2
-     - :math:`\frac{31185}{4} (2475M^{8} - 128700M^{7} + 4016430M^{6} - 76100640M^{5} + 969732275M^{4} - 8107098420M^{3} + 43614175604M^{2} - 135327928048M + 189756997248)`
-   * - 7
-     - 3
-     - :math:`151351200 (91M^{6} - 3731M^{5} + 83699M^{4} - 1072645M^{3} + 8358906M^{2} - 36008544M + 68795424)`
-   * - 7
-     - 4
-     - :math:`363242880000 (9M^{4} - 258M^{3} + 3607M^{2} - 24086M + 67896)`
-   * - 7
-     - 5
-     - :math:`80029671321600 (3M^{2} - 45M + 238)`
-   * - 7
-     - 6
-     - :math:`3379030566912000`
-   * - 8
-     - 0
-     - :math:`\frac{1}{1536} (243M^{14} - 22113M^{13} + 1822905M^{12} - 86413257M^{11} + 3170012139M^{10} - 82654759071M^{9} + 1640539616043M^{8} - 24125599635171M^{7} + 266382561743494M^{6} - 2157428183555988M^{5} + 12638903353801912M^{4} - 51381774261439680M^{3} + 137262734136374272M^{2} - 214224590422872576M + 149755742713294848)`
-   * - 8
-     - 1
-     - :math:`\frac{55}{384} (43659M^{12} - 3580038M^{11} + 206363619M^{10} - 7485895494M^{9} + 199202107797M^{8} - 3823026542874M^{7} + 54535243641473M^{6} - 568795558812642M^{5} + 4306623724542524M^{4} - 22811488486847928M^{3} + 80426058871064384M^{2} - 168310145729971584M + 161038581507542016)`
-   * - 8
-     - 2
-     - :math:`\frac{27027}{16} (19305M^{10} - 1383525M^{9} + 61604400M^{8} - 1734571410M^{7} + 34500231285M^{6} - 483666978405M^{5} + 4831926907690M^{4} - 33375332254980M^{3} + 152661774969416M^{2} - 413966621739552M + 513284796940032)`
-   * - 8
-     - 3
-     - :math:`\frac{4729725}{2} (20475M^{8} - 1228500M^{7} + 42200550M^{6} - 891274440M^{5} + 12638555275M^{4} - 118800088180M^{3} + 722231576084M^{2} - 2559256843376M + 4107713331840)`
-   * - 8
-     - 4
-     - :math:`1543782240000 (17M^{6} - 799M^{5} + 19941M^{4} - 286433M^{3} + 2496802M^{2} - 12115512M + 26028000)`
-   * - 8
-     - 5
-     - :math:`31678411564800 (171M^{4} - 5586M^{3} + 86965M^{2} - 650590M + 2040000)`
-   * - 8
-     - 6
-     - :math:`124179373334016000 (3M^{2} - 51M + 298)`
-   * - 8
-     - 7
-     - :math:`5129368400572416000`
-
-The table is computer-assisted: it is computed exactly from the counting in
-the proof, starting from one face per class on a simplex with
-:math:`2D - m - 1` vertices, which contains every class. ``tests/sampling.py``
-repeats this computation, using :prf:ref:`thm-skeleton-propagation-reduction`
-to solve on only :math:`m+2` vertices. In the pair sum it keeps one first
-control per orbit under permutations outside the fixed face. For each first
-control it keeps one second control per orbit of the stabilizer, which
-permutes positions with equal outside exponents. If the outside exponents
-have multiplicities
-:math:`n_k` (including :math:`n_0`), the orbit size is
-:math:`(2D-2m-2)!/\prod_k n_k!`; the second-control multiplicity is the
-product of the same formula within the equal-exponent groups. It compares
-the entries with an independent exact
-evaluation of the definition for small :math:`M`. The entries for
-:math:`m = D-1` and :math:`m = D-2` agree with
-:prf:ref:`prop-skeleton-degree-faces` and
-:prf:ref:`prop-skeleton-second-faces`.
+The polynomials through degree eight and their independent orbit-counting
+verification are in :doc:`skeleton_risk_verification`. They provide exact
+reference values and the finite calculations needed for the comparison
+below; they are not substitutes for the all-degree formulas above.
 
 .. prf:corollary:: Large dimension
    :label: cor-skeleton-large-dimension
 
-   For fixed :math:`D`, every :math:`a_m` converges as :math:`M \to \infty`.
-   In particular
+   Fix :math:`D\geq1` and :math:`1\leq s\leq D`, and put :math:`n=D-s`.
+   Every active coefficient has the positive limit
 
    .. math::
+      :label: skeleton-large-dimension-limit
 
-      \lim_{M \to \infty} a_0 = \frac{2 D^2 (D+1)^2}{4^D}, \qquad
-      \lim_{M \to \infty} a_{D-1} = \frac{(3D-1)!}{(D-1)!\,(D!)^2}, \qquad
-      \lim_{M \to \infty} a_{D-2} = \frac{3 (3D-3)!}{4\,(D-2)!^2\,(D-1)!}.
+      \lim_{M\to\infty}a_{s-1}(M,D)
+       =\frac{(3s-1)!}{(s-1)!(s!)^2\,4^n}
+         \binom{n+3s-1}{n}^{\!2}.
 
-   The optimal inductive risk :math:`(\sum_m \sqrt{a_m})^2` is therefore
-   bounded in :math:`M`, while the all-at-once risk
-   :math:`\binom{D+M-1}{D}` grows without bound. For every degree, inductive
-   skeleton fitting wins in all sufficiently high dimensions.
+   Thus the degree bound in :prf:ref:`thm-skeleton-rational` is attained
+   for every coefficient. For example,
+   :math:`\lim_{M\to\infty}a_0=2D^2(D+1)^2/4^D`.
+   The optimal inductive risk :math:`(\sum_m\sqrt{a_m})^2` is bounded
+   in :math:`M`, while the all-at-once risk :math:`\binom{D+M-1}{D}`
+   grows without bound. Inductive fitting therefore wins in all
+   sufficiently high dimensions for every degree.
 
 .. prf:proof::
 
-   :math:`\binom{M}{m+1}^2 / (M)_{2D}` has degree :math:`2(m + 1) - 2D`, so
-   the degree bound of :prf:ref:`thm-skeleton-rational` gives convergence.
-   The last two limits follow from :prf:ref:`prop-skeleton-degree-faces` and
-   :prf:ref:`prop-skeleton-second-faces`.
-
-   For :math:`a_0`, the leading term counts the pairs with
-   :math:`s = 2(D-1)`. These are exactly :math:`\alpha = \mathbf 1_J` and
-   :math:`\beta = \mathbf 1_K` with :math:`|J| = |K| = D` and
-   :math:`J \cap K = I`. Each such pair has :math:`C_{\alpha\beta} = \gamma_D^2`
-   by :prf:ref:`cor-skeleton-vertex` and
-   :math:`(\alpha+\beta)!/(\alpha!\,\beta!) = 2`. There are
-   :math:`M^{2D-2} / (D-1)!^2 + O(M^{2D-3})` ordered pairs. Hence
-   :math:`a_0 = M^2 \cdot 2 (D!)^2 \gamma_D^2 M^{2D-2} / ((D-1)!^2 M^{2D}) + O(1/M)
-   \to 2 D^2 \gamma_D^2`.
+   Since :math:`F-1=(x+y)/2+O((|x|+|y|)^2)`, the coefficient of
+   :math:`q^{h+l}` in :math:`K_q(h,l)` is
+   :math:`1/(2^{h+l}h!l!)`. In :eq:`skeleton-scalar-sum`, the only
+   term of degree :math:`2n` in :math:`q=M-s` has
+   :math:`k=0` and :math:`h=l=n`. Its factors are
+   :math:`d_s(0)=1`,
+   :math:`A_{0,n}=(-1)^n\binom{n+3s-1}{n}` and
+   :math:`(2D+s-2n-1)!=(3s-1)!`.
+   Finally :math:`\binom Ms^2/(M)_{2D}\sim M^{-2n}/(s!)^2`.
+   Substitution gives the stated limit, including :math:`n=0` and
+   :math:`s=1`. Its positivity proves that the polynomial degree is
+   exactly :math:`2n`. There are only :math:`D` active skeletons, so their
+   optimal risk remains bounded as :math:`M` grows.
 
 .. prf:proposition:: Where inductive fitting wins
    :label: prop-skeleton-wins
@@ -1399,7 +1236,8 @@ evaluation of the definition for small :math:`M`. The entries for
 
    *D = 1.* :math:`a_0 = 2M/(M+1) < 2 \leq M`.
 
-   *D = 2.* By the table, :math:`a_0 = \frac{3M(3M^2 - 15M + 28)}{2(M+1)(M+2)(M+3)} < \frac92`
+   *D = 2.* By :prf:ref:`prop-skeleton-second-faces` and
+   :prf:ref:`prop-skeleton-degree-faces`, :math:`a_0 = \frac{3M(3M^2 - 15M + 28)}{2(M+1)(M+2)(M+3)} < \frac92`
    and :math:`a_1 = \frac{30 M (M-1)^2}{(M+1)(M+2)(M+3)} < 30`. Clearing
    denominators shows both inequalities. So
    :math:`(\sqrt{a_0} + \sqrt{a_1})^2 < 58 < \binom{M+1}{2}` for
@@ -1411,19 +1249,13 @@ evaluation of the definition for small :math:`M`. The entries for
    :math:`p_i` are the coefficients of :math:`P_{D,m}`. The all-at-once risk
    exceeds the resulting bound on :math:`(\sum_m \sqrt{a_m})^2` for
    :math:`M \geq 55, 111, 190, 295, 429, 593` for
-   :math:`D = 3, 4, 5, 6, 7, 8`, respectively. For every smaller :math:`M`, evaluating the table
+   :math:`D = 3, 4, 5, 6, 7, 8`, respectively. For every smaller :math:`M`,
+   evaluating the reference polynomials
    in floating point with a bound on the rounding error gives the stated sets;
    the closest comparison differs by a relative :math:`4.5 \cdot 10^{-3}`.
    Converting each exact coefficient to float, taking square roots, summing,
    and squaring has relative error at most :math:`4(D+1)u`, where
    :math:`u = 2^{-53}`. Every comparison lies beyond this error bound.
-
-   On the development machine, regenerating all polynomials took about
-   :math:`0.09`, :math:`0.75` and :math:`6.6` seconds for :math:`D=6,7,8`.
-   The unreduced :math:`D=6,m=0` computation alone took :math:`31.6` seconds;
-   the reduced version took about :math:`0.04` seconds. Full exact regeneration
-   remains in the test suite; the additional degree-eight cases dominate
-   its added runtime.
 
 These results sharpen the observation of :cite:t:`tanaka2020asymptotic` that
 inductive skeleton fitting wins for degrees below three. That observation is
@@ -1433,78 +1265,35 @@ around once the dimension is large enough.
 Open questions
 --------------
 
-- **Further simplification of the scalar sums for 1 ≤ m ≤ D − 4.**
-  :prf:ref:`thm-skeleton-third-faces` evaluates the entire
-  :math:`m=D-3` family, and :prf:ref:`thm-skeleton-scalar-sum` gives a
-  finite scalar expression in every remaining case. Reducing those sums
-  to a bounded number of functions remains open.
-  :prf:ref:`thm-skeleton-codimension-one` further reduces every
-  codimension-one coefficient to a single rational sum, and
-  :prf:ref:`cor-skeleton-triangle-edge-risk` evaluates the triangular
-  edge coefficient for every degree in harmonic numbers. The remaining
-  simplification question concerns other dimensions and skeletons.
+The asymptotic risk, optimal allocation and a finite scalar expression for
+every coefficient are proved above. The questions below concern further
+evaluation of those expressions and the comparison with all-at-once
+fitting. The curves, all triangle coefficients, the top face, and the
+families :math:`m=D-1,D-2,D-3` are already resolved in closed form.
 
-  A single radial polynomial shared by all angular modes does not
-  provide this extension. Already at :math:`D=4` (:math:`N=2`), the
-  normalized radial factors for :math:`k=0,1,2` are respectively
-  :math:`36r^2-56r+21`, :math:`9r-8`, and :math:`1`; they are different
-  polynomials, each equal to one at :math:`r=1`. Thus this particular
-  separation ansatz fails, while the mode-dependent construction above
-  succeeds. This rules out only that ansatz, not other closed forms.
-
-  Exact rational checks of every triangular angular mode for
-  :math:`D=2,\dots,10` reproduce the independently solved propagation
-  matrices and the harmonic-number formula. Prime factors in individual
-  risk values give no obstruction to such formulas.
-- **A simpler form of a_0 for finite M ≥ 4.**
-  :prf:ref:`thm-skeleton-triangle-vertex-risk` solves :math:`M=3` for
-  every degree in harmonic numbers and a central binomial coefficient.
-  :eq:`skeleton-vertex-double-sum` reduces the control-pair sum to a
-  :math:`D\times D` sum with an explicit generating function. For example
-  it gives :math:`41/280,79/1120,1189/30800` at :math:`M=3` and
-  :math:`D=3,4,5`. :eq:`skeleton-vertex-polynomial` gives every fixed-degree
-  polynomial, but further simplification in :math:`D`, or a linear
-  recurrence in :math:`D` of bounded order, remains open for
-  :math:`M\geq4`.
-
-  Two simplification attempts give the following concrete partial results.
-  Removing the factors :math:`(p+1)^{-1}(q+1)^{-1}` from :math:`F`
-  would give :math:`(1-x-y)^{-1}`, whose powers have coefficients
-  :math:`(r)_{p+q}/(p!q!)` by Vandermonde convolution. Keeping these
-  factors instead gives the logarithmic generating function above;
-  the same unweighted convolution therefore does not evaluate
-  :math:`K_r`.
-
-  For :math:`M=3`, the boundary coefficient can be simplified by partial
-  fractions:
-
-  .. math::
-
-     K_2(p,0)=\sum_{j=0}^p\frac{1}{(j+1)(p-j+1)}
-       =\frac{2H_{p+1}}{p+2},\qquad
-     H_n=\sum_{j=1}^n\frac1j.
-
-  Indeed the summand is
-  :math:`((j+1)^{-1}+(p-j+1)^{-1})/(p+2)`.
-  Gosper summation of this summand with symbolic :math:`p` returns no
-  hypergeometric antidifference (SymPy ``gosper_sum`` returns ``None``).
-  This limits that direct indefinite-summation attempt; it does not rule
-  out a definite-sum identity or creative telescoping. The boundary
-  identity alone only evaluates terms with :math:`k=D` or :math:`l=D`
-  in :eq:`skeleton-vertex-double-sum`. For the full triangle risk, the
-  mixed-product argument above instead reduces everything to one weighted
-  harmonic sum, and :eq:`skeleton-triangle-vertex-certificate` supplies
-  its boundary-aware telescoping certificate. No bounded-order recurrence
-  for general :math:`M\geq4` is asserted.
-- **Exact crossover dimensions for every degree.**
-  :prf:ref:`cor-skeleton-large-dimension` shows that a crossover dimension
-  exists for every :math:`D`, and :prf:ref:`prop-skeleton-wins` determines it
-  for :math:`D \leq 8`. For :math:`D=3,\ldots,8`, the crossover vertex
-  counts are :math:`11,20,29,39,49,60`. In particular the apparent arithmetic
-  progression :math:`9D-16` fails already at :math:`D=6`, where it predicts
-  :math:`38` instead of :math:`39`. The successive differences
-  :math:`9,9,10,10,11` do not establish a general formula or an asymptotic
-  law as :math:`D\to\infty`; those remain open. The exceptional wins below
-  the crossover are :math:`\{2\}` for :math:`D=3,4`,
-  :math:`\{2,3\}` for :math:`D=5,6,7`, and :math:`\{2,3,4\}` for
-  :math:`D=8`.
+- **Shorter evaluations of the remaining nonvertex coefficients.**
+  The remaining range is :math:`M\geq4`, :math:`D\geq5` and
+  :math:`1\leq m\leq\min(D-4,M-2)`.
+  :prf:ref:`thm-skeleton-scalar-sum` evaluates every such coefficient by
+  a finite sum. When :math:`m=M-2`,
+  :prf:ref:`thm-skeleton-codimension-one` already reduces it to a single
+  rational sum. A uniform evaluation without sums whose lengths grow
+  with :math:`D`, for example in rational functions, harmonic numbers or
+  standard hypergeometric functions, remains to be obtained in this range.
+- **Finite-dimensional vertex coefficients beyond triangles.**
+  For :math:`M\geq4` and :math:`D\geq4`, simplify
+  :prf:ref:`thm-skeleton-vertex-sum` uniformly in the degree, or give an
+  explicit fixed-order recurrence in :math:`D`, including its
+  coefficients, initial values and exceptional indices. The triangle
+  formula in :prf:ref:`thm-skeleton-triangle-vertex-risk` and the
+  fixed-degree dimension polynomials do not supply that general
+  evaluation.
+- **The full comparison at degrees above eight.**
+  :prf:ref:`prop-skeleton-wins` classifies every :math:`M` at
+  :math:`D\leq8`. For :math:`D\geq9`, determine the exact set of
+  winning vertex counts, including any small-dimensional exceptions,
+  and the growth of the eventual crossover as :math:`D\to\infty`.
+  :prf:ref:`cor-skeleton-large-dimension` proves eventual winning for
+  each fixed degree; it gives no exact crossover law. Closed formulas
+  for a fixed dimension also require a separate inequality analysis
+  before they yield a classification over all degrees.
