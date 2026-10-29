@@ -452,3 +452,46 @@ def test_space_rejects_string_control_index(index):
     space = bsf.BezierSpace.simplex(1, degree=2)
     with pytest.raises(ValueError, match="control index must be a sequence of integer multi-indices"):
         space.control_index(index)
+
+
+@pytest.mark.parametrize("polynomial_degree", range(4))
+def test_glued_model_boundary_hessians_match_polynomial(polynomial_degree):
+    domain = bsf.SimploidalSet()
+    left, right = domain.add_simplex(2), domain.add_simplex(2)
+    domain.identify(left.face(0, 0), right.face(0, 0))
+    degree = max(1, polynomial_degree)  # Shared spaces require positive representation degrees.
+    space = bsf.BezierSpace.on_set(domain, degree=degree)
+    coefficients = torch.zeros(space.n_controls, 1, dtype=torch.float64)
+    if polynomial_degree == 0:
+        coefficients.fill_(1)
+    else:
+        # The single vertex control represents t_1**degree on both cells;
+        # identifying their common edge identifies these controls too.
+        for cell in (left, right):
+            coefficients[space.control_index((0, degree, 0), cell=cell)] = 1
+    model = bsf.BezierModel(space, coefficients)
+    rows = torch.tensor([[0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.5, 0.5], [1.0, 0.0, 0.0]], dtype=torch.float64)
+    parameters = rows.repeat_interleave(2, dim=0)
+    ids = torch.tensor([space.cell_id(cell) for _ in rows for cell in (left, right)])
+
+    def evaluate(t):
+        return model(bsf.Points(t, ids)).sum()
+
+    expected_values = parameters[:, 1:2] ** polynomial_degree
+    torch.testing.assert_close(model(bsf.Points(parameters, ids)), expected_values, atol=0, rtol=0)
+    expected = torch.zeros((len(parameters), 3, len(parameters), 3), dtype=parameters.dtype)
+    if polynomial_degree >= 2:
+        for i, row in enumerate(parameters):
+            expected[i, 1, i, 1] = polynomial_degree * (polynomial_degree - 1) * row[1] ** (polynomial_degree - 2)
+    actual = torch.autograd.functional.hessian(evaluate, parameters)
+    torch.testing.assert_close(actual, expected, atol=0, rtol=0)
+
+
+@pytest.mark.parametrize("dimensions", [(1,), (2,), (1, 1), (2, 1)])
+def test_constant_model_preserves_zero_coordinate_gradients(dimensions):
+    space = bsf.BezierSpace.simploid(dimensions, degree=0)
+    model = bsf.BezierModel(space, torch.tensor([[2.0]], dtype=torch.float64))
+    parameters = torch.cat([torch.full((3, a + 1), 1 / (a + 1), dtype=torch.float64) for a in dimensions], 1)
+    parameters.requires_grad_()
+    gradient = torch.autograd.grad(model(parameters).sum(), parameters)[0]
+    torch.testing.assert_close(gradient, torch.zeros_like(parameters), atol=0, rtol=0)
