@@ -175,3 +175,25 @@ def test_points_cpu_float64_conversion_preserves_float32_values(values):
     assert converted.parameters.device.type == "cpu"
     torch.testing.assert_close(converted.parameters, source.double(), rtol=0, atol=0)
     torch.testing.assert_close(points.parameters, source, rtol=0, atol=0)
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_points_to_meta_preserves_metadata_and_source(dtype):
+    """Device-independent transfers must retain the public Points metadata contract."""
+    coordinates = torch.tensor([[0.25, 0.75], [1.0, 0.0]], dtype=torch.float64, requires_grad=True)
+    points = Points(coordinates, [2, 7])
+    actual = points.to(device="meta", dtype=dtype)
+    assert actual.parameters.device.type == actual.cell_ids.device.type == "meta"
+    assert actual.parameters.dtype == dtype
+    assert actual.cell_ids.dtype == torch.long
+    assert actual.parameters.shape == points.parameters.shape == (2, 2)
+    assert actual.cell_ids.shape == points.cell_ids.shape == (2,)
+    assert len(actual) == len(points) == 2
+    assert actual.parameters.requires_grad
+    assert actual.parameters.grad_fn is not None
+    assert actual.parameters is not points.parameters
+    assert actual.cell_ids is not points.cell_ids
+    assert points.parameters.device.type == points.cell_ids.device.type == "cpu"
+    assert points.parameters.dtype == torch.float64
+    torch.testing.assert_close(points.parameters, coordinates, rtol=0, atol=0)
+    torch.testing.assert_close(points.cell_ids, torch.tensor([2, 7]))
