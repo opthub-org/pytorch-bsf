@@ -1,0 +1,704 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shape-preserving interpolation on simplicial meshes &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Exact local subdivision" href="splitting.html" />
+    <link rel="prev" title="Single and assembled domains" href="simploidal.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Shape-preserving interpolation on simplicial meshes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#when-to-interpolate-instead-of-fitting">When to interpolate instead of fitting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#interpolate-on-a-mesh">Interpolate on a mesh</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#how-the-cubic-pieces-are-built">How the cubic pieces are built</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#range-limiting-and-its-error-guarantee">Range limiting and its error guarantee</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#smooth-interpolation-in-two-dimensions">Smooth interpolation in two dimensions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#choose-where-to-add-design-points">Choose where to add design points</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#conforming-meshes">Conforming meshes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#limitations">Limitations</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Shape-preserving interpolation on simplicial meshes</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/interpolation.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="shape-preserving-interpolation-on-simplicial-meshes">
+<h1>Shape-preserving interpolation on simplicial meshes<a class="headerlink" href="#shape-preserving-interpolation-on-simplicial-meshes" title="Link to this heading"></a></h1>
+<section id="when-to-interpolate-instead-of-fitting">
+<h2>When to interpolate instead of fitting<a class="headerlink" href="#when-to-interpolate-instead-of-fitting" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">fit</span></code> estimates one global polynomial (or one per glued cell) by least
+squares. When the response is piecewise smooth, with kinks where an active
+set or a regime changes, a global polynomial of moderate degree oscillates
+between design points and can overshoot the data. If the response is
+optimized afterwards, an overshoot becomes a spurious optimum that the data
+never showed.</p>
+<p><a class="reference internal" href="../api.html#torch_bsf.interpolation.hermite_interpolant" title="torch_bsf.interpolation.hermite_interpolant"><code class="xref py py-func docutils literal notranslate"><span class="pre">hermite_interpolant()</span></code></a> builds a local
+alternative from data at the vertices of a simplicial mesh: a continuous
+piecewise cubic Bézier model that passes through every datum and, with the
+default <code class="docutils literal notranslate"><span class="pre">clamp=True</span></code>, never leaves the range of the data at the vertices of
+the simplex it is evaluated in. On a chain of intervals it is a C0 piecewise
+cubic Hermite interpolant whose endpoint slopes are limited independently
+on each interval. The limiter satisfies the square part of the
+Fritsch–Carlson monotonicity conditions <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id49" title="Frederick N. Fritsch and Ralph E. Carlson. Monotone piecewise cubic interpolation. SIAM Journal on Numerical Analysis, 17(2):238–246, 1980.">FC80</a>]</span>, but
+the default gradients do not give the usual C1 PCHIP interpolant. Supplying
+PCHIP slopes as <code class="docutils literal notranslate"><span class="pre">gradients</span></code> recovers PCHIP up to float64 roundoff: its
+interior slopes use the Fritsch–Butland weighted harmonic mean
+<span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id50" title="Frederick N. Fritsch and J. Butland. A method for constructing local monotone piecewise cubic interpolants. SIAM Journal on Scientific and Statistical Computing, 5(2):300–304, 1984. doi:10.1137/0905021.">FB84</a>]</span> and its endpoints use a one-sided rule. We call
+the construction on simplicial meshes <em>simplicial PCHIP</em> in reference to
+its shape preservation.</p>
+<p>Use it when evaluations are exact (or nearly so) and the design points are
+given, for example a grid or the points chosen by an adaptive loop. With
+noisy observations prefer a regularized fit: interpolation reproduces the
+noise.</p>
+</section>
+<section id="interpolate-on-a-mesh">
+<h2>Interpolate on a mesh<a class="headerlink" href="#interpolate-on-a-mesh" title="Link to this heading"></a></h2>
+<p>A <a class="reference internal" href="../api.html#torch_bsf.interpolation.SimplicialMesh" title="torch_bsf.interpolation.SimplicialMesh"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimplicialMesh</span></code></a> takes vertex coordinates
+of shape <code class="docutils literal notranslate"><span class="pre">(n_vertices,</span> <span class="pre">d)</span></code> and simplices of shape <code class="docutils literal notranslate"><span class="pre">(n_simplices,</span> <span class="pre">d</span> <span class="pre">+</span> <span class="pre">1)</span></code>
+given by vertex numbers. The simplices must not be degenerate and must meet
+face to face (the mesh must be <em>conforming</em>); <code class="docutils literal notranslate"><span class="pre">SimplicialMesh</span></code> checks this
+and raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> otherwise (see <a class="reference internal" href="#conforming-meshes">Conforming meshes</a>). The example
+triangulates a jittered grid of the unit square and interpolates a function
+with a kink along a diagonal.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.interpolation</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimplicialMesh</span><span class="p">,</span> <span class="n">hermite_interpolant</span>
+
+<span class="n">n</span> <span class="o">=</span> <span class="mi">6</span>
+<span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">indexing</span><span class="o">=</span><span class="s2">"ij"</span><span class="p">)</span>
+<span class="n">vertices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">i</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span> <span class="n">j</span><span class="o">.</span><span class="n">flatten</span><span class="p">()],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">double</span><span class="p">()</span> <span class="o">/</span> <span class="n">n</span>
+<span class="n">number</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">a</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">b</span>
+<span class="n">simplices</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="n">simplices</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">number</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">),</span> <span class="n">number</span><span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="p">),</span> <span class="n">number</span><span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">b</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)])</span>
+        <span class="n">simplices</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">number</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">),</span> <span class="n">number</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">number</span><span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">b</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)])</span>
+<span class="n">mesh</span> <span class="o">=</span> <span class="n">SimplicialMesh</span><span class="p">(</span><span class="n">vertices</span><span class="p">,</span> <span class="n">simplices</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">response</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([(</span><span class="n">x</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span> <span class="o">+</span> <span class="n">x</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">hermite_interpolant</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="n">response</span><span class="p">(</span><span class="n">vertices</span><span class="p">))</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="n">points</span> <span class="o">=</span> <span class="n">mesh</span><span class="o">.</span><span class="n">locate</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">prediction</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">points</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">model</span><span class="p">(</span><span class="n">mesh</span><span class="o">.</span><span class="n">locate</span><span class="p">(</span><span class="n">vertices</span><span class="p">)),</span> <span class="n">response</span><span class="p">(</span><span class="n">vertices</span><span class="p">),</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">prediction</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">mesh.locate</span></code> returns <a class="reference internal" href="../api.html#torch_bsf.core.Points" title="torch_bsf.core.Points"><code class="xref py py-class docutils literal notranslate"><span class="pre">Points</span></code></a>: the cell ID of the
+simplex containing each point and its barycentric coordinates there.
+<code class="docutils literal notranslate"><span class="pre">model</span></code> is an ordinary <a class="reference internal" href="../api.html#torch_bsf.core.BezierModel" title="torch_bsf.core.BezierModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">BezierModel</span></code></a> on
+<code class="docutils literal notranslate"><span class="pre">mesh.space</span></code>, a <a class="reference internal" href="../api.html#torch_bsf.core.BezierSpace" title="torch_bsf.core.BezierSpace"><code class="xref py py-class docutils literal notranslate"><span class="pre">BezierSpace</span></code></a> of degree three
+compiled from the mesh. Everything that accepts a model, such as
+differentiation with respect to the points or
+<a class="reference internal" href="../api.html#torch_bsf.splitting.subdivide" title="torch_bsf.splitting.subdivide"><code class="xref py py-func docutils literal notranslate"><span class="pre">subdivide()</span></code></a>, accepts this one.</p>
+<p>The barycentric coordinates of cell <code class="docutils literal notranslate"><span class="pre">mesh.cell_ids[k]</span></code> refer to the
+vertices <code class="docutils literal notranslate"><span class="pre">mesh.simplices[k]</span></code>, which lists the vertex numbers of simplex
+<code class="docutils literal notranslate"><span class="pre">k</span></code> in ascending order (the order you passed is not kept). A point on a
+face shared by several simplices is assigned to one of them; the prediction
+does not depend on the choice because the interpolant is continuous. Points
+outside the mesh by more than <code class="docutils literal notranslate"><span class="pre">tol</span></code> raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>, while points
+within <code class="docutils literal notranslate"><span class="pre">tol</span></code> of its boundary are projected onto it. Point location tests
+every simplex, which is simple and exact but costs
+<code class="docutils literal notranslate"><span class="pre">O(n_points</span> <span class="pre">*</span> <span class="pre">n_simplices)</span></code>.</p>
+<p>For very different edge lengths, solving for barycentric coordinates can
+amplify roundoff enough to reject even a mesh’s own vertex. <code class="docutils literal notranslate"><span class="pre">barycentric</span></code>
+estimates factorization error from conditioning and edge scaling, and
+cancellation using absolute matrix products. It recomputes the
+affected point/simplex pairs with exact rational arithmetic on the input
+floats, rounding the resulting coordinates once to float64. Ordinary pairs
+keep the vectorized float64 path. The fallback is slower and caches one
+exact inverse per affected simplex; its integer sizes depend on the input
+exponents. For differentiable inputs the fallback uses cached SymPy
+expressions to differentiate the exact affine map, including the dependence
+on vertices. Each derivative order is evaluated with exact rational inputs
+before rounding, so overflowing terms that cancel cannot spoil finite
+derivatives. Points are handled independently, including when another point
+has a non-finite upstream gradient. SymPy is declared directly (PyTorch also
+requires it) and is imported lazily for these queries. Symbolic work and
+retained autograd state grow with dimension and derivative order, so this
+path is slower than ordinary tensor differentiation. Forward-mode queries
+(<code class="docutils literal notranslate"><span class="pre">torch.autograd.forward_ad</span></code> or <code class="docutils literal notranslate"><span class="pre">torch.func.jvp</span></code>) with any affected pair
+evaluate the whole query using these expressions, preserving point and vertex
+tangents without exposing dual tensor storage to Python.
+<code class="docutils literal notranslate"><span class="pre">torch.func.jacrev</span></code> and <code class="docutils literal notranslate"><span class="pre">torch.func.jacfwd</span></code> batch the exact evaluations
+independently, retaining their individual rational bindings.
+In a fresh PyTorch 2.3 process, its lazy compiler initialization can fail
+when first triggered inside a transform. Calling
+<code class="docutils literal notranslate"><span class="pre">torch.compiler.disable(lambda:</span> <span class="pre">None)</span></code> before entering the transform
+initializes the compiler outside it.
+<code class="docutils literal notranslate"><span class="pre">locate(batch_size=...)</span></code> bounds temporary float64 storage by
+<code class="docutils literal notranslate"><span class="pre">O(batch_size</span> <span class="pre">*</span> <span class="pre">n_simplices</span> <span class="pre">*</span> <span class="pre">(d</span> <span class="pre">+</span> <span class="pre">1))</span></code>, in addition to that cache.</p>
+<p>This corrects loss of precision in the solve, rather than changing the
+meaning of rounded input. For example, when a midpoint’s long-edge
+coordinates have already rounded away its short-edge contribution, the
+supplied position cannot identify the intended midpoint. Use coordinates
+that resolve the feature of interest; increasing <code class="docutils literal notranslate"><span class="pre">tol</span></code> does not recover
+the missing information.</p>
+<p>The mesh keeps independent snapshots of the input vertices and simplices,
+including CPU float64 tensors and NumPy arrays. Changing those original
+inputs later does not change coordinates, point location, volumes or
+interpolation. Treat <code class="docutils literal notranslate"><span class="pre">mesh.vertices</span></code> and <code class="docutils literal notranslate"><span class="pre">mesh.simplices</span></code> as read-only:
+direct in-place edits are unsupported because cached geometry and the
+compiled space would become inconsistent. Construct a new mesh to change
+its geometry or topology. Copying tensor vertices preserves their autograd
+connection.</p>
+</section>
+<section id="how-the-cubic-pieces-are-built">
+<h2>How the cubic pieces are built<a class="headerlink" href="#how-the-cubic-pieces-are-built" title="Link to this heading"></a></h2>
+<p>On each simplex the model is a cubic Bézier simplex. Its controls are set
+from the data <span class="math notranslate nohighlight">\(f_i\)</span> and gradients <span class="math notranslate nohighlight">\(g_i\)</span> at the vertices
+<span class="math notranslate nohighlight">\(x_i\)</span>, like the Bézier form of a cubic Hermite segment:</p>
+<ul class="simple">
+<li><p>at vertex <span class="math notranslate nohighlight">\(i\)</span>, the control is <span class="math notranslate nohighlight">\(f_i\)</span>;</p></li>
+<li><p>on edge <span class="math notranslate nohighlight">\(i \to j\)</span>, next to vertex <span class="math notranslate nohighlight">\(i\)</span>, it is
+<span class="math notranslate nohighlight">\(f_i + g_i \cdot (x_j - x_i) / 3\)</span>;</p></li>
+<li><p>at the centre of the triangle face <span class="math notranslate nohighlight">\((i, j, l)\)</span>, it is the sum of the
+six edge controls of that face divided by four, minus
+<span class="math notranslate nohighlight">\((f_i + f_j + f_l) / 6\)</span>.</p></li>
+</ul>
+<p>A cubic simplex has no other controls. The face formula is the degree
+elevation of the quadratic Bézier triangle whose edge midpoint controls
+match the cubic edge controls <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../references.html#id52" title="Gerald Farin. Curves and Surfaces for CAGD: A Practical Guide. Morgan Kaufmann, 5 edition, 2002.">Far02</a>]</span>, so the interpolant
+reproduces every quadratic polynomial when the gradients are exact.</p>
+<p>Each control depends only on the data of the edge or face that carries it.
+<code class="docutils literal notranslate"><span class="pre">SimplicialMesh</span></code> glues simplices that share a face so that the face’s
+controls are the same coefficient rows from both sides, which makes the
+interpolant continuous (C0). It is not C1 in general: gradients across a
+shared face can jump. This also happens at an interior vertex of a chain
+of intervals: clamping acts separately on the two incident intervals.
+For C1 interpolation in two dimensions, use
+<a class="reference internal" href="../api.html#torch_bsf.interpolation.macro_interpolant" title="torch_bsf.interpolation.macro_interpolant"><code class="xref py py-func docutils literal notranslate"><span class="pre">macro_interpolant()</span></code></a> with
+<code class="docutils literal notranslate"><span class="pre">split=CloughTocher(),</span> <span class="pre">continuity=C1()</span></code> (see <a class="reference internal" href="#smooth-interpolation-in-two-dimensions">Smooth interpolation in two dimensions</a>).</p>
+<p>On an interval with secant slope <span class="math notranslate nohighlight">\(\Delta\)</span>, clipping its two edge
+controls replaces each endpoint slope <span class="math notranslate nohighlight">\(g\)</span> by
+<span class="math notranslate nohighlight">\(\operatorname{median}(0, g, 3\Delta)\)</span>. For <span class="math notranslate nohighlight">\(\Delta \ne 0\)</span>,
+the normalized slopes <span class="math notranslate nohighlight">\(\alpha,\beta\)</span> therefore lie in
+<span class="math notranslate nohighlight">\([0,3]^2\)</span>, a sufficient square within the Fritsch–Carlson monotonicity
+region <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../references.html#id49" title="Frederick N. Fritsch and Ralph E. Carlson. Monotone piecewise cubic interpolation. SIAM Journal on Numerical Analysis, 17(2):238–246, 1980.">FC80</a>]</span>. If <span class="math notranslate nohighlight">\(\Delta=0\)</span>, both limited
+slopes are zero. A shared vertex can have different limited slopes on its
+left and right, so the result is generally C0 rather than C1. For example,
+with <code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">=</span> <span class="pre">(0,</span> <span class="pre">1,</span> <span class="pre">2)</span></code>, <code class="docutils literal notranslate"><span class="pre">f</span> <span class="pre">=</span> <span class="pre">(0,</span> <span class="pre">1,</span> <span class="pre">1.1)</span></code> and supplied slopes <code class="docutils literal notranslate"><span class="pre">g</span> <span class="pre">=</span> <span class="pre">2</span></code>,
+the left derivative at <code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">=</span> <span class="pre">1</span></code> is <code class="docutils literal notranslate"><span class="pre">2</span></code> and the right derivative is
+<code class="docutils literal notranslate"><span class="pre">0.3</span></code>; with the default estimates they are <code class="docutils literal notranslate"><span class="pre">0.55</span></code> and <code class="docutils literal notranslate"><span class="pre">0.3</span></code>.</p>
+<p>PCHIP’s slopes already satisfy these bounds on every interval. To recover
+SciPy’s <code class="docutils literal notranslate"><span class="pre">scipy.interpolate.PchipInterpolator</span></code> on a one-dimensional
+chain, pass <code class="docutils literal notranslate"><span class="pre">pchip.derivative()(x)[:,</span> <span class="pre">None,</span> <span class="pre">:]</span></code> as <code class="docutils literal notranslate"><span class="pre">gradients</span></code> for
+multi-output data (or <code class="docutils literal notranslate"><span class="pre">pchip.derivative()(x)[:,</span> <span class="pre">None,</span> <span class="pre">None]</span></code> for scalar
+data). The Fritsch–Butland rule <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../references.html#id50" title="Frederick N. Fritsch and J. Butland. A method for constructing local monotone piecewise cubic interpolants. SIAM Journal on Scientific and Statistical Computing, 5(2):300–304, 1984. doi:10.1137/0905021.">FB84</a>]</span> uses zero at
+an interior vertex next to a flat interval or a sign change, and a
+weighted harmonic mean of the adjacent secant slopes otherwise. Include
+PCHIP’s one-sided endpoint slopes as well. The limiter then leaves the
+cubic Hermite segments unchanged, up to float64 roundoff.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">gradients</span></code> is omitted,
+<a class="reference internal" href="../api.html#torch_bsf.interpolation.estimate_gradients" title="torch_bsf.interpolation.estimate_gradients"><code class="xref py py-func docutils literal notranslate"><span class="pre">estimate_gradients()</span></code></a> fits a quadratic by
+weighted least squares (weights <span class="math notranslate nohighlight">\(1/|x_w - x_v|^2\)</span>) to the data on the
+smallest <span class="math notranslate nohighlight">\(k\)</span>-ring of mesh neighbours, <span class="math notranslate nohighlight">\(k \ge 2\)</span>, that has two
+points more than the quadratic has unknowns, and falls back to a linear fit
+on the one-ring. Pass your own <code class="docutils literal notranslate"><span class="pre">gradients</span></code> of shape
+<code class="docutils literal notranslate"><span class="pre">(n_vertices,</span> <span class="pre">d,</span> <span class="pre">n_outputs)</span></code> if you know them.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.interpolation</span><span class="w"> </span><span class="kn">import</span> <span class="n">estimate_gradients</span>
+
+<span class="n">quadratic</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">vertices</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">vertices</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">vertices</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">vertices</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span>
+<span class="n">exact</span> <span class="o">=</span> <span class="n">hermite_interpolant</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="n">quadratic</span><span class="p">,</span> <span class="n">clamp</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">truth</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">x</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]</span>
+<span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">exact</span><span class="p">(</span><span class="n">points</span><span class="p">),</span> <span class="n">truth</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">estimate_gradients</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="n">quadratic</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">mesh</span><span class="o">.</span><span class="n">n_vertices</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="range-limiting-and-its-error-guarantee">
+<h2>Range limiting and its error guarantee<a class="headerlink" href="#range-limiting-and-its-error-guarantee" title="Link to this heading"></a></h2>
+<p>With <code class="docutils literal notranslate"><span class="pre">clamp=True</span></code> (the default) each edge control is clipped, output by
+output, into the range of the data at the two vertices of its edge, and each
+face control into the range of the data at the three vertices of its face.
+Clipping uses only the data of that edge or face, so shared controls are
+still shared and continuity is kept. Vertex data are unchanged.</p>
+<p>Bernstein polynomials are nonnegative and sum to one, so a Bézier simplex
+takes values in the convex hull of its controls. Every control of a simplex
+<span class="math notranslate nohighlight">\(T\)</span> is now within the range of its vertex data, hence for every output</p>
+<div class="math notranslate nohighlight">
+\[\min_{v \in T} f(v) \le p(x) \le \max_{v \in T} f(v), \qquad x \in T.\]</div>
+<p>If the data come from a function <span class="math notranslate nohighlight">\(f\)</span>, then for <span class="math notranslate nohighlight">\(x \in T\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[|p(x) - f(x)| \le \max_{v \in T} |f(v) - f(x)| \le \omega_f(h),\]</div>
+<p>where <span class="math notranslate nohighlight">\(h\)</span> is the longest edge of the mesh and
+<span class="math notranslate nohighlight">\(\omega_f(\delta) = \sup\{|f(y) - f(z)| : |y - z| \le \delta\}\)</span> is
+the modulus of continuity of <span class="math notranslate nohighlight">\(f\)</span>. The bound holds for any gradients,
+including poorly estimated ones, and for kinked or discontinuous-derivative
+responses; refining the mesh therefore converges uniformly for any
+continuous <span class="math notranslate nohighlight">\(f\)</span> on the meshed domain. In particular, the interpolant
+never predicts a value outside the observed range of a cell, so its minimum
+over the domain equals the smallest datum and is attained at a design point:
+minimizing the interpolant cannot produce a spurious optimum.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">y</span> <span class="o">=</span> <span class="n">response</span><span class="p">(</span><span class="n">vertices</span><span class="p">)</span>
+<span class="n">corners</span> <span class="o">=</span> <span class="n">y</span><span class="p">[</span><span class="n">mesh</span><span class="o">.</span><span class="n">simplices</span><span class="p">]</span>
+<span class="n">cell_of</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">mesh</span><span class="o">.</span><span class="n">cell_ids</span><span class="o">.</span><span class="n">tolist</span><span class="p">())}</span>
+<span class="n">rows</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">cell_of</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">points</span><span class="o">.</span><span class="n">cell_ids</span><span class="o">.</span><span class="n">tolist</span><span class="p">()])</span>
+<span class="k">assert</span> <span class="p">(</span><span class="n">prediction</span> <span class="o">&gt;=</span> <span class="n">corners</span><span class="o">.</span><span class="n">amin</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="n">rows</span><span class="p">]</span> <span class="o">-</span> <span class="mf">1e-12</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+<span class="k">assert</span> <span class="p">(</span><span class="n">prediction</span> <span class="o">&lt;=</span> <span class="n">corners</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="n">rows</span><span class="p">]</span> <span class="o">+</span> <span class="mf">1e-12</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>In one dimension, clipping keeps the slope ratios
+<span class="math notranslate nohighlight">\(\alpha = g_i h / \Delta\)</span> and <span class="math notranslate nohighlight">\(\beta = g_{i+1} h / \Delta\)</span> of
+each interval in <span class="math notranslate nohighlight">\([0, 3]\)</span>, where <span class="math notranslate nohighlight">\(\Delta\)</span> is the change of the
+data over the interval. This is the box condition of Fritsch and Carlson,
+which makes the cubic monotone on every interval where the data are
+monotone. Without clipping, a step in the data overshoots:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">line</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+<span class="n">chain</span> <span class="o">=</span> <span class="n">SimplicialMesh</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="p">[[</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">7</span><span class="p">)])</span>
+<span class="n">step</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">locate</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">701</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">])</span>
+<span class="n">loose</span> <span class="o">=</span> <span class="n">hermite_interpolant</span><span class="p">(</span><span class="n">chain</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">clamp</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span><span class="n">t</span><span class="p">)</span>
+<span class="n">tight</span> <span class="o">=</span> <span class="n">hermite_interpolant</span><span class="p">(</span><span class="n">chain</span><span class="p">,</span> <span class="n">step</span><span class="p">)(</span><span class="n">t</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"unclamped: [</span><span class="si">{</span><span class="n">loose</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">loose</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">]"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"clamped:   [</span><span class="si">{</span><span class="n">tight</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">tight</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">]"</span><span class="p">)</span>
+<span class="k">assert</span> <span class="p">(</span><span class="n">tight</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="o">-</span><span class="mf">1e-12</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>unclamped: [-0.047, 1.047]
+clamped:   [0.000, 1.000]
+</pre></div>
+</div>
+<p>Clipping trades accuracy for safety. Near a local extremum of the response,
+the true function leaves the range of the vertex data of a cell, and the
+clamped interpolant cannot follow it, so quadratic data are no longer
+reproduced exactly in such cells. Use <code class="docutils literal notranslate"><span class="pre">clamp=False</span></code> when the response is
+smooth and exact quadratic reproduction matters more than the range
+guarantee.</p>
+</section>
+<section id="smooth-interpolation-in-two-dimensions">
+<h2>Smooth interpolation in two dimensions<a class="headerlink" href="#smooth-interpolation-in-two-dimensions" title="Link to this heading"></a></h2>
+<p>The interpolant above is continuous, but its gradient jumps across the faces
+of the mesh. On a triangle mesh, <a class="reference internal" href="../api.html#torch_bsf.interpolation.macro_interpolant" title="torch_bsf.interpolation.macro_interpolant"><code class="xref py py-func docutils literal notranslate"><span class="pre">macro_interpolant()</span></code></a>
+also builds a continuously differentiable (C1) interpolant that keeps the same
+range guarantee. <code class="docutils literal notranslate"><span class="pre">split</span></code> says how each simplex is divided into pieces and
+<code class="docutils literal notranslate"><span class="pre">continuity</span></code> how smoothly neighbouring pieces join:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">split</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">continuity</span></code></p></th>
+<th class="head"><p>Dimensions</p></th>
+<th class="head"><p>Interpolant</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../api.html#torch_bsf.interpolation.NoSplit" title="torch_bsf.interpolation.NoSplit"><code class="xref py py-class docutils literal notranslate"><span class="pre">NoSplit</span></code></a> (default)</p></td>
+<td><p><a class="reference internal" href="../api.html#torch_bsf.interpolation.C0" title="torch_bsf.interpolation.C0"><code class="xref py py-class docutils literal notranslate"><span class="pre">C0</span></code></a> (default)</p></td>
+<td><p>any</p></td>
+<td><p><a class="reference internal" href="../api.html#torch_bsf.interpolation.hermite_interpolant" title="torch_bsf.interpolation.hermite_interpolant"><code class="xref py py-func docutils literal notranslate"><span class="pre">hermite_interpolant()</span></code></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../api.html#torch_bsf.interpolation.CloughTocher" title="torch_bsf.interpolation.CloughTocher"><code class="xref py py-class docutils literal notranslate"><span class="pre">CloughTocher</span></code></a></p></td>
+<td><p><a class="reference internal" href="../api.html#torch_bsf.interpolation.C1" title="torch_bsf.interpolation.C1"><code class="xref py py-class docutils literal notranslate"><span class="pre">C1</span></code></a></p></td>
+<td><p>2</p></td>
+<td><p>Clough–Tocher macro-element</p></td>
+</tr>
+</tbody>
+</table>
+<p>Other combinations raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. The Clough–Tocher macro-element
+<span class="bibtex-citation" id="id6">[<a class="reference internal" href="../references.html#id51" title="Ray W. Clough and James L. Tocher. Finite element stiffness matrices for analysis of plate bending. In Proceedings of the Conference on Matrix Methods in Structural Mechanics, 515–545. Wright-Patterson Air Force Base, Ohio, 1965.">CT65</a>, <a class="reference internal" href="../references.html#id52" title="Gerald Farin. Curves and Surfaces for CAGD: A Practical Guide. Morgan Kaufmann, 5 edition, 2002.">Far02</a>]</span> splits every triangle at an
+interior point into three cubic pieces. The vertex values and gradients fix
+the controls next to the vertices, and one control per side of each edge
+remains free. That control is chosen so that the derivative across the edge
+varies linearly along it, which reproduces quadratic data. Then the controls
+on both sides of the edge are moved together to the nearest pair that joins
+them with a continuous gradient.</p>
+<p>The split point is the incenter, measured after dividing each axis by a power
+of two near the longest side of the mesh along it, so that the split does not
+depend on the units of the axes. The segment joining the incenters of two
+triangles sharing an edge crosses that edge strictly inside it, and an affine
+map of the domain keeps it so. Hence, once
+the controls next to the vertices lie in the data range of every triangle
+containing them, the free controls on both sides of an edge can be kept in
+range without breaking C1. With <code class="docutils literal notranslate"><span class="pre">clamp=True</span></code>, every vertex gradient is first
+projected onto the gradients that satisfy this, which keeps the controls next
+to the vertex consistent with one gradient, and hence C1. The projection
+minimizes the change of those controls, which does not depend on the
+coordinate system. Every other control is a convex combination, so the
+prediction on each triangle stays within the range of its vertex data, as in
+<a class="reference internal" href="#range-limiting-and-its-error-guarantee">Range limiting and its error guarantee</a>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.interpolation</span><span class="w"> </span><span class="kn">import</span> <span class="n">C1</span><span class="p">,</span> <span class="n">CloughTocher</span><span class="p">,</span> <span class="n">macro_interpolant</span>
+
+<span class="n">smooth</span> <span class="o">=</span> <span class="n">macro_interpolant</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="n">response</span><span class="p">(</span><span class="n">vertices</span><span class="p">),</span> <span class="n">split</span><span class="o">=</span><span class="n">CloughTocher</span><span class="p">(),</span> <span class="n">continuity</span><span class="o">=</span><span class="n">C1</span><span class="p">())</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">smooth</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">piece_of</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">smooth</span><span class="o">.</span><span class="n">pieces</span><span class="o">.</span><span class="n">cell_ids</span><span class="o">.</span><span class="n">tolist</span><span class="p">())}</span>
+<span class="n">rows</span> <span class="o">=</span> <span class="n">smooth</span><span class="o">.</span><span class="n">parent</span><span class="p">[[</span><span class="n">piece_of</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">smooth</span><span class="o">.</span><span class="n">locate</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">cell_ids</span><span class="o">.</span><span class="n">tolist</span><span class="p">()]]</span>
+<span class="n">corners</span> <span class="o">=</span> <span class="n">response</span><span class="p">(</span><span class="n">vertices</span><span class="p">)[</span><span class="n">mesh</span><span class="o">.</span><span class="n">simplices</span><span class="p">[</span><span class="n">rows</span><span class="p">]]</span>
+<span class="k">assert</span> <span class="p">(</span><span class="n">y</span> <span class="o">&gt;=</span> <span class="n">corners</span><span class="o">.</span><span class="n">amin</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mf">1e-12</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="ow">and</span> <span class="p">(</span><span class="n">y</span> <span class="o">&lt;=</span> <span class="n">corners</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-12</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The result is a <a class="reference internal" href="../api.html#torch_bsf.interpolation.MacroInterpolant" title="torch_bsf.interpolation.MacroInterpolant"><code class="xref py py-class docutils literal notranslate"><span class="pre">MacroInterpolant</span></code></a>. Call it at
+points, or evaluate its <code class="docutils literal notranslate"><span class="pre">model</span></code>, a
+<a class="reference internal" href="../api.html#torch_bsf.core.BezierModel" title="torch_bsf.core.BezierModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">BezierModel</span></code></a> on <code class="docutils literal notranslate"><span class="pre">smooth.pieces.space</span></code>, at
+<code class="docutils literal notranslate"><span class="pre">smooth.locate(x)</span></code>. <code class="docutils literal notranslate"><span class="pre">smooth.pieces</span></code> is the
+<a class="reference internal" href="../api.html#torch_bsf.interpolation.SimplicialMesh" title="torch_bsf.interpolation.SimplicialMesh"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimplicialMesh</span></code></a> of the pieces, and
+<code class="docutils literal notranslate"><span class="pre">smooth.parent[k]</span></code> is the triangle containing piece <code class="docutils literal notranslate"><span class="pre">k</span></code>. Pass the same
+<code class="docutils literal notranslate"><span class="pre">split</span></code> and <code class="docutils literal notranslate"><span class="pre">continuity</span></code> to
+<a class="reference internal" href="../api.html#torch_bsf.interpolation.refinement_indicator" title="torch_bsf.interpolation.refinement_indicator"><code class="xref py py-func docutils literal notranslate"><span class="pre">refinement_indicator()</span></code></a> to score triangles by
+this interpolant.</p>
+</section>
+<section id="choose-where-to-add-design-points">
+<h2>Choose where to add design points<a class="headerlink" href="#choose-where-to-add-design-points" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="../api.html#torch_bsf.interpolation.refinement_indicator" title="torch_bsf.interpolation.refinement_indicator"><code class="xref py py-func docutils literal notranslate"><span class="pre">refinement_indicator()</span></code></a> scores each simplex by
+its volume times the difference between the cubic interpolant and linear
+interpolation at its centroid. A large score means the data bend within a
+large cell. Evaluating the response near the midpoint of the longest edge of
+the top-scoring cell and remeshing is a simple adaptive design. The example
+refines a one-dimensional kink, where remeshing is just sorting.</p>
+<p>The score applies the volume before rounding reductions near the float64
+limits. It therefore keeps finite scores when a vertex mean or an intermediate
+correction would overflow, or when a small mean would underflow before being
+multiplied by a large volume. These rare rows use exact rational arithmetic
+on the finite centroid predictions and vertex data; ordinary rows retain
+vectorized floating-point reductions. A true score beyond float64 is positive
+infinity. A non-finite centroid prediction raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.interpolation</span><span class="w"> </span><span class="kn">import</span> <span class="n">refinement_indicator</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">kink</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">s</span> <span class="o">-</span> <span class="mf">0.37</span><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">chain_mesh</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span><span class="o">.</span><span class="n">values</span>
+    <span class="k">return</span> <span class="n">s</span><span class="p">,</span> <span class="n">SimplicialMesh</span><span class="p">(</span><span class="n">s</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="p">[[</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)])</span>
+
+<span class="n">test</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1001</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="n">design</span><span class="p">,</span> <span class="n">chain</span> <span class="o">=</span> <span class="n">chain_mesh</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
+<span class="n">first</span> <span class="o">=</span> <span class="p">(</span><span class="n">hermite_interpolant</span><span class="p">(</span><span class="n">chain</span><span class="p">,</span> <span class="n">kink</span><span class="p">(</span><span class="n">design</span><span class="p">))(</span><span class="n">chain</span><span class="o">.</span><span class="n">locate</span><span class="p">(</span><span class="n">test</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]))[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">kink</span><span class="p">(</span><span class="n">test</span><span class="p">))</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">6</span><span class="p">):</span>
+    <span class="n">worst</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">refinement_indicator</span><span class="p">(</span><span class="n">chain</span><span class="p">,</span> <span class="n">kink</span><span class="p">(</span><span class="n">design</span><span class="p">))</span><span class="o">.</span><span class="n">argmax</span><span class="p">())</span>
+    <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">chain</span><span class="o">.</span><span class="n">simplices</span><span class="p">[</span><span class="n">worst</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="n">design</span><span class="p">,</span> <span class="n">chain</span> <span class="o">=</span> <span class="n">chain_mesh</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">design</span><span class="p">,</span> <span class="p">(</span><span class="n">design</span><span class="p">[</span><span class="n">a</span><span class="p">:</span><span class="n">a</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">design</span><span class="p">[</span><span class="n">b</span><span class="p">:</span><span class="n">b</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span><span class="p">]))</span>
+<span class="n">last</span> <span class="o">=</span> <span class="p">(</span><span class="n">hermite_interpolant</span><span class="p">(</span><span class="n">chain</span><span class="p">,</span> <span class="n">kink</span><span class="p">(</span><span class="n">design</span><span class="p">))(</span><span class="n">chain</span><span class="o">.</span><span class="n">locate</span><span class="p">(</span><span class="n">test</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]))[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">kink</span><span class="p">(</span><span class="n">test</span><span class="p">))</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+<span class="k">assert</span> <span class="n">last</span> <span class="o">&lt;</span> <span class="n">first</span> <span class="o">/</span> <span class="mi">4</span>
+</pre></div>
+</div>
+<p>In higher dimensions, <a class="reference internal" href="../api.html#torch_bsf.interpolation.refine" title="torch_bsf.interpolation.refine"><code class="xref py py-func docutils literal notranslate"><span class="pre">refine()</span></code></a> bisects the
+selected simplices at the midpoint of an edge and returns a new mesh. The new
+vertices are appended after the old ones, so the data already observed keep
+their rows; evaluate the response only at the new vertices. The example
+starts from the lattice mesh of the triangle described below and uses
+newest-vertex bisection, the rule suited to lattice meshes (see below).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.interpolation</span><span class="w"> </span><span class="kn">import</span> <span class="n">lattice_mesh</span><span class="p">,</span> <span class="n">refine</span>
+
+<span class="n">adaptive</span> <span class="o">=</span> <span class="n">lattice_mesh</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">observed</span> <span class="o">=</span> <span class="n">response</span><span class="p">(</span><span class="n">adaptive</span><span class="o">.</span><span class="n">vertices</span><span class="p">)</span>
+<span class="k">while</span> <span class="n">adaptive</span><span class="o">.</span><span class="n">n_vertices</span> <span class="o">&lt;</span> <span class="mi">20</span><span class="p">:</span>
+    <span class="n">worst</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">refinement_indicator</span><span class="p">(</span><span class="n">adaptive</span><span class="p">,</span> <span class="n">observed</span><span class="p">)</span><span class="o">.</span><span class="n">argmax</span><span class="p">())</span>
+    <span class="n">old</span> <span class="o">=</span> <span class="n">adaptive</span><span class="o">.</span><span class="n">n_vertices</span>
+    <span class="n">adaptive</span> <span class="o">=</span> <span class="n">refine</span><span class="p">(</span><span class="n">adaptive</span><span class="p">,</span> <span class="p">[</span><span class="n">worst</span><span class="p">],</span> <span class="n">rule</span><span class="o">=</span><span class="s2">"newest_vertex"</span><span class="p">)</span>
+    <span class="n">observed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">observed</span><span class="p">,</span> <span class="n">response</span><span class="p">(</span><span class="n">adaptive</span><span class="o">.</span><span class="n">vertices</span><span class="p">[</span><span class="n">old</span><span class="p">:])])</span>
+<span class="k">assert</span> <span class="n">adaptive</span><span class="o">.</span><span class="n">unmatched_faces</span> <span class="o">==</span> <span class="mi">0</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">hermite_interpolant</span><span class="p">(</span><span class="n">adaptive</span><span class="p">,</span> <span class="n">observed</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="conforming-meshes">
+<h2>Conforming meshes<a class="headerlink" href="#conforming-meshes" title="Link to this heading"></a></h2>
+<p>Two simplices of a conforming mesh meet in a common face or not at all. The
+interpolant is continuous only on such meshes, because a control on a face is
+shared only by simplices that both have that whole face. <code class="docutils literal notranslate"><span class="pre">SimplicialMesh</span></code>
+counts the faces that break this rule, those shared by more than two
+simplices and those across which the mesh continues without a matching face
+(a hanging vertex, or two cells splitting a common square along different
+diagonals), in <code class="docutils literal notranslate"><span class="pre">unmatched_faces</span></code>. It raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> if there are any,
+or warns with <code class="docutils literal notranslate"><span class="pre">strict=False</span></code>. Faces on the boundary of the meshed domain
+are fine.</p>
+<p>With the optional SciPy dependency (the <code class="docutils literal notranslate"><span class="pre">sparse</span></code> extra), a Delaunay
+triangulation of points in general position can be passed directly:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.spatial</span><span class="w"> </span><span class="kn">import</span> <span class="n">Delaunay</span>
+
+<span class="n">scattered</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">]]),</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span> <span class="mi">2</span><span class="p">)])</span><span class="o">.</span><span class="n">double</span><span class="p">()</span>
+<span class="n">delaunay</span> <span class="o">=</span> <span class="n">SimplicialMesh</span><span class="p">(</span><span class="n">scattered</span><span class="p">,</span> <span class="n">Delaunay</span><span class="p">(</span><span class="n">scattered</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span><span class="o">.</span><span class="n">simplices</span><span class="p">)</span>
+<span class="n">smooth</span> <span class="o">=</span> <span class="n">hermite_interpolant</span><span class="p">(</span><span class="n">delaunay</span><span class="p">,</span> <span class="n">response</span><span class="p">(</span><span class="n">scattered</span><span class="p">))</span>
+<span class="n">score</span> <span class="o">=</span> <span class="n">refinement_indicator</span><span class="p">(</span><span class="n">delaunay</span><span class="p">,</span> <span class="n">response</span><span class="p">(</span><span class="n">scattered</span><span class="p">))</span>
+<span class="k">assert</span> <span class="n">score</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="n">delaunay</span><span class="o">.</span><span class="n">n_simplices</span><span class="p">,)</span>
+</pre></div>
+</div>
+<p>Points of a lattice, such as a grid of mixture weights, are co-spherical, so
+their Delaunay triangulation is not unique. Qhull then returns flat
+simplices, which <code class="docutils literal notranslate"><span class="pre">SimplicialMesh</span></code> rejects as degenerate, and removing them
+leaves cells that split a flat polygon in different ways on its two sides:
+the mesh is not conforming. For the degree-<code class="docutils literal notranslate"><span class="pre">k</span></code> lattice of a simplex, use
+<a class="reference internal" href="../api.html#torch_bsf.interpolation.lattice_mesh" title="torch_bsf.interpolation.lattice_mesh"><code class="xref py py-func docutils literal notranslate"><span class="pre">lattice_mesh()</span></code></a> instead. It returns the Kuhn
+(Freudenthal) triangulation <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../references.html#id53" title="Harold W. Kuhn. Some combinatorial lemmas in topology. IBM Journal of Research and Development, 4(5):518–524, 1960.">Kuh60</a>]</span>: <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">**</span> <span class="pre">d</span></code>
+simplices of equal volume (not congruent for <code class="docutils literal notranslate"><span class="pre">d</span> <span class="pre">&gt;=</span> <span class="pre">3</span></code>) whose vertices are
+the lattice points, in the order of
+<a class="reference internal" href="../api.html#torch_bsf.sampling.grid" title="torch_bsf.sampling.grid"><code class="xref py py-func docutils literal notranslate"><span class="pre">grid()</span></code></a> with <code class="docutils literal notranslate"><span class="pre">resolution=k</span></code>, given by their first
+<code class="docutils literal notranslate"><span class="pre">d</span></code> barycentric coordinates.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">mixtures</span> <span class="o">=</span> <span class="n">lattice_mesh</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">mixtures</span><span class="o">.</span><span class="n">n_vertices</span><span class="p">,</span> <span class="n">mixtures</span><span class="o">.</span><span class="n">n_simplices</span><span class="p">,</span> <span class="n">mixtures</span><span class="o">.</span><span class="n">unmatched_faces</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>35 64 0
+</pre></div>
+</div>
+<p>Refinement by <a class="reference internal" href="../api.html#torch_bsf.interpolation.refine" title="torch_bsf.interpolation.refine"><code class="xref py py-func docutils literal notranslate"><span class="pre">refine()</span></code></a> keeps a mesh
+conforming. Every simplex has a refinement edge, which <code class="docutils literal notranslate"><span class="pre">rule</span></code> selects. A
+simplex is cut at the midpoint of its refinement edge; the edge is bisected
+in every simplex containing it, and before that each of those simplices
+whose refinement edge is another one is refined, recursively. Refining one
+simplex can therefore add more than one vertex. By default
+(<code class="docutils literal notranslate"><span class="pre">rule=&quot;longest_edge&quot;</span></code>) the refinement edge is the longest edge, which is
+the longest-edge bisection of Rivara <span class="bibtex-citation" id="id8">[<a class="reference internal" href="../references.html#id55" title="Maria-Cecilia Rivara. Algorithms for refining triangular grids suitable for adaptive and multigrid techniques. International Journal for Numerical Methods in Engineering, 20(4):745–756, 1984.">Riv84</a>]</span>; ties
+between edges of equal length, common on lattices, are broken by vertex
+numbers in the same way everywhere. Starting from a lattice mesh, with either
+rule, every new vertex is a lattice point of a finer lattice (degree <code class="docutils literal notranslate"><span class="pre">2k</span></code>,
+then <code class="docutils literal notranslate"><span class="pre">4k</span></code>, and so on).</p>
+<p>Longest-edge bisection does not respect the cubes of a lattice mesh,
+however: the longest edge of a Kuhn simplex in these coordinates is not the
+diagonal of its cube, so refining every simplex of <code class="docutils literal notranslate"><span class="pre">lattice_mesh(3,</span> <span class="pre">3)</span></code>
+three times gives 186 vertices instead of the 84 of the degree-6 lattice, and
+adaptive refinement spends part of its vertices on closure. With
+<code class="docutils literal notranslate"><span class="pre">rule=&quot;newest_vertex&quot;</span></code>, <a class="reference internal" href="../api.html#torch_bsf.interpolation.refine" title="torch_bsf.interpolation.refine"><code class="xref py py-func docutils literal notranslate"><span class="pre">refine()</span></code></a> uses the
+newest-vertex bisection of Maubach <span class="bibtex-citation" id="id9">[<a class="reference internal" href="../references.html#id54" title="Joseph M. Maubach. Local bisection refinement for $n$-simplicial grids generated by reflection. SIAM Journal on Scientific Computing, 16(1):210–227, 1995.">Mau95</a>]</span> instead: the
+simplices of a lattice mesh are ordered along their Kuhn paths, each is cut
+across the diagonal of its cube, and the refined mesh keeps the order and the
+tags of its simplices for the next call. Then <code class="docutils literal notranslate"><span class="pre">d</span></code> rounds of refining every
+simplex double the lattice degree, the simplices take finitely many shapes,
+and an adaptive mesh is locally a finer lattice mesh.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"newest_vertex"</span><span class="p">,</span> <span class="s2">"longest_edge"</span><span class="p">):</span>
+    <span class="n">uniform</span> <span class="o">=</span> <span class="n">lattice_mesh</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+        <span class="n">uniform</span> <span class="o">=</span> <span class="n">refine</span><span class="p">(</span><span class="n">uniform</span><span class="p">,</span> <span class="nb">range</span><span class="p">(</span><span class="n">uniform</span><span class="o">.</span><span class="n">n_simplices</span><span class="p">),</span> <span class="n">rule</span><span class="o">=</span><span class="n">rule</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">rule</span><span class="p">,</span> <span class="n">uniform</span><span class="o">.</span><span class="n">n_vertices</span><span class="p">,</span> <span class="n">uniform</span><span class="o">.</span><span class="n">n_simplices</span><span class="p">,</span> <span class="n">uniform</span><span class="o">.</span><span class="n">unmatched_faces</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>newest_vertex 84 216 0
+longest_edge 186 634 0
+</pre></div>
+</div>
+<p>The newest-vertex rule needs this state, so it applies to meshes from
+<a class="reference internal" href="../api.html#torch_bsf.interpolation.lattice_mesh" title="torch_bsf.interpolation.lattice_mesh"><code class="xref py py-func docutils literal notranslate"><span class="pre">lattice_mesh()</span></code></a> and their newest-vertex
+refinements; other meshes raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.</p>
+</section>
+<section id="limitations">
+<h2>Limitations<a class="headerlink" href="#limitations" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Meshes of arbitrary point sets are not generated here; only lattice meshes
+and their refinements are. The simplices must be full-dimensional,
+non-degenerate and conforming. The conformity check does not detect
+simplices that overlap without sharing a face.</p></li>
+<li><p>The interpolant is cubic. It is C1 only on triangle meshes, with the
+Clough–Tocher split. C1 interpolants in three or more dimensions, other
+splits (such as Powell–Sabin) and non-simplicial cells such as prisms are
+not provided.</p></li>
+<li><p>The clamped C1 interpolant need not depend continuously on the vertex
+coordinates. Its gradient limiter projects onto a set that can shrink
+abruptly, for example when two edges through a vertex stop being exactly
+parallel. Each result is still C1 and in range.</p></li>
+<li><p>The Clough–Tocher split raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> on a triangle whose split
+point rounds onto one of its sides, for example a triangle far thinner
+across than its distance from the origin.</p></li>
+<li><p>Quadratic reproduction requires enough neighbours around each vertex for
+the gradient estimate; near a sparse boundary only linear data are
+reproduced unless you pass gradients.</p></li>
+<li><p>Computation is in float64 on the CPU.
+<a class="reference internal" href="../api.html#torch_bsf.interpolation.estimate_gradients" title="torch_bsf.interpolation.estimate_gradients"><code class="xref py py-func docutils literal notranslate"><span class="pre">estimate_gradients()</span></code></a> returns signed infinity
+without a warning for gradient components beyond the float64 range, even
+when the vertex data are finite (for example, on very short edges).
+<a class="reference internal" href="../api.html#torch_bsf.interpolation.hermite_interpolant" title="torch_bsf.interpolation.hermite_interpolant"><code class="xref py py-func docutils literal notranslate"><span class="pre">hermite_interpolant()</span></code></a>,
+<a class="reference internal" href="../api.html#torch_bsf.interpolation.macro_interpolant" title="torch_bsf.interpolation.macro_interpolant"><code class="xref py py-func docutils literal notranslate"><span class="pre">macro_interpolant()</span></code></a> and
+<a class="reference internal" href="../api.html#torch_bsf.interpolation.refinement_indicator" title="torch_bsf.interpolation.refinement_indicator"><code class="xref py py-func docutils literal notranslate"><span class="pre">refinement_indicator()</span></code></a> raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>
+identifying overflow in the interpolant when its controls are non-finite.
+Clamping can clip infinite controls into the vertex data range, but cannot
+repair NaN controls. Rescale the vertex data or coordinates if this occurs.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="simploidal.html" class="btn btn-neutral float-left" title="Single and assembled domains" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="splitting.html" class="btn btn-neutral float-right" title="Exact local subdivision" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: test/581-unify-tool-tests
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/advanced/interpolation.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/advanced/interpolation.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/advanced/interpolation.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="interpolation.html">test/581-unify-tool-tests</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
