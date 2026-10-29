@@ -64,6 +64,7 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="api.html">Python API reference</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Migrating to the unified v0 API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#python-3-11-minimum-unreleased">Python 3.11 minimum (unreleased)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#separate-geometry-observations-and-fitted-state">Separate geometry, observations and fitted state</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#translate-penalties-and-constraints-deliberately">Translate penalties and constraints deliberately</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#replace-implicit-preprocessing-and-model-storage">Replace implicit preprocessing and model storage</a></li>
@@ -155,6 +156,23 @@ sample-count-dependent sum. <code class="docutils literal notranslate"><span cla
 Existing numerical penalty values may therefore need retuning.</p>
 <p>The internal <code class="docutils literal notranslate"><span class="pre">_kernels</span></code> package retains tested geometry algorithms. It is
 private and is not a compatibility API.</p>
+<section id="python-3-11-minimum-unreleased">
+<h2>Python 3.11 minimum (unreleased)<a class="headerlink" href="#python-3-11-minimum-unreleased" title="Link to this heading"></a></h2>
+<p>The next release supports Python 3.11 through 3.15. Recreate Python 3.10
+environments with a supported interpreter before upgrading pytorch-bsf.
+The Python 3.10 dependency resolution selected vulnerable Pillow 12.3.0
+and filelock 4.1.0. Their security fixes require Python 3.11 or later:
+Pillow 13.0.0 and filelock 4.2.1. The refreshed <code class="docutils literal notranslate"><span class="pre">uv.lock</span></code> keeps Pillow
+13.0.0 and filelock 4.2.4 for supported interpreters.
+The NumPy lower bound is now 1.23.2, which provides Python 3.11 wheels.</p>
+<p>Python 3.15 is tested with the core and the Lightning, SciPy, scikit-learn
+and plotting integrations. The <code class="docutils literal notranslate"><span class="pre">mlflow</span></code> and <code class="docutils literal notranslate"><span class="pre">all</span></code> extras currently
+require Python 3.11-3.14: MLflow 3.17.2 requires PyArrow below 26, while
+Python 3.15 wheels start with PyArrow 26. Use the other extras on Python
+3.15 until MLflow supports that dependency combination.</p>
+<p>See the <a class="reference external" href="https://github.com/advisories/GHSA-5x8w-8jj5-q52h">Pillow security advisory</a> and
+<a class="reference external" href="https://github.com/advisories/GHSA-v4x8-3wr5-3wq8">filelock security advisory</a>.</p>
+</section>
 <section id="separate-geometry-observations-and-fitted-state">
 <h2>Separate geometry, observations and fitted state<a class="headerlink" href="#separate-geometry-observations-and-fitted-state" title="Link to this heading"></a></h2>
 <p>Construct <code class="docutils literal notranslate"><span class="pre">BezierSpace</span></code> from your input domain, then pair parameter rows
