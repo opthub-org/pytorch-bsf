@@ -5,8 +5,6 @@ inductive skeleton fitting by Tanaka et al. (AAAI 2020), extended to every
 dimension and degree.
 """
 
-from __future__ import annotations
-
 import math
 import numbers
 import sys
@@ -80,6 +78,24 @@ def sample(
     normalization of scrambled quasi-random uniforms. Cell selection remains
     categorical random sampling. Neither method resets global random state.
 
+    Parameters
+    ----------
+    space : BezierSpace
+        Compiled domain to sample, with cell-local barycentric coordinate blocks.
+    n : int
+        Nonnegative number of coordinate rows to draw.
+    method : {"random", "sobol"}, optional
+        Uniform source used before exponential normalization within each factor.
+    seed : int, optional
+        Seed for a local generator; omitted to seed it nondeterministically.
+    cell_weights : mapping, optional
+        Nonnegative weights by cell ID or builder handle, normalized to probabilities; defaults to equal maximal-cell weights.
+
+    Returns
+    -------
+    Points
+        CPU float64 coordinates with explicit cell IDs and padding to the space width.
+
     Examples
     --------
     >>> from torch_bsf import BezierSpace
@@ -112,6 +128,20 @@ def grid(space: BezierSpace, resolution: int = 10, *, cells: Sequence[int | Simp
 
     ``resolution=0`` gives a cell's barycenter. Boundary points of different
     cells remain distinct parameter-domain points even when their images agree.
+
+    Parameters
+    ----------
+    space : BezierSpace
+        Compiled domain on which to construct cell-local grids.
+    resolution : int, optional
+        Nonnegative lattice degree per factor; zero selects each cell's barycenter.
+    cells : sequence of int or Simploid, optional
+        Ordered cell IDs or original builder handles; defaults to the maximal cells.
+
+    Returns
+    -------
+    Points
+        Concatenated CPU float64 grid rows with explicit cell IDs and padded coordinate widths.
     """
     _integer(resolution, "resolution")
     selected = list(space.main_cells) if cells is None else [space.cell_id(c) for c in cells]
@@ -213,6 +243,13 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
     n_controls = math.comb(degree + width - 1, width - 1)
 
     def check(kappa: float) -> None:
+        """Reject condition numbers exceeding the float64 relative-error budget.
+
+        Parameters
+        ----------
+        kappa : float
+            Largest Gram-matrix condition number encountered so far.
+        """
         # Bernstein Gram matrices are ill-conditioned in the degree. Their entries have relative errors of at most
         # (2 * width + 2) * U. To first order, each of the at most width levels of solves then adds
         # (2 * width + 2 + n) * kappa * U relative error (entry perturbation plus backward-stable elimination),

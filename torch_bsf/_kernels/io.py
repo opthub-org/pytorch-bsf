@@ -192,10 +192,10 @@ def load(path: str | Path) -> BezierSimploid:
     >>> import tempfile
     >>> from pathlib import Path
     >>> import torch
-    >>> import torch_bsf
+    >>> from torch_bsf._kernels.fitting import fit
     >>> from torch_bsf._kernels import load, sample_simploid, save
     >>> t = sample_simploid((2, 1), 50, seed=0)
-    >>> bs = torch_bsf.fit(t, t[:, :3] * t[:, 3:4], degree=1, simploid_type=(2, 1))
+    >>> bs = fit(t, t[:, :3] * t[:, 3:4], degree=1, simploid_type=(2, 1))
     >>> with tempfile.TemporaryDirectory() as d:
     ...     save(Path(d) / "simploid.json", bs)
     ...     loaded = load(Path(d) / "simploid.json")

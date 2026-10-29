@@ -298,7 +298,9 @@ def test_minmax_integer_extrapolation_does_not_wrap(dtype):
 def test_minmax_unsigned_integer_extrapolation_does_not_wrap():
     scaler = MinMaxScaler()
     scaler.fit(torch.tensor([[10], [20]], dtype=torch.uint8))
-    torch.testing.assert_close(scaler.transform(torch.tensor([[0]], dtype=torch.uint8)), torch.tensor([[-1.0]]))
+    torch.testing.assert_close(
+        scaler.transform(torch.tensor([[0]], dtype=torch.uint8)), torch.tensor([[-1.0]]), rtol=0, atol=0
+    )
 
 
 @pytest.mark.parametrize("dtype", [torch.int8, torch.int16, torch.int32, torch.int64, torch.uint8])
@@ -307,7 +309,7 @@ def test_minmax_integer_inverse_preserves_representable_integer_results(dtype):
     scaler = MinMaxScaler()
     scaler.fit(torch.tensor([[0], [2]], dtype=dtype))
     torch.testing.assert_close(
-        scaler.inverse_transform(torch.tensor([[0], [1]], dtype=dtype)), torch.tensor([[0], [2]], dtype=dtype)
+        scaler.inverse_transform(torch.tensor([[0], [1]], dtype=dtype)), torch.tensor([[0], [2]], dtype=dtype), rtol=0, atol=0
     )
     with pytest.raises(ValueError, match="inverse-transformed integer.*not representable"):
         scaler.inverse_transform(torch.tensor([[bounds.max]], dtype=dtype))
@@ -323,7 +325,10 @@ def test_minmax_integer_inverse_preserves_exact_product_cancellation(dtype):
     torch.testing.assert_close(result, torch.tensor([[bounds.max - 1]], dtype=dtype), atol=0, rtol=0)
     scaler.fit(torch.tensor([[0], [1]], dtype=dtype))
     torch.testing.assert_close(
-        scaler.inverse_transform(torch.tensor([[bounds.min]], dtype=dtype)), torch.tensor([[bounds.min]], dtype=dtype)
+        scaler.inverse_transform(torch.tensor([[bounds.min]], dtype=dtype)),
+        torch.tensor([[bounds.min]], dtype=dtype),
+        rtol=0,
+        atol=0,
     )
 
 
@@ -333,7 +338,10 @@ def test_minmax_integer_inverse_detects_addition_overflow_and_promotes_mixed_dty
     with pytest.raises(ValueError, match="inverse-transformed integer.*not representable"):
         scaler.inverse_transform(torch.tensor([[127]], dtype=torch.int8))
     torch.testing.assert_close(
-        scaler.inverse_transform(torch.tensor([[127]], dtype=torch.int64)), torch.tensor([[128]], dtype=torch.int64)
+        scaler.inverse_transform(torch.tensor([[127]], dtype=torch.int64)),
+        torch.tensor([[128]], dtype=torch.int64),
+        rtol=0,
+        atol=0,
     )
 
 
@@ -375,7 +383,10 @@ def test_minmax_large_integer_division_uses_default_output_dtype_without_prematu
         # the representable quotient still fits even a half output dtype.
         scaler.fit(torch.tensor([[-1], [maximum - 1]], dtype=torch.int64))
         torch.testing.assert_close(
-            scaler.transform(torch.tensor([[maximum]], dtype=torch.int64)), torch.ones((1, 1), dtype=default_dtype)
+            scaler.transform(torch.tensor([[maximum]], dtype=torch.int64)),
+            torch.ones((1, 1), dtype=default_dtype),
+            rtol=0,
+            atol=0,
         )
     finally:
         torch.set_default_dtype(previous)
@@ -396,7 +407,7 @@ def test_minmax_integer_mps_normalization_uses_supported_division(default_dtype)
         scaler.fit(torch.tensor([[-1], [0]], dtype=torch.int64, device="mps"))
         if default_dtype == torch.float32:
             result = scaler.transform(torch.tensor([[maximum]], dtype=torch.int64, device="mps"))
-            torch.testing.assert_close(result.cpu(), torch.tensor([[maximum + 1]], dtype=default_dtype))
+            torch.testing.assert_close(result.cpu(), torch.tensor([[maximum + 1]], dtype=default_dtype), rtol=0, atol=0)
         else:
             with pytest.raises(ValueError, match="transformed values must be finite"):
                 scaler.transform(torch.tensor([[maximum]], dtype=torch.int64, device="mps"))
@@ -428,7 +439,13 @@ def test_minmax_integer_extrapolation_rounds_only_the_complete_quotient(default_
         scaler.fit(torch.tensor([[offset], [offset + scale]], dtype=torch.int64))
         result = scaler.transform(torch.tensor([[maximum]], dtype=torch.int64))
         expected = torch.tensor([[(maximum - offset) / scale]], dtype=default_dtype)
-        torch.testing.assert_close(result, expected)
+        # The scaler converts the value, the offset and the scale to its working precision (float64 for a float64
+        # output, float32 otherwise), subtracts and divides: five roundings of at most u_work relative to the quotient
+        # (the offset is smaller than the value), then one to the output dtype. The expected quotient is rounded to
+        # float64 (U) and then to the output dtype. Doubled.
+        work = torch.float64 if default_dtype == torch.float64 else torch.float32
+        u_work, u_out = torch.finfo(work).eps / 2, torch.finfo(default_dtype).eps / 2
+        torch.testing.assert_close(result, expected, rtol=2 * (5 * u_work + U + 2 * u_out), atol=0)
         assert torch.isfinite(result).all()
     finally:
         torch.set_default_dtype(previous)

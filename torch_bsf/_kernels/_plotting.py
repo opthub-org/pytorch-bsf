@@ -49,7 +49,7 @@ def plot_bezier_simplex(
     ----------
     model : BezierSimploid
         The Bézier simplex to plot: a Bézier simploid of a single factor
-        (type ``(n_params - 1,)``), e.g. as returned by :func:`torch_bsf.fit`.
+        (type ``(n_params - 1,)``), e.g. as returned by :func:`torch_bsf._kernels.fitting.fit`.
     num : int
         The number of grid points for each edge.  For ``model.n_params >= 4``
         this value is used only to decide whether to use a full meshgrid or
@@ -113,16 +113,16 @@ def plot_bezier_simplex(
     --------
     The plotting lines are skipped by doctest because matplotlib is optional.
 
-    >>> import torch_bsf
+    >>> from torch_bsf._kernels.fitting import fit
     >>> from torch_bsf._kernels._plotting import plot_bezier_simplex
     >>> from torch_bsf._kernels._sampling import simplex_grid
     >>> ts = simplex_grid(n_params=3, degree=4)
-    >>> bs = torch_bsf.fit(ts, ts ** 2, degree=2)
+    >>> bs = fit(ts, ts ** 2, degree=2)
     >>> ax = plot_bezier_simplex(bs, num=20)  # doctest: +SKIP
     """
     if len(model.simploid_type) != 1:
         raise ValueError(
-            "plot_bezier_simplex requires a Bézier simplex (a simploid type with a single factor), "
+            "plot_bezier_simplex requires a Bezier simplex (a simploid type with a single factor), "
             f"but the type is {model.simploid_type}; use plot_bezier_simploid instead."
         )
     if model.n_params == 2:

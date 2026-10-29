@@ -28,7 +28,7 @@ jobs:
           # Bootstrap the standard-library-only updater independently of the policy it updates.
           python-version: '3.x'
       - name: Test the updater
-        run: python -m unittest discover -s tools/tests -v
+        run: python -m unittest discover -s tests/tools -p update_python_support.py -v
       - name: Synchronize Python support
         id: support
         run: >-

@@ -1,3 +1,5 @@
+"""Invertible scalers for the responses of a Bézier model."""
+
 from fractions import Fraction
 from typing import Literal, Protocol
 
@@ -112,19 +114,58 @@ class Scaler(Protocol):
     """
 
     def fit(self, values: torch.Tensor) -> None:
-        """Fit the scaler to ``values``."""
+        """Fit the scaler to ``values``.
+
+        Parameters
+        ----------
+        values : torch.Tensor
+            Observation matrix used to estimate feature-wise scaling statistics.
+        """
         ...
 
     def fit_transform(self, values: torch.Tensor) -> torch.Tensor:
-        """Fit the scaler to ``values`` and return the transformed tensor."""
+        """Fit the scaler to ``values`` and return the transformed tensor.
+
+        Parameters
+        ----------
+        values : torch.Tensor
+            Observation matrix used to fit and apply feature-wise scaling.
+
+        Returns
+        -------
+        torch.Tensor
+            Values after feature-wise scaling.
+        """
         ...
 
     def transform(self, values: torch.Tensor) -> torch.Tensor:
-        """Transform ``values`` with the fitted statistics."""
+        """Transform ``values`` with the fitted statistics.
+
+        Parameters
+        ----------
+        values : torch.Tensor
+            Observation matrix expressed in the original output units.
+
+        Returns
+        -------
+        torch.Tensor
+            Values after feature-wise scaling.
+        """
         ...
 
     def inverse_transform(self, values: torch.Tensor) -> torch.Tensor:
-        """Reverse the transformation applied by :meth:`fit_transform`."""
+        """Reverse the transformation applied by :meth:`fit_transform`.
+
+        Parameters
+        ----------
+        values : torch.Tensor
+            Transformed observation matrix to restore to its original units.
+
+        Returns
+        -------
+        torch.Tensor
+            Values restored to the original units.
+        """
         ...
 
 
@@ -539,7 +580,8 @@ def make_scaler(normalize: NormalizeType) -> Scaler:
 
     Returns
     -------
-    A new, unfitted scaler.
+    Scaler
+        A new, unfitted scaler implementing the selected normalization.
 
     Raises
     ------

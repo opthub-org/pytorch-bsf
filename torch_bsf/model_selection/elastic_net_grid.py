@@ -1,3 +1,5 @@
+"""Grids on the standard 2-simplex for elastic net hyperparameter search."""
+
 from argparse import ArgumentParser
 from typing import Any
 
@@ -10,7 +12,7 @@ def reverse_logspace(num: int = 50, base: float = 10) -> npt.NDArray[Any]:
 
     Parameters
     ----------
-    num : integer, optional
+    num : int, optional
         Number of samples to generate. Default is ``50``. Must be non-negative.
     base : array_like, optional
         The base of the log space.
@@ -19,7 +21,7 @@ def reverse_logspace(num: int = 50, base: float = 10) -> npt.NDArray[Any]:
 
     Returns
     -------
-    samples : ndarray
+    ndarray
         `num` samples, equally spaced on a log scale.
 
     Examples
@@ -101,7 +103,7 @@ def elastic_net_grid(n_lambdas: int = 102, n_alphas: int = 12, n_vertex_copies: 
 
     Returns
     -------
-    samples : ndarray
+    ndarray
         An empty ``(0, 3)`` array when ``n_lambdas == 0`` or ``n_alphas == 0``;
         otherwise an array of shape ``((n_lambdas - 1) * n_alphas + 3 * n_vertex_copies - 2, 3)``.
 

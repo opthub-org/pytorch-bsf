@@ -275,7 +275,7 @@ def linear_scalarization(objective: Callable[[torch.Tensor], torch.Tensor]) -> S
         if fs.shape != t.shape:
             raise ValueError(
                 f"The objective values must have the shape {tuple(t.shape)} of the parameters, but {tuple(fs.shape)} "
-                "is given; linear_scalarization needs a Bézier simplex with one vertex per objective."
+                "is given; linear_scalarization needs a Bezier simplex with one vertex per objective."
             )
         return (t * fs).sum(dim=-1)
 
@@ -506,12 +506,12 @@ def fit_sgd(
     triangle spanned by :math:`\mathbf e_1, \mathbf e_2, \mathbf e_3`, reached at :math:`\mathbf x = \mathbf t`:
 
     >>> import torch
-    >>> import torch_bsf
+    >>> from torch_bsf._kernels.sgd import fit_sgd
     >>> from torch_bsf._kernels import BezierSimploid, linear_scalarization
     >>> def objective(x):
     ...     return ((x.unsqueeze(1) - torch.eye(3)) ** 2).sum(dim=-1)
     >>> init = BezierSimploid.zeros((2,), 1, n_values=3)
-    >>> bs = torch_bsf.fit_sgd(init, linear_scalarization(objective), batch_size=20, step_size=0.2, seed=0)
+    >>> bs = fit_sgd(init, linear_scalarization(objective), batch_size=20, step_size=0.2, seed=0)
     >>> torch.allclose(bs.control_points, torch.eye(3), atol=1e-3)
     True
 
@@ -521,7 +521,7 @@ def fit_sgd(
     >>> def callback(k, model, batch_loss):
     ...     history.append(batch_loss)
     ...     return k > 0 and history[-2] - batch_loss < 1e-4
-    >>> bs = torch_bsf.fit_sgd(init, linear_scalarization(objective), step_size=0.2, seed=0, callback=callback)
+    >>> bs = fit_sgd(init, linear_scalarization(objective), step_size=0.2, seed=0, callback=callback)
     >>> len(history) < 100  # stopped before max_iter
     True
 
@@ -533,7 +533,7 @@ def fit_sgd(
     >>> with torch.no_grad():
     ...     for m, vertex in enumerate(vertices):
     ...         _ = init[vertex].copy_(torch.eye(3)[m])
-    >>> bs = torch_bsf.fit_sgd(
+    >>> bs = fit_sgd(
     ...     init, linear_scalarization(objective), freeze=vertices, smoothness_weight=1e-3, step_size=0.2, seed=0
     ... )
     >>> bs[(2, 0, 0)].tolist()

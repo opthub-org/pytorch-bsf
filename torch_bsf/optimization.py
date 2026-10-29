@@ -1,7 +1,5 @@
 """Objective minimization, separate from supervised least-squares regression."""
 
-from __future__ import annotations
-
 import math
 import warnings
 from collections.abc import Callable, Mapping
@@ -71,15 +69,34 @@ class OptimizationResult:
     n_iterations: int
     seed: int | None
 
-    def require_success(self) -> OptimizationResult:
-        """Raise if no convergence criterion was established."""
+    def require_success(self) -> "OptimizationResult":
+        """Raise if no convergence criterion was established.
+
+        Returns
+        -------
+        OptimizationResult
+            This result when its success flag is true.
+        """
         if not self.success:
             raise RuntimeError(self.message)
         return self
 
 
 def gram_matrix(space: BezierSpace, *, cell_weights: Mapping[int | Simploid, float] | None = None) -> torch.Tensor:
-    """Compute the exact Bernstein Gram matrix for the sampling distribution."""
+    """Compute the exact Bernstein Gram matrix for the sampling distribution.
+
+    Parameters
+    ----------
+    space : BezierSpace
+        Space whose globally shared Bernstein basis defines the matrix.
+    cell_weights : mapping, optional
+        Nonnegative cell weights, normalized to probabilities; defaults to equal maximal-cell weights.
+
+    Returns
+    -------
+    torch.Tensor
+        CPU float64 matrix of shape ``(space.n_controls, space.n_controls)``.
+    """
     weights = _probabilities(space, cell_weights)
     gram = torch.zeros(space.n_controls, space.n_controls, dtype=torch.float64)
     covered = torch.zeros(space.n_controls, dtype=torch.bool)
@@ -95,9 +112,34 @@ def gram_matrix(space: BezierSpace, *, cell_weights: Mapping[int | Simploid, flo
 
 
 def linear_scalarization(objective: Callable[[torch.Tensor], torch.Tensor]) -> Loss:
-    """Turn differentiable objective values into a simplex-weighted loss."""
+    """Turn differentiable objective values into a simplex-weighted loss.
+
+    Parameters
+    ----------
+    objective : callable
+        Differentiable map from predicted values to one objective per simplex coordinate.
+
+    Returns
+    -------
+    callable
+        Loss accepting predicted values and Points and returning one weighted objective per row.
+    """
 
     def loss(values: torch.Tensor, points: Points) -> torch.Tensor:
+        """Compute simplex-weighted objective sums.
+
+        Parameters
+        ----------
+        values : torch.Tensor
+            Predicted output rows passed to the objective function.
+        points : Points
+            Simplex weights matching the shape of the objective values.
+
+        Returns
+        -------
+        torch.Tensor
+            Weighted objective sum for each row.
+        """
         outputs = objective(values)
         t = points.parameters
         if outputs.shape != t.shape or not torch.allclose(

@@ -8,8 +8,6 @@ Each worker reports acquisition time and process peak RSS, including imports
 and inputs. There is no timing assertion; compare measurements on one machine.
 """
 
-from __future__ import annotations
-
 import argparse
 import json
 import platform

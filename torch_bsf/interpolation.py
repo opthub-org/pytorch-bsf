@@ -252,8 +252,11 @@ def _pair_exponents(f: torch.Tensor, g: torch.Tensor, axis_exponent: torch.Tenso
 def _local_pair_coordinates(
     f: torch.Tensor, g: torch.Tensor, axis_exponent: torch.Tensor
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """Faces ``f`` and ``g`` (p, d, d) relative to the first vertex of ``f`` and scaled by :func:`_pair_exponents`
-    (exactly), with the largest absolute coordinate of each pair in the same units (p,)."""
+    """Return faces ``f`` and ``g`` (p, d, d) in exact local units, with their largest coordinates (p,).
+
+    The faces are taken relative to the first vertex of ``f`` and scaled by :func:`_pair_exponents` (exactly);
+    the largest absolute coordinate of each pair is returned in the same units.
+    """
     e = -_pair_exponents(f, g, axis_exponent)
     magnitude = torch.maximum(f.abs().amax(dim=1), g.abs().amax(dim=1))  # (p, d)
     return (
@@ -558,17 +561,35 @@ class SimplicialMesh:
 
     @property
     def dimension(self) -> int:
-        """Dimension ``d`` of the ambient space and of every simplex."""
+        """Dimension ``d`` of the ambient space and of every simplex.
+
+        Returns
+        -------
+        int
+            Common ambient and simplex dimension.
+        """
         return int(self.vertices.shape[1])
 
     @property
     def n_vertices(self) -> int:
-        """Number of vertices."""
+        """Number of vertices.
+
+        Returns
+        -------
+        int
+            Number of rows in the vertex array.
+        """
         return len(self.vertices)
 
     @property
     def n_simplices(self) -> int:
-        """Number of simplices."""
+        """Number of simplices.
+
+        Returns
+        -------
+        int
+            Number of rows in the simplex array.
+        """
         return len(self.simplices)
 
     @property
@@ -588,6 +609,11 @@ class SimplicialMesh:
         them at a lower-dimensional face. Overlapping simplices that share no face are not detected.
         A mesh without boundary faces (every face in two or more simplices, which only overlapping simplices
         allow) has all its faces counted.
+
+        Returns
+        -------
+        int
+            Count of nonconforming faces according to the overlap test above.
         """
         return self._unmatched
 
@@ -669,11 +695,23 @@ class SimplicialMesh:
         return crowded + int(hanging.sum())
 
     def volumes(self) -> torch.Tensor:
-        """Volumes of the simplices, of shape ``(n_simplices,)``."""
+        """Return the volumes of the simplices.
+
+        Returns
+        -------
+        torch.Tensor
+            Copy of simplex volumes of shape ``(n_simplices,)``.
+        """
         return self._volumes.clone()
 
     def neighbors(self) -> list[list[int]]:
-        """The vertices sharing an edge with each vertex (its one-ring), in ascending order."""
+        """The vertices sharing an edge with each vertex (its one-ring), in ascending order.
+
+        Returns
+        -------
+        list of list of int
+            One sorted list of adjacent vertex IDs per vertex.
+        """
         ring: list[set[int]] = [set() for _ in range(self.n_vertices)]
         for simplex in self.simplices.tolist():
             for a, b in combinations(simplex, 2):
