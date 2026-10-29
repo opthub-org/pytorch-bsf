@@ -224,6 +224,22 @@ CI and PR review take a while per round trip, so review the branch locally first
 
 The first eight aspects run for every change (correctness and edge cases may be skipped when no code changes); the others run when the diff touches what they cover. `.claude/skills/review-local/SKILL.md` has the exact rules. Record the result in the PR description under **Local review**.
 
+### Distribution checks
+
+The `distribution` CI job builds a wheel from tracked working-tree files and a
+second wheel through an sdist. It checks package contents, the type marker and
+license, then installs each wheel into a temporary target and exercises imports,
+fit/predict and CLI help outside the checkout. Run it locally with runtime
+dependencies plus `setuptools` and `wheel` installed:
+
+```bash
+python tools/check_distribution.py
+```
+
+The check also adds temporary namespace probes to verify that future
+`torch_bsf` subpackages are retained and unrelated packages are excluded.
+Builds and installations leave the current Python environment unchanged.
+
 ### PR review and merge
 
 PyTest and Conda run on every PR (including drafts and forks) when it is opened,

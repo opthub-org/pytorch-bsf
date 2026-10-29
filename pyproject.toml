@@ -92,7 +92,7 @@ zip-safe = false
 license-files = ["LICENSE"]
 
 [tool.setuptools.packages.find]
-exclude = ["build", "dist", "docs"]
+include = ["torch_bsf", "torch_bsf.*"]
 
 [tool.pytest.ini_options]
 addopts = """
