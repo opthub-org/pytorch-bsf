@@ -321,6 +321,14 @@ large cell. Evaluating the response near the midpoint of the longest edge of
 the top-scoring cell and remeshing is a simple adaptive design. The example
 refines a one-dimensional kink, where remeshing is just sorting.
 
+The score applies the volume before rounding reductions near the float64
+limits. It therefore keeps finite scores when a vertex mean or an intermediate
+correction would overflow, or when a small mean would underflow before being
+multiplied by a large volume. These rare rows use exact rational arithmetic
+on the finite centroid predictions and vertex data; ordinary rows retain
+vectorized floating-point reductions. A true score beyond float64 is positive
+infinity. A non-finite centroid prediction raises ``ValueError``.
+
 .. testcode:: interpolation
 
     from torch_bsf.interpolation import refinement_indicator
