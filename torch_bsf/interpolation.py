@@ -14,8 +14,13 @@ Every control depends only on the data of the edge or face it lies on, so the in
 continuous across shared faces. With ``clamp=True`` every edge (face) control is clipped into the
 range of the data at the vertices of that edge (face). By the convex-hull property, the prediction
 on each simplex then stays within the range of its vertex data, which bounds the sup error by the
-modulus of continuity of the data at the mesh size. In one dimension this is the range limiter of
-piecewise cubic Hermite interpolation (PCHIP) :cite:p:`fritsch1980monotone`.
+modulus of continuity of the data at the mesh size. In one dimension the edge limiter restricts each
+endpoint slope, separately on each incident interval, to the interval between zero and three times
+the secant slope. The normalized slopes lie in the square :math:`[0, 3]^2` of the Fritsch–Carlson
+monotonicity region :cite:p:`fritsch1980monotone`. The interpolant is C0, but need not be C1, even
+on a chain of intervals. It agrees with PCHIP when supplied with its vertex slopes (the
+Fritsch–Butland weighted harmonic means at interior vertices :cite:p:`fritsch1984method`, with
+PCHIP's one-sided endpoint rule); the default :func:`estimate_gradients` uses different slopes.
 """
 
 import math
@@ -1290,7 +1295,16 @@ def hermite_interpolant(mesh: SimplicialMesh, values: Any, *, gradients: Any = N
     exactly when the gradients do (for example, with enough neighbours for :func:`estimate_gradients`).
     With ``clamp=True``, on every simplex and for every output, the prediction lies between the smallest
     and largest data at the vertices of that simplex; in one dimension, monotone data then give a
-    monotone interpolant.
+    monotone interpolant. The model is C0; it is not C1 in general, even in one dimension, because
+    clamping can change the slope independently on either side of a vertex. For a C1 interpolant
+    in two dimensions, use :func:`macro_interpolant` with ``split=CloughTocher(), continuity=C1()``.
+
+    In one dimension, each endpoint slope is limited to the interval between zero and three times
+    the secant slope of that interval. This gives the square part of the Fritsch–Carlson monotonicity
+    region :cite:p:`fritsch1980monotone`. The default gradient estimates are not PCHIP slopes.
+    Supplying PCHIP slopes as ``gradients`` gives the PCHIP interpolant up to float64 roundoff:
+    the interior slopes use the Fritsch–Butland weighted harmonic mean :cite:p:`fritsch1984method`,
+    and the endpoints use PCHIP's one-sided rule. Those slopes already satisfy the limiter.
 
     Parameters
     ----------

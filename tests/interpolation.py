@@ -194,6 +194,81 @@ def test_given_gradients_are_used():
     torch.testing.assert_close(model(points)[:, 0], p[:, 0] ** 2 - p[:, 0] * p[:, 1] + 2 * p[:, 1], atol=1e-12, rtol=0)
 
 
+@pytest.mark.parametrize(
+    "values, slope, expected",
+    [([0.0, 1.0, 1.1], 2.0, [2.0, 0.3]), ([0.0, 1.0, 1.1], None, [0.55, 0.3]), ([0.0, 1.0, 0.0], 0.5, [0.5, 0.0])],
+)
+def test_clamped_hermite_slopes_can_jump_at_an_interval_join(values, slope, expected):
+    """Clipping preserves C0 but changes the two sides of a vertex independently, even in one dimension."""
+    mesh = SimplicialMesh([[0.0], [1.0], [2.0]], [[0, 1], [1, 2]])
+    gradients = None if slope is None else torch.full((3, 1, 1), slope, dtype=torch.float64)
+    model = hermite_interpolant(mesh, values, gradients=gradients)
+    derivatives = []
+    for cell in range(2):
+        point = torch.tensor([[1.0]], dtype=torch.float64, requires_grad=True)
+        # Choose each adjacent polynomial explicitly: locate() selects only one side of a shared vertex.
+        prediction = model(Points(mesh.barycentric(point)[:, cell], mesh.cell_ids[cell].repeat(1)))
+        assert prediction.item() == values[1]
+        derivatives.append(torch.autograd.grad(prediction.sum(), point)[0].item())
+    # Unit-length dyadic edges have exact coordinates. Allow 64u for the decimal data, the default
+    # three-point least-squares estimate, cubic controls and the differentiated Bernstein evaluation.
+    torch.testing.assert_close(
+        torch.tensor(derivatives, dtype=torch.float64), torch.tensor(expected, dtype=torch.float64), atol=64 * U, rtol=0
+    )
+    assert derivatives[0] > derivatives[1]
+
+
+def _assert_matches_pchip(x: torch.Tensor, values: torch.Tensor, *, scalar: bool) -> None:
+    scipy_interpolate = pytest.importorskip("scipy.interpolate")
+    mesh = SimplicialMesh(x[:, None], [[k, k + 1] for k in range(len(x) - 1)])
+    supplied = values[:, 0] if scalar else values
+    pchip = scipy_interpolate.PchipInterpolator(x.numpy(), supplied.numpy(), axis=0)
+    slopes = torch.from_numpy(pchip.derivative()(x.numpy()))
+    gradients = slopes[:, None, None] if scalar else slopes[:, None, :]
+    clamped = hermite_interpolant(mesh, supplied, gradients=gradients)
+    unclamped = hermite_interpolant(mesh, supplied, gradients=gradients, clamp=False)
+    # PCHIP slopes satisfy the box limiter. Only rounding of a boundary control can activate clipping:
+    # allow 8u per control for its difference, product, division and addition in the two representations.
+    magnitude = float(values.abs().max())
+    torch.testing.assert_close(clamped.coefficients, unclamped.coefficients, atol=8 * U * magnitude, rtol=0)
+    # Include both endpoints of every segment as well as its interior. Compare inside the meshed domain.
+    fractions = torch.linspace(0, 1, 9, dtype=torch.float64)
+    query = (x[:-1, None] + (x[1:] - x[:-1])[:, None] * fractions).flatten()
+    actual = clamped(mesh.locate(query[:, None])).detach()
+    expected = torch.from_numpy(pchip(query.numpy())).reshape_as(actual)
+    # PCHIP's power basis and the Bernstein form each incur O(u) error per cubic evaluation. Point
+    # formation/location adds cancellation bounded by O(nu) for these near-uniform meshes (h >= .7/n).
+    # 128nu times the data magnitude bounds both paths, including small values near sign changes.
+    torch.testing.assert_close(actual, expected, atol=128 * len(x) * U * magnitude, rtol=0)
+
+
+@pytest.mark.parametrize("scalar", [False, True])
+@pytest.mark.parametrize(
+    "x, values",
+    [
+        ([0.0, 1.0], [1.0, -1.0]),
+        ([0.0, 1.0, 2.0], [0.0, 1.0, 1.1]),
+        ([0.0, 0.5, 1.5, 2.0], [1.0, 0.0, 0.0, 1.0]),
+        ([0.0, 0.5, 1.0], [1.0, 1.0, 1.0]),
+    ],
+)
+def test_hermite_with_pchip_slopes_matches_scipy(x, values, scalar):
+    """Cover two-point, monotone, extremal, flat-segment and constant PCHIP data explicitly."""
+    f = torch.tensor(values, dtype=torch.float64)
+    _assert_matches_pchip(torch.tensor(x, dtype=torch.float64), torch.stack([f, -f], dim=1), scalar=scalar)
+
+
+@given(data=st.data(), scale=extreme_scalings(100), monotone=st.booleans(), scalar=st.booleans())
+def test_hermite_with_pchip_slopes_matches_scipy_on_generated_data(data, scale, monotone, scalar):
+    """PCHIP vertex slopes recover PCHIP on nonuniform chains, for scalar and vector data of either sign."""
+    x, _ = data.draw(kuhn_meshes(dimensions=(1,), max_n=6), label="mesh")
+    # Dyadic data avoid subnormal secants in SciPy's harmonic mean; power-of-two scales still span 1e±30.
+    f = torch.round(data.draw(matrices(len(x), 2), label="values") * 32) / 8
+    if monotone:
+        f = f.abs().cumsum(dim=0) * torch.tensor([1.0, -1.0], dtype=torch.float64)
+    _assert_matches_pchip(x[:, 0], f * scale, scalar=scalar)
+
+
 @pytest.mark.parametrize("dim, n", MESHES)
 @pytest.mark.parametrize("clamp", [False, True])
 def test_interpolates_vertex_data(dim, n, clamp):
