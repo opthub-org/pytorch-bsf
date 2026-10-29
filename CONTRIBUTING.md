@@ -320,6 +320,52 @@ prereleases do not.
 5. Merge once you have an approval and explicit authorization to merge. Invoking `work-on-issue` does not authorize merging, closing issues, or commenting elsewhere on GitHub.
 6. Delete the branch after merging.
 
+### Codecov authentication and upload verification
+
+The PyTest `build` job uploads `coverage.xml` only on the full-integration Python
+version selected by `environment.yml`. Upload errors fail that job; a green
+workflow from before this policy is not proof that Codecov accepted a report.
+
+- Ordinary PRs and `master` pushes use the existing `CODECOV_TOKEN` Actions
+  secret, configured under **Settings → Secrets and variables → Actions**.
+- Same-repository PR runs triggered by `dependabot[bot]` use Codecov's OIDC
+  authentication. The `build` job grants `id-token: write`; other jobs retain
+  their existing permissions. OIDC requires no copied Dependabot secret or
+  Codecov token-policy change. Dependabot cannot read ordinary Actions secrets, and manually rerunning
+  its workflow retains the original restricted context.
+- Public fork PRs retain Codecov's tokenless upload path. They receive no
+  repository secret; the Codecov action identifies the fork and prefixes its
+  upload branch. Keep `pull_request` as the trigger when testing contributor code.
+
+For an Action upgrade, verify the actual upload as well as the CI result:
+
+1. Record the PR head SHA and open its PyTest `build` job for the full-integration
+   Python version. For Dependabot, verify that the workflow's original actor is
+   `dependabot[bot]`; a maintainer's own PR does not exercise that context.
+2. Expand **Upload coverage to Codecov**. Check that it finds `coverage.xml`,
+   uploads for the recorded PR head SHA, and finishes without authentication,
+   queueing or upload errors. A message that a report was queued alone does not
+   prove that processing succeeded.
+3. Open the matching commit at
+   `https://app.codecov.io/gh/opthub-org/pytorch-bsf/commit/<head-sha>` and confirm
+   that its processed report and upload correspond to that run. Check the
+   applicable `codecov/patch` status too. A change outside measured source can
+   have no patch status; still require the processed commit report.
+4. Require CI and the Codex review for that same current head, plus zero
+   unresolved review threads, before merging. After this authentication change
+   reaches `master`, rebase the original Dependabot Action-upgrade PR to test
+   both the new Action and the real Dependabot context.
+
+If OIDC fails, check the job's `id-token: write` permission and Codecov's response
+before rerunning. If using token authentication for Dependabot instead, a
+repository administrator must copy the repository's Codecov upload token to
+**Settings → Secrets and variables → Dependabot** as `CODECOV_TOKEN` and disable
+OIDC for that path; the OIDC option takes precedence over the token input. Never
+post token values in logs, issues or PRs. See the
+[Codecov Action authentication options](https://github.com/codecov/codecov-action#using-oidc),
+[Codecov token policy](https://docs.codecov.com/docs/codecov-tokens), and
+[GitHub's Dependabot workflow restrictions](https://docs.github.com/en/code-security/reference/supply-chain-security/troubleshoot-dependabot/dependabot-on-actions).
+
 ---
 
 ## Commit Rules
