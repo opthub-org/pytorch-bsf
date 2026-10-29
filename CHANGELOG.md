@@ -1,5 +1,53 @@
 # Changelog
 
+## [0.24.0](https://github.com/opthub-org/pytorch-bsf/compare/v0.23.0...v0.24.0) (2026-10-29)
+
+
+### Features
+
+* **interpolation:** add C1 Clough-Tocher macro-element interpolant ([#529](https://github.com/opthub-org/pytorch-bsf/issues/529)) ([50bb3a9](https://github.com/opthub-org/pytorch-bsf/commit/50bb3a940e9f1f54f577ee1c9425d2a822911eec))
+* **interpolation:** add newest-vertex bisection to refine ([#484](https://github.com/opthub-org/pytorch-bsf/issues/484)) ([1eb05c4](https://github.com/opthub-org/pytorch-bsf/commit/1eb05c49292867e38af5e9dc6b506271913e3c95))
+* **sampling:** add optimal skeleton sampling and inductive regression ([#516](https://github.com/opthub-org/pytorch-bsf/issues/516)) ([f3f606d](https://github.com/opthub-org/pytorch-bsf/commit/f3f606d4bc9e887949cd905b5b5abb09aec87e0a))
+
+
+### Bug Fixes
+
+* **active_learning:** preserve nearby farthest-point distances ([#480](https://github.com/opthub-org/pytorch-bsf/issues/480)) ([20ba304](https://github.com/opthub-org/pytorch-bsf/commit/20ba3049b0bf549983fe4239d372f99e2c61df69))
+* **active_learning:** stabilize committee variance rankings ([#481](https://github.com/opthub-org/pytorch-bsf/issues/481)) ([567f067](https://github.com/opthub-org/pytorch-bsf/commit/567f067145240d56b281f6f69ba2536d88c53e6a))
+* **core:** preserve MPS inputs during CPU float64 conversion ([#542](https://github.com/opthub-org/pytorch-bsf/issues/542)) ([00af52c](https://github.com/opthub-org/pytorch-bsf/commit/00af52c567c98c7500a3a7a113768dc5cd235cf0))
+* **interpolation:** preserve finite refinement scores ([#544](https://github.com/opthub-org/pytorch-bsf/issues/544)) ([31cb4fd](https://github.com/opthub-org/pytorch-bsf/commit/31cb4fda164adacd7553d658411226006616b7b2))
+* **kernels:** preserve polynomial derivatives at simplex boundaries ([#545](https://github.com/opthub-org/pytorch-bsf/issues/545)) ([eaa7942](https://github.com/opthub-org/pytorch-bsf/commit/eaa794280dfd7d8736a622562db0b8de1e08b207))
+* move MPS tensors to CPU before float64 conversion ([#520](https://github.com/opthub-org/pytorch-bsf/issues/520)) ([2d2791b](https://github.com/opthub-org/pytorch-bsf/commit/2d2791b557eddd5ed21c5e0d0d46b3d73afe31b8))
+* **preprocessing:** validate fitted feature counts in transforms ([#479](https://github.com/opthub-org/pytorch-bsf/issues/479)) ([1d0a636](https://github.com/opthub-org/pytorch-bsf/commit/1d0a636f15d1e675a6b79bff2917b029fb211371))
+* **sampling:** generate the first Sobol point in float64 ([#519](https://github.com/opthub-org/pytorch-bsf/issues/519)) ([cef0fd6](https://github.com/opthub-org/pytorch-bsf/commit/cef0fd60c55084a6d7989b740cabcf4b7acfdd63))
+* **validation:** require strings for enumerated choices ([#511](https://github.com/opthub-org/pytorch-bsf/issues/511)) ([94c5aef](https://github.com/opthub-org/pytorch-bsf/commit/94c5aef17863f2803ecc5d43d399e34a75a0b284))
+
+
+### Performance Improvements
+
+* **interpolation:** batch face-separation determinants ([#512](https://github.com/opthub-org/pytorch-bsf/issues/512)) ([e20296f](https://github.com/opthub-org/pytorch-bsf/commit/e20296f63920976a9db01dfd815d919f17736e7f))
+
+
+### Documentation
+
+* certify skeleton crossover dimensions through degree eight ([#528](https://github.com/opthub-org/pytorch-bsf/issues/528)) ([b9834dd](https://github.com/opthub-org/pytorch-bsf/commit/b9834dd1ea831bb26d57ecfb18fe25981d7f03ad))
+* **cli:** document commands, CSV layouts and result contracts ([#499](https://github.com/opthub-org/pytorch-bsf/issues/499)) ([64edb5c](https://github.com/opthub-org/pytorch-bsf/commit/64edb5cd2e97db594fba7adb8804bf147e2175d3))
+* **contributing:** sync Repository Structure with the tree ([#507](https://github.com/opthub-org/pytorch-bsf/issues/507)) ([5ed4bc9](https://github.com/opthub-org/pytorch-bsf/commit/5ed4bc99287be4bafa6b032bdf090eb1a3ff8963))
+* **core:** explain point and sample data contracts ([#500](https://github.com/opthub-org/pytorch-bsf/issues/500)) ([268cb20](https://github.com/opthub-org/pytorch-bsf/commit/268cb20980ffb8bce81c929056eefc9e7815235a))
+* derive a generating function for vertex skeleton risk ([#527](https://github.com/opthub-org/pytorch-bsf/issues/527)) ([323288f](https://github.com/opthub-org/pytorch-bsf/commit/323288f16248365b6213988ce99f5c2d96c489dc))
+* derive triangular Jacobi extension for skeleton errors ([#526](https://github.com/opthub-org/pytorch-bsf/issues/526)) ([2ec3a28](https://github.com/opthub-org/pytorch-bsf/commit/2ec3a2872d4c016a384153ee66613c3af45be499))
+* link versioned API references to matching source ([#504](https://github.com/opthub-org/pytorch-bsf/issues/504)) ([b09dea4](https://github.com/opthub-org/pytorch-bsf/commit/b09dea463498fbd9f16967a2d9298d1d03654d72))
+* organize guides and align page names with their content ([#517](https://github.com/opthub-org/pytorch-bsf/issues/517)) ([99c6713](https://github.com/opthub-org/pytorch-bsf/commit/99c67135f5678cfbcb34b2a7560fa477814f3574))
+* organize the root README for library users ([#547](https://github.com/opthub-org/pytorch-bsf/issues/547)) ([6b986b3](https://github.com/opthub-org/pytorch-bsf/commit/6b986b3477d381f460aaa0df9a3cc07215979645))
+* **point_cloud:** verify result and boundary examples ([#502](https://github.com/opthub-org/pytorch-bsf/issues/502)) ([2ab44ee](https://github.com/opthub-org/pytorch-bsf/commit/2ab44eeb5bdf4c33c7452e581977ab53910fc1ed))
+* **readme:** guide readers from inputs to runnable examples ([#501](https://github.com/opthub-org/pytorch-bsf/issues/501)) ([55aafe2](https://github.com/opthub-org/pytorch-bsf/commit/55aafe2a7d29c6edd5c0caba2d899624dc4ca946))
+* **sampling:** close triangle edge risk in harmonic numbers ([843c98f](https://github.com/opthub-org/pytorch-bsf/commit/843c98ffac42c4623ff03ddbb48fb2831961d93b))
+* **sampling:** consolidate skeleton risk theory and open questions ([#536](https://github.com/opthub-org/pytorch-bsf/issues/536)) ([12d1672](https://github.com/opthub-org/pytorch-bsf/commit/12d1672b214cc33bbce26f44b88f176ed792df5f))
+* **sampling:** derive general scalar risk and third-face quartic ([#533](https://github.com/opthub-org/pytorch-bsf/issues/533)) ([d85fb4f](https://github.com/opthub-org/pytorch-bsf/commit/d85fb4f1d213ec00954fb1dba48326d6cede469c))
+* **sampling:** prove the skeleton risk and its closed forms ([#522](https://github.com/opthub-org/pytorch-bsf/issues/522)) ([e9c28e7](https://github.com/opthub-org/pytorch-bsf/commit/e9c28e71fa0af9d41d7c654f78c496c4761f7f36))
+* **sampling:** prove triangle vertex risk in harmonic numbers ([#535](https://github.com/opthub-org/pytorch-bsf/issues/535)) ([27bf1c5](https://github.com/opthub-org/pytorch-bsf/commit/27bf1c5aec8393e2bc25309f0daa1b7ad8225320))
+* **sgd:** fix linear scalarization API link ([#510](https://github.com/opthub-org/pytorch-bsf/issues/510)) ([39b0ada](https://github.com/opthub-org/pytorch-bsf/commit/39b0ada0d79358efb714464b3c9e6c6d5550a452))
+
 ## [0.23.0](https://github.com/opthub-org/pytorch-bsf/compare/v0.22.0...v0.23.0) (2026-10-28)
 
 
