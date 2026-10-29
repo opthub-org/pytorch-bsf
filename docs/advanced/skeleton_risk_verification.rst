@@ -213,4 +213,3 @@ The :math:`m=D-1,D-2,D-3` rows agree with the corresponding general formulas.
    * - 8
      - 7
      - :math:`5129368400572416000`
-

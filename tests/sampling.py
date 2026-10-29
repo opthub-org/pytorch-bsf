@@ -474,8 +474,9 @@ def test_skeleton_risk_documented_comparison(n_vertices, degree):
     assert abs(optimum - all_at_once) > 2 * _RISK_RELATIVE_ERROR * optimum
 
 
-# P_{D,m} of docs/advanced/skeleton_risk_theory.rst as printed: (D, m) -> (factor, coefficients from the highest power of
-# M), so that a_m = C(M, m + 1)^2 P_{D,m}(M) / (M)_{2D}. _counted_risk_polynomial regenerates it.
+# P_{D,m} as printed in docs/advanced/skeleton_risk_verification.rst:
+# (D, m) -> (factor, coefficients from the highest power of M), so that
+# a_m = C(M, m + 1)^2 P_{D,m}(M) / (M)_{2D}. _counted_risk_polynomial regenerates it.
 _RISK_POLYNOMIALS = {
     (1, 0): (Fraction(2), (1,)),
     (2, 0): (Fraction(3, 2), (3, -15, 28)),

@@ -1287,8 +1287,7 @@ families :math:`m=D-1,D-2,D-3` are already resolved in closed form.
   coefficients, initial values and exceptional indices. The triangle
   formula in :prf:ref:`thm-skeleton-triangle-vertex-risk` and the
   fixed-degree dimension polynomials do not supply that general
-  evaluation. This asks for an explicit usable formula or recurrence,
-  not a nonexistence claim based on an unsuccessful summation ansatz.
+  evaluation.
 - **The full comparison at degrees above eight.**
   :prf:ref:`prop-skeleton-wins` classifies every :math:`M` at
   :math:`D\leq8`. For :math:`D\geq9`, determine the exact set of
