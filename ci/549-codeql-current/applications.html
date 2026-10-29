@@ -1,0 +1,342 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Applications &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=a9084e48"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Elastic Net Model Selection" href="applications/elastic_net.html" />
+    <link rel="prev" title="Solvers, performance and optional execution" href="advanced/solvers_and_execution.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command-line reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Applications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#what-is-fitted-in-each-application">What is fitted in each application?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#a-common-reproduction-and-validation-workflow">A common reproduction and validation workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#choosing-a-domain-and-a-next-guide">Choosing a domain and a next guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#application-guides">Application guides</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="applications/elastic_net.html">Elastic Net Model Selection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/medical_imaging.html">Medical Imaging and Radiation Therapy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/facility_location.html">Facility Location and Continuous Approximations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/portfolio.html">Robust Portfolio Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/smart_grids.html">Distributed Smart Grids and Energy Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/communications.html">Communication Systems and Routing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/federated_learning.html">Multi-Task and Federated Learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="applications/supply_chain.html">Supply Chain and Logistics Optimization</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Applications</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/applications.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="applications">
+<h1>Applications<a class="headerlink" href="#applications" title="Link to this heading"></a></h1>
+<p>This section explores the practical applications of Bézier simplex fitting. By exploiting the continuous relationships between optimal solutions and competing objectives, Bézier simplices provide a powerful framework for multi-objective optimization and parametric modeling.</p>
+<p>The most prominent and elegant application of this technique is the continuous approximation of the multi-parameter regularization path in Elastic Net and other sparse modeling methods. We detail how a Bézier simplex can efficiently capture these paths, enabling comprehensive model selection without repeatedly re-training models over a discrete grid.</p>
+<p>The other examples use small quadratic reference problems to explain the
+same workflow in different settings. The assumptions belong to the stated
+reference formulation: a realistic network, controller or inverse problem
+can introduce constraints, nonconvexity or discontinuities absent from the
+example. Strong convexity can give a unique weighted-sum optimizer, but a
+one-to-one simplex topology requires further conditions. See <a class="reference internal" href="whatis.html"><span class="doc">What is Bézier simplex fitting?</span></a>
+for the precise unconstrained theorem.</p>
+<section id="what-is-fitted-in-each-application">
+<h2>What is fitted in each application?<a class="headerlink" href="#what-is-fitted-in-each-application" title="Link to this heading"></a></h2>
+<p>First distinguish the optimization decision from the surrogate input. A
+reference solver takes priority weights and returns an optimal decision.
+The Bézier model learns that map, its objective values, or both. It does
+not learn directly from an untagged cloud of Pareto points: every output
+row needs its generating parameter row.</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-number">Table 22 </span><span class="caption-text">Reference problems and surrogate outputs</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 35.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Application</p></th>
+<th class="head"><p>Input parameter</p></th>
+<th class="head"><p>Decision-map output</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Elastic Net</p></td>
+<td><p>Loss and penalty weights on a triangle</p></td>
+<td><p>Regression coefficients</p></td>
+</tr>
+<tr class="row-odd"><td><p>Medical imaging</p></td>
+<td><p>Logarithmic regularization coordinate</p></td>
+<td><p>256 image pixels</p></td>
+</tr>
+<tr class="row-even"><td><p>Facility location</p></td>
+<td><p>Weights for two, three or four centers</p></td>
+<td><p>Two spatial coordinates</p></td>
+</tr>
+<tr class="row-odd"><td><p>Portfolio</p></td>
+<td><p>Two regularized objective weights</p></td>
+<td><p>Three unconstrained allocation variables</p></td>
+</tr>
+<tr class="row-even"><td><p>Smart grids</p></td>
+<td><p>Cost versus emissions weights</p></td>
+<td><p>Three generator outputs</p></td>
+</tr>
+<tr class="row-odd"><td><p>Communications</p></td>
+<td><p>Two or three priority weights</p></td>
+<td><p>Two allocation variables in the toy problem</p></td>
+</tr>
+<tr class="row-even"><td><p>Federated learning</p></td>
+<td><p>Two task weights</p></td>
+<td><p>Two model parameters in the toy problem</p></td>
+</tr>
+<tr class="row-odd"><td><p>Model predictive control</p></td>
+<td><p>Priority weights and independent initial state</p></td>
+<td><p>Five future inputs</p></td>
+</tr>
+<tr class="row-even"><td><p>Supply chain</p></td>
+<td><p>Inventory versus ordering-cost weights</p></td>
+<td><p>Five future orders</p></td>
+</tr>
+</tbody>
+</table>
+<p>The objective-map output instead contains one column per objective.
+Its low dimensionality makes it convenient to plot, but it does not contain
+enough information to recover decisions in general. Evaluate original
+objectives on predicted decisions when checking consistency between two
+independently fitted maps.</p>
+</section>
+<section id="a-common-reproduction-and-validation-workflow">
+<h2>A common reproduction and validation workflow<a class="headerlink" href="#a-common-reproduction-and-validation-workflow" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Define objectives, feasible decisions and parameter bounds. Record all
+fixed problem data such as demand, initial state and measurements.</p></li>
+<li><p>Solve at training parameters and retain convergence evidence. Numerical
+errors in these reference solutions become errors in the training data.</p></li>
+<li><p>Choose a simplex, product or assembled domain and fit aligned <code class="docutils literal notranslate"><span class="pre">Samples</span></code>.
+Inspect numerical success, observation rank and residuals.</p></li>
+<li><p>Obtain new reference responses at held-out parameters, including important
+boundaries. Compare each output and check feasibility of decisions.</p></li>
+<li><p>Change degree, sampling or penalties according to those errors. Retain
+the parameter transform and problem definition with the saved model.</p></li>
+</ol>
+<p>Figure scripts are named on each application page and run from the
+repository root. Install the optional dependencies imported by the selected
+script, typically <code class="docutils literal notranslate"><span class="pre">pytorch-bsf[plot,sklearn,sparse]</span></code>. Reported numerical
+values describe those examples and their stated evaluation sets; small
+training error or a smooth picture alone does not establish generalization.</p>
+</section>
+<section id="choosing-a-domain-and-a-next-guide">
+<h2>Choosing a domain and a next guide<a class="headerlink" href="#choosing-a-domain-and-a-next-guide" title="Link to this heading"></a></h2>
+<p>Two priorities give a segment and three give a triangle. An independent
+operating variable requires another factor: two priorities plus initial
+state give a square, as in the MPC example. This geometric distinction is
+illustrated in the <a class="reference internal" href="whatis.html#simploidal-space-overview"><span class="std std-ref">simploid overview</span></a>.
+More output variables do not require more domain factors.</p>
+<p>Use <a class="reference internal" href="quickstart.html"><span class="doc">Quickstart</span></a> for the fitting API, <a class="reference internal" href="advanced/normalization.html"><span class="doc">Output scaling</span></a> for
+units and transforms, and <a class="reference internal" href="advanced/model_selection.html"><span class="doc">Cross-validation and degree search</span></a> for model selection.
+For an original differentiable objective without reference target values,
+use <a class="reference internal" href="advanced/objective_minimization.html"><span class="doc">Objective minimization</span></a>; that is a different operation from regression on
+solver-generated observations.</p>
+</section>
+<section id="application-guides">
+<h2>Application guides<a class="headerlink" href="#application-guides" title="Link to this heading"></a></h2>
+<p>Choose a group by the map you want to approximate. The regularization
+examples trace fitted solutions as penalty weights change. The trade-off
+examples map objective priorities to decisions, starting with geometric
+facility location. The planning and control examples use sequences of
+decisions, with MPC also introducing an independent initial-state input.</p>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Regularization paths</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="applications/elastic_net.html">Elastic Net Model Selection</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications/medical_imaging.html">Medical Imaging and Radiation Therapy</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Weighted objective trade-offs</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="applications/facility_location.html">Facility Location and Continuous Approximations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications/portfolio.html">Robust Portfolio Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications/smart_grids.html">Distributed Smart Grids and Energy Operations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications/communications.html">Communication Systems and Routing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications/federated_learning.html">Multi-Task and Federated Learning</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Planning and control</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="applications/model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications/supply_chain.html">Supply Chain and Logistics Optimization</a></li>
+</ul>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="advanced/solvers_and_execution.html" class="btn btn-neutral float-left" title="Solvers, performance and optional execution" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="applications/elastic_net.html" class="btn btn-neutral float-right" title="Elastic Net Model Selection" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: ci/549-codeql-current
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../v0.14.2/applications.html">v0.14.2</a></dd>
+            <dd><a href="../../v0.14.3/applications.html">v0.14.3</a></dd>
+            <dd><a href="../../v0.15.0/applications.html">v0.15.0</a></dd>
+            <dd><a href="../../v0.15.1/applications.html">v0.15.1</a></dd>
+            <dd><a href="../../v0.16.0/applications.html">v0.16.0</a></dd>
+            <dd><a href="../../v0.16.1/applications.html">v0.16.1</a></dd>
+            <dd><a href="../../v0.17.0/applications.html">v0.17.0</a></dd>
+            <dd><a href="../../v0.18.0/applications.html">v0.18.0</a></dd>
+            <dd><a href="../../v0.19.0/applications.html">v0.19.0</a></dd>
+            <dd><a href="../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../v0.20.0/applications.html">v0.20.0</a></dd>
+            <dd><a href="../../v0.21.0/applications.html">v0.21.0</a></dd>
+            <dd><a href="../../v0.22.0/applications.html">v0.22.0</a></dd>
+            <dd><a href="../../v0.23.0/applications.html">v0.23.0</a></dd>
+            <dd><a href="../../v0.24.0/applications.html">v0.24.0</a></dd>
+            <dd><a href="../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="applications.html">ci/549-codeql-current</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
