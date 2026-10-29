@@ -997,6 +997,182 @@ the formula. On the development machine the complete mode-and-risk checks
 took about 0.14, 0.27 and 0.52 seconds at these degrees, respectively, and
 run in the normal test suite.
 
+The triangle vertex risk
+--------------------------
+
+.. prf:theorem:: Triangle vertex risk in harmonic numbers
+   :label: thm-skeleton-triangle-vertex-risk
+
+   For every integer :math:`D\geq1`,
+
+   .. math::
+      :label: skeleton-triangle-vertex-risk
+
+      a_0(3,D)=\frac{18}{D(D+1)(D+2)(D+3)}
+      \left(4H_D-2H_{2D+1}+\frac1D+\frac1{D+1}+\frac1{D+2}
+        -\frac{1}{D(2D+1)\binom{2D}{D}}\right).
+
+   Here :math:`H_j=\sum_{i=1}^j1/i`, as above. All denominators are
+   positive throughout the stated range. In particular, the formula gives
+   :math:`3/2,3/8,41/280,79/1120,1189/30800` at
+   :math:`D=1,\ldots,5`. It uses a bounded number of harmonic numbers and
+   rational operations, with no kernel coefficient extraction or
+   propagation solve.
+
+.. prf:proof::
+
+   *Replace a squared norm by a mixed product.* Write :math:`p_D(x,y,z)`
+   for the error from a unit error at the vertex :math:`x=1`, and
+   :math:`\varphi_D(x)` for the curve error in
+   :prf:ref:`thm-skeleton-curves`. On both incident edges their traces
+   agree, and both vanish on :math:`x=0`. Therefore
+   :math:`p_D-\varphi_D(x)` is a triangle bubble of degree at most
+   :math:`D`. The propagation characterization gives
+
+   .. math::
+
+      \int p_D^2\,dU=\int p_D\varphi_D(x)\,dU.
+
+   For :math:`D=1,2` the difference is zero, so this identity still holds.
+   Put :math:`A_h=(-1)^h\binom{D-1}{h}\binom{D+1}{h}`.
+   The scalar-mode extension with :math:`s=1` gives
+   :math:`p_D=\sum_{h=0}^{D-1}A_h x^{D-h}T_h(y,z)`.
+   Averaging over :math:`(y,z)=(1-x)(v,1-v)` yields
+
+   .. math::
+
+      \int_0^1 T_h(v,1-v)\,dv
+        =\frac1{h+1}\sum_{j=0}^h\frac1{(j+1)(h-j+1)}
+        =\frac{2H_{h+1}}{(h+1)(h+2)}.
+
+   *Only one curve moment is needed.* Let
+   :math:`I_h=\int_0^1(1-x)\varphi_D(x)x^{D-h}(1-x)^h\,dx`.
+   Curve orthogonality implies :math:`I_h=(-1)^h I_0`: the difference
+   :math:`x^{D-h-1}(1-x)^h-(-1)^h x^{D-1}` has degree at most
+   :math:`D-2` and is tested against the bubble weight :math:`x(1-x)`.
+   Also :math:`\varphi_D(x)=xP_{D-1}^{(1,2)}(2x-1)/D`.
+   Rodrigues' formula followed by :math:`D-1` integrations by parts gives
+
+   .. math::
+
+      I_0=\frac1D\int_0^1 x^2(1-x)x^{D-1}
+        P_{D-1}^{(1,2)}(2x-1)\,dx
+        =\frac{(D+1)!(D-1)!}{(2D+2)!}.
+
+   Every boundary term vanishes because the differentiated Rodrigues
+   factor is :math:`x^{D+1}(1-x)^D`. The formula includes :math:`D=1`,
+   where there is no integration by parts. The triangle has uniform
+   density two in :math:`(x,y)`, and the allocation and vertex count give
+   :math:`a_0=9\int p_D^2\,dU`. Consequently, writing
+
+   .. math::
+
+      w_h=\binom{D+1}{h+2}\binom{D+1}{h},\qquad
+      W=\binom{2D+2}{D-1},
+
+   gives the single sum
+
+   .. math::
+      :label: skeleton-triangle-vertex-single-sum
+
+      a_0=\frac{36}{D(D+1)(D+2)(D+3)W}
+          \sum_{h=0}^{D-1}w_h H_{h+1}.
+
+   Here we used
+   :math:`\binom{D-1}{h}/((h+1)(h+2))
+   =\binom{D+1}{h+2}/(D(D+1))`.
+
+   *Evaluate the weighted harmonic sum.* Differentiate the finite
+   Vandermonde identity
+
+   .. math::
+
+      \sum_{h=0}^{D-1}\binom{D+1+u}{D-1-h}\binom{D+1}{h}
+        =\binom{2D+2+u}{D-1}
+
+   at :math:`u=0`. The generalized binomials here are finite products,
+   so differentiating is elementary and gives
+
+   .. math::
+
+      \sum_{h=0}^{D-1} w_hH_{h+2}
+        =W\bigl(H_{D+1}-H_{2D+2}+H_{D+3}\bigr).
+
+   To subtract :math:`\sum_h w_h/(h+2)`, put
+
+   .. math::
+
+      c_D&=\frac{(2D+3)(D^2+2D-1)}{D(D+1)(D+2)(D+3)},\\
+      R_h&=\frac{(h+2)((D^2+2D-1)h-1)}
+                    {D(D+1)(D+2)(D+3)(h+1)}.
+
+   With :math:`w_D=0`, direct cancellation proves the telescoping identity
+
+   .. math::
+      :label: skeleton-triangle-vertex-certificate
+
+      w_h\left(\frac1{h+2}-c_D\right)
+        =w_{h+1}R_{h+1}-w_hR_h,\qquad 0\leq h\leq D-1.
+
+   One can check it by using
+   :math:`w_{h+1}/w_h=(D-1-h)(D+1-h)/((h+1)(h+3))`.
+   The boundary values are :math:`w_DR_D=0` and
+   :math:`w_0R_0=-1/((D+2)(D+3))`, so
+
+   .. math::
+
+      \sum_{h=0}^{D-1}\frac{w_h}{h+2}
+        =c_DW+\frac1{(D+2)(D+3)}.
+
+   Subtract this equality from the differentiated Vandermonde identity
+   and substitute in :eq:`skeleton-triangle-vertex-single-sum`.
+   Simplifying, with
+   :math:`W/\binom{2D}{D}=2D(2D+1)/((D+2)(D+3))`, gives the result.
+   This proves the formula for all :math:`D\geq1`, including all boundary
+   terms, without a computer-algebra dependency or an inferred recurrence.
+
+The certificate can also be regenerated with the existing SymPy
+dependency. This optional search is outside the test suite; the proof
+above only needs the rational identity and its boundary values:
+
+.. code-block:: python
+
+   from sympy import binomial, cancel, symbols
+   from sympy.concrete.gosper import gosper_sum
+
+   d, h = symbols("d h", integer=True, nonnegative=True)
+   denominator = d * (d + 1) * (d + 2) * (d + 3)
+   w = binomial(d + 1, h + 2) * binomial(d + 1, h)
+   c = (2 * d + 3) * (d**2 + 2 * d - 1) / denominator
+   r = (h + 2) * ((d**2 + 2 * d - 1) * h - 1) / (denominator * (h + 1))
+   assert cancel(gosper_sum(w * (1 / (h + 2) - c), h) / w - r) == 0
+   ratio = (d - 1 - h) * (d + 1 - h) / ((h + 1) * (h + 3))
+   assert cancel(ratio * r.subs(h, h + 1) - r - 1 / (h + 2) + c) == 0
+
+The exact tests compare the formula with independent full Gram recursion
+at :math:`D=1,\ldots,10` and with the earlier two-variable kernel sum at
+:math:`D=1,\ldots,12`. The candidate was explored with exact rationals
+through degree 80 before this proof was obtained. The independent single
+sum also checks :math:`D=81,100`, outside that exploratory range;
+degree 1000 was checked separately during development. The rational
+certificate, including both endpoints, is checked in the normal test suite.
+
+Together with :prf:ref:`cor-skeleton-triangle-edge-risk` and
+:prf:ref:`prop-skeleton-top`, this closes every triangle coefficient at
+every degree: :math:`a_2(3,D)=\binom{D-1}{2}` for :math:`D\geq3`,
+and :math:`a_2=0` otherwise. The optimal risk follows by substituting
+these three coefficients in :prf:ref:`thm-skeleton-ratio`. In particular,
+
+.. math::
+
+   a_0(3,D)=\frac{36\log D+O(1)}{D^4},\qquad
+   a_1(3,D)=\frac{9\log D+O(1)}D.
+
+The remaining finite-dimensional vertex simplification problem starts at
+:math:`M=4`; the general finite kernel sum still applies there. The
+triangle formula makes no claim about changing :math:`M`, the curve
+formula, or the fixed-degree large-:math:`M` limit.
+
 Fixed degree, growing dimension
 -------------------------------
 
@@ -1280,14 +1456,16 @@ Open questions
   :math:`D=2,\dots,10` reproduce the independently solved propagation
   matrices and the harmonic-number formula. Prime factors in individual
   risk values give no obstruction to such formulas.
-- **A simpler form of a_0 for finite M ≥ 3.**
+- **A simpler form of a_0 for finite M ≥ 4.**
+  :prf:ref:`thm-skeleton-triangle-vertex-risk` solves :math:`M=3` for
+  every degree in harmonic numbers and a central binomial coefficient.
   :eq:`skeleton-vertex-double-sum` reduces the control-pair sum to a
   :math:`D\times D` sum with an explicit generating function. For example
   it gives :math:`41/280,79/1120,1189/30800` at :math:`M=3` and
   :math:`D=3,4,5`. :eq:`skeleton-vertex-polynomial` gives every fixed-degree
-  polynomial, but a scalar closed form in :math:`D`, or a linear
-  recurrence in :math:`D` of bounded order, remains open even for
-  :math:`M=3`.
+  polynomial, but further simplification in :math:`D`, or a linear
+  recurrence in :math:`D` of bounded order, remains open for
+  :math:`M\geq4`.
 
   Two simplification attempts give the following concrete partial results.
   Removing the factors :math:`(p+1)^{-1}(q+1)^{-1}` from :math:`F`
@@ -1312,10 +1490,12 @@ Open questions
   hypergeometric antidifference (SymPy ``gosper_sum`` returns ``None``).
   This limits that direct indefinite-summation attempt; it does not rule
   out a definite-sum identity or creative telescoping. The boundary
-  identity only evaluates terms with :math:`k=D` or :math:`l=D` in
-  :eq:`skeleton-vertex-double-sum`; interior coefficients still involve
-  both variables. No WZ certificate or bounded-order recurrence is
-  asserted.
+  identity alone only evaluates terms with :math:`k=D` or :math:`l=D`
+  in :eq:`skeleton-vertex-double-sum`. For the full triangle risk, the
+  mixed-product argument above instead reduces everything to one weighted
+  harmonic sum, and :eq:`skeleton-triangle-vertex-certificate` supplies
+  its boundary-aware telescoping certificate. No bounded-order recurrence
+  for general :math:`M\geq4` is asserted.
 - **Exact crossover dimensions for every degree.**
   :prf:ref:`cor-skeleton-large-dimension` shows that a crossover dimension
   exists for every :math:`D`, and :prf:ref:`prop-skeleton-wins` determines it
