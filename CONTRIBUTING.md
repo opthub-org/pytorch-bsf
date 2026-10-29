@@ -90,7 +90,7 @@ The preview exits 1 if changes are needed. Use `--data-file path/to/release-cycl
 for an offline preview. Run the updater's tests without installing numerical dependencies:
 
 ```bash
-python -m unittest discover -s tools/tests -v
+python -m unittest discover -s tests/tools -p update_python_support.py -v
 ```
 
 ---
@@ -134,7 +134,7 @@ The `[develop]` extras include:
 | `hypothesis` | Property-based tests |
 | `mypy` + type stubs | Static type checking |
 | `ruff` | Linting, import sorting and code formatting |
-| `pre-commit` | Running Ruff automatically on `git commit` |
+| `pre-commit` | Running Ruff, numpydoc-validation, `tools/lint_conventions.py` and typos on `git commit` |
 
 With Conda, install them into the environment with `pip install -e ".[develop]"` as well.
 
@@ -142,7 +142,7 @@ MLflow is an optional extra (`pip install -e ".[develop,mlflow]"`, also included
 
 ### Install the git hook
 
-Install the [pre-commit](https://pre-commit.com/) hook so that Ruff checks and formats your changes on every commit:
+Install the [pre-commit](https://pre-commit.com/) hook so that Ruff, numpydoc, `tools/lint_conventions.py` and typos check your changes (and Ruff formats them) on every commit:
 
 ```bash
 pre-commit install
@@ -313,12 +313,92 @@ after release-please creates a release; manually published releases trigger it
 directly. Stable semantic versions receive the `latest` image tag automatically;
 prereleases do not.
 
+Release Please uses the supported `googleapis/release-please-action` repository,
+pinned to [v5.0.0](https://github.com/googleapis/release-please-action/releases/tag/v5.0.0)
+(Node 24). Its [manifest configuration](https://github.com/googleapis/release-please-action/tree/45996ed1f6d02564a971a2fa1b5860e934307cf7#advanced-release-configuration)
+is in `release-please-config.json`; the removed v3 Action inputs `package-name`
+and `bump-minor-pre-major` belong in that file. Do not also pass the Action's
+`release-type` input: it selects a different mode that bypasses the manifest.
+The root package keeps the release identifier `torch_bsf`, distribution name
+`pytorch-bsf` in `pyproject.toml`, and existing `v0.x.y` tags without a component
+prefix. The manifest starts at the existing `v0.24.0` release; future release PRs
+update `.release-please-manifest.json`, `pyproject.toml` and `CHANGELOG.md` together.
+Do not clear the manifest or set a new bootstrap version during an Action update.
+
+The root component's `release_created` and `tag_name` outputs connect to the
+Docker and PyPI jobs. Both publish only when `release_created == 'true'`, and
+both build the reported release tag. Keep the reusable Docker call: releases
+created with `GITHUB_TOKEN` do not start another release-event workflow.
+
+Validate release configuration without creating a release or publishing anything:
+
+```bash
+# Node 24 or later; these dependencies are only for the offline fixture
+npm ci --prefix tests/tools/release-please-fixture --ignore-scripts --no-audit --no-fund
+npm test --prefix tests/tools/release-please-fixture
+```
+
+The **Release configuration** PR check runs the same fixture. It uses the real
+Release Please 17.6.0 engine bundled in Action v5.0.0 and compares version bumps
+with 15.13.0 from the previous Action v3.7.13. From 0.24.0, breaking changes and
+features produce 0.25.0; fixes produce 0.24.1. It validates the schemas, release
+history boundary, Python/CHANGELOG/manifest updates and publication wiring with
+an in-memory repository that rejects writes. When changing the Action pin,
+update the fixture's engine dependency and lockfile to match the upstream
+Action's lockfile, then rerun the check.
+
 1. Push your branch and open a Pull Request targeting `master`.
 2. In the PR description, include what changed, the related issue (`Closes #XXX`), how to test it, and the result of the local review.
 3. After opening the PR and after every push, check whether Codex is reviewing or has reviewed the current head. If neither applies and no request for that head is already pending, automatically request review with an `@codex review` PR comment and verify acknowledgement for that SHA. The `work-on-issue` skill authorizes these review-request comments on its own PR. Wait for all CI checks (GitHub Actions) and the Codex review of the current head commit. Repeat after every push; results for an older SHA do not cover the new head.
 4. Handle every unresolved review thread, including outdated threads: verify the finding, fix and test it or decide why no change is appropriate, then reply in the thread with the fixing commit SHA or a concrete reason. Resolve only threads that are fixed or substantively answered, then check for new threads after each review round. The `work-on-issue` skill authorizes and requires these replies and resolutions on the PR it opened; its [PR review step](.claude/skills/work-on-issue/SKILL.md#10-wait-for-ci-and-handle-pr-review-threads) documents paginated GraphQL `reviewThreads`, REST replies (`gh api repos/opthub-org/pytorch-bsf/pulls/<N>/comments/<id>/replies -f body=…`), and GraphQL `resolveReviewThread` commands. The `review-local` skill's no-push/no-comment limit applies only to the local review itself.
 5. Merge once you have an approval and explicit authorization to merge. Invoking `work-on-issue` does not authorize merging, closing issues, or commenting elsewhere on GitHub.
 6. Delete the branch after merging.
+
+### Codecov authentication and upload verification
+
+The PyTest `build` job uploads `coverage.xml` only on the full-integration Python
+version selected by `environment.yml`. Upload errors fail that job; a green
+workflow from before this policy is not proof that Codecov accepted a report.
+
+- Ordinary PRs and `master` pushes use the existing `CODECOV_TOKEN` Actions
+  secret, configured under **Settings → Secrets and variables → Actions**.
+- Same-repository PR runs triggered by `dependabot[bot]` use Codecov's OIDC
+  authentication. The `build` job grants `id-token: write`; other jobs retain
+  their existing permissions. OIDC requires no copied Dependabot secret or
+  Codecov token-policy change. Dependabot cannot read ordinary Actions secrets, and manually rerunning
+  its workflow retains the original restricted context.
+- Public fork PRs retain Codecov's tokenless upload path. They receive no
+  repository secret; the Codecov action identifies the fork and prefixes its
+  upload branch. Keep `pull_request` as the trigger when testing contributor code.
+
+For an Action upgrade, verify the actual upload as well as the CI result:
+
+1. Record the PR head SHA and open its PyTest `build` job for the full-integration
+   Python version. For Dependabot, verify that the workflow's original actor is
+   `dependabot[bot]`; a maintainer's own PR does not exercise that context.
+2. Expand **Upload coverage to Codecov**. Check that it finds `coverage.xml`,
+   uploads for the recorded PR head SHA, and finishes without authentication,
+   queueing or upload errors. A message that a report was queued alone does not
+   prove that processing succeeded.
+3. Open the matching commit at
+   `https://app.codecov.io/gh/opthub-org/pytorch-bsf/commit/<head-sha>` and confirm
+   that its processed report and upload correspond to that run. Check the
+   applicable `codecov/patch` status too. A change outside measured source can
+   have no patch status; still require the processed commit report.
+4. Require CI and the Codex review for that same current head, plus zero
+   unresolved review threads, before merging. After this authentication change
+   reaches `master`, rebase the original Dependabot Action-upgrade PR to test
+   both the new Action and the real Dependabot context.
+
+If OIDC fails, check the job's `id-token: write` permission and Codecov's response
+before rerunning. If using token authentication for Dependabot instead, a
+repository administrator must copy the repository's Codecov upload token to
+**Settings → Secrets and variables → Dependabot** as `CODECOV_TOKEN` and disable
+OIDC for that path; the OIDC option takes precedence over the token input. Never
+post token values in logs, issues or PRs. See the
+[Codecov Action authentication options](https://github.com/codecov/codecov-action#using-oidc),
+[Codecov token policy](https://docs.codecov.com/docs/codecov-tokens), and
+[GitHub's Dependabot workflow restrictions](https://docs.github.com/en/code-security/reference/supply-chain-security/troubleshoot-dependabot/dependabot-on-actions).
 
 ---
 
@@ -379,11 +459,20 @@ ci: add Python 3.14 to test matrix
 
 ### Linter and formatter
 
-[Ruff](https://docs.astral.sh/ruff/) lints, sorts imports and formats code. The pre-commit hook (see [Install the git hook](#install-the-git-hook)) runs `ruff check --fix` and `ruff format` on the files you commit. CI runs the same hooks on all files and fails if they report a problem or change a file. To run them manually:
+Conventions that a tool can check are enforced by the pre-commit hooks (see [Install the git hook](#install-the-git-hook)) rather than only written here; a violation is reported with the reason and the fix.
+
+- [Ruff](https://docs.astral.sh/ruff/) lints, sorts imports and formats code (`ruff check --fix` and `ruff format`).
+- [numpydoc](https://numpydoc.readthedocs.io/en/latest/validation.html) checks that public objects have docstrings, their parameters are documented, return values have descriptions, summaries use the infinitive, and NumPy-style sections and type entries are well formed. The checks are configured in `[tool.numpydoc_validation]` of `pyproject.toml`; private modules (a path component starting with `_`, except `__init__.py`), private objects and their descendants are skipped. Document the fields of a dataclass under `Attributes`, as numpydoc cannot see the generated `__init__`. Parameter type entries and runnable examples remain manual review items; extended summaries and See Also sections are optional when they add no useful context. To skip one check for one object, put `# numpydoc ignore=<CODE>` on its `def` or `class` line, with a comment explaining why.
+- `tools/lint_conventions.py` checks the conventions of this file that Ruff cannot check (BSF001, BSF002 below).
+- [typos](https://github.com/crate-ci/typos) finds misspellings; false positives are suppressed narrowly in `_typos.toml`. It runs only in the local git hook for now, and CI skips it, while the rate of false positives is observed. Add a false positive to `_typos.toml` (or report it) rather than rewording correct text.
+
+CI runs the same hooks (except typos) on all files and fails if they report a problem or change a file. To run them manually:
 
 ```bash
 # Run the hooks on all files, as CI does
-pre-commit run --all-files
+SKIP=typos pre-commit run --all-files
+# typos: local only while its false positives are observed
+pre-commit run typos --all-files
 
 # Or run Ruff directly
 ruff check .           # lint and sort imports (add --fix to apply automatic fixes)
@@ -396,8 +485,10 @@ Configuration in `pyproject.toml` (`[tool.ruff]` section):
 
 - `line-length = 127`
 - `target-version = "py311"`
-- `select = ["E", "F", "W", "I", "UP", "B", "SIM", "C90"]` (pycodestyle errors and warnings, Pyflakes, isort, pyupgrade, flake8-bugbear, flake8-simplify, McCabe complexity)
+- `select = ["E", "F", "W", "I", "UP", "B", "SIM", "C90", "D", "PGH003", "PLC2401", "PLC2403", "TID251"]` (pycodestyle errors and warnings, Pyflakes, isort, pyupgrade, flake8-bugbear, flake8-simplify, McCabe complexity, pydocstyle, codes on `# type: ignore`, ASCII identifiers and imports, banned APIs)
 - `max-complexity = 10` (`[tool.ruff.lint.mccabe]` section): split a function whose cyclomatic complexity exceeds 10 into smaller helpers
+- pydocstyle (`D`) uses the `numpy` convention, applies to `torch_bsf/` only, and ignores `D105` (magic methods) and `D401` (imperative summaries)
+- `TID251` bans `from __future__ import annotations` (`[tool.ruff.lint.flake8-tidy-imports.banned-api]`)
 
 `B905` requires an explicit `strict=` on every `zip()`: pass `strict=True` when the iterables must have the same length, and `strict=False` only when truncation is intended.
 
@@ -429,15 +520,15 @@ Configuration in `pyproject.toml` (`[tool.mypy]` section):
 - `[[tool.mypy.overrides]]` for `tests.*` turns off `disallow_untyped_defs` and `disallow_incomplete_defs`, so test functions and fixtures need no annotations
 - Optional dependencies without type information (`mlflow`, `scipy`, `sklearn`, `matplotlib`, `mpl_toolkits`) use `ignore_missing_imports`
 
-Every `# type: ignore` must name its error code, e.g. `# type: ignore[arg-type]` for a test that passes an invalid value on purpose.
+Every `# type: ignore` must name its error code, e.g. `# type: ignore[arg-type]` for a test that passes an invalid value on purpose (Ruff `PGH003`).
 
 ### Style guidelines
 
 - **Indentation**: 4 spaces
 - **Maximum line length**: 127 characters (`line-length` in `[tool.ruff]`)
 - **Strings**: Double quotes (`ruff format` default)
-- **Docstrings**: NumPy style (use ``Parameters\n----------``, ``Returns\n-------``, ``Raises\n------`` sections)
-- **Type hints**: Use Python 3.11 built-in type hint syntax without `from __future__ import annotations`
+- **Docstrings**: NumPy style (Ruff `D` and numpydoc check the layout)
+- **Type hints**: Python 3.11 built-in syntax without `from __future__ import annotations` (Ruff `TID251`); quote a forward reference, e.g. `-> "BezierSpace"` inside the class `BezierSpace`
 
 ### "Bezier" vs "Bézier" spelling
 
@@ -449,6 +540,8 @@ Use the spelling consistently depending on the context:
 | `Bézier` (with accent) | Everything else: docstrings, RST/Markdown documentation, code comments, `pyproject.toml` metadata, example script module docstrings |
 
 The rationale for keeping `Bezier` in console-facing text is that this library is used on HPC clusters where the locale may be `LANG=C`, causing non-ASCII characters to be displayed incorrectly or to raise encoding errors.
+
+Rule BSF001 of `tools/lint_conventions.py`, run by the pre-commit hook, enforces ASCII in console-facing strings (its docstring lists the calls it checks; a deliberate exception takes `# lint-conventions: ignore[BSF001]` and a reason).
 
 ---
 
@@ -472,6 +565,11 @@ pytest tests/simploidal.py
 ### Naming conventions
 
 - Test file names mirror the module under test (e.g., `torch_bsf/splitting.py` → `tests/splitting.py`).
+- Tests for development scripts live in `tests/tools/` and mirror the script name
+  (e.g., `tools/update_python_support.py` → `tests/tools/update_python_support.py`).
+  They run with the normal pytest suite. The standard-library-only updater also
+  runs through `unittest` in the lint and dependency lifecycle jobs, without
+  numerical dependencies.
 - Test function names start with `test_` or `_test_`.
 
 ### Writing parametrized tests
@@ -500,7 +598,7 @@ Hand-picked examples rarely include the inputs on which numerical code breaks. C
 
 - **What to state**: invariances (translation and scaling of coordinates, scaling of coefficients or data), identities (a map and its inverse, a child model and its parent), bounds (range preservation, partition of unity, nonnegativity), continuity across shared faces, and that invalid input (NaN, infinity, empty, wrong type or shape) raises the documented exception.
 - **Which inputs**: use the shared strategies of `tests/strategies.py`, which generate extreme values on purpose: translations up to `1e12`, scalings from `1e-6` to `1e6`, powers of two up to `2**±1000` (near the float64 limits), split ratios within `1e-12` of 0 and 1, and points on vertices and faces or with coordinates down to the smallest normal float64. Add a strategy there rather than in a test file, so that later properties can reuse it.
-- **Tolerances**: never use the default tolerance of `torch.testing.assert_close` or an arbitrary `1e-6`. Derive the bound from the unit roundoff `U = 2**-53` (the number of roundings, the condition number of the problem, the magnitude of the data), and write the derivation next to the test, as in `_split_tolerance` of `tests/splitting.py`. An exact operation (a translation or a power-of-two scaling whose results are representable) should give an exactly equal result.
+- **Tolerances**: never use the default tolerance of `torch.testing.assert_close` or an arbitrary `1e-6`. Derive the bound from the unit roundoff `U = 2**-53` (the number of roundings, the condition number of the problem, the magnitude of the data), and write the derivation next to the test, as in `_split_tolerance` of `tests/splitting.py`. An exact operation (a translation or a power-of-two scaling whose results are representable) should give an exactly equal result. Rule BSF002 of `tools/lint_conventions.py`, run by the pre-commit hook, requires every `assert_close` in `tests/` to pass both `rtol` and `atol` (`rtol=0, atol=0` for an exact comparison).
 - **Counterexamples**: when a property fails, keep the shrunk input as a regression test (`@example` or a plain test) next to the property. Fix small bugs in the same PR. For a larger one, open an issue and mark the property `@pytest.mark.xfail(strict=True, reason="#<issue>")`.
 
 The Hypothesis profile is chosen with the `HYPOTHESIS_PROFILE` environment variable (see `tests/conftest.py`):
@@ -619,7 +717,7 @@ pytorch-bsf/
 │       └── work-on-issue/SKILL.md    # Implement an issue end to end, up to an open PR
 ├── .github/
 │   ├── workflows/                    # GitHub Actions workflows
-│   │   ├── python-package.yml        # pre-commit (Ruff), pytest, mypy, Sphinx; lowest and optional deps
+│   │   ├── python-package.yml        # pre-commit (Ruff, numpydoc-validation, lint-conventions), pytest, mypy, Sphinx; lowest and optional deps
 │   │   ├── release-please-action.yml # Automated releases (CHANGELOG + PyPI publish)
 │   │   ├── docker.yml                # Docker image published to ghcr.io on release
 │   │   ├── sphinx-pages.yml          # Build and publish Sphinx docs to GitHub Pages
@@ -689,6 +787,10 @@ pytorch-bsf/
 │   ├── test_contributor_examples.py  # Runs the CONTRIBUTING.md CLI example and issue form examples
 │   ├── …                             # One file per module (see Naming conventions), plus contract tests
 │   ├── model_selection/              # Tests for torch_bsf.model_selection
+│   ├── tools/                        # All tests for the scripts in tools/
+│   │   ├── __init__.py
+│   │   ├── lint_conventions.py        # AST convention checker regressions
+│   │   └── update_python_support.py   # Lifecycle tests (pytest or standalone unittest)
 │   └── data/                         # Test data files
 ├── docs/                             # Sphinx documentation
 │   ├── conf.py                       # Sphinx configuration
@@ -701,10 +803,14 @@ pytorch-bsf/
 │   ├── quickstart/
 │   │   └── run.sh                    # Quickstart shell script
 │   └── …                             # Benchmarks (*benchmark*.py), doc figures (generate_*.py), other scripts
+├── tools/                            # Development scripts
+│   ├── check_distribution.py         # Builds and checks the distributions (the distribution CI job)
+│   ├── lint_conventions.py           # Checks the conventions that Ruff cannot check (a pre-commit hook)
+│   └── update_python_support.py      # Synchronizes supported Python versions with the release lifecycle
 ├── .git-blame-ignore-revs            # Bulk formatting commits skipped by git blame
 ├── .gitattributes                    # Git LFS settings for binary files
 ├── .gitignore                        # Files ignored by Git
-├── .pre-commit-config.yaml           # Git hooks (Ruff) run on commit and in CI
+├── .pre-commit-config.yaml           # Git hooks (Ruff, numpydoc, tools/lint_conventions.py, typos) run on commit; CI runs all but typos
 ├── CHANGELOG.md                      # Version history (auto-generated by release-please)
 ├── CONTRIBUTING.md                   # This file
 ├── Dockerfile                        # Docker image definition

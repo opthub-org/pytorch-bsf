@@ -10,6 +10,7 @@ from hypothesis import strategies as st
 
 from tests.strategies import (
     FLOAT64_TINY,
+    U32,
     U,
     degrees,
     extreme_scalings,
@@ -610,12 +611,16 @@ def test_split_simploid_pieces_reparametrize_the_original(simploid_type, degree,
         assert piece.degree == model.degree
         assert piece.n_values == model.n_values
     t = sample_simploid(simploid_type, 200, seed=0).double()
+    # _split_tolerance bounds the error through to_parent, which multiplies by s or 1 - s; reparametrize divides by
+    # them instead, which amplifies the rounding of the coordinates by at most 1 / min(s, 1 - s).
+    magnitude = float(model.control_points.detach().abs().max())
+    tolerance = _split_tolerance(simploid_type, model.degree, factor, magnitude) / min(s, 1 - s)
     pieces: list[tuple[Literal["A", "B"], BezierSimploid]] = [("A", model_A), ("B", model_B)]
     for part, piece in pieces:
         u, mask = reparametrize(t, i, j, s, part, simploid_type=simploid_type, factor=factor)
         assert mask.any()
         with torch.no_grad():
-            torch.testing.assert_close(piece(u[mask]), model(t[mask]))
+            torch.testing.assert_close(piece(u[mask]), model(t[mask]), rtol=0, atol=tolerance)
 
 
 def test_split_simploid_rejects_bad_factor_and_edge():
@@ -630,8 +635,10 @@ def test_reparametrize_simploid_leaves_other_factors_unchanged():
     t = torch.tensor([[0.8, 0.2, 0.0, 0.3, 0.7]])
     u, mask = reparametrize(t, 0, 1, 0.5, "B", simploid_type=(2, 1), factor=1)
     assert mask.item()
-    torch.testing.assert_close(u[:, :3], t[:, :3])
-    torch.testing.assert_close(u[:, 3:], torch.tensor([[0.6, 0.4]]))
+    torch.testing.assert_close(u[:, :3], t[:, :3], rtol=0, atol=0)
+    # In float32 (u = 2**-24), 0.3 / (1 - s) = 2 * 0.3 is exact, but 0.7 - (s / (1 - s)) * 0.3 = 0.7 - 0.3 rounds once
+    # more than its inputs, and 0.4 is rounded too: an error of at most (0.7 + 0.3 + 0.4 + 0.4) u < 2u; doubled.
+    torch.testing.assert_close(u[:, 3:], torch.tensor([[0.6, 0.4]]), rtol=0, atol=2 * 2 * U32)
     with pytest.raises(ValueError, match="columns for type"):
         reparametrize(t[:, :4], 0, 1, 0.5, "A", simploid_type=(2, 1))
 

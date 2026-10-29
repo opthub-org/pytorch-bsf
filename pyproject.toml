@@ -115,7 +115,21 @@ line-length = 127
 target-version = "py311"
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "B", "SIM", "C90"]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "C90", "D", "PGH003", "PLC2401", "PLC2403", "TID251"]
+ignore = [
+  "D105",  # magic methods document themselves through the protocol they implement
+  "D401",  # summaries may be descriptive ("Bézier simplex of ...") rather than imperative
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Docstring conventions apply to the package; tests, examples and docs scripts are exempt.
+"!torch_bsf/**" = ["D"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"__future__.annotations".msg = "Write Python 3.11 built-in type hints and quote forward references instead (CONTRIBUTING.md, Style guidelines)."
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = [
@@ -172,3 +186,16 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = "mpl_toolkits.*"
 ignore_missing_imports = true
+
+[tool.numpydoc_validation]
+# Validate public docstrings, parameters, returns, and NumPy-style structure.
+checks = [
+  "all",
+  "ES01",  # Extended summaries add no value for self-explanatory accessors.
+  "EX01",  # Keep examples a manual review item: accessors can share class examples.
+  "PR04",  # Type hints already specify types; require useful prose, not duplicated types.
+  "SA01",  # Related objects are optional; not every API has a useful See Also target.
+]
+# Private objects (_name), including special methods (__name__) and their descendants;
+# private modules are excluded in .pre-commit-config.yaml, which keeps __init__.py.
+exclude = ['\._\w*(?:\.|$)']

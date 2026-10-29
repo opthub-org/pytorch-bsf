@@ -226,7 +226,7 @@ def _resolve_shape(
     st = _check_type(simploid_type)
     if degree is None:
         if not isinstance(init, BezierSimploid):
-            raise ValueError("degree is required unless init is a Bézier simploid.")
+            raise ValueError("degree is required unless init is a Bezier simploid.")
         degree = init.degree
     return st, _check_degree(degree, len(st))
 
@@ -322,11 +322,11 @@ def fit(
     Fit a Bézier triangle to data on a triangle:
 
     >>> import torch
-    >>> import torch_bsf
+    >>> from torch_bsf._kernels.fitting import fit
     >>> from torch_bsf._kernels._sampling import simplex_grid
     >>> ts = simplex_grid(n_params=3, degree=3)  # parameters on a triangle
     >>> xs = 1 - ts * ts  # values corresponding to the parameters
-    >>> bs = torch_bsf.fit(ts, xs, degree=2)
+    >>> bs = fit(ts, xs, degree=2)
     >>> bs.simploid_type
     (2,)
     >>> torch.allclose(bs(ts), xs, atol=1e-5)
@@ -337,17 +337,17 @@ def fit(
     >>> from torch_bsf._kernels import sample_simploid
     >>> t = sample_simploid((2, 1), 100, seed=0)
     >>> x = t[:, :3] * t[:, 3:4]
-    >>> bs = torch_bsf.fit(t, x, degree=(1, 1), simploid_type=(2, 1))
+    >>> bs = fit(t, x, degree=(1, 1), simploid_type=(2, 1))
     >>> torch.allclose(bs(t), x, atol=1e-5)
     True
 
     Keep the control point at a vertex and smooth the others:
 
-    >>> init = torch_bsf.fit(t, x, degree=2, simploid_type=(2, 1))
+    >>> init = fit(t, x, degree=2, simploid_type=(2, 1))
     >>> vertex = ((2, 0, 0), (2, 0))
     >>> with torch.no_grad():
     ...     _ = init[vertex].fill_(1.0)
-    >>> bs = torch_bsf.fit(t, x, init=init, freeze=[vertex], smoothness_weight=0.01)
+    >>> bs = fit(t, x, init=init, freeze=[vertex], smoothness_weight=0.01)
     >>> bs[vertex].tolist()
     [1.0, 1.0, 1.0]
     """
@@ -465,7 +465,7 @@ def fit_kfold(
     Examples
     --------
     >>> import torch
-    >>> import torch_bsf
+    >>> from torch_bsf._kernels.fitting import fit_kfold
     >>> from torch_bsf._kernels._active_learning import suggest_next_points
     >>> from torch_bsf._kernels._sampling import simplex_grid
 
@@ -476,7 +476,7 @@ def fit_kfold(
 
     Build a 5-fold ensemble and suggest the 2 most uncertain points
 
-    >>> models = torch_bsf.fit_kfold(params, values, degree=2, seed=0)
+    >>> models = fit_kfold(params, values, degree=2, seed=0)
     >>> len(models)
     5
     >>> suggestions = suggest_next_points(models, n_suggestions=2, method="qbc")

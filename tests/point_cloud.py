@@ -6,6 +6,7 @@ from itertools import combinations
 import pytest
 import torch
 
+from tests.strategies import U
 from torch_bsf import (
     BezierModel,
     BezierSpace,
@@ -40,7 +41,7 @@ def test_recovers_schaffer_curve_without_coordinates(fitter):
     result = fitter(space, y).require_success()
     expected = torch.tensor([[0.0, 1.0], [0.0, 0.0], [1.0, 0.0]], dtype=torch.float64)
     torch.testing.assert_close(result.model.coefficients, expected, atol=1e-8, rtol=0)
-    torch.testing.assert_close(y, original)
+    torch.testing.assert_close(y, original, rtol=0, atol=0)
     if fitter is fit_point_cloud:
         torch.testing.assert_close(result.model(result.parameters), y, atol=1e-8, rtol=0)
         assert all(b <= a + 1e-14 for a, b in zip(result.objective_history[:-1], result.objective_history[1:], strict=True))
@@ -80,18 +81,18 @@ def test_auto_face_extraction_matches_explicit_faces():
     explicit = {(0,): y[:1], (1,): y[-1:], (0, 1): y}
     auto = fit_skeleton(space, y)
     supplied = fit_skeleton(space, y, face_values=explicit)
-    torch.testing.assert_close(auto.model.coefficients, supplied.model.coefficients)
+    torch.testing.assert_close(auto.model.coefficients, supplied.model.coefficients, rtol=0, atol=0)
 
 
 def test_dominance_keeps_ties_and_full_outputs():
     y = torch.tensor([[0.0, 3.0, 7.0], [0.0, 3.0, 7.0], [1.0, 2.0, 8.0], [2.0, 4.0, 9.0]])
-    torch.testing.assert_close(_nondominated(y, (0,)), y[:2])
-    torch.testing.assert_close(_nondominated(y, (0, 1)), y[:3])
+    torch.testing.assert_close(_nondominated(y, (0,)), y[:2], rtol=0, atol=0)
+    torch.testing.assert_close(_nondominated(y, (0, 1)), y[:3], rtol=0, atol=0)
 
 
 def test_projection_enforces_simplex_and_boundary():
     t = _project(torch.tensor([[-2.0, 4.0, 1.0], [0.2, 0.3, 0.5]], dtype=torch.float64))
-    torch.testing.assert_close(t, torch.tensor([[0.0, 1.0, 0.0], [0.2, 0.3, 0.5]], dtype=torch.float64))
+    torch.testing.assert_close(t, torch.tensor([[0.0, 1.0, 0.0], [0.2, 0.3, 0.5]], dtype=torch.float64), rtol=0, atol=0)
 
 
 def test_newton_projects_outside_points_to_boundary():
@@ -103,6 +104,28 @@ def test_newton_projects_outside_points_to_boundary():
     torch.testing.assert_close(t, _project(y), atol=1e-8, rtol=0)
 
 
+def _derivative_tolerance(poly: _Polynomial, order: int) -> float:
+    """Bound on the difference of two float64 evaluations of a derivative of ``order`` of ``poly`` on the simplex.
+
+    Each of the ``N`` terms is a control times a scaled monomial of degree at most ``D`` in ``w`` coordinates, rounded at
+    most ``D + 2w`` times, and summing the terms rounds ``N - 1`` times more. On the simplex, the absolute values of the
+    scaled monomials of a derivative of order ``k`` sum to at most ``D**k``, so one evaluation (analytic or autograd)
+    errs by at most ``(N + D + 2w) u D**k`` times the largest control; twice that for the difference, doubled.
+    """
+    n, degree, width = len(poly.powers), float(poly.degree), poly.powers.shape[1]
+    return 4 * (n + degree + 2 * width) * U * degree**order * float(poly.coefficients.abs().max())
+
+
+def _constant_fit_tolerance(y: list[list[float]]) -> float:
+    """Bound on the error of the least-squares control of a constant (0-simplex) model fitted to the rows ``y``.
+
+    The design matrix of the ``m`` rows is a column of ones, whose condition number is one, and Householder least
+    squares is backward stable: the solution, the mean, errs by a small multiple (4 here) of ``m u`` times the largest
+    value. Doubled.
+    """
+    return 2 * 4 * len(y) * U * max(abs(v) for row in y for v in row)
+
+
 def test_analytic_derivatives_match_autograd_including_boundary():
     space = BezierSpace.simplex(2, degree=3)
     cp = torch.randn(space.n_controls, 2, dtype=torch.float64, generator=torch.Generator().manual_seed(17))
@@ -111,10 +134,14 @@ def test_analytic_derivatives_match_autograd_including_boundary():
         t = torch.tensor(values, dtype=torch.float64, requires_grad=True)
         jac = torch.autograd.functional.jacobian(lambda v: poly.derivative(v[None])[0], t)
         for i in range(3):
-            torch.testing.assert_close(poly.derivative(t[None], (i,))[0], jac[:, i])
+            torch.testing.assert_close(
+                poly.derivative(t[None], (i,))[0], jac[:, i], rtol=0, atol=_derivative_tolerance(poly, 1)
+            )
             for j in range(3):
                 hess = torch.autograd.functional.jacobian(lambda v, axis=i: poly.derivative(v[None], (axis,))[0], t)
-                torch.testing.assert_close(poly.derivative(t[None], (i, j))[0], hess[:, j])
+                torch.testing.assert_close(
+                    poly.derivative(t[None], (i, j))[0], hess[:, j], rtol=0, atol=_derivative_tolerance(poly, 2)
+                )
 
 
 def test_arbitrary_embedding_initial_and_fixed_controls_are_preserved():
@@ -125,16 +152,18 @@ def test_arbitrary_embedding_initial_and_fixed_controls_are_preserved():
     y = torch.stack((u, u * (1 - u), u.square()), 1)
     fixed = FixedControls({0: y[0], 2: y[-1]})
     result = fit_point_cloud(space, y, initial=initial, fixed=fixed, tolerance=1e-7).require_success()
-    torch.testing.assert_close(initial.coefficients, original)
+    torch.testing.assert_close(initial.coefficients, original, rtol=0, atol=0)
     torch.testing.assert_close(result.model.coefficients[[0, 2]], y[[0, -1]], atol=0, rtol=0)
     assert result.objective_history[-1] < 1e-9
     assert result.model.coefficients.dtype == torch.float64
 
 
 def test_constant_simplex():
-    result = fit_point_cloud(BezierSpace.simplex(0, degree=3), [[1.0, 2.0], [3.0, 4.0]]).require_success()
+    y = [[1.0, 2.0], [3.0, 4.0]]
+    result = fit_point_cloud(BezierSpace.simplex(0, degree=3), y).require_success()
     assert result.parameters.shape == (2, 0)
-    torch.testing.assert_close(result.model.coefficients, torch.tensor([[2.0, 3.0]], dtype=torch.float64))
+    expected = torch.tensor([[2.0, 3.0]], dtype=torch.float64)
+    torch.testing.assert_close(result.model.coefficients, expected, rtol=0, atol=_constant_fit_tolerance(y))
 
 
 def test_iteration_limit_retains_finite_iterate():
@@ -222,7 +251,7 @@ def test_skeleton_arbitrary_embedding_with_supplied_faces():
     y = torch.tensor([[0.0, 0.0, 0.0], [0.5, 1.0, 1.5], [1.0, 2.0, 3.0]], dtype=torch.float64)
     initial = BezierModel(space, y[[0, -1]])
     result = fit_skeleton(space, y, initial=initial, face_values={(0,): y[:1], (1,): y[-1:]}).require_success()
-    torch.testing.assert_close(result.model.coefficients, y[[0, -1]])
+    torch.testing.assert_close(result.model.coefficients, y[[0, -1]], rtol=0, atol=0)
 
 
 def test_invalid_space_initial_and_constraint_types():
@@ -236,8 +265,10 @@ def test_invalid_space_initial_and_constraint_types():
 
 
 def test_skeleton_constant_and_embedding_validation():
-    result = fit_skeleton(BezierSpace.simplex(0, degree=0), [[1.0, 2.0], [3.0, 4.0]]).require_success()
-    torch.testing.assert_close(result.model.coefficients, torch.tensor([[2.0, 3.0]], dtype=torch.float64))
+    y = [[1.0, 2.0], [3.0, 4.0]]
+    result = fit_skeleton(BezierSpace.simplex(0, degree=0), y).require_success()
+    expected = torch.tensor([[2.0, 3.0]], dtype=torch.float64)
+    torch.testing.assert_close(result.model.coefficients, expected, rtol=0, atol=_constant_fit_tolerance(y))
     space = BezierSpace.simplex(1, degree=1)
     initial = BezierModel(space, torch.zeros(2, 3))
     with pytest.raises(ValueError, match="face_values"):
@@ -254,7 +285,12 @@ def test_parameter_iteration_exhaustion_preserves_descent():
     t, converged = _parameters(model, y, start, 1, 1e-12)
     assert not converged
     assert ((model(t) - y).square().sum(1) <= (model(start) - y).square().sum(1)).all()
-    torch.testing.assert_close(t.sum(1), torch.ones(len(y), dtype=torch.float64))
+    # _project rounds the cumulative sum of the w = 2 sorted coordinates w - 1 times and subtracts one, divides it once
+    # for the threshold, and subtracts the threshold from each coordinate; the test sums the w results with w - 1 more
+    # roundings. Each rounding errs by at most u times the magnitude M of the coordinates, which is at most 2 here (the
+    # start 0.5 plus one step; 1.5 observed), so |sum - 1| <= 3 w u M; doubled.
+    width, magnitude = 2, 2
+    torch.testing.assert_close(t.sum(1), torch.ones(len(y), dtype=torch.float64), rtol=0, atol=2 * 3 * width * magnitude * U)
 
 
 def test_derivative_overflow_preserves_initial_model():
@@ -265,7 +301,7 @@ def test_derivative_overflow_preserves_initial_model():
     assert not result.success
     assert result.status == "numerical_failure"
     assert result.control_result is None
-    torch.testing.assert_close(result.model.coefficients, initial.coefficients)
+    torch.testing.assert_close(result.model.coefficients, initial.coefficients, rtol=0, atol=0)
 
 
 def test_control_solver_failure_retains_last_surface(monkeypatch):
@@ -293,5 +329,5 @@ def test_overflow_after_control_update_rejects_candidate(monkeypatch):
         result = fit_point_cloud(space, torch.eye(2, dtype=torch.float64), initial=initial)
     assert result.status == "numerical_failure"
     assert not result.success
-    torch.testing.assert_close(result.model.coefficients, initial.coefficients)
+    torch.testing.assert_close(result.model.coefficients, initial.coefficients, rtol=0, atol=0)
     assert len(result.objective_history) == 1

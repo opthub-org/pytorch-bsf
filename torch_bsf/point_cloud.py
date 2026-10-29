@@ -5,8 +5,6 @@ least squares. Algorithm 3 fits faces in increasing support size, preserving
 the controls already estimated on their boundaries.
 """
 
-from __future__ import annotations
-
 import math
 import warnings
 from collections.abc import Mapping
@@ -43,8 +41,14 @@ class PointCloudFitResult:
     parameter_converged: bool
     control_result: FitResult | None
 
-    def require_success(self) -> PointCloudFitResult:
-        """Raise with the termination message if convergence was not established."""
+    def require_success(self) -> "PointCloudFitResult":
+        """Raise with the termination message if convergence was not established.
+
+        Returns
+        -------
+        PointCloudFitResult
+            This result when convergence was established.
+        """
         if not self.success:
             raise RuntimeError(self.message)
         return self
@@ -64,8 +68,14 @@ class SkeletonFitResult:
     status: str
     message: str
 
-    def require_success(self) -> SkeletonFitResult:
-        """Raise if any face failed to converge."""
+    def require_success(self) -> "SkeletonFitResult":
+        """Raise if any face failed to converge.
+
+        Returns
+        -------
+        SkeletonFitResult
+            This result when every required face fit converged.
+        """
         if not self.success:
             raise RuntimeError(self.message)
         return self
@@ -284,6 +294,30 @@ def fit_point_cloud(
     stopping rule uses the absolute change, correcting the signed-change
     expression printed in the paper. The objective uses the original units;
     scale observations explicitly when outputs have incompatible units.
+
+    Parameters
+    ----------
+    space : BezierSpace
+        Single-simplex space specifying the dimension and polynomial degree.
+    values : array-like
+        Finite observations of shape ``(n_samples, n_outputs)`` in the original output units.
+    initial : BezierModel, optional
+        Initial model with compatible space and output dimension; otherwise infer minimization vertices.
+    fixed : FixedControls, optional
+        Coefficient rows kept exact throughout fitting, including initialization.
+    max_iter : int, optional
+        Positive budget of alternating parameter and control updates.
+    parameter_max_iter : int, optional
+        Positive iteration budget for each parameter-coordinate solve.
+    tolerance : float, optional
+        Finite nonnegative tolerance on the absolute change in root mean squared distance.
+    parameter_tolerance : float, optional
+        Finite nonnegative tolerance on the projected parameter-gradient residual.
+
+    Returns
+    -------
+    PointCloudFitResult
+        Model, inferred barycentric coordinates, objective history and convergence evidence.
     """
     width, _ = _simplex(space)
     _settings(max_iter, parameter_max_iter, tolerance, parameter_tolerance)
@@ -371,6 +405,30 @@ def fit_skeleton(
     with all lower-face controls fixed exactly. Inspect ``faces`` for local
     stopping evidence; failure on a boundary stops assembly and returns the
     finite partial model with ``success=False``.
+
+    Parameters
+    ----------
+    space : BezierSpace
+        Single-simplex space specifying the dimension and polynomial degree.
+    values : array-like
+        Finite observations of shape ``(n_samples, n_outputs)`` in the original output units.
+    face_values : mapping, optional
+        Samples for every required sorted vertex tuple, retaining all output columns; otherwise extract nondominated faces.
+    initial : BezierModel, optional
+        Compatible initial model, required for embeddings that cannot use automatic minimization vertices.
+    max_iter : int, optional
+        Positive budget of alternating parameter and control updates.
+    parameter_max_iter : int, optional
+        Positive iteration budget for each parameter-coordinate solve.
+    tolerance : float, optional
+        Finite nonnegative tolerance on the absolute change in root mean squared distance.
+    parameter_tolerance : float, optional
+        Finite nonnegative tolerance on the projected parameter-gradient residual.
+
+    Returns
+    -------
+    SkeletonFitResult
+        Assembled model, per-face results and an explicit success or partial-failure state.
     """
     width, degree = _simplex(space)
     _settings(max_iter, parameter_max_iter, tolerance, parameter_tolerance)
