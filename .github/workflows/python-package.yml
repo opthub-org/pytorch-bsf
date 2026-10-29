@@ -49,7 +49,7 @@ jobs:
       with:
         path: ~/.cache/pre-commit
         key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
-    - name: Run the pre-commit hooks (Ruff, numpydoc-validation)
+    - name: Run the pre-commit hooks (Ruff, numpydoc-validation, lint-conventions)
       env:
         RUFF_OUTPUT_FORMAT: github  # annotate violations on the PR diff
         SKIP: typos  # typos runs only in the local git hook while its false positives are observed
