@@ -832,7 +832,18 @@ _TRIANGLE_EDGE_RISKS = {
     5: Fraction(188, 55),
     6: Fraction(81259, 25025),
     7: Fraction(123021, 40040),
+    8: Fraction(179861, 61880),
+    9: Fraction(67983599, 24690120),
+    10: Fraction(2600151, 994840),
 }
+
+
+def _harmonic(n: int) -> Fraction:
+    return sum((Fraction(1, j) for j in range(1, n + 1)), Fraction(0))
+
+
+def _triangle_edge_risk(degree: int) -> Fraction:
+    return 18 * (_harmonic(degree - 1) + _harmonic(2 * degree + 2) - _harmonic(degree + 3)) / (2 * degree + 3)
 
 
 @pytest.mark.parametrize("degree", sorted(_TRIANGLE_EDGE_RISKS))
@@ -866,7 +877,32 @@ def test_triangle_jacobi_extension_matches_exact_propagation_and_risk(degree):
     trace = _exact_solve(gram_edge, ete)
     # Three equivalent edges, and C(3, 2) from the allocation convention.
     risk = 9 * sum(trace[i][i] for i in range(len(edge)))
-    assert risk == exact[1] == _TRIANGLE_EDGE_RISKS[degree]
+    assert risk == exact[1] == _TRIANGLE_EDGE_RISKS[degree] == _triangle_edge_risk(degree)
+
+
+def _codimension_one_risk(size: int, degree: int) -> Fraction:
+    n = degree - size
+    return (
+        size
+        * (size + 1) ** 2
+        * sum(
+            (
+                Fraction(comb(k + size - 2, size - 2) if size >= 2 else int(k == 0), (n - k + 1) * (n + k + 3 * size))
+                for k in range(n + 1)
+            ),
+            Fraction(0),
+        )
+    )
+
+
+@pytest.mark.parametrize(("size", "degree"), [(s, d) for s in range(1, 5) for d in range(s, s + 4)])
+def test_codimension_one_norm_sum_matches_general_scalar_sum(size, degree):
+    assert _codimension_one_risk(size, degree) == _scalar_risk_sum(size + 1, degree, size)
+
+
+@pytest.mark.parametrize("degree", [2, 3, 8, 9, 10, 20, 50, 100])
+def test_triangle_edge_harmonics_match_the_single_rational_sum(degree):
+    assert _triangle_edge_risk(degree) == _codimension_one_risk(2, degree)
 
 
 def _curve_error(degree: int, k: int) -> Fraction:
