@@ -485,3 +485,13 @@ def test_glued_model_boundary_hessians_match_polynomial(polynomial_degree):
             expected[i, 1, i, 1] = polynomial_degree * (polynomial_degree - 1) * row[1] ** (polynomial_degree - 2)
     actual = torch.autograd.functional.hessian(evaluate, parameters)
     torch.testing.assert_close(actual, expected, atol=0, rtol=0)
+
+
+@pytest.mark.parametrize("dimensions", [(1,), (2,), (1, 1), (2, 1)])
+def test_constant_model_preserves_zero_coordinate_gradients(dimensions):
+    space = bsf.BezierSpace.simploid(dimensions, degree=0)
+    model = bsf.BezierModel(space, torch.tensor([[2.0]], dtype=torch.float64))
+    parameters = torch.cat([torch.full((3, a + 1), 1 / (a + 1), dtype=torch.float64) for a in dimensions], 1)
+    parameters.requires_grad_()
+    gradient = torch.autograd.grad(model(parameters).sum(), parameters)[0]
+    torch.testing.assert_close(gradient, torch.zeros_like(parameters), atol=0, rtol=0)

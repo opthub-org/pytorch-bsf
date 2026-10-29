@@ -2233,3 +2233,16 @@ def test_product_basis_mixed_hessians_near_faces(data, degree):
     # the at most degree**2 differentiated summands.
     underflow = 16 * coefficient * degree**2 * float.fromhex("0x0.0000000000001p-1022")
     torch.testing.assert_close(actual.reshape(5, 5), expected, rtol=64 * U, atol=underflow)
+
+
+@pytest.mark.parametrize("dimensions", [(1,), (2,), (1, 1), (2, 1)])
+def test_constant_basis_preserves_zero_coordinate_gradients(dimensions):
+    parameters = sample_simploid(dimensions, 3, seed=0).double().requires_grad_()
+    degree = (0,) * len(dimensions)
+    basis = bernstein_basis(dimensions, degree, parameters)
+    gradient = torch.autograd.grad(basis.sum(), parameters)[0]
+    torch.testing.assert_close(basis, torch.ones_like(basis), atol=0, rtol=0)
+    torch.testing.assert_close(gradient, torch.zeros_like(parameters), atol=0, rtol=0)
+    cached = BezierSimploid(dimensions, degree, torch.tensor([[2.0]], dtype=torch.float64))
+    cached_gradient = torch.autograd.grad(cached(parameters).sum(), parameters)[0]
+    torch.testing.assert_close(cached_gradient, torch.zeros_like(parameters), atol=0, rtol=0)

@@ -203,7 +203,10 @@ def _tensor_product_basis(
             # Build integer powers with multiplication: tensor-exponent pow's
             # higher backward evaluates 0 * 0**negative at zero coordinates.
             # The small coordinate table avoids elevating the entire basis.
-            values = [torch.ones_like(block)]
+            # Scalar zero powers retain a zero coordinate gradient even for
+            # entirely constant bases; unlike tensor exponents, they have a
+            # nonsingular backward at zero.
+            values = [block.pow(0)]
             if degree:
                 values.append(block)
             for _ in range(1, degree):
