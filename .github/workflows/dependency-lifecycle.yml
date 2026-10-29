@@ -1,0 +1,73 @@
+name: Dependency lifecycle
+
+on:
+  schedule:
+    - cron: '23 4 * * 1'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: dependency-lifecycle
+  cancel-in-progress: false
+
+jobs:
+  python-support:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: master
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          # Bootstrap the standard-library-only updater independently of the policy it updates.
+          python-version: '3.x'
+      - name: Test the updater
+        run: python -m unittest discover -s tools/tests -v
+      - name: Synchronize Python support
+        id: support
+        run: >-
+          python tools/update_python_support.py
+          --summary-file "$RUNNER_TEMP/python-support.md"
+          --github-output "$GITHUB_OUTPUT"
+      - name: Refresh the dependency lock
+        if: steps.support.outputs.changed == 'true'
+        id: lock
+        # A new Python may precede wheels/metadata in the dependency ecosystem.
+        # Still open the PR so the failed resolution is visible and can be fixed.
+        continue-on-error: true
+        run: |
+          python -m pip install uv
+          uv lock
+      - name: Include dependency resolution results
+        if: steps.support.outputs.changed == 'true'
+        env:
+          LOCK_RESULT: ${{ steps.lock.outcome }}
+        run: |
+          if [ "$LOCK_RESULT" != success ]; then
+            printf '\n**Action required:** uv.lock refresh failed. Resolve dependency compatibility and refresh the lock before merging.\n' >> "$RUNNER_TEMP/python-support.md"
+          fi
+          cat "$RUNNER_TEMP/python-support.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Create or update the Python support PR
+        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7
+        with:
+          # App/PAT enables automatic PR CI; built-in-token CI instructions are in the PR body.
+          token: ${{ secrets.DEPENDENCY_UPDATE_TOKEN || github.token }}
+          branch: automation/python-support
+          base: master
+          delete-branch: true
+          title: ${{ steps.support.outputs.title }}
+          commit-message: ${{ steps.support.outputs.title }}
+          body-path: ${{ runner.temp }}/python-support.md
+          add-paths: |
+            pyproject.toml
+            environment.yml
+            uv.lock
+            README.md
+            CONTRIBUTING.md
+            docs/installation.rst

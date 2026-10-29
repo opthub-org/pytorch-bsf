@@ -18,11 +18,17 @@ Optional extras:
 * ``pytorch-bsf[mlflow]``: explicit experiment recording.
 * ``pytorch-bsf[all]``: every integration.
 
-The ``mlflow`` and ``all`` extras currently require Python 3.11-3.14.
-MLflow 3.17.2 requires PyArrow below 26, while Python 3.15 wheels start
-with PyArrow 26. On Python 3.15, install the other integrations with::
+.. python-support-start
 
-    pip install "pytorch-bsf[lightning,sparse,sklearn,plot]"
+CI covers Python 3.11 through 3.15.
+The optional ``mlflow`` and ``all`` extras are tested
+on Python 3.11 through 3.14.
+
+For Python 3.15, install the other integrations with::
+
+    python -m pip install "pytorch-bsf[lightning,sparse,sklearn,plot]"
+
+.. python-support-end
 
 Random, Sobol and grid sampling use PyTorch and need no extra.
 Importing the package loads neither Lightning nor MLflow nor SciPy.

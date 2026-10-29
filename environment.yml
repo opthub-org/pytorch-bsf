@@ -3,6 +3,7 @@ channels:
 - conda-forge
 - nodefaults
 dependencies:
+# Full-integration Python (including MLflow); lifecycle updates raise it at EOL.
 - python=3.14
 - "pytorch>=2.6,<3"
 - "lightning>=2.4,<3"
