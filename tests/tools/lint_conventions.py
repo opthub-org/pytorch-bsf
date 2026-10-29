@@ -24,6 +24,7 @@ def codes(source: str, *, is_test: bool = False) -> list[tuple[int, str]]:
         'print("Bézier")',
         'print("x", "Bézier")',
         'print("x", sep="é")',
+        'print("x", end="é")',
         'print(f"{n} Bézier simplices")',
         "print(f\"{'Bézier'}\")",
         'print("a" + "é")',
@@ -31,12 +32,14 @@ def codes(source: str, *, is_test: bool = False) -> list[tuple[int, str]]:
         'print("%s" % ("é",))',
         'print("%(name)s" % {"name": "é"})',
         'print("{} é".format(name))',
+        'print("{n}".format(n="é"))',
         'print("x" if flag else "é")',
         'raise ValueError("not a Bézier simplex")',
         'raise ValueError(f"{index!r} is not a control point of a Bézier simploid")',
         'raise errors.ConvergenceError("Bézier")',
         'raise RuntimeWarning("é")',
         'raise BaseException("é")',
+        'raise MyError(message="é")',
         'warnings.warn("Bézier")',
         'warnings.warn(message="Bézier", category=UserWarning)',
         'warn("Bézier")',
@@ -50,6 +53,7 @@ def codes(source: str, *, is_test: bool = False) -> list[tuple[int, str]]:
         'logger.info(msg="é")',
         'logging.fatal("é")',
         'logger.warn("é")',
+        'logger.warn(msg="é")',
         'parser.error("é")',
         'ArgumentParser(description="Bézier fitting")',
         'argparse.ArgumentParser(epilog="é")',
@@ -57,6 +61,10 @@ def codes(source: str, *, is_test: bool = False) -> list[tuple[int, str]]:
         'parser.add_argument("--degree", help="degree of the Bézier simplex")',
         'commands.add_parser("fit", help="é")',
         'commands.add_parser("fit", description="é")',
+        'parser.add_subparsers(title="é")',
+        'parser.add_subparsers(help="é")',
+        'parser.add_argument_group("é")',
+        'parser.add_argument_group("options", description="é")',
         'print("B\\xe9zier")',
     ],
 )
@@ -244,11 +252,13 @@ def test_main_reports_violations_and_exit_status(tmp_path, monkeypatch, capsys):
         b'print("\xe9")\n',  # Latin-1 without an encoding declaration
         b"# -*- coding: bogus -*-\n",
         b'print("x")\n\x00\n',
+        None,  # a path that does not exist
     ],
 )
 def test_main_reports_files_that_cannot_be_parsed_and_checks_the_rest(tmp_path, capsys, content):
     broken = tmp_path / "broken.py"
-    broken.write_bytes(content)
+    if content is not None:
+        broken.write_bytes(content)
     module = tmp_path / "module.py"
     module.write_text('print("é")\n', encoding="utf-8")
     assert main([str(broken), str(module)]) == 1

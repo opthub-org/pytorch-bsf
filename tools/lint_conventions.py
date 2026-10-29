@@ -12,12 +12,14 @@ BSF001
     A string literal that reaches the console must be ASCII, so that it reads correctly under ``LANG=C``
     (write "Bezier", not "Bézier"). Checked: the arguments of ``print`` (with ``sep`` and ``end``), of the
     ``logging`` methods (``debug``, ``info``, ``warning``, ``warn``, ``error``, ``exception``, ``critical``,
-    ``fatal``, ``log``, with ``msg``), of ``warnings.warn`` (with ``message``) and of calls whose name ends
-    with ``Error``, ``Warning`` or ``Exception``; the ``description``, ``epilog``, ``usage`` and ``help``
-    keywords of ``ArgumentParser``, ``add_parser`` and ``add_argument``. A message is followed through
-    f-strings (their constant parts and replacement fields), ``+`` and ``%`` (including a tuple or dict of
-    ``%`` arguments), conditional expressions and ``"...".format(...)``. Not checked: ``SystemExit``,
-    ``sys.exit`` and ``assert`` messages, and calls of anything but a name or attribute.
+    ``fatal``, ``log``, with ``msg``), of ``warnings.warn`` (with ``message``), of ``add_argument_group``,
+    and of calls whose name ends with ``Error``, ``Warning`` or ``Exception`` (with all keywords); the
+    ``description``, ``epilog`` and ``usage`` keywords of ``ArgumentParser`` and ``add_parser``, the
+    ``help`` keyword of ``add_parser`` and ``add_argument``, and the ``title``, ``description`` and ``help``
+    keywords of ``add_subparsers``. A message is followed through f-strings (their constant parts and
+    replacement fields), ``+`` and ``%`` (including a tuple or dict of ``%`` arguments), conditional
+    expressions and ``"...".format(...)`` (with its keywords). Not checked: ``SystemExit``, ``sys.exit`` and
+    ``assert`` messages, format specs of f-string fields, and calls of anything but a name or attribute.
 BSF002
     In ``tests/``, every ``assert_close`` call (``torch.testing.assert_close``) passes both ``rtol`` and
     ``atol`` as keywords other than ``None``, because its default tolerance is not derived from the
@@ -49,6 +51,7 @@ _MESSAGE_CALLS = {
     "print": {"sep", "end"},
     **dict.fromkeys(["debug", "info", "warning", "error", "exception", "critical", "fatal", "log"], {"msg"}),
     "warn": {"message", "msg"},  # warnings.warn and the deprecated logging.warn
+    "add_argument_group": {"title", "description"},
 }
 _EXCEPTION_SUFFIXES = ("Error", "Warning", "Exception")
 # Calls of which only some keywords reach the console
@@ -56,6 +59,7 @@ _ARGPARSE_KEYWORDS = {
     "ArgumentParser": {"description", "epilog", "usage"},
     "add_parser": {"description", "epilog", "usage", "help"},
     "add_argument": {"help"},
+    "add_subparsers": {"title", "description", "help"},
 }
 _SUPPRESSION = re.compile(r"#\s*lint-conventions:\s*ignore\[([A-Z0-9,\s]+)\]")
 
@@ -87,14 +91,14 @@ def _console_arguments(call: ast.Call) -> Iterator[ast.expr]:
     name = _call_name(call)
     if name is None:
         return
-    if name in _MESSAGE_CALLS or name.endswith(_EXCEPTION_SUFFIXES):
+    if name.endswith(_EXCEPTION_SUFFIXES):
         yield from call.args
-        keywords = _MESSAGE_CALLS.get(name, set())
-    else:
-        keywords = _ARGPARSE_KEYWORDS.get(name, set())
-    for keyword in call.keywords:
-        if keyword.arg in keywords:
-            yield keyword.value
+        yield from (keyword.value for keyword in call.keywords)
+        return
+    if name in _MESSAGE_CALLS:
+        yield from call.args
+    keywords = _MESSAGE_CALLS.get(name) or _ARGPARSE_KEYWORDS.get(name, set())
+    yield from (keyword.value for keyword in call.keywords if keyword.arg in keywords)
 
 
 def _text_parts(node: ast.expr) -> list[ast.expr]:
@@ -108,11 +112,13 @@ def _text_parts(node: ast.expr) -> list[ast.expr]:
     if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
         return [node.left, node.right]
     if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Mod):
-        right = node.right
-        arguments = right.elts if isinstance(right, ast.Tuple) else right.values if isinstance(right, ast.Dict) else [right]
-        return [node.left, *arguments]
+        if isinstance(node.right, ast.Tuple):
+            return [node.left, *node.right.elts]
+        if isinstance(node.right, ast.Dict):
+            return [node.left, *node.right.values]
+        return [node.left, node.right]
     if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "format":
-        return [node.func.value, *node.args]
+        return [node.func.value, *node.args, *(keyword.value for keyword in node.keywords)]
     return []
 
 
@@ -202,6 +208,8 @@ def check_source(source: str, path: str = "<string>", *, is_test: bool = False) 
     ------
     SyntaxError
         If the source code cannot be parsed.
+    ValueError
+        If the source code contains a null byte (Python 3.11 and earlier; later versions raise SyntaxError).
     """
     tree = ast.parse(source, filename=path)
     suppressed = _suppressions(source)
@@ -233,8 +241,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             with tokenize.open(path) as file:  # honors a PEP 263 encoding declaration
                 source = file.read()
             violations = check_source(source, str(path), is_test=is_test_file(path))
-        except (SyntaxError, ValueError) as error:  # ValueError: undecodable bytes or, before 3.12, null bytes
-            line, reason = (error.lineno, error.msg) if isinstance(error, SyntaxError) else (None, str(error))
+        except (OSError, SyntaxError, ValueError) as error:  # ValueError: undecodable bytes or, before 3.12, null bytes
+            if isinstance(error, SyntaxError):
+                line, reason = error.lineno, error.msg
+            else:
+                line, reason = None, error.strerror if isinstance(error, OSError) else str(error)
             print(f"{path}:{line or 1}: cannot parse: {reason}")
             failed = True
             continue
