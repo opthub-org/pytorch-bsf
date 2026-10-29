@@ -1,5 +1,6 @@
 """Tests for tools/lint_conventions.py, the checker of the conventions that Ruff cannot check."""
 
+import ast
 import re
 import subprocess
 import sys
@@ -24,7 +25,6 @@ def codes(source: str, *, is_test: bool = False) -> list[tuple[int, str]]:
         'print("Bézier")',
         'print("x", "Bézier")',
         'print("x", sep="é")',
-        "print(" + " + ".join(['"a"'] * 3000) + ' + "é")',
         'print("x", end="é")',
         'print(f"{n} Bézier simplices")',
         "print(f\"{'Bézier'}\")",
@@ -98,6 +98,17 @@ def test_non_ascii_console_strings_are_reported(source):
 )
 def test_ascii_and_non_console_strings_are_accepted(source):
     assert codes(source) == []
+
+
+def test_long_concatenation_does_not_exceed_the_recursion_limit():
+    # Built directly, because ast.parse of such a chain exceeds the recursion limit itself on Python 3.11
+    node: ast.expr = ast.Constant("a")
+    for _ in range(2 * sys.getrecursionlimit()):
+        node = ast.BinOp(node, ast.Add(), ast.Constant("a"))
+    node = ast.BinOp(node, ast.Add(), ast.Constant("é"))
+    texts = [text for _, text in lint_conventions._message_strings(node)]
+    assert len(texts) == 2 * sys.getrecursionlimit() + 2
+    assert texts[-1] == "é"
 
 
 def test_reported_line_is_the_line_of_the_character():
