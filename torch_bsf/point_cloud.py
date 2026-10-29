@@ -88,7 +88,10 @@ def _values(values: Any) -> torch.Tensor:
     raw = torch.as_tensor(values)
     if raw.is_complex():
         raise ValueError("values must be real.")
-    y = torch.as_tensor(values, dtype=torch.float64).detach().cpu().clone()
+    # Preserve direct float64 parsing for Python inputs, but transfer tensors
+    # before casting because MPS cannot represent float64.
+    y = raw.detach().cpu().double() if isinstance(values, torch.Tensor) else torch.as_tensor(values, dtype=torch.float64).cpu()
+    y = y.clone()
     if y.ndim != 2 or min(y.shape) < 1 or not torch.isfinite(y).all():
         raise ValueError("values must be finite with shape (n_samples, n_outputs), both positive.")
     return y
