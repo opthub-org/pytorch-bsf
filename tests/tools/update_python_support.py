@@ -51,7 +51,9 @@ class PythonLifecycleTests(unittest.TestCase):
         shutil.copytree(ROOT / ".github/workflows", self.root / ".github/workflows")
         # Keep the fixture baseline independent of future automated support updates.
         project = (self.root / "pyproject.toml").read_text(encoding="utf-8")
-        current = re.search(r'requires-python = ">=(3\.\d+)"', project)[1]
+        current_match = re.search(r'requires-python = ">=(3\.\d+)"', project)
+        assert current_match is not None
+        current = current_match[1]
         project = project.replace(f'requires-python = ">={current}"', 'requires-python = ">=3.10"')
         project = re.sub(r'target-version = "py\d+"', 'target-version = "py310"', project)
         project = re.sub(r'python_version = "3\.\d+"', 'python_version = "3.10"', project)
@@ -250,7 +252,7 @@ class PythonLifecycleTests(unittest.TestCase):
         self.assertNotIn("!", title)
 
     def test_invalid_or_incomplete_data_produces_no_writes(self):
-        malformed = [None, [], {}, {"bad": {}}, {"3.14": {"status": "unknown"}}]
+        malformed: list[object] = [None, [], {}, {"bad": {}}, {"3.14": {"status": "unknown"}}]
         missing = copy.deepcopy(self.data)
         del missing["3.12"]
         stale = copy.deepcopy(self.data)
