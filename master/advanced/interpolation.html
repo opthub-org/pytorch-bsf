@@ -77,6 +77,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#interpolate-on-a-mesh">Interpolate on a mesh</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#how-the-cubic-pieces-are-built">How the cubic pieces are built</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#range-limiting-and-its-error-guarantee">Range limiting and its error guarantee</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#smooth-interpolation-in-two-dimensions">Smooth interpolation in two dimensions</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#choose-where-to-add-design-points">Choose where to add design points</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#conforming-meshes">Conforming meshes</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#limitations">Limitations</a></li>
@@ -258,7 +259,7 @@ six edge controls of that face divided by four, minus
 </ul>
 <p>A cubic simplex has no other controls. The face formula is the degree
 elevation of the quadratic Bézier triangle whose edge midpoint controls
-match the cubic edge controls <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id49" title="Gerald Farin. Curves and Surfaces for CAGD: A Practical Guide. Morgan Kaufmann, 5 edition, 2002.">Far02</a>]</span>, so the interpolant
+match the cubic edge controls <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id50" title="Gerald Farin. Curves and Surfaces for CAGD: A Practical Guide. Morgan Kaufmann, 5 edition, 2002.">Far02</a>]</span>, so the interpolant
 reproduces every quadratic polynomial when the gradients are exact.</p>
 <p>Each control depends only on the data of the edge or face that carries it.
 <code class="docutils literal notranslate"><span class="pre">SimplicialMesh</span></code> glues simplices that share a face so that the face’s
@@ -342,6 +343,76 @@ reproduced exactly in such cells. Use <code class="docutils literal notranslate"
 smooth and exact quadratic reproduction matters more than the range
 guarantee.</p>
 </section>
+<section id="smooth-interpolation-in-two-dimensions">
+<h2>Smooth interpolation in two dimensions<a class="headerlink" href="#smooth-interpolation-in-two-dimensions" title="Link to this heading"></a></h2>
+<p>The interpolant above is continuous, but its gradient jumps across the faces
+of the mesh. On a triangle mesh, <a class="reference internal" href="../api.html#torch_bsf.interpolation.macro_interpolant" title="torch_bsf.interpolation.macro_interpolant"><code class="xref py py-func docutils literal notranslate"><span class="pre">macro_interpolant()</span></code></a>
+also builds a continuously differentiable (C1) interpolant that keeps the same
+range guarantee. <code class="docutils literal notranslate"><span class="pre">split</span></code> says how each simplex is divided into pieces and
+<code class="docutils literal notranslate"><span class="pre">continuity</span></code> how smoothly neighbouring pieces join:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">split</span></code></p></th>
+<th class="head"><p><code class="docutils literal notranslate"><span class="pre">continuity</span></code></p></th>
+<th class="head"><p>Dimensions</p></th>
+<th class="head"><p>Interpolant</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../api.html#torch_bsf.interpolation.NoSplit" title="torch_bsf.interpolation.NoSplit"><code class="xref py py-class docutils literal notranslate"><span class="pre">NoSplit</span></code></a> (default)</p></td>
+<td><p><a class="reference internal" href="../api.html#torch_bsf.interpolation.C0" title="torch_bsf.interpolation.C0"><code class="xref py py-class docutils literal notranslate"><span class="pre">C0</span></code></a> (default)</p></td>
+<td><p>any</p></td>
+<td><p><a class="reference internal" href="../api.html#torch_bsf.interpolation.hermite_interpolant" title="torch_bsf.interpolation.hermite_interpolant"><code class="xref py py-func docutils literal notranslate"><span class="pre">hermite_interpolant()</span></code></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../api.html#torch_bsf.interpolation.CloughTocher" title="torch_bsf.interpolation.CloughTocher"><code class="xref py py-class docutils literal notranslate"><span class="pre">CloughTocher</span></code></a></p></td>
+<td><p><a class="reference internal" href="../api.html#torch_bsf.interpolation.C1" title="torch_bsf.interpolation.C1"><code class="xref py py-class docutils literal notranslate"><span class="pre">C1</span></code></a></p></td>
+<td><p>2</p></td>
+<td><p>Clough–Tocher macro-element</p></td>
+</tr>
+</tbody>
+</table>
+<p>Other combinations raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. The Clough–Tocher macro-element
+<span class="bibtex-citation" id="id3">[<a class="reference internal" href="../references.html#id49" title="Ray W. Clough and James L. Tocher. Finite element stiffness matrices for analysis of plate bending. In Proceedings of the Conference on Matrix Methods in Structural Mechanics, 515–545. Wright-Patterson Air Force Base, Ohio, 1965.">CT65</a>, <a class="reference internal" href="../references.html#id50" title="Gerald Farin. Curves and Surfaces for CAGD: A Practical Guide. Morgan Kaufmann, 5 edition, 2002.">Far02</a>]</span> splits every triangle at an
+interior point into three cubic pieces. The vertex values and gradients fix
+the controls next to the vertices, and one control per side of each edge
+remains free. That control is chosen so that the derivative across the edge
+varies linearly along it, which reproduces quadratic data. Then the controls
+on both sides of the edge are moved together to the nearest pair that joins
+them with a continuous gradient.</p>
+<p>The split point is the incenter, measured after dividing each axis by a power
+of two near the longest side of the mesh along it, so that the split does not
+depend on the units of the axes. The segment joining the incenters of two
+triangles sharing an edge crosses that edge strictly inside it, and an affine
+map of the domain keeps it so. Hence, once
+the controls next to the vertices lie in the data range of every triangle
+containing them, the free controls on both sides of an edge can be kept in
+range without breaking C1. With <code class="docutils literal notranslate"><span class="pre">clamp=True</span></code>, every vertex gradient is first
+projected onto the gradients that satisfy this, which keeps the controls next
+to the vertex consistent with one gradient, and hence C1. The projection
+minimizes the change of those controls, which does not depend on the
+coordinate system. Every other control is a convex combination, so the
+prediction on each triangle stays within the range of its vertex data, as in
+<a class="reference internal" href="#range-limiting-and-its-error-guarantee">Range limiting and its error guarantee</a>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.interpolation</span><span class="w"> </span><span class="kn">import</span> <span class="n">C1</span><span class="p">,</span> <span class="n">CloughTocher</span><span class="p">,</span> <span class="n">macro_interpolant</span>
+
+<span class="n">smooth</span> <span class="o">=</span> <span class="n">macro_interpolant</span><span class="p">(</span><span class="n">mesh</span><span class="p">,</span> <span class="n">response</span><span class="p">(</span><span class="n">vertices</span><span class="p">),</span> <span class="n">split</span><span class="o">=</span><span class="n">CloughTocher</span><span class="p">(),</span> <span class="n">continuity</span><span class="o">=</span><span class="n">C1</span><span class="p">())</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">smooth</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">piece_of</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">smooth</span><span class="o">.</span><span class="n">pieces</span><span class="o">.</span><span class="n">cell_ids</span><span class="o">.</span><span class="n">tolist</span><span class="p">())}</span>
+<span class="n">rows</span> <span class="o">=</span> <span class="n">smooth</span><span class="o">.</span><span class="n">parent</span><span class="p">[[</span><span class="n">piece_of</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">smooth</span><span class="o">.</span><span class="n">locate</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">cell_ids</span><span class="o">.</span><span class="n">tolist</span><span class="p">()]]</span>
+<span class="n">corners</span> <span class="o">=</span> <span class="n">response</span><span class="p">(</span><span class="n">vertices</span><span class="p">)[</span><span class="n">mesh</span><span class="o">.</span><span class="n">simplices</span><span class="p">[</span><span class="n">rows</span><span class="p">]]</span>
+<span class="k">assert</span> <span class="p">(</span><span class="n">y</span> <span class="o">&gt;=</span> <span class="n">corners</span><span class="o">.</span><span class="n">amin</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mf">1e-12</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="ow">and</span> <span class="p">(</span><span class="n">y</span> <span class="o">&lt;=</span> <span class="n">corners</span><span class="o">.</span><span class="n">amax</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-12</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The result is a <a class="reference internal" href="../api.html#torch_bsf.interpolation.MacroInterpolant" title="torch_bsf.interpolation.MacroInterpolant"><code class="xref py py-class docutils literal notranslate"><span class="pre">MacroInterpolant</span></code></a>. Call it at
+points, or evaluate its <code class="docutils literal notranslate"><span class="pre">model</span></code>, a
+<a class="reference internal" href="../api.html#torch_bsf.core.BezierModel" title="torch_bsf.core.BezierModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">BezierModel</span></code></a> on <code class="docutils literal notranslate"><span class="pre">smooth.pieces.space</span></code>, at
+<code class="docutils literal notranslate"><span class="pre">smooth.locate(x)</span></code>. <code class="docutils literal notranslate"><span class="pre">smooth.pieces</span></code> is the
+<a class="reference internal" href="../api.html#torch_bsf.interpolation.SimplicialMesh" title="torch_bsf.interpolation.SimplicialMesh"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimplicialMesh</span></code></a> of the pieces, and
+<code class="docutils literal notranslate"><span class="pre">smooth.parent[k]</span></code> is the triangle containing piece <code class="docutils literal notranslate"><span class="pre">k</span></code>. Pass the same
+<code class="docutils literal notranslate"><span class="pre">split</span></code> and <code class="docutils literal notranslate"><span class="pre">continuity</span></code> to
+<a class="reference internal" href="../api.html#torch_bsf.interpolation.refinement_indicator" title="torch_bsf.interpolation.refinement_indicator"><code class="xref py py-func docutils literal notranslate"><span class="pre">refinement_indicator()</span></code></a> to score triangles by
+this interpolant.</p>
+</section>
 <section id="choose-where-to-add-design-points">
 <h2>Choose where to add design points<a class="headerlink" href="#choose-where-to-add-design-points" title="Link to this heading"></a></h2>
 <p><a class="reference internal" href="../api.html#torch_bsf.interpolation.refinement_indicator" title="torch_bsf.interpolation.refinement_indicator"><code class="xref py py-func docutils literal notranslate"><span class="pre">refinement_indicator()</span></code></a> scores each simplex by
@@ -418,7 +489,7 @@ simplices, which <code class="docutils literal notranslate"><span class="pre">Si
 leaves cells that split a flat polygon in different ways on its two sides:
 the mesh is not conforming. For the degree-<code class="docutils literal notranslate"><span class="pre">k</span></code> lattice of a simplex, use
 <a class="reference internal" href="../api.html#torch_bsf.interpolation.lattice_mesh" title="torch_bsf.interpolation.lattice_mesh"><code class="xref py py-func docutils literal notranslate"><span class="pre">lattice_mesh()</span></code></a> instead. It returns the Kuhn
-(Freudenthal) triangulation <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../references.html#id50" title="Harold W. Kuhn. Some combinatorial lemmas in topology. IBM Journal of Research and Development, 4(5):518–524, 1960.">Kuh60</a>]</span>: <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">**</span> <span class="pre">d</span></code>
+(Freudenthal) triangulation <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../references.html#id51" title="Harold W. Kuhn. Some combinatorial lemmas in topology. IBM Journal of Research and Development, 4(5):518–524, 1960.">Kuh60</a>]</span>: <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">**</span> <span class="pre">d</span></code>
 simplices of equal volume (not congruent for <code class="docutils literal notranslate"><span class="pre">d</span> <span class="pre">&gt;=</span> <span class="pre">3</span></code>) whose vertices are
 the lattice points, in the order of
 <a class="reference internal" href="../api.html#torch_bsf.sampling.grid" title="torch_bsf.sampling.grid"><code class="xref py py-func docutils literal notranslate"><span class="pre">grid()</span></code></a> with <code class="docutils literal notranslate"><span class="pre">resolution=k</span></code>, given by their first
@@ -437,7 +508,7 @@ in every simplex containing it, and before that each of those simplices
 whose refinement edge is another one is refined, recursively. Refining one
 simplex can therefore add more than one vertex. By default
 (<code class="docutils literal notranslate"><span class="pre">rule=&quot;longest_edge&quot;</span></code>) the refinement edge is the longest edge, which is
-the longest-edge bisection of Rivara <span class="bibtex-citation" id="id4">[<a class="reference internal" href="../references.html#id52" title="Maria-Cecilia Rivara. Algorithms for refining triangular grids suitable for adaptive and multigrid techniques. International Journal for Numerical Methods in Engineering, 20(4):745–756, 1984.">Riv84</a>]</span>; ties
+the longest-edge bisection of Rivara <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../references.html#id53" title="Maria-Cecilia Rivara. Algorithms for refining triangular grids suitable for adaptive and multigrid techniques. International Journal for Numerical Methods in Engineering, 20(4):745–756, 1984.">Riv84</a>]</span>; ties
 between edges of equal length, common on lattices, are broken by vertex
 numbers in the same way everywhere. Starting from a lattice mesh, with either
 rule, every new vertex is a lattice point of a finer lattice (degree <code class="docutils literal notranslate"><span class="pre">2k</span></code>,
@@ -448,7 +519,7 @@ diagonal of its cube, so refining every simplex of <code class="docutils literal
 three times gives 186 vertices instead of the 84 of the degree-6 lattice, and
 adaptive refinement spends part of its vertices on closure. With
 <code class="docutils literal notranslate"><span class="pre">rule=&quot;newest_vertex&quot;</span></code>, <a class="reference internal" href="../api.html#torch_bsf.interpolation.refine" title="torch_bsf.interpolation.refine"><code class="xref py py-func docutils literal notranslate"><span class="pre">refine()</span></code></a> uses the
-newest-vertex bisection of Maubach <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../references.html#id51" title="Joseph M. Maubach. Local bisection refinement for $n$-simplicial grids generated by reflection. SIAM Journal on Scientific Computing, 16(1):210–227, 1995.">Mau95</a>]</span> instead: the
+newest-vertex bisection of Maubach <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../references.html#id52" title="Joseph M. Maubach. Local bisection refinement for $n$-simplicial grids generated by reflection. SIAM Journal on Scientific Computing, 16(1):210–227, 1995.">Mau95</a>]</span> instead: the
 simplices of a lattice mesh are ordered along their Kuhn paths, each is cut
 across the diagonal of its cube, and the refined mesh keeps the order and the
 tags of its simplices for the next call. Then <code class="docutils literal notranslate"><span class="pre">d</span></code> rounds of refining every
@@ -476,8 +547,17 @@ refinements; other meshes raise <code class="docutils literal notranslate"><span
 and their refinements are. The simplices must be full-dimensional,
 non-degenerate and conforming. The conformity check does not detect
 simplices that overlap without sharing a face.</p></li>
-<li><p>The interpolant is cubic and C0. C1 macro-elements (Clough–Tocher,
-Powell–Sabin) and non-simplicial cells such as prisms are not provided.</p></li>
+<li><p>The interpolant is cubic. It is C1 only on triangle meshes, with the
+Clough–Tocher split. C1 interpolants in three or more dimensions, other
+splits (such as Powell–Sabin) and non-simplicial cells such as prisms are
+not provided.</p></li>
+<li><p>The clamped C1 interpolant need not depend continuously on the vertex
+coordinates. Its gradient limiter projects onto a set that can shrink
+abruptly, for example when two edges through a vertex stop being exactly
+parallel. Each result is still C1 and in range.</p></li>
+<li><p>The Clough–Tocher split raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> on a triangle whose split
+point rounds onto one of its sides, for example a triangle far thinner
+across than its distance from the origin.</p></li>
 <li><p>Quadratic reproduction requires enough neighbours around each vertex for
 the gradient estimate; near a sparse boundary only linear data are
 reproduced unless you pass gradients.</p></li>
@@ -485,7 +565,8 @@ reproduced unless you pass gradients.</p></li>
 <a class="reference internal" href="../api.html#torch_bsf.interpolation.estimate_gradients" title="torch_bsf.interpolation.estimate_gradients"><code class="xref py py-func docutils literal notranslate"><span class="pre">estimate_gradients()</span></code></a> returns signed infinity
 without a warning for gradient components beyond the float64 range, even
 when the vertex data are finite (for example, on very short edges).
-<a class="reference internal" href="../api.html#torch_bsf.interpolation.hermite_interpolant" title="torch_bsf.interpolation.hermite_interpolant"><code class="xref py py-func docutils literal notranslate"><span class="pre">hermite_interpolant()</span></code></a> and
+<a class="reference internal" href="../api.html#torch_bsf.interpolation.hermite_interpolant" title="torch_bsf.interpolation.hermite_interpolant"><code class="xref py py-func docutils literal notranslate"><span class="pre">hermite_interpolant()</span></code></a>,
+<a class="reference internal" href="../api.html#torch_bsf.interpolation.macro_interpolant" title="torch_bsf.interpolation.macro_interpolant"><code class="xref py py-func docutils literal notranslate"><span class="pre">macro_interpolant()</span></code></a> and
 <a class="reference internal" href="../api.html#torch_bsf.interpolation.refinement_indicator" title="torch_bsf.interpolation.refinement_indicator"><code class="xref py py-func docutils literal notranslate"><span class="pre">refinement_indicator()</span></code></a> raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>
 identifying overflow in the interpolant when its controls are non-finite.
 Clamping can clip infinite controls into the vertex data range, but cannot

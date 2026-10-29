@@ -241,6 +241,76 @@ reproduced exactly in such cells. Use ``clamp=False`` when the response is
 smooth and exact quadratic reproduction matters more than the range
 guarantee.
 
+Smooth interpolation in two dimensions
+--------------------------------------
+
+The interpolant above is continuous, but its gradient jumps across the faces
+of the mesh. On a triangle mesh, :func:`~torch_bsf.interpolation.macro_interpolant`
+also builds a continuously differentiable (C1) interpolant that keeps the same
+range guarantee. ``split`` says how each simplex is divided into pieces and
+``continuity`` how smoothly neighbouring pieces join:
+
+.. list-table::
+   :header-rows: 1
+
+   * - ``split``
+     - ``continuity``
+     - Dimensions
+     - Interpolant
+   * - :class:`~torch_bsf.interpolation.NoSplit` (default)
+     - :class:`~torch_bsf.interpolation.C0` (default)
+     - any
+     - :func:`~torch_bsf.interpolation.hermite_interpolant`
+   * - :class:`~torch_bsf.interpolation.CloughTocher`
+     - :class:`~torch_bsf.interpolation.C1`
+     - 2
+     - Clough–Tocher macro-element
+
+Other combinations raise ``ValueError``. The Clough–Tocher macro-element
+:cite:p:`clough1965finite,farin2002curves` splits every triangle at an
+interior point into three cubic pieces. The vertex values and gradients fix
+the controls next to the vertices, and one control per side of each edge
+remains free. That control is chosen so that the derivative across the edge
+varies linearly along it, which reproduces quadratic data. Then the controls
+on both sides of the edge are moved together to the nearest pair that joins
+them with a continuous gradient.
+
+The split point is the incenter, measured after dividing each axis by a power
+of two near the longest side of the mesh along it, so that the split does not
+depend on the units of the axes. The segment joining the incenters of two
+triangles sharing an edge crosses that edge strictly inside it, and an affine
+map of the domain keeps it so. Hence, once
+the controls next to the vertices lie in the data range of every triangle
+containing them, the free controls on both sides of an edge can be kept in
+range without breaking C1. With ``clamp=True``, every vertex gradient is first
+projected onto the gradients that satisfy this, which keeps the controls next
+to the vertex consistent with one gradient, and hence C1. The projection
+minimizes the change of those controls, which does not depend on the
+coordinate system. Every other control is a convex combination, so the
+prediction on each triangle stays within the range of its vertex data, as in
+`Range limiting and its error guarantee`_.
+
+.. testcode:: interpolation
+
+    from torch_bsf.interpolation import C1, CloughTocher, macro_interpolant
+
+    smooth = macro_interpolant(mesh, response(vertices), split=CloughTocher(), continuity=C1())
+    y = smooth(x)
+    piece_of = {c: k for k, c in enumerate(smooth.pieces.cell_ids.tolist())}
+    rows = smooth.parent[[piece_of[c] for c in smooth.locate(x).cell_ids.tolist()]]
+    corners = response(vertices)[mesh.simplices[rows]]
+    assert (y >= corners.amin(dim=1) - 1e-12).all() and (y <= corners.amax(dim=1) + 1e-12).all()
+
+The result is a :class:`~torch_bsf.interpolation.MacroInterpolant`. Call it at
+points, or evaluate its ``model``, a
+:class:`~torch_bsf.core.BezierModel` on ``smooth.pieces.space``, at
+``smooth.locate(x)``. ``smooth.pieces`` is the
+:class:`~torch_bsf.interpolation.SimplicialMesh` of the pieces, and
+``smooth.parent[k]`` is the triangle containing piece ``k``. Pass the same
+``split`` and ``continuity`` to
+:func:`~torch_bsf.interpolation.refinement_indicator` to score triangles by
+this interpolant.
+
 Choose where to add design points
 ---------------------------------
 
@@ -391,8 +461,17 @@ Limitations
   and their refinements are. The simplices must be full-dimensional,
   non-degenerate and conforming. The conformity check does not detect
   simplices that overlap without sharing a face.
-* The interpolant is cubic and C0. C1 macro-elements (Clough–Tocher,
-  Powell–Sabin) and non-simplicial cells such as prisms are not provided.
+* The interpolant is cubic. It is C1 only on triangle meshes, with the
+  Clough–Tocher split. C1 interpolants in three or more dimensions, other
+  splits (such as Powell–Sabin) and non-simplicial cells such as prisms are
+  not provided.
+* The clamped C1 interpolant need not depend continuously on the vertex
+  coordinates. Its gradient limiter projects onto a set that can shrink
+  abruptly, for example when two edges through a vertex stop being exactly
+  parallel. Each result is still C1 and in range.
+* The Clough–Tocher split raises ``ValueError`` on a triangle whose split
+  point rounds onto one of its sides, for example a triangle far thinner
+  across than its distance from the origin.
 * Quadratic reproduction requires enough neighbours around each vertex for
   the gradient estimate; near a sparse boundary only linear data are
   reproduced unless you pass gradients.
@@ -400,7 +479,8 @@ Limitations
   :func:`~torch_bsf.interpolation.estimate_gradients` returns signed infinity
   without a warning for gradient components beyond the float64 range, even
   when the vertex data are finite (for example, on very short edges).
-  :func:`~torch_bsf.interpolation.hermite_interpolant` and
+  :func:`~torch_bsf.interpolation.hermite_interpolant`,
+  :func:`~torch_bsf.interpolation.macro_interpolant` and
   :func:`~torch_bsf.interpolation.refinement_indicator` raise ``ValueError``
   identifying overflow in the interpolant when its controls are non-finite.
   Clamping can clip infinite controls into the vertex data range, but cannot
