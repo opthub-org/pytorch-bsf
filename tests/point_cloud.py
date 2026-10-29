@@ -285,10 +285,12 @@ def test_parameter_iteration_exhaustion_preserves_descent():
     t, converged = _parameters(model, y, start, 1, 1e-12)
     assert not converged
     assert ((model(t) - y).square().sum(1) <= (model(start) - y).square().sum(1)).all()
-    # _project rounds the cumulative sum of the w = 2 sorted coordinates (at most one in magnitude) w - 1 times and
-    # subtracts one, divides it once for the threshold, and subtracts the threshold from each coordinate; the test sums
-    # the w results with w - 1 more roundings. Each rounding errs by at most u, so |sum - 1| <= 3 w u; doubled.
-    torch.testing.assert_close(t.sum(1), torch.ones(len(y), dtype=torch.float64), rtol=0, atol=2 * 3 * 2 * U)
+    # _project rounds the cumulative sum of the w = 2 sorted coordinates w - 1 times and subtracts one, divides it once
+    # for the threshold, and subtracts the threshold from each coordinate; the test sums the w results with w - 1 more
+    # roundings. Each rounding errs by at most u times the magnitude M of the coordinates, which is at most 2 here (the
+    # start 0.5 plus one step; 1.5 observed), so |sum - 1| <= 3 w u M; doubled.
+    width, magnitude = 2, 2
+    torch.testing.assert_close(t.sum(1), torch.ones(len(y), dtype=torch.float64), rtol=0, atol=2 * 3 * width * magnitude * U)
 
 
 def test_derivative_overflow_preserves_initial_model():

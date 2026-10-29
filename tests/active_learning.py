@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from hypothesis import given
 
-from tests.strategies import nearby_acquisition_points
+from tests.strategies import U32, nearby_acquisition_points
 from torch_bsf import Points
 from torch_bsf._kernels._active_learning import suggest_next_points
 from torch_bsf._kernels.api import BezierSimploid
@@ -298,7 +298,7 @@ def _factor_sum_tolerance(width: int) -> float:
     to one); summing the quotients in the test rounds ``width - 1`` more times. With the float32 unit roundoff
     ``u = 2**-24``, the error is at most ``(2 * width - 1) u`` to first order; doubled.
     """
-    return 2 * (2 * width - 1) * torch.finfo(torch.float32).eps / 2
+    return 2 * (2 * width - 1) * U32
 
 
 class TestSuggestNextPointsSimploid:

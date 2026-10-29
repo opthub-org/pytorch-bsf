@@ -1,5 +1,8 @@
 """Tests for tools/lint_conventions.py, the checker of the conventions that Ruff cannot check."""
 
+import re
+import subprocess
+import sys
 import textwrap
 
 import pytest
@@ -25,6 +28,8 @@ def codes(source: str, *, is_test: bool = False) -> list[tuple[int, str]]:
         "print(f\"{'Bézier'}\")",
         'print("a" + "é")',
         'print("%s é" % name)',
+        'print("%s" % ("é",))',
+        'print("%(name)s" % {"name": "é"})',
         'print("{} é".format(name))',
         'print("x" if flag else "é")',
         'raise ValueError("not a Bézier simplex")',
@@ -42,6 +47,9 @@ def codes(source: str, *, is_test: bool = False) -> list[tuple[int, str]]:
         'logger.exception("é")',
         'logger.critical("é")',
         'logger.log(logging.INFO, "é")',
+        'logger.info(msg="é")',
+        'logging.fatal("é")',
+        'logger.warn("é")',
         'parser.error("é")',
         'ArgumentParser(description="Bézier fitting")',
         'argparse.ArgumentParser(epilog="é")',
@@ -75,6 +83,8 @@ def test_non_ascii_console_strings_are_reported(source):
         'plot(title="Bézier")',
         'warnings.warn("ASCII", category=UserWarning, stacklevel=2)',
         'raise ValueError(b"\\xe9")',
+        'handlers[0]("é")',  # only calls of a name or an attribute are checked
+        'print("%(x)s" % {"é": name})',
     ],
 )
 def test_ascii_and_non_console_strings_are_accepted(source):
@@ -106,6 +116,8 @@ def test_each_offending_literal_is_reported():
         "torch.testing.assert_close(a, b, atol=1e-12)",
         "assert_close(a, b, check_dtype=False)",
         "testing.assert_close(a, b, msg='x')",
+        "torch.testing.assert_close(a, b, rtol=None, atol=None)",
+        "torch.testing.assert_close(a, b, rtol=0, atol=None)",
     ],
 )
 def test_assert_close_without_both_tolerances_is_reported_in_tests(source):
@@ -225,8 +237,34 @@ def test_main_reports_violations_and_exit_status(tmp_path, monkeypatch, capsys):
     ]
 
 
-def test_main_reports_syntax_errors(tmp_path, capsys):
+@pytest.mark.parametrize(
+    "content",
+    [
+        b"def f(:\n",
+        b'print("\xe9")\n',  # Latin-1 without an encoding declaration
+        b"# -*- coding: bogus -*-\n",
+        b'print("x")\n\x00\n',
+    ],
+)
+def test_main_reports_files_that_cannot_be_parsed_and_checks_the_rest(tmp_path, capsys, content):
     broken = tmp_path / "broken.py"
-    broken.write_text("def f(:\n", encoding="utf-8")
-    assert main([str(broken)]) == 1
-    assert capsys.readouterr().out.startswith(f"{broken}:1: cannot parse:")
+    broken.write_bytes(content)
+    module = tmp_path / "module.py"
+    module.write_text('print("é")\n', encoding="utf-8")
+    assert main([str(broken), str(module)]) == 1
+    out = capsys.readouterr().out.splitlines()
+    assert len(out) == 2
+    assert re.fullmatch(rf"{re.escape(str(broken))}:\d+: cannot parse: .+", out[0])
+    assert out[1].startswith(f"{module}:1: BSF001")
+
+
+def test_script_exit_status(tmp_path):
+    module = tmp_path / "module.py"
+    module.write_text('print("é")\n', encoding="utf-8")
+    script = lint_conventions.ROOT / "tools" / "lint_conventions.py"
+    result = subprocess.run([sys.executable, str(script), str(module)], capture_output=True, text=True, check=False)
+    assert result.returncode == 1
+    assert result.stdout.startswith(f"{module}:1: BSF001")
+    module.write_text('print("e")\n', encoding="utf-8")
+    result = subprocess.run([sys.executable, str(script), str(module)], capture_output=True, text=True, check=False)
+    assert (result.returncode, result.stdout) == (0, "")

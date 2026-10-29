@@ -815,8 +815,10 @@ def _gradient_tolerance(mesh: SimplicialMesh, magnitude: float, max_rings: int =
     second derivatives of the data, and a gradient component is the solution divided by its :math:`H`. The bound is
     doubled.
 
-    The design matrix and this bound do not change when an axis of the mesh is scaled by :math:`c` and the gradient
-    component by :math:`1 / c`, so a mesh whose coordinates overflow in differences can be replaced by a scaled copy.
+    The design matrix, and so the relative error of the estimate, does not change when an axis of the mesh is scaled
+    by :math:`c` and the gradient component by :math:`1 / c`. So a mesh whose coordinates overflow in differences can
+    be replaced by a copy scaled to order one, with ``magnitude`` in the units of that copy. The neighbours are chosen
+    as in ``_gradient_at`` of ``torch_bsf/interpolation.py``; keep the two in step.
     """
     d = mesh.dimension
     n_quadratic = d + d * (d + 1) // 2
@@ -826,7 +828,7 @@ def _gradient_tolerance(mesh: SimplicialMesh, magnitude: float, max_rings: int =
     for v in torch.unique(mesh.simplices).tolist():
         near = set(ring[v])
         for _ in range(max_rings - 1):
-            near |= {w for u in near for w in ring[u]}
+            near |= {w for neighbour in near for w in ring[neighbour]}
             near.discard(v)
             if len(near) >= n_quadratic + 2:
                 break
@@ -2168,14 +2170,15 @@ def test_kuhn_mesh_is_conforming_at_extreme_and_anisotropic_scales():
         assert mesh.unmatched_faces == 0
 
 
-@pytest.mark.parametrize("scale", [1e-200, 1e200])
+@pytest.mark.parametrize("scale", [1e-200, 1e-150, 1e150, 1e200])
 def test_volumes_and_location_at_extreme_scales(scale):
     lattice = lattice_mesh(2, 4)
     x = lattice.vertices * scale
     mesh = SimplicialMesh(x, lattice.simplices)
     # The vertices a / 4 of the lattice are exact, and scaling them rounds once (at most U * scale). The relative bound
     # does not change with the scale, so it is computed on the lattice, where the squared edges do not underflow. The
-    # expected volumes are rounded twice more by the scaling.
+    # expected volumes are rounded twice more by the scaling. At 1e-200 and 1e200 the volumes (about scale**2 / 32)
+    # leave the float64 range, so both sides are 0 or inf and only 1e-150 and 1e150 check the bound.
     rtol = _volume_rtol(lattice, vertex_error=U) + _volume_rtol(lattice) + 2 * U
     torch.testing.assert_close(mesh.volumes(), lattice.volumes() * scale * scale, rtol=rtol, atol=0)
     first = mesh.simplices[0]

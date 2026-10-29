@@ -134,7 +134,7 @@ The `[develop]` extras include:
 | `hypothesis` | Property-based tests |
 | `mypy` + type stubs | Static type checking |
 | `ruff` | Linting, import sorting and code formatting |
-| `pre-commit` | Running Ruff, numpydoc-validation and typos on `git commit` |
+| `pre-commit` | Running Ruff, numpydoc-validation, `tools/lint_conventions.py` and typos on `git commit` |
 
 With Conda, install them into the environment with `pip install -e ".[develop]"` as well.
 
@@ -142,7 +142,7 @@ MLflow is an optional extra (`pip install -e ".[develop,mlflow]"`, also included
 
 ### Install the git hook
 
-Install the [pre-commit](https://pre-commit.com/) hook so that Ruff, numpydoc and typos check your changes (and Ruff formats them) on every commit:
+Install the [pre-commit](https://pre-commit.com/) hook so that Ruff, numpydoc, `tools/lint_conventions.py` and typos check your changes (and Ruff formats them) on every commit:
 
 ```bash
 pre-commit install
@@ -383,6 +383,7 @@ Conventions that a tool can check are enforced by the pre-commit hooks (see [Ins
 
 - [Ruff](https://docs.astral.sh/ruff/) lints, sorts imports and formats code (`ruff check --fix` and `ruff format`).
 - [numpydoc](https://numpydoc.readthedocs.io/en/latest/validation.html) validates the structure of the NumPy-style docstrings of the public modules: section names and order, documented parameters that do not exist, and the format of types. The checks are configured in `[tool.numpydoc_validation]` of `pyproject.toml`; private modules (a path component starting with `_`, except `__init__.py`) and private objects are skipped. Document the fields of a dataclass under `Attributes`, as numpydoc cannot see the generated `__init__`. To skip one check for one object, put `# numpydoc ignore=<CODE>` on its `def` or `class` line, with a comment explaining why.
+- `tools/lint_conventions.py` checks the conventions of this file that Ruff cannot check (BSF001, BSF002 below).
 - [typos](https://github.com/crate-ci/typos) finds misspellings; false positives are suppressed narrowly in `_typos.toml`. It runs only in the local git hook for now, and CI skips it, while the rate of false positives is observed. Add a false positive to `_typos.toml` (or report it) rather than rewording correct text.
 
 CI runs the same hooks (except typos) on all files and fails if they report a problem or change a file. To run them manually:
@@ -631,7 +632,7 @@ pytorch-bsf/
 │       └── work-on-issue/SKILL.md    # Implement an issue end to end, up to an open PR
 ├── .github/
 │   ├── workflows/                    # GitHub Actions workflows
-│   │   ├── python-package.yml        # pre-commit (Ruff, numpydoc-validation), pytest, mypy, Sphinx; lowest and optional deps
+│   │   ├── python-package.yml        # pre-commit (Ruff, numpydoc-validation, lint-conventions), pytest, mypy, Sphinx; lowest and optional deps
 │   │   ├── release-please-action.yml # Automated releases (CHANGELOG + PyPI publish)
 │   │   ├── docker.yml                # Docker image published to ghcr.io on release
 │   │   ├── sphinx-pages.yml          # Build and publish Sphinx docs to GitHub Pages

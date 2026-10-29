@@ -10,6 +10,7 @@ from hypothesis import strategies as st
 
 from tests.strategies import (
     FLOAT64_TINY,
+    U32,
     U,
     degrees,
     extreme_scalings,
@@ -637,7 +638,7 @@ def test_reparametrize_simploid_leaves_other_factors_unchanged():
     torch.testing.assert_close(u[:, :3], t[:, :3], rtol=0, atol=0)
     # In float32 (u = 2**-24), 0.3 / (1 - s) = 2 * 0.3 is exact, but 0.7 - (s / (1 - s)) * 0.3 = 0.7 - 0.3 rounds once
     # more than its inputs, and 0.4 is rounded too: an error of at most (0.7 + 0.3 + 0.4 + 0.4) u < 2u; doubled.
-    torch.testing.assert_close(u[:, 3:], torch.tensor([[0.6, 0.4]]), rtol=0, atol=2 * 2 * torch.finfo(torch.float32).eps / 2)
+    torch.testing.assert_close(u[:, 3:], torch.tensor([[0.6, 0.4]]), rtol=0, atol=2 * 2 * U32)
     with pytest.raises(ValueError, match="columns for type"):
         reparametrize(t[:, :4], 0, 1, 0.5, "A", simploid_type=(2, 1))
 
