@@ -2067,6 +2067,47 @@ def macro_interpolant(
     return MacroInterpolant(mesh, pieces.mesh, pieces.parent, model, _transfer=pieces.transfer)
 
 
+def _refinement_scores(
+    cubic: torch.Tensor, values: torch.Tensor, volume_mantissa: torch.Tensor, volume_exponent: torch.Tensor
+) -> torch.Tensor:
+    """Volume-weighted mean correction, retaining tiny residuals and avoiding intermediate overflow.
+
+    Ordinary rows keep the vectorized reductions. Near either float64 boundary, compute the score from
+    the finite centroid predictions and vertex data as exact rationals, rounding only the final score.
+    This also combines a correction outside float64 with a small volume before rounding either of them.
+    """
+    if not torch.isfinite(cubic).all():
+        raise ValueError("the interpolant has a non-finite centroid prediction.")
+    linear = values.mean(dim=1)
+    correction = (cubic - linear).abs().mean(dim=1)
+    mantissa, exponent = torch.frexp(correction)
+    score = _times_power_of_two(mantissa * volume_mantissa, exponent.to(torch.long) + volume_exponent)
+    score = torch.where(correction == 0, 0.0, score)
+    entries = torch.cat([cubic, values.flatten(1)], dim=1).abs()
+    info = torch.finfo(torch.float64)
+    # A factor-two margin bounds both vertex/output sums; small terms must survive
+    # division by their counts until a possibly huge volume has been applied.
+    count = max(values.shape[1], values.shape[2])
+    risky = (entries >= info.max / (2 * count)).any(dim=1)
+    risky |= ((entries > 0) & (entries < info.tiny * count)).any(dim=1)
+    risky |= ~torch.isfinite(score) | ((score == 0) & (correction > 0))
+    for row in risky.nonzero().flatten().tolist():
+        columns = zip(cubic[row].tolist(), values[row].T.tolist(), strict=True)
+        exact = (
+            sum(
+                (
+                    abs(Fraction(prediction) - sum(map(Fraction, column), Fraction(0)) / len(column))
+                    for prediction, column in columns
+                ),
+                Fraction(0),
+            )
+            / cubic.shape[1]
+        )
+        volume = Fraction(volume_mantissa[row].item()) * Fraction(2) ** int(volume_exponent[row])
+        score[row] = _rounded(exact * volume)
+    return score
+
+
 def refinement_indicator(
     mesh: SimplicialMesh,
     values: Any,
@@ -2101,6 +2142,8 @@ def refinement_indicator(
     -------
     torch.Tensor
         Nonnegative float64 scores of shape ``(n_simplices,)``, one per simplex of ``mesh``.
+        Finite centroid predictions and extreme vertex data use exact reductions near the float64
+        limits, applying the volume before final rounding. A score beyond float64 is positive infinity.
 
     Raises
     ------
@@ -2108,7 +2151,8 @@ def refinement_indicator(
         If ``split`` or ``continuity`` is not one of the classes of :func:`macro_interpolant`.
     ValueError
         If :func:`macro_interpolant` cannot construct a finite interpolant, including when the
-        vertex data or gradients cause its controls to overflow float64.
+        vertex data or gradients cause its controls to overflow float64, or if a centroid
+        prediction is non-finite.
 
     Examples
     --------
@@ -2125,13 +2169,4 @@ def refinement_indicator(
     centroid = Points(torch.full((mesh.n_simplices, n), 1 / n, dtype=torch.float64), mesh.cell_ids)
     with torch.no_grad():
         cubic: torch.Tensor = interpolant.model(interpolant.transfer(centroid))
-    linear = f[mesh.simplices].mean(dim=1)
-    correction = (cubic - linear).abs().mean(dim=1)
-    # Multiplied by the volume as mantissa * 2**exponent, with the correction split the same way: a volume beyond
-    # the float64 range may still give a finite score, a tiny correction is not lost before the exponent scales it
-    # up, and a simplex without correction scores zero rather than 0 * inf = NaN.
-    correction_mantissa, correction_exponent = torch.frexp(correction)
-    score = _times_power_of_two(
-        correction_mantissa * mesh._volume_mantissa, correction_exponent.to(torch.long) + mesh._volume_exponent
-    )
-    return torch.where(correction > 0, score, 0.0)
+    return _refinement_scores(cubic, f[mesh.simplices], mesh._volume_mantissa, mesh._volume_exponent)

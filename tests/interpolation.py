@@ -46,6 +46,7 @@ from torch_bsf.interpolation import (
     _nearest_feasible,
     _overlapping_boxes,
     _rational_inverse,
+    _refinement_scores,
     _Tagged,
     estimate_gradients,
     hermite_interpolant,
@@ -1861,6 +1862,89 @@ def test_refinement_score_without_correction_on_a_huge_simplex_is_zero():
     mesh = SimplicialMesh([[0.0, 0.0], [2.0**1000, 0.0], [0.0, 2.0**25]], [[0, 1, 2]])
     assert mesh.volumes().item() == math.inf
     assert refinement_indicator(mesh, [1.0, 1.0, 1.0]).tolist() == [0.0]
+
+
+@pytest.mark.parametrize(
+    "dimension, split, continuity", [(1, NoSplit(), C0()), (2, NoSplit(), C0()), (2, CloughTocher(), C1())]
+)
+@pytest.mark.parametrize("outputs", [1, 3])
+@pytest.mark.parametrize("sign", [-1, 1])
+def test_refinement_indicator_of_large_constant_data_is_finite(dimension, split, continuity, outputs, sign):
+    """Regression #539: summing finite constant data must not overflow its linear mean."""
+    vertices = torch.cat([torch.zeros(1, dimension), torch.eye(dimension)])
+    mesh = SimplicialMesh(vertices, [list(range(dimension + 1))])
+    values = torch.full((dimension + 1, outputs), sign * 1e308, dtype=torch.float64)
+    score = refinement_indicator(mesh, values, split=split, continuity=continuity)
+    assert torch.isfinite(score).all()
+    # Cubic construction/evaluation and the linear mean incur O(controls) roundings;
+    # 128 U bounds their difference relative to the constant, scaled by the volume.
+    assert score.item() <= (128 * U * 1e308) * mesh.volumes().item()
+    if dimension == 1:
+        assert score.item() == 0.0
+
+
+@pytest.mark.parametrize(
+    "prediction, vertices, mantissa, exponent, expected",
+    [
+        ([1e308, 1e308], [[1e308, 1e308]] * 2, 0.5, 1, 0.0),
+        ([-FLOAT64_MAX], [[FLOAT64_MAX]] * 2, 0.5, 0, FLOAT64_MAX),
+        ([FLOAT64_MAX, FLOAT64_MAX], [[0.0, 0.0]] * 2, 0.5, 1, FLOAT64_MAX),
+        ([0.0], [[FLOAT64_MAX], [-FLOAT64_MAX], [1.0]], 0.75, 2, 1.0),
+        ([0.0], [[2.0**-1074], [0.0]], 0.5, 1024, 2.0**-52),
+        ([2.0**-1074, 0.0], [[0.0, 0.0]] * 2, 0.5, 1024, 2.0**-52),
+        ([-FLOAT64_MAX], [[FLOAT64_MAX]] * 2, 0.5, 1, math.inf),
+        ([1.0], [[0.0]] * 2, 0.5, -2000, 0.0),
+        ([0.0], [[0.0]] * 2, 0.5, 2000, 0.0),
+    ],
+)
+def test_refinement_scores_round_after_the_volume(prediction, vertices, mantissa, exponent, expected):
+    """Keep means, opposite-sign differences and small output means until the final rounding."""
+    actual = _refinement_scores(
+        torch.tensor([prediction], dtype=torch.float64),
+        torch.tensor([vertices], dtype=torch.float64),
+        torch.tensor([mantissa], dtype=torch.float64),
+        torch.tensor([exponent]),
+    )
+    assert actual.tolist() == [expected]
+
+
+@given(data=st.data(), volume_exponent=st.integers(-2100, 2100))
+def test_extreme_refinement_scores_match_exact_arithmetic(data, volume_exponent):
+    """Independent rational evaluation of the score, also when its intermediate means do not fit."""
+    vertices, outputs = data.draw(st.integers(2, 4)), data.draw(st.integers(1, 4))
+    scale = data.draw(st.sampled_from([FLOAT64_MAX, FLOAT64_TINY, 2.0**-1074]))
+    table = data.draw(matrices(vertices + 1, outputs, scale=st.just(scale)))
+    table[0, 0] = scale  # Guarantee a boundary value, so this tests the exact fallback.
+    cubic, values = table[:1], table[None, 1:]
+    mantissa = data.draw(st.floats(0.5, 1.0, exclude_max=True))
+    expected = (
+        sum(
+            (
+                abs(Fraction(c) - sum(map(Fraction, column), Fraction(0)) / vertices)
+                for c, column in zip(cubic[0].tolist(), values[0].T.tolist(), strict=True)
+            ),
+            Fraction(0),
+        )
+        / outputs
+    )
+    expected *= Fraction(mantissa) * Fraction(2) ** volume_exponent
+    try:
+        rounded = float(expected)
+    except OverflowError:
+        rounded = math.inf
+    actual = _refinement_scores(cubic, values, torch.tensor([mantissa], dtype=torch.float64), torch.tensor([volume_exponent]))
+    assert actual.tolist() == [rounded]
+
+
+@pytest.mark.parametrize("value", [math.nan, math.inf, -math.inf])
+def test_refinement_scores_reject_nonfinite_centroid_predictions(value):
+    with pytest.raises(ValueError, match="non-finite centroid"):
+        _refinement_scores(
+            torch.tensor([[value]], dtype=torch.float64),
+            torch.zeros(1, 2, 1, dtype=torch.float64),
+            torch.ones(1, dtype=torch.float64),
+            torch.zeros(1, dtype=torch.long),
+        )
 
 
 def test_refinement_score_of_a_tiny_correction_on_a_huge_thin_simplex():
