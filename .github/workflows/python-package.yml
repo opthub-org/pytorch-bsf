@@ -9,21 +9,24 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   lint:
+    permissions:
+      contents: read
     # Runs the hooks of .pre-commit-config.yaml, so CI uses the same Ruff version as the local git hook.
     # Kept out of the test matrix so that lint failures are reported quickly.
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      with:
+        persist-credentials: false
+    - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
       with:
         python-version: "3.14"
     - name: Cache pre-commit environments
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: ~/.cache/pre-commit
         key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
@@ -36,12 +39,16 @@ jobs:
         pre-commit run --all-files --show-diff-on-failure
 
   lowest:
+    permissions:
+      contents: read
     # Installs the lower bounds of [project].dependencies on the oldest supported Python,
     # to check that the declared ranges really work (the `build` job only tests the latest versions).
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      with:
+        persist-credentials: false
+    - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
       with:
         python-version: "3.10"
     - name: Create a virtual environment
@@ -64,6 +71,8 @@ jobs:
         pytest
 
   optional-deps:
+    permissions:
+      contents: read
     # Lightning, MLflow and the other extras are optional: check that the package imports and works without
     # them, and that the tests needing them are skipped rather than failing.
     # `absent` lists the packages that must not be installed in each configuration.
@@ -83,8 +92,10 @@ jobs:
             extras: "lightning,sparse,sklearn,plot"
             absent: "mlflow"
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      with:
+        persist-credentials: false
+    - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
       with:
         python-version: "3.14"
     - name: Create a virtual environment
@@ -115,6 +126,8 @@ jobs:
         pytest
 
   build:
+    permissions:
+      contents: read
 
     runs-on: ubuntu-latest
     strategy:
@@ -125,9 +138,11 @@ jobs:
       run:
         shell: bash -l {0}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      with:
+        persist-credentials: false
     - name: Set up Miniconda
-      uses: conda-incubator/setup-miniconda@v3
+      uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
       with:
         miniforge-version: latest
         channels: conda-forge
@@ -150,7 +165,7 @@ jobs:
         pytest
     - name: Upload coverage to Codecov
       if: matrix.python-version == '3.14'
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         files: ./coverage.xml
@@ -162,11 +177,15 @@ jobs:
         bash examples/quickstart/run.sh
 
   distribution:
+    permissions:
+      contents: read
     # Build artifacts once, independently of the Python/optional-dependency matrices.
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      with:
+        persist-credentials: false
+    - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
       with:
         python-version: "3.14"
     - name: Install build tools and runtime dependencies
@@ -177,11 +196,15 @@ jobs:
       run: python tools/check_distribution.py
 
   docs:
+    permissions:
+      contents: read
     # Validate the current checkout once; Pages separately builds historical refs.
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      with:
+        persist-credentials: false
+    - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
       with:
         python-version: "3.14"
     - name: Install documentation dependencies and all integrations

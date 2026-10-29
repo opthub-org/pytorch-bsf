@@ -6,11 +6,12 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   build:
+    permissions:
+      contents: read
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -22,9 +23,11 @@ jobs:
         shell: bash -l {0}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      with:
+        persist-credentials: false
     - name: Set up Miniforge
-      uses: conda-incubator/setup-miniconda@v3
+      uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
       with:
         # Miniforge 26.9.4-0 fails `conda init --all` on Windows while replacing
         # Scripts/conda.exe ("needs sudo"). Keep the last passing installer there.
@@ -51,15 +54,19 @@ jobs:
         python -m torch_bsf fit --params=params.csv --values=values.csv --degree=3 --save=model.bsf
 
   build-mlflow:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash -l {0}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      with:
+        persist-credentials: false
     - name: Set up Miniforge
-      uses: conda-incubator/setup-miniconda@v3
+      uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
       with:
         miniforge-version: latest
         channels: conda-forge
@@ -85,10 +92,14 @@ jobs:
         fi
 
   docker-build:
+    permissions:
+      contents: read
     # Validate the Linux image on PRs without publishing release artifacts.
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      with:
+        persist-credentials: false
     - name: Build the unpinned Conda image
       run: docker build --tag pytorch-bsf:ci .
     - name: Import the installed numerical packages and run CLI help
