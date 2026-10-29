@@ -382,7 +382,7 @@ where the terms whose face :math:`d^i_j \sigma` is degenerate are dropped.
   torsion, such as non-orientable surfaces.
 
 .. testcode::
-   :pyversion: >= 3.10, < 3.15
+   :pyversion: >= 3.11, < 3.16
 
    from torch_bsf.geometry import SimploidalSet
 
@@ -412,7 +412,7 @@ where the terms whose face :math:`d^i_j \sigma` is degenerate are dropped.
    print(rp2.betti_numbers(), rp2.betti_numbers(field="Z2"))
 
 .. testoutput::
-   :pyversion: >= 3.10, < 3.15
+   :pyversion: >= 3.11, < 3.16
 
    [1, 2, 1]
    [1, 0, 1]
