@@ -14,6 +14,6 @@ First read `.claude/skills/review-local/protocol.md` in the repository path you 
 - Division by quantities that can be zero or tiny; `sqrt`/`log` of values that can round below zero; `exp` overflow.
 - dtype: float32 vs float64 paths, integer inputs, silent upcasting/downcasting, mixed NumPy/torch dtypes, `torch.get_default_dtype()` assumptions.
 - NaN and infinity: are they rejected where documented, propagated where documented, never silently turned into numbers?
-- Tolerances: derived from the unit roundoff and the conditioning as CONTRIBUTING.md requires, not arbitrary `1e-6` or default `assert_close`.
+- Tolerances: derived from the unit roundoff and the conditioning as CONTRIBUTING.md requires, not arbitrary `1e-6` (BSF002 of `tools/lint_conventions.py` already rejects the default `assert_close` tolerance).
 - Ill-conditioned solves or matrices: is there a better-conditioned formulation (e.g. `lstsq`/`solve` instead of `inv`)?
 - Summation order and reductions where exactness matters (partition of unity, range preservation).

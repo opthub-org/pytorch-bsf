@@ -26,6 +26,9 @@ from hypothesis import strategies as st
 #: Unit roundoff of float64, :math:`u = 2^{-53}`. A correctly rounded operation has a relative error at most ``U``.
 U = 2.0**-53
 
+#: Unit roundoff of float32, :math:`u = 2^{-24}`.
+U32 = 2.0**-24
+
 #: The largest finite float64.
 FLOAT64_MAX = torch.finfo(torch.float64).max
 

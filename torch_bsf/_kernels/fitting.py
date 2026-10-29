@@ -226,7 +226,7 @@ def _resolve_shape(
     st = _check_type(simploid_type)
     if degree is None:
         if not isinstance(init, BezierSimploid):
-            raise ValueError("degree is required unless init is a Bézier simploid.")
+            raise ValueError("degree is required unless init is a Bezier simploid.")
         degree = init.degree
     return st, _check_degree(degree, len(st))
 

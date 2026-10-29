@@ -134,7 +134,7 @@ The `[develop]` extras include:
 | `hypothesis` | Property-based tests |
 | `mypy` + type stubs | Static type checking |
 | `ruff` | Linting, import sorting and code formatting |
-| `pre-commit` | Running Ruff, numpydoc-validation and typos on `git commit` |
+| `pre-commit` | Running Ruff, numpydoc-validation, `tools/lint_conventions.py` and typos on `git commit` |
 
 With Conda, install them into the environment with `pip install -e ".[develop]"` as well.
 
@@ -142,7 +142,7 @@ MLflow is an optional extra (`pip install -e ".[develop,mlflow]"`, also included
 
 ### Install the git hook
 
-Install the [pre-commit](https://pre-commit.com/) hook so that Ruff, numpydoc and typos check your changes (and Ruff formats them) on every commit:
+Install the [pre-commit](https://pre-commit.com/) hook so that Ruff, numpydoc, `tools/lint_conventions.py` and typos check your changes (and Ruff formats them) on every commit:
 
 ```bash
 pre-commit install
@@ -383,6 +383,7 @@ Conventions that a tool can check are enforced by the pre-commit hooks (see [Ins
 
 - [Ruff](https://docs.astral.sh/ruff/) lints, sorts imports and formats code (`ruff check --fix` and `ruff format`).
 - [numpydoc](https://numpydoc.readthedocs.io/en/latest/validation.html) validates the structure of the NumPy-style docstrings of the public modules: section names and order, documented parameters that do not exist, and the format of types. The checks are configured in `[tool.numpydoc_validation]` of `pyproject.toml`; private modules (a path component starting with `_`, except `__init__.py`) and private objects are skipped. Document the fields of a dataclass under `Attributes`, as numpydoc cannot see the generated `__init__`. To skip one check for one object, put `# numpydoc ignore=<CODE>` on its `def` or `class` line, with a comment explaining why.
+- `tools/lint_conventions.py` checks the conventions of this file that Ruff cannot check (BSF001, BSF002 below).
 - [typos](https://github.com/crate-ci/typos) finds misspellings; false positives are suppressed narrowly in `_typos.toml`. It runs only in the local git hook for now, and CI skips it, while the rate of false positives is observed. Add a false positive to `_typos.toml` (or report it) rather than rewording correct text.
 
 CI runs the same hooks (except typos) on all files and fails if they report a problem or change a file. To run them manually:
@@ -460,6 +461,8 @@ Use the spelling consistently depending on the context:
 
 The rationale for keeping `Bezier` in console-facing text is that this library is used on HPC clusters where the locale may be `LANG=C`, causing non-ASCII characters to be displayed incorrectly or to raise encoding errors.
 
+Rule BSF001 of `tools/lint_conventions.py`, run by the pre-commit hook, enforces ASCII in console-facing strings (its docstring lists the calls it checks; a deliberate exception takes `# lint-conventions: ignore[BSF001]` and a reason).
+
 ---
 
 ## Writing Tests
@@ -510,7 +513,7 @@ Hand-picked examples rarely include the inputs on which numerical code breaks. C
 
 - **What to state**: invariances (translation and scaling of coordinates, scaling of coefficients or data), identities (a map and its inverse, a child model and its parent), bounds (range preservation, partition of unity, nonnegativity), continuity across shared faces, and that invalid input (NaN, infinity, empty, wrong type or shape) raises the documented exception.
 - **Which inputs**: use the shared strategies of `tests/strategies.py`, which generate extreme values on purpose: translations up to `1e12`, scalings from `1e-6` to `1e6`, powers of two up to `2**±1000` (near the float64 limits), split ratios within `1e-12` of 0 and 1, and points on vertices and faces or with coordinates down to the smallest normal float64. Add a strategy there rather than in a test file, so that later properties can reuse it.
-- **Tolerances**: never use the default tolerance of `torch.testing.assert_close` or an arbitrary `1e-6`. Derive the bound from the unit roundoff `U = 2**-53` (the number of roundings, the condition number of the problem, the magnitude of the data), and write the derivation next to the test, as in `_split_tolerance` of `tests/splitting.py`. An exact operation (a translation or a power-of-two scaling whose results are representable) should give an exactly equal result.
+- **Tolerances**: never use the default tolerance of `torch.testing.assert_close` or an arbitrary `1e-6`. Derive the bound from the unit roundoff `U = 2**-53` (the number of roundings, the condition number of the problem, the magnitude of the data), and write the derivation next to the test, as in `_split_tolerance` of `tests/splitting.py`. An exact operation (a translation or a power-of-two scaling whose results are representable) should give an exactly equal result. Rule BSF002 of `tools/lint_conventions.py`, run by the pre-commit hook, requires every `assert_close` in `tests/` to pass both `rtol` and `atol` (`rtol=0, atol=0` for an exact comparison).
 - **Counterexamples**: when a property fails, keep the shrunk input as a regression test (`@example` or a plain test) next to the property. Fix small bugs in the same PR. For a larger one, open an issue and mark the property `@pytest.mark.xfail(strict=True, reason="#<issue>")`.
 
 The Hypothesis profile is chosen with the `HYPOTHESIS_PROFILE` environment variable (see `tests/conftest.py`):
@@ -629,7 +632,7 @@ pytorch-bsf/
 │       └── work-on-issue/SKILL.md    # Implement an issue end to end, up to an open PR
 ├── .github/
 │   ├── workflows/                    # GitHub Actions workflows
-│   │   ├── python-package.yml        # pre-commit (Ruff, numpydoc-validation), pytest, mypy, Sphinx; lowest and optional deps
+│   │   ├── python-package.yml        # pre-commit (Ruff, numpydoc-validation, lint-conventions), pytest, mypy, Sphinx; lowest and optional deps
 │   │   ├── release-please-action.yml # Automated releases (CHANGELOG + PyPI publish)
 │   │   ├── docker.yml                # Docker image published to ghcr.io on release
 │   │   ├── sphinx-pages.yml          # Build and publish Sphinx docs to GitHub Pages
@@ -699,6 +702,7 @@ pytorch-bsf/
 │   ├── test_contributor_examples.py  # Runs the CONTRIBUTING.md CLI example and issue form examples
 │   ├── …                             # One file per module (see Naming conventions), plus contract tests
 │   ├── model_selection/              # Tests for torch_bsf.model_selection
+│   ├── tools/                        # Tests for the scripts in tools/
 │   └── data/                         # Test data files
 ├── docs/                             # Sphinx documentation
 │   ├── conf.py                       # Sphinx configuration
@@ -711,10 +715,13 @@ pytorch-bsf/
 │   ├── quickstart/
 │   │   └── run.sh                    # Quickstart shell script
 │   └── …                             # Benchmarks (*benchmark*.py), doc figures (generate_*.py), other scripts
+├── tools/                            # Development scripts
+│   ├── check_distribution.py         # Builds and checks the distributions (the distribution CI job)
+│   └── lint_conventions.py           # Checks the conventions that Ruff cannot check (a pre-commit hook)
 ├── .git-blame-ignore-revs            # Bulk formatting commits skipped by git blame
 ├── .gitattributes                    # Git LFS settings for binary files
 ├── .gitignore                        # Files ignored by Git
-├── .pre-commit-config.yaml           # Git hooks (Ruff, numpydoc, typos) run on commit; CI runs all but typos
+├── .pre-commit-config.yaml           # Git hooks (Ruff, numpydoc, tools/lint_conventions.py, typos) run on commit; CI runs all but typos
 ├── CHANGELOG.md                      # Version history (auto-generated by release-please)
 ├── CONTRIBUTING.md                   # This file
 ├── Dockerfile                        # Docker image definition
