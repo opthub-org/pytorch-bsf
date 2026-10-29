@@ -53,7 +53,7 @@ def test_chunked_farthest_matches_dense_order(chunk_size, observations, cells):
     expected = _dense_farthest(candidates, observed, len(candidates))
     actual = farthest_points(candidates, observed, len(candidates), chunk_size=chunk_size)
     torch.testing.assert_close(actual.parameters, expected.parameters, rtol=0, atol=0)
-    torch.testing.assert_close(actual.cell_ids, expected.cell_ids)
+    torch.testing.assert_close(actual.cell_ids, expected.cell_ids, rtol=0, atol=0)
 
 
 @pytest.mark.parametrize("chunk_size", [1, 7, 25, 26, 1024])
@@ -83,9 +83,9 @@ def test_chunked_farthest_ties_duplicates_and_autograd():
     candidates = Points(parameters)
     observed = Points([[0.0], [1.0]])
     result = farthest_points(candidates, observed, 4, chunk_size=1)
-    torch.testing.assert_close(result.parameters, parameters[[0, 1, 2, 3]])
+    torch.testing.assert_close(result.parameters, parameters[[0, 1, 2, 3]], rtol=0, atol=0)
     result.parameters.sum().backward()
-    torch.testing.assert_close(parameters.grad, torch.ones_like(parameters))
+    torch.testing.assert_close(parameters.grad, torch.ones_like(parameters), rtol=0, atol=0)
 
 
 def test_farthest_distance_blocks_are_bounded(monkeypatch):
@@ -290,6 +290,17 @@ class TestSuggestNextPointsInteroperability:
         assert result.device.type == "cpu"
 
 
+def _factor_sum_tolerance(width: int) -> float:
+    """Bound on ``|sum - 1|`` for a factor of ``width`` float32 coordinates drawn by ``sample_simploid``.
+
+    The sampler divides ``width`` positive numbers by their sum, which rounds ``width - 1`` times (an error of at most
+    ``(width - 1) u`` relative to the sum), and rounds each quotient once (at most ``u`` in all, as the quotients sum
+    to one); summing the quotients in the test rounds ``width - 1`` more times. With the float32 unit roundoff
+    ``u = 2**-24``, the error is at most ``(2 * width - 1) u`` to first order; doubled.
+    """
+    return 2 * (2 * width - 1) * torch.finfo(torch.float32).eps / 2
+
+
 class TestSuggestNextPointsSimploid:
     def test_candidates_lie_on_the_simploid(self):
         """The type of the models is used to sample the candidates."""
@@ -301,14 +312,14 @@ class TestSuggestNextPointsSimploid:
             result = suggest_next_points(models, n_suggestions=4, n_candidates=50, method=method, params=existing)
             assert result.shape == (4, 5)
             assert (result >= 0).all()
-            torch.testing.assert_close(result[:, :3].sum(dim=1), torch.ones(4))
-            torch.testing.assert_close(result[:, 3:].sum(dim=1), torch.ones(4))
+            torch.testing.assert_close(result[:, :3].sum(dim=1), torch.ones(4), rtol=0, atol=_factor_sum_tolerance(3))
+            torch.testing.assert_close(result[:, 3:].sum(dim=1), torch.ones(4), rtol=0, atol=_factor_sum_tolerance(2))
 
     def test_explicit_type_for_plain_modules(self):
         models = [_SimpleLinearModel(4, 2) for _ in range(2)]
         result = suggest_next_points(models, n_suggestions=2, n_candidates=20, simploid_type=(1, 1))
-        torch.testing.assert_close(result[:, :2].sum(dim=1), torch.ones(2))
-        torch.testing.assert_close(result[:, 2:].sum(dim=1), torch.ones(2))
+        torch.testing.assert_close(result[:, :2].sum(dim=1), torch.ones(2), rtol=0, atol=_factor_sum_tolerance(2))
+        torch.testing.assert_close(result[:, 2:].sum(dim=1), torch.ones(2), rtol=0, atol=_factor_sum_tolerance(2))
 
     def test_mismatched_types_raise(self):
         models = [BezierSimploid.randn((1, 1), 1, 2), BezierSimploid.randn((3,), 1, 2)]
@@ -327,4 +338,4 @@ def test_seed_makes_suggestions_reproducible(simploid_type):
         models = [BezierSimploid.randn(simploid_type, 2, 2) for _ in range(2)]
     a = suggest_next_points(models, n_suggestions=3, n_candidates=50, n_params=3 if simploid_type is None else None, seed=1)
     b = suggest_next_points(models, n_suggestions=3, n_candidates=50, n_params=3 if simploid_type is None else None, seed=1)
-    torch.testing.assert_close(a, b)
+    torch.testing.assert_close(a, b, rtol=0, atol=0)

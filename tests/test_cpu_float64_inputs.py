@@ -27,15 +27,15 @@ def test_mesh_copies_vertices_before_float64_conversion(input_device):
     expected = vertices.cpu().double().clone()
     mesh = SimplicialMesh(vertices, [[0, 1, 2]])
     vertices.zero_()
-    torch.testing.assert_close(mesh.vertices, expected)
+    torch.testing.assert_close(mesh.vertices, expected, rtol=0, atol=0)
 
 
 def test_locate_accepts_device_points(input_device):
     mesh = lattice_mesh(2, 2)
     points = torch.tensor([[0.125, 0.25], [0.5, 0.125]], device=input_device)
     actual, expected = mesh.locate(points), mesh.locate(points.cpu())
-    torch.testing.assert_close(actual.parameters, expected.parameters)
-    torch.testing.assert_close(actual.cell_ids, expected.cell_ids)
+    torch.testing.assert_close(actual.parameters, expected.parameters, rtol=0, atol=0)
+    torch.testing.assert_close(actual.cell_ids, expected.cell_ids, rtol=0, atol=0)
 
 
 @pytest.mark.parametrize("supplied_gradients", [False, True])
@@ -45,16 +45,16 @@ def test_hermite_accepts_device_values_and_gradients(input_device, supplied_grad
     gradients = torch.ones(mesh.n_vertices, mesh.dimension, 1, device=input_device) if supplied_gradients else None
     actual = hermite_interpolant(mesh, values, gradients=gradients)
     expected = hermite_interpolant(mesh, values.cpu(), gradients=gradients.cpu() if gradients is not None else None)
-    torch.testing.assert_close(actual.coefficients, expected.coefficients)
-    torch.testing.assert_close(actual(mesh.locate(mesh.vertices)), values.cpu().double())
+    torch.testing.assert_close(actual.coefficients, expected.coefficients, rtol=0, atol=0)
+    torch.testing.assert_close(actual(mesh.locate(mesh.vertices)), values.cpu().double(), rtol=0, atol=0)
 
 
 def test_fixed_controls_copy_device_values_and_preserve_autograd(input_device):
     values = torch.tensor([0.25, 1e30], device=input_device, requires_grad=True)
     actual = FixedControls({0: values}).values[0]
-    torch.testing.assert_close(actual, values.detach().cpu().double())
+    torch.testing.assert_close(actual, values.detach().cpu().double(), rtol=0, atol=0)
     actual.sum().backward()
-    torch.testing.assert_close(values.grad, torch.ones_like(values))
+    torch.testing.assert_close(values.grad, torch.ones_like(values), rtol=0, atol=0)
     with torch.no_grad():
         values.zero_()
     assert actual[0] == 0.25
@@ -66,7 +66,7 @@ def test_point_cloud_accepts_device_initial_model(input_device):
     values = torch.tensor([[0.0, 1.0], [0.5, 0.5], [1.0, 0.0]])
     actual = fit_point_cloud(space, values, initial=BezierModel(space, coefficients.to(input_device))).require_success()
     expected = fit_point_cloud(space, values, initial=BezierModel(space, coefficients)).require_success()
-    torch.testing.assert_close(actual.model.coefficients, expected.model.coefficients)
+    torch.testing.assert_close(actual.model.coefficients, expected.model.coefficients, rtol=0, atol=0)
 
 
 def test_longest_edge_accepts_device_control_points(input_device):
@@ -82,23 +82,23 @@ def test_points_to_cpu_preserves_values_ids_and_autograd(input_device):
     points = Points(coordinates, ids)
     actual = points.to()
     torch.testing.assert_close(actual.parameters, coordinates.detach().cpu().double(), rtol=0, atol=0)
-    torch.testing.assert_close(actual.cell_ids, ids.cpu())
+    torch.testing.assert_close(actual.cell_ids, ids.cpu(), rtol=0, atol=0)
     assert actual.parameters.device.type == "cpu"
     assert actual.parameters.dtype == torch.float64
     actual.parameters.square().sum().backward()
-    torch.testing.assert_close(coordinates.grad, 2 * coordinates.detach())
+    torch.testing.assert_close(coordinates.grad, 2 * coordinates.detach(), rtol=0, atol=0)
     with torch.no_grad():
         coordinates.zero_()
         ids.zero_()
-    torch.testing.assert_close(points.parameters.cpu(), torch.tensor([[0.25, 0.75], [1.0, 0.0]]))
-    torch.testing.assert_close(actual.cell_ids, torch.tensor([2, 7]))
+    torch.testing.assert_close(points.parameters.cpu(), torch.tensor([[0.25, 0.75], [1.0, 0.0]]), rtol=0, atol=0)
+    torch.testing.assert_close(actual.cell_ids, torch.tensor([2, 7]), rtol=0, atol=0)
     with torch.no_grad():
         points.parameters.zero_()
         points.cell_ids.zero_()
     torch.testing.assert_close(
         actual.parameters, torch.tensor([[0.25, 0.75], [1.0, 0.0]], dtype=torch.float64), rtol=0, atol=0
     )
-    torch.testing.assert_close(actual.cell_ids, torch.tensor([2, 7]))
+    torch.testing.assert_close(actual.cell_ids, torch.tensor([2, 7]), rtol=0, atol=0)
 
 
 def test_fit_and_predict_accept_device_coordinates_and_weights(input_device):
@@ -107,19 +107,19 @@ def test_fit_and_predict_accept_device_coordinates_and_weights(input_device):
     values = torch.tensor([[1.0], [1.75], [2.0]], device=input_device)
     weights = torch.tensor([1.0, 0.5, 2.0], device=input_device, requires_grad=True)
     samples = Samples(coordinates, values, weights=weights)
-    torch.testing.assert_close(samples.weights, weights.detach().cpu().double())
+    torch.testing.assert_close(samples.weights, weights.detach().cpu().double(), rtol=0, atol=0)
     samples.weights.sum().backward()
-    torch.testing.assert_close(weights.grad, torch.ones_like(weights))
+    torch.testing.assert_close(weights.grad, torch.ones_like(weights), rtol=0, atol=0)
     actual = fit(space, samples).require_success().model
     expected = fit(space, Samples(coordinates.cpu(), values.cpu(), weights=weights.detach().cpu())).require_success().model
-    torch.testing.assert_close(actual.coefficients, expected.coefficients)
+    torch.testing.assert_close(actual.coefficients, expected.coefficients, rtol=0, atol=0)
     predictions = actual(coordinates)
     torch.testing.assert_close(predictions, values.cpu().double(), rtol=32 * torch.finfo(torch.float64).eps, atol=0)
     assert predictions.device.type == "cpu"
     assert predictions.dtype == torch.float64
     with torch.no_grad():
         weights.zero_()
-    torch.testing.assert_close(samples.weights, torch.tensor([1.0, 0.5, 2.0], dtype=torch.float64))
+    torch.testing.assert_close(samples.weights, torch.tensor([1.0, 0.5, 2.0], dtype=torch.float64), rtol=0, atol=0)
 
 
 def test_point_cloud_accepts_device_observations(input_device):
@@ -127,9 +127,9 @@ def test_point_cloud_accepts_device_observations(input_device):
     values = torch.tensor([[0.0, 1.0], [0.5, 0.5], [1.0, 0.0]], device=input_device)
     actual = fit_point_cloud(space, values).require_success()
     expected = fit_point_cloud(space, values.cpu()).require_success()
-    torch.testing.assert_close(actual.model.coefficients, expected.model.coefficients)
-    torch.testing.assert_close(actual.model(actual.parameters), expected.model(expected.parameters))
-    torch.testing.assert_close(values.cpu(), torch.tensor([[0.0, 1.0], [0.5, 0.5], [1.0, 0.0]]))
+    torch.testing.assert_close(actual.model.coefficients, expected.model.coefficients, rtol=0, atol=0)
+    torch.testing.assert_close(actual.model(actual.parameters), expected.model(expected.parameters), rtol=0, atol=0)
+    torch.testing.assert_close(values.cpu(), torch.tensor([[0.0, 1.0], [0.5, 0.5], [1.0, 0.0]]), rtol=0, atol=0)
 
 
 def test_integer_device_coordinates_and_coefficients_promote_to_float64(input_device):
@@ -140,10 +140,10 @@ def test_integer_device_coordinates_and_coefficients_promote_to_float64(input_de
     expected_device = "cpu" if input_device == "mps" else input_device
     assert points.parameters.device.type == model.coefficients.device.type == expected_device
     assert points.parameters.dtype == model.coefficients.dtype == torch.float64
-    torch.testing.assert_close(points.parameters.cpu(), coordinates.cpu().double())
-    torch.testing.assert_close(model(points).cpu(), coefficients.cpu().double())
-    torch.testing.assert_close(coordinates.cpu(), torch.eye(2, dtype=torch.long))
-    torch.testing.assert_close(coefficients.cpu(), torch.tensor([[3], [7]]))
+    torch.testing.assert_close(points.parameters.cpu(), coordinates.cpu().double(), rtol=0, atol=0)
+    torch.testing.assert_close(model(points).cpu(), coefficients.cpu().double(), rtol=0, atol=0)
+    torch.testing.assert_close(coordinates.cpu(), torch.eye(2, dtype=torch.long), rtol=0, atol=0)
+    torch.testing.assert_close(coefficients.cpu(), torch.tensor([[3], [7]]), rtol=0, atol=0)
 
 
 @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
@@ -155,7 +155,7 @@ def test_points_to_accepts_explicit_compute_device(input_device, dtype):
     assert actual.parameters.dtype == dtype
     assert actual.parameters.device.type == input_device
     assert actual.cell_ids.device.type == input_device
-    torch.testing.assert_close(actual.parameters.cpu(), torch.tensor([[0.25, 0.75]], dtype=dtype))
+    torch.testing.assert_close(actual.parameters.cpu(), torch.tensor([[0.25, 0.75]], dtype=dtype), rtol=0, atol=0)
 
 
 def test_python_weights_and_observations_keep_float64_precision():
@@ -196,4 +196,4 @@ def test_points_to_meta_preserves_metadata_and_source(dtype):
     assert points.parameters.device.type == points.cell_ids.device.type == "cpu"
     assert points.parameters.dtype == torch.float64
     torch.testing.assert_close(points.parameters, coordinates, rtol=0, atol=0)
-    torch.testing.assert_close(points.cell_ids, torch.tensor([2, 7]))
+    torch.testing.assert_close(points.cell_ids, torch.tensor([2, 7]), rtol=0, atol=0)

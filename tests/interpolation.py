@@ -527,7 +527,9 @@ def test_cancellation_fallback_keeps_barycentric_point_gradients():
     lam = mesh.barycentric(point)
     assert lam.tolist() == [[[0.5, 0.5, 0.0]]]
     gradient = torch.autograd.grad(lam[:, :, 2].sum(), point)[0]
-    torch.testing.assert_close(gradient, torch.tensor([[1 / (2 * short), -1 / (2 * short)]], dtype=torch.float64))
+    torch.testing.assert_close(
+        gradient, torch.tensor([[1 / (2 * short), -1 / (2 * short)]], dtype=torch.float64), rtol=0, atol=0
+    )
 
 
 @pytest.mark.parametrize("mode", ["dual", "func"])
@@ -661,7 +663,9 @@ def test_exact_fallback_keeps_vertex_gradients_when_the_point_gradient_underflow
     lam = SimplicialMesh(vertices, [[0, 1, 2]]).barycentric(point)
     point_gradient, vertex_gradient = torch.autograd.grad(lam[:, :, 1].sum() * 2.0**-100, (point, vertices))
     assert point_gradient[0, 0].item() == 0.0  # the true 2**-1100 is below float64
-    torch.testing.assert_close(vertex_gradient[:, 0], torch.tensor([0.0, 2.0**-100, -(2.0**-100)], dtype=torch.float64))
+    torch.testing.assert_close(
+        vertex_gradient[:, 0], torch.tensor([0.0, 2.0**-100, -(2.0**-100)], dtype=torch.float64), rtol=0, atol=0
+    )
 
 
 def test_locate_accounts_for_factorization_error_near_the_degeneracy_cutoff():
@@ -740,7 +744,9 @@ def test_exact_backward_supports_vertex_gradients_with_a_constant_point():
 def test_locate_tolerance_and_outside_points():
     mesh = SimplicialMesh([[0.0], [1.0], [2.0]], [[0, 1], [1, 2]])
     found = mesh.locate(torch.tensor([[-1e-10], [2.0 + 1e-10]]))
-    torch.testing.assert_close(_global_positions(mesh, found), torch.tensor([[0.0], [2.0]], dtype=torch.float64))
+    torch.testing.assert_close(
+        _global_positions(mesh, found), torch.tensor([[0.0], [2.0]], dtype=torch.float64), rtol=0, atol=0
+    )
     with pytest.raises(ValueError, match="outside"):
         mesh.locate(torch.tensor([[2.5]]))
     with pytest.raises(ValueError, match="outside"):
@@ -777,11 +783,73 @@ def test_model_is_differentiable_in_points():
     assert t.grad is not None and torch.isfinite(t.grad).all()
 
 
+def _volume_rtol(mesh: SimplicialMesh, vertex_error: float = 0.0) -> float:
+    r"""Relative bound on each computed volume of ``mesh``, whose vertex coordinates are off by at most ``vertex_error``.
+
+    Take the :math:`d \times d` edges :math:`E` of a simplex from its first vertex. Their subtraction rounds each entry
+    by at most :math:`u|E|`, and the vertex errors move each row by at most :math:`2\sqrt{d}` ``vertex_error``, at most
+    :math:`2\sqrt{d}` ``vertex_error`` :math:`/ \ell` relative to the shortest row length :math:`\ell`. LU
+    factorization is backward stable: it is exact for :math:`E + \Delta E` with :math:`|\Delta E| \lesssim d u |E|`.
+    A relative perturbation :math:`\epsilon` of the rows changes the determinant by at most :math:`d \kappa \epsilon`
+    relative (Jacobi's formula), :math:`\kappa` the condition number of :math:`E`, and dividing by :math:`d!` rounds
+    once more. The bound is doubled.
+    """
+    d = mesh.dimension
+    corners = mesh.vertices[mesh.simplices]
+    edges = corners[:, 1:] - corners[:, :1]
+    kappa = float(torch.linalg.cond(edges).max())
+    shortest = float(edges.norm(dim=2).min())
+    epsilon = (d + 1) * U + 2 * math.sqrt(d) * vertex_error / shortest
+    return 2 * (d * kappa * epsilon + U)
+
+
+def _gradient_tolerance(mesh: SimplicialMesh, magnitude: float, max_rings: int = 4) -> float:
+    r"""Bound on the error of :func:`estimate_gradients` (with ``max_rings``) for linear or quadratic data on ``mesh``.
+
+    At each vertex, the estimate solves a least-squares problem with :math:`m` rows, one per neighbour, and :math:`n`
+    unknowns, the linear and (with enough neighbours) quadratic coefficients in the coordinates
+    :math:`q = H^{-1}(x_w - x_v)`. For such data the problem is consistent, and the SVD solves it with relative
+    perturbations of about :math:`mnu` of the design matrix and of the slopes (which are rounded a few times too), so
+    the solution errs by at most :math:`\kappa mnu` times its norm, :math:`\kappa` the condition number of the
+    design matrix. The norm is at most :math:`\sqrt{n} \max(H, H^2)` times ``magnitude``, a bound on the gradient and
+    second derivatives of the data, and a gradient component is the solution divided by its :math:`H`. The bound is
+    doubled.
+
+    The design matrix and this bound do not change when an axis of the mesh is scaled by :math:`c` and the gradient
+    component by :math:`1 / c`, so a mesh whose coordinates overflow in differences can be replaced by a scaled copy.
+    """
+    d = mesh.dimension
+    n_quadratic = d + d * (d + 1) // 2
+    pairs = torch.triu_indices(d, d)
+    ring = mesh.neighbors()
+    bound = 0.0
+    for v in torch.unique(mesh.simplices).tolist():
+        near = set(ring[v])
+        for _ in range(max_rings - 1):
+            near |= {w for u in near for w in ring[u]}
+            near.discard(v)
+            if len(near) >= n_quadratic + 2:
+                break
+        quadratic = len(near) >= n_quadratic + 2
+        offsets = mesh.vertices[sorted(near) if quadratic else ring[v]] - mesh.vertices[v]
+        extent = offsets.abs().amax(dim=0)
+        q = offsets / extent
+        design = q / q.norm(dim=1, keepdim=True)
+        if quadratic:
+            design = torch.cat([design, design[:, pairs[0]] * q[:, pairs[1]]], dim=1)
+        m, n = design.shape
+        size = max(float(extent.max()), float(extent.max()) ** 2) / float(extent.min())
+        bound = max(bound, float(torch.linalg.cond(design)) * m * n * math.sqrt(n) * size)
+    return 2 * bound * U * magnitude
+
+
 def test_mesh_properties():
     x, simplices = _kuhn_mesh(3, 2)
     mesh = SimplicialMesh(x, simplices)
     assert (mesh.dimension, mesh.n_vertices, mesh.n_simplices) == (3, 27, 48)
-    torch.testing.assert_close(mesh.volumes().sum(), torch.tensor(1.0, dtype=torch.float64))
+    # The simplices tile the unit cube exactly; summing n nonnegative volumes adds at most (n - 1) U relative.
+    rtol = _volume_rtol(mesh) + mesh.n_simplices * U
+    torch.testing.assert_close(mesh.volumes().sum(), torch.tensor(1.0, dtype=torch.float64), rtol=rtol, atol=0)
     assert (mesh.simplices.diff(dim=1) > 0).all()
     assert len(set(mesh.cell_ids.tolist())) == mesh.n_simplices
     assert set(mesh.cell_ids.tolist()) == set(mesh.space.main_cells)
@@ -794,10 +862,22 @@ def test_refinement_indicator():
     mesh = SimplicialMesh(x, simplices)
     score = refinement_indicator(mesh, _kinked(x))
     assert score.shape == (mesh.n_simplices,) and (score >= 0).all() and score.max() > 0
-    torch.testing.assert_close(refinement_indicator(mesh, _linear(x)), torch.zeros(mesh.n_simplices, dtype=torch.float64))
+    # For linear data, the cubic interpolant is linear interpolation up to rounding: its edge controls
+    # f_i + (x_j - x_i) . g_i / 3 are off by at most the longest edge times the gradient error, and its prediction and
+    # the linear one at the centroid are rounded by at most _range_tolerance each. A score is that times the volume.
+    linear = _linear(x)
+    corners = x[mesh.simplices]
+    longest = float(torch.cdist(corners, corners).max())
+    error = 2 * _range_tolerance(mesh, linear.abs().max()) + longest * _gradient_tolerance(mesh, float(linear.abs().max()))
+    torch.testing.assert_close(
+        refinement_indicator(mesh, linear),
+        torch.zeros(mesh.n_simplices, dtype=torch.float64),
+        rtol=0,
+        atol=float(mesh.volumes().max() * error),
+    )
     q = _quadratic(x)
     unclamped = refinement_indicator(mesh, q, clamp=False, gradients=estimate_gradients(mesh, q))
-    torch.testing.assert_close(unclamped, refinement_indicator(mesh, q, clamp=False))
+    torch.testing.assert_close(unclamped, refinement_indicator(mesh, q, clamp=False), rtol=0, atol=0)
 
 
 def test_delaunay_mesh():
@@ -942,7 +1022,9 @@ def test_lattice_mesh(dim, k):
     assert mesh.unmatched_faces == 0
     volumes = mesh.volumes()
     assert (volumes > 0).all()
-    torch.testing.assert_close(volumes, torch.full_like(volumes, 1 / (math.factorial(dim) * k**dim)))
+    # The vertices a / k (at most one) are rounded once, and the expected volume once too.
+    rtol = _volume_rtol(mesh, vertex_error=U) + U
+    torch.testing.assert_close(volumes, torch.full_like(volumes, 1 / (math.factorial(dim) * k**dim)), rtol=rtol, atol=0)
     expected = grid(BezierSpace.simplex(dim, degree=1), resolution=k).parameters[:, :dim]
     torch.testing.assert_close(mesh.vertices, expected.double(), atol=1e-12, rtol=0)
 
@@ -986,7 +1068,11 @@ def test_refine_keeps_mesh_conforming(dim, start):
         assert fine.n_vertices > mesh.n_vertices
         torch.testing.assert_close(fine.vertices[: mesh.n_vertices], mesh.vertices, atol=0, rtol=0)
         assert target not in fine.simplices.tolist()
-        torch.testing.assert_close(fine.volumes().sum(), total)
+        # The boundary vertices are not jittered, so bisection keeps those of a face of the unit cube exactly on it (the
+        # midpoint of two equal coordinates is exact): the exact volumes of both meshes sum to one, and the sums differ
+        # by the rounding of each volume and of the two sums.
+        rtol = _volume_rtol(fine) + _volume_rtol(mesh) + (fine.n_simplices + mesh.n_simplices) * U
+        torch.testing.assert_close(fine.volumes().sum(), total, rtol=rtol, atol=0)
         for v in range(mesh.n_vertices, fine.n_vertices):  # every new vertex is a midpoint of older vertices
             mid = (fine.vertices[:v, None] + fine.vertices[None, :v]) / 2
             assert ((mid - fine.vertices[v]).abs().amax(dim=2) < 1e-12).any()
@@ -1058,7 +1144,7 @@ def test_refine_bisects_longest_edge_and_closes_neighbours():
     # Two right triangles sharing the hypotenuse: refining one must bisect the other as well.
     mesh = SimplicialMesh([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]], [[0, 1, 2], [1, 2, 3]])
     fine = refine(mesh, [0])
-    torch.testing.assert_close(fine.vertices[4], torch.tensor([0.5, 0.5], dtype=torch.float64))
+    torch.testing.assert_close(fine.vertices[4], torch.tensor([0.5, 0.5], dtype=torch.float64), rtol=0, atol=0)
     assert fine.simplices.tolist() == [[0, 1, 4], [0, 2, 4], [1, 3, 4], [2, 3, 4]]
     # A neighbour whose longest edge is another one is bisected there first, which adds more vertices.
     flat = SimplicialMesh(
@@ -1083,8 +1169,8 @@ def test_invalid_lattice_and_refine_arguments():
     expected = refine(lattice, [1]).simplices
     indices: list[Any] = [np.int64(1), torch.tensor(1), torch.tensor([1])[0]]
     for index in indices:
-        torch.testing.assert_close(refine(lattice, [index]).simplices, expected)
-    torch.testing.assert_close(refine(lattice, torch.tensor([1])).simplices, expected)  # type: ignore[arg-type]
+        torch.testing.assert_close(refine(lattice, [index]).simplices, expected, rtol=0, atol=0)
+    torch.testing.assert_close(refine(lattice, torch.tensor([1])).simplices, expected, rtol=0, atol=0)  # type: ignore[arg-type]
     # A rule must be a string: a NumPy array compares element-wise, so `rule in (...)` alone would accept it.
     rules: list[Any] = [
         "newest",
@@ -1582,7 +1668,10 @@ def test_mesh_accepts_coordinates_near_the_float64_limits(data, scale):
     _, _, p = data.draw(points_in_cells(x, simplices, 8), label="points")
     mesh, scaled = SimplicialMesh(x, simplices), SimplicialMesh(x * scale, simplices)
     _check_same_location(mesh, scaled, p, p * scale, _barycentric_tolerance(mesh, 0.0))
-    torch.testing.assert_close(estimate_gradients(scaled, x.sum(dim=1)) * scale, estimate_gradients(mesh, x.sum(dim=1)))
+    # The estimate works with the mantissas and exponents of the offsets, so a power-of-two scaling changes it exactly.
+    torch.testing.assert_close(
+        estimate_gradients(scaled, x.sum(dim=1)) * scale, estimate_gradients(mesh, x.sum(dim=1)), rtol=0, atol=0
+    )
 
 
 @given(data=st.data())
@@ -1600,7 +1689,11 @@ def test_locate_raises_or_returns_barycentric_coordinates(data):
         return
     t = found.parameters
     assert torch.isfinite(t).all() and (t >= 0).all()
-    torch.testing.assert_close(t.sum(dim=1), torch.ones(1, dtype=torch.float64))
+    # locate divides the w = d + 1 clipped coordinates by their sum, rounded w - 1 times (at most (w - 1) U relative),
+    # and rounds each quotient once (at most U in all, as they sum to one); the test sums them with w - 1 more
+    # roundings. So |sum - 1| <= (2w - 1) U to first order; doubled.
+    width = mesh.dimension + 1
+    torch.testing.assert_close(t.sum(dim=1), torch.ones(1, dtype=torch.float64), rtol=0, atol=2 * (2 * width - 1) * U)
 
 
 def _range_tolerance(mesh: SimplicialMesh, magnitude: torch.Tensor) -> torch.Tensor:
@@ -1703,7 +1796,9 @@ def test_estimated_gradients_at_large_coordinates():
     scale = 2.0**1000
     mesh = SimplicialMesh(x * scale, [[k, k + 1] for k in range(5)])
     g = estimate_gradients(mesh, x.square())
-    torch.testing.assert_close(g[:, 0, 0] * scale, 2 * x[:, 0])
+    # The data x**2 have gradient 2x (at most 2) and second derivative 2.
+    tolerance = _gradient_tolerance(SimplicialMesh(x, [[k, k + 1] for k in range(5)]), 2.0)
+    torch.testing.assert_close(g[:, 0, 0] * scale, 2 * x[:, 0], rtol=0, atol=tolerance)
 
 
 def test_locate_rejects_a_point_whose_coordinates_overflow():
@@ -1729,13 +1824,16 @@ def test_interpolant_where_differences_of_vertices_overflow():
     scores = refinement_indicator(mesh, torch.tensor([0.0, 1.0, 2.0, 3.0], dtype=torch.float64))
     assert (scores >= 0).all()
     c = torch.tensor([0.5, -0.25], dtype=torch.float64)
-    torch.testing.assert_close(estimate_gradients(mesh, x @ c)[:, :, 0], c.expand(4, 2))
+    # The differences of the vertices overflow, so the bound is computed on the mesh scaled by 1e-308.
+    tolerance = _gradient_tolerance(SimplicialMesh(x / 1e308, [[0, 2, 3], [1, 2, 3]]), 0.5)
+    torch.testing.assert_close(estimate_gradients(mesh, x @ c)[:, :, 0], c.expand(4, 2), rtol=0, atol=tolerance)
     model = hermite_interpolant(mesh, x @ c, clamp=False)
     points = mesh.locate(torch.tensor([[0.0, 5e307], [2.5e307, -2.5e307]], dtype=torch.float64))
     torch.testing.assert_close(model(points)[:, 0], _global_positions(mesh, points) @ c, rtol=1e-12, atol=0)
     line = torch.tensor([[-1e308], [-5e307], [0.0], [5e307], [1e308]], dtype=torch.float64)
     g = estimate_gradients(SimplicialMesh(line, [[k, k + 1] for k in range(4)]), 0.5 * line)
-    torch.testing.assert_close(g[:, 0, 0], torch.full((5,), 0.5, dtype=torch.float64))
+    tolerance = _gradient_tolerance(SimplicialMesh(line / 1e308, [[k, k + 1] for k in range(4)]), 0.5)
+    torch.testing.assert_close(g[:, 0, 0], torch.full((5,), 0.5, dtype=torch.float64), rtol=0, atol=tolerance)
 
 
 def test_finite_components_of_an_overflowing_edge_are_kept():
@@ -1758,7 +1856,9 @@ def test_control_is_computed_where_the_product_of_an_edge_and_a_gradient_overflo
     g = torch.zeros(3, 2, 1, dtype=torch.float64)
     g[1, 0, 0] = 2.0
     model = hermite_interpolant(mesh, torch.zeros(3, dtype=torch.float64), gradients=g, clamp=False)
-    torch.testing.assert_close(model.coefficients.detach().max(), torch.tensor(1e308 / 3 * 4, dtype=torch.float64))
+    torch.testing.assert_close(
+        model.coefficients.detach().max(), torch.tensor(1e308 / 3 * 4, dtype=torch.float64), rtol=0, atol=0
+    )
 
 
 def test_infinite_estimated_gradients_are_clipped():
@@ -1929,7 +2029,9 @@ def test_gradients_of_axes_of_very_different_scales():
     scale = torch.tensor([1e200, 1e-200], dtype=torch.float64)
     f = x[:, :1] - 2 * x[:, 1:]  # linear in the unscaled coordinates
     g = estimate_gradients(SimplicialMesh(x * scale, simplices), f)
-    torch.testing.assert_close(g[:, :, 0] * scale, torch.tensor([[1.0, -2.0]] * 4, dtype=torch.float64))
+    tolerance = _gradient_tolerance(SimplicialMesh(x, simplices), 2.0)  # in the unscaled coordinates
+    expected = torch.tensor([[1.0, -2.0]] * 4, dtype=torch.float64)
+    torch.testing.assert_close(g[:, :, 0] * scale, expected, rtol=0, atol=tolerance)
 
 
 def test_refinement_score_without_correction_on_a_huge_simplex_is_zero():
@@ -2071,20 +2173,30 @@ def test_volumes_and_location_at_extreme_scales(scale):
     lattice = lattice_mesh(2, 4)
     x = lattice.vertices * scale
     mesh = SimplicialMesh(x, lattice.simplices)
-    torch.testing.assert_close(mesh.volumes(), lattice.volumes() * scale * scale)
+    # The vertices a / 4 of the lattice are exact, and scaling them rounds once (at most U * scale). The relative bound
+    # does not change with the scale, so it is computed on the lattice, where the squared edges do not underflow. The
+    # expected volumes are rounded twice more by the scaling.
+    rtol = _volume_rtol(lattice, vertex_error=U) + _volume_rtol(lattice) + 2 * U
+    torch.testing.assert_close(mesh.volumes(), lattice.volumes() * scale * scale, rtol=rtol, atol=0)
     first = mesh.simplices[0]
-    torch.testing.assert_close(mesh.barycentric(x[first[1:2]])[0, 0], torch.tensor([0.0, 1.0, 0.0], dtype=torch.float64))
+    # The rounding of the scaled vertices, relative to the scale, is bounded as for the unscaled lattice.
+    torch.testing.assert_close(
+        mesh.barycentric(x[first[1:2]])[0, 0],
+        torch.tensor([0.0, 1.0, 0.0], dtype=torch.float64),
+        rtol=0,
+        atol=_barycentric_tolerance(lattice, 0.0),
+    )
 
 
 def test_volumes_of_anisotropic_simplex_are_exact():
     mesh = SimplicialMesh(torch.tensor([[0.0, 0.0], [1e200, 0.0], [0.0, 1e-100]], dtype=torch.float64), [[0, 1, 2]])
-    torch.testing.assert_close(mesh.volumes(), torch.tensor([5e99], dtype=torch.float64))
+    torch.testing.assert_close(mesh.volumes(), torch.tensor([5e99], dtype=torch.float64), rtol=0, atol=0)
 
 
 def test_refine_picks_the_longest_edge_beyond_the_square_overflow():
     x = torch.tensor([[0.0, 0.0], [1.7e154, 0.0], [0.3e154, 0.4e154]], dtype=torch.float64)
     fine = refine(SimplicialMesh(x, [[0, 1, 2]]), [0])
-    torch.testing.assert_close(fine.vertices[3], torch.tensor([0.85e154, 0.0], dtype=torch.float64))
+    torch.testing.assert_close(fine.vertices[3], torch.tensor([0.85e154, 0.0], dtype=torch.float64), rtol=0, atol=0)
 
 
 @given(data=st.data())
