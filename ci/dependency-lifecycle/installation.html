@@ -118,10 +118,11 @@ and Docker image remain available for reproducibility.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">pytorch-bsf[mlflow]</span></code>: explicit experiment recording.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">pytorch-bsf[all]</span></code>: every integration.</p></li>
 </ul>
-<p>The <code class="docutils literal notranslate"><span class="pre">mlflow</span></code> and <code class="docutils literal notranslate"><span class="pre">all</span></code> extras currently require Python 3.11-3.14.
-MLflow 3.17.2 requires PyArrow below 26, while Python 3.15 wheels start
-with PyArrow 26. On Python 3.15, install the other integrations with:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="s2">"pytorch-bsf[lightning,sparse,sklearn,plot]"</span>
+<p>CI covers Python 3.11 through 3.15.
+The optional <code class="docutils literal notranslate"><span class="pre">mlflow</span></code> and <code class="docutils literal notranslate"><span class="pre">all</span></code> extras are tested
+on Python 3.11 through 3.14.</p>
+<p>For Python 3.15, install the other integrations with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">pip</span> <span class="n">install</span> <span class="s2">"pytorch-bsf[lightning,sparse,sklearn,plot]"</span>
 </pre></div>
 </div>
 <p>Random, Sobol and grid sampling use PyTorch and need no extra.
