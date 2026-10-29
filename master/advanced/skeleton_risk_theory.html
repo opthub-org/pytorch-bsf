@@ -72,6 +72,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#curves">Curves</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#a-scalar-finite-sum-for-every-coefficient">A scalar finite sum for every coefficient</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#codimension-one-and-the-triangle-edge-risk">Codimension one and the triangle edge risk</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#the-triangle-vertex-risk">The triangle vertex risk</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fixed-degree-growing-dimension">Fixed degree, growing dimension</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#open-questions">Open questions</a></li>
 </ul>
@@ -744,7 +745,7 @@ coordinate. For every <span class="math notranslate nohighlight">\(D\geq1\)</spa
 \sum_{k=1}^D\sum_{l=1}^D
 w_k w_l\binom{k+l}{k}K_{M-1}(D-k,D-l).\]</div>
 <p>In particular, the polynomial <span class="math notranslate nohighlight">\(P_{D,0}\)</span> in
-<a class="reference internal" href="#thm-skeleton-rational">Theorem 15</a> has the general finite expression</p>
+<a class="reference internal" href="#thm-skeleton-rational">Theorem 16</a> has the general finite expression</p>
 <div class="math notranslate nohighlight" id="equation-skeleton-vertex-polynomial">
 <span class="eqno">(9)<a class="headerlink" href="#equation-skeleton-vertex-polynomial" title="Link to this equation"></a></span>\[P_{D,0}(M) = (D!)^2\sum_{s=0}^{2D-2}\binom{M-1}{s}
 \sum_{k,l=1}^D w_k w_l\binom{k+l}{k}
@@ -936,10 +937,141 @@ the formula. On the development machine the complete mode-and-risk checks
 took about 0.14, 0.27 and 0.52 seconds at these degrees, respectively, and
 run in the normal test suite.</p>
 </section>
+<section id="the-triangle-vertex-risk">
+<h2>The triangle vertex risk<a class="headerlink" href="#the-triangle-vertex-risk" title="Link to this heading"></a></h2>
+<div class="proof theorem admonition" id="thm-skeleton-triangle-vertex-risk">
+<p class="admonition-title"><span class="caption-number">Theorem 15 </span> (Triangle vertex risk in harmonic numbers)</p>
+<section class="theorem-content" id="proof-content">
+<p>For every integer <span class="math notranslate nohighlight">\(D\geq1\)</span>,</p>
+<div class="math notranslate nohighlight" id="equation-skeleton-triangle-vertex-risk">
+<span class="eqno">(12)<a class="headerlink" href="#equation-skeleton-triangle-vertex-risk" title="Link to this equation"></a></span>\[a_0(3,D)=\frac{18}{D(D+1)(D+2)(D+3)}
+\left(4H_D-2H_{2D+1}+\frac1D+\frac1{D+1}+\frac1{D+2}
+  -\frac{1}{D(2D+1)\binom{2D}{D}}\right).\]</div>
+<p>Here <span class="math notranslate nohighlight">\(H_j=\sum_{i=1}^j1/i\)</span>, as above. All denominators are
+positive throughout the stated range. In particular, the formula gives
+<span class="math notranslate nohighlight">\(3/2,3/8,41/280,79/1120,1189/30800\)</span> at
+<span class="math notranslate nohighlight">\(D=1,\ldots,5\)</span>. It uses a bounded number of harmonic numbers and
+rational operations, with no kernel coefficient extraction or
+propagation solve.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. <em>Replace a squared norm by a mixed product.</em> Write <span class="math notranslate nohighlight">\(p_D(x,y,z)\)</span>
+for the error from a unit error at the vertex <span class="math notranslate nohighlight">\(x=1\)</span>, and
+<span class="math notranslate nohighlight">\(\varphi_D(x)\)</span> for the curve error in
+<a class="reference internal" href="#thm-skeleton-curves">Theorem 11</a>. On both incident edges their traces
+agree, and both vanish on <span class="math notranslate nohighlight">\(x=0\)</span>. Therefore
+<span class="math notranslate nohighlight">\(p_D-\varphi_D(x)\)</span> is a triangle bubble of degree at most
+<span class="math notranslate nohighlight">\(D\)</span>. The propagation characterization gives</p>
+<div class="math notranslate nohighlight">
+\[\int p_D^2\,dU=\int p_D\varphi_D(x)\,dU.\]</div>
+<p>For <span class="math notranslate nohighlight">\(D=1,2\)</span> the difference is zero, so this identity still holds.
+Put <span class="math notranslate nohighlight">\(A_h=(-1)^h\binom{D-1}{h}\binom{D+1}{h}\)</span>.
+The scalar-mode extension with <span class="math notranslate nohighlight">\(s=1\)</span> gives
+<span class="math notranslate nohighlight">\(p_D=\sum_{h=0}^{D-1}A_h x^{D-h}T_h(y,z)\)</span>.
+Averaging over <span class="math notranslate nohighlight">\((y,z)=(1-x)(v,1-v)\)</span> yields</p>
+<div class="math notranslate nohighlight">
+\[\int_0^1 T_h(v,1-v)\,dv
+  =\frac1{h+1}\sum_{j=0}^h\frac1{(j+1)(h-j+1)}
+  =\frac{2H_{h+1}}{(h+1)(h+2)}.\]</div>
+<p><em>Only one curve moment is needed.</em> Let
+<span class="math notranslate nohighlight">\(I_h=\int_0^1(1-x)\varphi_D(x)x^{D-h}(1-x)^h\,dx\)</span>.
+Curve orthogonality implies <span class="math notranslate nohighlight">\(I_h=(-1)^h I_0\)</span>: the difference
+<span class="math notranslate nohighlight">\(x^{D-h-1}(1-x)^h-(-1)^h x^{D-1}\)</span> has degree at most
+<span class="math notranslate nohighlight">\(D-2\)</span> and is tested against the bubble weight <span class="math notranslate nohighlight">\(x(1-x)\)</span>.
+Also <span class="math notranslate nohighlight">\(\varphi_D(x)=xP_{D-1}^{(1,2)}(2x-1)/D\)</span>.
+Rodrigues’ formula followed by <span class="math notranslate nohighlight">\(D-1\)</span> integrations by parts gives</p>
+<div class="math notranslate nohighlight">
+\[I_0=\frac1D\int_0^1 x^2(1-x)x^{D-1}
+  P_{D-1}^{(1,2)}(2x-1)\,dx
+  =\frac{(D+1)!(D-1)!}{(2D+2)!}.\]</div>
+<p>Every boundary term vanishes because the differentiated Rodrigues
+factor is <span class="math notranslate nohighlight">\(x^{D+1}(1-x)^D\)</span>. The formula includes <span class="math notranslate nohighlight">\(D=1\)</span>,
+where there is no integration by parts. The triangle has uniform
+density two in <span class="math notranslate nohighlight">\((x,y)\)</span>, and the allocation and vertex count give
+<span class="math notranslate nohighlight">\(a_0=9\int p_D^2\,dU\)</span>. Consequently, writing</p>
+<div class="math notranslate nohighlight">
+\[w_h=\binom{D+1}{h+2}\binom{D+1}{h},\qquad
+W=\binom{2D+2}{D-1},\]</div>
+<p>gives the single sum</p>
+<div class="math notranslate nohighlight" id="equation-skeleton-triangle-vertex-single-sum">
+<span class="eqno">(13)<a class="headerlink" href="#equation-skeleton-triangle-vertex-single-sum" title="Link to this equation"></a></span>\[a_0=\frac{36}{D(D+1)(D+2)(D+3)W}
+    \sum_{h=0}^{D-1}w_h H_{h+1}.\]</div>
+<p>Here we used
+<span class="math notranslate nohighlight">\(\binom{D-1}{h}/((h+1)(h+2))
+=\binom{D+1}{h+2}/(D(D+1))\)</span>.</p>
+<p><em>Evaluate the weighted harmonic sum.</em> Differentiate the finite
+Vandermonde identity</p>
+<div class="math notranslate nohighlight">
+\[\sum_{h=0}^{D-1}\binom{D+1+u}{D-1-h}\binom{D+1}{h}
+  =\binom{2D+2+u}{D-1}\]</div>
+<p>at <span class="math notranslate nohighlight">\(u=0\)</span>. The generalized binomials here are finite products,
+so differentiating is elementary and gives</p>
+<div class="math notranslate nohighlight">
+\[\sum_{h=0}^{D-1} w_hH_{h+2}
+  =W\bigl(H_{D+1}-H_{2D+2}+H_{D+3}\bigr).\]</div>
+<p>To subtract <span class="math notranslate nohighlight">\(\sum_h w_h/(h+2)\)</span>, put</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}c_D&amp;=\frac{(2D+3)(D^2+2D-1)}{D(D+1)(D+2)(D+3)},\\
+R_h&amp;=\frac{(h+2)((D^2+2D-1)h-1)}
+              {D(D+1)(D+2)(D+3)(h+1)}.\end{split}\]</div>
+<p>With <span class="math notranslate nohighlight">\(w_D=0\)</span>, direct cancellation proves the telescoping identity</p>
+<div class="math notranslate nohighlight" id="equation-skeleton-triangle-vertex-certificate">
+<span class="eqno">(14)<a class="headerlink" href="#equation-skeleton-triangle-vertex-certificate" title="Link to this equation"></a></span>\[w_h\left(\frac1{h+2}-c_D\right)
+  =w_{h+1}R_{h+1}-w_hR_h,\qquad 0\leq h\leq D-1.\]</div>
+<p>One can check it by using
+<span class="math notranslate nohighlight">\(w_{h+1}/w_h=(D-1-h)(D+1-h)/((h+1)(h+3))\)</span>.
+The boundary values are <span class="math notranslate nohighlight">\(w_DR_D=0\)</span> and
+<span class="math notranslate nohighlight">\(w_0R_0=-1/((D+2)(D+3))\)</span>, so</p>
+<div class="math notranslate nohighlight">
+\[\sum_{h=0}^{D-1}\frac{w_h}{h+2}
+  =c_DW+\frac1{(D+2)(D+3)}.\]</div>
+<p>Subtract this equality from the differentiated Vandermonde identity
+and substitute in <a class="reference internal" href="#equation-skeleton-triangle-vertex-single-sum">(13)</a>.
+Simplifying, with
+<span class="math notranslate nohighlight">\(W/\binom{2D}{D}=2D(2D+1)/((D+2)(D+3))\)</span>, gives the result.
+This proves the formula for all <span class="math notranslate nohighlight">\(D\geq1\)</span>, including all boundary
+terms, without a computer-algebra dependency or an inferred recurrence.</p>
+</div>
+<p>The certificate can also be regenerated with the existing SymPy
+dependency. This optional search is outside the test suite; the proof
+above only needs the rational identity and its boundary values:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">sympy</span><span class="w"> </span><span class="kn">import</span> <span class="n">binomial</span><span class="p">,</span> <span class="n">cancel</span><span class="p">,</span> <span class="n">symbols</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sympy.concrete.gosper</span><span class="w"> </span><span class="kn">import</span> <span class="n">gosper_sum</span>
+
+<span class="n">d</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">symbols</span><span class="p">(</span><span class="s2">"d h"</span><span class="p">,</span> <span class="n">integer</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nonnegative</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">denominator</span> <span class="o">=</span> <span class="n">d</span> <span class="o">*</span> <span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">3</span><span class="p">)</span>
+<span class="n">w</span> <span class="o">=</span> <span class="n">binomial</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">h</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">binomial</span><span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+<span class="n">c</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">d</span> <span class="o">+</span> <span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">d</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">d</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">denominator</span>
+<span class="n">r</span> <span class="o">=</span> <span class="p">(</span><span class="n">h</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">((</span><span class="n">d</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">d</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">h</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">denominator</span> <span class="o">*</span> <span class="p">(</span><span class="n">h</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+<span class="k">assert</span> <span class="n">cancel</span><span class="p">(</span><span class="n">gosper_sum</span><span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">h</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">c</span><span class="p">),</span> <span class="n">h</span><span class="p">)</span> <span class="o">/</span> <span class="n">w</span> <span class="o">-</span> <span class="n">r</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+<span class="n">ratio</span> <span class="o">=</span> <span class="p">(</span><span class="n">d</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">h</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">h</span><span class="p">)</span> <span class="o">/</span> <span class="p">((</span><span class="n">h</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">h</span> <span class="o">+</span> <span class="mi">3</span><span class="p">))</span>
+<span class="k">assert</span> <span class="n">cancel</span><span class="p">(</span><span class="n">ratio</span> <span class="o">*</span> <span class="n">r</span><span class="o">.</span><span class="n">subs</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">h</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">r</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">h</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">c</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+</pre></div>
+</div>
+<p>The exact tests compare the formula with independent full Gram recursion
+at <span class="math notranslate nohighlight">\(D=1,\ldots,10\)</span> and with the earlier two-variable kernel sum at
+<span class="math notranslate nohighlight">\(D=1,\ldots,12\)</span>. The candidate was explored with exact rationals
+through degree 80 before this proof was obtained. The independent single
+sum also checks <span class="math notranslate nohighlight">\(D=81,100\)</span>, outside that exploratory range;
+degree 1000 was checked separately during development. The rational
+certificate, including both endpoints, is checked in the normal test suite.</p>
+<p>Together with <a class="reference internal" href="#cor-skeleton-triangle-edge-risk">Corollary 4</a> and
+<a class="reference internal" href="#prop-skeleton-top">Proposition 2</a>, this closes every triangle coefficient at
+every degree: <span class="math notranslate nohighlight">\(a_2(3,D)=\binom{D-1}{2}\)</span> for <span class="math notranslate nohighlight">\(D\geq3\)</span>,
+and <span class="math notranslate nohighlight">\(a_2=0\)</span> otherwise. The optimal risk follows by substituting
+these three coefficients in <a class="reference internal" href="#thm-skeleton-ratio">Theorem 8</a>. In particular,</p>
+<div class="math notranslate nohighlight">
+\[a_0(3,D)=\frac{36\log D+O(1)}{D^4},\qquad
+a_1(3,D)=\frac{9\log D+O(1)}D.\]</div>
+<p>The remaining finite-dimensional vertex simplification problem starts at
+<span class="math notranslate nohighlight">\(M=4\)</span>; the general finite kernel sum still applies there. The
+triangle formula makes no claim about changing <span class="math notranslate nohighlight">\(M\)</span>, the curve
+formula, or the fixed-degree large-<span class="math notranslate nohighlight">\(M\)</span> limit.</p>
+</section>
 <section id="fixed-degree-growing-dimension">
 <h2>Fixed degree, growing dimension<a class="headerlink" href="#fixed-degree-growing-dimension" title="Link to this heading"></a></h2>
 <div class="proof theorem admonition" id="thm-skeleton-rational">
-<p class="admonition-title"><span class="caption-number">Theorem 15 </span> (Rational dependence on the dimension)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 16 </span> (Rational dependence on the dimension)</p>
 <section class="theorem-content" id="proof-content">
 <p>For fixed <span class="math notranslate nohighlight">\(D\)</span> and <span class="math notranslate nohighlight">\(m &lt; D\)</span>, there is a polynomial
 <span class="math notranslate nohighlight">\(P_{D,m}\)</span> of degree at most <span class="math notranslate nohighlight">\(2(D - m - 1)\)</span> such that, for every
@@ -1154,7 +1286,7 @@ skeleton fitting wins in all sufficiently high dimensions.</p>
 </section>
 </div><div class="proof admonition" id="proof">
 <p>Proof. <span class="math notranslate nohighlight">\(\binom{M}{m+1}^2 / (M)_{2D}\)</span> has degree <span class="math notranslate nohighlight">\(2(m + 1) - 2D\)</span>, so
-the degree bound of <a class="reference internal" href="#thm-skeleton-rational">Theorem 15</a> gives convergence.
+the degree bound of <a class="reference internal" href="#thm-skeleton-rational">Theorem 16</a> gives convergence.
 The last two limits follow from <a class="reference internal" href="#prop-skeleton-degree-faces">Proposition 3</a> and
 <a class="reference internal" href="#prop-skeleton-second-faces">Proposition 4</a>.</p>
 <p>For <span class="math notranslate nohighlight">\(a_0\)</span>, the leading term counts the pairs with
@@ -1239,14 +1371,16 @@ succeeds. This rules out only that ansatz, not other closed forms.</p>
 matrices and the harmonic-number formula. Prime factors in individual
 risk values give no obstruction to such formulas.</p>
 </li>
-<li><p><strong>A simpler form of a_0 for finite M ≥ 3.</strong>
+<li><p><strong>A simpler form of a_0 for finite M ≥ 4.</strong>
+<a class="reference internal" href="#thm-skeleton-triangle-vertex-risk">Theorem 15</a> solves <span class="math notranslate nohighlight">\(M=3\)</span> for
+every degree in harmonic numbers and a central binomial coefficient.
 <a class="reference internal" href="#equation-skeleton-vertex-double-sum">(8)</a> reduces the control-pair sum to a
 <span class="math notranslate nohighlight">\(D\times D\)</span> sum with an explicit generating function. For example
 it gives <span class="math notranslate nohighlight">\(41/280,79/1120,1189/30800\)</span> at <span class="math notranslate nohighlight">\(M=3\)</span> and
 <span class="math notranslate nohighlight">\(D=3,4,5\)</span>. <a class="reference internal" href="#equation-skeleton-vertex-polynomial">(9)</a> gives every fixed-degree
-polynomial, but a scalar closed form in <span class="math notranslate nohighlight">\(D\)</span>, or a linear
-recurrence in <span class="math notranslate nohighlight">\(D\)</span> of bounded order, remains open even for
-<span class="math notranslate nohighlight">\(M=3\)</span>.</p>
+polynomial, but further simplification in <span class="math notranslate nohighlight">\(D\)</span>, or a linear
+recurrence in <span class="math notranslate nohighlight">\(D\)</span> of bounded order, remains open for
+<span class="math notranslate nohighlight">\(M\geq4\)</span>.</p>
 <p>Two simplification attempts give the following concrete partial results.
 Removing the factors <span class="math notranslate nohighlight">\((p+1)^{-1}(q+1)^{-1}\)</span> from <span class="math notranslate nohighlight">\(F\)</span>
 would give <span class="math notranslate nohighlight">\((1-x-y)^{-1}\)</span>, whose powers have coefficients
@@ -1266,10 +1400,12 @@ Gosper summation of this summand with symbolic <span class="math notranslate noh
 hypergeometric antidifference (SymPy <code class="docutils literal notranslate"><span class="pre">gosper_sum</span></code> returns <code class="docutils literal notranslate"><span class="pre">None</span></code>).
 This limits that direct indefinite-summation attempt; it does not rule
 out a definite-sum identity or creative telescoping. The boundary
-identity only evaluates terms with <span class="math notranslate nohighlight">\(k=D\)</span> or <span class="math notranslate nohighlight">\(l=D\)</span> in
-<a class="reference internal" href="#equation-skeleton-vertex-double-sum">(8)</a>; interior coefficients still involve
-both variables. No WZ certificate or bounded-order recurrence is
-asserted.</p>
+identity alone only evaluates terms with <span class="math notranslate nohighlight">\(k=D\)</span> or <span class="math notranslate nohighlight">\(l=D\)</span>
+in <a class="reference internal" href="#equation-skeleton-vertex-double-sum">(8)</a>. For the full triangle risk, the
+mixed-product argument above instead reduces everything to one weighted
+harmonic sum, and <a class="reference internal" href="#equation-skeleton-triangle-vertex-certificate">(14)</a> supplies
+its boundary-aware telescoping certificate. No bounded-order recurrence
+for general <span class="math notranslate nohighlight">\(M\geq4\)</span> is asserted.</p>
 </li>
 <li><p><strong>Exact crossover dimensions for every degree.</strong>
 <a class="reference internal" href="#cor-skeleton-large-dimension">Corollary 5</a> shows that a crossover dimension
