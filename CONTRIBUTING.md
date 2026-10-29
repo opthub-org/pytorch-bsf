@@ -232,8 +232,9 @@ branch pushes use the PR checks to avoid duplicate runs. Contributions from fork
 may require maintainer approval before GitHub starts their workflows; resolve
 merge conflicts before expecting PR checks to run.
 
-Docker images are built and published to GHCR only for published releases, never
-for PRs or ordinary branch pushes. The Release workflow calls the Docker workflow
+The Conda workflow builds and smoke-tests Docker images on PRs without
+publishing them. Images are published to GHCR only for published releases.
+The Release workflow calls the Docker workflow
 after release-please creates a release; manually published releases trigger it
 directly. Stable semantic versions receive the `latest` image tag automatically;
 prereleases do not.

@@ -34,13 +34,6 @@ jobs:
         auto-update-conda: true
         activate-environment: pytorch-bsf  # matches `name:` in environment.yml
         environment-file: environment.yml
-    - name: Avoid the broken MKL 2026.2.0 on Linux
-      # mkl 2026.2.0 on conda-forge lacks libmkl_gf_lp64.so, so numpy aborts with
-      # "Intel oneMKL FATAL ERROR" (https://github.com/conda-forge/intel_repack-feedstock/issues/145).
-      # Remove this step once that build is fixed or marked broken.
-      if: runner.os == 'Linux'
-      run: |
-        conda install "mkl<2026.2"
     - name: Check that pip did not replace conda packages
       # The `pip:` section of environment.yml installs pytorch-bsf only; a dependency taken from PyPI instead
       # means pip overrode a conda-forge package because of different metadata (#405).
@@ -90,3 +83,15 @@ jobs:
         if conda list -n "$env_name" | awk '$NF == "pypi" && $1 != "pytorch-bsf" {found = 1; print} END {exit !found}'; then
           echo "pip replaced the conda packages above" >&2; exit 1
         fi
+
+  docker-build:
+    # Validate the Linux image on PRs without publishing release artifacts.
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build the unpinned Conda image
+      run: docker build --tag pytorch-bsf:ci .
+    - name: Import the installed numerical packages and run CLI help
+      run: |
+        docker run --rm pytorch-bsf:ci conda run --no-capture-output -n base python -c "import numpy, torch, torch_bsf"
+        docker run --rm pytorch-bsf:ci conda run --no-capture-output -n base python -m torch_bsf --help
