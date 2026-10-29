@@ -45,6 +45,28 @@ Existing numerical penalty values may therefore need retuning.
 The internal ``_kernels`` package retains tested geometry algorithms. It is
 private and is not a compatibility API.
 
+Python 3.11 minimum (unreleased)
+--------------------------------
+
+The next release supports Python 3.11 through 3.15. Recreate Python 3.10
+environments with a supported interpreter before upgrading pytorch-bsf.
+The Python 3.10 dependency resolution selected vulnerable Pillow 12.3.0
+and filelock 4.1.0. Their security fixes require Python 3.11 or later:
+Pillow 13.0.0 and filelock 4.2.1. The refreshed ``uv.lock`` keeps Pillow
+13.0.0 and filelock 4.2.4 for supported interpreters.
+The NumPy lower bound is now 1.23.2, which provides Python 3.11 wheels.
+
+Python 3.15 is tested with the core and the Lightning, SciPy, scikit-learn
+and plotting integrations. The ``mlflow`` and ``all`` extras currently
+require Python 3.11-3.14: MLflow 3.17.2 requires PyArrow below 26, while
+Python 3.15 wheels start with PyArrow 26. Use the other extras on Python
+3.15 until MLflow supports that dependency combination.
+
+See the `Pillow security advisory
+<https://github.com/advisories/GHSA-5x8w-8jj5-q52h>`_ and
+`filelock security advisory
+<https://github.com/advisories/GHSA-v4x8-3wr5-3wq8>`_.
+
 Separate geometry, observations and fitted state
 ------------------------------------------------
 

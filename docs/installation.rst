@@ -1,7 +1,7 @@
 Installation
 ============
 
-Python 3.10 or later is required. Install the numerical core with::
+Python 3.11 or later is required. Install the numerical core with::
 
     pip install pytorch-bsf
 
@@ -17,6 +17,12 @@ Optional extras:
 * ``pytorch-bsf[lightning]``: explicit Lightning execution adapter.
 * ``pytorch-bsf[mlflow]``: explicit experiment recording.
 * ``pytorch-bsf[all]``: every integration.
+
+The ``mlflow`` and ``all`` extras currently require Python 3.11-3.14.
+MLflow 3.17.2 requires PyArrow below 26, while Python 3.15 wheels start
+with PyArrow 26. On Python 3.15, install the other integrations with::
+
+    pip install "pytorch-bsf[lightning,sparse,sklearn,plot]"
 
 Random, Sobol and grid sampling use PyTorch and need no extra.
 Importing the package loads neither Lightning nor MLflow nor SciPy.
