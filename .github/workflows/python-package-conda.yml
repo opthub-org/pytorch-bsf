@@ -27,7 +27,7 @@ jobs:
       with:
         persist-credentials: false
     - name: Set up Miniforge
-      uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
+      uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4.1.0
       with:
         # Miniforge 26.9.4-0 fails `conda init --all` on Windows while replacing
         # Scripts/conda.exe ("needs sudo"). Keep the last passing installer there.
@@ -69,7 +69,7 @@ jobs:
       id: python
       run: python tools/update_python_support.py --ci-output "$GITHUB_OUTPUT"
     - name: Set up Miniforge
-      uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3.3.0
+      uses: conda-incubator/setup-miniconda@be893c923ea9cf1cf7cd510fbdde27c7e18cbdcb # v4.1.0
       with:
         miniforge-version: latest
         channels: conda-forge
