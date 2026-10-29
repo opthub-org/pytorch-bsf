@@ -5,8 +5,6 @@ inductive skeleton fitting by Tanaka et al. (AAAI 2020), extended to every
 dimension and degree.
 """
 
-from __future__ import annotations
-
 import math
 import numbers
 import sys

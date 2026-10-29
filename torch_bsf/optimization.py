@@ -1,7 +1,5 @@
 """Objective minimization, separate from supervised least-squares regression."""
 
-from __future__ import annotations
-
 import math
 import warnings
 from collections.abc import Callable, Mapping
@@ -71,7 +69,7 @@ class OptimizationResult:
     n_iterations: int
     seed: int | None
 
-    def require_success(self) -> OptimizationResult:
+    def require_success(self) -> "OptimizationResult":
         """Raise if no convergence criterion was established."""
         if not self.success:
             raise RuntimeError(self.message)

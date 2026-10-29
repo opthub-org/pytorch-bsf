@@ -1,7 +1,5 @@
 """Acquisition functions with explicit, mathematically relevant inputs."""
 
-from __future__ import annotations
-
 from fractions import Fraction
 
 import torch

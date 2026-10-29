@@ -5,8 +5,6 @@ least squares. Algorithm 3 fits faces in increasing support size, preserving
 the controls already estimated on their boundaries.
 """
 
-from __future__ import annotations
-
 import math
 import warnings
 from collections.abc import Mapping
@@ -43,7 +41,7 @@ class PointCloudFitResult:
     parameter_converged: bool
     control_result: FitResult | None
 
-    def require_success(self) -> PointCloudFitResult:
+    def require_success(self) -> "PointCloudFitResult":
         """Raise with the termination message if convergence was not established."""
         if not self.success:
             raise RuntimeError(self.message)
@@ -64,7 +62,7 @@ class SkeletonFitResult:
     status: str
     message: str
 
-    def require_success(self) -> SkeletonFitResult:
+    def require_success(self) -> "SkeletonFitResult":
         """Raise if any face failed to converge."""
         if not self.success:
             raise RuntimeError(self.message)

@@ -1,7 +1,5 @@
 """Typed numerical solver configurations; importing this module does not load SciPy."""
 
-from __future__ import annotations
-
 import math
 from dataclasses import dataclass
 from typing import Literal
@@ -12,8 +10,9 @@ from torch_bsf.core import _integer
 DiagnosticLevel = Literal["basic", "full"]
 
 
+# numpydoc reads the source and cannot see the dataclass fields that the Parameters section documents.
 @dataclass(frozen=True)
-class DenseLeastSquares:
+class DenseLeastSquares:  # numpydoc ignore=PR02
     """CPU float64 SVD solve of the augmented problem, without normal equations.
 
     Parameters
@@ -35,8 +34,9 @@ class DenseLeastSquares:
         _choice(self.diagnostics, "diagnostics", ("basic", "full"), message="diagnostics must be 'basic' or 'full'.")
 
 
+# numpydoc reads the source and cannot see the dataclass fields that the Parameters section documents.
 @dataclass(frozen=True)
-class SparseLeastSquares:
+class SparseLeastSquares:  # numpydoc ignore=PR02
     """Optional SciPy LSMR on CPU float64, with explicit per-output stop codes.
 
     Parameters

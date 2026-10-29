@@ -69,7 +69,9 @@ def _check_s(s: float) -> None:
 def _edge_tables(
     simploid_type: SimploidType, degree: tuple[int, ...], factor: int, i: int, j: int
 ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[int, ...], tuple[int, ...]]:
-    """The components ``alpha_i`` and ``alpha_j`` of factor ``factor`` of every control point index,
+    """Return the index components and neighbor rows used to split factor ``factor``.
+
+    For every control point index ``alpha``, return the components ``alpha_i`` and ``alpha_j`` of factor ``factor``,
     and the rows of ``alpha + e_i - e_j`` and ``alpha + e_j - e_i`` in that factor (``-1`` if not an index).
     """
     pos = _positions(simploid_type, degree)

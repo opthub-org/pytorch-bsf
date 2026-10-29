@@ -1,7 +1,5 @@
 """Explicit numerical results: a computed model is not a convergence certificate."""
 
-from __future__ import annotations
-
 import warnings
 from dataclasses import dataclass, replace
 from typing import Literal
@@ -18,7 +16,7 @@ class ConvergenceWarning(UserWarning):
 class ConvergenceError(RuntimeError):
     """Failure requested by ``require_success()``, retaining the numerical result."""
 
-    def __init__(self, result: FitResult):
+    def __init__(self, result: "FitResult"):
         self.result = result
         super().__init__(result.message)
 
@@ -96,13 +94,13 @@ class FitResult:
     status: str
     message: str
 
-    def require_success(self) -> FitResult:
+    def require_success(self) -> "FitResult":
         """Return this result, or raise a :class:`ConvergenceError` containing it."""
         if not self.success:
             raise ConvergenceError(self)
         return self
 
-    def warn_if_failed(self) -> FitResult:
+    def warn_if_failed(self) -> "FitResult":
         """Expose a failed numerical solve without hiding its partial result."""
         if not self.success:
             warnings.warn(self.message, ConvergenceWarning, stacklevel=3)
@@ -124,7 +122,7 @@ class SkeletonRegressionResult:
     status: str
     message: str
 
-    def require_success(self) -> SkeletonRegressionResult:
+    def require_success(self) -> "SkeletonRegressionResult":
         """Raise :class:`ConvergenceError` with the failed face's result if a face fit failed."""
         if not self.success:
             failed = list(self.faces.values())[-1]
