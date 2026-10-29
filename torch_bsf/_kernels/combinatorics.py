@@ -159,7 +159,7 @@ def bernstein_basis(simploid_type: Sequence[int], degree: int | Sequence[int], t
         raise ValueError(f"t must have shape (batch, {sum(a + 1 for a in st)}), but {tuple(t.shape)} is given.")
     dtype = t.dtype if t.is_floating_point() else torch.get_default_dtype()
     t = t.to(dtype)
-    return _tensor_product_basis(t, [_factor_tensors(a, d, dtype, t.device) for a, d in zip(st, ds, strict=True)])
+    return _tensor_product_basis(t, [_factor_tensors(a, d, dtype, t.device) for a, d in zip(st, ds, strict=True)], ds)
 
 
 @cache
@@ -188,17 +188,34 @@ def _factor_tensors(a: int, d: int, dtype: torch.dtype, device: torch.device) ->
     )
 
 
-def _tensor_product_basis(t: torch.Tensor, factors: Sequence[tuple[torch.Tensor, torch.Tensor]]) -> torch.Tensor:
+def _tensor_product_basis(
+    t: torch.Tensor, factors: Sequence[tuple[torch.Tensor, torch.Tensor]], degrees: Sequence[int]
+) -> torch.Tensor:
     """The tensor-product Bernstein basis of ``t`` given the powers and coefficients of every factor."""
     basis = torch.ones(t.shape[0], 1, dtype=t.dtype, device=t.device)
     offset = 0
-    for powers, coeffs in factors:
+    for (powers, coeffs), degree in zip(factors, degrees, strict=True):
         width = powers.shape[1]
         block = t[:, offset : offset + width]
         if coeffs.numel() == 0:
             factor = _recursive_basis(block, coeffs.shape[0])
         else:
-            factor = coeffs.to(t.dtype) * torch.pow(block.unsqueeze(1), powers.unsqueeze(0)).prod(dim=-1)
+            # Build integer powers with multiplication: tensor-exponent pow's
+            # higher backward evaluates 0 * 0**negative at zero coordinates.
+            # The small coordinate table avoids elevating the entire basis.
+            values = [torch.ones_like(block)]
+            if degree:
+                values.append(block)
+            for _ in range(1, degree):
+                values.append(values[-1] * block)
+            table = torch.stack(values, dim=2)
+            # Explicit multiplication also avoids prod backward dividing by tiny
+            # coordinates, which can spoil higher derivatives near a face.
+            coordinates = table.gather(2, powers.T.unsqueeze(0).expand(len(t), -1, -1)).unbind(dim=1)
+            monomials = coordinates[0]
+            for coordinate in coordinates[1:]:
+                monomials = monomials * coordinate
+            factor = coeffs.to(t.dtype) * monomials
         basis = (basis.unsqueeze(2) * factor.unsqueeze(1)).reshape(t.shape[0], -1)
         offset += width
     return basis

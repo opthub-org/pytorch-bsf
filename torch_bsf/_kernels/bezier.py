@@ -192,7 +192,7 @@ class BezierSimploid(nn.Module):
         if t.dim() != 2 or t.shape[1] != self.n_params:
             raise ValueError(f"t must have shape (batch, {self.n_params}), but {tuple(t.shape)} is given.")
         factors = [(getattr(self, f"_powers{k}"), getattr(self, f"_coeffs{k}")) for k in range(len(self._simploid_type))]
-        return _tensor_product_basis(t, factors)
+        return _tensor_product_basis(t, factors, self._degree)
 
     def row(self, index: SimploidIndex | Sequence[int]) -> int:
         """The row of :attr:`control_points` holding the control point of an index.

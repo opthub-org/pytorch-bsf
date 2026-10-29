@@ -2841,3 +2841,68 @@ def test_nearest_feasible_point_between_two_opposite_rays(data):
     closest = q @ (t * d)
     norms = q.norm(dim=1)
     assert (nearest - target).norm() <= (closest - target).norm() + tol / float(norms[norms > 0].min())
+
+
+@pytest.mark.parametrize("degree", [0, 1, 2, 3])
+def test_hermite_endpoint_hessians_match_smooth_polynomial(degree):
+    mesh = SimplicialMesh([[0.0], [0.5], [1.0]], [[0, 1], [1, 2]])
+    v = mesh.vertices[:, 0]
+    values = v**degree
+    gradients = (degree * v ** max(degree - 1, 0)).reshape(-1, 1, 1)
+    model = hermite_interpolant(mesh, values, gradients=gradients, clamp=False)
+    for point in [0.0, 0.25, 0.5, 0.75, 1.0]:
+        x = torch.tensor([[point]], dtype=torch.float64)
+        if degree == 1:
+            # Preserve the issue's original public physical-coordinate regression.
+            located = torch.autograd.functional.hessian(lambda p: model(mesh.locate(p)).sum(), x)
+            torch.testing.assert_close(located, torch.zeros_like(located), atol=0, rtol=0)
+        cell = 0 if point <= 0.5 else 1
+        # Evaluate the chosen polynomial's affine coordinates directly. locate
+        # projects onto the domain, whose boundary derivatives are not unique.
+        actual = torch.autograd.functional.hessian(
+            lambda p, cell=cell: model(Points(mesh.barycentric(p)[:, cell], mesh.cell_ids[cell].repeat(len(p)))).sum(), x
+        )
+        expected = 0.0 if degree < 2 else degree * (degree - 1) * point ** (degree - 2)
+        torch.testing.assert_close(
+            actual.reshape(()), torch.tensor(expected, dtype=x.dtype), atol=128 * U * (degree + 1) ** 2, rtol=0
+        )
+
+
+@pytest.mark.parametrize("continuity", [C0(), C1()])
+def test_interpolant_piece_boundary_hessians_match_quadratic(continuity):
+    mesh = SimplicialMesh([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]], [[0, 1, 2], [1, 2, 3]])
+    v = mesh.vertices
+    values = v[:, 0] ** 2 + 3 * v[:, 0] * v[:, 1] + 2 * v[:, 1] ** 2
+    gradients = torch.stack([2 * v[:, 0] + 3 * v[:, 1], 3 * v[:, 0] + 4 * v[:, 1]], 1).unsqueeze(-1)
+    interpolant = macro_interpolant(
+        mesh,
+        values,
+        gradients=gradients,
+        clamp=False,
+        split=CloughTocher() if isinstance(continuity, C1) else NoSplit(),
+        continuity=continuity,
+    )
+    pieces = interpolant.pieces
+    parameters = torch.tensor(
+        [
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+            [0.5, 0.5, 0.0],
+            [0.5, 0.0, 0.5],
+            [0.0, 0.5, 0.5],
+            [0.25, 0.25, 0.5],
+        ],
+        dtype=torch.float64,
+    )
+    expected = torch.tensor([[2.0, 3.0], [3.0, 4.0]], dtype=torch.float64)
+    for cell, vertices in zip(pieces.cell_ids.tolist(), pieces.simplices, strict=True):
+        for point in parameters @ pieces.vertices[vertices]:
+            # Fix the polynomial piece explicitly: C1 alone need not have a
+            # continuous Hessian, but these globally quadratic data do.
+            def evaluate(p, cell=cell):
+                barycentric = pieces.barycentric(p.reshape(1, 2))[0, pieces.cell_ids.tolist().index(cell)].reshape(1, 3)
+                return interpolant.model(Points(barycentric, [cell])).sum()
+
+            actual = torch.autograd.functional.hessian(evaluate, point)
+            torch.testing.assert_close(actual, expected, atol=512 * U * float(expected.abs().max()), rtol=0)

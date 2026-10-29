@@ -1,6 +1,7 @@
 import re
 import subprocess
 import sys
+from itertools import product
 from math import comb, factorial, prod
 from pathlib import Path
 from typing import Any
@@ -2119,3 +2120,116 @@ def test_field_rejects_non_string_choice(wrap):
 def test_field_accepts_string_choice(string_type, option):
     value = string_type(option)
     SimploidalSet().betti_numbers(value)
+
+
+@pytest.mark.parametrize(
+    "dimensions,degree",
+    list(product([(1,), (2,), (3,), (1, 1), (2, 1)], range(4))) + [((2, 1), (0, 3)), ((2, 1), (3, 1))],
+)
+def test_boundary_basis_analytic_derivatives(dimensions, degree):
+    """A selected Bernstein monomial has its analytic derivatives on vertices, edges and faces."""
+    indices = simploid_indices(dimensions, degree)
+    width = simploid_n_params(dimensions)
+    # Include every vertex of every factor and proper faces, with dyadic coordinates.
+    rows = []
+    for vertices in product(*(range(a + 1) for a in dimensions)):
+        row = torch.zeros(width, dtype=torch.float64)
+        offset = 0
+        for a, vertex in zip(dimensions, vertices, strict=True):
+            row[offset + vertex] = 1
+            offset += a + 1
+        rows.append(row)
+    rows.append(torch.cat([torch.tensor([0.5, 0.5] + [0.0] * (a - 1)) for a in dimensions]).double())
+    parameters = torch.stack(rows)
+    model = BezierSimploid(dimensions, degree, torch.arange(1, len(indices) + 1, dtype=torch.float64)[:, None])
+
+    def polynomial(t):
+        # Scalar integer powers use PyTorch's scalar-exponent derivative, independent
+        # of the tensor-exponent kernel that caused the boundary regression.
+        terms = []
+        for k, alpha in enumerate(indices):
+            exponents = tuple(v for factor in alpha for v in factor)
+            coefficient = (k + 1) * prod(factorial(sum(factor)) / prod(factorial(v) for v in factor) for factor in alpha)
+            terms.append(coefficient * prod((t[:, j] ** p for j, p in enumerate(exponents)), start=torch.ones(len(t))))
+        return torch.stack(terms).sum()
+
+    def actual(t):
+        return model(t).sum()
+
+    torch.testing.assert_close(actual(parameters), polynomial(parameters), atol=0, rtol=0)
+    torch.testing.assert_close(
+        torch.autograd.functional.jacobian(actual, parameters),
+        torch.autograd.functional.jacobian(polynomial, parameters),
+        atol=0,
+        rtol=0,
+    )
+    torch.testing.assert_close(
+        torch.autograd.functional.hessian(actual, parameters),
+        torch.autograd.functional.hessian(polynomial, parameters),
+        atol=0,
+        rtol=0,
+    )
+
+
+@given(degree=st.integers(0, 15), numerator=st.integers(0, 16), axis=st.integers(0, 1))
+@example(degree=1, numerator=0, axis=0)
+@example(degree=3, numerator=16, axis=1)
+def test_basis_boundary_higher_derivatives(degree, numerator, axis):
+    """All pure-coordinate derivatives of a selected monomial are falling factorials."""
+    t = torch.tensor([[numerator / 16, 1 - numerator / 16]], dtype=torch.float64)
+    index = 0 if axis == 0 else degree
+
+    def evaluate(p):
+        return bernstein_basis((1,), degree, p)[0, index]
+
+    # Forward-over-reverse and reverse-over-reverse must agree with the polynomial.
+    expected = torch.zeros((1, 2, 1, 2), dtype=torch.float64)
+    if degree >= 2:
+        expected[0, axis, 0, axis] = degree * (degree - 1) * t[0, axis] ** (degree - 2)
+    torch.testing.assert_close(torch.func.hessian(evaluate)(t), expected, atol=0, rtol=(8 * degree + 8) * U)
+    if degree:
+        derivative = evaluate
+        for order in range(1, min(degree + 1, 5) + 1):
+            previous = derivative
+
+            def derivative(p, previous=previous):
+                return torch.func.jacrev(previous)(p)[0, axis]
+
+            value = 0.0 if order > degree else factorial(degree) / factorial(degree - order) * t[0, axis] ** (degree - order)
+            torch.testing.assert_close(
+                derivative(t), torch.as_tensor(value, dtype=t.dtype), atol=0, rtol=(16 * degree + 16) * U
+            )
+
+
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_linear_model_endpoint_hessians_are_exactly_zero(dtype):
+    model = torch_bsf.BezierModel(torch_bsf.BezierSpace.simplex(1, degree=1), torch.tensor([[0.0], [1.0]], dtype=dtype))
+    for row in [[0.0, 1.0], [1.0, 0.0], [0.5, 0.5]]:
+        t = torch.tensor([row], dtype=dtype)
+        actual = torch.autograd.functional.hessian(lambda p: model(p).sum(), t)
+        torch.testing.assert_close(actual, torch.zeros_like(actual), atol=0, rtol=0)
+
+
+@given(data=st.data(), degree=st.integers(1, 3))
+def test_product_basis_mixed_hessians_near_faces(data, degree):
+    """Mixed partials retain their analytic values at zero and subnormal coordinates."""
+    dimensions = (2, 1)
+    parameters = data.draw(simploid_points(dimensions, 1), label="parameters")
+    indices = simploid_indices(dimensions, degree)
+    index = data.draw(st.integers(0, len(indices) - 1), label="control")
+    alpha = indices[index]
+    exponents = [p for factor in alpha for p in factor]
+    coefficient = prod(factorial(degree) / prod(factorial(p) for p in factor) for factor in alpha)
+    expected = torch.zeros((5, 5), dtype=parameters.dtype)
+    for i, j in product(range(5), repeat=2):
+        reduced = [p - (k == i) - (k == j) for k, p in enumerate(exponents)]
+        if min(reduced) < 0:
+            continue
+        falling = exponents[i] * (exponents[j] - (i == j))
+        expected[i, j] = coefficient * falling * prod(float(parameters[0, k]) ** p for k, p in enumerate(reduced))
+    actual = torch.autograd.functional.hessian(lambda p: bernstein_basis(dimensions, degree, p)[0, index], parameters)
+    # The two evaluations have at most 2*sum(degrees)+width products each;
+    # allow subnormal rounding at each stage, scaled by the coefficient and
+    # the at most degree**2 differentiated summands.
+    underflow = 16 * coefficient * degree**2 * float.fromhex("0x0.0000000000001p-1022")
+    torch.testing.assert_close(actual.reshape(5, 5), expected, rtol=64 * U, atol=underflow)
