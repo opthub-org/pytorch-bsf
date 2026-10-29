@@ -90,7 +90,7 @@ The preview exits 1 if changes are needed. Use `--data-file path/to/release-cycl
 for an offline preview. Run the updater's tests without installing numerical dependencies:
 
 ```bash
-python -m unittest discover -s tools/tests -v
+python -m unittest discover -s tests/tools -p update_python_support.py -v
 ```
 
 ---
@@ -531,6 +531,11 @@ pytest tests/simploidal.py
 ### Naming conventions
 
 - Test file names mirror the module under test (e.g., `torch_bsf/splitting.py` → `tests/splitting.py`).
+- Tests for development scripts live in `tests/tools/` and mirror the script name
+  (e.g., `tools/update_python_support.py` → `tests/tools/update_python_support.py`).
+  They run with the normal pytest suite. The standard-library-only updater also
+  runs through `unittest` in the lint and dependency lifecycle jobs, without
+  numerical dependencies.
 - Test function names start with `test_` or `_test_`.
 
 ### Writing parametrized tests
@@ -748,7 +753,10 @@ pytorch-bsf/
 │   ├── test_contributor_examples.py  # Runs the CONTRIBUTING.md CLI example and issue form examples
 │   ├── …                             # One file per module (see Naming conventions), plus contract tests
 │   ├── model_selection/              # Tests for torch_bsf.model_selection
-│   ├── tools/                        # Tests for the scripts in tools/
+│   ├── tools/                        # All tests for the scripts in tools/
+│   │   ├── __init__.py
+│   │   ├── lint_conventions.py        # AST convention checker regressions
+│   │   └── update_python_support.py   # Lifecycle tests (pytest or standalone unittest)
 │   └── data/                         # Test data files
 ├── docs/                             # Sphinx documentation
 │   ├── conf.py                       # Sphinx configuration
@@ -763,7 +771,8 @@ pytorch-bsf/
 │   └── …                             # Benchmarks (*benchmark*.py), doc figures (generate_*.py), other scripts
 ├── tools/                            # Development scripts
 │   ├── check_distribution.py         # Builds and checks the distributions (the distribution CI job)
-│   └── lint_conventions.py           # Checks the conventions that Ruff cannot check (a pre-commit hook)
+│   ├── lint_conventions.py           # Checks the conventions that Ruff cannot check (a pre-commit hook)
+│   └── update_python_support.py      # Synchronizes supported Python versions with the release lifecycle
 ├── .git-blame-ignore-revs            # Bulk formatting commits skipped by git blame
 ├── .gitattributes                    # Git LFS settings for binary files
 ├── .gitignore                        # Files ignored by Git

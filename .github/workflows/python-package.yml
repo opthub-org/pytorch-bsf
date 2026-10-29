@@ -58,7 +58,7 @@ jobs:
         # hooks and versions are in .pre-commit-config.yaml; checks are configured in [tool.ruff] and [tool.numpydoc_validation] of pyproject.toml
         pre-commit run --all-files --show-diff-on-failure
     - name: Test dependency lifecycle tooling
-      run: python -m unittest discover -s tools/tests -v
+      run: python -m unittest discover -s tests/tools -p update_python_support.py -v
 
   lowest:
     permissions:
