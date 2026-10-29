@@ -64,7 +64,18 @@ class ParameterMap:
     part: Literal["A", "B"]
 
     def to_parent(self, points: Points | torch.Tensor) -> Points:
-        """Map child barycentric points to their parent cell."""
+        """Map child barycentric points to their parent cell.
+
+        Parameters
+        ----------
+        points : Points or torch.Tensor
+            Child barycentric coordinates, with cell ID zero when Points is supplied.
+
+        Returns
+        -------
+        Points
+            Parent barycentric coordinates with the original parent cell ID.
+        """
         batch = points if isinstance(points, Points) else Points(points)
         # Validate against the child's domain, including its sole cell ID.
         BezierSpace.simploid(self.dimensions, degree=1).validate(batch)
@@ -80,7 +91,18 @@ class ParameterMap:
         return Points(t, torch.full((len(t),), self.parent_cell, device=t.device, dtype=torch.long))
 
     def from_parent(self, points: Points) -> tuple[Points, torch.Tensor]:
-        """Return child coordinates and a mask selecting parent rows in this piece."""
+        """Return child coordinates and a mask selecting parent rows in this piece.
+
+        Parameters
+        ----------
+        points : Points
+            Parent-space coordinate rows, possibly including other cells.
+
+        Returns
+        -------
+        tuple of Points and torch.Tensor
+            Child coordinates for the selected rows and a boolean mask over all input rows.
+        """
         s = self.split
         eligible = torch.nonzero(points.cell_ids == self.parent_cell).flatten()
         width = sum(d + 1 for d in self.dimensions)
@@ -133,7 +155,22 @@ def _choose(model: BezierModel, cid: int, policy: EdgeSplit | LongestEdge | Resi
 def subdivide(
     model: BezierModel, *, cell: int = 0, policy: EdgeSplit | LongestEdge | ResidualSplit = LongestEdge()
 ) -> SubdivisionResult:
-    """Split a selected cell exactly, retaining its output dtype and device."""
+    """Split a selected cell exactly, retaining its output dtype and device.
+
+    Parameters
+    ----------
+    model : BezierModel
+        Model whose selected cell is subdivided.
+    cell : int, optional
+        Stable integer ID of the cell to split.
+    policy : EdgeSplit or LongestEdge or ResidualSplit, optional
+        Rule selecting the factor edge and split fraction.
+
+    Returns
+    -------
+    SubdivisionResult
+        Two exact child models and maps relating child coordinates to their parent.
+    """
     cid = model.space.cell_id(cell)
     info = model.space.cells[cid]
     local = BezierSimploid(info.dimensions, info.degree, model.coefficients[list(info.controls)])
@@ -172,6 +209,16 @@ class SpaceSubdivision:
 
         A point on a boundary shared by several pieces goes to one of them; every such choice evaluates to the
         same value, since the subdivision is conforming.
+
+        Parameters
+        ----------
+        points : Points
+            Valid coordinates on the original space, in the desired prediction order.
+
+        Returns
+        -------
+        Points
+            Refined-space coordinates in the input row order, dtype and device.
         """
         self._original.validate(points)
         parameters = torch.zeros(len(points), self.model.space.width, dtype=points.parameters.dtype)
@@ -216,7 +263,8 @@ def subdivide_space(
 
     Returns
     -------
-    The refined model with the parent of every refined cell and a map of points onto the refined space.
+    SpaceSubdivision
+        The refined model, parent cell IDs and a coordinate map onto the refined space.
 
     Examples
     --------

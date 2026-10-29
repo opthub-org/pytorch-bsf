@@ -561,17 +561,35 @@ class SimplicialMesh:
 
     @property
     def dimension(self) -> int:
-        """Dimension ``d`` of the ambient space and of every simplex."""
+        """Dimension ``d`` of the ambient space and of every simplex.
+
+        Returns
+        -------
+        int
+            Common ambient and simplex dimension.
+        """
         return int(self.vertices.shape[1])
 
     @property
     def n_vertices(self) -> int:
-        """Number of vertices."""
+        """Number of vertices.
+
+        Returns
+        -------
+        int
+            Number of rows in the vertex array.
+        """
         return len(self.vertices)
 
     @property
     def n_simplices(self) -> int:
-        """Number of simplices."""
+        """Number of simplices.
+
+        Returns
+        -------
+        int
+            Number of rows in the simplex array.
+        """
         return len(self.simplices)
 
     @property
@@ -591,6 +609,11 @@ class SimplicialMesh:
         them at a lower-dimensional face. Overlapping simplices that share no face are not detected.
         A mesh without boundary faces (every face in two or more simplices, which only overlapping simplices
         allow) has all its faces counted.
+
+        Returns
+        -------
+        int
+            Count of nonconforming faces according to the overlap test above.
         """
         return self._unmatched
 
@@ -672,11 +695,23 @@ class SimplicialMesh:
         return crowded + int(hanging.sum())
 
     def volumes(self) -> torch.Tensor:
-        """Volumes of the simplices, of shape ``(n_simplices,)``."""
+        """Return the volumes of the simplices.
+
+        Returns
+        -------
+        torch.Tensor
+            Copy of simplex volumes of shape ``(n_simplices,)``.
+        """
         return self._volumes.clone()
 
     def neighbors(self) -> list[list[int]]:
-        """The vertices sharing an edge with each vertex (its one-ring), in ascending order."""
+        """The vertices sharing an edge with each vertex (its one-ring), in ascending order.
+
+        Returns
+        -------
+        list of list of int
+            One sorted list of adjacent vertex IDs per vertex.
+        """
         ring: list[set[int]] = [set() for _ in range(self.n_vertices)]
         for simplex in self.simplices.tolist():
             for a, b in combinations(simplex, 2):

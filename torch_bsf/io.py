@@ -71,6 +71,16 @@ def load_model(path: str | Path) -> BezierModel:
 
     Original mutable builder handles are not persisted. Loaded cells are
     addressed by the same stable integer IDs recorded in the model schema.
+
+    Parameters
+    ----------
+    path : str or pathlib.Path
+        Model archive written by :func:`save_model`.
+
+    Returns
+    -------
+    BezierModel
+        Validated model with restored coefficients, dtype and stable integer cell IDs.
     """
     try:
         with zipfile.ZipFile(path) as archive:
@@ -99,7 +109,15 @@ def load_model(path: str | Path) -> BezierModel:
 
 
 def export_control_points(path: str | Path, model: BezierModel) -> None:
-    """Export coefficient rows as CSV data, explicitly without pretending to save geometry."""
+    """Export coefficient rows as CSV data, explicitly without pretending to save geometry.
+
+    Parameters
+    ----------
+    path : str or pathlib.Path
+        Destination CSV file, replaced if it already exists.
+    model : BezierModel
+        Model whose global coefficient rows are written with output-column headers.
+    """
     with Path(path).open("w", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
         writer.writerow(["control_index", *(f"value_{j}" for j in range(model.n_outputs))])

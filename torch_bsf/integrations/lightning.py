@@ -29,6 +29,24 @@ def regression_module(
     device partitioning cannot silently change regularization. This adapter
     supports one device; use core least squares for deterministic regression.
     Its ``bezier_model()`` method returns an independent CPU float64 model.
+
+    Parameters
+    ----------
+    model : BezierModel
+        Initial coefficients and compiled geometry; the original model is not modified.
+    samples : Samples
+        Complete weighted regression observations used on every training step.
+    learning_rate : float, optional
+        Finite positive Adam learning rate.
+    penalty : QuadraticPenalty, optional
+        Ridge and control-net smoothness penalties.
+    fixed : FixedControls, optional
+        Exact coefficient constraints excluded from optimization.
+
+    Returns
+    -------
+    lightning.pytorch.LightningModule
+        Module owning the free coefficients and exposing ``bezier_model()``.
     """
     _check_learning_rate(learning_rate)
     try:
@@ -42,6 +60,8 @@ def regression_module(
         raise ValueError("all controls are fixed; no training is necessary.")
 
     class RegressionModule(LightningModule):
+        """Train the free coefficients of the captured regression problem."""
+
         operator: torch.Tensor
         target: torch.Tensor
 
@@ -52,18 +72,47 @@ def regression_module(
             self.register_buffer("target", problem.rhs)
 
         def on_fit_start(self) -> None:
+            """Check that training uses exactly one device."""
             if self.trainer.world_size != 1:
                 raise ValueError("regression_module supports a single device.")
 
         def training_step(self, batch: Any, batch_idx: int) -> torch.Tensor:
+            """Evaluate and log the complete regression objective.
+
+            Parameters
+            ----------
+            batch : object
+                Ignored DataLoader item; every step uses the complete regression problem.
+            batch_idx : int
+                Ignored batch index supplied by Lightning.
+
+            Returns
+            -------
+            torch.Tensor
+                Scalar weighted regression objective, including regularization.
+            """
             loss = (self.operator @ self.controls - self.target).square().sum()
             self.log("objective", loss)
             return loss
 
         def configure_optimizers(self) -> torch.optim.Optimizer:
+            """Create the optimizer for the free coefficients.
+
+            Returns
+            -------
+            torch.optim.Optimizer
+                Adam optimizer acting on the free coefficient rows.
+            """
             return torch.optim.Adam([self.controls], lr=learning_rate)
 
         def bezier_model(self) -> BezierModel:
+            """Export the current fitted Bézier model.
+
+            Returns
+            -------
+            BezierModel
+                Independent CPU float64 model with free and fixed coefficient rows assembled.
+            """
             return BezierModel(model.space, problem.coefficients(self.controls.detach().cpu().double()))
 
     return RegressionModule()
