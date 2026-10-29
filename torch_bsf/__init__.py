@@ -13,10 +13,16 @@ from torch_bsf.ensemble import Ensemble
 from torch_bsf.fitting import fit, fit_skeleton_regression
 from torch_bsf.geometry import Simploid, SimploidalSet
 from torch_bsf.interpolation import (
+    C0,
+    C1,
+    CloughTocher,
+    MacroInterpolant,
+    NoSplit,
     SimplicialMesh,
     estimate_gradients,
     hermite_interpolant,
     lattice_mesh,
+    macro_interpolant,
     refine,
     refinement_indicator,
 )
@@ -46,6 +52,12 @@ __all__ = [
     "refinement_indicator",
     "lattice_mesh",
     "refine",
+    "macro_interpolant",
+    "MacroInterpolant",
+    "NoSplit",
+    "CloughTocher",
+    "C0",
+    "C1",
     "fit",
     "fit_point_cloud",
     "fit_skeleton",

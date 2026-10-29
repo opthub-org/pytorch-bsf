@@ -20,6 +20,7 @@ import math
 from collections.abc import Sequence
 
 import torch
+from hypothesis import assume
 from hypothesis import strategies as st
 
 #: Unit roundoff of float64, :math:`u = 2^{-53}`. A correctly rounded operation has a relative error at most ``U``.
@@ -212,6 +213,52 @@ def kuhn_meshes(
     x[interior] += shift
     simplices = [draw(st.permutations(s)) for s in _kuhn_simplices(dimension, n)]
     return x, torch.tensor(simplices, dtype=torch.long)
+
+
+def _thin_affine_map(draw: st.DrawFn, max_stretch: float) -> torch.Tensor:
+    """A planar map stretching one direction by up to ``max_stretch``, then shearing and rotating."""
+    stretch = draw(st.just(1.0) | log_uniform(1.0, max_stretch))
+    shear = draw(st.floats(-3.0, 3.0))
+    angle = draw(st.floats(0.0, math.pi))
+    rotation = torch.tensor([[math.cos(angle), -math.sin(angle)], [math.sin(angle), math.cos(angle)]], dtype=torch.float64)
+    return rotation @ torch.tensor([[1.0, shear], [0.0, 1 / stretch]], dtype=torch.float64)
+
+
+@st.composite
+def planar_meshes(draw: st.DrawFn, *, max_stretch: float = 1e4) -> tuple[torch.Tensor, torch.Tensor]:
+    """Jittered Kuhn meshes of the unit square under an affine map stretching one direction by up to ``max_stretch``.
+
+    The map shears and rotates as well, so that the triangles are thin and obtuse, with angles down to about
+    ``1 / max_stretch``.
+    """
+    x, simplices = draw(kuhn_meshes(dimensions=(2,), max_n=3))
+    return x @ _thin_affine_map(draw, max_stretch).T, simplices
+
+
+@st.composite
+def delaunay_meshes(draw: st.DrawFn, *, max_points: int = 24, max_stretch: float = 1e4) -> tuple[torch.Tensor, torch.Tensor]:
+    """Delaunay triangulations of random points of the unit square under the affine map of :func:`planar_meshes`.
+
+    Unlike lattice meshes, their vertices have irregular valences and their edges no common directions. Before the
+    map, every triangle has an area of at least ``1e-4`` times the square of its longest side. Requires SciPy.
+
+    The points are multiples of ``1/64``, so that three of them are collinear exactly or span an area of at least
+    ``2**-13``: Qhull fails on points that are collinear only up to its rounding, such as ``(0, 0)``, ``(0, 1)`` and
+    ``(1e-15, 0)``.
+    """
+    from scipy.spatial import Delaunay
+
+    n = draw(st.integers(3, max_points))
+    grid = draw(st.lists(st.integers(0, 64), min_size=2 * n, max_size=2 * n))
+    x = torch.tensor(grid, dtype=torch.float64) / 64
+    x = torch.unique(x.reshape(n, 2), dim=0)
+    assume(len(x) >= 3 and int(torch.linalg.matrix_rank(x - x[0])) == 2)
+    simplices = torch.tensor(Delaunay(x.numpy()).simplices, dtype=torch.long)
+    edges = x[simplices[:, 1:]] - x[simplices[:, :1]]
+    area = (edges[:, 0, 0] * edges[:, 1, 1] - edges[:, 0, 1] * edges[:, 1, 0]).abs()
+    longest = torch.cat([edges, (edges[:, 1] - edges[:, 0])[:, None]], dim=1).norm(dim=2).amax(dim=1)
+    assume(bool((area >= 1e-4 * longest.square()).all()))
+    return x @ _thin_affine_map(draw, max_stretch).T, simplices
 
 
 @st.composite

@@ -124,6 +124,8 @@ extend-immutable-calls = [
   "torch_bsf.optimization.PreconditionedSGD",
   "torch_bsf.model_selection._validation.KFold",
   "torch_bsf.splitting.LongestEdge",
+  "torch_bsf.interpolation.NoSplit",
+  "torch_bsf.interpolation.C0",
 ]
 
 [tool.ruff.lint.mccabe]

@@ -206,7 +206,10 @@ interpolation
 ``BezierSpace`` whose shared faces share controls, and locates points in it.
 ``hermite_interpolant`` returns a continuous piecewise cubic ``BezierModel``
 through vertex data that, when clamped, stays within the data range of each
-simplex. ``lattice_mesh`` triangulates a simplex lattice conformingly, and
+simplex. ``macro_interpolant`` chooses how simplices are split (``NoSplit``,
+``CloughTocher``) and how smoothly the pieces join (``C0``, ``C1``); on
+triangle meshes, it builds a C1 ``MacroInterpolant`` with the same range
+guarantee. ``lattice_mesh`` triangulates a simplex lattice conformingly, and
 ``refine`` bisects simplices while keeping the mesh conforming. See
 :doc:`advanced/interpolation` for the construction and its error bound.
 
