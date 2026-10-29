@@ -255,7 +255,8 @@ class Points:
         Real coordinate rows. For a simplex of dimension ``d``, the width
         is ``d + 1``; for a product, concatenate one barycentric block per
         factor. Mixed-cell rows may be padded on the right to ``space.width``.
-        Coordinates are copied on their input device.
+        Coordinates are copied on their input device, except integer MPS
+        coordinates, which move to CPU for float64 promotion.
     cell_ids : array-like of int, shape (n_samples,), optional
         One integer cell ID per row. Defaults to all zeros on the coordinate
         device. IDs are copied as ``torch.long`` on that device.
@@ -294,7 +295,7 @@ class Points:
         if t.ndim != 2:
             raise ValueError("parameters must have shape (n_samples, n_parameters).")
         if not t.is_floating_point():
-            t = t.to(torch.float64)
+            t = t.cpu().double() if t.device.type == "mps" else t.double()
         ids = (
             torch.zeros(len(t), dtype=torch.long, device=t.device)
             if cell_ids is None
@@ -376,7 +377,13 @@ class Points:
 
     def to(self, *, device: torch.device | str = "cpu", dtype: torch.dtype = torch.float64) -> Points:
         """Copy coordinates to an explicit compute dtype and device."""
-        return Points(self.parameters.to(device=device, dtype=dtype), self.cell_ids.to(device))
+        # MPS-to-CPU casts must transfer before changing dtype: MPS has no
+        # float64, and a combined transfer/cast can silently return zeros.
+        if torch.device(device).type == "cpu":
+            parameters = self.parameters.to(device=device).to(dtype=dtype)
+        else:
+            parameters = self.parameters.to(device=device, dtype=dtype)
+        return Points(parameters, self.cell_ids.to(device))
 
 
 @dataclass(frozen=True, init=False)
@@ -455,7 +462,12 @@ class Samples:
             y = y[:, None]
         if y.ndim != 2 or len(y) != len(points) or y.shape[1] < 1 or not len(y) or not torch.isfinite(y).all():
             raise ValueError("values must be finite with shape (n_samples, n_outputs), both positive.")
-        w = torch.ones(len(y), dtype=torch.float64) if weights is None else torch.as_tensor(weights, dtype=torch.float64).cpu()
+        if weights is None:
+            w = torch.ones(len(y), dtype=torch.float64)
+        elif isinstance(weights, torch.Tensor):
+            w = weights.cpu().double()
+        else:
+            w = torch.as_tensor(weights, dtype=torch.float64).cpu()
         if (
             w.shape != (len(y),)
             or not torch.isfinite(w).all()
@@ -678,7 +690,8 @@ class BezierModel(nn.Module):
         Matrix of shape ``(space.n_controls, n_outputs)``. Copied on construction.
         Floating tensors and NumPy arrays retain their dtype. Python float
         lists use ``torch.get_default_dtype()``; integer inputs become
-        float64. Pass float64 tensors or arrays for double precision.
+        float64 (on CPU for integer MPS tensors). Pass float64 tensors or
+        arrays for double precision.
 
     Examples
     --------
@@ -697,7 +710,7 @@ class BezierModel(nn.Module):
         if p.is_complex():
             raise ValueError("coefficients must be real.")
         if not p.is_floating_point():
-            p = p.to(torch.float64)
+            p = p.cpu().double() if p.device.type == "mps" else p.double()
         self.space = space
         self.coefficients = nn.Parameter(p.detach().clone())
 
