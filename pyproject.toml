@@ -129,7 +129,7 @@ ignore = [
 convention = "numpy"
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
-"__future__.annotations".msg = "Write Python 3.10 built-in type hints and quote forward references instead (CONTRIBUTING.md, Style guidelines)."
+"__future__.annotations".msg = "Write Python 3.11 built-in type hints and quote forward references instead (CONTRIBUTING.md, Style guidelines)."
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = [
