@@ -9,8 +9,6 @@ Each process runs one solve; timings exclude imports and input construction.
 No speed or memory assertion is made: examine scaling on your own machine.
 """
 
-from __future__ import annotations
-
 import argparse
 import json
 import os

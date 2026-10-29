@@ -1,7 +1,5 @@
 """One weighted, constrained, augmented least-squares problem for both backends."""
 
-from __future__ import annotations
-
 from typing import Any
 
 import torch

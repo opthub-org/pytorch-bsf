@@ -18,16 +18,14 @@ jobs:
       tag_name: ${{ steps.release-please.outputs.tag_name }}
     steps:
     - id: release-please
-      uses: google-github-actions/release-please-action@db8f2c60ee802b3748b512940dde88eabd7b7e01 # v3.7.13
+      uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
       with:
-        release-type: python
-        package-name: torch_bsf
-        # While the major version is 0, a breaking change bumps the minor version, not the major one
-        bump-minor-pre-major: true
+        config-file: release-please-config.json
+        manifest-file: .release-please-manifest.json
 
   docker:
     needs: github-release
-    if: ${{ needs.github-release.outputs.release_created }}
+    if: ${{ needs.github-release.outputs.release_created == 'true' }}
     # Releases created with GITHUB_TOKEN do not trigger release-event workflows.
     uses: ./.github/workflows/docker.yml # zizmor: ignore[self-repository] -- Keep the same-commit reusable workflow syntax supported by actionlint.
     permissions:
@@ -40,12 +38,13 @@ jobs:
     permissions:
       contents: read
     needs: github-release
-    if: ${{ needs.github-release.outputs.release_created }}
+    if: ${{ needs.github-release.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       with:
         persist-credentials: false
+        ref: ${{ needs.github-release.outputs.tag_name }}
     - name: Read supported Python versions from package metadata
       id: python
       run: python tools/update_python_support.py --ci-output "$GITHUB_OUTPUT"

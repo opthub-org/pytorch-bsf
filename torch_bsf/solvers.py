@@ -1,7 +1,5 @@
 """Typed numerical solver configurations; importing this module does not load SciPy."""
 
-from __future__ import annotations
-
 import math
 from dataclasses import dataclass
 from typing import Literal
@@ -16,7 +14,7 @@ DiagnosticLevel = Literal["basic", "full"]
 class DenseLeastSquares:
     """CPU float64 SVD solve of the augmented problem, without normal equations.
 
-    Parameters
+    Attributes
     ----------
     rcond
         Relative singular-value cutoff. ``None`` uses machine epsilon times
@@ -39,7 +37,7 @@ class DenseLeastSquares:
 class SparseLeastSquares:
     """Optional SciPy LSMR on CPU float64, with explicit per-output stop codes.
 
-    Parameters
+    Attributes
     ----------
     atol, btol
         Backward-error stopping tolerances.

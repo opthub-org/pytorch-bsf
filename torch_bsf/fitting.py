@@ -1,7 +1,5 @@
 """Supervised fitting at known parameters: one entry point for every space and solver, and face-by-face simplex fitting."""
 
-from __future__ import annotations
-
 import math
 from dataclasses import replace
 from typing import TypeVar

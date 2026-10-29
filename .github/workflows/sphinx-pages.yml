@@ -3,6 +3,13 @@ name: GHPages
 on:
  push:
 
+# Keep branch previews available before merge. All runs publish to the same
+# branch, so serialize the whole build and retain queued previews.
+concurrency:
+  group: gh-pages
+  cancel-in-progress: false
+  queue: max
+
 permissions: {}
 
 jobs:

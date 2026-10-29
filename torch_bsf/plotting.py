@@ -24,6 +24,26 @@ def plot_model(
     Select two or three output coordinates for higher-dimensional models.
     Domains above dimension two are shown through their two-dimensional faces.
     Returns the axes. Matplotlib is imported only when plotting.
+
+    Parameters
+    ----------
+    model : BezierModel
+        Model whose maximal cells and control nets are drawn.
+    resolution : int, optional
+        Number of grid subdivisions along each plotted simplex edge.
+    coordinates : sequence of int, optional
+        Two or three distinct output coordinates; defaults to every output.
+    ax : matplotlib.axes.Axes, optional
+        Existing axes, including 3-D axes for three coordinates; otherwise create axes.
+    show_controls : bool, optional
+        Whether to draw control points and their net.
+    **kwargs
+        Plot styling forwarded to the cell drawing helpers, such as ``color``.
+
+    Returns
+    -------
+    matplotlib.axes.Axes
+        Axes containing every drawn cell and optional control net.
     """
     selected = tuple(range(model.n_outputs)) if coordinates is None else tuple(coordinates)
     if len(set(selected)) != len(selected) or any(i < 0 or i >= model.n_outputs for i in selected):

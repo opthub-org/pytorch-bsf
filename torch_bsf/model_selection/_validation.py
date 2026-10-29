@@ -1,7 +1,5 @@
 """Cross-validation and explicit, fully recorded degree search."""
 
-from __future__ import annotations
-
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass

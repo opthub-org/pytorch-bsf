@@ -1,7 +1,5 @@
 """Spaces, observations and differentiable models shared by every fitting backend."""
 
-from __future__ import annotations
-
 import copy
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -47,7 +45,13 @@ class Cell:
 
     @property
     def width(self) -> int:
-        """Number of concatenated barycentric coordinates."""
+        """Number of concatenated barycentric coordinates.
+
+        Returns
+        -------
+        int
+            Sum of the barycentric widths of all simplex factors.
+        """
         return sum(a + 1 for a in self.dimensions)
 
 
@@ -98,14 +102,40 @@ class BezierSpace:
         object.__setattr__(self, "_source_ids", MappingProxyType(dict(self._source_ids)))
 
     @classmethod
-    def simplex(cls, dimension: int, *, degree: int) -> BezierSpace:
-        """Create a single simplex, including a zero-dimensional constant."""
+    def simplex(cls, dimension: int, *, degree: int) -> "BezierSpace":
+        """Create a single simplex, including a zero-dimensional constant.
+
+        Parameters
+        ----------
+        dimension : int
+            Nonnegative simplex dimension; zero creates a constant space.
+        degree : int
+            Nonnegative polynomial degree.
+
+        Returns
+        -------
+        BezierSpace
+            Compiled single-cell simplex space.
+        """
         dimension = _structural_integer(dimension, "dimension")
         return cls.simploid((dimension,) if dimension else (), degree=degree)
 
     @classmethod
-    def simploid(cls, dimensions: Sequence[int], *, degree: int | Sequence[int]) -> BezierSpace:
-        """Create a tensor product of simplices with one degree per factor."""
+    def simploid(cls, dimensions: Sequence[int], *, degree: int | Sequence[int]) -> "BezierSpace":
+        """Create a tensor product of simplices with one degree per factor.
+
+        Parameters
+        ----------
+        dimensions : sequence of int
+            Positive dimension of each simplex factor; an empty sequence creates a constant space.
+        degree : int or sequence of int
+            Nonnegative degree shared by all factors, or one degree per factor.
+
+        Returns
+        -------
+        BezierSpace
+            Compiled single-cell product space.
+        """
         st = _check_type(dimensions)
         ds = _check_degree(degree, len(st))
         n = len(_indices(st, ds))
@@ -113,11 +143,25 @@ class BezierSpace:
         return cls((cell,), n, (0,), _adjacent_pairs(st, ds))
 
     @classmethod
-    def on_set(cls, domain: SimploidalSet, *, degree: DegreeAssignment, default_degree: int | None = None) -> BezierSpace:
+    def on_set(cls, domain: SimploidalSet, *, degree: DegreeAssignment, default_degree: int | None = None) -> "BezierSpace":
         """Snapshot a simploidal set, propagating compatible degrees across shared faces.
 
         The builder's cell handles remain usable for addressing this snapshot;
         subsequent changes to the builder cannot change its basis or layout.
+
+        Parameters
+        ----------
+        domain : SimploidalSet
+            Nonempty topology builder to snapshot, including its shared faces.
+        degree : int or mapping
+            Positive scalar degree or per-cell degree assignment, propagated across shared faces.
+        default_degree : int, optional
+            Fallback degree for cells without an explicit assignment.
+
+        Returns
+        -------
+        BezierSpace
+            Immutable space whose cell IDs also resolve handles from the original builder.
         """
         domain.check()
         if not len(domain):
@@ -146,16 +190,39 @@ class BezierSpace:
 
     @property
     def n_cells(self) -> int:
-        """Number of addressable non-degenerate cells, including faces."""
+        """Number of addressable non-degenerate cells, including faces.
+
+        Returns
+        -------
+        int
+            Number of cells in the compiled snapshot, including addressable faces.
+        """
         return len(self.cells)
 
     @property
     def width(self) -> int:
-        """Width used when packing mixed-cell coordinate batches."""
+        """Width used when packing mixed-cell coordinate batches.
+
+        Returns
+        -------
+        int
+            Largest barycentric coordinate width among all cells.
+        """
         return max(c.width for c in self.cells)
 
     def cell_id(self, cell: int | Simploid) -> int:
-        """Resolve an integer or an original builder handle to its frozen cell ID."""
+        """Resolve an integer or an original builder handle to its frozen cell ID.
+
+        Parameters
+        ----------
+        cell : int or Simploid
+            Stable integer ID or cell handle from the original builder.
+
+        Returns
+        -------
+        int
+            Validated integer ID within this snapshot.
+        """
         if isinstance(cell, Simploid):
             try:
                 return self._source_ids[cell]
@@ -166,7 +233,20 @@ class BezierSpace:
         return cell
 
     def control_index(self, index: Sequence[Any], *, cell: int | Simploid = 0) -> int:
-        """Resolve a cell-local multi-index to a globally shared coefficient row."""
+        """Resolve a cell-local multi-index to a globally shared coefficient row.
+
+        Parameters
+        ----------
+        index : sequence
+            Cell-local barycentric multi-index, with one block per simplex factor.
+        cell : int or Simploid, optional
+            Cell containing the control; defaults to cell zero.
+
+        Returns
+        -------
+        int
+            Global coefficient row shared by every incident cell.
+        """
         info = self.cells[self.cell_id(cell)]
         alpha = _canonical_index(info.dimensions, index)
         try:
@@ -175,11 +255,28 @@ class BezierSpace:
             raise ValueError("invalid control index for this cell.") from None
 
     def adjacency(self) -> torch.Tensor:
-        """Return a copy of the undirected control-net edges."""
+        """Return a copy of the undirected control-net edges.
+
+        Returns
+        -------
+        torch.Tensor
+            Integer edge endpoints of shape ``(n_edges, 2)`` on CPU.
+        """
         return torch.tensor(self._edges, dtype=torch.long).reshape(-1, 2)
 
-    def compatible(self, other: BezierSpace) -> bool:
-        """Whether coefficient ordering and all addressable cells agree."""
+    def compatible(self, other: "BezierSpace") -> bool:
+        """Whether coefficient ordering and all addressable cells agree.
+
+        Parameters
+        ----------
+        other : BezierSpace
+            Space to compare with this snapshot.
+
+        Returns
+        -------
+        bool
+            Whether geometry, coefficient ordering and addressable cells agree.
+        """
         return (self.cells, self.n_controls, self.main_cells, self._topology) == (
             other.cells,
             other.n_controls,
@@ -187,8 +284,19 @@ class BezierSpace:
             other._topology,
         )
 
-    def with_degree(self, degree: int | Sequence[int]) -> BezierSpace:
-        """Recompile the same frozen domain at another degree for model selection."""
+    def with_degree(self, degree: int | Sequence[int]) -> "BezierSpace":
+        """Recompile the same frozen domain at another degree for model selection.
+
+        Parameters
+        ----------
+        degree : int or sequence of int
+            New degree assignment; multi-cell spaces require a positive scalar degree.
+
+        Returns
+        -------
+        BezierSpace
+            Newly compiled space on the same frozen domain.
+        """
         if not self._topology:
             return BezierSpace.simploid(self.cells[0].dimensions, degree=degree)
         if not isinstance(degree, Integral):
@@ -204,15 +312,21 @@ class BezierSpace:
         domain._simploids = nodes
         return BezierSpace.on_set(domain, degree=degree)
 
-    def validate(self, points: Points) -> None:
-        """Check IDs, finite coordinates and simplex membership of each factor."""
+    def validate(self, points: "Points") -> None:
+        """Check IDs, finite coordinates and simplex membership of each factor.
+
+        Parameters
+        ----------
+        points : Points
+            Coordinate rows and cell IDs to validate against this space.
+        """
         if self.n_cells == 1 and points.parameters.shape[1] != self.width:
             raise ValueError("parameter width does not match the single-cell space.")
         if (points.cell_ids < 0).any() or (points.cell_ids >= self.n_cells).any():
             raise ValueError("points contain an invalid cell ID.")
         self._validate_groups(points, _point_groups(points.cell_ids))
 
-    def _validate_groups(self, points: Points, groups: list[tuple[int, torch.Tensor]]) -> None:
+    def _validate_groups(self, points: "Points", groups: list[tuple[int, torch.Tensor]]) -> None:
         """Validate each active cell after a single grouping of observation rows."""
         for cid, rows in groups:
             info = self.cells[cid]
@@ -230,8 +344,19 @@ class BezierSpace:
                     raise ValueError("parameters must be barycentric coordinates on each simplex factor.")
                 offset += a + 1
 
-    def basis(self, points: Points | torch.Tensor) -> BasisOperator:
-        """Build a cell-local linear operator without a global dense allocation."""
+    def basis(self, points: "Points | torch.Tensor") -> "BasisOperator":
+        """Build a cell-local linear operator without a global dense allocation.
+
+        Parameters
+        ----------
+        points : Points or torch.Tensor
+            Coordinate rows to evaluate. Raw tensors are accepted only for a single-cell space.
+
+        Returns
+        -------
+        BasisOperator
+            Validated operator with one local Bernstein block per active cell.
+        """
         if not isinstance(points, Points) and self.n_cells != 1:
             raise ValueError("multi-cell spaces require explicit Points with cell IDs.")
         batch = points if isinstance(points, Points) else Points(points)
@@ -307,7 +432,7 @@ class Points:
         object.__setattr__(self, "cell_ids", ids.to(torch.long).clone())
 
     @classmethod
-    def from_cells(cls, space: BezierSpace, data: Sequence[tuple[int | Simploid, Any]]) -> Points:
+    def from_cells(cls, space: BezierSpace, data: Sequence[tuple[int | Simploid, Any]]) -> "Points":
         """Pack ordered cell-local coordinates without manual padding.
 
         Parameters
@@ -370,13 +495,37 @@ class Points:
     def __len__(self) -> int:
         return len(self.parameters)
 
-    def take(self, indices: torch.Tensor) -> Points:
-        """Select rows while preserving their cell identities."""
+    def take(self, indices: torch.Tensor) -> "Points":
+        """Select rows while preserving their cell identities.
+
+        Parameters
+        ----------
+        indices : torch.Tensor
+            Integer row indices in the requested output order.
+
+        Returns
+        -------
+        Points
+            Selected coordinate rows and their corresponding cell IDs.
+        """
         rows = indices.to(self.parameters.device)
         return Points(self.parameters[rows], self.cell_ids[rows])
 
-    def to(self, *, device: torch.device | str = "cpu", dtype: torch.dtype = torch.float64) -> Points:
-        """Copy coordinates to an explicit compute dtype and device."""
+    def to(self, *, device: torch.device | str = "cpu", dtype: torch.dtype = torch.float64) -> "Points":
+        """Copy coordinates to an explicit compute dtype and device.
+
+        Parameters
+        ----------
+        device : torch.device or str, optional
+            Destination device; defaults to CPU.
+        dtype : torch.dtype, optional
+            Coordinate dtype; defaults to ``torch.float64``.
+
+        Returns
+        -------
+        Points
+            Coordinates in the requested dtype and cell IDs on the requested device.
+        """
         # MPS-to-CPU casts must transfer before changing dtype: MPS has no
         # float64, and a combined transfer/cast can silently return zeros.
         if torch.device(device).type == "cpu":
@@ -483,8 +632,19 @@ class Samples:
     def __len__(self) -> int:
         return len(self.points)
 
-    def take(self, indices: torch.Tensor) -> Samples:
-        """Select observations, keeping coordinates, outputs and weights aligned."""
+    def take(self, indices: torch.Tensor) -> "Samples":
+        """Select observations, keeping coordinates, outputs and weights aligned.
+
+        Parameters
+        ----------
+        indices : torch.Tensor
+            Integer observation indices in the requested output order.
+
+        Returns
+        -------
+        Samples
+            Selected points, observed values and weights with matching row order.
+        """
         return Samples(
             self.points.take(indices), self.values[indices.to(self.values.device)], weights=self.weights[indices.cpu()]
         )
@@ -492,7 +652,7 @@ class Samples:
     @classmethod
     def from_cells(
         cls, space: BezierSpace, data: Sequence[tuple[int | Simploid, Any, Any]], *, weights: Any = None
-    ) -> Samples:
+    ) -> "Samples":
         """Pack ordered cell-local observations with different coordinate widths.
 
         Parameters
@@ -591,6 +751,11 @@ class FixedControls:
     tensor inputs retain their existing precision before conversion.
     Complex inputs are rejected.
 
+    Parameters
+    ----------
+    values : mapping of int to array-like
+        Global coefficient rows and their finite one-dimensional output vectors.
+
     Examples
     --------
     >>> from torch_bsf import FixedControls
@@ -615,15 +780,28 @@ class FixedControls:
             checked[index] = tensor.clone()
         object.__setattr__(self, "values", MappingProxyType(checked))
 
-    def __deepcopy__(self, memo: dict[int, Any]) -> FixedControls:
+    def __deepcopy__(self, memo: dict[int, Any]) -> "FixedControls":
         """Copy constraint tensors for independent estimator cloning."""
         copied = FixedControls({row: value.detach() for row, value in self.values.items()})
         memo[id(self)] = copied
         return copied
 
     @classmethod
-    def from_cells(cls, space: BezierSpace, values: Sequence[tuple[int | Simploid, Sequence[Any], Any]]) -> FixedControls:
-        """Resolve local references and reject contradictory shared values."""
+    def from_cells(cls, space: BezierSpace, values: Sequence[tuple[int | Simploid, Sequence[Any], Any]]) -> "FixedControls":
+        """Resolve local references and reject contradictory shared values.
+
+        Parameters
+        ----------
+        space : BezierSpace
+            Space used to resolve cell-local controls to globally shared rows.
+        values : sequence of triples
+            Each triple contains a cell reference, local multi-index and fixed output vector.
+
+        Returns
+        -------
+        FixedControls
+            Fixed global controls with duplicate shared references checked for agreement.
+        """
         checked: dict[int, torch.Tensor] = {}
         for cell, index, value in values:
             row = space.control_index(index, cell=cell)
@@ -644,7 +822,17 @@ def _point_groups(ids: torch.Tensor) -> list[tuple[int, torch.Tensor]]:
 
 
 class BasisOperator:
-    """Cell-local basis supporting products, transpose products and explicit export."""
+    """Cell-local basis supporting products, transpose products and explicit export.
+
+    Parameters
+    ----------
+    space : BezierSpace
+        Compiled geometry and coefficient layout.
+    points : Points
+        Coordinate rows with valid cell IDs and local barycentric coordinates.
+    _groups : list, optional
+        Precomputed ``(cell_id, row_indices)`` groups for internal reuse; otherwise grouped from points.
+    """
 
     def __init__(self, space: BezierSpace, points: Points, *, _groups: list[tuple[int, torch.Tensor]] | None = None):
         self.space, self.points = space, points
@@ -658,21 +846,49 @@ class BasisOperator:
             self.blocks.append((rows, columns, basis))
 
     def matmat(self, coefficients: torch.Tensor) -> torch.Tensor:
-        """Evaluate a coefficient matrix, accumulating only local contributions."""
+        """Evaluate a coefficient matrix, accumulating only local contributions.
+
+        Parameters
+        ----------
+        coefficients : torch.Tensor
+            Coefficient matrix of shape ``(space.n_controls, n_outputs)``.
+
+        Returns
+        -------
+        torch.Tensor
+            Predicted values of shape ``(n_points, n_outputs)``.
+        """
         out = coefficients.new_zeros(self.shape[0], coefficients.shape[1])
         for rows, columns, basis in self.blocks:
             out.index_copy_(0, rows, basis @ coefficients[columns])
         return out
 
     def rmatmat(self, values: torch.Tensor) -> torch.Tensor:
-        """Apply the transpose, summing repeated shared coefficient columns."""
+        """Apply the transpose, summing repeated shared coefficient columns.
+
+        Parameters
+        ----------
+        values : torch.Tensor
+            Matrix of shape ``(n_points, n_outputs)`` to multiply by the transposed basis.
+
+        Returns
+        -------
+        torch.Tensor
+            Accumulated coefficient contributions of shape ``(space.n_controls, n_outputs)``.
+        """
         out = values.new_zeros(self.shape[1], values.shape[1])
         for rows, columns, basis in self.blocks:
             out.index_add_(0, columns, basis.T @ values[rows])
         return out
 
     def to_dense(self) -> torch.Tensor:
-        """Explicitly materialize the full design matrix, for a dense solve."""
+        """Explicitly materialize the full design matrix, for a dense solve.
+
+        Returns
+        -------
+        torch.Tensor
+            Design matrix of shape ``(n_points, space.n_controls)``.
+        """
         out = self.points.parameters.new_zeros(self.shape)
         for rows, columns, basis in self.blocks:
             out.index_put_((rows[:, None], columns[None, :]), basis, accumulate=True)
@@ -716,7 +932,13 @@ class BezierModel(nn.Module):
 
     @property
     def n_outputs(self) -> int:
-        """Dimension of each predicted value."""
+        """Dimension of each predicted value.
+
+        Returns
+        -------
+        int
+            Number of columns in the coefficient matrix and in each prediction.
+        """
         return self.coefficients.shape[1]
 
     def forward(self, points: Points | torch.Tensor) -> torch.Tensor:
@@ -772,6 +994,12 @@ class BezierModel(nn.Module):
         batch = batch.to(device=self.coefficients.device, dtype=self.coefficients.dtype)
         return self.space.basis(batch).matmat(self.coefficients)
 
-    def copy(self) -> BezierModel:
-        """Copy coefficients without mutating or duplicating immutable geometry."""
+    def copy(self) -> "BezierModel":
+        """Copy coefficients without mutating or duplicating immutable geometry.
+
+        Returns
+        -------
+        BezierModel
+            Independent coefficient copy sharing this model's immutable space.
+        """
         return BezierModel(self.space, self.coefficients)

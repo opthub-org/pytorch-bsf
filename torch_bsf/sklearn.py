@@ -15,10 +15,10 @@ except ModuleNotFoundError as error:
         raise
 
     class BaseEstimator:  # type: ignore[no-redef]
-        pass
+        """Stand-in for :class:`sklearn.base.BaseEstimator` when scikit-learn is not installed."""
 
     class RegressorMixin:  # type: ignore[no-redef]
-        pass
+        """Stand-in for :class:`sklearn.base.RegressorMixin` when scikit-learn is not installed."""
 
     _sklearn_available = False
 
@@ -67,7 +67,22 @@ class BezierRegressor(RegressorMixin, BaseEstimator):
         self.fixed = fixed
 
     def fit(self, X: Any, y: Any, sample_weight: Any = None) -> "BezierRegressor":
-        """Fit weighted observations and expose their complete FitResult."""
+        """Fit weighted observations and expose their complete FitResult.
+
+        Parameters
+        ----------
+        X : array-like
+            Barycentric feature matrix of shape ``(n_samples, n_features)``; constant spaces use one dummy column.
+        y : array-like
+            Observed outputs of shape ``(n_samples,)`` or ``(n_samples, n_outputs)``.
+        sample_weight : array-like, optional
+            Nonnegative observation weights with a positive sum.
+
+        Returns
+        -------
+        BezierRegressor
+            This estimator with its fitted model, diagnostics and complete solve result.
+        """
         from sklearn.utils.validation import check_X_y
 
         x, target = check_X_y(X, y, multi_output=True, y_numeric=True)
@@ -93,7 +108,18 @@ class BezierRegressor(RegressorMixin, BaseEstimator):
         return self
 
     def predict(self, X: Any) -> npt.NDArray[Any]:
-        """Predict with the fitted model; preserve the target's original rank."""
+        """Predict with the fitted model; preserve the target's original rank.
+
+        Parameters
+        ----------
+        X : array-like
+            Feature matrix with the same coordinate layout and width used in training.
+
+        Returns
+        -------
+        numpy.ndarray
+            Predictions of shape ``(n_samples,)`` for a one-dimensional training target, otherwise ``(n_samples, n_outputs)``.
+        """
         from sklearn.utils.validation import check_array, check_is_fitted
 
         check_is_fitted(self, "result_")

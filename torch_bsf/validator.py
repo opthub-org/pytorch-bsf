@@ -14,7 +14,8 @@ def index_list(val: str) -> list[list[int]]:
 
     Returns
     -------
-        The persed indices.
+    list of list of int
+        Parsed indices from the supplied expression.
     """
     val = val.replace("(", "[").replace(")", "]").replace("{", "[").replace("}", "]")
     indices = cast(list[list[int]], json.loads(val))
@@ -23,6 +24,7 @@ def index_list(val: str) -> list[list[int]]:
 
 def int_or_str(val: str) -> int | str:
     r"""Try to parse int.
+
     Return the int value if the parse is succeeded; the original string otherwise.
 
     Parameters

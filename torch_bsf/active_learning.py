@@ -1,7 +1,5 @@
 """Acquisition functions with explicit, mathematically relevant inputs."""
 
-from __future__ import annotations
-
 from fractions import Fraction
 
 import torch
@@ -85,6 +83,20 @@ def query_by_committee(ensemble: Ensemble, candidates: Points, n: int = 1) -> Po
     scores use exact rational comparisons of those predictions, at additional
     CPU cost. Nonfinite predictions
     raise ``ValueError``. Returned points retain their input gradients.
+
+    Parameters
+    ----------
+    ensemble : Ensemble
+        Committee whose member predictions determine disagreement.
+    candidates : Points
+        Candidate coordinate rows in the order used to break ties.
+    n : int, optional
+        Positive number of candidates to select, no larger than the candidate count.
+
+    Returns
+    -------
+    Points
+        Selected candidates in descending disagreement order, with stable ties.
     """
     _integer(n, "n", 1)
     if n > len(candidates):
