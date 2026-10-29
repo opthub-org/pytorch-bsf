@@ -161,6 +161,21 @@ jobs:
       run: |
         bash examples/quickstart/run.sh
 
+  distribution:
+    # Build artifacts once, independently of the Python/optional-dependency matrices.
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.14"
+    - name: Install build tools and runtime dependencies
+      run: |
+        python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+        python -m pip install setuptools wheel .
+    - name: Validate clean-source and sdist wheels outside the checkout
+      run: python tools/check_distribution.py
+
   docs:
     # Validate the current checkout once; Pages separately builds historical refs.
     runs-on: ubuntu-latest
