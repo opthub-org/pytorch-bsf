@@ -84,7 +84,7 @@ MLflow is an optional extra (`pip install -e ".[develop,mlflow]"`, also included
 
 ### Install the git hook
 
-Install the [pre-commit](https://pre-commit.com/) hook so that Ruff checks and formats your changes on every commit:
+Install the [pre-commit](https://pre-commit.com/) hook so that Ruff, numpydoc and typos check your changes (and Ruff formats them) on every commit:
 
 ```bash
 pre-commit install
@@ -321,7 +321,13 @@ ci: add Python 3.14 to test matrix
 
 ### Linter and formatter
 
-[Ruff](https://docs.astral.sh/ruff/) lints, sorts imports and formats code. The pre-commit hook (see [Install the git hook](#install-the-git-hook)) runs `ruff check --fix` and `ruff format` on the files you commit. CI runs the same hooks on all files and fails if they report a problem or change a file. To run them manually:
+Conventions that a tool can check are enforced by the pre-commit hooks (see [Install the git hook](#install-the-git-hook)) rather than only written here; a violation is reported with the reason and the fix.
+
+- [Ruff](https://docs.astral.sh/ruff/) lints, sorts imports and formats code (`ruff check --fix` and `ruff format`).
+- [numpydoc](https://numpydoc.readthedocs.io/en/latest/validation.html) validates the structure of the NumPy-style docstrings of the public modules: section names and order, documented parameters that do not exist, and the format of types. The checks are configured in `[tool.numpydoc_validation]` of `pyproject.toml`; private modules (a path component starting with `_`) are skipped. To skip one check for one object, put `# numpydoc ignore=<CODE>` on its `def` or `class` line with a comment explaining why.
+- [typos](https://github.com/crate-ci/typos) finds misspellings; false positives are suppressed narrowly in `_typos.toml`. It runs only in the local git hook for now, and CI skips it, while the rate of false positives is observed. Add a false positive to `_typos.toml` (or report it) rather than rewording correct text.
+
+CI runs the same hooks (except typos) on all files and fails if they report a problem or change a file. To run them manually:
 
 ```bash
 # Run the hooks on all files, as CI does
@@ -338,8 +344,10 @@ Configuration in `pyproject.toml` (`[tool.ruff]` section):
 
 - `line-length = 127`
 - `target-version = "py311"`
-- `select = ["E", "F", "W", "I", "UP", "B", "SIM", "C90"]` (pycodestyle errors and warnings, Pyflakes, isort, pyupgrade, flake8-bugbear, flake8-simplify, McCabe complexity)
+- `select = ["E", "F", "W", "I", "UP", "B", "SIM", "C90", "D", "PGH003", "PLC2401", "PLC2403", "TID251"]` (pycodestyle errors and warnings, Pyflakes, isort, pyupgrade, flake8-bugbear, flake8-simplify, McCabe complexity, pydocstyle, codes on `# type: ignore`, ASCII identifiers and imports, banned APIs)
 - `max-complexity = 10` (`[tool.ruff.lint.mccabe]` section): split a function whose cyclomatic complexity exceeds 10 into smaller helpers
+- pydocstyle (`D`) uses the `numpy` convention, applies to `torch_bsf/` only, and ignores `D105` (magic methods) and `D401` (imperative summaries)
+- `TID251` bans `from __future__ import annotations` (`[tool.ruff.lint.flake8-tidy-imports.banned-api]`)
 
 `B905` requires an explicit `strict=` on every `zip()`: pass `strict=True` when the iterables must have the same length, and `strict=False` only when truncation is intended.
 
@@ -371,15 +379,15 @@ Configuration in `pyproject.toml` (`[tool.mypy]` section):
 - `[[tool.mypy.overrides]]` for `tests.*` turns off `disallow_untyped_defs` and `disallow_incomplete_defs`, so test functions and fixtures need no annotations
 - Optional dependencies without type information (`mlflow`, `scipy`, `sklearn`, `matplotlib`, `mpl_toolkits`) use `ignore_missing_imports`
 
-Every `# type: ignore` must name its error code, e.g. `# type: ignore[arg-type]` for a test that passes an invalid value on purpose.
+Every `# type: ignore` must name its error code, e.g. `# type: ignore[arg-type]` for a test that passes an invalid value on purpose (Ruff `PGH003`).
 
 ### Style guidelines
 
 - **Indentation**: 4 spaces
 - **Maximum line length**: 127 characters (`line-length` in `[tool.ruff]`)
 - **Strings**: Double quotes (`ruff format` default)
-- **Docstrings**: NumPy style (use ``Parameters\n----------``, ``Returns\n-------``, ``Raises\n------`` sections)
-- **Type hints**: Use Python 3.11 built-in type hint syntax without `from __future__ import annotations`
+- **Docstrings**: NumPy style (Ruff `D` and numpydoc check the layout)
+- **Type hints**: Python 3.11 built-in syntax without `from __future__ import annotations` (Ruff `TID251`); quote a forward reference, e.g. `-> "BezierSpace"` inside the class `BezierSpace`
 
 ### "Bezier" vs "Bézier" spelling
 
