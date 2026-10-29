@@ -47,9 +47,16 @@ geometries use the same `BezierSpace`, `BezierModel` and regression API.
 ## Installation
 
 Requires **Python 3.11 or later** and **PyTorch 2.3 or later (below 3.0)**.
-CI covers Python 3.11 through 3.15. The optional MLflow integration currently
-requires Python 3.11-3.14 because MLflow restricts PyArrow to versions without
-Python 3.15 wheels; this also affects installation with the `all` extra.
+<!-- python-support:start -->
+
+CI covers Python 3.11 through 3.15.
+The optional `mlflow` and `all` extras are tested
+on Python 3.11 through 3.14.
+
+For Python 3.15, install the other integrations with
+`python -m pip install "pytorch-bsf[lightning,sparse,sklearn,plot]"`.
+
+<!-- python-support:end -->
 
 Install the package and its core dependencies with:
 

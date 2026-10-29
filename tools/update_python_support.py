@@ -76,7 +76,23 @@ def integration_versions(versions: list[str], environment: str) -> list[str]:
     return [version for version in versions if version_key(version) <= version_key(candidates[0])]
 
 
-def update_documentation(content: str, name: str, old_minimum: str, minimum: str, integrations: str) -> str:
+def support_notes(versions: list[str], integrations: str, *, rst: bool) -> str:
+    ticks = "``" if rst else "`"
+    notes = (
+        f"CI covers Python {versions[0]} through {versions[-1]}.\n"
+        f"The optional {ticks}mlflow{ticks} and {ticks}all{ticks} extras are tested\n"
+        f"on Python {versions[0]} through {integrations}."
+    )
+    newer = [version for version in versions if version_key(version) > version_key(integrations)]
+    if newer:
+        command = 'python -m pip install "pytorch-bsf[lightning,sparse,sklearn,plot]"'
+        notes += f"\n\nFor Python {', '.join(newer)}, install the other integrations with"
+        notes += f"::\n\n    {command}" if rst else f"\n`{command}`."
+    return notes
+
+
+def update_documentation(content: str, name: str, old_minimum: str, versions: list[str], integrations: str) -> str:
+    minimum = versions[0]
     if f"Python {old_minimum}" not in content:
         raise ValueError(f"Missing Python minimum in {name}")
     content = content.replace(f"Python {old_minimum}", f"Python {minimum}")
@@ -86,6 +102,15 @@ def update_documentation(content: str, name: str, old_minimum: str, minimum: str
             content, r'`target-version = "py\d+"`', f'`target-version = "py{minimum.replace(".", "")}"`'
         )
         content = replace_required(content, r"once on Python 3\.\d+\.", f"once on Python {integrations}.")
+    else:
+        rst = name.endswith(".rst")
+        start, end = (
+            (".. python-support-start", ".. python-support-end")
+            if rst
+            else ("<!-- python-support:start -->", "<!-- python-support:end -->")
+        )
+        notes = support_notes(versions, integrations, rst=rst)
+        content = replace_required(content, rf"{re.escape(start)}[\s\S]*?{re.escape(end)}", f"{start}\n\n{notes}\n\n{end}")
     return content
 
 
@@ -115,7 +140,7 @@ def plan_updates(root: Path, data: dict[str, dict[str, str]], today: date) -> tu
     proposed[path] = replace_required(environment, r"^- python=3\.\d+$", f"- python={integrations}")
     for name in ("README.md", "CONTRIBUTING.md", "docs/installation.rst"):
         path = root / name
-        proposed[path] = update_documentation(path.read_text(encoding="utf-8"), name, old_minimum, minimum, integrations)
+        proposed[path] = update_documentation(path.read_text(encoding="utf-8"), name, old_minimum, versions, integrations)
 
     changes = {path: content for path, content in proposed.items() if path.read_text(encoding="utf-8") != content}
     breaking = "!" if minimum != old_minimum else ""

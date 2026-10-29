@@ -67,6 +67,20 @@ class PythonLifecycleTests(unittest.TestCase):
             text = re.sub(r"`python_version = 3\.\d+`", "`python_version = 3.10`", text)
             text = re.sub(r'`target-version = "py\d+"`', '`target-version = "py310"`', text)
             text = re.sub(r"once on Python 3\.\d+\.", "once on Python 3.14.", text)
+            if name != "CONTRIBUTING.md":
+                ticks = "``" if name.endswith(".rst") else "`"
+                start, end = (
+                    (".. python-support-start", ".. python-support-end")
+                    if name.endswith(".rst")
+                    else ("<!-- python-support:start -->", "<!-- python-support:end -->")
+                )
+                before, marked = text.split(start)
+                _, after = marked.split(end)
+                text = (
+                    f"{before}{start}\n\nCI covers Python 3.10 through 3.14.\n"
+                    f"The optional {ticks}mlflow{ticks} and {ticks}all{ticks} extras are tested\n"
+                    f"on Python 3.10 through 3.14.\n\n{end}{after}"
+                )
             path.write_text(text, encoding="utf-8")
         environment = self.root / "environment.yml"
         environment.write_text(
@@ -154,6 +168,31 @@ class PythonLifecycleTests(unittest.TestCase):
         self.assertIn("3.16", json.loads(configured["matrix"]))
         self.assertNotIn("3.16", json.loads(configured["integration-matrix"]))
         self.assertEqual(configured["integrations"], "3.14")
+        for name in ("README.md", "docs/installation.rst"):
+            text = (self.root / name).read_text(encoding="utf-8")
+            self.assertIn("CI covers Python 3.11 through 3.16.", text)
+            self.assertIn("on Python 3.11 through 3.14.", text)
+            self.assertIn("For Python 3.15, 3.16, install", text)
+            self.assertIn("pytorch-bsf[lightning,sparse,sklearn,plot]", text)
+
+    def test_integration_guidance_changes_when_conda_support_advances(self):
+        self.apply_plan()
+        self.data["3.16"]["status"] = "bugfix"
+        environment = self.root / "environment.yml"
+        for target, affected in (("3.15", "For Python 3.16, install"), ("3.16", None)):
+            environment.write_text(
+                re.sub(r"- python=3\.\d+", f"- python={target}", environment.read_text(encoding="utf-8")), encoding="utf-8"
+            )
+            self.apply_plan(today=date(2027, 10, 10))
+            for name in ("README.md", "docs/installation.rst"):
+                text = (self.root / name).read_text(encoding="utf-8")
+                self.assertIn(f"on Python 3.11 through {target}.", text)
+                if affected:
+                    self.assertIn(affected, text)
+                    self.assertNotIn("For Python 3.15", text)
+                else:
+                    self.assertNotIn("install the other integrations", text)
+            self.assertEqual(updater.plan_updates(self.root, self.data, date(2027, 10, 10))[0], {})
 
     def test_invalid_project_support_cannot_reach_ci_outputs(self):
         for project in ('requires-python = ">=3.10"', 'requires-python = ">=3.10,<4"'):

@@ -72,8 +72,10 @@ the package metadata, so generated PRs do not need to edit workflow files.
 
 `environment.yml` also selects the Python used for full optional integrations,
 documentation and Codecov. Keep that version while it is supported, and advance
-it after checking dependency compatibility. Currently MLflow's PyArrow constraint
-keeps these jobs on Python 3.14; newer matrix entries test the other integrations.
+it after checking dependency compatibility. Optional dependency wheel constraints
+can lag new Python releases; newer matrix entries test the other integrations.
+The README and installation guide track the full-integration range and list the
+newer Python versions that should use the non-MLflow extras.
 The updater raises the Conda Python automatically if it reaches EOL, so this
 compatibility pin cannot retain an EOL interpreter. CI then exposes any remaining
 dependency incompatibility in the generated PR.
