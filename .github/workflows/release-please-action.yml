@@ -5,19 +5,20 @@ on:
     branches:
     - master
 
-permissions:
-  contents: write
-  pull-requests: write
+permissions: {}
 
 jobs:
   github-release:
+    permissions:
+      contents: write
+      pull-requests: write
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release-please.outputs.release_created }}
       tag_name: ${{ steps.release-please.outputs.tag_name }}
     steps:
     - id: release-please
-      uses: google-github-actions/release-please-action@v3
+      uses: google-github-actions/release-please-action@db8f2c60ee802b3748b512940dde88eabd7b7e01 # v3.7.13
       with:
         release-type: python
         package-name: torch_bsf
@@ -28,7 +29,7 @@ jobs:
     needs: github-release
     if: ${{ needs.github-release.outputs.release_created }}
     # Releases created with GITHUB_TOKEN do not trigger release-event workflows.
-    uses: ./.github/workflows/docker.yml
+    uses: ./.github/workflows/docker.yml # zizmor: ignore[self-repository] -- Keep the same-commit reusable workflow syntax supported by actionlint.
     permissions:
       contents: read
       packages: write
@@ -36,13 +37,17 @@ jobs:
       tag_name: ${{ needs.github-release.outputs.tag_name }}
 
   pypi:
+    permissions:
+      contents: read
     needs: github-release
     if: ${{ needs.github-release.outputs.release_created }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      with:
+        persist-credentials: false
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
       with:
         python-version: "3.14"
     - name: Install dependencies
@@ -52,7 +57,7 @@ jobs:
     - name: Build package
       run: python -m build
     - name: Publish package
-      uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
+      uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29 # zizmor: ignore[use-trusted-publishing] -- Configure the PyPI trusted publisher separately before removing the API token.
       with:
         user: __token__
         password: ${{ secrets.PYPI_API_TOKEN }}

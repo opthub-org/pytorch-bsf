@@ -17,3 +17,7 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+  - package-ecosystem: "github-actions" # Keep immutable action pins current
+    directory: "/"
+    schedule:
+      interval: "weekly"
