@@ -76,7 +76,7 @@ The `[develop]` extras include:
 | `hypothesis` | Property-based tests |
 | `mypy` + type stubs | Static type checking |
 | `ruff` | Linting, import sorting and code formatting |
-| `pre-commit` | Running Ruff automatically on `git commit` |
+| `pre-commit` | Running Ruff, numpydoc-validation and typos on `git commit` |
 
 With Conda, install them into the environment with `pip install -e ".[develop]"` as well.
 
@@ -330,8 +330,9 @@ Conventions that a tool can check are enforced by the pre-commit hooks (see [Ins
 CI runs the same hooks (except typos) on all files and fails if they report a problem or change a file. To run them manually:
 
 ```bash
-# Run the hooks on all files, as CI does (CI skips typos)
+# Run the hooks on all files, as CI does
 SKIP=typos pre-commit run --all-files
+# typos: local only while its false positives are observed
 pre-commit run typos --all-files
 
 # Or run Ruff directly
@@ -570,7 +571,7 @@ pytorch-bsf/
 │       └── work-on-issue/SKILL.md    # Implement an issue end to end, up to an open PR
 ├── .github/
 │   ├── workflows/                    # GitHub Actions workflows
-│   │   ├── python-package.yml        # pre-commit (Ruff), pytest, mypy, Sphinx; lowest and optional deps
+│   │   ├── python-package.yml        # pre-commit (Ruff, numpydoc-validation), pytest, mypy, Sphinx; lowest and optional deps
 │   │   ├── release-please-action.yml # Automated releases (CHANGELOG + PyPI publish)
 │   │   ├── docker.yml                # Docker image published to ghcr.io on release
 │   │   ├── sphinx-pages.yml          # Build and publish Sphinx docs to GitHub Pages

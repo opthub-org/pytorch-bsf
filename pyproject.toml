@@ -188,7 +188,7 @@ module = "mpl_toolkits.*"
 ignore_missing_imports = true
 
 [tool.numpydoc_validation]
-# Start with the checks on the structure of docstrings; the ones disabled below are enabled step by step in follow-ups.
+# Start with the checks on the structure of docstrings; the ones disabled below are enabled step by step in #561.
 checks = [
   "all",
   "ES01",  # No extended summary found
