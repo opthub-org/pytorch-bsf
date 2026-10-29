@@ -12,7 +12,8 @@ BSF001
     A string literal that reaches the console must be ASCII, so that it reads correctly under ``LANG=C``
     (write "Bezier", not "Bézier"). Checked: the arguments of ``print`` (with ``sep`` and ``end``), of the
     ``logging`` methods (``debug``, ``info``, ``warning``, ``warn``, ``error``, ``exception``, ``critical``,
-    ``fatal``, ``log``, with ``msg``), of ``warnings.warn`` (with ``message``), of ``add_argument_group``,
+    ``fatal``, ``log``, with ``msg``), of ``warnings.warn`` (with ``message``), of ``add_argument_group`` (with
+    ``title`` and ``description``),
     and of calls whose name ends with ``Error``, ``Warning`` or ``Exception`` (with all keywords); the
     ``description``, ``epilog`` and ``usage`` keywords of ``ArgumentParser`` and ``add_parser``, the
     ``help`` keyword of ``add_parser`` and ``add_argument``, and the ``title``, ``description`` and ``help``
@@ -124,12 +125,14 @@ def _text_parts(node: ast.expr) -> list[ast.expr]:
 
 def _message_strings(node: ast.expr) -> Iterator[tuple[ast.Constant, str]]:
     """Yield the string literals, and their values, of an expression that become part of the resulting text."""
-    if isinstance(node, ast.Constant):
-        if isinstance(node.value, str):
-            yield node, node.value
-    else:
-        for part in _text_parts(node):
-            yield from _message_strings(part)
+    stack = [node]  # not recursive, so that a long chain of + does not exceed the recursion limit
+    while stack:
+        node = stack.pop()
+        if isinstance(node, ast.Constant):
+            if isinstance(node.value, str):
+                yield node, node.value
+        else:
+            stack.extend(reversed(_text_parts(node)))  # reversed to yield in source order
 
 
 def _line_of(character: str, node: ast.expr, source: str) -> int:
@@ -230,6 +233,15 @@ def is_test_file(path: Path) -> bool:
     return path.resolve().is_relative_to(TESTS)
 
 
+def _failure(error: OSError | SyntaxError | ValueError) -> tuple[int, str]:
+    """Return the line and the reason of an error in reading or parsing a file."""
+    if isinstance(error, SyntaxError):  # including a null byte from Python 3.12 and a bad encoding declaration
+        return error.lineno or 1, error.msg
+    if isinstance(error, OSError):
+        return 1, error.strerror or str(error)
+    return 1, str(error)  # undecodable bytes (str gives their position), or a null byte before Python 3.12
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Check the given files, print the violations and return 1 if there are any, 0 otherwise."""
     parser = argparse.ArgumentParser(description="Check the conventions of CONTRIBUTING.md that Ruff cannot check.")
@@ -241,12 +253,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             with tokenize.open(path) as file:  # honors a PEP 263 encoding declaration
                 source = file.read()
             violations = check_source(source, str(path), is_test=is_test_file(path))
-        except (OSError, SyntaxError, ValueError) as error:  # ValueError: undecodable bytes or, before 3.12, null bytes
-            if isinstance(error, SyntaxError):
-                line, reason = error.lineno, error.msg
-            else:
-                line, reason = None, error.strerror if isinstance(error, OSError) else str(error)
-            print(f"{path}:{line or 1}: cannot parse: {reason}")
+        except (OSError, SyntaxError, ValueError) as error:
+            line, reason = _failure(error)
+            print(f"{path}:{line}: cannot parse: {reason}")
             failed = True
             continue
         for violation in violations:

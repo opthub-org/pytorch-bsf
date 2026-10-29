@@ -24,6 +24,7 @@ def codes(source: str, *, is_test: bool = False) -> list[tuple[int, str]]:
         'print("Bézier")',
         'print("x", "Bézier")',
         'print("x", sep="é")',
+        "print(" + " + ".join(['"a"'] * 3000) + ' + "é")',
         'print("x", end="é")',
         'print(f"{n} Bézier simplices")',
         "print(f\"{'Bézier'}\")",
@@ -252,6 +253,7 @@ def test_main_reports_violations_and_exit_status(tmp_path, monkeypatch, capsys):
         b'print("\xe9")\n',  # Latin-1 without an encoding declaration
         b"# -*- coding: bogus -*-\n",
         b'print("x")\n\x00\n',
+        b'x = 1\ny = 2\nprint("\xe9")\n',  # an undecodable byte after the lines of an encoding declaration
         None,  # a path that does not exist
     ],
 )
