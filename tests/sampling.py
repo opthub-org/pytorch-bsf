@@ -896,6 +896,72 @@ def _vertex_kernel(r: int, p: int, q: int) -> Fraction:
     return sum((comb(r, s) * _vertex_kernel_power(s, p, q) for s in range(min(r, p + q) + 1)), Fraction(0))
 
 
+def _scalar_risk_sum(n_vertices: int, degree: int, size: int) -> Fraction:
+    """The scalar angular-mode sum, with no propagation solve or Gram inverse."""
+    n = degree - size
+    total = Fraction(0)
+    for k in range(n + 1):
+        multiplicity = comb(k + size - 2, size - 2) if size >= 2 else int(k == 0)
+        radial = [(-1) ** h * comb(n - k, h) * comb(n + k + 3 * size - 1, h) for h in range(n - k + 1)]
+        total += multiplicity * sum(
+            (
+                radial[h]
+                * radial[ell]
+                * math.factorial(2 * degree + size - h - ell - 1)
+                * math.factorial(h)
+                * math.factorial(ell)
+                * _vertex_kernel(n_vertices - size, h, ell)
+                for h in range(n - k + 1)
+                for ell in range(n - k + 1)
+            ),
+            Fraction(0),
+        )
+    return comb(n_vertices, size) ** 2 * total / (math.factorial(size - 1) * _rising(n_vertices, 2 * degree))
+
+
+def _third_face_polynomial(degree: int, n_vertices: int) -> Fraction:
+    """P_{D,D-3}(M) from the degree-independent quartic, not fitted table entries."""
+    s = degree - 2
+    q = n_vertices - s
+    quartic = (
+        9 * (3 * s + 1) * q**4
+        - 78 * (3 * s + 1) * q**3
+        + (432 * s**2 + 1209 * s + 547) * q**2
+        - 2 * (648 * s**2 + 1221 * s + 623) * q
+        + 288 * (s + 1) ** 2 * (3 * s + 2)
+    )
+    return Fraction(math.factorial(3 * s - 1) * s**2 * (3 * s + 1) * quartic, 64 * math.factorial(s - 1))
+
+
+@pytest.mark.parametrize(("n_vertices", "degree"), [(m, d) for m in (2, 3, 4) for d in range(1, 6)])
+def test_scalar_risk_sum_matches_independent_gram_recursion(n_vertices, degree):
+    exact, _, _ = _exact_coefficients(n_vertices, degree)
+    for size in range(1, min(degree, n_vertices) + 1):
+        assert _scalar_risk_sum(n_vertices, degree, size) == exact[size - 1]
+
+
+@pytest.mark.parametrize("degree", range(3, 9))
+def test_third_face_quartic_matches_all_tabulated_polynomial_coefficients(degree):
+    # Both sides have degree at most four: five exact evaluations certify polynomial equality.
+    for n_vertices in range(degree - 2, degree + 3):
+        assert _third_face_polynomial(degree, n_vertices) == _risk_polynomial(degree, degree - 3, n_vertices)
+
+
+def test_third_face_quartic_outside_the_degree_table():
+    # Independent local Gram solve and orbit counting at D=9; no quartic data is used by the reference.
+    coefficients = _counted_risk_polynomial(9, 6)
+    for n_vertices in range(7, 12):
+        reference = sum((c * n_vertices**i for i, c in enumerate(coefficients)), Fraction(0))
+        assert _third_face_polynomial(9, n_vertices) == reference
+
+
+@pytest.mark.parametrize("degree", [3, 4, 5, 8, 9, 12, 30])
+def test_third_face_quartic_at_the_top_face_boundary(degree):
+    size = degree - 2
+    risk = _third_face_polynomial(degree, size) / _rising(size, 2 * degree)
+    assert risk == comb(degree - 1, size - 1)
+
+
 def _vertex_risk_sum(n_vertices: int, degree: int) -> Fraction:
     numerator = sum(
         (

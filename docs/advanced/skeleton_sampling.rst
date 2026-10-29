@@ -110,7 +110,10 @@ them:
 - For :math:`D \leq M`,
   :math:`a_{D-1} = \binom{M}{D}^2 (3D-1)! / ((D-1)!\,(M)_{2D})`, where
   :math:`(M)_k = M (M+1) \cdots (M+k-1)`. For :math:`D = 1` this is
-  :math:`a_0 = 2M / (M + 1)`. :math:`a_{D-2}` has a closed form too.
+  :math:`a_0 = 2M / (M + 1)`. :math:`a_{D-2}` and :math:`a_{D-3}`
+  also have closed forms in both :math:`D` and :math:`M`; see
+  :prf:ref:`prop-skeleton-second-faces` and
+  :prf:ref:`thm-skeleton-third-faces`.
 - On curves (:math:`M = 2`), :math:`a_0 = 4 / (D (D + 2))` and
   :math:`a_1 = D - 1`.
 - For a fixed degree, every :math:`a_m` is a rational function of :math:`M`
@@ -119,7 +122,10 @@ them:
 
 These closed forms rest on a structure theorem: the errors that a face
 passes to larger faces are determined by the errors it passes to the faces
-with one more vertex.
+with one more vertex. More generally, :prf:ref:`thm-skeleton-scalar-sum`
+gives every coefficient as a finite scalar sum, without Gram-matrix
+inversion or propagation recursion. Simplification to a bounded number of
+functions remains open in the ranges listed in the theory chapter.
 
 The optimal ratio
 -----------------
