@@ -10,12 +10,11 @@ from torch_bsf.core import _integer
 DiagnosticLevel = Literal["basic", "full"]
 
 
-# numpydoc reads the source and cannot see the dataclass fields that the Parameters section documents.
 @dataclass(frozen=True)
-class DenseLeastSquares:  # numpydoc ignore=PR02
+class DenseLeastSquares:
     """CPU float64 SVD solve of the augmented problem, without normal equations.
 
-    Parameters
+    Attributes
     ----------
     rcond
         Relative singular-value cutoff. ``None`` uses machine epsilon times
@@ -34,12 +33,11 @@ class DenseLeastSquares:  # numpydoc ignore=PR02
         _choice(self.diagnostics, "diagnostics", ("basic", "full"), message="diagnostics must be 'basic' or 'full'.")
 
 
-# numpydoc reads the source and cannot see the dataclass fields that the Parameters section documents.
 @dataclass(frozen=True)
-class SparseLeastSquares:  # numpydoc ignore=PR02
+class SparseLeastSquares:
     """Optional SciPy LSMR on CPU float64, with explicit per-output stop codes.
 
-    Parameters
+    Attributes
     ----------
     atol, btol
         Backward-error stopping tolerances.

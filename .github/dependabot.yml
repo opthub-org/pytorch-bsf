@@ -13,7 +13,7 @@ updates:
     versioning-strategy: increase-if-necessary
     schedule:
       interval: "weekly"
-  - package-ecosystem: "pre-commit" # Bumps `rev` of the hooks in .pre-commit-config.yaml (Ruff)
+  - package-ecosystem: "pre-commit" # Bumps `rev` of the hooks in .pre-commit-config.yaml (Ruff, numpydoc, typos)
     directory: "/"
     schedule:
       interval: "weekly"

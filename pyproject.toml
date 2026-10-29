@@ -201,5 +201,5 @@ checks = [
   "SA01",  # See Also section not found
   "SS05",  # Summary must start with infinitive verb, not third person
 ]
-# Private objects (_name) and special methods (__name__); private modules are excluded in .pre-commit-config.yaml
-exclude = ['\._\w*$', '\.__\w+__$']
+# Private objects (_name), which include special methods (__name__); private modules are excluded in .pre-commit-config.yaml
+exclude = ['\._\w*$']

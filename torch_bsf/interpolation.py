@@ -252,7 +252,7 @@ def _pair_exponents(f: torch.Tensor, g: torch.Tensor, axis_exponent: torch.Tenso
 def _local_pair_coordinates(
     f: torch.Tensor, g: torch.Tensor, axis_exponent: torch.Tensor
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """Return faces ``f`` and ``g`` (p, d, d) translated and scaled exactly, with their largest coordinates (p,).
+    """Return faces ``f`` and ``g`` (p, d, d) in exact local units, with their largest coordinates (p,).
 
     The faces are taken relative to the first vertex of ``f`` and scaled by :func:`_pair_exponents` (exactly);
     the largest absolute coordinate of each pair is returned in the same units.

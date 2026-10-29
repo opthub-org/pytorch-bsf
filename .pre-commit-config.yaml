@@ -1,7 +1,7 @@
 # pre-commit hooks: https://pre-commit.com/
 # Install the git hook once per clone with `pre-commit install`; it also applies to all `git worktree`s of the clone.
-# The Ruff version below is the single source of truth: CI runs these same hooks with `pre-commit run --all-files`,
-# and Dependabot (`package-ecosystem: "pre-commit"` in .github/dependabot.yml) bumps `rev`.
+# The hook versions below are the single source of truth: CI runs these same hooks (except typos, see SKIP in
+# .github/workflows/python-package.yml) with `pre-commit run --all-files`, and Dependabot (`package-ecosystem: "pre-commit"` in .github/dependabot.yml) bumps `rev`.
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.17.2
