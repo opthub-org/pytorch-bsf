@@ -116,6 +116,11 @@ them:
   :prf:ref:`thm-skeleton-third-faces`.
 - On curves (:math:`M = 2`), :math:`a_0 = 4 / (D (D + 2))` and
   :math:`a_1 = D - 1`.
+- On triangles (:math:`M=3`) and for every :math:`D\geq2`,
+  :math:`a_1=18(H_{D-1}+H_{2D+2}-H_{D+3})/(2D+3)`, where
+  :math:`H_j=\sum_{i=1}^j1/i`. More generally,
+  :prf:ref:`thm-skeleton-codimension-one` gives every coefficient of
+  codimension one as a single finite rational sum.
 - For a fixed degree, every :math:`a_m` is a rational function of :math:`M`
   and converges as :math:`M` grows; for example,
   :math:`a_0 \to 2 D^2 (D+1)^2 / 4^D`.

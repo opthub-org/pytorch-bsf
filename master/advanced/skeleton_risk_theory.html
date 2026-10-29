@@ -71,6 +71,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#closed-forms">Closed forms</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#curves">Curves</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#a-scalar-finite-sum-for-every-coefficient">A scalar finite sum for every coefficient</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#codimension-one-and-the-triangle-edge-risk">Codimension one and the triangle edge risk</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#fixed-degree-growing-dimension">Fixed degree, growing dimension</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#open-questions">Open questions</a></li>
 </ul>
@@ -470,8 +471,9 @@ monomials span all polynomials of that degree on <span class="math notranslate n
 </section>
 <section id="triangular-jacobi-extension">
 <h2>Triangular Jacobi extension<a class="headerlink" href="#triangular-jacobi-extension" title="Link to this heading"></a></h2>
-<p>The orthogonal-polynomial construction does extend beyond curves, although
-it does not yet give a scalar closed form for <span class="math notranslate nohighlight">\(a_1\)</span>.</p>
+<p>The orthogonal-polynomial construction extends beyond curves. Evaluating
+its mode norms below gives a harmonic-number closed form for <span class="math notranslate nohighlight">\(a_1\)</span>
+on triangles.</p>
 <div class="proof proposition admonition" id="prop-skeleton-triangle-jacobi">
 <p class="admonition-title"><span class="caption-number">Proposition 1 </span> (Propagation from an edge via Jacobi polynomials)</p>
 <section class="proposition-content" id="proof-content">
@@ -742,7 +744,7 @@ coordinate. For every <span class="math notranslate nohighlight">\(D\geq1\)</spa
 \sum_{k=1}^D\sum_{l=1}^D
 w_k w_l\binom{k+l}{k}K_{M-1}(D-k,D-l).\]</div>
 <p>In particular, the polynomial <span class="math notranslate nohighlight">\(P_{D,0}\)</span> in
-<a class="reference internal" href="#thm-skeleton-rational">Theorem 14</a> has the general finite expression</p>
+<a class="reference internal" href="#thm-skeleton-rational">Theorem 15</a> has the general finite expression</p>
 <div class="math notranslate nohighlight" id="equation-skeleton-vertex-polynomial">
 <span class="eqno">(9)<a class="headerlink" href="#equation-skeleton-vertex-polynomial" title="Link to this equation"></a></span>\[P_{D,0}(M) = (D!)^2\sum_{s=0}^{2D-2}\binom{M-1}{s}
 \sum_{k,l=1}^D w_k w_l\binom{k+l}{k}
@@ -859,10 +861,85 @@ in the stated formula, each norm ratio equals one, and the sum is
 <span class="math notranslate nohighlight">\(\sum_k d_s(k)=\binom{D-1}{s-1}\)</span>, including <span class="math notranslate nohighlight">\(s=1\)</span>.</p>
 </div>
 </section>
+<section id="codimension-one-and-the-triangle-edge-risk">
+<h2>Codimension one and the triangle edge risk<a class="headerlink" href="#codimension-one-and-the-triangle-edge-risk" title="Link to this heading"></a></h2>
+<div class="proof theorem admonition" id="thm-skeleton-codimension-one">
+<p class="admonition-title"><span class="caption-number">Theorem 14 </span> (Faces of codimension one)</p>
+<section class="theorem-content" id="proof-content">
+<p>For <span class="math notranslate nohighlight">\(s\geq1\)</span>, <span class="math notranslate nohighlight">\(M=s+1\)</span>, and <span class="math notranslate nohighlight">\(D\geq s\)</span>, put
+<span class="math notranslate nohighlight">\(n=D-s\)</span> and use <span class="math notranslate nohighlight">\(d_s(k)\)</span> from
+<a class="reference internal" href="#thm-skeleton-scalar-sum">Theorem 13</a>. Then</p>
+<div class="math notranslate nohighlight">
+\[a_{s-1}(s+1,D)=s(s+1)^2\sum_{k=0}^n
+ \frac{d_s(k)}{(n-k+1)(n+k+3s)}.\]</div>
+<p>Thus the two radial sums and the kernel extraction reduce to a single
+sum of <span class="math notranslate nohighlight">\(n+1\)</span> rational terms; there are no polynomial integrals,
+Gram matrices or propagation coefficients to compute.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. In the mode extension of <a class="reference internal" href="#thm-skeleton-scalar-sum">Theorem 13</a>, there is
+just one outside coordinate <span class="math notranslate nohighlight">\(y\)</span>. Averaging <span class="math notranslate nohighlight">\(y^h\)</span> multiplies
+its coefficient by <span class="math notranslate nohighlight">\(1/(h+1)\)</span>. Write <span class="math notranslate nohighlight">\(L=n-k\)</span> and
+<span class="math notranslate nohighlight">\(\beta=3s+2k-1\)</span>. The homogeneous radial polynomial therefore
+becomes, on <span class="math notranslate nohighlight">\(r+y=1\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[\sum_{h=0}^L\frac{(-1)^h}{h+1}\binom Lh\binom{L+\beta}{h}
+  r^{L-h}(1-r)^h
+=\frac{P_L^{(1,\beta)}(2r-1)}{L+1}.\]</div>
+<p>The beta density of <span class="math notranslate nohighlight">\(r\)</span> is <span class="math notranslate nohighlight">\(sr^{s-1}\)</span>. After the angular
+norm cancels, the full-to-face squared-norm ratio of this mode is</p>
+<div class="math notranslate nohighlight">
+\[\frac{s}{(L+1)^2}\int_0^1 r^\beta
+   P_L^{(1,\beta)}(2r-1)^2\,dr
+=\frac{s}{(L+1)(L+\beta+1)}.\]</div>
+<p>For completeness, the last integral follows from the reproducing
+kernel for polynomials of degree at most <span class="math notranslate nohighlight">\(L\)</span> with weight
+<span class="math notranslate nohighlight">\(r^\beta\)</span>. The shifted polynomials
+<span class="math notranslate nohighlight">\(P_j^{(0,\beta)}\)</span> have squared norms
+<span class="math notranslate nohighlight">\(1/(2j+\beta+1)\)</span> and endpoint value one. Hence its kernel at
+endpoint one is
+<span class="math notranslate nohighlight">\(C_L(r)=\sum_{j=0}^L(2j+\beta+1)P_j^{(0,\beta)}(2r-1)\)</span>,
+with <span class="math notranslate nohighlight">\(\int r^\beta C_L(r)g(r)\,dr=g(1)\)</span>.
+Taking <span class="math notranslate nohighlight">\(g=(1-r)h\)</span>, <span class="math notranslate nohighlight">\(\deg h&lt;L\)</span>, identifies
+<span class="math notranslate nohighlight">\(C_L=(L+\beta+1)P_L^{(1,\beta)}\)</span> by orthogonality and
+<span class="math notranslate nohighlight">\(C_L(1)=(L+1)(L+\beta+1)\)</span>. Taking <span class="math notranslate nohighlight">\(g=C_L\)</span> proves
+<span class="math notranslate nohighlight">\(\int r^\beta P_L^{(1,\beta)}(2r-1)^2\,dr
+=(L+1)/(L+\beta+1)\)</span>.
+Sum the mode ratios with their multiplicities and multiply by
+<span class="math notranslate nohighlight">\(\binom{s+1}s^2=(s+1)^2\)</span>.</p>
+</div>
+<div class="proof corollary admonition" id="cor-skeleton-triangle-edge-risk">
+<p class="admonition-title"><span class="caption-number">Corollary 4 </span> (Triangle edge risk in harmonic numbers)</p>
+<section class="corollary-content" id="proof-content">
+<p>For every <span class="math notranslate nohighlight">\(D\geq2\)</span>,</p>
+<div class="math notranslate nohighlight" id="equation-skeleton-triangle-edge-risk">
+<span class="eqno">(11)<a class="headerlink" href="#equation-skeleton-triangle-edge-risk" title="Link to this equation"></a></span>\[a_1(3,D)=\frac{18}{2D+3}
+  \bigl(H_{D-1}+H_{2D+2}-H_{D+3}\bigr),
+\qquad H_j=\sum_{i=1}^j\frac1i,\quad H_0=0.\]</div>
+<p>At <span class="math notranslate nohighlight">\(D=1\)</span> there are no edge controls and <span class="math notranslate nohighlight">\(a_1=0\)</span>.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Take <span class="math notranslate nohighlight">\(s=2\)</span>, so every <span class="math notranslate nohighlight">\(d_2(k)=1\)</span>, and set
+<span class="math notranslate nohighlight">\(j=D-1-k\)</span>. The preceding sum is
+<span class="math notranslate nohighlight">\(18\sum_{j=1}^{D-1}1/(j(2D+3-j))\)</span>. Partial fractions give
+<span class="math notranslate nohighlight">\(1/(j(C-j))=(1/j+1/(C-j))/C\)</span> with <span class="math notranslate nohighlight">\(C=2D+3\)</span>.
+The two sums are <span class="math notranslate nohighlight">\(H_{D-1}\)</span> and
+<span class="math notranslate nohighlight">\(H_{2D+2}-H_{D+3}\)</span>, respectively.</p>
+</div>
+<p>In particular, <span class="math notranslate nohighlight">\(a_1(3,D)=9\log D/D+O(1/D)\)</span> as
+<span class="math notranslate nohighlight">\(D\to\infty\)</span>. The exact formula reproduces
+<span class="math notranslate nohighlight">\(3,99/28,71/20,188/55,81259/25025,123021/40040\)</span> at
+<span class="math notranslate nohighlight">\(D=2,\ldots,7\)</span>. The tests also compare all Jacobi modes and their
+risks with independent rational Gram solves at <span class="math notranslate nohighlight">\(D=8,9,10\)</span>, beyond
+the original table. These are checks of the proof, not data used to infer
+the formula. On the development machine the complete mode-and-risk checks
+took about 0.14, 0.27 and 0.52 seconds at these degrees, respectively, and
+run in the normal test suite.</p>
+</section>
 <section id="fixed-degree-growing-dimension">
 <h2>Fixed degree, growing dimension<a class="headerlink" href="#fixed-degree-growing-dimension" title="Link to this heading"></a></h2>
 <div class="proof theorem admonition" id="thm-skeleton-rational">
-<p class="admonition-title"><span class="caption-number">Theorem 14 </span> (Rational dependence on the dimension)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 15 </span> (Rational dependence on the dimension)</p>
 <section class="theorem-content" id="proof-content">
 <p>For fixed <span class="math notranslate nohighlight">\(D\)</span> and <span class="math notranslate nohighlight">\(m &lt; D\)</span>, there is a polynomial
 <span class="math notranslate nohighlight">\(P_{D,m}\)</span> of degree at most <span class="math notranslate nohighlight">\(2(D - m - 1)\)</span> such that, for every
@@ -1062,7 +1139,7 @@ evaluation of the definition for small <span class="math notranslate nohighlight
 <a class="reference internal" href="#prop-skeleton-degree-faces">Proposition 3</a> and
 <a class="reference internal" href="#prop-skeleton-second-faces">Proposition 4</a>.</p>
 <div class="proof corollary admonition" id="cor-skeleton-large-dimension">
-<p class="admonition-title"><span class="caption-number">Corollary 4 </span> (Large dimension)</p>
+<p class="admonition-title"><span class="caption-number">Corollary 5 </span> (Large dimension)</p>
 <section class="corollary-content" id="proof-content">
 <p>For fixed <span class="math notranslate nohighlight">\(D\)</span>, every <span class="math notranslate nohighlight">\(a_m\)</span> converges as <span class="math notranslate nohighlight">\(M \to \infty\)</span>.
 In particular</p>
@@ -1077,7 +1154,7 @@ skeleton fitting wins in all sufficiently high dimensions.</p>
 </section>
 </div><div class="proof admonition" id="proof">
 <p>Proof. <span class="math notranslate nohighlight">\(\binom{M}{m+1}^2 / (M)_{2D}\)</span> has degree <span class="math notranslate nohighlight">\(2(m + 1) - 2D\)</span>, so
-the degree bound of <a class="reference internal" href="#thm-skeleton-rational">Theorem 14</a> gives convergence.
+the degree bound of <a class="reference internal" href="#thm-skeleton-rational">Theorem 15</a> gives convergence.
 The last two limits follow from <a class="reference internal" href="#prop-skeleton-degree-faces">Proposition 3</a> and
 <a class="reference internal" href="#prop-skeleton-second-faces">Proposition 4</a>.</p>
 <p>For <span class="math notranslate nohighlight">\(a_0\)</span>, the leading term counts the pairs with
@@ -1145,11 +1222,11 @@ around once the dimension is large enough.</p>
 <span class="math notranslate nohighlight">\(m=D-3\)</span> family, and <a class="reference internal" href="#thm-skeleton-scalar-sum">Theorem 13</a> gives a
 finite scalar expression in every remaining case. Reducing those sums
 to a bounded number of functions remains open.
-<a class="reference internal" href="#prop-skeleton-triangle-jacobi">Proposition 1</a> solves the triangular
-orthogonal-extension step for <span class="math notranslate nohighlight">\(m=1\)</span>, using separated angular
-and radial Jacobi polynomials. Substitution into the Gram trace gives
-a finite exact procedure, but the resulting sums have not been
-evaluated to a scalar closed form for <span class="math notranslate nohighlight">\(a_1\)</span>.</p>
+<a class="reference internal" href="#thm-skeleton-codimension-one">Theorem 14</a> further reduces every
+codimension-one coefficient to a single rational sum, and
+<a class="reference internal" href="#cor-skeleton-triangle-edge-risk">Corollary 4</a> evaluates the triangular
+edge coefficient for every degree in harmonic numbers. The remaining
+simplification question concerns other dimensions and skeletons.</p>
 <p>A single radial polynomial shared by all angular modes does not
 provide this extension. Already at <span class="math notranslate nohighlight">\(D=4\)</span> (<span class="math notranslate nohighlight">\(N=2\)</span>), the
 normalized radial factors for <span class="math notranslate nohighlight">\(k=0,1,2\)</span> are respectively
@@ -1157,15 +1234,10 @@ normalized radial factors for <span class="math notranslate nohighlight">\(k=0,1
 polynomials, each equal to one at <span class="math notranslate nohighlight">\(r=1\)</span>. Thus this particular
 separation ansatz fails, while the mode-dependent construction above
 succeeds. This rules out only that ansatz, not other closed forms.</p>
-<p>Exact rational checks of every angular mode for
-<span class="math notranslate nohighlight">\(D=2,\dots,7\)</span> reproduce the independently solved propagation
-matrices and, after reconstructing the Gram trace, give
-<span class="math notranslate nohighlight">\(a_1=3,99/28,71/20,188/55,81259/25025,\dots\)</span> for <span class="math notranslate nohighlight">\(M=3\)</span>.
-The complete checked values are fixed in <code class="docutils literal notranslate"><span class="pre">tests/sampling.py</span></code>.
-Large prime factors in these values do not rule out a hypergeometric
-formula: no nonexistence claim or conjecture of that kind is made.
-The angular construction now applies to every face; further evaluation
-of the resulting scalar risk sums remains open.</p>
+<p>Exact rational checks of every triangular angular mode for
+<span class="math notranslate nohighlight">\(D=2,\dots,10\)</span> reproduce the independently solved propagation
+matrices and the harmonic-number formula. Prime factors in individual
+risk values give no obstruction to such formulas.</p>
 </li>
 <li><p><strong>A simpler form of a_0 for finite M ≥ 3.</strong>
 <a class="reference internal" href="#equation-skeleton-vertex-double-sum">(8)</a> reduces the control-pair sum to a
@@ -1200,7 +1272,7 @@ both variables. No WZ certificate or bounded-order recurrence is
 asserted.</p>
 </li>
 <li><p><strong>Exact crossover dimensions for every degree.</strong>
-<a class="reference internal" href="#cor-skeleton-large-dimension">Corollary 4</a> shows that a crossover dimension
+<a class="reference internal" href="#cor-skeleton-large-dimension">Corollary 5</a> shows that a crossover dimension
 exists for every <span class="math notranslate nohighlight">\(D\)</span>, and <a class="reference internal" href="#prop-skeleton-wins">Proposition 5</a> determines it
 for <span class="math notranslate nohighlight">\(D \leq 8\)</span>. For <span class="math notranslate nohighlight">\(D=3,\ldots,8\)</span>, the crossover vertex
 counts are <span class="math notranslate nohighlight">\(11,20,29,39,49,60\)</span>. In particular the apparent arithmetic
