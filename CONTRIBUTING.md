@@ -313,6 +313,40 @@ after release-please creates a release; manually published releases trigger it
 directly. Stable semantic versions receive the `latest` image tag automatically;
 prereleases do not.
 
+Release Please uses the supported `googleapis/release-please-action` repository,
+pinned to [v5.0.0](https://github.com/googleapis/release-please-action/releases/tag/v5.0.0)
+(Node 24). Its [manifest configuration](https://github.com/googleapis/release-please-action/tree/45996ed1f6d02564a971a2fa1b5860e934307cf7#advanced-release-configuration)
+is in `release-please-config.json`; the removed v3 Action inputs `package-name`
+and `bump-minor-pre-major` belong in that file. Do not also pass the Action's
+`release-type` input: it selects a different mode that bypasses the manifest.
+The root package keeps the release identifier `torch_bsf`, distribution name
+`pytorch-bsf` in `pyproject.toml`, and existing `v0.x.y` tags without a component
+prefix. The manifest starts at the existing `v0.24.0` release; future release PRs
+update `.release-please-manifest.json`, `pyproject.toml` and `CHANGELOG.md` together.
+Do not clear the manifest or set a new bootstrap version during an Action update.
+
+The root component's `release_created` and `tag_name` outputs connect to the
+Docker and PyPI jobs. Both publish only when `release_created == 'true'`, and
+both build the reported release tag. Keep the reusable Docker call: releases
+created with `GITHUB_TOKEN` do not start another release-event workflow.
+
+Validate release configuration without creating a release or publishing anything:
+
+```bash
+# Node 24 or later; these dependencies are only for the offline fixture
+npm ci --prefix tests/tools/release-please-fixture --ignore-scripts --no-audit --no-fund
+npm test --prefix tests/tools/release-please-fixture
+```
+
+The **Release configuration** PR check runs the same fixture. It uses the real
+Release Please 17.6.0 engine bundled in Action v5.0.0 and compares version bumps
+with 15.13.0 from the previous Action v3.7.13. From 0.24.0, breaking changes and
+features produce 0.25.0; fixes produce 0.24.1. It validates the schemas, release
+history boundary, Python/CHANGELOG/manifest updates and publication wiring with
+an in-memory repository that rejects writes. When changing the Action pin,
+update the fixture's engine dependency and lockfile to match the upstream
+Action's lockfile, then rerun the check.
+
 1. Push your branch and open a Pull Request targeting `master`.
 2. In the PR description, include what changed, the related issue (`Closes #XXX`), how to test it, and the result of the local review.
 3. After opening the PR and after every push, check whether Codex is reviewing or has reviewed the current head. If neither applies and no request for that head is already pending, automatically request review with an `@codex review` PR comment and verify acknowledgement for that SHA. The `work-on-issue` skill authorizes these review-request comments on its own PR. Wait for all CI checks (GitHub Actions) and the Codex review of the current head commit. Repeat after every push; results for an older SHA do not cover the new head.
