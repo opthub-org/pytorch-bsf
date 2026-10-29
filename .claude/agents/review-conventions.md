@@ -12,7 +12,7 @@ First read `.claude/skills/review-local/protocol.md` in the repository path you 
 
 - Run `"$PY" -m ruff check <changed .py files>`, `"$PY" -m ruff format --check <changed .py files>` and `"$PY" -m mypy torch_bsf tests`; report failures.
 - "Bezier" in identifiers and console-facing strings (CLI help, `print`, log, warning and error messages), "Bézier" everywhere else.
-- NumPy-style docstrings with the exact section underlines; type hints in Python 3.10 built-in syntax without `from __future__ import annotations`.
+- NumPy-style docstrings with the exact section underlines; type hints in Python 3.11 built-in syntax without `from __future__ import annotations`.
 - Test naming and placement (`torch_bsf/foo.py` → `tests/foo.py`).
 - Commits: Conventional Commits, English, imperative, first line under 72 characters, scope sensible; branch named `<type>/<issue>-<desc>` (`git log <base>..HEAD --format=%s`, `git branch --show-current`).
 - No generated files committed (`coverage.xml`, `pytest.xml`, `htmlcov/`, `docs/_build/`, `lightning_logs/`), no stray untracked artifacts staged.

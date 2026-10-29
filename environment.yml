@@ -6,7 +6,7 @@ dependencies:
 - python=3.14
 - "pytorch>=2.6,<3"
 - "lightning>=2.4,<3"
-- "numpy>=1.21.2,<3"
+- "numpy>=1.23.2,<3"
 - "sympy>=1.12,<2"
 - "mlflow>=3.11.1,<4"
 - "pyyaml>=6,<7"

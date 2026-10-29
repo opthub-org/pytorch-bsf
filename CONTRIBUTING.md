@@ -29,7 +29,7 @@ pytorch-bsf is a Python library for Bézier Simploid Fitting (formerly Bézier S
 
 pytorch-bsf is a library installed alongside other packages, so `[project].dependencies` in `pyproject.toml` declares the widest ranges that work, not the latest versions:
 
-- **Lower bound**: the oldest version that passes the tests. The `lowest` job of `.github/workflows/python-package.yml` installs every lower bound on Python 3.10 (`uv pip install --resolution lowest-direct '.[lightning,mlflow]'`, so the bounds of the optional `lightning` and `mlflow` are checked too) and runs pytest, so a bound that does not work fails CI. Raise a lower bound only when the code needs a newer feature or a bug fix, and say why in the PR.
+- **Lower bound**: the oldest version that passes the tests. The `lowest` job of `.github/workflows/python-package.yml` installs every lower bound on Python 3.11 (`uv pip install --resolution lowest-direct '.[lightning,mlflow]'`, so the bounds of the optional `lightning` and `mlflow` are checked too) and runs pytest, so a bound that does not work fails CI. Raise a lower bound only when the code needs a newer feature or a bug fix, and say why in the PR.
 - **Upper bound**: below the next major version (`<3`). Widen it after checking that the new major version works.
 - **Dependabot** uses `versioning-strategy: widen`: it opens a PR only when a new release falls outside a range, and never raises a lower bound.
 - Declare only packages that `torch_bsf` imports. Do not pin transitive dependencies to work around a bug in another package; if one is unavoidable, add a comment with the upstream issue.
@@ -41,7 +41,7 @@ pytorch-bsf is a library installed alongside other packages, so `[project].depen
 
 ### Prerequisites
 
-- Python 3.10 or later
+- Python 3.11 or later
 - [Conda](https://docs.conda.io/) or pip
 
 ### With Conda (recommended)
@@ -337,7 +337,7 @@ The Ruff version is pinned by `rev` in `.pre-commit-config.yaml`, which is the s
 Configuration in `pyproject.toml` (`[tool.ruff]` section):
 
 - `line-length = 127`
-- `target-version = "py310"`
+- `target-version = "py311"`
 - `select = ["E", "F", "W", "I", "UP", "B", "SIM", "C90"]` (pycodestyle errors and warnings, Pyflakes, isort, pyupgrade, flake8-bugbear, flake8-simplify, McCabe complexity)
 - `max-complexity = 10` (`[tool.ruff.lint.mccabe]` section): split a function whose cyclomatic complexity exceeds 10 into smaller helpers
 
@@ -363,7 +363,7 @@ mypy torch_bsf tests
 
 Configuration in `pyproject.toml` (`[tool.mypy]` section):
 
-- `python_version = 3.10` (type checking targets the minimum supported version)
+- `python_version = 3.11` (type checking targets the minimum supported version)
 - `warn_return_any`, `warn_unused_configs`, `warn_unused_ignores`, `warn_redundant_casts`
 - `disallow_untyped_defs`, `disallow_incomplete_defs`: every function in `torch_bsf` must be fully annotated
 - `check_untyped_defs`: the bodies of unannotated functions (e.g., tests) are type-checked too
@@ -379,7 +379,7 @@ Every `# type: ignore` must name its error code, e.g. `# type: ignore[arg-type]`
 - **Maximum line length**: 127 characters (`line-length` in `[tool.ruff]`)
 - **Strings**: Double quotes (`ruff format` default)
 - **Docstrings**: NumPy style (use ``Parameters\n----------``, ``Returns\n-------``, ``Raises\n------`` sections)
-- **Type hints**: Use Python 3.10 built-in type hint syntax without `from __future__ import annotations`
+- **Type hints**: Use Python 3.11 built-in type hint syntax without `from __future__ import annotations`
 
 ### "Bezier" vs "Bézier" spelling
 
