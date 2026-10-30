@@ -10,6 +10,9 @@ correct repair, and add a regression test. If a repair already exists, address
 its CI failures and review findings. Read the relevant code and tests before
 changing it. Run focused tests with `PYTHONPATH=. python -m pytest -o addopts=''`
 so imports come from the candidate rather than the installed trusted baseline.
+When review_required is true, independently re-examine the existing patch and
+repair any remaining defect. Detailed negative-review diagnostics are not kept
+in public state; reconstruct the problem from current code and private alerts.
 
 For the daily audit, inspect executable code, model loading/deserialization,
 file paths, subprocesses, dependency declarations, Docker, and CI boundaries.

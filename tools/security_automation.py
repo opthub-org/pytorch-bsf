@@ -33,6 +33,24 @@ MAX_PATCH_BYTES = 750_000
 BOT = "github-actions[bot]"
 PROTECTED = (".git", ".agents", ".claude", ".codex", ".github/security", "tools/security_", "tests/tools/security_")
 ACTION_PIN = re.compile(r"^(\s*(?:- )?uses:\s+[\w./-]+@)[0-9a-f]{40}(\s*(?:#.*)?)$", re.MULTILINE)
+POST_MERGE = [*WORKFLOWS, "release-please-action.yml", "sphinx-pages.yml"]
+VALIDATION_PATHS = {
+    ".pre-commit-config.yaml",
+    ".coveragerc",
+    "codecov.yml",
+    "codecov.yaml",
+    ".codecov.yml",
+    ".codecov.yaml",
+    "pytest.ini",
+    "tox.ini",
+    "setup.cfg",
+    ".gitattributes",
+    "tools/lint_conventions.py",
+    "tools/check_distribution.py",
+    "tools/update_python_support.py",
+    "tests/tools/release-please-fixture/test.cjs",
+}
+CREDENTIAL_NAMES = {".netrc", ".npmrc", ".pypirc", "credentials.json", "service-account.json", "id_rsa", "id_ed25519"}
 
 
 class GitHub:
@@ -41,14 +59,21 @@ class GitHub:
         self.token = os.environ["GH_TOKEN"]
 
     def request(self, path: str, method: str = "GET", data: Any = None) -> Any:
+        return self._response(path, method, data)[0]
+
+    def _response(self, path: str, method: str = "GET", data: Any = None) -> tuple[Any, str]:
         url = "https://api.github.com" + path
-        headers = {"Authorization": f"Bearer {self.token}", "Accept": "application/vnd.github+json"}
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "pytorch-bsf-security-automation",
+        }
         payload = None if data is None else json.dumps(data).encode()
         request = urllib.request.Request(url, data=payload, headers=headers, method=method)
         try:
             with urllib.request.urlopen(request, timeout=60) as response:
                 body = response.read()
-                return json.loads(body) if body else None
+                return (json.loads(body) if body else None), response.headers.get("Link", "")
         except urllib.error.HTTPError as error:
             # Do not print API response bodies, tokens, or secret-scanning payloads.
             raise GitHubError(f"GitHub {method} {path.split('?')[0]} returned HTTP {error.code}", error.code) from None
@@ -61,13 +86,25 @@ class GitHub:
 
     def pages(self, path: str, key: str | None = None) -> list[Json]:
         result: list[Json] = []
-        for page in range(1, 101):
-            separator = "&" if "?" in path else "?"
-            response = self.get(f"{path}{separator}per_page=100&page={page}")
+        endpoint = f"/repos/{self.repo}/{path}"
+        separator = "&" if "?" in endpoint else "?"
+        next_path = endpoint + separator + "per_page=100"
+        for _ in range(100):
+            response, links = self._response(next_path)
             rows = response[key] if key else response
             result.extend(rows)
-            if len(rows) < 100:
+            match = re.search(r'<([^>]+)>;\s*rel="next"', links)
+            if match is None:
                 return result
+            continuation = urllib.parse.urlsplit(match[1])
+            if (
+                continuation.scheme != "https"
+                or continuation.netloc != "api.github.com"
+                or continuation.path != endpoint.split("?")[0]
+                or continuation.fragment
+            ):
+                raise ValueError("Unsafe GitHub pagination continuation")
+            next_path = continuation.path + "?" + continuation.query
         raise RuntimeError("GitHub pagination limit reached; refusing incomplete evidence")
 
 
@@ -104,6 +141,10 @@ def validate_path(path: str) -> None:
         raise ValueError("Automation control-plane changes require maintainer review")
     if path.endswith((".local", ".pem", ".key")) or any(part.startswith(".env") for part in parts):
         raise ValueError("Sensitive path changes require maintainer review")
+    if path in VALIDATION_PATHS or "conftest.py" in parts:
+        raise ValueError("Validation policy changes require maintainer review")
+    if any(part in CREDENTIAL_NAMES | {".aws", ".ssh"} for part in parts):
+        raise ValueError("Credential path changes require maintainer review")
 
 
 def validate_file(root: Path, base: str, path: str) -> None:
@@ -115,6 +156,14 @@ def validate_file(root: Path, base: str, path: str) -> None:
         content = target.read_bytes()
         if "\0" in content.decode("utf-8") or re.search(rb"sk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{20,}", content):
             raise ValueError("Binary content or an API key is present in the patch")
+    if path == "pyproject.toml":
+        before_data = tomllib.loads(git(root, "show", f"{base}:{path}").decode())
+        after_data = tomllib.loads(target.read_text())
+        for value in (before_data, after_data):
+            for field in ("dependencies", "optional-dependencies", "requires-python", "classifiers"):
+                value.get("project", {}).pop(field, None)
+        if before_data != after_data:
+            raise ValueError("Only dependency and Python support declarations may change in pyproject.toml")
     if path.startswith(".github/workflows/"):
         before = git(root, "show", f"{base}:{path}").decode()
         after = target.read_text() if target.exists() else ""
@@ -191,6 +240,8 @@ def ci_state(api: GitHub, sha: str, root: Path) -> tuple[list[str], list[str], d
         matching = latest.get(workflow)
         if matching is None or matching["status"] != "completed" or matching["conclusion"] != "success":
             pending.append(workflow)
+        if matching and matching["status"] == "completed" and matching["conclusion"] in {"failure", "cancelled", "timed_out"}:
+            failed.append(workflow)
     return failed, sorted(set(pending)), latest
 
 
@@ -252,7 +303,10 @@ def signals(api: GitHub, audit: bool = False) -> list[Json]:
                 "severity": alert["rule"].get("security_severity_level") or alert["rule"].get("severity", "medium"),
                 "updated": alert["updated_at"],
                 "rule": alert["rule"],
-                "location": alert["most_recent_instance"],
+                "location": {
+                    "path": alert["most_recent_instance"].get("location", {}).get("path"),
+                    "message": alert["most_recent_instance"].get("message"),
+                },
                 "url": alert["html_url"],
             }
         )
@@ -269,7 +323,13 @@ def signals(api: GitHub, audit: bool = False) -> list[Json]:
 
 
 def fingerprint(signal: Json) -> str:
-    return hashlib.sha256(json.dumps(signal, sort_keys=True).encode()).hexdigest()[:20]
+    meaningful = {key: value for key, value in signal.items() if key != "updated" or signal["key"] == "audit"}
+    return hashlib.sha256(json.dumps(meaningful, sort_keys=True).encode()).hexdigest()[:20]
+
+
+def audit_due(now: dt.datetime | None = None) -> bool:
+    now = now or dt.datetime.now(dt.UTC)
+    return (now.hour, now.minute) >= (3, 17)
 
 
 def base_sha(api: GitHub) -> str:
@@ -283,7 +343,7 @@ def review_threads(api: GitHub, pr: int) -> list[Json]:
     while True:
         query = """query($owner:String!,$name:String!,$pr:Int!,$after:String){repository(owner:$owner,name:$name){
           pullRequest(number:$pr){reviewThreads(first:100,after:$after){nodes{id isResolved
-          comments(first:30){nodes{body path line}}}
+          comments(first:100){nodes{body path line} pageInfo{hasNextPage}}}
           pageInfo{hasNextPage endCursor}}}}}"""
         result = api.request(
             "/graphql", "POST", {"query": query, "variables": {"owner": owner, "name": name, "pr": pr, "after": after}}
@@ -291,6 +351,11 @@ def review_threads(api: GitHub, pr: int) -> list[Json]:
         if result.get("errors"):
             raise RuntimeError("Cannot verify review threads")
         threads = result["data"]["repository"]["pullRequest"]["reviewThreads"]
+        if any(
+            not thread["isResolved"] and thread.get("comments", {}).get("pageInfo", {}).get("hasNextPage")
+            for thread in threads["nodes"]
+        ):
+            raise ValueError("Review thread comments exceed the automatic context limit")
         unresolved.extend(thread for thread in threads["nodes"] if not thread["isResolved"])
         if not threads["pageInfo"]["hasNextPage"]:
             return unresolved
@@ -301,6 +366,9 @@ def choose_pr_mode(api: GitHub, task: Json, root: Path) -> bool:
     pr = api.get(f"pulls/{task['pr']}")
     if pr["state"] != "open":
         task["result"] = "merged" if pr.get("merged") else "closed"
+        if pr.get("merged") and (pr.get("merged_by") or {}).get("login") == BOT:
+            task.setdefault("post_merge_remaining", list(POST_MERGE))
+            finish_post_merge(api, task)
         return False
     if not trusted_pr(pr, api.repo):
         raise ValueError("Refusing to operate on a pull request outside the automation trust boundary")
@@ -315,7 +383,7 @@ def choose_pr_mode(api: GitHub, task: Json, root: Path) -> bool:
         retry_missing_ci(api, task, runs)
         return False
     task["blocked"] = ""
-    task["mode"] = "fix" if failed or task.get("review_findings") else "review"
+    task["mode"] = "fix" if failed or task.get("review_required") else "review"
     return True
 
 
@@ -362,36 +430,61 @@ def include_active_tasks(state: Json, current_signals: list[Json]) -> list[Json]
     # Finish published repairs even when this invocation is not the daily audit.
     for entry in state["tasks"].values():
         queued_audit = entry["signal"]["key"] == "audit" and entry.get("result") != "no_change"
-        if (entry.get("pr") or entry.get("published_head") or queued_audit) and entry.get("result") not in {
-            "merged",
-            "closed",
-        }:
+        active = entry.get("pr") or entry.get("published_head") or queued_audit
+        if entry.get("post_merge_remaining") or (active and entry.get("result") not in {"merged", "closed"}):
             existing = next((s for s in current_signals if fingerprint(s) == fingerprint(entry["signal"])), None)
             if existing is None:
                 current_signals.append(entry["signal"])
     return current_signals
 
 
+def register_signals(state: Json, current_signals: list[Json]) -> None:
+    for signal in current_signals:
+        ident = fingerprint(signal)
+        if ident not in state["tasks"]:
+            for old_id, old in list(state["tasks"].items()):
+                if old["signal"]["key"] == signal["key"] and old.get("result") not in {"merged", "closed", "no_change"}:
+                    old.update({"signal": signal, "attempts": 0, "reviews": 0, "recovery_failures": 0})
+                    state["tasks"][ident] = state["tasks"].pop(old_id)
+                    break
+        state["tasks"].setdefault(ident, {"signal": signal, "attempts": 0, "reviews": 0})
+
+
+def prepare_task(api: GitHub, task: Json, root: Path) -> bool:
+    if task.get("recovery_failures", 0) >= MAX_ATTEMPTS and not task.get("post_merge_remaining"):
+        return False
+    try:
+        if task.get("post_merge_remaining"):
+            finish_post_merge(api, task)
+            return False
+        if task.get("published_head") and not task.get("pr"):
+            restore_publication(api, task)
+            return False
+        if task.get("pr"):
+            return choose_pr_mode(api, task, root)
+        task.update({"head": task["base"], "branch": BRANCH_PREFIX + task["id"]})
+        return True
+    except (RuntimeError, ValueError, OSError):
+        task["recovery_failures"] = task.get("recovery_failures", 0) + 1
+        task["blocked"] = "Publication or evidence recovery failed; inspect the workflow run. Other findings continue."
+        return False
+
+
 def plan(api: GitHub, root: Path, current_signals: list[Json]) -> Json:
     issue, state = load_state(api)
     current_base = base_sha(api)
-    for signal in current_signals:
-        state["tasks"].setdefault(fingerprint(signal), {"signal": signal, "attempts": 0, "reviews": 0})
+    register_signals(state, current_signals)
+    if state["tasks"]:
+        issue = save_state(api, issue, state, "Checking current security signals.")
     current_signals = include_active_tasks(state, current_signals)
     for signal in current_signals:
         ident = fingerprint(signal)
         task = state["tasks"].setdefault(ident, {"signal": signal, "attempts": 0, "reviews": 0})
-        if task.get("result") in {"merged", "no_change", "closed"}:
+        if task.get("result") in {"merged", "no_change", "closed"} and not task.get("post_merge_remaining"):
             continue
         task.update({"id": ident, "issue": issue, "base": current_base, "mode": "fix"})
-        if task.get("published_head") and not task.get("pr"):
-            restore_publication(api, task)
-            return {"mode": "none"}
-        if task.get("pr"):
-            if not choose_pr_mode(api, task, root):
-                continue
-        else:
-            task.update({"head": current_base, "branch": BRANCH_PREFIX + ident})
+        if not prepare_task(api, task, root):
+            continue
         counter = "reviews" if task["mode"] == "review" else "attempts"
         if task[counter] >= MAX_ATTEMPTS:
             task["blocked"] = f"Automatic {counter} budget exhausted; see workflow logs."
@@ -462,6 +555,7 @@ def publish(api: GitHub, task: Json, root: Path, outcome: Json) -> None:
             "branch": task["branch"],
             "summary": "Automated security repair; inspect the patch and validation results.",
             "result": "publishing",
+            "publication_id": task["id"],
         }
         update_task(api, task, pending)
         task.update(pending)
@@ -471,7 +565,7 @@ def publish(api: GitHub, task: Json, root: Path, outcome: Json) -> None:
     update_task(
         api,
         task,
-        {"pr": pr_number, "head": commit["sha"], "reviews": 0, "result": "pending", "blocked": "", "review_findings": []},
+        {"pr": pr_number, "head": commit["sha"], "reviews": 0, "result": "pending", "blocked": "", "review_required": False},
     )
     dispatch_ci(api, task["branch"])
 
@@ -490,7 +584,7 @@ def restore_publication(api: GitHub, task: Json) -> None:
             raise ValueError("An unexpected commit occupies the reserved security branch")
     head = urllib.parse.quote(api.repo.split("/")[0] + ":" + task["branch"], safe="")
     prs = api.pages(f"pulls?state=open&head={head}")
-    marker = f"<!-- security-automation-task:{task['id']} -->"
+    marker = f"<!-- security-automation-task:{task.get('publication_id', task['id'])} -->"
     if prs:
         if len(prs) != 1 or not trusted_pr(prs[0], api.repo) or marker not in (prs[0].get("body") or ""):
             raise ValueError("Existing pull request does not match the reserved repair")
@@ -507,9 +601,9 @@ def restore_publication(api: GitHub, task: Json) -> None:
                 "and no unresolved threads.\n\n" + marker,
             },
         )
-    update_task(
-        api, task, {"pr": pr["number"], "head": sha, "reviews": 0, "result": "pending", "blocked": "", "review_findings": []}
-    )
+    published = {"pr": pr["number"], "head": sha, "reviews": 0, "result": "pending", "blocked": "", "review_required": False}
+    task.update(published)
+    update_task(api, task, published)
     dispatch_ci(api, task["branch"])
 
 
@@ -535,8 +629,7 @@ def resolve_threads(api: GitHub, pr_number: int, resolved_threads: list[str]) ->
 
 def merge(api: GitHub, task: Json, root: Path, verdict: Json) -> None:
     if verdict["approved"] is not True or verdict["findings"]:
-        findings = verdict["findings"] or ["Independent review did not approve this repair"]
-        update_task(api, task, {"review_findings": findings})
+        update_task(api, task, {"review_required": True, "blocked": "Independent review requires a new repair."})
         return
     pr = api.get(f"pulls/{task['pr']}")
     if not trusted_pr(pr, api.repo) or pr["head"]["sha"] != task["head"] or base_sha(api) != task["base"]:
@@ -561,11 +654,16 @@ def merge(api: GitHub, task: Json, root: Path, verdict: Json) -> None:
     result = api.write(f"pulls/{pr['number']}/merge", {"sha": task["head"], "merge_method": "squash"}, "PUT")
     if not result.get("merged"):
         raise ValueError("GitHub did not confirm the merge")
-    update_task(api, task, {"result": "merged", "blocked": ""})
-    # GITHUB_TOKEN merges do not emit another Actions push workflow run.
-    dispatch_ci(api, "master")
-    for workflow in ("release-please-action.yml", "sphinx-pages.yml"):
+    task.update({"result": "merged", "blocked": "", "post_merge_remaining": list(POST_MERGE)})
+    update_task(api, task, {"result": "merged", "blocked": "", "post_merge_remaining": list(POST_MERGE)})
+    finish_post_merge(api, task)
+
+
+def finish_post_merge(api: GitHub, task: Json) -> None:
+    for workflow in list(task["post_merge_remaining"]):
         api.write(f"actions/workflows/{workflow}/dispatches", {"ref": "master"})
+        task["post_merge_remaining"].remove(workflow)
+        update_task(api, task, {"post_merge_remaining": list(task["post_merge_remaining"]), "blocked": ""})
 
 
 def prepare(task: Json, root: Path, output: Path) -> None:
@@ -599,7 +697,8 @@ def prepare(task: Json, root: Path, output: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["observe", "plan", "prepare", "export", "publish", "merge"])
+    parser.add_argument("command", choices=["observe", "plan", "prepare", "export", "publish", "merge", "report"])
+    parser.add_argument("--phase", default="automation")
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--task", type=Path, default=Path("task.json"))
     parser.add_argument("--result", type=Path, default=Path("result.json"))
@@ -609,7 +708,7 @@ def main() -> None:
     parser.add_argument("--audit", action="store_true")
     args = parser.parse_args()
     if args.command == "observe":
-        args.signals.write_text(json.dumps(signals(GitHub(), args.audit)))
+        args.signals.write_text(json.dumps(signals(GitHub(), args.audit or audit_due())))
         return
     if args.command == "plan":
         task = plan(GitHub(), args.root, json.loads(args.signals.read_text()))
@@ -623,7 +722,10 @@ def main() -> None:
         return
     if args.task_digest and hashlib.sha256(args.task.read_bytes()).hexdigest() != args.task_digest:
         raise ValueError("Task artifact does not match the trusted plan digest")
-    task = json.loads(args.task.read_text())
+    run_task_command(args, json.loads(args.task.read_text()))
+
+
+def run_task_command(args: argparse.Namespace, task: Json) -> None:
     if args.command == "prepare":
         prepare(task, args.root, args.output)
     elif args.command == "export":
@@ -633,6 +735,15 @@ def main() -> None:
         publish(GitHub(), task, args.root, json.loads(args.result.read_text()))
     elif args.command == "merge":
         merge(GitHub(), task, args.root, json.loads(args.result.read_text()))
+    elif args.command == "report":
+        update_task(
+            GitHub(),
+            task,
+            {
+                "blocked": f"{args.phase} failed; see https://github.com/"
+                f"{os.environ['GITHUB_REPOSITORY']}/actions/runs/{task['run_id']}"
+            },
+        )
 
 
 if __name__ == "__main__":

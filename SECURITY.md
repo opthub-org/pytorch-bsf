@@ -20,9 +20,10 @@ CodeQL runs daily and on pull requests and pushes to `master`, with the
 `security-extended` query suite. A proactive Codex audit runs daily at 03:17 UTC
 (12:17 JST). **Run workflow → audit** starts the same audit manually.
 
-Critical and high-severity alerts are selected first. One finding is repaired per
+Every poll checks whether today's audit is due, so a replaced or delayed cron
+event cannot lose the daily audit. Critical and high-severity alerts are selected first. One finding is repaired per
 workflow run. Each finding is identified by its current advisory data, so an
-upstream patch or changed advisory starts a new repair budget. The automation:
+   upstream patch or changed advisory starts a new repair budget. The automation:
 
 1. Reserves one of at most three repair attempts in the **Security automation
    status** issue before calling the AI.
@@ -49,6 +50,8 @@ upstream patch or changed advisory starts a new repair budget. The automation:
    block merging. GitHub's repository rules remain in force.
 8. Explicitly dispatches validation, Pages, and Release after merging, since
    Actions-token merges do not reliably trigger downstream push workflows.
+   Pending dispatches are persisted individually and retried without another AI
+   call. A failed publication is isolated so other findings can still proceed.
 
 Repository and alert text are untrusted evidence, not instructions. Secrets never
 enter the task JSON. Public status records and the task manifest contain finding IDs and
@@ -57,8 +60,11 @@ ephemeral AI prompt. Patch artifacts contain proposed repairs and their summarie
 PRs and Actions logs have the repository's visibility. The AI jobs have no
 repository write token; publication and
 merge jobs never execute candidate code. The publisher rejects changes to the
-automation itself, its tests and prompts, repository instructions, secret files,
-symlinks, binaries, and patches larger than 750 KB. Other workflow changes are
+automation itself, its tests and prompts, repository instructions, validation
+configuration/helpers, common credential paths and key-file extensions, symlinks,
+binaries, and patches larger than 750 KB. File-content checks recognize OpenAI
+key patterns; they are not a complete secret scanner. `pyproject.toml` changes
+are limited to dependency and Python support declarations. Other workflow changes are
 limited to existing immutable action SHA pins. Publishing workflow-file changes
 may additionally require an App/PAT with GitHub's workflows permission; without
 it, the operation stops and is recorded in the status issue.
@@ -73,13 +79,18 @@ The observer uses `read-all`, including Dependabot-alert read access; it has no
 write permissions and receives no OpenAI secret.
 
 Set the repository Actions variable **SECURITY_AUTOMATION_ENABLED** to `false` to
-stop new repairs and merges. Optionally set **SECURITY_AUTOMATION_MODEL** to a
+stop subsequent repair, publication, review, and merge jobs. Also cancel active
+workflow runs to stop a job that is already executing. Optionally set **SECURITY_AUTOMATION_MODEL** to a
 model available to the API project; otherwise the Codex Action uses its default.
 Repair and review jobs have 40- and 30-minute timeouts. Only a finding's changed
 upstream data replenishes its automatic attempt budget. API/quota failures,
 incompatible upstream fixes, CI registration failures, and exhausted attempts
 remain visible in the status issue and Actions runs; they are never treated as
 successful repairs or dismissed alerts.
+Unresolved review threads with more than 100 comments stop automatically rather
+than approve a truncated discussion. Detailed negative-review diagnostics are
+discarded instead of copied into public state; a subsequent repair independently
+re-examines current code, alerts, and CI evidence.
 
 This automation covers repository changes it can validate. It does not revoke
 leaked credentials, alter cloud permissions, patch deployed infrastructure, or

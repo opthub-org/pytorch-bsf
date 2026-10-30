@@ -101,7 +101,7 @@ jobs:
 
   generate:
     needs: plan
-    if: needs.plan.outputs.mode == 'fix'
+    if: needs.plan.outputs.mode == 'fix' && vars.SECURITY_AUTOMATION_ENABLED != 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     permissions: read-all # zizmor: ignore[excessive-permissions] -- Read alert evidence in the trusted preparation step; AI receives no write token.
@@ -168,7 +168,7 @@ jobs:
 
   publish:
     needs: [plan, generate]
-    if: needs.plan.outputs.mode == 'fix'
+    if: needs.plan.outputs.mode == 'fix' && vars.SECURITY_AUTOMATION_ENABLED != 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -216,7 +216,7 @@ jobs:
 
   review:
     needs: plan
-    if: needs.plan.outputs.mode == 'review'
+    if: needs.plan.outputs.mode == 'review' && vars.SECURITY_AUTOMATION_ENABLED != 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions: read-all # zizmor: ignore[excessive-permissions] -- Read current alerts and threads before an isolated read-only review.
@@ -267,7 +267,7 @@ jobs:
 
   merge:
     needs: [plan, review]
-    if: needs.plan.outputs.mode == 'review'
+    if: needs.plan.outputs.mode == 'review' && vars.SECURITY_AUTOMATION_ENABLED != 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -299,3 +299,34 @@ jobs:
         run: |
           python -c 'import os,pathlib; pathlib.Path(os.environ["RUNNER_TEMP"], "verdict.json").write_text(os.environ["VERDICT"])'
           python tools/security_automation.py merge --task "$RUNNER_TEMP/security/task.json" --result "$RUNNER_TEMP/verdict.json"
+
+  report-failure:
+    needs: [plan, generate, publish, review, merge]
+    if: >-
+      always() && needs.plan.result == 'success' && needs.plan.outputs.mode != 'none' &&
+      (needs.generate.result == 'failure' || needs.publish.result == 'failure' ||
+       needs.review.result == 'failure' || needs.merge.result == 'failure')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ needs.plan.outputs.base }}
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: security-task
+          path: ${{ runner.temp }}/security
+          digest-mismatch: error
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Record a sanitized failure without publishing diagnostic details
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SECURITY_TASK_SHA256: ${{ needs.plan.outputs.digest }}
+          PHASE: ${{ needs.generate.result == 'failure' && 'generate' || needs.publish.result == 'failure' && 'publish' || needs.review.result == 'failure' && 'review' || 'merge' }}
+        run: python tools/security_automation.py report --task "$RUNNER_TEMP/security/task.json" --phase "$PHASE"
