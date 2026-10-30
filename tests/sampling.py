@@ -1331,13 +1331,19 @@ def test_full_gram_condition_is_the_product_of_factor_conditions(dimensions, dat
 @pytest.mark.parametrize(
     ("dimensions", "degree", "condition"),
     # 12 segments and 9 triangles of degree 1 (4096 and 19683 controls), whose factors' Gram matrices have
-    # condition numbers 3 and 4, and 5 segments of degree 3 (1024 controls), where it is 35.
-    [((1,) * 12, (1,) * 12, r"5\.3e\+05"), ((2,) * 9, (1,) * 9, r"2\.6e\+05"), ((1,) * 5, (3,) * 5, r"5\.3e\+07")],
+    # condition numbers 3 and 4, 5 segments of degree 3 (1024 controls), where it is 35, and 4 segments of degree 3
+    # with a triangle of degree 1 (768 controls), 35**4 * 4, which pairs each factor with its own degree.
+    [
+        ((1,) * 12, (1,) * 12, r"5\.3e\+05"),
+        ((2,) * 9, (1,) * 9, r"2\.6e\+05"),
+        ((1,) * 5, (3,) * 5, r"5\.3e\+07"),
+        ((1, 1, 1, 1, 2), (3, 3, 3, 3, 1), r"6\.0e\+06"),
+    ],
 )
 def test_skeleton_risk_coefficients_reject_many_factors_before_allocation(dimensions, degree, condition):
-    # The condition number of the full Gram matrix grows with the number of factors. It is checked from the factors'
-    # Gram matrices alone: no index list or Gram matrix spans two factors, and the face-by-face computation of size
-    # n_controls never starts.
+    # The condition number of the Gram matrix on the whole simploid grows with the number of factors. It is checked
+    # from the factors' Gram matrices alone: no index list or Gram matrix spans two factors, and the face-by-face
+    # computation of size n_controls never starts.
     space = BezierSpace.simploid(dimensions, degree=degree)
     with (
         patch("torch_bsf.sampling._indices", wraps=_indices) as indices,
@@ -1346,7 +1352,7 @@ def test_skeleton_risk_coefficients_reject_many_factors_before_allocation(dimens
         pytest.raises(ValueError, match=rf"\(condition number {condition}\)\. Pass ratio explicitly"),
     ):
         sample_skeleton(space, 10, seed=0)
-    assert indices.call_args_list and all(len(call.args[0]) == 1 for call in indices.call_args_list)
+    assert all(len(call.args[0]) == 1 for call in indices.call_args_list)
     assert face_gram.call_args_list and all(len(call.args[3]) == 1 for call in face_gram.call_args_list)
 
 

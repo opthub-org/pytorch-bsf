@@ -16,7 +16,7 @@ import numpy as np
 import torch
 from torch.nn import functional as F
 
-from torch_bsf._kernels.combinatorics import _indices
+from torch_bsf._kernels.combinatorics import _indices, _simplex_indices
 from torch_bsf._skeleton import (
     _blocks,
     _control_faces,
@@ -278,9 +278,10 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
         ill-conditioned to bound the float64 relative error by ``1e-6``. For a
         simplex, the largest accepted degree falls with the dimension: 14 for 2
         vertices, 12 for 3, 11 for 4, 9 for 5, 8 for 6 and 7, and 7 for 8. On
-        a simploid, the condition number of the full Gram matrix is the product
-        of its factors', so it also grows with the number of factors: 12
-        segments of degree 1 are rejected.
+        a simploid, the condition number of the Gram matrix on the whole
+        simploid is the product of those of its factors' Gram matrices, so it
+        also grows with the number of factors: 12 segments of degree 1 are
+        rejected.
 
     Notes
     -----
@@ -316,8 +317,12 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
             raise ValueError(f"degree is too large for the risk coefficients in float64 (condition number {kappa:.1e}).")
 
     # Reject hopeless degrees before allocating anything of size n_controls: the largest denominator must fit in
-    # float64, and the small Gram block of the controls interior to one edge of the factor of highest degree,
-    # among those whose largest condition number enters the bound, must already pass it.
+    # float64; the small Gram block of the controls interior to one edge of the factor of highest degree, among
+    # those whose largest condition number enters the bound, must already pass it; and so must the Gram matrix on
+    # the whole domain. Under the uniform distribution on a product, that matrix is, up to the order of the
+    # controls, the Kronecker product of the factors' Gram matrices, so its condition number, which grows with the
+    # number of factors, is the product of theirs. It is computed from the factors' matrices, of size
+    # C(d + a, a) each (the whole matrix itself on a simplex), and stands in for the whole one in the final check.
     factors = zip(dimensions, degree, strict=True)
     if math.prod(math.comb(2 * d, d) * math.comb(2 * d + a, a) for a, d in factors) > sys.float_info.max:
         check(math.inf)
@@ -325,14 +330,10 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
     if top >= 2:
         edge = torch.tensor([[j, top - j] for j in range(1, top)], dtype=torch.long)
         check(torch.linalg.cond(_face_gram(edge, edge, (0, 1), (1,), (top,))).item())
-    # Under the uniform distribution on the product, the full Gram matrix is, up to the order of the controls, the
-    # Kronecker product of the factors' full Gram matrices. Its condition number, the product of theirs, grows with
-    # the number of factors, so it is checked from the small factor matrices before allocating anything of size
-    # n_controls, and it stands in for the condition number of the full Gram matrix in the final check.
     full_condition = 1.0
     for a, d in zip(dimensions, degree, strict=True):
-        index = torch.tensor([sum(i, ()) for i in _indices((a,), (d,))], dtype=torch.long)
-        full_condition *= torch.linalg.cond(_face_gram(index, index, range(a + 1), (a,), (d,))).item()
+        factor_alpha = torch.tensor(_simplex_indices(a + 1, d), dtype=torch.long)
+        full_condition *= torch.linalg.cond(_face_gram(factor_alpha, factor_alpha, range(a + 1), (a,), (d,))).item()
     check(full_condition)
     alpha = torch.tensor([sum(index, ()) for index in _indices(dimensions, degree)], dtype=torch.long)
     control_faces = _control_faces(dimensions, degree)
@@ -536,8 +537,9 @@ def sample_skeleton(
         If ``space`` is not a single simplex or simploid of positive dimension
         and degree in every factor, ``n`` is not a nonnegative integer,
         ``method`` is unknown, or ``ratio`` is malformed. With the default
-        ``ratio``, also if the degree is too high for
-        :func:`skeleton_risk_coefficients`; pass ``ratio`` then.
+        ``ratio``, also if :func:`skeleton_risk_coefficients` rejects the space
+        (too high a degree, or too many factors on a simploid); pass ``ratio``
+        then.
 
     Examples
     --------
