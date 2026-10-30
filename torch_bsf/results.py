@@ -129,8 +129,10 @@ class FitResult:
 class SkeletonRegressionResult:
     """Assembled model and face least-squares results keyed by sorted zero-based vertex IDs.
 
-    Each face result solves for that face's interior controls with every other
-    control fixed. Faces are fitted in increasing size; a failed face stops
+    The vertex IDs of a simploid are its global coordinate indices, so a face
+    lists the vertices of every factor. Each face result solves for that face's
+    interior controls with every other control fixed. Faces are fitted in
+    increasing dimension; a failed face stops
     assembly, leaving later faces absent and their controls zero.
     """
 

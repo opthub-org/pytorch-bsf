@@ -14,13 +14,15 @@ from hypothesis import example, given
 from hypothesis import strategies as st
 
 from tests.strategies import seeds
-from torch_bsf import BezierSpace
+from torch_bsf import BezierSpace, Samples, SimploidalSet, fit_skeleton_regression
 from torch_bsf._kernels._sampling import simplex_grid, simplex_random, simplex_sobol
-from torch_bsf._kernels.combinatorics import _simplex_indices
+from torch_bsf._kernels.combinatorics import _indices, _simplex_indices
+from torch_bsf._skeleton import _blocks, _faces_with_interior_controls
 from torch_bsf.sampling import (
     _RISK_RELATIVE_ERROR,
     _exponentials,
     _face_gram,
+    _n_skeleton_faces,
     optimal_skeleton_ratio,
     sample,
     sample_skeleton,
@@ -430,7 +432,8 @@ def test_skeleton_risk_coefficients_structure(n_vertices, degree):
         # A backward-stable solve gives each diagonal entry an error of at most about n * kappa * U.
         interior = comb(degree - 1, n_vertices - 1)
         alpha = torch.tensor(_simplex_indices(n_vertices, degree))
-        g_tt = _face_gram(alpha[(alpha > 0).all(1)], alpha[(alpha > 0).all(1)], range(n_vertices), degree)
+        inner = alpha[(alpha > 0).all(1)]
+        g_tt = _face_gram(inner, inner, range(n_vertices), (n_vertices - 1,), (degree,))
         kappa = torch.linalg.cond(g_tt).item()
         assert abs(coefficients[-1] - interior) <= 2 * interior * (interior * kappa + 1) * U * interior
     ratio = optimal_skeleton_ratio(space)
@@ -1303,14 +1306,26 @@ def test_skeleton_risk_coefficients_reject_ill_conditioned_degrees(dimension, de
         sample_skeleton(space, 4)
 
 
+def _two_glued_segments() -> BezierSpace:
+    domain = SimploidalSet()
+    left, right = domain.add_simplex(1), domain.add_simplex(1)
+    domain.identify(left.face(0, 0), right.face(0, 1))
+    return BezierSpace.on_set(domain, degree=2)
+
+
 @pytest.mark.parametrize(
     "space",
-    [BezierSpace.simplex(0, degree=2), BezierSpace.simplex(2, degree=0), BezierSpace.simploid((1, 1), degree=2)],
+    [
+        BezierSpace.simplex(0, degree=2),
+        BezierSpace.simplex(2, degree=0),
+        BezierSpace.simploid((1, 1), degree=(2, 0)),
+        _two_glued_segments(),
+    ],
 )
 def test_skeleton_methods_reject_other_spaces(space):
-    with pytest.raises(ValueError, match="single simplex"):
+    with pytest.raises(ValueError, match="single simplex or simploid"):
         skeleton_risk_coefficients(space)
-    with pytest.raises(ValueError, match="single simplex"):
+    with pytest.raises(ValueError, match="single simplex or simploid"):
         sample_skeleton(space, 4)
 
 
@@ -1508,3 +1523,204 @@ def test_sample_skeleton_rejects_bad_arguments():
         sample_skeleton(space, 4, method=np.array(["sobol"]))  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="n must"):
         sample_skeleton(space, -1)
+
+
+# ---------------------------------------------------------------------------
+# skeletons of simploids
+# ---------------------------------------------------------------------------
+
+_SIMPLOIDS = [((1, 1), (1, 1)), ((1, 1), (2, 2)), ((1, 1), (3, 1)), ((2, 1), (2, 2)), ((2, 1), (2, 3)), ((1, 1, 1), (2, 1, 2))]
+
+
+def _skeleton_faces(dimensions, m):
+    """Every face of dimension ``m``, listed by brute force over vertex subsets with one vertex in each factor."""
+    blocks = _blocks(dimensions)
+    width = sum(a + 1 for a in dimensions)
+    return [
+        face
+        for size in range(len(dimensions), width + 1)
+        for face in combinations(range(width), size)
+        if all(any(i in block for i in face) for block in blocks) and size - len(dimensions) == m
+    ]
+
+
+def _sampled_faces(dimensions, degree, m):
+    """The faces of dimension ``m`` with interior controls, or all of them when none has any."""
+    faces = _skeleton_faces(dimensions, m)
+    blocks = _blocks(dimensions)
+    active = [f for f in faces if all(sum(i in b for i in f) <= d for b, d in zip(blocks, degree, strict=True))]
+    return active or faces
+
+
+@pytest.mark.parametrize(("dimensions", "degree"), _SIMPLOIDS)
+def test_simploid_faces_are_products_of_factor_faces(dimensions, degree):
+    for m in range(sum(dimensions) + 1):
+        assert _n_skeleton_faces(dimensions, degree, m) == len(_sampled_faces(dimensions, degree, m))
+    expected = [
+        face
+        for m in range(sum(dimensions) + 1)
+        for face in _sampled_faces(dimensions, degree, m)
+        if all(sum(i in block for i in face) <= d for block, d in zip(_blocks(dimensions), degree, strict=True))
+    ]
+    assert _faces_with_interior_controls(dimensions, degree) == expected
+
+
+def test_square_risk_coefficients_have_closed_forms():
+    # Degree 1: the four vertex controls are vertex means, each with N / 4 rows, and the squared bilinear basis
+    # functions integrate to 1 / 9 each, so a_0 = 4 * 4 / 9.
+    assert skeleton_risk_coefficients(BezierSpace.simploid((1, 1), degree=1)) == pytest.approx((16 / 9, 0, 0), rel=1e-12)
+    # The product of segments of degree 1 and 2: four vertices and the two edges along the quadratic factor.
+    a = skeleton_risk_coefficients(BezierSpace.simploid((1, 1), degree=(2, 1)))
+    assert a[2] == 0 and a[0] > 0 and a[1] > 0 and len(a) == 3
+
+
+@pytest.mark.parametrize(("dimensions", "degree"), _SIMPLOIDS)
+def test_simploid_risk_coefficients_match_brute_force_propagation(dimensions, degree):
+    # An independent evaluation of the same risk in exact rational arithmetic: Gram matrices from the moments of
+    # the uniform distribution and the multinomial coefficients, Gauss-Jordan solves, and the error propagated
+    # face by face. Float64 agrees to the 1e-6 relative error that skeleton_risk_coefficients guarantees.
+    a = skeleton_risk_coefficients(BezierSpace.simploid(dimensions, degree=degree))
+    assert len(a) == sum(dimensions) + 1
+    assert a == pytest.approx(_rational_skeleton_risk(dimensions, degree), rel=1e-6, abs=1e-12)
+
+
+def _rational_solve(matrix, right):
+    """Gauss-Jordan elimination of ``matrix x = right`` over the rationals."""
+    n = len(matrix)
+    augmented = [list(matrix[i]) + list(right[i]) for i in range(n)]
+    for col in range(n):
+        pivot = next(r for r in range(col, n) if augmented[r][col] != 0)
+        augmented[col], augmented[pivot] = augmented[pivot], augmented[col]
+        for r in range(n):
+            if r != col and augmented[r][col] != 0:
+                factor = augmented[r][col] / augmented[col][col]
+                augmented[r] = [x - factor * y for x, y in zip(augmented[r], augmented[col], strict=True)]
+    return [[x / augmented[i][i] for x in augmented[i][n:]] for i in range(n)]
+
+
+def _rational_gram(dimensions, degree, alphas, face, rows, columns):
+    """Bernstein Gram entries under the uniform distribution on ``face``, the product of its factors' faces."""
+    blocks = _blocks(dimensions)
+
+    def moment(exponents):
+        # E t^alpha on the uniform k-simplex: k! prod(alpha!) / (|alpha| + k)!.
+        k = len(exponents) - 1
+        return Fraction(
+            math.factorial(k) * math.prod(math.factorial(e) for e in exponents), math.factorial(sum(exponents) + k)
+        )
+
+    def entry(r, c):
+        value = Fraction(1)
+        for block, d in zip(blocks, degree, strict=True):
+            if any(alphas[r][i] + alphas[c][i] for i in block if i not in face):
+                return Fraction(0)
+            multinomials = [
+                math.factorial(d) // math.prod(math.factorial(a[i]) for i in block) for a in (alphas[r], alphas[c])
+            ]
+            value *= multinomials[0] * multinomials[1] * moment([alphas[r][i] + alphas[c][i] for i in block if i in face])
+        return value
+
+    return [[entry(r, c) for c in columns] for r in rows]
+
+
+def _rational_skeleton_risk(dimensions, degree):
+    alphas = [sum(index, ()) for index in _indices(tuple(dimensions), tuple(degree))]
+    n = len(alphas)
+    supports = [tuple(i for i, v in enumerate(alpha) if v) for alpha in alphas]
+    # errors[k][j]: the error of control k per unit noise in the estimate of control j on its own face.
+    errors = [[Fraction(0)] * n for _ in range(n)]
+    faces = []
+    for face in _faces_with_interior_controls(dimensions, degree):
+        interior = [k for k in range(n) if supports[k] == face]
+        boundary = [k for k in range(n) if supports[k] != face and set(supports[k]) <= set(face)]
+        g_tt = _rational_gram(dimensions, degree, alphas, face, interior, interior)
+        g_tb = _rational_gram(dimensions, degree, alphas, face, interior, boundary)
+        propagated = [[sum(row[j] * errors[b][c] for j, b in enumerate(boundary)) for c in range(n)] for row in g_tb]
+        solved = _rational_solve(g_tt, propagated)
+        for i, k in enumerate(interior):
+            errors[k] = [-x for x in solved[i]]
+            errors[k][k] = Fraction(1)
+        faces.append((face, interior, g_tt))
+    full = _rational_gram(dimensions, degree, alphas, tuple(range(len(alphas[0]))), range(n), range(n))
+    coefficients = [Fraction(0)] * (sum(dimensions) + 1)
+    for face, interior, g_tt in faces:
+        m = len(face) - len(dimensions)
+        columns = [[errors[r][k] for r in range(n)] for k in interior]
+        inner = [[sum(x * full[r][c] * y[c] for r, x in enumerate(u) for c in range(n)) for y in columns] for u in columns]
+        trace = sum(row[i] for i, row in enumerate(_rational_solve(g_tt, inner)))
+        coefficients[m] += len(_sampled_faces(dimensions, degree, m)) * trace
+    return [float(c) for c in coefficients]
+
+
+@pytest.mark.parametrize(("dimensions", "degree"), _SIMPLOIDS)
+@pytest.mark.parametrize("method", ["random", "sobol"])
+def test_sample_skeleton_of_simploids_places_each_row_on_one_face(dimensions, degree, method):
+    space = BezierSpace.simploid(dimensions, degree=degree)
+    n = 157
+    points = sample_skeleton(space, n, seed=3, method=method)
+    t = points.parameters
+    assert t.shape == (n, space.width) and (points.cell_ids == 0).all() and (t >= 0).all()
+    blocks = _blocks(dimensions)
+    for block in blocks:
+        # Normalizing at most len(block) exponentials: one division and a sum per row.
+        assert ((t[:, block.start : block.stop].sum(1) - 1).abs() <= (len(block) + 1) * U * 2).all()
+    support = t > 0
+    dimension_of_row = support.sum(1) - len(dimensions)
+    assert (dimension_of_row[1:] >= dimension_of_row[:-1]).all()
+    ratio = optimal_skeleton_ratio(space)
+    slack = n * 4 * space.width * U
+    for m in range(sum(dimensions) + 1):
+        faces = _sampled_faces(dimensions, degree, m)
+        level = [int((support == torch.tensor([i in face for i in range(space.width)])).all(1).sum()) for face in faces]
+        assert math.floor(n * ratio[m] - slack) <= sum(level) <= math.ceil(n * ratio[m] + slack)
+        assert max(level) - min(level) <= 1
+    assert torch.equal(t, sample_skeleton(space, n, seed=3, method=method).parameters)
+
+
+def test_sample_skeleton_of_a_prism_chooses_edges_uniformly():
+    # The nine edges of a prism: six triangle edges at an end of the interval and three intervals at a vertex.
+    # With 2 rows, rejection sampling picks two distinct edges, each with probability 2 / 9; with 6 rows, a
+    # random permutation does. Five binomial standard errors bound the seeded frequencies.
+    space = BezierSpace.simploid((2, 1), degree=2)
+    edges = _skeleton_faces((2, 1), 1)
+    seeds_ = 600
+    for rows in (2, 6):
+        hits: Counter[tuple[int, ...]] = Counter()
+        for seed in range(seeds_):
+            support = sample_skeleton(space, rows, ratio=[0, 1, 0, 0], seed=seed).parameters > 0
+            faces = {tuple(row.nonzero().flatten().tolist()) for row in support}
+            assert len(faces) == rows and faces <= set(edges)
+            hits.update(faces)
+        p = rows / 9
+        assert all(abs(hits[edge] / seeds_ - p) <= 5 * math.sqrt(p * (1 - p) / seeds_) for edge in edges)
+
+
+def test_sample_skeleton_of_a_square_is_uniform_on_its_interior():
+    # On the square, each first coordinate of a factor is uniform and the factors are independent.
+    space = BezierSpace.simploid((1, 1), degree=2)
+    n = 20000
+    t = sample_skeleton(space, n, ratio=[0, 0, 1], seed=0).parameters
+    u, v = t[:, 0], t[:, 2]
+    assert abs(u.mean().item() - 0.5) <= 5 * math.sqrt(1 / 12 / n)
+    assert abs(v.var().item() - 1 / 12) <= 5 * math.sqrt(1 / 180 / n)
+    assert abs(((u - 0.5) * (v - 0.5)).mean().item()) <= 5 * math.sqrt(1 / 144 / n)
+
+
+def test_sample_skeleton_of_a_simploid_checks_the_ratio_length():
+    space = BezierSpace.simploid((2, 1), degree=2)
+    with pytest.raises(ValueError, match="ratio must have 4 "):
+        sample_skeleton(space, 4, ratio=[1, 1, 1])
+    assert len(sample_skeleton(space, 4, ratio=[1, 1, 1, 1], seed=0).parameters) == 4
+
+
+def test_sample_skeleton_skips_faces_without_interior_controls():
+    # On a prism of degree (2, 1), the intervals at the triangle vertices have no interior controls, so every edge
+    # row goes to the six triangle edges; with no square face having interior controls, a ratio on the
+    # 2-skeleton spreads over all five two-dimensional faces.
+    space = BezierSpace.simploid((2, 1), degree=(2, 1))
+    support = sample_skeleton(space, 60, ratio=[0, 1, 0, 0], seed=0).parameters > 0
+    assert set(support[:, :3].sum(1).tolist()) == {2} and set(support[:, 3:].sum(1).tolist()) == {1}
+    support = sample_skeleton(space, 50, ratio=[0, 0, 1, 0], seed=0).parameters > 0
+    assert len({tuple(row.tolist()) for row in support}) == 5
+    points = sample_skeleton(space, 300, seed=0)
+    assert "Ignored" not in fit_skeleton_regression(space, Samples(points, points.parameters[:, :1])).message

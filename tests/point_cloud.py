@@ -1,5 +1,7 @@
 """Value-only fitting: geometric recovery, constraints and stopping evidence."""
 
+import math
+import warnings
 from dataclasses import replace
 from itertools import combinations
 
@@ -13,11 +15,15 @@ from torch_bsf import (
     ConvergenceWarning,
     FixedControls,
     Samples,
+    SimploidalSet,
     fit,
     fit_point_cloud,
     fit_skeleton,
 )
-from torch_bsf.point_cloud import _nondominated, _parameters, _Polynomial, _project
+from torch_bsf._kernels.combinatorics import _indices
+from torch_bsf._skeleton import _faces_with_interior_controls
+from torch_bsf.point_cloud import _nondominated, _parameters, _Polynomial, _project, _project_factors
+from torch_bsf.sampling import grid, sample, sample_skeleton
 
 
 @pytest.fixture(autouse=True)
@@ -202,7 +208,17 @@ def test_invalid_settings(kwargs):
 
 
 def test_unsupported_spaces_and_embedding():
-    for space in (BezierSpace.simploid((1, 1), degree=2), BezierSpace.simplex(1, degree=0)):
+    domain = SimploidalSet()
+    left, right = domain.add_simplex(1), domain.add_simplex(1)
+    domain.identify(left.face(0, 0), right.face(0, 1))
+    for fitter in (fit_point_cloud, fit_skeleton):
+        with pytest.raises(ValueError, match="single simplex or simploid"):
+            fitter(BezierSpace.on_set(domain, degree=2), curve())
+        with pytest.raises(ValueError, match="degree >= 1"):
+            fitter(BezierSpace.simploid((1, 1), degree=(2, 0)), curve())
+        with pytest.raises(ValueError, match="requires a single simplex; supply initial"):
+            fitter(BezierSpace.simploid((1, 1), degree=2), curve())
+    for space in (BezierSpace.simplex(1, degree=0),):
         with pytest.raises(ValueError):
             fit_point_cloud(space, curve())
     with pytest.raises(ValueError, match="initial"):
@@ -331,3 +347,151 @@ def test_overflow_after_control_update_rejects_candidate(monkeypatch):
     assert not result.success
     torch.testing.assert_close(result.model.coefficients, initial.coefficients, rtol=0, atol=0)
     assert len(result.objective_history) == 1
+
+
+# ---------------------------------------------------------------------------
+# simploids
+# ---------------------------------------------------------------------------
+
+
+def _perturbed(model: BezierModel, scale: float, seed: int) -> BezierModel:
+    generator = torch.Generator().manual_seed(seed)
+    noise = torch.randn(model.coefficients.shape, generator=generator, dtype=torch.float64)
+    return BezierModel(model.space, model.coefficients.detach() + scale * noise)
+
+
+def _saddle(dimensions=(1, 1), degree=(2, 1)) -> BezierModel:
+    """An injective map of a simploid into 4D: barycentric coordinates plus a curved output."""
+    space = BezierSpace.simploid(dimensions, degree=degree)
+    t = grid(space, max(space.cells[0].degree)).parameters
+    # Fit the exact polynomial t -> (t_0, t_last, curved) on the control lattice.
+    curved = t[:, 0] * t[:, -1] + 0.3 * t[:, 0] ** 2
+    values = torch.stack((t[:, 0], t[:, 1], t[:, -1], curved), 1)
+    return fit(space, Samples(t, values)).model
+
+
+def test_projection_onto_products_projects_each_factor():
+    t = torch.tensor([[-2.0, 4.0, 1.0, 0.7, 0.9], [0.2, 0.3, 0.5, 0.25, 0.75]], dtype=torch.float64)
+    projected = _project_factors(t, (2, 1))
+    torch.testing.assert_close(projected[:, :3], _project(t[:, :3]), rtol=0, atol=0)
+    torch.testing.assert_close(projected[:, 3:], _project(t[:, 3:]), rtol=0, atol=0)
+    torch.testing.assert_close(_project_factors(t[:, :3], (2,)), _project(t[:, :3]), rtol=0, atol=0)
+
+
+@pytest.mark.parametrize(("dimensions", "degree"), [((1, 1), (2, 3)), ((2, 1), (2, 2))])
+def test_analytic_derivatives_of_simploids_match_autograd(dimensions, degree):
+    space = BezierSpace.simploid(dimensions, degree=degree)
+    cp = torch.randn(space.n_controls, 2, dtype=torch.float64, generator=torch.Generator().manual_seed(5))
+    model = BezierModel(space, cp)
+    poly = _Polynomial(model)
+    t0 = torch.cat([sample(space, 1, seed=1).parameters, grid(space, 1).parameters[:1]])
+    for row in t0:
+        t = row.clone().requires_grad_()
+        torch.testing.assert_close(
+            poly.derivative(t[None])[0], model(t[None])[0].detach(), rtol=0, atol=_derivative_tolerance(poly, 0)
+        )
+        jac = torch.autograd.functional.jacobian(lambda v: poly.derivative(v[None])[0], t)
+        for i in range(space.width):
+            torch.testing.assert_close(
+                poly.derivative(t[None], (i,))[0], jac[:, i], rtol=0, atol=_derivative_tolerance(poly, 1)
+            )
+            hess = torch.autograd.functional.jacobian(lambda v, axis=i: poly.derivative(v[None], (axis,))[0], t)
+            for j in range(space.width):
+                torch.testing.assert_close(
+                    poly.derivative(t[None], (i, j))[0], hess[:, j], rtol=0, atol=_derivative_tolerance(poly, 2)
+                )
+
+
+def test_high_degree_derivatives_of_simploids_match_the_monomial_formula():
+    # A degree of 16 switches to the recursive basis of each factor; at moderate degree both must agree.
+    space = BezierSpace.simploid((1, 2), degree=(16, 2))
+    cp = torch.randn(space.n_controls, 1, dtype=torch.float64, generator=torch.Generator().manual_seed(3))
+    high = _Polynomial(BezierModel(space, cp))
+    assert high.high
+    low = _Polynomial(BezierModel(space, cp))
+    low.high = False
+    low.factors = torch.tensor(
+        [
+            math.prod(
+                math.factorial(d) / math.prod(math.factorial(v) for v in factor)
+                for d, factor in zip((16, 2), index, strict=True)
+            )
+            for index in _indices((1, 2), (16, 2))
+        ],
+        dtype=torch.float64,
+    )
+    t = sample(space, 4, seed=0).parameters
+    for axes in [(), (0,), (2,), (0, 3), (1, 1), (2, 4), (0,) * 17, (2, 3, 4)]:
+        expected = low.derivative(t, axes)
+        scale = 16 ** len(axes) * float(cp.abs().max()) * len(cp)
+        torch.testing.assert_close(high.derivative(t, axes), expected, rtol=0, atol=1e-10 * scale)
+    torch.testing.assert_close(high.derivative(t, (0,) * 17), torch.zeros(4, 1, dtype=torch.float64), rtol=0, atol=0)
+
+
+@pytest.mark.parametrize(("dimensions", "degree", "scale"), [((1, 1), (2, 1), 0.05), ((2, 1), (1, 2), 0.0)])
+def test_point_cloud_recovers_simploids_from_values(dimensions, degree, scale):
+    # Starting near (square) or at (prism) the true controls, the alternating fit drives every distance to zero.
+    truth = _saddle(dimensions, degree)
+    space = truth.space
+    y = truth(sample(space, 30, seed=2).parameters).detach()
+    result = fit_point_cloud(space, y, initial=_perturbed(truth, scale, 0), max_iter=300).require_success()
+    assert result.objective_history[-1] < 1e-8
+    # Every inferred row stays on each factor's simplex: projection clamps at zero and keeps each block's sum,
+    # up to the rounding of a few block-sized sums.
+    assert (result.parameters >= 0).all()
+    for block in (slice(0, dimensions[0] + 1), slice(dimensions[0] + 1, None)):
+        torch.testing.assert_close(
+            result.parameters[:, block].sum(1), torch.ones(len(y), dtype=torch.float64), rtol=0, atol=8 * U
+        )
+    assert (result.model(result.parameters).detach() - y).square().sum(1).max() < 1e-6
+
+
+def test_point_cloud_keeps_fixed_simploid_controls():
+    truth = _saddle()
+    space = truth.space
+    y = truth(sample(space, 30, seed=4).parameters).detach()
+    corner = space.control_index(((2, 0), (1, 0)))
+    fixed = FixedControls({corner: truth.coefficients[corner].detach()})
+    # The initial corner is off; it is replaced by the fixed value before the first parameter update.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ConvergenceWarning)  # three iterations need not converge
+        result = fit_point_cloud(space, y, initial=_perturbed(truth, 0.05, 1), fixed=fixed, max_iter=3)
+    torch.testing.assert_close(result.model.coefficients[corner], truth.coefficients[corner].detach(), rtol=0, atol=0)
+    history = result.objective_history
+    assert len(history) == 4 and all(b <= a + 1e-14 for a, b in zip(history[:-1], history[1:], strict=True))
+
+
+def test_skeleton_recovers_a_simploid_from_face_values():
+    truth = _saddle((2, 1), (2, 2))
+    space = truth.space
+    cell = space.cells[0]
+    points = sample_skeleton(space, 300, ratio=[1, 1, 1, 1], seed=0).parameters
+    support = [tuple(row.nonzero().flatten().tolist()) for row in points > 0]
+    required = _faces_with_interior_controls(cell.dimensions, cell.degree)
+    face_values = {face: truth(points[[k for k, f in enumerate(support) if f == face]]).detach() for face in required}
+    y = torch.cat(list(face_values.values()))
+    # Interior controls of the faces start far off; the vertices and boundaries are refitted from the face values.
+    initial = BezierModel(space, truth.coefficients.detach().clone())
+    vertices = [
+        space.control_index((tuple(2 if i == a else 0 for i in range(3)), tuple(2 if j == b else 0 for j in range(2))))
+        for a in range(3)
+        for b in range(2)
+    ]
+    with torch.no_grad():
+        initial.coefficients[vertices] += 0.5
+    result = fit_skeleton(space, y, face_values=face_values, initial=initial).require_success()
+    assert list(result.faces) == required
+    # Vertex controls are means of identical values, exact up to the rounding of the truth's evaluation.
+    torch.testing.assert_close(result.model.coefficients[vertices], truth.coefficients[vertices].detach(), rtol=0, atol=1e-12)
+    # Each face fit lies on the truth: its surface reproduces the face's values.
+    for face, local in result.faces.items():
+        assert local.objective_history[-1] < 1e-8, face
+
+
+def test_skeleton_on_simploids_requires_face_values_and_initial():
+    space = BezierSpace.simploid((1, 1), degree=1)
+    initial = BezierModel(space, torch.zeros(4, 2, dtype=torch.float64))
+    with pytest.raises(ValueError, match="supply face_values"):
+        fit_skeleton(space, torch.zeros(3, 2), initial=initial)
+    with pytest.raises(ValueError, match=r"\(0, 2\), \(0, 3\), \(1, 2\), \(1, 3\)"):
+        fit_skeleton(space, torch.zeros(3, 2), initial=initial, face_values={(0,): torch.zeros(1, 2)})

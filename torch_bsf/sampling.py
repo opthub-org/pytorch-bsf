@@ -2,22 +2,28 @@
 
 Skeleton sampling and its optimal ratio follow the asymptotic risk analysis of
 inductive skeleton fitting by Tanaka et al. (AAAI 2020), extended to every
-dimension and degree.
+dimension and degree and to products of simplices.
 """
 
 import math
 import numbers
 import sys
 from collections.abc import Mapping, Sequence
-from itertools import combinations
+from itertools import combinations, product
 from typing import Literal
 
 import numpy as np
 import torch
 from torch.nn import functional as F
 
-from torch_bsf._kernels.combinatorics import _indices, _simplex_indices
-from torch_bsf._skeleton import _control_faces, _faces_with_interior_controls, _interior_and_boundary, _skeleton_shape
+from torch_bsf._kernels.combinatorics import _indices
+from torch_bsf._skeleton import (
+    _blocks,
+    _control_faces,
+    _faces_with_interior_controls,
+    _interior_and_boundary,
+    _skeleton_cell,
+)
 from torch_bsf._validation import _choice
 from torch_bsf.core import BezierSpace, Points, _integer
 from torch_bsf.geometry import Simploid
@@ -167,30 +173,66 @@ _RISK_RELATIVE_ERROR = 1e-6
 _UNIT_ROUNDOFF = torch.finfo(torch.float64).eps / 2
 
 
-def _face_gram(rows: torch.Tensor, columns: torch.Tensor, face: Sequence[int], degree: int) -> torch.Tensor:
+def _face_gram(
+    rows: torch.Tensor, columns: torch.Tensor, face: Sequence[int], dimensions: Sequence[int], degree: Sequence[int]
+) -> torch.Tensor:
     r"""Gram matrix of Bernstein polynomials under the uniform distribution on a face.
 
-    On a :math:`k`-simplex, :math:`E[t^\alpha] = k!\,\alpha! / (|\alpha| + k)!`, so the entry for
-    :math:`a, b` is :math:`\prod_i \binom{a_i + b_i}{a_i} / (\binom{2D}{D} \binom{2D + k}{k})`.
-    Each binomial is rounded once, so an entry has a relative error of at most ``(2 * len(face) + 2) * U``.
-    This bound, which the conditioning check of :func:`skeleton_risk_coefficients` relies on, is why the
-    lgamma-based Gram matrix of ``torch_bsf._kernels.sgd`` is not reused.
+    ``rows`` and ``columns`` hold concatenated multi-indices of the simploid with factor ``dimensions`` and
+    ``degree``, and the uniform distribution on a face is the product of the uniform distributions on its
+    factors. On a :math:`k`-simplex, :math:`E[t^\alpha] = k!\,\alpha! / (|\alpha| + k)!`, so the factor of the
+    entry for :math:`a, b` is :math:`\prod_i \binom{a_i + b_i}{a_i} / (\binom{2D}{D} \binom{2D + k}{k})`.
+    Each binomial, and the product of the exact integer denominators, is rounded once, so an entry has a
+    relative error of at most ``(2 * len(face) + 2) * U``. This bound, which the conditioning check of
+    :func:`skeleton_risk_coefficients` relies on, is why the lgamma-based Gram matrix of
+    ``torch_bsf._kernels.sgd`` is not reused.
     """
     face = list(face)
+    top = max(degree)
     binomials = torch.tensor(
-        [[float(math.comb(i, j)) for j in range(degree + 1)] for i in range(2 * degree + 1)], dtype=torch.float64
+        [[float(math.comb(i, j)) for j in range(top + 1)] for i in range(2 * top + 1)], dtype=torch.float64
     )
     # Multiplying one coordinate at a time keeps memory at O(len(rows) * len(columns)) for wide simplices.
     numerators = torch.ones(len(rows), len(columns), dtype=torch.float64)
     for i in face:
         a, b = rows[:, i, None], columns[None, :, i]
         numerators *= binomials[a + b, a.expand(-1, len(columns))]
-    k = len(face) - 1
-    return numerators / float(math.comb(2 * degree, degree) * math.comb(2 * degree + k, k))
+    denominator = 1
+    for block, d in zip(_blocks(dimensions), degree, strict=True):
+        k = len(set(block).intersection(face)) - 1
+        denominator *= math.comb(2 * d, d) * math.comb(2 * d + k, k)
+    return numerators / float(denominator)
+
+
+def _shapes(dimensions: Sequence[int], m: int) -> list[tuple[int, ...]]:
+    """Vertex counts per factor of the faces of dimension ``m``, in lexicographic order."""
+    if not dimensions:
+        return [()] if m == 0 else []
+    return [(s, *rest) for s in range(1, min(dimensions[0], m) + 2) for rest in _shapes(dimensions[1:], m - s + 1)]
+
+
+def _n_faces(dimensions: Sequence[int], sizes: Sequence[int]) -> int:
+    """The number of faces with ``sizes`` vertices per factor."""
+    return math.prod(math.comb(a + 1, s) for a, s in zip(dimensions, sizes, strict=True))
+
+
+def _sampled_shapes(dimensions: Sequence[int], degree: Sequence[int], m: int) -> list[tuple[int, ...]]:
+    """Shapes of the faces of dimension ``m`` that share its rows.
+
+    These are the faces with interior controls (at most ``degree`` vertices in every factor), or every face of
+    dimension ``m`` when none has interior controls. On a simplex, the faces of one dimension are all alike.
+    """
+    shapes = _shapes(dimensions, m)
+    return [sizes for sizes in shapes if all(s <= d for s, d in zip(sizes, degree, strict=True))] or shapes
+
+
+def _n_skeleton_faces(dimensions: Sequence[int], degree: Sequence[int], m: int) -> int:
+    """The number of faces of dimension ``m`` that share its rows."""
+    return sum(_n_faces(dimensions, sizes) for sizes in _sampled_shapes(dimensions, degree, m))
 
 
 def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
-    r"""Asymptotic risk coefficients of inductive skeleton fitting on a simplex.
+    r"""Asymptotic risk coefficients of inductive skeleton fitting on a simplex or simploid.
 
     Inductive skeleton fitting estimates the controls interior to each face by
     least squares on that face's observations, holding the controls of lower
@@ -198,39 +240,50 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
     With :math:`N^{(m)}` observations on the :math:`m`-skeleton, split equally
     among its faces and drawn uniformly on each, outputs of dimension :math:`L`
     and independent noise of variance :math:`\sigma^2`, the mean integrated
-    squared error over the uniform simplex satisfies
+    squared error over the uniform domain satisfies
 
     .. math:: R = \sigma^2 L \sum_{m} a_m / N^{(m)} + o(1 / N).
 
     Coefficient ``m`` is :math:`a_m`. It is zero for skeletons whose faces
-    have no interior controls (:math:`m \geq` degree). This extends the
-    numerical tables of Tanaka et al. (AAAI 2020) to every dimension and degree.
+    have no interior controls (on a simplex, :math:`m \geq` degree). This
+    extends the numerical tables of Tanaka et al. (AAAI 2020) to every
+    dimension and degree.
+
+    On a simploid, a product of simplices, a face is a product of one face per
+    factor and the :math:`m`-skeleton consists of the faces of dimension
+    :math:`m`. A face has interior controls when no factor has more vertices
+    than its degree, and the :math:`N^{(m)}` observations are split equally
+    among the faces of dimension :math:`m` with interior controls, as
+    :func:`sample_skeleton` does. Observations and the error are uniform on
+    the product.
 
     Parameters
     ----------
     space
-        A single simplex of positive dimension and degree.
+        A single simplex or simploid of positive dimension and degree in every factor.
 
     Returns
     -------
     tuple of float
-        :math:`a_0, \dots, a_{M-1}` for a simplex with :math:`M` vertices.
+        :math:`a_0, \dots, a_n` for a domain of dimension :math:`n`, which is
+        :math:`M - 1` for a simplex with :math:`M` vertices.
 
     Raises
     ------
     TypeError
         If ``space`` is not a :class:`~torch_bsf.BezierSpace`.
     ValueError
-        If ``space`` is not a single simplex of positive dimension and degree,
-        or if its Bernstein Gram matrices are too ill-conditioned to bound the
-        float64 relative error by ``1e-6``. The largest accepted degree falls
-        with the dimension: 14 for 2 vertices, 12 for 3, 11 for 4, 9 for 5,
-        8 for 6 and 7, and 7 for 8.
+        If ``space`` is not a single simplex or simploid of positive dimension
+        and degree in every factor, or if its Bernstein Gram matrices are too
+        ill-conditioned to bound the float64 relative error by ``1e-6``. For a
+        simplex, the largest accepted degree falls with the dimension: 14 for 2
+        vertices, 12 for 3, 11 for 4, 9 for 5, 8 for 6 and 7, and 7 for 8.
 
     Notes
     -----
     Time and memory grow with the square of the number of controls,
-    :math:`\binom{D + M - 1}{D}`, so wide simplices are costly even at low degree.
+    :math:`\binom{D + M - 1}{D}` for a simplex and the product of these over the
+    factors of a simploid, so wide domains are costly even at low degree.
 
     Examples
     --------
@@ -239,8 +292,9 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
     >>> [round(a, 4) for a in skeleton_risk_coefficients(BezierSpace.simplex(2, degree=3))]
     [0.1464, 3.5357, 1.0]
     """
-    width, degree = _skeleton_shape(space)
-    n_controls = math.comb(degree + width - 1, width - 1)
+    cell = _skeleton_cell(space)
+    dimensions, degree = cell.dimensions, cell.degree
+    width, n_controls, levels = cell.width, space.n_controls, sum(dimensions) + 1
 
     def check(kappa: float) -> None:
         """Reject condition numbers exceeding the float64 relative-error budget.
@@ -251,42 +305,44 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
             Largest Gram-matrix condition number encountered so far.
         """
         # Bernstein Gram matrices are ill-conditioned in the degree. Their entries have relative errors of at most
-        # (2 * width + 2) * U. To first order, each of the at most width levels of solves then adds
+        # (2 * width + 2) * U. To first order, each of the at most levels (face dimensions) of solves then adds
         # (2 * width + 2 + n) * kappa * U relative error (entry perturbation plus backward-stable elimination),
         # and the final traces add n * U, kappa being the largest condition number of the Gram matrices.
-        bound = (width * (2 * width + 2 + n_controls) * kappa + n_controls) * _UNIT_ROUNDOFF
+        bound = (levels * (2 * width + 2 + n_controls) * kappa + n_controls) * _UNIT_ROUNDOFF
         if not bound <= _RISK_RELATIVE_ERROR:
             raise ValueError(f"degree is too large for the risk coefficients in float64 (condition number {kappa:.1e}).")
 
-    # Reject hopeless degrees before allocating anything of size n_controls: the largest binomial must fit in
-    # float64, and the small Gram block of the controls interior to one edge, among those whose largest
-    # condition number enters the bound, must already pass it.
-    if math.comb(2 * degree, degree) * math.comb(2 * degree + width - 1, width - 1) > sys.float_info.max:
+    # Reject hopeless degrees before allocating anything of size n_controls: the largest denominator must fit in
+    # float64, and the small Gram block of the controls interior to one edge of the factor of highest degree,
+    # among those whose largest condition number enters the bound, must already pass it.
+    factors = zip(dimensions, degree, strict=True)
+    if math.prod(math.comb(2 * d, d) * math.comb(2 * d + a, a) for a, d in factors) > sys.float_info.max:
         check(math.inf)
-    if degree >= 2:
-        edge = torch.tensor([[j, degree - j] for j in range(1, degree)], dtype=torch.long)
-        check(torch.linalg.cond(_face_gram(edge, edge, (0, 1), degree)).item())
-    alpha = torch.tensor(_simplex_indices(width, degree), dtype=torch.long)
-    control_faces = _control_faces(width, degree)
+    top = max(degree)
+    if top >= 2:
+        edge = torch.tensor([[j, top - j] for j in range(1, top)], dtype=torch.long)
+        check(torch.linalg.cond(_face_gram(edge, edge, (0, 1), (1,), (top,))).item())
+    alpha = torch.tensor([sum(index, ()) for index in _indices(dimensions, degree)], dtype=torch.long)
+    control_faces = _control_faces(dimensions, degree)
     # Control errors as linear maps of the independent face noises: on face I,
     # e_T = eta_I - G_TT^{-1} G_TB e_B, where T are the controls interior to I and B those on its boundary.
     errors = torch.zeros(len(alpha), len(alpha), dtype=torch.float64)
     face_grams: list[tuple[int, torch.Tensor, torch.Tensor]] = []
-    for face in _faces_with_interior_controls(width, degree):
+    for face in _faces_with_interior_controls(dimensions, degree):
         interior, boundary = (torch.tensor(k, dtype=torch.long) for k in _interior_and_boundary(control_faces, face))
-        gram = _face_gram(alpha[interior], alpha[torch.cat([interior, boundary])], face, degree)
+        gram = _face_gram(alpha[interior], alpha[torch.cat([interior, boundary])], face, dimensions, degree)
         g_tt, g_tb = gram[:, : len(interior)], gram[:, len(interior) :]
         errors[interior] = -torch.linalg.solve(g_tt, g_tb @ errors[boundary])
         errors[interior[:, None], interior] = torch.eye(len(interior), dtype=torch.float64)
-        face_grams.append((len(face), interior, g_tt))
-    full = _face_gram(alpha, alpha, range(width), degree)
+        face_grams.append((len(face) - len(dimensions), interior, g_tt))
+    full = _face_gram(alpha, alpha, range(width), dimensions, degree)
     check(max(torch.linalg.cond(g).item() for g in [full] + [g_tt for _, _, g_tt in face_grams]))
-    coefficients = [0.0] * width
-    for size, interior, g_tt in face_grams:
-        # n_I = N^(m) / C(M, m + 1) observations give Cov(eta_I) = sigma^2 G_TT^{-1} / n_I.
+    coefficients = [0.0] * levels
+    for m, interior, g_tt in face_grams:
+        # n_I = N^(m) / K_m observations, with K_m faces of dimension m, give Cov(eta_I) = sigma^2 G_TT^{-1} / n_I.
         propagated = errors[:, interior]
         trace = torch.linalg.solve(g_tt, propagated.T @ full @ propagated).trace().item()
-        coefficients[size - 1] += math.comb(width, size) * trace
+        coefficients[m] += _n_skeleton_faces(dimensions, degree, m) * trace
     return tuple(coefficients)
 
 
@@ -301,12 +357,13 @@ def optimal_skeleton_ratio(space: BezierSpace) -> tuple[float, ...]:
     Parameters
     ----------
     space
-        A single simplex of positive dimension and degree.
+        A single simplex or simploid of positive dimension and degree in every factor.
 
     Returns
     -------
     tuple of float
-        Nonnegative fractions for the 0-, 1-, ..., (M-1)-skeletons, summing to one.
+        Nonnegative fractions for the 0-, 1-, ..., n-skeletons of a domain of
+        dimension n (n = M - 1 for a simplex with M vertices), summing to one.
 
     Raises
     ------
@@ -339,14 +396,14 @@ def _real_entries(ratio: object) -> bool:
     return isinstance(ratio, Sequence) and not isinstance(ratio, str) and all(real(entry) for entry in ratio)
 
 
-def _skeleton_fractions(ratio: Sequence[float] | torch.Tensor | None, space: BezierSpace, width: int) -> list[float]:
-    """Validated skeleton fractions summing to one, the optimal ones by default."""
+def _skeleton_fractions(ratio: Sequence[float] | torch.Tensor | None, space: BezierSpace, levels: int) -> list[float]:
+    """Validated fractions of the ``levels`` skeletons summing to one, the optimal ones by default."""
     if ratio is None:
         try:
             return list(optimal_skeleton_ratio(space))
         except ValueError as error:
             raise ValueError(f"{error} Pass ratio explicitly.") from error
-    message = f"ratio must have {width} finite nonnegative real entries with a positive sum."
+    message = f"ratio must have {levels} finite nonnegative real entries with a positive sum."
     if isinstance(ratio, torch.Tensor):
         if ratio.dtype == torch.bool or ratio.is_complex():
             raise ValueError(message)
@@ -362,9 +419,9 @@ def _skeleton_fractions(ratio: Sequence[float] | torch.Tensor | None, space: Bez
             tensor = torch.as_tensor(ratio, dtype=torch.float64)
         except (TypeError, ValueError, RuntimeError) as error:
             raise ValueError(message) from error
-    if tensor.shape != (width,) or not torch.isfinite(tensor).all() or (tensor < 0).any() or not tensor.max() > 0:
+    if tensor.shape != (levels,) or not torch.isfinite(tensor).all() or (tensor < 0).any() or not tensor.max() > 0:
         raise ValueError(message)
-    # Scaling by the maximum first keeps the sum finite (at most width) for entries near the float64 limit.
+    # Scaling by the maximum first keeps the sum finite (at most levels) for entries near the float64 limit.
     tensor = tensor / tensor.max()
     return (tensor / tensor.sum()).tolist()
 
@@ -379,17 +436,30 @@ def _skeleton_counts(n: int, fractions: Sequence[float]) -> list[int]:
     return counts
 
 
-def _face_counts(width: int, size: int, count: int, generator: torch.Generator) -> list[tuple[tuple[int, ...], int]]:
-    """Faces of one skeleton with their row counts: an equal split, the remainder on random distinct faces."""
-    n_faces = math.comb(width, size)
+def _face_counts(
+    dimensions: Sequence[int], degree: Sequence[int], m: int, count: int, generator: torch.Generator
+) -> list[tuple[tuple[int, ...], int]]:
+    """Faces sharing the rows of dimension ``m`` with their counts: an equal split, the remainder on random faces."""
+    blocks, shapes = _blocks(dimensions), _sampled_shapes(dimensions, degree, m)
+    n_faces = _n_skeleton_faces(dimensions, degree, m)
     if 2 * count < n_faces:
         # Every face gets at most one row. Rejection sampling of distinct faces costs O(count) draws on average
-        # and avoids listing all C(width, size) faces of a wide simplex.
+        # and avoids listing all faces of a wide simplex. Drawing a shape in proportion to its number of faces,
+        # then each factor's vertices uniformly, makes every face equally likely.
+        weights = torch.tensor([_n_faces(dimensions, sizes) for sizes in shapes], dtype=torch.float64)
         chosen: set[tuple[int, ...]] = set()
         while len(chosen) < count:
-            chosen.add(tuple(sorted(torch.randperm(width, generator=generator)[:size].tolist())))
+            sizes = shapes[int(torch.multinomial(weights, 1, generator=generator))] if len(shapes) > 1 else shapes[0]
+            face: tuple[int, ...] = ()
+            for block, size in zip(blocks, sizes, strict=True):
+                face += tuple(sorted(block[v] for v in torch.randperm(len(block), generator=generator)[:size].tolist()))
+            chosen.add(face)
         return [(face, 1) for face in sorted(chosen)]
-    faces = list(combinations(range(width), size))
+    faces = sorted(
+        sum(parts, ())
+        for sizes in shapes
+        for parts in product(*(combinations(block, size) for block, size in zip(blocks, sizes, strict=True)))
+    )
     per_face = torch.full((n_faces,), count // n_faces, dtype=torch.long)
     per_face[torch.randperm(n_faces, generator=generator)[: count % n_faces]] += 1
     return [(face, rows) for face, rows in zip(faces, per_face.tolist(), strict=True) if rows]
@@ -403,26 +473,35 @@ def sample_skeleton(
     method: Literal["random", "sobol"] = "random",
     seed: int | None = None,
 ) -> Points:
-    """Stratified sample of a simplex's skeletons for inductive skeleton fitting.
+    """Stratified sample of the skeletons of a simplex or simploid for inductive skeleton fitting.
 
     The ``n`` rows are split among the 0-skeleton (vertices), 1-skeleton
     (edges), ... in proportion to ``ratio`` by largest-remainder rounding.
     Each skeleton's count is split equally among its faces; when it does not
     divide, randomly chosen faces receive one extra row. Rows are uniform on
-    their face, with exact zeros outside it, and are ordered by face size.
+    their face, with exact zeros outside it, and are ordered by face dimension.
+
+    A face of a simploid is a product of one face per simplex factor, and its
+    rows are uniform on each factor's face. The faces of one skeleton can differ
+    in shape: the edges of a prism are triangle edges at an end of the interval
+    and intervals at a vertex of the triangle. A skeleton's rows then go only to
+    its faces with interior controls (with at most the degree in vertices in
+    every factor), unless none has any. On a simplex, either every face of a
+    skeleton has interior controls or none has.
 
     Parameters
     ----------
     space
-        A single simplex of positive dimension and degree.
+        A single simplex or simploid of positive dimension and degree in every factor.
     n
         Number of rows.
     ratio
-        Relative sizes of the 0-, 1-, ..., (M-1)-skeletons of a simplex with
-        M vertices: M finite nonnegative real entries with a positive sum.
-        Defaults to :func:`optimal_skeleton_ratio`, which places no rows on
-        skeletons without interior controls. Rows on such skeletons (faces with
-        more than ``degree`` vertices) are not used by
+        Relative sizes of the 0-, 1-, ..., n-skeletons of a domain of
+        dimension n: n + 1 finite nonnegative real entries with a positive sum,
+        that is, M entries for a simplex with M vertices. Defaults to
+        :func:`optimal_skeleton_ratio`, which places no rows on skeletons
+        without interior controls. Rows on faces without interior controls
+        (with more vertices than the degree in some factor) are not used by
         :func:`~torch_bsf.fitting.fit_skeleton_regression`.
     method
         ``"random"`` or ``"sobol"`` coordinates within each face, as in :func:`sample`.
@@ -439,10 +518,11 @@ def sample_skeleton(
     TypeError
         If ``space`` is not a :class:`~torch_bsf.BezierSpace`.
     ValueError
-        If ``space`` is not a single simplex of positive dimension and degree,
-        ``n`` is not a nonnegative integer, ``method`` is unknown, or ``ratio``
-        is malformed. With the default ``ratio``, also if the degree is too
-        high for :func:`skeleton_risk_coefficients`; pass ``ratio`` then.
+        If ``space`` is not a single simplex or simploid of positive dimension
+        and degree in every factor, ``n`` is not a nonnegative integer,
+        ``method`` is unknown, or ``ratio`` is malformed. With the default
+        ``ratio``, also if the degree is too high for
+        :func:`skeleton_risk_coefficients`; pass ``ratio`` then.
 
     Examples
     --------
@@ -452,16 +532,21 @@ def sample_skeleton(
     >>> (points.parameters > 0).sum(1).bincount().tolist()
     [0, 26, 74]
     """
-    width, _ = _skeleton_shape(space)
+    cell = _skeleton_cell(space)
     _integer(n, "n")
     _choice(method, "method", ("random", "sobol"), message="method must be 'random' or 'sobol'.")
-    counts = _skeleton_counts(n, _skeleton_fractions(ratio, space, width))
+    counts = _skeleton_counts(n, _skeleton_fractions(ratio, space, sum(cell.dimensions) + 1))
     generator = _generator(seed)
-    blocks = [torch.zeros(0, width, dtype=torch.float64)]
-    for size, count in enumerate(counts, start=1):
-        for face, rows in _face_counts(width, size, count, generator):
-            exponentials = _exponentials(generator, rows, size, method)
-            block = torch.zeros(rows, width, dtype=torch.float64)
-            block[:, face] = exponentials / exponentials.sum(1, keepdim=True)
+    blocks = [torch.zeros(0, cell.width, dtype=torch.float64)]
+    for m, count in enumerate(counts):
+        for face, rows in _face_counts(cell.dimensions, cell.degree, m, count, generator):
+            exponentials = _exponentials(generator, rows, len(face), method)
+            block = torch.zeros(rows, cell.width, dtype=torch.float64)
+            start = 0
+            for factor in _blocks(cell.dimensions):
+                vertices = [i for i in face if i in factor]
+                part = exponentials[:, start : start + len(vertices)]
+                block[:, vertices] = part / part.sum(1, keepdim=True)
+                start += len(vertices)
             blocks.append(block)
     return Points(torch.cat(blocks))
