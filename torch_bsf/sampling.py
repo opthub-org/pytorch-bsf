@@ -8,7 +8,6 @@ dimension and degree and to products of simplices.
 import math
 import numbers
 import sys
-from bisect import bisect_left
 from collections.abc import Mapping, Sequence
 from itertools import combinations, product
 from typing import Literal
@@ -443,13 +442,13 @@ def _face_counts(
 ) -> list[tuple[tuple[int, ...], int]]:
     """Faces of the ``m``-skeleton that receive its rows, with their counts: an equal split, the remainder on random faces."""
     blocks, shapes = _blocks(dimensions), _sampled_shapes(dimensions, degree, m)
-    sizes_counts = [_n_faces(dimensions, sizes) for sizes in shapes]
-    n_faces = sum(sizes_counts)
+    faces_per_shape = [_n_faces(dimensions, sizes) for sizes in shapes]
+    n_faces = sum(faces_per_shape)
     if 2 * count < n_faces:
         # Every face gets at most one row. Rejection sampling of distinct faces costs O(count) draws on average
         # and avoids listing all faces of a wide simplex. Drawing a shape in proportion to its number of faces,
         # then each factor's vertices uniformly, makes every face equally likely.
-        weights = torch.tensor(sizes_counts, dtype=torch.float64) if len(shapes) > 1 else None
+        weights = torch.tensor(faces_per_shape, dtype=torch.float64) if len(shapes) > 1 else None
         chosen: set[tuple[int, ...]] = set()
         while len(chosen) < count:
             sizes = shapes[0] if weights is None else shapes[int(torch.multinomial(weights, 1, generator=generator))]
@@ -541,23 +540,19 @@ def sample_skeleton(
     _choice(method, "method", ("random", "sobol"), message="method must be 'random' or 'sobol'.")
     counts = _skeleton_counts(n, _skeleton_fractions(ratio, space, sum(cell.dimensions) + 1))
     generator = _generator(seed)
-    # A face key is sorted and the factors' coordinates are contiguous, so a face splits into consecutive
-    # segments, one per factor, each normalized to sum to one.
-    ends = [block.stop for block in _blocks(cell.dimensions)]
+    # Each factor's coordinates on a face are normalized to sum to one; ends[j] bounds factor j's coordinates.
+    ends = torch.tensor([block.stop for block in _blocks(cell.dimensions)])
     chunks = [torch.zeros(0, cell.width, dtype=torch.float64)]
     for m, count in enumerate(counts):
         for face, rows in _face_counts(cell.dimensions, cell.degree, m, count, generator):
             exponentials = _exponentials(generator, rows, len(face), method)
             chunk = torch.zeros(rows, cell.width, dtype=torch.float64)
             if len(ends) == 1:
+                # A single simplex needs no per-factor sums; this path keeps its draws and values unchanged.
                 chunk[:, face] = exponentials / exponentials.sum(1, keepdim=True)
-                chunks.append(chunk)
-                continue
-            start = 0
-            for end in ends:
-                stop = bisect_left(face, end, lo=start)
-                part = exponentials[:, start:stop]
-                chunk[:, face[start:stop]] = part / part.sum(1, keepdim=True)
-                start = stop
+            else:
+                factor = torch.bucketize(torch.tensor(face), ends, right=True)
+                sums = torch.zeros(rows, len(ends), dtype=torch.float64).index_add_(1, factor, exponentials)
+                chunk[:, face] = exponentials / sums[:, factor]
             chunks.append(chunk)
     return Points(torch.cat(chunks))

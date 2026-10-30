@@ -1581,7 +1581,7 @@ def test_simploid_risk_coefficients_match_brute_force_propagation(dimensions, de
     # face by face. Float64 agrees to the 1e-6 relative error that skeleton_risk_coefficients guarantees.
     a = skeleton_risk_coefficients(BezierSpace.simploid(dimensions, degree=degree))
     assert len(a) == sum(dimensions) + 1
-    assert a == pytest.approx(_rational_skeleton_risk(dimensions, degree), rel=1e-6, abs=1e-12)
+    assert a == pytest.approx(_rational_skeleton_risk(dimensions, degree), rel=1e-6, abs=0)
 
 
 def _rational_solve(matrix, right):

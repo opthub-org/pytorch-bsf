@@ -4,6 +4,7 @@ import math
 import warnings
 from dataclasses import replace
 from itertools import combinations
+from unittest.mock import patch
 
 import pytest
 import torch
@@ -113,12 +114,13 @@ def test_newton_projects_outside_points_to_boundary():
 
 
 def _derivative_tolerance(poly: _Polynomial, order: int) -> float:
-    """Bound on the difference of two float64 evaluations of a derivative of ``order`` of ``poly`` on the simplex.
+    """Bound on the difference of two float64 evaluations of a derivative of ``order`` of ``poly`` on its domain.
 
     Each of the ``N`` terms is a control times a scaled monomial of degree at most ``D`` in ``w`` coordinates, rounded at
-    most ``D + 2w`` times, and summing the terms rounds ``N - 1`` times more. On the simplex, the absolute values of the
-    scaled monomials of a derivative of order ``k`` sum to at most ``D**k``, so one evaluation (analytic or autograd)
-    errs by at most ``(N + D + 2w) u D**k`` times the largest control; twice that for the difference, doubled.
+    most ``D + 2w`` times, and summing the terms rounds ``N - 1`` times more. On a simplex or simploid, with ``D`` the
+    total degree, the absolute values of the scaled monomials of a derivative of order ``k`` sum to at most ``D**k``, so
+    one evaluation (analytic or autograd) errs by at most ``(N + D + 2w) u D**k`` times the largest control; twice that
+    for the difference, doubled.
     """
     n, degree, width = len(poly.powers), float(sum(poly.degrees)), poly.powers.shape[1]
     return 4 * (n + degree + 2 * width) * U * degree**order * float(poly.coefficients.abs().max())
@@ -492,12 +494,29 @@ def test_skeleton_recovers_a_simploid_from_face_values():
     ]
     with torch.no_grad():
         initial.coefficients[vertices] += 0.5
-    result = fit_skeleton(space, y, face_values=face_values, initial=initial).require_success()
+    with patch("torch_bsf.point_cloud.fit_point_cloud", wraps=fit_point_cloud) as face_fit:
+        result = fit_skeleton(space, y, face_values=face_values, initial=initial).require_success()
     assert list(result.faces) == required
+    # Each face fixes exactly its local controls on a proper subface: the support of a local multi-index, mapped to
+    # the face's vertices, plus the single vertex of every factor at one vertex, must differ from the face.
+    blocks = [range(0, 3), range(3, 5)]
+    for face, call in zip(required, face_fit.call_args_list, strict=True):
+        local_space = call.args[0]
+        parts = [[i for i in face if i in block] for block in blocks]
+        expected = set()
+        for k, index in enumerate(_indices(local_space.cells[0].dimensions, local_space.cells[0].degree)):
+            wide = iter(index)
+            on: list[int] = []
+            for part in parts:
+                on += part if len(part) == 1 else [v for v, a in zip(part, next(wide), strict=True) if a]
+            if tuple(sorted(on)) != face:
+                expected.add(k)
+        assert set(call.kwargs["fixed"].values) == expected, face
     # At a vertex, every basis function is exactly 0 or 1, so the truth's values there are its vertex controls exactly.
-    # Their mean over k identical rows rounds k times, k + 1 including the division.
+    # A vertex control is the float64 SVD least-squares fit of a constant to k identical rows: their mean in exact
+    # arithmetic, computed backward stably with an error of a small multiple of (k + 1) U; 4 (k + 1) U bounds it.
     rows = max(len(face_values[face]) for face in required if len(face) == 2)
-    atol = (rows + 1) * U * float(truth.coefficients.detach().abs().max())
+    atol = 4 * (rows + 1) * U * float(truth.coefficients.detach().abs().max())
     torch.testing.assert_close(result.model.coefficients[vertices], truth.coefficients[vertices].detach(), rtol=0, atol=atol)
     # Each face fit lies on the truth: its surface reproduces the face's values.
     for face, local in result.faces.items():

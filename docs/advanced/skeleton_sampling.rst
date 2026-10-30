@@ -291,7 +291,7 @@ The coefficients describe the limit as every active face receives more rows;
 they are not finite-sample error bounds. With few rows per face, a design can
 be rank deficient or have large inverse-Gram moments. The formulas
 assume the uniform distribution on each face, an equal split among faces of
-the same size, and risk averaged uniformly over the simplex; a different
+the same size, and risk averaged uniformly over the simplex or simploid; a different
 weighting of the error changes them. On a simploid, the equal split among the
 faces of one dimension with interior controls is a convention, not an
 optimum: faces of different shapes can deserve different shares. Bernstein Gram matrices become

@@ -357,8 +357,10 @@ def fit_point_cloud(
         :class:`~torch_bsf.FixedControls`.
     ValueError
         If ``space`` has several cells or a positive-dimensional factor of degree
-        zero, ``values`` or a setting is invalid, ``initial`` is incompatible, or
-        automatic initialization is impossible.
+        zero, ``values`` is not a finite two-dimensional array of the required
+        shape, a setting is invalid, ``initial`` is incompatible, or automatic
+        initialization is impossible. Non-numeric ``values`` raise the error of
+        :func:`torch.as_tensor`.
 
     Examples
     --------
@@ -467,10 +469,10 @@ def fit_skeleton(
     """Fit faces inductively while fixing their boundaries (paper Algorithm 3).
 
     On a simplex, faces are sorted tuples of zero-based vertex IDs, and only
-    support sizes up to ``min(degree, number_of_vertices)`` are needed. By default each face's
-    samples are the nondominated points for its objective subset (all outputs
-    are minimization objectives). This requires a single simplex and one
-    output per vertex.
+    support sizes up to ``min(degree, number_of_vertices)`` are needed. By
+    default each face's samples are the nondominated points for its objective
+    subset (all outputs are minimization objectives). This requires a single
+    simplex and one output per vertex.
     ``face_values`` instead supplies every required face's value-only samples,
     allowing arbitrary embeddings with ``initial``. Full original output
     vectors must be retained on every face. No face memberships or coordinates
@@ -517,8 +519,11 @@ def fit_skeleton(
         If ``space`` is not a :class:`~torch_bsf.BezierSpace`.
     ValueError
         If ``space`` has several cells or a positive-dimensional factor of degree
-        zero, ``values``, ``face_values`` or a setting is invalid, ``initial`` is
-        incompatible, or automatic initialization or face extraction is impossible.
+        zero, ``values`` or a ``face_values`` entry is not a finite
+        two-dimensional array of the required shape, the ``face_values`` keys
+        are not the required faces, a setting is invalid, ``initial`` is
+        incompatible, or automatic initialization or face extraction is
+        impossible. Non-numeric arrays raise the error of :func:`torch.as_tensor`.
 
     Examples
     --------

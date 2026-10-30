@@ -385,8 +385,8 @@ def fit_skeleton_regression(
     }
     # Rows on faces without interior controls belong to no face.
     ignored = len(support) - sum(len(r) for r in rows.values())
-    without = f"more than degree={cell.degree[0]} vertices" if len(cell.dimensions) == 1 else "no interior controls"
-    ignored_message = f" Ignored {ignored} rows on faces with {without}." if ignored else ""
+    reason = f"more than degree={cell.degree[0]} vertices" if len(cell.dimensions) == 1 else "no interior controls"
+    ignored_message = f" Ignored {ignored} rows on faces with {reason}." if ignored else ""
     missing = [face for face in faces if not (samples.weights[rows[face]] > 0).any()]
     if missing:
         raise ValueError(f"faces without rows of positive weight: {missing}.")
