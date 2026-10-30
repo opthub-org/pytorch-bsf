@@ -74,7 +74,9 @@ PRs and Actions logs have the repository's visibility. The AI jobs have no
 repository write token; publication and
 merge jobs never execute candidate code. The publisher rejects changes to the
 automation itself, its tests and prompts, repository instructions, validation
-configuration/helpers, common credential paths and key-file extensions, symlinks,
+configuration/helpers (including the trusted `tools/` and `tests/tools/` trees),
+root modules that shadow Python's standard library or startup hooks,
+common credential paths and key-file extensions, symlinks,
 binaries, and patches larger than 750 KB. File-content checks recognize OpenAI
 key patterns; they are not a complete secret scanner. Root `pyproject.toml` changes
 are limited to dependency and Python support declarations; nested manifests require

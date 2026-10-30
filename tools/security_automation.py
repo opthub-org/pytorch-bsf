@@ -32,15 +32,9 @@ MAX_ATTEMPTS = 3
 RECOVERY_COOLDOWN = 3600
 MAX_PATCH_BYTES = 750_000
 BOT = "github-actions[bot]"
-PROTECTED = (".git", ".agents", ".claude", ".codex", ".github/security", "tools/security_", "tests/tools/security_")
+PROTECTED = (".git", ".agents", ".claude", ".codex", ".github/security", "tools", "tests/tools")
 ACTION_PIN = re.compile(r"^(\s*(?:- )?uses:\s+[\w./-]+@)[0-9a-f]{40}(\s*(?:#.*)?)$", re.MULTILINE)
 POST_MERGE = [*WORKFLOWS, "release-please-action.yml", "sphinx-pages.yml"]
-VALIDATION_PATHS = {
-    "tools/lint_conventions.py",
-    "tools/check_distribution.py",
-    "tools/update_python_support.py",
-    "tests/tools/release-please-fixture/test.cjs",
-}
 VALIDATION_NAMES = {
     ".pre-commit-config.yaml",
     ".coveragerc",
@@ -189,11 +183,13 @@ def validate_path(path: str) -> None:
         raise ValueError("Repository instruction changes require maintainer review")
     if any(path == prefix or path.startswith(prefix + "/") for prefix in PROTECTED):
         raise ValueError("Automation control-plane changes require maintainer review")
-    if path.startswith(("tools/security_", "tests/tools/security_", ".github/workflows/security-")):
+    if path.startswith(".github/workflows/security-") or parts[0].removesuffix(".py") in (
+        sys.stdlib_module_names | {"sitecustomize", "usercustomize"}
+    ):
         raise ValueError("Automation control-plane changes require maintainer review")
     if path.endswith((".local", ".pem", ".key")) or any(part.startswith(".env") for part in parts):
         raise ValueError("Sensitive path changes require maintainer review")
-    if path in VALIDATION_PATHS or parts[-1] in VALIDATION_NAMES or "conftest.py" in parts:
+    if parts[-1] in VALIDATION_NAMES or "conftest.py" in parts:
         raise ValueError("Validation policy changes require maintainer review")
     if parts[-1] == "pyproject.toml" and path != "pyproject.toml":
         raise ValueError("Validation policy changes require maintainer review")

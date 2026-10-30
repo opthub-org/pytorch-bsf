@@ -124,6 +124,20 @@ class PatchBoundaryTests(GitFixture):
             with self.subTest(path=path), self.assertRaisesRegex(ValueError, "require maintainer review"):
                 security.validate_path(path)
 
+    def test_new_modules_cannot_shadow_trusted_control_plane_imports(self):
+        for path in (
+            "tools/json.py",
+            "tools/urllib/__init__.py",
+            "tests/tools/json.py",
+            "json.py",
+            "pathlib.py",
+            "urllib/__init__.py",
+            "sitecustomize.py",
+            "usercustomize.py",
+        ):
+            with self.subTest(path=path), self.assertRaisesRegex(ValueError, "control-plane"):
+                security.validate_path(path)
+
     def test_validation_configuration_and_common_credentials_are_protected(self):
         for path in [
             ".pre-commit-config.yaml",
