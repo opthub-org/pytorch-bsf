@@ -1,4 +1,4 @@
-// Exercise the real engines bundled in Action v3.7.13 and v5.0.0, without GitHub.
+// Exercise the real engine bundled in Action v5.0.0, without GitHub.
 const assert = require('node:assert/strict');
 const {readFileSync} = require('node:fs');
 const {resolve} = require('node:path');
@@ -8,9 +8,6 @@ const YAML = require('yaml');
 const {Manifest} = require('release-please');
 const {buildStrategy} = require('release-please/build/src/factory');
 const {parsePyProject} = require('release-please/build/src/updaters/python/pyproject-toml');
-const {Version: LegacyVersion} = require('release-please-legacy/build/src/version');
-const legacyFactory = require('release-please-legacy/build/src/factory');
-const legacyCommits = require('release-please-legacy/build/src/commit');
 
 const root = resolve(__dirname, '../../..');
 const read = path => readFileSync(resolve(root, path), 'utf8');
@@ -24,7 +21,6 @@ const logger = Object.fromEntries(
   ['debug', 'info', 'warn', 'error', 'trace'].map(name => [name, () => {}]),
 );
 require('release-please/build/src/util/logger').setLogger(logger);
-require('release-please-legacy/build/src/util/logger').setLogger(logger);
 
 function offlineRepository(message, tagsOnly = false, version = baseline) {
   const files = {
@@ -86,9 +82,10 @@ test('configuration and current manifest satisfy the engine schemas and package 
   assert.equal(config.packages['.']['include-component-in-tag'], false);
   assert.equal(config.packages['.']['include-v-in-tag'], true);
   assert.equal(require('release-please/package.json').version, '17.6.0');
-  assert.equal(require('release-please-legacy/package.json').version, '15.13.0');
 });
 
+// Golden results verified against release-please 15.13.0 from Action v3.7.13.
+// Keep these expectations without installing the legacy engine's vulnerable dependencies.
 for (const [label, message, expected] of [
   ['breaking', 'feat!: remove a deprecated option\n\nBREAKING CHANGE: use its replacement.', '0.25.0'],
   ['feat', 'feat: add an option', '0.25.0'],
@@ -98,18 +95,9 @@ for (const [label, message, expected] of [
     const {scm, manifest, pr} = await candidate(message);
     assert.equal(pr.version.toString(), expected);
     assert.equal(pr.headRefName, 'release-please--branches--master--components--torch_bsf');
-    const previous = await legacyFactory.buildStrategy({
-      github: scm, targetBranch: 'master', releaseType: 'python',
-      packageName: 'torch_bsf', bumpMinorPreMajor: true, includeComponentInTag: false,
-    });
-    const parsed = legacyCommits.parseConventionalCommits([
-      {sha: 'a'.repeat(40), message, files: ['torch_bsf/core.py']},
-    ]);
-    assert.equal(previous.versioningStrategy.bump(LegacyVersion.parse(baseline), parsed).toString(), expected);
     const strategy = await buildStrategy({
       github: scm, targetBranch: 'master', ...manifest.repositoryConfig['.'],
     });
-    assert.equal(await strategy.getPackageName(), await previous.getPackageName());
     assert.equal(await strategy.getPackageName(), 'torch_bsf');
     assert.equal(await strategy.getComponent(), '');
 

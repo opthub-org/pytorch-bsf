@@ -340,9 +340,11 @@ npm test --prefix tests/tools/release-please-fixture
 ```
 
 The **Release configuration** PR check runs the same fixture. It uses the real
-Release Please 17.6.0 engine bundled in Action v5.0.0 and compares version bumps
-with 15.13.0 from the previous Action v3.7.13. From 0.24.0, breaking changes and
-features produce 0.25.0; fixes produce 0.24.1. It validates the schemas, release
+Release Please 17.6.0 engine bundled in Action v5.0.0 and checks version bumps
+against golden results verified with 15.13.0 from the previous Action v3.7.13.
+The legacy engine is no longer installed because it brings vulnerable dependencies.
+From 0.24.0, breaking changes and features produce 0.25.0; fixes produce 0.24.1.
+It validates the schemas, release
 history boundary, Python/CHANGELOG/manifest updates and publication wiring with
 an in-memory repository that rejects writes. When changing the Action pin,
 update the fixture's engine dependency and lockfile to match the upstream
