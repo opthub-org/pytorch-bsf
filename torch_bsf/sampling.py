@@ -209,7 +209,7 @@ def _factor_grams(dimensions: Sequence[int], degree: Sequence[int]) -> list[torc
 
     Under the uniform distribution on the product, the Gram matrix on the whole simploid is, up to the order of the
     controls, their Kronecker product, so its condition number is the product of theirs. On a simplex, the only
-    factor's matrix is the whole one.
+    factor's matrix is the Gram matrix on the whole simplex.
     """
     grams = []
     for a, d in zip(dimensions, degree, strict=True):
@@ -330,12 +330,14 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
         if not bound <= _RISK_RELATIVE_ERROR:
             raise ValueError(f"degree is too large for the risk coefficients in float64 (condition number {kappa:.1e}).")
 
-    # Reject hopeless spaces (high degrees, or many factors on a simploid) before allocating anything of size
+    # Reject hopeless spaces (high degrees, or many factors on a simploid) before the face-by-face computation of size
     # n_controls: the largest denominator must fit in float64; the small Gram block of the controls interior to one
     # edge of the factor of highest degree, among those whose largest condition number enters the bound, must
     # already pass it; and so must the Gram matrix on the whole simploid. Its condition number, which grows with the
-    # number of factors, is the product of those of the factors' matrices (see _factor_grams), of C(d + a, a) rows
-    # each, and this product replaces the condition number of the whole matrix in the final check.
+    # number of factors, is the product of those of the factors' matrices (see _factor_grams), and this product
+    # replaces the condition number of the whole matrix in the final check. The factors' matrices have C(d + a, a)
+    # rows each, so on a simploid nothing of size n_controls is allocated before this rejection; on a simplex, the
+    # only factor's matrix is the n_controls x n_controls Gram matrix on the whole simplex, reused as ``full`` below.
     factors = zip(dimensions, degree, strict=True)
     if math.prod(math.comb(2 * d, d) * math.comb(2 * d + a, a) for a, d in factors) > sys.float_info.max:
         check(math.inf)
@@ -360,7 +362,7 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
         errors[interior[:, None], interior] = torch.eye(len(interior), dtype=torch.float64)
         face_grams.append((len(face) - len(dimensions), interior, g_tt))
     check(max([full_condition] + [torch.linalg.cond(g_tt).item() for _, _, g_tt in face_grams]))
-    # On a simplex, the only factor's Gram matrix is the whole one.
+    # On a simplex, the only factor's Gram matrix is the Gram matrix on the whole simplex.
     full = factor_grams[0] if len(factor_grams) == 1 else _face_gram(alpha, alpha, range(width), dimensions, degree)
     coefficients = [0.0] * levels
     n_faces = [_n_skeleton_faces(dimensions, degree, m) for m in range(levels)]

@@ -1314,8 +1314,8 @@ def test_skeleton_risk_coefficients_reject_ill_conditioned_degrees(dimension, de
 )
 def test_skeleton_risk_coefficients_keep_the_documented_simplex_limits(dimension, degree, condition):
     # The largest accepted degrees documented for 3, 4 and 5 vertices. One degree more, the edge block still passes and
-    # the Gram matrix on the whole simplex rejects the space, with the same condition number as before, but now before
-    # the computation of size n_controls starts.
+    # the Gram matrix on the whole simplex rejects the space before the face-by-face computation (and its
+    # n_controls x n_controls error matrix) starts.
     assert len(skeleton_risk_coefficients(BezierSpace.simplex(dimension, degree=degree))) == dimension + 1
     with (
         patch("torch_bsf.sampling._control_faces", side_effect=AssertionError("the computation started")),
