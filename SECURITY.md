@@ -55,10 +55,12 @@ budget. The automation:
    call. A failed publication is isolated so other findings can still proceed.
 
 Technical recovery failures reset after a successful recovery. Three consecutive
-failures pause that task for one hour before another automatic retry; this does
-not replenish its AI attempt budget. Status records retain currently open alerts
-and unfinished PR/publication/post-merge work. Closed findings without pending
-work and old completed audits are removed to bound history growth. A genuinely
+publication or PR-evidence recovery failures pause that task for one hour before
+another automatic retry; this does not replenish its AI attempt budget. Pending
+post-merge dispatches continue retrying on subsequent runs. Status records retain
+currently open alerts and unfinished PR/publication/post-merge work. Closed
+findings without pending work and old completed audits are removed to bound
+history growth. A genuinely
 reopened alert receives a new repair budget.
 
 Repository and alert text are untrusted evidence, not instructions. Secrets never
@@ -71,9 +73,10 @@ merge jobs never execute candidate code. The publisher rejects changes to the
 automation itself, its tests and prompts, repository instructions, validation
 configuration/helpers, common credential paths and key-file extensions, symlinks,
 binaries, and patches larger than 750 KB. File-content checks recognize OpenAI
-key patterns; they are not a complete secret scanner. `pyproject.toml` changes
-are limited to dependency and Python support declarations. Other workflow changes are
-limited to existing immutable action SHA pins. Publishing workflow-file changes
+key patterns; they are not a complete secret scanner. Root `pyproject.toml` changes
+are limited to dependency and Python support declarations; nested manifests require
+maintainer review. Other workflow changes are limited to existing immutable
+action SHA pins. Publishing workflow-file changes
 may additionally require an App/PAT with GitHub's workflows permission; without
 it, the operation stops and is recorded in the status issue.
 

@@ -165,6 +165,14 @@ class PatchBoundaryTests(GitFixture):
         with self.assertRaisesRegex(ValueError, "Validation policy"):
             security.validate_path("tests/nested/ruff.toml")
 
+    def test_nested_pyproject_cannot_override_lint_discovery(self):
+        target = self.root / "pkg/pyproject.toml"
+        target.parent.mkdir()
+        target.write_text('[tool.ruff.lint]\nignore = ["F401"]\n')
+        self.run_git("add", "pkg/pyproject.toml")
+        with self.assertRaisesRegex(ValueError, "Validation policy"):
+            security.validate_changes(self.root, self.base)
+
     def test_only_existing_workflow_pin_can_change(self):
         target = self.root / ".github/workflows/test.yml"
         target.write_text(target.read_text().replace("a" * 40, "b" * 40).replace("# v1", "# v2"))

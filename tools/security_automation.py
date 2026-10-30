@@ -162,6 +162,8 @@ def validate_path(path: str) -> None:
         raise ValueError("Sensitive path changes require maintainer review")
     if path in VALIDATION_PATHS or parts[-1] in VALIDATION_NAMES or "conftest.py" in parts:
         raise ValueError("Validation policy changes require maintainer review")
+    if parts[-1] == "pyproject.toml" and path != "pyproject.toml":
+        raise ValueError("Validation policy changes require maintainer review")
     if any(part in CREDENTIAL_NAMES | {".aws", ".ssh"} for part in parts):
         raise ValueError("Credential path changes require maintainer review")
 
@@ -517,7 +519,7 @@ def prepare_task(api: GitHub, task: Json, root: Path, now: float | None = None) 
         task["recovery_blocked"] = True
         task["blocked"] = (
             f"Publication or evidence recovery failed ({operation}, {category}); "
-            "retrying automatically after a bounded cooldown. Other findings continue."
+            "automatic retries remain enabled. Other findings continue."
         )
         return False
 
