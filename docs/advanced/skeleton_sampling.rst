@@ -299,11 +299,28 @@ ill-conditioned as the degree grows, and
 :func:`~torch_bsf.sampling.skeleton_risk_coefficients` raises ``ValueError``
 once the float64 result can no longer be guaranteed to six significant digits
 (above degree 14 for :math:`M = 2`, 12 for :math:`M = 3`, 11 for
-:math:`M = 4`, 9 for :math:`M = 5` and 8 for :math:`M = 6`). On a simploid,
-the condition number of the Gram matrix on the whole simploid is the product
-of those of its factors' Gram matrices, so products of many factors are
-rejected even at low degree (for example, 12 segments of degree 1). In that
+:math:`M = 4`, 9 for :math:`M = 5` and 8 for :math:`M = 6`). The Gram
+matrix of degree :math:`D` on a :math:`k`-simplex has the condition number
+:math:`\binom{2D + k}{D}`, which follows from its eigenvalues
+:cite:p:`kirby2017fast`. On a simploid, the condition number of the Gram
+matrix on the whole simploid is the product of those of its factors' Gram
+matrices, so products of many factors are rejected even at low degree (for
+example, 12 segments of degree 1). In that
 case, pass ``ratio`` to :func:`~torch_bsf.sampling.sample_skeleton` explicitly. A single
 simplex or simploid is supported, not assembled spaces. The closed forms and
 proofs in :doc:`skeleton_risk_theory` concern simplices only; for a simploid,
 only the numerical coefficients are available.
+
+The coefficients are computed factor by factor. On a face of a simploid, the
+Gram matrices and the errors that the face passes on are Kronecker products
+of those of its factor faces, so the trace of the face is the product of
+theirs, and each :math:`a_m` is a sum of such products of traces computed on
+the factors' simplices. Time and memory therefore grow with the cube and the
+square of the number of controls of the largest factor, not of the product:
+the product of eight triangles of degree one, with 6561 controls, takes a
+fraction of a second. A simplex is its own only factor, so time grows with the
+cube and memory with the square of its :math:`\binom{D + M - 1}{D}` controls.
+Because the condition numbers have closed forms, a rejected space is rejected
+before anything of that size is allocated. The widest accepted simplices,
+such as :math:`M = 22` at degree 4 with 12650 controls, still need several
+dense float64 matrices of 1.3 GB each.
