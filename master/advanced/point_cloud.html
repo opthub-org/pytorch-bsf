@@ -67,6 +67,7 @@
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Fitting from values alone</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#all-at-once-fitting">All-at-once fitting</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#inductive-skeleton-fitting">Inductive skeleton fitting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#products-of-simplices">Products of simplices</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#numerical-interpretation">Numerical interpretation</a></li>
 </ul>
 </li>
@@ -129,7 +130,8 @@
 surface and its domain coordinate is unknown. The existing <code class="docutils literal notranslate"><span class="pre">fit</span></code> solves
 a different problem: regression from known parameter/value pairs.</p>
 <p>The value-only methods implement Algorithms 2 and 3 of
-<span class="bibtex-citation" id="id1">Kobayashi <em>et al.</em> [<a class="reference internal" href="../references.html#id13" title="Ken Kobayashi, Naoki Hamada, Akiyoshi Sannai, Aiko Tanaka, Kenichi Bannai, and Masashi Sugiyama. Bézier simplex fitting: describing pareto fronts of simplicial problems with small samples in multi-objective optimization. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 33, 2304–2313. 2019. URL: https://doi.org/10.1609/aaai.v33i01.33012304.">KHS+19</a>]</span>. Both currently support a single simplex.
+<span class="bibtex-citation" id="id1">Kobayashi <em>et al.</em> [<a class="reference internal" href="../references.html#id13" title="Ken Kobayashi, Naoki Hamada, Akiyoshi Sannai, Aiko Tanaka, Kenichi Bannai, and Masashi Sugiyama. Bézier simplex fitting: describing pareto fronts of simplicial problems with small samples in multi-objective optimization. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 33, 2304–2313. 2019. URL: https://doi.org/10.1609/aaai.v33i01.33012304.">KHS+19</a>]</span>. Both support a single simplex or simploid,
+but not assembled spaces; see <a class="reference internal" href="#point-cloud-simploids"><span class="std std-ref">Products of simplices</span></a>.
 <code class="docutils literal notranslate"><span class="pre">fit_point_cloud</span></code> returns a <code class="docutils literal notranslate"><span class="pre">PointCloudFitResult</span></code>; <code class="docutils literal notranslate"><span class="pre">fit_skeleton</span></code>
 returns a <code class="docutils literal notranslate"><span class="pre">SkeletonFitResult</span></code>. Each result holds an ordinary <code class="docutils literal notranslate"><span class="pre">BezierModel</span></code>
 in <code class="docutils literal notranslate"><span class="pre">result.model</span></code> for prediction, plotting and serialization. Inspect
@@ -146,7 +148,7 @@ the surface using analytic first and second derivatives and Newton steps.</p></l
 the existing float64 SVD least-squares implementation.</p></li>
 </ol>
 <p>For example, fit a two-objective Schaffer front without providing its
-parameter coordinates to the fitting routine. The three examples on this
+parameter coordinates to the fitting routine. The examples on this
 page share the named <code class="docutils literal notranslate"><span class="pre">point-cloud-demo</span></code> session: run them in page order;
 the later examples reuse <code class="docutils literal notranslate"><span class="pre">torch</span></code>, <code class="docutils literal notranslate"><span class="pre">space</span></code> and <code class="docutils literal notranslate"><span class="pre">values</span></code> from this one.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
@@ -247,9 +249,48 @@ observations is fitted to their mean. Each face result contains coordinates
 local to that face, in its supplied or extracted sample order. A failed
 face stops assembly and leaves an explicitly unsuccessful partial result.</p>
 </section>
+<section id="products-of-simplices">
+<span id="point-cloud-simploids"></span><h2>Products of simplices<a class="headerlink" href="#products-of-simplices" title="Link to this heading"></a></h2>
+<p>A simploid, a product of simplices, is fitted the same way. Every row’s
+coordinates stay on each factor’s simplex, and Newton steps keep each
+factor’s coordinate sum. Automatic initialization and automatic face
+extraction rely on the Pareto-front structure of a single simplex, so a
+simploid needs an <code class="docutils literal notranslate"><span class="pre">initial</span></code> model for <code class="docutils literal notranslate"><span class="pre">fit_point_cloud</span></code>, and both
+<code class="docutils literal notranslate"><span class="pre">initial</span></code> and <code class="docutils literal notranslate"><span class="pre">face_values</span></code> for <code class="docutils literal notranslate"><span class="pre">fit_skeleton</span></code>. Face keys are the sorted
+global coordinate indices of a face’s vertices, as in
+<a class="reference internal" href="../api.html#torch_bsf.fitting.fit_skeleton_regression" title="torch_bsf.fitting.fit_skeleton_regression"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_skeleton_regression()</span></code></a>. The required faces are
+those in which no factor has more vertices than its degree, and each face is
+fitted on the product of its factors’ faces. A factor in which the face is a
+single vertex contributes no local coordinates, so a face’s <code class="docutils literal notranslate"><span class="pre">parameters</span></code>
+hold the face’s vertices in the other factors, in key order.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.sampling</span><span class="w"> </span><span class="kn">import</span> <span class="n">sample</span>
+
+<span class="c1"># A bilinear surface over the square, with one control per corner.</span>
+<span class="n">square</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">corners</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+    <span class="p">[[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span>
+<span class="p">)</span>
+<span class="n">surface</span> <span class="o">=</span> <span class="n">BezierModel</span><span class="p">(</span><span class="n">square</span><span class="p">,</span> <span class="n">corners</span><span class="p">)</span>
+<span class="n">observed</span> <span class="o">=</span> <span class="n">surface</span><span class="p">(</span><span class="n">sample</span><span class="p">(</span><span class="n">square</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+
+<span class="n">square_fit</span> <span class="o">=</span> <span class="n">fit_point_cloud</span><span class="p">(</span><span class="n">square</span><span class="p">,</span> <span class="n">observed</span><span class="p">,</span> <span class="n">initial</span><span class="o">=</span><span class="n">surface</span><span class="p">)</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="k">assert</span> <span class="n">square_fit</span><span class="o">.</span><span class="n">objective_history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">1e-12</span>
+<span class="k">assert</span> <span class="n">square_fit</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">40</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+
+<span class="n">corner_values</span> <span class="o">=</span> <span class="p">{(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span> <span class="n">corners</span><span class="p">[:</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span> <span class="n">corners</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span> <span class="n">corners</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="p">],</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span> <span class="n">corners</span><span class="p">[</span><span class="mi">3</span><span class="p">:]}</span>
+<span class="n">square_skeleton</span> <span class="o">=</span> <span class="n">fit_skeleton</span><span class="p">(</span><span class="n">square</span><span class="p">,</span> <span class="n">corners</span><span class="p">,</span> <span class="n">face_values</span><span class="o">=</span><span class="n">corner_values</span><span class="p">,</span> <span class="n">initial</span><span class="o">=</span><span class="n">surface</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">square_skeleton</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span><span class="o">.</span><span class="n">faces</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[(0, 2), (0, 3), (1, 2), (1, 3)]
+</pre></div>
+</div>
+</section>
 <section id="numerical-interpretation">
 <h2>Numerical interpretation<a class="headerlink" href="#numerical-interpretation" title="Link to this heading"></a></h2>
-<p>The parameter updates enforce nonnegative coordinates summing to one.
+<p>The parameter updates enforce nonnegative coordinates summing to one in
+every simplex factor.
 Projection, backtracking and a gradient fallback safeguard Newton updates
 at boundaries and singular or indefinite Hessians. These safeguards extend
 the paper’s plain Newton description. The algorithm is a local nonlinear

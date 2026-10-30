@@ -266,6 +266,12 @@ factor Bernstein polynomials. Outputs can have any positive column count;
 geometry does not depend on that count. A fitted model is a PyTorch module,
 so evaluation is differentiable with respect to coefficients and parameter
 coordinates. Numerical regression itself remains a CPU float64 solve.</p>
+<p>A single simplex or product also supports the face-by-face methods. These are
+skeleton sampling and inductive skeleton fitting (<a class="reference internal" href="skeleton_sampling.html"><span class="doc">Optimal skeleton sampling</span></a>)
+and value-only fitting without parameter coordinates (<a class="reference internal" href="point_cloud.html"><span class="doc">Fitting from values alone</span></a>).
+They key a face of a product by the sorted global coordinate indices of its
+vertices, so <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">3)</span></code> is a corner of the prism above. Assembled spaces are
+not supported by these methods.</p>
 </section>
 <section id="build-a-connected-two-patch-domain">
 <h2>Build a connected two-patch domain<a class="headerlink" href="#build-a-connected-two-patch-domain" title="Link to this heading"></a></h2>

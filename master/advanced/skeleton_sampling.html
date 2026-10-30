@@ -66,6 +66,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#sample-fit-and-compare">Sample, fit and compare</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#the-risk-and-its-coefficients">The risk and its coefficients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#the-optimal-ratio">The optimal ratio</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#products-of-simplices">Products of simplices</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#notes-on-the-original-derivation">Notes on the original derivation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#limits-of-the-result">Limits of the result</a></li>
 </ul>
@@ -128,14 +129,15 @@
              
   <section id="optimal-skeleton-sampling">
 <h1>Optimal skeleton sampling<a class="headerlink" href="#optimal-skeleton-sampling" title="Link to this heading"></a></h1>
-<p>When responses can be measured at chosen parameters, a simplex can be fitted
-face by face: vertices first, then edges, then larger faces, each time
+<p>When responses can be measured at chosen parameters, a simplex, or a product
+of simplices, can be fitted face by face: vertices first, then edges, then larger faces, each time
 estimating only the controls interior to the face from observations on that
 face. This is the inductive skeleton fitting of <span class="bibtex-citation" id="id1">Tanaka <em>et al.</em> [<a class="reference internal" href="../references.html#id15" title="Aiko Tanaka, Akiyoshi Sannai, Ken Kobayashi, and Naoki Hamada. Asymptotic risk of bézier simplex fitting. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 34, 2416–2424. 2020. URL: https://doi.org/10.1609/aaai.v34i03.5622.">TSKH20</a>]</span>.
 Its accuracy depends on how a budget of <span class="math notranslate nohighlight">\(N\)</span> observations is split among
 the skeletons. This chapter gives the asymptotic risk for every dimension and
 degree, the split that minimizes it, and the functions that compute, sample and
-fit with it.</p>
+fit with it. The same functions accept simploids; see
+<a class="reference internal" href="#skeleton-sampling-simploids"><span class="std std-ref">Products of simplices</span></a>.</p>
 <section id="sample-fit-and-compare">
 <h2>Sample, fit and compare<a class="headerlink" href="#sample-fit-and-compare" title="Link to this heading"></a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
@@ -339,6 +341,46 @@ degree shown on curves (<span class="math notranslate nohighlight">\(M = 2\)</sp
 <span class="math notranslate nohighlight">\(M = 49\)</span> at degree seven and <span class="math notranslate nohighlight">\(M = 60\)</span> at degree eight.</p></li>
 </ul>
 </section>
+<section id="products-of-simplices">
+<span id="skeleton-sampling-simploids"></span><h2>Products of simplices<a class="headerlink" href="#products-of-simplices" title="Link to this heading"></a></h2>
+<p>The same functions accept a single simploid, such as the prism
+<span class="math notranslate nohighlight">\(\Delta^2 \times \Delta^1\)</span> of <a class="reference internal" href="simploidal.html"><span class="doc">Single and assembled domains</span></a>. A face of a product
+is a product of one face per factor, and its dimension is the sum of the
+factor dimensions. The <span class="math notranslate nohighlight">\(m\)</span>-skeleton consists of the faces of dimension
+<span class="math notranslate nohighlight">\(m\)</span>, so <code class="docutils literal notranslate"><span class="pre">ratio</span></code> has one entry per dimension from 0 to the dimension
+of the product. Face keys are the sorted global coordinate indices of the
+face’s vertices, which list the vertices of every factor. On the prism,
+coordinates 0 to 2 belong to the triangle and 3 to 4 to the interval, so
+<code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">3)</span></code> is a corner and <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">1,</span> <span class="pre">3)</span></code> a triangle edge at one end.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">prism</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simploid</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">([</span><span class="nb">round</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">skeleton_risk_coefficients</span><span class="p">(</span><span class="n">prism</span><span class="p">)])</span>
+<span class="nb">print</span><span class="p">([</span><span class="nb">round</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">optimal_skeleton_ratio</span><span class="p">(</span><span class="n">prism</span><span class="p">)])</span>
+
+<span class="n">truth</span> <span class="o">=</span> <span class="n">BezierModel</span><span class="p">(</span><span class="n">prism</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">prism</span><span class="o">.</span><span class="n">n_controls</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">])</span>
+<span class="n">points</span> <span class="o">=</span> <span class="n">sample_skeleton</span><span class="p">(</span><span class="n">prism</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">fit_skeleton_regression</span><span class="p">(</span><span class="n">prism</span><span class="p">,</span> <span class="n">Samples</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">truth</span><span class="p">(</span><span class="n">points</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="o">+</span> <span class="n">noise</span><span class="p">))</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">faces</span><span class="p">)[:</span><span class="mi">2</span><span class="p">],</span> <span class="nb">list</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">faces</span><span class="p">)[</span><span class="mi">6</span><span class="p">:</span><span class="mi">8</span><span class="p">])</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[0.5, 4.0, 0.0, 0.0]
+[0.261, 0.739, 0.0, 0.0]
+[(0, 3), (0, 4)] [(0, 1, 3), (0, 1, 4)]
+</pre></div>
+</div>
+<p>A face has interior controls when no factor has more vertices than its
+degree. Faces of one dimension can differ in shape. The edges of the prism
+are six triangle edges at the two ends of the interval and three intervals at
+the triangle vertices. With degree one along the interval, only the triangle
+edges have interior controls.
+<a class="reference internal" href="../api.html#torch_bsf.sampling.sample_skeleton" title="torch_bsf.sampling.sample_skeleton"><code class="xref py py-func docutils literal notranslate"><span class="pre">sample_skeleton()</span></code></a> therefore splits each skeleton’s
+rows equally among its faces with interior controls. It uses all faces of a
+skeleton only when none has interior controls, which happens only when
+<code class="docutils literal notranslate"><span class="pre">ratio</span></code> asks for such a skeleton explicitly. The risk coefficients assume
+the same split, a uniform distribution on each factor of a face, and error
+integrated uniformly over the product. Here
+<span class="math notranslate nohighlight">\((\sum_m \sqrt{a_m})^2 \approx 7.33\)</span> is below the 12 controls of the
+prism, so the optimal skeleton design beats all-at-once least squares.</p>
+</section>
 <section id="notes-on-the-original-derivation">
 <h2>Notes on the original derivation<a class="headerlink" href="#notes-on-the-original-derivation" title="Link to this heading"></a></h2>
 <p>The numerical results of the paper are correct; the statements around them
@@ -361,15 +403,19 @@ errors face by face.</p></li>
 they are not finite-sample error bounds. With few rows per face, a design can
 be rank deficient or have large inverse-Gram moments. The formulas
 assume the uniform distribution on each face, an equal split among faces of
-the same size, and risk averaged uniformly over the simplex; a different
-weighting of the error changes them. Bernstein Gram matrices become
+the same size, and risk averaged uniformly over the simplex or simploid; a different
+weighting of the error changes them. On a simploid, the equal split among the
+faces of one dimension with interior controls is a convention, not an
+optimum: faces of different shapes can deserve different shares. Bernstein Gram matrices become
 ill-conditioned as the degree grows, and
 <a class="reference internal" href="../api.html#torch_bsf.sampling.skeleton_risk_coefficients" title="torch_bsf.sampling.skeleton_risk_coefficients"><code class="xref py py-func docutils literal notranslate"><span class="pre">skeleton_risk_coefficients()</span></code></a> raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>
 once the float64 result can no longer be guaranteed to six significant digits
 (above degree 14 for <span class="math notranslate nohighlight">\(M = 2\)</span>, 12 for <span class="math notranslate nohighlight">\(M = 3\)</span>, 11 for
 <span class="math notranslate nohighlight">\(M = 4\)</span>, 9 for <span class="math notranslate nohighlight">\(M = 5\)</span> and 8 for <span class="math notranslate nohighlight">\(M = 6\)</span>). In that case, pass
-<code class="docutils literal notranslate"><span class="pre">ratio</span></code> to <a class="reference internal" href="../api.html#torch_bsf.sampling.sample_skeleton" title="torch_bsf.sampling.sample_skeleton"><code class="xref py py-func docutils literal notranslate"><span class="pre">sample_skeleton()</span></code></a> explicitly. Only a
-single simplex is supported, not products or assembled spaces.</p>
+<code class="docutils literal notranslate"><span class="pre">ratio</span></code> to <a class="reference internal" href="../api.html#torch_bsf.sampling.sample_skeleton" title="torch_bsf.sampling.sample_skeleton"><code class="xref py py-func docutils literal notranslate"><span class="pre">sample_skeleton()</span></code></a> explicitly. A single
+simplex or simploid is supported, not assembled spaces. The closed forms and
+proofs in <a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a> concern simplices only; for a simploid,
+only the numerical coefficients are available.</p>
 </section>
 </section>
 
