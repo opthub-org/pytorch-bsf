@@ -21,9 +21,10 @@ CodeQL runs daily and on pull requests and pushes to `master`, with the
 (12:17 JST). **Run workflow → audit** starts the same audit manually.
 
 Every poll checks whether today's audit is due, so a replaced or delayed cron
-event cannot lose the daily audit. Critical and high-severity alerts are selected first. One finding is repaired per
-workflow run. Each finding is identified by its current advisory data, so an
-   upstream patch or changed advisory starts a new repair budget. The automation:
+event cannot lose the daily audit. Critical and high-severity alerts are selected
+first. One finding is repaired per workflow run. Each finding is identified by its
+current advisory data, so an upstream patch or changed advisory starts a new repair
+budget. The automation:
 
 1. Reserves one of at most three repair attempts in the **Security automation
    status** issue before calling the AI.
@@ -52,6 +53,13 @@ workflow run. Each finding is identified by its current advisory data, so an
    Actions-token merges do not reliably trigger downstream push workflows.
    Pending dispatches are persisted individually and retried without another AI
    call. A failed publication is isolated so other findings can still proceed.
+
+Technical recovery failures reset after a successful recovery. Three consecutive
+failures pause that task for one hour before another automatic retry; this does
+not replenish its AI attempt budget. Status records retain currently open alerts
+and unfinished PR/publication/post-merge work. Closed findings without pending
+work and old completed audits are removed to bound history growth. A genuinely
+reopened alert receives a new repair budget.
 
 Repository and alert text are untrusted evidence, not instructions. Secrets never
 enter the task JSON. Public status records and the task manifest contain finding IDs and

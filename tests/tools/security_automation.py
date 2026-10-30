@@ -1,5 +1,6 @@
 """Offline regressions for security repairs, privileged publication, and merge gates."""
 
+import base64
 import datetime as dt
 import json
 import subprocess
@@ -150,6 +151,19 @@ class PatchBoundaryTests(GitFixture):
         target.write_text(target.read_text().replace('["tests"]', '["tests/safe_only"]'))
         with self.assertRaisesRegex(ValueError, "Only dependency"):
             security.validate_changes(self.root, base)
+
+    def test_alternate_validation_configs_cannot_override_trusted_policy(self):
+        for name in (".pytest.ini", "pytest.toml", ".pytest.toml", "ruff.toml", ".ruff.toml", "mypy.ini", ".mypy.ini"):
+            with self.subTest(name=name):
+                target = self.root / name
+                target.write_text("# override trusted configuration\n")
+                self.run_git("add", name)
+                with self.assertRaisesRegex(ValueError, "Validation policy"):
+                    security.validate_changes(self.root, self.base)
+                self.run_git("reset", "-q", "--", name)
+                target.unlink()
+        with self.assertRaisesRegex(ValueError, "Validation policy"):
+            security.validate_path("tests/nested/ruff.toml")
 
     def test_only_existing_workflow_pin_can_change(self):
         target = self.root / ".github/workflows/test.yml"
@@ -492,6 +506,12 @@ class PaginationTests(unittest.TestCase):
         api.repo, api.token = REPO, "test-token"
         return api
 
+    def test_repository_metadata_endpoint_has_no_trailing_slash(self):
+        api = self.client()
+        with patch.object(api, "request", return_value={"id": 381016316}) as request:
+            self.assertEqual(api.get("")["id"], 381016316)
+        request.assert_called_once_with(f"/repos/{REPO}")
+
     def test_cursor_link_is_followed_without_page_parameter(self):
         api = self.client()
         endpoint = f"/repos/{REPO}/dependabot/alerts"
@@ -506,12 +526,29 @@ class PaginationTests(unittest.TestCase):
             "https://evil.invalid/alerts",
             "https://api.github.com/repos/elsewhere/secret",
             f"http://api.github.com/repos/{REPO}/dependabot/alerts",
+            "https://api.github.com/repositories/999/dependabot/alerts",
+            "https://api.github.com/repositories/381016316/issues",
+            f"https://token@api.github.com/repos/{REPO}/dependabot/alerts",
         ]:
             api = self.client()
+            api.repo_id = 381016316
             with patch.object(api, "_response", return_value=([], f'<{destination}>; rel="next"')) as response:
                 with self.assertRaisesRegex(ValueError, "Unsafe GitHub pagination"):
                     api.pages("dependabot/alerts")
                 self.assertEqual(response.call_count, 1)
+
+    def test_verified_numeric_repository_alias_is_followed_and_cached(self):
+        api = self.client()
+        for resource in ("dependabot/alerts", "issues"):
+            endpoint = "/repositories/381016316/" + resource
+            link = f'<https://api.github.com{endpoint}?after=cursor>; rel="next"'
+            with (
+                patch.object(api, "get", return_value={"id": 381016316}) as metadata,
+                patch.object(api, "_response", side_effect=[([{"id": 1}], link), ([{"id": 2}], "")]) as response,
+            ):
+                self.assertEqual(api.pages(resource), [{"id": 1}, {"id": 2}])
+            self.assertEqual(response.call_args.args[0], endpoint + "?after=cursor")
+            self.assertEqual(metadata.call_count, int(resource == "dependabot/alerts"))
 
 
 class RealCIEvidenceTests(unittest.TestCase):
@@ -604,6 +641,9 @@ class PublicationIntegrationTests(GitFixture):
 
     def test_initial_repair_publishes_correct_tree_parent_ref_and_ci(self):
         self.publish()
+        blob = next(data for path, data, _ in self.writes if path == "git/blobs")
+        self.assertEqual(blob["encoding"], "base64")
+        self.assertEqual(base64.b64decode(blob["content"]), b"value = 2\n")
         commit = next(data for path, data, _ in self.writes if path == "git/commits")
         tree = next(data for path, data, _ in self.writes if path == "git/trees")
         self.assertEqual(commit["parents"], [self.base])
@@ -613,6 +653,27 @@ class PublicationIntegrationTests(GitFixture):
         self.assertIn(("git/refs", {"ref": "refs/heads/" + self.task["branch"], "sha": "c" * 40}, "POST"), self.writes)
         self.assertEqual(self.state["tasks"]["id"]["pr"], 123)
         self.assertEqual(sum(path.endswith("/dispatches") for path, _, _ in self.writes), len(security.WORKFLOWS))
+
+    def test_new_deleted_and_executable_files_keep_bytes_and_modes(self):
+        (self.root / "source.py").unlink()
+        (self.root / "new_test.py").write_text("assert 2 == 2\n")
+        script = self.root / "repair.sh"
+        script.write_bytes(b"#!/bin/sh\nprintf 'repaired\\n'\n")
+        script.chmod(0o755)
+        self.run_git("add", "new_test.py", "repair.sh")
+        self.publish()
+        blobs = [data for path, data, _ in self.writes if path == "git/blobs"]
+        self.assertTrue(all(blob["encoding"] == "base64" for blob in blobs))
+        self.assertEqual([base64.b64decode(blob["content"]) for blob in blobs], [b"assert 2 == 2\n", script.read_bytes()])
+        tree = next(data for path, data, _ in self.writes if path == "git/trees")
+        self.assertEqual(
+            tree["tree"],
+            [
+                {"path": "new_test.py", "mode": "100644", "type": "blob", "sha": "blob-sha"},
+                {"path": "repair.sh", "mode": "100755", "type": "blob", "sha": "blob-sha"},
+                {"path": "source.py", "mode": "100644", "type": "blob", "sha": None},
+            ],
+        )
 
     def test_existing_repair_updates_ref_without_force_or_duplicate_pr(self):
         self.task.update(pr=123, head="h" * 40)
@@ -636,6 +697,64 @@ class PublicationIntegrationTests(GitFixture):
 
 
 class DurableRecoveryTests(unittest.TestCase):
+    def test_technical_outage_recovers_after_cooldown_without_new_ai_budget(self):
+        api = api_mock()
+        task: security.Json = {"pr": 123, "attempts": 1, "reviews": 2}
+        with patch.object(security, "choose_pr_mode", side_effect=security.GitHubError("private payload", 502)):
+            for _ in range(3):
+                self.assertFalse(security.prepare_task(api, task, ROOT, now=1000))
+        self.assertEqual(task["recovery_failures"], 3)
+        self.assertIn("HTTP 502", task["blocked"])
+        self.assertNotIn("private payload", task["blocked"])
+        with patch.object(security, "choose_pr_mode", return_value=True) as healthy:
+            self.assertFalse(security.prepare_task(api, task, ROOT, now=1001))
+            healthy.assert_not_called()
+            self.assertTrue(security.prepare_task(api, task, ROOT, now=4600))
+        self.assertEqual((task["attempts"], task["reviews"], task["recovery_failures"]), (1, 2, 0))
+        self.assertNotIn("recovery_retry_after", task)
+        self.assertEqual(task["blocked"], "")
+
+    def test_successful_recovery_resets_consecutive_technical_failures(self):
+        api = api_mock()
+        task = {"pr": 123, "recovery_failures": 2}
+        with patch.object(security, "choose_pr_mode", return_value=False):
+            self.assertFalse(security.prepare_task(api, task, ROOT))
+        self.assertEqual(task["recovery_failures"], 0)
+
+    def test_failure_reports_remain_visible_while_other_work_runs(self):
+        api = api_mock()
+        task = {"signal": {"key": "dependabot-1"}, "blocked": "generate failed; see https://github.com/run/123"}
+        security.save_state(api, 12, {"tasks": {"id": task}}, "Running another repair.")
+        visible = api.write.call_args.args[1]["body"].split("<!--")[0]
+        self.assertIn(task["blocked"], visible)
+        self.assertIn("dependabot-1", visible)
+
+    def test_obsolete_history_is_pruned_without_losing_dedup_or_recovery(self):
+        today = dt.datetime.now(dt.UTC).date().isoformat()
+        signal = {"key": "dependabot-open", "revision": "current"}
+        ident = security.fingerprint(signal)
+        state: security.Json = {
+            "tasks": {
+                str(number): {"signal": {"key": f"dependabot-{number}"}, "result": "merged", "pr": number}
+                for number in range(400)
+            }
+        }
+        keep = {
+            ident: {"signal": signal, "result": "merged", "pr": 1000},
+            "pr": {"signal": {"key": "closed-alert-pr"}, "pr": 1001, "result": "pending"},
+            "publishing": {"signal": {"key": "closed-alert-publishing"}, "published_head": "head"},
+            "dispatch": {"signal": {"key": "closed-alert-dispatch"}, "result": "merged", "post_merge_remaining": ["ci"]},
+            "today": {"signal": {"key": "audit", "updated": today}, "result": "no_change"},
+        }
+        state["tasks"].update(keep)
+        state["tasks"].update(
+            blocked={"signal": {"key": "closed-alert-blocked"}, "result": "blocked"},
+            exhausted={"signal": {"key": "closed-alert-exhausted"}, "attempts": 3},
+            old_audit={"signal": {"key": "audit", "updated": "2000-01-01"}, "attempts": 3},
+        )
+        security.register_signals(state, [signal])
+        self.assertEqual(state["tasks"], keep)
+
     def test_post_merge_dispatch_retries_only_remaining_work(self):
         api = api_mock()
         task = {

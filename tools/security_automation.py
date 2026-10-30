@@ -29,12 +29,19 @@ WORKFLOWS = [
     "security-policy.yml",
 ]
 MAX_ATTEMPTS = 3
+RECOVERY_COOLDOWN = 3600
 MAX_PATCH_BYTES = 750_000
 BOT = "github-actions[bot]"
 PROTECTED = (".git", ".agents", ".claude", ".codex", ".github/security", "tools/security_", "tests/tools/security_")
 ACTION_PIN = re.compile(r"^(\s*(?:- )?uses:\s+[\w./-]+@)[0-9a-f]{40}(\s*(?:#.*)?)$", re.MULTILINE)
 POST_MERGE = [*WORKFLOWS, "release-please-action.yml", "sphinx-pages.yml"]
 VALIDATION_PATHS = {
+    "tools/lint_conventions.py",
+    "tools/check_distribution.py",
+    "tools/update_python_support.py",
+    "tests/tools/release-please-fixture/test.cjs",
+}
+VALIDATION_NAMES = {
     ".pre-commit-config.yaml",
     ".coveragerc",
     "codecov.yml",
@@ -42,13 +49,16 @@ VALIDATION_PATHS = {
     ".codecov.yml",
     ".codecov.yaml",
     "pytest.ini",
+    ".pytest.ini",
+    "pytest.toml",
+    ".pytest.toml",
+    "ruff.toml",
+    ".ruff.toml",
+    "mypy.ini",
+    ".mypy.ini",
     "tox.ini",
     "setup.cfg",
     ".gitattributes",
-    "tools/lint_conventions.py",
-    "tools/check_distribution.py",
-    "tools/update_python_support.py",
-    "tests/tools/release-please-fixture/test.cjs",
 }
 CREDENTIAL_NAMES = {".netrc", ".npmrc", ".pypirc", "credentials.json", "service-account.json", "id_rsa", "id_ed25519"}
 
@@ -79,7 +89,7 @@ class GitHub:
             raise GitHubError(f"GitHub {method} {path.split('?')[0]} returned HTTP {error.code}", error.code) from None
 
     def get(self, path: str) -> Any:
-        return self.request(f"/repos/{self.repo}/{path}")
+        return self.request(f"/repos/{self.repo}" + (f"/{path}" if path else ""))
 
     def write(self, path: str, data: Any, method: str = "POST") -> Any:
         return self.request(f"/repos/{self.repo}/{path}", method, data)
@@ -97,10 +107,19 @@ class GitHub:
             if match is None:
                 return result
             continuation = urllib.parse.urlsplit(match[1])
+            allowed_paths = {endpoint.split("?")[0]}
+            if (
+                continuation.scheme == "https"
+                and continuation.netloc == "api.github.com"
+                and continuation.path.startswith("/repositories/")
+            ):
+                if not hasattr(self, "repo_id"):
+                    self.repo_id = int(self.get("")["id"])
+                allowed_paths.add(f"/repositories/{self.repo_id}/" + path.split("?")[0])
             if (
                 continuation.scheme != "https"
                 or continuation.netloc != "api.github.com"
-                or continuation.path != endpoint.split("?")[0]
+                or continuation.path not in allowed_paths
                 or continuation.fragment
             ):
                 raise ValueError("Unsafe GitHub pagination continuation")
@@ -141,7 +160,7 @@ def validate_path(path: str) -> None:
         raise ValueError("Automation control-plane changes require maintainer review")
     if path.endswith((".local", ".pem", ".key")) or any(part.startswith(".env") for part in parts):
         raise ValueError("Sensitive path changes require maintainer review")
-    if path in VALIDATION_PATHS or "conftest.py" in parts:
+    if path in VALIDATION_PATHS or parts[-1] in VALIDATION_NAMES or "conftest.py" in parts:
         raise ValueError("Validation policy changes require maintainer review")
     if any(part in CREDENTIAL_NAMES | {".aws", ".ssh"} for part in parts):
         raise ValueError("Credential path changes require maintainer review")
@@ -266,9 +285,11 @@ def save_state(api: GitHub, issue: int | None, state: Json, message: str) -> int
     for ident, task in list(state["tasks"].items()):
         if task.get("result") == "no_change" and task["signal"]["key"] == "audit" and task["signal"]["updated"] != today:
             del state["tasks"][ident]
+    blocked = [f"- {entry['signal']['key']}: {entry['blocked']}" for entry in state["tasks"].values() if entry.get("blocked")]
     body = (
         "This issue tracks automatic security repairs. No alert is dismissed automatically.\n\n"
         + message
+        + ("\n\nBlocked findings:\n\n" + "\n".join(blocked) if blocked else "")
         + "\n\n"
         + "Each finding has at most three repair attempts and three independent reviews per revision. "
         "Blocked findings remain visible here. A changed upstream advisory starts a new attempt budget.\n\n"
@@ -439,34 +460,65 @@ def include_active_tasks(state: Json, current_signals: list[Json]) -> list[Json]
 
 
 def register_signals(state: Json, current_signals: list[Json]) -> None:
+    # Authoritative open-alert data bounds history without forgetting a still-open
+    # repaired finding or abandoning interrupted PR/publication/post-merge work.
+    current_ids = {fingerprint(signal) for signal in current_signals}
+    today = dt.datetime.now(dt.UTC).date().isoformat()
+    for ident, entry in list(state["tasks"].items()):
+        terminal = entry.get("result") in {"merged", "closed", "no_change"}
+        active = entry.get("post_merge_remaining") or ((entry.get("pr") or entry.get("published_head")) and not terminal)
+        audit = entry["signal"]["key"] == "audit"
+        obsolete = entry["signal"].get("updated", "") < today if audit else ident not in current_ids
+        if obsolete and not active:
+            del state["tasks"][ident]
     for signal in current_signals:
         ident = fingerprint(signal)
         if ident not in state["tasks"]:
             for old_id, old in list(state["tasks"].items()):
                 if old["signal"]["key"] == signal["key"] and old.get("result") not in {"merged", "closed", "no_change"}:
                     old.update({"signal": signal, "attempts": 0, "reviews": 0, "recovery_failures": 0})
+                    old.pop("recovery_retry_after", None)
                     state["tasks"][ident] = state["tasks"].pop(old_id)
                     break
         state["tasks"].setdefault(ident, {"signal": signal, "attempts": 0, "reviews": 0})
 
 
-def prepare_task(api: GitHub, task: Json, root: Path) -> bool:
+def prepare_task(api: GitHub, task: Json, root: Path, now: float | None = None) -> bool:
+    now = dt.datetime.now(dt.UTC).timestamp() if now is None else now
     if task.get("recovery_failures", 0) >= MAX_ATTEMPTS and not task.get("post_merge_remaining"):
-        return False
+        if now < task.get("recovery_retry_after", 0):
+            return False
+        task["recovery_failures"] = 0
+    if task.pop("recovery_blocked", False):
+        task["blocked"] = ""
+    operation = "PR evidence"
     try:
         if task.get("post_merge_remaining"):
+            operation = "post-merge dispatch"
             finish_post_merge(api, task)
-            return False
-        if task.get("published_head") and not task.get("pr"):
+            ready = False
+        elif task.get("published_head") and not task.get("pr"):
+            operation = "publication"
             restore_publication(api, task)
-            return False
-        if task.get("pr"):
-            return choose_pr_mode(api, task, root)
-        task.update({"head": task["base"], "branch": BRANCH_PREFIX + task["id"]})
-        return True
-    except (RuntimeError, ValueError, OSError):
+            ready = False
+        elif task.get("pr"):
+            ready = choose_pr_mode(api, task, root)
+        else:
+            task.update({"head": task["base"], "branch": BRANCH_PREFIX + task["id"]})
+            ready = True
+        task["recovery_failures"] = 0
+        task.pop("recovery_retry_after", None)
+        return ready
+    except (RuntimeError, ValueError, OSError) as error:
         task["recovery_failures"] = task.get("recovery_failures", 0) + 1
-        task["blocked"] = "Publication or evidence recovery failed; inspect the workflow run. Other findings continue."
+        if task["recovery_failures"] >= MAX_ATTEMPTS:
+            task["recovery_retry_after"] = now + RECOVERY_COOLDOWN
+        category = f"GitHub HTTP {error.code}" if isinstance(error, GitHubError) else type(error).__name__
+        task["recovery_blocked"] = True
+        task["blocked"] = (
+            f"Publication or evidence recovery failed ({operation}, {category}); "
+            "retrying automatically after a bounded cooldown. Other findings continue."
+        )
         return False
 
 
@@ -474,7 +526,7 @@ def plan(api: GitHub, root: Path, current_signals: list[Json]) -> Json:
     issue, state = load_state(api)
     current_base = base_sha(api)
     register_signals(state, current_signals)
-    if state["tasks"]:
+    if issue is not None or state["tasks"]:
         issue = save_state(api, issue, state, "Checking current security signals.")
     current_signals = include_active_tasks(state, current_signals)
     for signal in current_signals:
@@ -497,10 +549,7 @@ def plan(api: GitHub, root: Path, current_signals: list[Json]) -> Json:
         task["issue"] = issue
         return dict(task)
     if state["tasks"]:
-        blocked = [
-            f"- {entry['signal']['key']}: {entry['blocked']}" for entry in state["tasks"].values() if entry.get("blocked")
-        ]
-        save_state(api, issue, state, "No runnable repairs.\n\n" + "\n".join(blocked))
+        save_state(api, issue, state, "No runnable repairs.")
     return {"mode": "none"}
 
 
