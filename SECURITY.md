@@ -65,6 +65,10 @@ currently open alerts and unfinished PR/publication/post-merge work. Closed
 findings without pending work and old completed audits are removed to bound
 history growth. A genuinely
 reopened alert receives a new repair budget.
+If the same alert remains open after its repair PR is merged or closed, the status issue
+explicitly marks it blocked pending alert clearance or investigation of post-merge
+validation. A merged PR alone never marks an alert cleared or dismisses it. This
+verification state does not reset the finding's AI budget.
 
 Repository and alert text are untrusted evidence, not instructions. Secrets never
 enter the task JSON. Public status records and the task manifest contain finding IDs and

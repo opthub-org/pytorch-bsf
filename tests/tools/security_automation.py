@@ -286,6 +286,20 @@ class PlanningTests(unittest.TestCase):
         self.assertEqual(self.call_plan(), {"mode": "none"})
         self.assertEqual(self.call_plan(dict(self.signal, revision="new upstream fix"))["attempts"], 1)
 
+    def test_still_open_alert_after_pr_finishes_is_visibly_blocked(self):
+        for result in ("merged", "closed"):
+            with self.subTest(result=result):
+                entry: security.Json = {"signal": self.signal, "result": result, "pr": 123, "attempts": 1, "reviews": 1}
+                self.state["tasks"][self.ident] = entry
+                self.assertEqual(self.call_plan(), {"mode": "none"})
+                self.assertIn("alert remains open", entry["blocked"])
+                self.assertEqual((entry["attempts"], entry["reviews"], entry["result"]), (1, 1, result))
+                security.save_state(self.api, 12, self.state, "No runnable repairs.")
+                visible = self.api.write.call_args.args[1]["body"].split("<!--")[0]
+                self.assertIn("alert remains open", visible)
+                security.register_signals(self.state, [])
+                self.assertEqual(self.state["tasks"], {})
+
     def test_fork_draft_and_spoofed_author_are_not_trusted(self):
         for pr in [
             pull_request(draft=True),

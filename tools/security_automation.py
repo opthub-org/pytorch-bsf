@@ -581,6 +581,11 @@ def plan(api: GitHub, root: Path, current_signals: list[Json]) -> Json:
         ident = fingerprint(signal)
         task = state["tasks"].setdefault(ident, {"signal": signal, "attempts": 0, "reviews": 0})
         if task.get("result") in {"merged", "no_change", "closed"} and not task.get("post_merge_remaining"):
+            if task.get("result") in {"merged", "closed"} and signal["key"] != "audit":
+                task["blocked"] = (
+                    f"Automatic repair is blocked while this alert remains open after its PR was {task['result']}. "
+                    "Inspect the alert and latest validation; a changed advisory starts a new repair budget."
+                )
             continue
         task.update({"id": ident, "issue": issue, "base": current_base, "mode": "fix"})
         if not prepare_task(api, task, root):
