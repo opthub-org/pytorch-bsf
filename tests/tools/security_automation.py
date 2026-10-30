@@ -6,6 +6,7 @@ import json
 import subprocess
 import sys
 import tempfile
+import textwrap
 import tomllib
 import unittest
 from pathlib import Path
@@ -75,7 +76,16 @@ class CheckEvidenceTests(unittest.TestCase):
         for classifier in metadata["project"]["classifiers"]:
             if classifier.startswith("Programming Language :: Python :: 3."):
                 self.assertIn(f"build ({classifier.rsplit(' ', 1)[-1]})", expected)
-        self.assertTrue({"codecov/patch", "optional-deps (no-mlflow)"} <= expected)
+        self.assertTrue({"coverage / coverage", "codecov/patch", "optional-deps (no-mlflow)"} <= expected)
+
+    def test_dispatch_preserves_pr_identity_for_isolated_coverage_upload(self):
+        api = api_mock()
+        security.dispatch_ci(api, "automation/security/test", 123)
+        api.write.assert_any_call(
+            "actions/workflows/python-package.yml/dispatches",
+            {"ref": "automation/security/test", "inputs": {"pr_number": "123"}},
+        )
+        self.assertEqual(api.write.call_count, len(security.WORKFLOWS))
 
 
 class GitFixture(unittest.TestCase):
@@ -115,6 +125,7 @@ class PatchBoundaryTests(GitFixture):
             "tests/tools/security_automation.py",
             ".github/workflows/security-remediation.yml",
             ".github/workflows/security-policy.yml",
+            ".github/workflows/codeql-analysis.yml",
             "nested/AGENTS.md",
             ".codex/config.toml",
             ".claude/settings.json",
@@ -814,6 +825,59 @@ class PublicationIntegrationTests(GitFixture):
 
 
 class DurableRecoveryTests(unittest.TestCase):
+    def test_candidate_tests_have_no_oidc_or_coverage_credentials(self):
+        workflow = (ROOT / ".github/workflows/python-package.yml").read_text()
+        build = workflow.split("\n  build:\n", 1)[1].split("\n  coverage:\n", 1)[0]
+        self.assertNotIn("id-token:", build)
+        self.assertNotIn("secrets.", build)
+        self.assertNotIn("codecov/codecov-action@", build)
+        self.assertIn("actions/upload-artifact@", build)
+        coverage = workflow.split("\n  coverage:\n", 1)[1].split("\n  distribution:\n", 1)[0]
+        self.assertIn("uses: ./.github/workflows/security-coverage.yml", coverage)
+        self.assertIn("needs: [python-support, build]", coverage)
+
+    def test_credentialed_coverage_workflow_is_protected_and_reads_only_report_data(self):
+        path = ".github/workflows/security-coverage.yml"
+        with self.assertRaisesRegex(ValueError, "control-plane"):
+            security.validate_path(path)
+        workflow = (ROOT / path).read_text()
+        self.assertIn("ref: master", workflow)
+        self.assertIn("override_commit: ${{ inputs.commit }}", workflow)
+        self.assertIn("plugins: noop", workflow)
+        self.assertIn("disable_search: true", workflow)
+        self.assertNotIn("pip install", workflow)
+        self.assertNotIn("pytest", workflow)
+
+    def test_coverage_artifact_is_validated_as_data_before_credentials_are_used(self):
+        workflow = (ROOT / ".github/workflows/security-coverage.yml").read_text()
+        code = textwrap.dedent(workflow.split("python3 -I - <<'PY'\n", 1)[1].split("\n          PY", 1)[0])
+        with tempfile.TemporaryDirectory() as scratch:
+            directory = Path(scratch) / "coverage"
+            directory.mkdir()
+            report = directory / "coverage.xml"
+            report.write_bytes(b"raise RuntimeError('Report content must never execute')\n")
+
+            def run():
+                return subprocess.run(
+                    [sys.executable, "-I", "-c", code],
+                    env={**security.os.environ, "RUNNER_TEMP": scratch},
+                    capture_output=True,
+                    check=False,
+                ).returncode
+
+            self.assertEqual(run(), 0)
+            extra = directory / "injected.py"
+            extra.write_bytes(b"raise RuntimeError('must never execute')")
+            self.assertNotEqual(run(), 0)
+            extra.unlink()
+            report.unlink()
+            report.symlink_to(ROOT / "pyproject.toml")
+            self.assertNotEqual(run(), 0)
+            report.unlink()
+            with report.open("wb") as stream:
+                stream.truncate(20_000_001)
+            self.assertNotEqual(run(), 0)
+
     def test_technical_outage_recovers_after_cooldown_without_new_ai_budget(self):
         api = api_mock()
         task: security.Json = {"pr": 123, "attempts": 1, "reviews": 2}

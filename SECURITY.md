@@ -42,6 +42,11 @@ budget. The automation:
    CodeQL, and `codecov/patch` to succeed on the current head. Missing, pending,
    skipped, or neutral required checks cannot authorize a merge. A failed check
    returns the patch to the repair loop.
+   Test runners have no repository secrets or OIDC permission. Coverage is passed
+   as report data to the protected `security-coverage.yml` workflow on a fresh
+   runner; only that runner receives Codecov authentication. It checks out trusted
+   `master`, validates the report file, disables plugins, and explicitly identifies
+   the tested commit and PR without executing candidate code.
 6. Runs an independent Codex review in a fresh read-only session. Findings return
    to the repair loop. Each revision has at most three review attempts. Open
    review threads are resolved only when the independent reviewer explicitly
@@ -79,6 +84,7 @@ repository write token; publication and
 merge jobs never execute candidate code. The publisher rejects changes to the
 automation itself, its tests and prompts, repository instructions, validation
 configuration/helpers (including the trusted `tools/` and `tests/tools/` trees),
+the CodeQL scanner workflow,
 root modules that shadow Python's standard library or startup hooks,
 common credential paths and key-file extensions, symlinks,
 binaries, and patches larger than 750 KB. File-content checks recognize OpenAI

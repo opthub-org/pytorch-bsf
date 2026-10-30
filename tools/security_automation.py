@@ -32,7 +32,16 @@ MAX_ATTEMPTS = 3
 RECOVERY_COOLDOWN = 3600
 MAX_PATCH_BYTES = 750_000
 BOT = "github-actions[bot]"
-PROTECTED = (".git", ".agents", ".claude", ".codex", ".github/security", "tools", "tests/tools")
+PROTECTED = (
+    ".git",
+    ".agents",
+    ".claude",
+    ".codex",
+    ".github/security",
+    "tools",
+    "tests/tools",
+    ".github/workflows/codeql-analysis.yml",
+)
 ACTION_PIN = re.compile(r"^(\s*(?:- )?uses:\s+[\w./-]+@)[0-9a-f]{40}(\s*(?:#.*)?)$", re.MULTILINE)
 POST_MERGE = [*WORKFLOWS, "release-please-action.yml", "sphinx-pages.yml"]
 VALIDATION_NAMES = {
@@ -110,7 +119,6 @@ class GitHub:
                 "http.followRedirects=false",
                 "fetch",
                 "--no-tags",
-                "--depth=1",
                 f"https://github.com/{self.repo}.git",
                 sha,
             ],
@@ -267,6 +275,7 @@ def expected_checks(root: Path) -> set[str]:
         "Analyze",
         "CodeQL",
         "codecov/patch",
+        "coverage / coverage",
         "build-mlflow",
         "security-policy",
         *(f"build ({version})" for version in versions),
@@ -312,9 +321,16 @@ def ci_state(api: GitHub, sha: str, root: Path) -> tuple[list[str], list[str], d
     return failed, sorted(set(pending)), latest
 
 
-def dispatch_ci(api: GitHub, branch: str) -> None:
+def dispatch_workflow(api: GitHub, workflow: str, branch: str, pr: int | None = None) -> None:
+    data: Json = {"ref": branch}
+    if workflow == "python-package.yml" and pr is not None:
+        data["inputs"] = {"pr_number": str(pr)}
+    api.write(f"actions/workflows/{workflow}/dispatches", data)
+
+
+def dispatch_ci(api: GitHub, branch: str, pr: int | None = None) -> None:
     for workflow in WORKFLOWS:
-        api.write(f"actions/workflows/{workflow}/dispatches", {"ref": branch})
+        dispatch_workflow(api, workflow, branch, pr)
 
 
 def load_state(api: GitHub) -> tuple[int | None, Json]:
@@ -469,7 +485,7 @@ def retry_missing_ci(api: GitHub, task: Json, runs: dict[str, Json]) -> None:
         return
     task["ci_dispatches"] += 1
     for workflow in missing:
-        api.write(f"actions/workflows/{workflow}/dispatches", {"ref": task["branch"]})
+        dispatch_workflow(api, workflow, task["branch"], task.get("pr"))
 
 
 def failure_evidence(api: GitHub, sha: str, failed: list[str]) -> list[Json]:
@@ -669,7 +685,7 @@ def publish(api: GitHub, task: Json, root: Path, outcome: Json) -> None:
         task,
         {"pr": pr_number, "head": commit["sha"], "reviews": 0, "result": "pending", "blocked": "", "review_required": False},
     )
-    dispatch_ci(api, task["branch"])
+    dispatch_ci(api, task["branch"], pr_number)
 
 
 def restore_publication(api: GitHub, task: Json) -> None:
@@ -706,7 +722,7 @@ def restore_publication(api: GitHub, task: Json) -> None:
     published = {"pr": pr["number"], "head": sha, "reviews": 0, "result": "pending", "blocked": "", "review_required": False}
     task.update(published)
     update_task(api, task, published)
-    dispatch_ci(api, task["branch"])
+    dispatch_ci(api, task["branch"], pr["number"])
 
 
 def resolve_threads(api: GitHub, pr_number: int, resolved_threads: list[str]) -> None:
