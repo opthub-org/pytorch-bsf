@@ -16,7 +16,7 @@ import numpy as np
 import torch
 from torch.nn import functional as F
 
-from torch_bsf._kernels.combinatorics import _indices
+from torch_bsf._kernels.combinatorics import _indices, _simplex_indices
 from torch_bsf._skeleton import (
     _blocks,
     _control_faces,
@@ -204,6 +204,20 @@ def _face_gram(
     return numerators / float(denominator)
 
 
+def _factor_grams(dimensions: Sequence[int], degree: Sequence[int]) -> list[torch.Tensor]:
+    """Gram matrices of each factor's Bernstein polynomials under the uniform distribution on that factor.
+
+    Under the uniform distribution on the product, the Gram matrix on the whole simploid is, up to the order of the
+    controls, their Kronecker product, so its condition number is the product of theirs. On a simplex, the only
+    factor's matrix is the Gram matrix on the whole simplex.
+    """
+    grams = []
+    for a, d in zip(dimensions, degree, strict=True):
+        alpha = torch.tensor(_simplex_indices(a + 1, d), dtype=torch.long)
+        grams.append(_face_gram(alpha, alpha, range(a + 1), (a,), (d,)))
+    return grams
+
+
 def _shapes(dimensions: Sequence[int], m: int) -> list[tuple[int, ...]]:
     """Vertex counts per factor of the faces of dimension ``m``, in lexicographic order."""
     if len(dimensions) <= 1:
@@ -277,7 +291,11 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
         and degree in every factor, or if its Bernstein Gram matrices are too
         ill-conditioned to bound the float64 relative error by ``1e-6``. For a
         simplex, the largest accepted degree falls with the dimension: 14 for 2
-        vertices, 12 for 3, 11 for 4, 9 for 5, 8 for 6 and 7, and 7 for 8.
+        vertices, 12 for 3, 11 for 4, 9 for 5, 8 for 6 and 7, and 7 for 8. On
+        a simploid, the condition number of the Gram matrix on the whole
+        simploid is the product of those of its factors' Gram matrices, so it
+        also grows with the number of factors: 12 segments of degree 1 are
+        rejected.
 
     Notes
     -----
@@ -312,9 +330,14 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
         if not bound <= _RISK_RELATIVE_ERROR:
             raise ValueError(f"degree is too large for the risk coefficients in float64 (condition number {kappa:.1e}).")
 
-    # Reject hopeless degrees before allocating anything of size n_controls: the largest denominator must fit in
-    # float64, and the small Gram block of the controls interior to one edge of the factor of highest degree,
-    # among those whose largest condition number enters the bound, must already pass it.
+    # Reject hopeless spaces (high degrees, or many factors on a simploid) before the face-by-face computation of size
+    # n_controls: the largest denominator must fit in float64; the small Gram block of the controls interior to one
+    # edge of the factor of highest degree, among those whose largest condition number enters the bound, must
+    # already pass it; and so must the Gram matrix on the whole simploid. Its condition number, which grows with the
+    # number of factors, is the product of those of the factors' matrices (see _factor_grams), and this product
+    # replaces the condition number of the whole matrix in the final check. The factors' matrices have C(d + a, a)
+    # rows each, so on a simploid nothing of size n_controls is allocated before this rejection; on a simplex, the
+    # only factor's matrix is the n_controls x n_controls Gram matrix on the whole simplex, reused as ``full`` below.
     factors = zip(dimensions, degree, strict=True)
     if math.prod(math.comb(2 * d, d) * math.comb(2 * d + a, a) for a, d in factors) > sys.float_info.max:
         check(math.inf)
@@ -322,6 +345,9 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
     if top >= 2:
         edge = torch.tensor([[j, top - j] for j in range(1, top)], dtype=torch.long)
         check(torch.linalg.cond(_face_gram(edge, edge, (0, 1), (1,), (top,))).item())
+    factor_grams = _factor_grams(dimensions, degree)
+    full_condition = math.prod(torch.linalg.cond(g).item() for g in factor_grams)
+    check(full_condition)
     alpha = torch.tensor([sum(index, ()) for index in _indices(dimensions, degree)], dtype=torch.long)
     control_faces = _control_faces(dimensions, degree)
     # Control errors as linear maps of the independent face noises: on face I,
@@ -335,8 +361,9 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
         errors[interior] = -torch.linalg.solve(g_tt, g_tb @ errors[boundary])
         errors[interior[:, None], interior] = torch.eye(len(interior), dtype=torch.float64)
         face_grams.append((len(face) - len(dimensions), interior, g_tt))
-    full = _face_gram(alpha, alpha, range(width), dimensions, degree)
-    check(max(torch.linalg.cond(g).item() for g in [full] + [g_tt for _, _, g_tt in face_grams]))
+    check(max([full_condition] + [torch.linalg.cond(g_tt).item() for _, _, g_tt in face_grams]))
+    # On a simplex, the only factor's Gram matrix is the Gram matrix on the whole simplex.
+    full = factor_grams[0] if len(factor_grams) == 1 else _face_gram(alpha, alpha, range(width), dimensions, degree)
     coefficients = [0.0] * levels
     n_faces = [_n_skeleton_faces(dimensions, degree, m) for m in range(levels)]
     for m, interior, g_tt in face_grams:
@@ -371,7 +398,8 @@ def optimal_skeleton_ratio(space: BezierSpace) -> tuple[float, ...]:
     TypeError
         If ``space`` is not a :class:`~torch_bsf.BezierSpace`.
     ValueError
-        As :func:`skeleton_risk_coefficients`, including degrees too high for float64.
+        As :func:`skeleton_risk_coefficients`, including degrees too high for
+        float64 and simploids with too many factors.
 
     Examples
     --------
@@ -524,8 +552,9 @@ def sample_skeleton(
         If ``space`` is not a single simplex or simploid of positive dimension
         and degree in every factor, ``n`` is not a nonnegative integer,
         ``method`` is unknown, or ``ratio`` is malformed. With the default
-        ``ratio``, also if the degree is too high for
-        :func:`skeleton_risk_coefficients`; pass ``ratio`` then.
+        ``ratio``, also if :func:`skeleton_risk_coefficients` rejects the space
+        (too high a degree, or too many factors on a simploid); pass ``ratio``
+        then.
 
     Examples
     --------

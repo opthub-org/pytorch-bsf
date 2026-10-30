@@ -22,6 +22,7 @@ from torch_bsf.sampling import (
     _RISK_RELATIVE_ERROR,
     _exponentials,
     _face_gram,
+    _factor_grams,
     _n_skeleton_faces,
     _skeleton_counts,
     _skeleton_fractions,
@@ -1306,6 +1307,66 @@ def test_skeleton_risk_coefficients_reject_ill_conditioned_degrees(dimension, de
         skeleton_risk_coefficients(space)
     with pytest.raises(ValueError, match="Pass ratio explicitly"):
         sample_skeleton(space, 4)
+
+
+@pytest.mark.parametrize(
+    ("dimension", "degree", "condition"), [(2, 12, r"3\.7e\+07"), (3, 11, r"1\.7e\+07"), (4, 9, r"2\.0e\+06")]
+)
+def test_skeleton_risk_coefficients_keep_the_documented_simplex_limits(dimension, degree, condition):
+    # The largest accepted degrees documented for 3, 4 and 5 vertices. One degree more, the edge block still passes and
+    # the Gram matrix on the whole simplex rejects the space before the face-by-face computation (and its
+    # n_controls x n_controls error matrix) starts.
+    assert len(skeleton_risk_coefficients(BezierSpace.simplex(dimension, degree=degree))) == dimension + 1
+    with (
+        patch("torch_bsf.sampling._control_faces", side_effect=AssertionError("the computation started")),
+        pytest.raises(ValueError, match=rf"\(condition number {condition}\)"),
+    ):
+        skeleton_risk_coefficients(BezierSpace.simplex(dimension, degree=degree + 1))
+
+
+@given(dimensions=simploid_types(min_factors=2), data=st.data())
+def test_full_gram_condition_is_the_product_of_factor_conditions(dimensions, data):
+    # Under the uniform distribution on a simploid, the Gram matrix on the whole simploid is, up to the order of the
+    # controls, the Kronecker product of the factors' Gram matrices, so its condition number is the product of theirs.
+    degree = data.draw(degrees(dimensions, min_degree=1))
+    alpha = torch.tensor([sum(index, ()) for index in _indices(dimensions, degree)])
+    width, n_controls = sum(a + 1 for a in dimensions), len(alpha)
+    full = torch.linalg.cond(_face_gram(alpha, alpha, range(width), dimensions, degree)).item()
+    product = math.prod(torch.linalg.cond(g).item() for g in _factor_grams(dimensions, degree))
+    # The Gram entries are nonnegative with relative errors of at most (2 * width + 2) * U, so they move every
+    # eigenvalue by at most that fraction of the largest one; the backward-stable SVD adds about n_controls * U of
+    # it. Each computed condition number then has a relative error of at most (kappa + 1) (2 * width + 2 +
+    # n_controls) * U to first order, and the product adds a rounding per factor; a factor of 2 covers higher orders.
+    bound = 2 * (len(dimensions) + 1) * (max(full, product) + 1) * (2 * width + 2 + n_controls) * U
+    assert abs(full - product) <= bound * product
+
+
+@pytest.mark.parametrize(
+    ("dimensions", "degree", "condition"),
+    # Factor condition numbers: 3 for a segment of degree 1, 4 for a triangle of degree 1, 35 for a segment of
+    # degree 3. The spaces have 4096, 19683, 1024 and 768 controls. The last case mixes dimensions and degrees, so it
+    # fails if a factor is paired with another factor's degree.
+    [
+        ((1,) * 12, (1,) * 12, r"5\.3e\+05"),
+        ((2,) * 9, (1,) * 9, r"2\.6e\+05"),
+        ((1,) * 5, (3,) * 5, r"5\.3e\+07"),
+        ((1, 1, 1, 1, 2), (3, 3, 3, 3, 1), r"6\.0e\+06"),
+    ],
+)
+def test_skeleton_risk_coefficients_reject_many_factors_before_allocation(dimensions, degree, condition):
+    # The condition number of the Gram matrix on the whole simploid grows with the number of factors. It is checked
+    # from the factors' Gram matrices alone: no index list or Gram matrix spans two factors, and the face-by-face
+    # computation of size n_controls never starts.
+    space = BezierSpace.simploid(dimensions, degree=degree)
+    with (
+        patch("torch_bsf.sampling._indices", wraps=_indices) as indices,
+        patch("torch_bsf.sampling._face_gram", wraps=_face_gram) as face_gram,
+        patch("torch_bsf.sampling._control_faces", side_effect=AssertionError("the computation started")),
+        pytest.raises(ValueError, match=rf"\(condition number {condition}\)\. Pass ratio explicitly"),
+    ):
+        sample_skeleton(space, 10, seed=0)
+    assert all(len(call.args[0]) == 1 for call in indices.call_args_list)
+    assert face_gram.call_args_list and all(len(call.args[3]) == 1 for call in face_gram.call_args_list)
 
 
 def _two_glued_segments() -> BezierSpace:
