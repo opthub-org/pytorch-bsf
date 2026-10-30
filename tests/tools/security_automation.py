@@ -86,10 +86,11 @@ class GitFixture(unittest.TestCase):
         subprocess.run(["git", "init", "-q", str(self.root)], check=True)
         self.run_git("config", "user.name", "Security test")
         self.run_git("config", "user.email", "security@example.invalid")
-        (self.root / "source.py").write_text("value = 1\n")
+        self.run_git("config", "core.autocrlf", "false")
+        (self.root / "source.py").write_text("value = 1\n", newline="\n")
         workflow = self.root / ".github/workflows/test.yml"
         workflow.parent.mkdir(parents=True)
-        workflow.write_text("steps:\n  - uses: owner/action@" + "a" * 40 + " # v1\n")
+        workflow.write_text("steps:\n  - uses: owner/action@" + "a" * 40 + " # v1\n", newline="\n")
         self.run_git("add", ".")
         self.run_git("commit", "-qm", "base")
         self.base = self.run_git("rev-parse", "HEAD").strip()
@@ -100,8 +101,8 @@ class GitFixture(unittest.TestCase):
 
 class PatchBoundaryTests(GitFixture):
     def test_regular_repair_and_new_regression_test_are_exported(self):
-        (self.root / "source.py").write_text("value = 2\n")
-        (self.root / "new_test.py").write_text("assert True\n")
+        (self.root / "source.py").write_text("value = 2\n", newline="\n")
+        (self.root / "new_test.py").write_text("assert True\n", newline="\n")
         self.run_git("add", "new_test.py")
         paths, data = security.validate_changes(self.root, self.base)
         self.assertEqual(paths, ["new_test.py", "source.py"])
@@ -156,13 +157,15 @@ class PatchBoundaryTests(GitFixture):
 
     def test_dependency_updates_cannot_modify_pytest_or_coverage_configuration(self):
         target = self.root / "pyproject.toml"
-        target.write_text('[project]\ndependencies = ["demo>=1"]\n[tool.pytest.ini_options]\ntestpaths = ["tests"]\n')
+        target.write_text(
+            '[project]\ndependencies = ["demo>=1"]\n[tool.pytest.ini_options]\ntestpaths = ["tests"]\n', newline="\n"
+        )
         self.run_git("add", "pyproject.toml")
         self.run_git("commit", "-qm", "manifest")
         base = self.run_git("rev-parse", "HEAD").strip()
-        target.write_text(target.read_text().replace("demo>=1", "demo>=2"))
+        target.write_text(target.read_text().replace("demo>=1", "demo>=2"), newline="\n")
         security.validate_changes(self.root, base)
-        target.write_text(target.read_text().replace('["tests"]', '["tests/safe_only"]'))
+        target.write_text(target.read_text().replace('["tests"]', '["tests/safe_only"]'), newline="\n")
         with self.assertRaisesRegex(ValueError, "Only dependency"):
             security.validate_changes(self.root, base)
 
@@ -170,7 +173,7 @@ class PatchBoundaryTests(GitFixture):
         for name in (".pytest.ini", "pytest.toml", ".pytest.toml", "ruff.toml", ".ruff.toml", "mypy.ini", ".mypy.ini"):
             with self.subTest(name=name):
                 target = self.root / name
-                target.write_text("# override trusted configuration\n")
+                target.write_text("# override trusted configuration\n", newline="\n")
                 self.run_git("add", name)
                 with self.assertRaisesRegex(ValueError, "Validation policy"):
                     security.validate_changes(self.root, self.base)
@@ -182,22 +185,22 @@ class PatchBoundaryTests(GitFixture):
     def test_nested_pyproject_cannot_override_lint_discovery(self):
         target = self.root / "pkg/pyproject.toml"
         target.parent.mkdir()
-        target.write_text('[tool.ruff.lint]\nignore = ["F401"]\n')
+        target.write_text('[tool.ruff.lint]\nignore = ["F401"]\n', newline="\n")
         self.run_git("add", "pkg/pyproject.toml")
         with self.assertRaisesRegex(ValueError, "Validation policy"):
             security.validate_changes(self.root, self.base)
 
     def test_only_existing_workflow_pin_can_change(self):
         target = self.root / ".github/workflows/test.yml"
-        target.write_text(target.read_text().replace("a" * 40, "b" * 40).replace("# v1", "# v2"))
+        target.write_text(target.read_text().replace("a" * 40, "b" * 40).replace("# v1", "# v2"), newline="\n")
         self.assertEqual(security.validate_changes(self.root, self.base)[0], [".github/workflows/test.yml"])
-        target.write_text(target.read_text() + "    if: false\n")
+        target.write_text(target.read_text() + "    if: false\n", newline="\n")
         with self.assertRaisesRegex(ValueError, "only update existing action SHA pins"):
             security.validate_changes(self.root, self.base)
 
     def test_unpinned_action_is_rejected(self):
         target = self.root / ".github/workflows/test.yml"
-        target.write_text(target.read_text().replace("a" * 40, "v2"))
+        target.write_text(target.read_text().replace("a" * 40, "v2"), newline="\n")
         with self.assertRaisesRegex(ValueError, "only update existing action SHA pins"):
             security.validate_changes(self.root, self.base)
 
@@ -213,13 +216,13 @@ class PatchBoundaryTests(GitFixture):
             security.validate_changes(self.root, self.base)
 
     def test_oversized_patch_is_rejected(self):
-        (self.root / "source.py").write_text("x" * (security.MAX_PATCH_BYTES + 1))
+        (self.root / "source.py").write_text("x" * (security.MAX_PATCH_BYTES + 1), newline="\n")
         with self.assertRaisesRegex(ValueError, "size limit"):
             security.validate_changes(self.root, self.base)
 
     def test_altered_task_artifact_is_rejected_before_any_github_operation(self):
         target = self.root / "task.json"
-        target.write_text('{"mode":"fix"}')
+        target.write_text('{"mode":"fix"}', newline="\n")
         result = subprocess.run(
             [
                 sys.executable,
@@ -238,7 +241,7 @@ class PatchBoundaryTests(GitFixture):
         self.assertIn("trusted plan digest", result.stderr)
 
     def test_api_key_is_rejected_without_disclosing_it(self):
-        (self.root / "source.py").write_text("sk-proj-" + "x" * 40)
+        (self.root / "source.py").write_text("sk-proj-" + "x" * 40, newline="\n")
         with self.assertRaisesRegex(ValueError, "API key") as error:
             security.validate_changes(self.root, self.base)
         self.assertNotIn("sk-proj", str(error.exception))
@@ -457,7 +460,7 @@ class CommittedPolicyTests(GitFixture):
         return head
 
     def test_committed_bytes_are_checked_instead_of_trusted_working_tree(self):
-        (self.root / "source.py").write_text("value = 2\n")
+        (self.root / "source.py").write_text("value = 2\n", newline="\n")
         head = self.commit()
         paths, patch_data = security.validate_changes(self.root, self.base, head)
         self.assertEqual(paths, ["source.py"])
@@ -467,7 +470,7 @@ class CommittedPolicyTests(GitFixture):
     def test_renaming_a_protected_file_cannot_hide_its_deletion(self):
         protected = self.root / ".github/security/fix.md"
         protected.parent.mkdir()
-        protected.write_text("Trusted security instructions\n")
+        protected.write_text("Trusted security instructions\n", newline="\n")
         self.run_git("add", ".github/security/fix.md")
         self.run_git("commit", "-qm", "trusted policy")
         self.base = self.run_git("rev-parse", "HEAD").strip()
@@ -481,7 +484,7 @@ class CommittedPolicyTests(GitFixture):
     def test_later_protected_commit_cannot_merge_even_with_green_ci_and_ai_approval(self):
         target = self.root / "pkg/pyproject.toml"
         target.parent.mkdir()
-        target.write_text('[tool.ruff.lint]\nignore = ["F401"]\n')
+        target.write_text('[tool.ruff.lint]\nignore = ["F401"]\n', newline="\n")
         head = self.commit()
         self.assertFalse(target.exists())
         task = {"id": "id", "pr": 123, "base": self.base, "head": head}
@@ -505,7 +508,7 @@ class CommittedPolicyTests(GitFixture):
         head = self.commit()
         with self.assertRaisesRegex(ValueError, "regular text files"):
             security.validate_changes(self.root, self.base, head)
-        target.write_text("sk-proj-" + "x" * 40)
+        target.write_text("sk-proj-" + "x" * 40, newline="\n")
         head = self.commit()
         with self.assertRaisesRegex(ValueError, "API key"):
             security.validate_changes(self.root, self.base, head)
@@ -707,7 +710,7 @@ class PublicationIntegrationTests(GitFixture):
         self.writes: list[tuple[str, security.Json, str]] = []
         self.api.get.side_effect = self.get
         self.api.write.side_effect = self.write
-        (self.root / "source.py").write_text("value = 2\n")
+        (self.root / "source.py").write_text("value = 2\n", newline="\n")
 
     def get(self, path):
         if path == "git/ref/heads/master":
@@ -754,7 +757,7 @@ class PublicationIntegrationTests(GitFixture):
 
     def test_new_deleted_and_executable_files_keep_bytes_and_modes(self):
         (self.root / "source.py").unlink()
-        (self.root / "new_test.py").write_text("assert 2 == 2\n")
+        (self.root / "new_test.py").write_text("assert 2 == 2\n", newline="\n")
         script = self.root / "repair.sh"
         script.write_bytes(b"#!/bin/sh\nprintf 'repaired\\n'\n")
         script.chmod(0o755)
@@ -764,11 +767,13 @@ class PublicationIntegrationTests(GitFixture):
         self.assertTrue(all(blob["encoding"] == "base64" for blob in blobs))
         self.assertEqual([base64.b64decode(blob["content"]) for blob in blobs], [b"assert 2 == 2\n", script.read_bytes()])
         tree = next(data for path, data, _ in self.writes if path == "git/trees")
+        # Windows chmod does not expose POSIX execute bits; publication runs on Linux.
+        script_mode = "100644" if sys.platform == "win32" else "100755"
         self.assertEqual(
             tree["tree"],
             [
                 {"path": "new_test.py", "mode": "100644", "type": "blob", "sha": "blob-sha"},
-                {"path": "repair.sh", "mode": "100755", "type": "blob", "sha": "blob-sha"},
+                {"path": "repair.sh", "mode": script_mode, "type": "blob", "sha": "blob-sha"},
                 {"path": "source.py", "mode": "100644", "type": "blob", "sha": None},
             ],
         )
