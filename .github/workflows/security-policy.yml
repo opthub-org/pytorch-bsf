@@ -1,0 +1,29 @@
+name: Security policy
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  security-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Test security automation trust boundaries and merge gates
+        run: python -m unittest discover -s tests/tools -p security_automation.py -v
+      - name: Scan Actions privilege and injection boundaries
+        run: |
+          python -m pip install zizmor==1.31.1
+          zizmor --min-severity medium .github/workflows

@@ -2,6 +2,7 @@ name: GHPages
 
 on:
  push:
+ workflow_dispatch:
 
 # Keep branch previews available before merge. All runs publish to the same
 # branch, so serialize the whole build and retain queued previews.

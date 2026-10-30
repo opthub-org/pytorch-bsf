@@ -1,0 +1,301 @@
+name: Security remediation
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      audit:
+        description: Also run the daily source security audit
+        type: boolean
+        default: false
+  repository_dispatch:
+    types: [security-alert]
+  workflow_run: # zizmor: ignore[dangerous-triggers] -- Runs only master; never consumes triggering-run code or artifacts.
+    workflows: [PyTest, Conda, CodeQL, Release configuration, Security policy]
+    types: [completed]
+
+permissions: {}
+
+concurrency:
+  group: security-remediation
+  cancel-in-progress: false
+
+jobs:
+  observe:
+    if: >-
+      vars.SECURITY_AUTOMATION_ENABLED != 'false' &&
+      (github.event_name != 'workflow_run' || github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Includes vulnerability-alerts:read on GitHub without requesting any writes.
+    permissions: read-all # zizmor: ignore[excessive-permissions] -- Read-only observation includes vulnerability-alerts; no secrets or writes.
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: master
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Read Dependabot and CodeQL signals without write credentials
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_AUDIT: ${{ github.event.schedule == '17 3 * * *' || inputs.audit == true }}
+        run: |
+          args=()
+          if [ "$RUN_AUDIT" = true ]; then args+=(--audit); fi
+          python tools/security_automation.py observe --signals "$RUNNER_TEMP/signals.json" "${args[@]}"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: security-signals
+          path: ${{ runner.temp }}/signals.json
+          retention-days: 2
+          if-no-files-found: error
+
+  plan:
+    needs: observe
+    if: vars.SECURITY_AUTOMATION_ENABLED != 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+      checks: read
+      contents: write
+      issues: write
+      pull-requests: write
+      statuses: read
+    outputs:
+      mode: ${{ steps.plan.outputs.mode }}
+      base: ${{ steps.plan.outputs.base }}
+      head: ${{ steps.plan.outputs.head }}
+      digest: ${{ steps.plan.outputs.digest }}
+    steps:
+      # Only trusted master code runs with a write token. No workflow_run artifact is consumed.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: master
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: security-signals
+          path: ${{ runner.temp }}/signals
+          digest-mismatch: error
+      - name: Select and reserve one bounded repair or review
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python tools/security_automation.py plan --task "$RUNNER_TEMP/task.json" --signals "$RUNNER_TEMP/signals/signals.json"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: steps.plan.outputs.mode != 'none'
+        with:
+          name: security-task
+          path: ${{ runner.temp }}/task.json
+          retention-days: 2
+          if-no-files-found: error
+
+  generate:
+    needs: plan
+    if: needs.plan.outputs.mode == 'fix'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions: read-all # zizmor: ignore[excessive-permissions] -- Read alert evidence in the trusted preparation step; AI receives no write token.
+    env:
+      SECURITY_TASK_SHA256: ${{ needs.plan.outputs.digest }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ needs.plan.outputs.base }}
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ needs.plan.outputs.head }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: security-task
+          path: ${{ runner.temp }}/security
+          digest-mismatch: error
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Prepare tools and trusted prompt without write credentials
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python -m pip install uv pytest hypothesis
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -e './control[develop,all]'
+          python control/tools/security_automation.py prepare --root control --task "$RUNNER_TEMP/security/task.json" --output "$RUNNER_TEMP/security/prompt.md"
+          mkdir -p "$RUNNER_TEMP/security-codex"
+          cp control/.github/security/config.toml "$RUNNER_TEMP/security-codex/config.toml"
+      - name: Generate a security repair
+        uses: openai/codex-action@c05cfd74ad95c626cdf05c6685e62becc3bf7813 # reviewed 2026-10-30
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          working-directory: candidate
+          prompt-file: ${{ runner.temp }}/security/prompt.md
+          output-file: ${{ runner.temp }}/security/result.json
+          output-schema-file: control/.github/security/fix.schema.json
+          codex-home: ${{ runner.temp }}/security-codex
+          permission-profile: security-repair
+          safety-strategy: drop-sudo
+          allow-bot-users: github-actions[bot],dependabot[bot]
+          model: ${{ vars.SECURITY_AUTOMATION_MODEL }}
+          effort: high
+      # These steps have no repository write token. Their output is untrusted until
+      # a fresh publisher checks it against master policy; no candidate code is run there.
+      - name: Export the proposed patch
+        run: |
+          git -C candidate -c core.hooksPath=/dev/null -c core.fsmonitor=false add --all
+          python control/tools/security_automation.py export --root candidate --task "$RUNNER_TEMP/security/task.json" --output "$RUNNER_TEMP/security/repair.patch"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: security-repair
+          path: |
+            ${{ runner.temp }}/security/result.json
+            ${{ runner.temp }}/security/repair.patch
+          if-no-files-found: error
+          retention-days: 2
+
+  publish:
+    needs: [plan, generate]
+    if: needs.plan.outputs.mode == 'fix'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+      contents: write
+      issues: write
+      pull-requests: write
+    env:
+      SECURITY_TASK_SHA256: ${{ needs.plan.outputs.digest }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ needs.plan.outputs.base }}
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ needs.plan.outputs.base }}
+          path: candidate
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: security-task
+          path: ${{ runner.temp }}/task
+          digest-mismatch: error
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: security-repair
+          path: ${{ runner.temp }}/repair
+          digest-mismatch: error
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Apply data without executing candidate code
+        run: |
+          if [ -s "$RUNNER_TEMP/repair/repair.patch" ]; then
+            git -C candidate -c core.hooksPath=/dev/null apply --index "$RUNNER_TEMP/repair/repair.patch"
+          fi
+      - name: Validate paths and publish through the GitHub API
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python control/tools/security_automation.py publish --root candidate
+          --task "$RUNNER_TEMP/task/task.json" --result "$RUNNER_TEMP/repair/result.json"
+
+  review:
+    needs: plan
+    if: needs.plan.outputs.mode == 'review'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions: read-all # zizmor: ignore[excessive-permissions] -- Read current alerts and threads before an isolated read-only review.
+    env:
+      SECURITY_TASK_SHA256: ${{ needs.plan.outputs.digest }}
+    outputs:
+      verdict: ${{ steps.review.outputs.final-message }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ needs.plan.outputs.base }}
+          path: control
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ needs.plan.outputs.head }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: security-task
+          path: ${{ runner.temp }}/security
+          digest-mismatch: error
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Prepare the independent review
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python control/tools/security_automation.py prepare --root control
+          --task "$RUNNER_TEMP/security/task.json" --output "$RUNNER_TEMP/security/prompt.md"
+      - name: Review the exact candidate commit
+        id: review
+        uses: openai/codex-action@c05cfd74ad95c626cdf05c6685e62becc3bf7813 # reviewed 2026-10-30
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          working-directory: candidate
+          prompt-file: ${{ runner.temp }}/security/prompt.md
+          output-schema-file: control/.github/security/review.schema.json
+          codex-home: ${{ runner.temp }}/review-codex
+          permission-profile: ':read-only'
+          safety-strategy: drop-sudo
+          allow-bot-users: github-actions[bot],dependabot[bot]
+          model: ${{ vars.SECURITY_AUTOMATION_MODEL }}
+          effort: high
+
+  merge:
+    needs: [plan, review]
+    if: needs.plan.outputs.mode == 'review'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+      checks: read
+      contents: write
+      issues: write
+      pull-requests: write
+      statuses: read
+    env:
+      SECURITY_TASK_SHA256: ${{ needs.plan.outputs.digest }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ needs.plan.outputs.base }}
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: security-task
+          path: ${{ runner.temp }}/security
+          digest-mismatch: error
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Recheck the exact head and merge only a clean reviewed repair
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERDICT: ${{ needs.review.outputs.verdict }}
+        run: |
+          python -c 'import os,pathlib; pathlib.Path(os.environ["RUNNER_TEMP"], "verdict.json").write_text(os.environ["VERDICT"])'
+          python tools/security_automation.py merge --task "$RUNNER_TEMP/security/task.json" --result "$RUNNER_TEMP/verdict.json"

@@ -1,0 +1,20 @@
+# This file is copied from master to a fresh Codex home before the AI starts.
+[features]
+network_proxy = true
+
+[permissions.security-repair]
+extends = ":workspace"
+
+[permissions.security-repair.network]
+enabled = true
+
+[permissions.security-repair.network.domains]
+"pypi.org" = "allow"
+"files.pythonhosted.org" = "allow"
+"download.pytorch.org" = "allow"
+"registry.npmjs.org" = "allow"
+"github.com" = "allow"
+"api.github.com" = "allow"
+"raw.githubusercontent.com" = "allow"
+"release-assets.githubusercontent.com" = "allow"
+"objects.githubusercontent.com" = "allow"

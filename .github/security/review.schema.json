@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "approved": {"type": "boolean"},
+    "findings": {"type": "array", "items": {"type": "string"}},
+    "resolved_threads": {"type": "array", "items": {"type": "string"}},
+    "summary": {"type": "string"}
+  },
+  "required": ["approved", "findings", "resolved_threads", "summary"]
+}
