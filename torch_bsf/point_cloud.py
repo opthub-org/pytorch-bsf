@@ -7,15 +7,15 @@ the controls already estimated on their boundaries.
 
 import math
 import warnings
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
 import torch
 
-from torch_bsf._kernels.combinatorics import _indices, _positions, _recursive_basis, _simplex_indices
+from torch_bsf._kernels.combinatorics import _indices, _multinomial, _positions, _recursive_basis, _simplex_indices
 from torch_bsf._numeric import _finite_mean
-from torch_bsf._skeleton import _blocks, _faces_with_interior_controls
+from torch_bsf._skeleton import _blocks, _control_faces, _faces_with_interior_controls
 from torch_bsf.core import BezierModel, BezierSpace, Cell, FixedControls, Samples, _integer
 from torch_bsf.fitting import fit
 from torch_bsf.results import ConvergenceWarning, FitResult
@@ -59,7 +59,10 @@ class SkeletonFitResult:
     """Assembled model and local results keyed by sorted zero-based vertex IDs.
 
     Each face result contains local barycentric coordinates for that face's
-    observations. Previously fitted boundary controls remain exactly fixed.
+    observations. On a simploid, factors in which the face is a single vertex
+    have no local coordinates, so the columns are the face's vertices in the
+    other factors, in key order. Previously fitted boundary controls remain
+    exactly fixed.
     """
 
     model: BezierModel
@@ -125,9 +128,7 @@ def _project_factors(t: torch.Tensor, dimensions: tuple[int, ...]) -> torch.Tens
 
 def _barycenters(n: int, dimensions: tuple[int, ...]) -> torch.Tensor:
     """``n`` copies of the barycenter of every factor."""
-    return torch.tensor([[1 / (a + 1) for a in dimensions for _ in range(a + 1)]] * n, dtype=torch.float64).reshape(
-        n, sum(a + 1 for a in dimensions)
-    )
+    return torch.tensor([1 / (a + 1) for a in dimensions for _ in range(a + 1)], dtype=torch.float64).repeat(n, 1)
 
 
 def _initial(space: BezierSpace, y: torch.Tensor, initial: BezierModel | None) -> BezierModel:
@@ -151,7 +152,7 @@ class _Polynomial:
     """Analytic Bernstein derivatives, well-defined even at zero coordinates.
 
     A product basis function is a product of multinomial coefficients times a monomial in the concatenated
-    coordinates, so ``powers`` holds the concatenated multi-indices and ``degree`` their total degree.
+    coordinates, so ``powers`` holds the concatenated multi-indices and ``degrees`` the degree of each factor.
     """
 
     def __init__(self, model: BezierModel):
@@ -160,18 +161,11 @@ class _Polynomial:
         self.dimensions, self.degrees = cell.dimensions, cell.degree
         indices = _indices(cell.dimensions, cell.degree)
         self.powers = torch.tensor([sum(a, ()) for a in indices], dtype=torch.long).reshape(len(indices), cell.width)
-        self.degree = sum(cell.degree)
         self.high = max(cell.degree, default=0) >= 16
         self.factors = torch.tensor(
             [1.0] * len(self.powers)
             if self.high
-            else [
-                math.prod(
-                    math.factorial(d) / math.prod(math.factorial(v) for v in factor)
-                    for d, factor in zip(cell.degree, a, strict=True)
-                )
-                for a in indices
-            ],
+            else [math.prod(_multinomial(d, factor) for d, factor in zip(cell.degree, a, strict=True)) for a in indices],
             dtype=torch.float64,
         )
 
@@ -368,8 +362,8 @@ def fit_point_cloud(
 
     Examples
     --------
-    Recover a quadratic curve on a square, a product of two segments, from
-    values alone.
+    Recover a bilinear map of a square, a product of two segments, from values
+    alone.
 
     >>> import torch
     >>> from torch_bsf import BezierModel, BezierSpace, fit_point_cloud
@@ -441,6 +435,24 @@ def _nondominated(y: torch.Tensor, face: tuple[int, ...]) -> torch.Tensor:
     return y[keep]
 
 
+def _lift(
+    index: tuple[tuple[int, ...], ...], parts: list[list[int]], dimensions: Sequence[int], degree: Sequence[int]
+) -> tuple[tuple[int, ...], ...]:
+    """The global multi-index of a control of a face, given its multi-index on the face's local space.
+
+    ``parts`` holds the face's vertex positions within each factor. ``index`` has one entry per factor with more
+    than one vertex; a factor at one vertex puts its whole degree on that vertex.
+    """
+    local = iter(index)
+    lifted = []
+    for part, dimension, d in zip(parts, dimensions, degree, strict=True):
+        factor = [0] * (dimension + 1)
+        for v, power in zip(part, next(local) if len(part) > 1 else (d,), strict=True):
+            factor[v] = power
+        lifted.append(tuple(factor))
+    return tuple(lifted)
+
+
 def fit_skeleton(
     space: BezierSpace,
     values: Any,
@@ -454,8 +466,8 @@ def fit_skeleton(
 ) -> SkeletonFitResult:
     """Fit faces inductively while fixing their boundaries (paper Algorithm 3).
 
-    Faces are sorted tuples of zero-based vertex IDs. Only support sizes up
-    to ``min(degree, number_of_vertices)`` are needed. By default each face's
+    On a simplex, faces are sorted tuples of zero-based vertex IDs, and only
+    support sizes up to ``min(degree, number_of_vertices)`` are needed. By default each face's
     samples are the nondominated points for its objective subset (all outputs
     are minimization objectives). This requires a single simplex and one
     output per vertex.
@@ -539,6 +551,7 @@ def fit_skeleton(
     if any(v.shape[1] != y.shape[1] for v in data.values()):
         raise ValueError("every face must retain the full observed output dimension.")
     positions = _positions(cell.dimensions, cell.degree)
+    control_faces = _control_faces(cell.dimensions, cell.degree)
     blocks = _blocks(cell.dimensions)
     faces: dict[tuple[int, ...], PointCloudFitResult] = {}
     for face in required:
@@ -549,17 +562,9 @@ def fit_skeleton(
         rows = []
         boundary = {}
         for k, index in enumerate(_indices(local_space.cells[0].dimensions, local_space.cells[0].degree)):
-            local = dict(zip(wide, index, strict=True))
-            full = tuple(
-                tuple(local[j][part.index(v)] if v in part else 0 for v in range(len(block)))
-                if j in local
-                else tuple(d if v in part else 0 for v in range(len(block)))
-                for j, (part, block, d) in enumerate(zip(parts, blocks, cell.degree, strict=True))
-            )
-            row = positions[full]
+            row = positions[_lift(index, parts, cell.dimensions, cell.degree)]
             rows.append(row)
-            support = tuple(block.start + v for block, a in zip(blocks, full, strict=True) for v, p in enumerate(a) if p)
-            if wide and support != face:
+            if wide and control_faces[row] != face:
                 boundary[k] = model.coefficients[row].detach()
         result = fit_point_cloud(
             local_space,

@@ -5,6 +5,7 @@ from fractions import Fraction
 from functools import cache
 from itertools import combinations, count
 from math import comb
+from typing import Literal
 from unittest.mock import patch
 
 import numpy as np
@@ -13,7 +14,7 @@ import torch
 from hypothesis import example, given
 from hypothesis import strategies as st
 
-from tests.strategies import seeds
+from tests.strategies import degrees, seeds, simploid_types
 from torch_bsf import BezierSpace, Samples, SimploidalSet, fit_skeleton_regression
 from torch_bsf._kernels._sampling import simplex_grid, simplex_random, simplex_sobol
 from torch_bsf._kernels.combinatorics import _indices, _simplex_indices
@@ -1567,11 +1568,10 @@ def test_simploid_faces_are_products_of_factor_faces(dimensions, degree):
 
 def test_square_risk_coefficients_have_closed_forms():
     # Degree 1: the four vertex controls are vertex means, each with N / 4 rows, and the squared bilinear basis
-    # functions integrate to 1 / 9 each, so a_0 = 4 * 4 / 9.
-    assert skeleton_risk_coefficients(BezierSpace.simploid((1, 1), degree=1)) == pytest.approx((16 / 9, 0, 0), rel=1e-12)
-    # The product of segments of degree 1 and 2: four vertices and the two edges along the quadratic factor.
-    a = skeleton_risk_coefficients(BezierSpace.simploid((1, 1), degree=(2, 1)))
-    assert a[2] == 0 and a[0] > 0 and a[1] > 0 and len(a) == 3
+    # functions integrate to 1 / 9 each, so a_0 = 4 * 4 / 9. The Gram entry 1 / 9 is rounded once, and the trace,
+    # the factor 4 and the sum over four vertices add six roundings: 8 U bounds the relative error.
+    a = skeleton_risk_coefficients(BezierSpace.simploid((1, 1), degree=1))
+    assert a == pytest.approx((16 / 9, 0, 0), rel=8 * U, abs=0)
 
 
 @pytest.mark.parametrize(("dimensions", "degree"), _SIMPLOIDS)
@@ -1652,29 +1652,100 @@ def _rational_skeleton_risk(dimensions, degree):
     return [float(c) for c in coefficients]
 
 
-@pytest.mark.parametrize(("dimensions", "degree"), _SIMPLOIDS)
-@pytest.mark.parametrize("method", ["random", "sobol"])
-def test_sample_skeleton_of_simploids_places_each_row_on_one_face(dimensions, degree, method):
-    space = BezierSpace.simploid(dimensions, degree=degree)
-    n = 157
-    points = sample_skeleton(space, n, seed=3, method=method)
+def _assert_simploid_rows(space, degree, points, n, fractions):
+    """Every row lies on one sampled face, and rows per skeleton follow ``fractions`` as in a simplex."""
+    dimensions = space.cells[0].dimensions
     t = points.parameters
-    assert t.shape == (n, space.width) and (points.cell_ids == 0).all() and (t >= 0).all()
-    blocks = _blocks(dimensions)
-    for block in blocks:
+    assert t.shape == (n, space.width) and t.dtype == torch.float64 and (points.cell_ids == 0).all() and (t >= 0).all()
+    for block in _blocks(dimensions):
         # Normalizing at most len(block) exponentials: one division and a sum per row.
         assert ((t[:, block.start : block.stop].sum(1) - 1).abs() <= (len(block) + 1) * U * 2).all()
     support = t > 0
     dimension_of_row = support.sum(1) - len(dimensions)
     assert (dimension_of_row[1:] >= dimension_of_row[:-1]).all()
-    ratio = optimal_skeleton_ratio(space)
+    # The fractions carry a few roundings per level of relative error, as in _assert_largest_remainder.
     slack = n * 4 * space.width * U
+    on_faces = 0
     for m in range(sum(dimensions) + 1):
         faces = _sampled_faces(dimensions, degree, m)
         level = [int((support == torch.tensor([i in face for i in range(space.width)])).all(1).sum()) for face in faces]
-        assert math.floor(n * ratio[m] - slack) <= sum(level) <= math.ceil(n * ratio[m] + slack)
+        on_faces += sum(level)
+        assert math.floor(n * fractions[m] - slack) <= sum(level) <= math.ceil(n * fractions[m] + slack)
         assert max(level) - min(level) <= 1
-    assert torch.equal(t, sample_skeleton(space, n, seed=3, method=method).parameters)
+        if fractions[m] == 0:
+            assert sum(level) == 0
+    assert on_faces == n
+
+
+@pytest.mark.parametrize(("dimensions", "degree"), _SIMPLOIDS)
+@pytest.mark.parametrize("method", ["random", "sobol"])
+@pytest.mark.parametrize("n", [0, 1, 157])
+def test_sample_skeleton_of_simploids_places_each_row_on_one_face(dimensions, degree, method, n):
+    space = BezierSpace.simploid(dimensions, degree=degree)
+    points = sample_skeleton(space, n, seed=3, method=method)
+    _assert_simploid_rows(space, degree, points, n, optimal_skeleton_ratio(space))
+    assert torch.equal(points.parameters, sample_skeleton(space, n, seed=3, method=method).parameters)
+
+
+@given(
+    dimensions=simploid_types(min_factors=2),
+    data=st.data(),
+    n=st.integers(0, 300),
+    seed=seeds(),
+    method=st.sampled_from(["random", "sobol"]),
+)
+def test_sample_skeleton_of_simploids_allocates_ratios(dimensions, data, n, seed, method):
+    degree = data.draw(degrees(dimensions, min_degree=1))
+    space = BezierSpace.simploid(dimensions, degree=degree)
+    levels = sum(dimensions) + 1
+    ratio = data.draw(
+        st.none()
+        | st.lists(st.one_of(st.just(0.0), st.floats(0, 1e308), st.floats(0, 1)), min_size=levels, max_size=levels).filter(
+            lambda r: max(r) > 0
+        )
+    )
+    points = sample_skeleton(space, n, ratio=ratio, seed=seed, method=method)
+    if ratio is None:
+        fractions = list(optimal_skeleton_ratio(space))
+    else:
+        largest = max(ratio)
+        scaled = [r / largest for r in ratio]
+        fractions = [f / sum(scaled) for f in scaled]
+    _assert_simploid_rows(space, degree, points, n, fractions)
+    assert torch.equal(points.parameters, sample_skeleton(space, n, ratio=ratio, seed=seed, method=method).parameters)
+
+
+def test_sample_skeleton_of_a_simplex_keeps_its_draws():
+    # Literals from the simplex-only implementation: generalizing to simploids must not change any simplex draw.
+    space = BezierSpace.simplex(2, degree=2)
+    expected: dict[Literal["random", "sobol"], list[list[float]]] = {
+        "random": [
+            [0.0, 0.0, 1.0],
+            [0.15847102907809005, 0.8415289709219099, 0.0],
+            [0.11971856322903326, 0.0, 0.8802814367709668],
+            [0.6586592375219926, 0.0, 0.3413407624780073],
+            [0.0, 0.6109515658293208, 0.38904843417067925],
+        ],
+        "sobol": [
+            [0.0, 0.0, 1.0],
+            [0.41235458431613103, 0.5876454156838689, 0.0],
+            [0.8030284381902414, 0.0, 0.1969715618097586],
+            [0.038747341060959055, 0.0, 0.9612526589390409],
+            [0.0, 0.4151999628343648, 0.5848000371656352],
+        ],
+    }
+    for method, rows in expected.items():
+        assert sample_skeleton(space, 5, seed=0, method=method).parameters.tolist() == rows
+    assert skeleton_risk_coefficients(space) == (0.375, 3.0, 0.0)
+
+    def supports(points):
+        return [tuple(row.nonzero().flatten().tolist()) for row in points.parameters]
+
+    # Rejection sampling of four distinct edges, and an equal split with random extra faces.
+    wide = sample_skeleton(BezierSpace.simplex(23, degree=1), 4, ratio=[0, 1] + [0] * 22, seed=0)
+    assert supports(wide) == [(0, 4), (5, 14), (5, 20), (12, 19)]
+    split = sample_skeleton(BezierSpace.simplex(3, degree=3), 10, ratio=[1, 1, 1, 1], seed=1)
+    assert supports(split) == [(1,), (2,), (3,), (0, 1), (1, 2), (1, 3), (0, 2, 3), (1, 2, 3), (0, 1, 2, 3), (0, 1, 2, 3)]
 
 
 def test_sample_skeleton_of_a_prism_chooses_edges_uniformly():

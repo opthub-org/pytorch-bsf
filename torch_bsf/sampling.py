@@ -8,6 +8,7 @@ dimension and degree and to products of simplices.
 import math
 import numbers
 import sys
+from bisect import bisect_left
 from collections.abc import Mapping, Sequence
 from itertools import combinations, product
 from typing import Literal
@@ -206,8 +207,8 @@ def _face_gram(
 
 def _shapes(dimensions: Sequence[int], m: int) -> list[tuple[int, ...]]:
     """Vertex counts per factor of the faces of dimension ``m``, in lexicographic order."""
-    if not dimensions:
-        return [()] if m == 0 else []
+    if len(dimensions) <= 1:
+        return [(m + 1,)[: len(dimensions)]] if 0 <= m <= sum(dimensions) else []
     return [(s, *rest) for s in range(1, min(dimensions[0], m) + 2) for rest in _shapes(dimensions[1:], m - s + 1)]
 
 
@@ -217,7 +218,7 @@ def _n_faces(dimensions: Sequence[int], sizes: Sequence[int]) -> int:
 
 
 def _sampled_shapes(dimensions: Sequence[int], degree: Sequence[int], m: int) -> list[tuple[int, ...]]:
-    """Shapes of the faces of dimension ``m`` that share its rows.
+    """Shapes of the faces of the ``m``-skeleton that receive its rows.
 
     These are the faces with interior controls (at most ``degree`` vertices in every factor), or every face of
     dimension ``m`` when none has interior controls. On a simplex, the faces of one dimension are all alike.
@@ -227,7 +228,7 @@ def _sampled_shapes(dimensions: Sequence[int], degree: Sequence[int], m: int) ->
 
 
 def _n_skeleton_faces(dimensions: Sequence[int], degree: Sequence[int], m: int) -> int:
-    """The number of faces of dimension ``m`` that share its rows."""
+    """The number of faces of the ``m``-skeleton that receive its rows."""
     return sum(_n_faces(dimensions, sizes) for sizes in _sampled_shapes(dimensions, degree, m))
 
 
@@ -305,7 +306,7 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
             Largest Gram-matrix condition number encountered so far.
         """
         # Bernstein Gram matrices are ill-conditioned in the degree. Their entries have relative errors of at most
-        # (2 * width + 2) * U. To first order, each of the at most levels (face dimensions) of solves then adds
+        # (2 * width + 2) * U. To first order, each of the at most ``levels`` face dimensions of solves then adds
         # (2 * width + 2 + n) * kappa * U relative error (entry perturbation plus backward-stable elimination),
         # and the final traces add n * U, kappa being the largest condition number of the Gram matrices.
         bound = (levels * (2 * width + 2 + n_controls) * kappa + n_controls) * _UNIT_ROUNDOFF
@@ -338,11 +339,12 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
     full = _face_gram(alpha, alpha, range(width), dimensions, degree)
     check(max(torch.linalg.cond(g).item() for g in [full] + [g_tt for _, _, g_tt in face_grams]))
     coefficients = [0.0] * levels
+    n_faces = [_n_skeleton_faces(dimensions, degree, m) for m in range(levels)]
     for m, interior, g_tt in face_grams:
         # n_I = N^(m) / K_m observations, with K_m faces of dimension m, give Cov(eta_I) = sigma^2 G_TT^{-1} / n_I.
         propagated = errors[:, interior]
         trace = torch.linalg.solve(g_tt, propagated.T @ full @ propagated).trace().item()
-        coefficients[m] += _n_skeleton_faces(dimensions, degree, m) * trace
+        coefficients[m] += n_faces[m] * trace
     return tuple(coefficients)
 
 
@@ -439,20 +441,22 @@ def _skeleton_counts(n: int, fractions: Sequence[float]) -> list[int]:
 def _face_counts(
     dimensions: Sequence[int], degree: Sequence[int], m: int, count: int, generator: torch.Generator
 ) -> list[tuple[tuple[int, ...], int]]:
-    """Faces sharing the rows of dimension ``m`` with their counts: an equal split, the remainder on random faces."""
+    """Faces of the ``m``-skeleton that receive its rows, with their counts: an equal split, the remainder on random faces."""
     blocks, shapes = _blocks(dimensions), _sampled_shapes(dimensions, degree, m)
-    n_faces = _n_skeleton_faces(dimensions, degree, m)
+    sizes_counts = [_n_faces(dimensions, sizes) for sizes in shapes]
+    n_faces = sum(sizes_counts)
     if 2 * count < n_faces:
         # Every face gets at most one row. Rejection sampling of distinct faces costs O(count) draws on average
         # and avoids listing all faces of a wide simplex. Drawing a shape in proportion to its number of faces,
         # then each factor's vertices uniformly, makes every face equally likely.
-        weights = torch.tensor([_n_faces(dimensions, sizes) for sizes in shapes], dtype=torch.float64)
+        weights = torch.tensor(sizes_counts, dtype=torch.float64) if len(shapes) > 1 else None
         chosen: set[tuple[int, ...]] = set()
         while len(chosen) < count:
-            sizes = shapes[int(torch.multinomial(weights, 1, generator=generator))] if len(shapes) > 1 else shapes[0]
+            sizes = shapes[0] if weights is None else shapes[int(torch.multinomial(weights, 1, generator=generator))]
             face: tuple[int, ...] = ()
             for block, size in zip(blocks, sizes, strict=True):
-                face += tuple(sorted(block[v] for v in torch.randperm(len(block), generator=generator)[:size].tolist()))
+                vertices = torch.randperm(len(block), generator=generator)[:size].tolist()
+                face += tuple(sorted(block.start + v for v in vertices))
             chosen.add(face)
         return [(face, 1) for face in sorted(chosen)]
     faces = sorted(
@@ -485,8 +489,8 @@ def sample_skeleton(
     rows are uniform on each factor's face. The faces of one skeleton can differ
     in shape: the edges of a prism are triangle edges at an end of the interval
     and intervals at a vertex of the triangle. A skeleton's rows then go only to
-    its faces with interior controls (with at most the degree in vertices in
-    every factor), unless none has any. On a simplex, either every face of a
+    its faces with interior controls (no factor has more vertices than its
+    degree), unless none has any. On a simplex, either every face of a
     skeleton has interior controls or none has.
 
     Parameters
@@ -537,16 +541,23 @@ def sample_skeleton(
     _choice(method, "method", ("random", "sobol"), message="method must be 'random' or 'sobol'.")
     counts = _skeleton_counts(n, _skeleton_fractions(ratio, space, sum(cell.dimensions) + 1))
     generator = _generator(seed)
-    blocks = [torch.zeros(0, cell.width, dtype=torch.float64)]
+    # A face key is sorted and the factors' coordinates are contiguous, so a face splits into consecutive
+    # segments, one per factor, each normalized to sum to one.
+    ends = [block.stop for block in _blocks(cell.dimensions)]
+    chunks = [torch.zeros(0, cell.width, dtype=torch.float64)]
     for m, count in enumerate(counts):
         for face, rows in _face_counts(cell.dimensions, cell.degree, m, count, generator):
             exponentials = _exponentials(generator, rows, len(face), method)
-            block = torch.zeros(rows, cell.width, dtype=torch.float64)
+            chunk = torch.zeros(rows, cell.width, dtype=torch.float64)
+            if len(ends) == 1:
+                chunk[:, face] = exponentials / exponentials.sum(1, keepdim=True)
+                chunks.append(chunk)
+                continue
             start = 0
-            for factor in _blocks(cell.dimensions):
-                vertices = [i for i in face if i in factor]
-                part = exponentials[:, start : start + len(vertices)]
-                block[:, vertices] = part / part.sum(1, keepdim=True)
-                start += len(vertices)
-            blocks.append(block)
-    return Points(torch.cat(blocks))
+            for end in ends:
+                stop = bisect_left(face, end, lo=start)
+                part = exponentials[:, start:stop]
+                chunk[:, face[start:stop]] = part / part.sum(1, keepdim=True)
+                start = stop
+            chunks.append(chunk)
+    return Points(torch.cat(chunks))

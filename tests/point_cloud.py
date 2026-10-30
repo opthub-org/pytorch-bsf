@@ -7,8 +7,10 @@ from itertools import combinations
 
 import pytest
 import torch
+from hypothesis import example, given
+from hypothesis import strategies as st
 
-from tests.strategies import U
+from tests.strategies import U, matrices, simploid_points, simploid_types
 from torch_bsf import (
     BezierModel,
     BezierSpace,
@@ -21,7 +23,7 @@ from torch_bsf import (
     fit_skeleton,
 )
 from torch_bsf._kernels.combinatorics import _indices
-from torch_bsf._skeleton import _faces_with_interior_controls
+from torch_bsf._skeleton import _blocks, _faces_with_interior_controls
 from torch_bsf.point_cloud import _nondominated, _parameters, _Polynomial, _project, _project_factors
 from torch_bsf.sampling import grid, sample, sample_skeleton
 
@@ -118,7 +120,7 @@ def _derivative_tolerance(poly: _Polynomial, order: int) -> float:
     scaled monomials of a derivative of order ``k`` sum to at most ``D**k``, so one evaluation (analytic or autograd)
     errs by at most ``(N + D + 2w) u D**k`` times the largest control; twice that for the difference, doubled.
     """
-    n, degree, width = len(poly.powers), float(poly.degree), poly.powers.shape[1]
+    n, degree, width = len(poly.powers), float(sum(poly.degrees)), poly.powers.shape[1]
     return 4 * (n + degree + 2 * width) * U * degree**order * float(poly.coefficients.abs().max())
 
 
@@ -218,9 +220,8 @@ def test_unsupported_spaces_and_embedding():
             fitter(BezierSpace.simploid((1, 1), degree=(2, 0)), curve())
         with pytest.raises(ValueError, match="requires a single simplex; supply initial"):
             fitter(BezierSpace.simploid((1, 1), degree=2), curve())
-    for space in (BezierSpace.simplex(1, degree=0),):
-        with pytest.raises(ValueError):
-            fit_point_cloud(space, curve())
+    with pytest.raises(ValueError, match="degree >= 1"):
+        fit_point_cloud(BezierSpace.simplex(1, degree=0), curve())
     with pytest.raises(ValueError, match="initial"):
         fit_point_cloud(BezierSpace.simplex(2, degree=2), curve())
     with pytest.raises(ValueError, match="face_values"):
@@ -370,12 +371,22 @@ def _saddle(dimensions=(1, 1), degree=(2, 1)) -> BezierModel:
     return fit(space, Samples(t, values)).model
 
 
-def test_projection_onto_products_projects_each_factor():
-    t = torch.tensor([[-2.0, 4.0, 1.0, 0.7, 0.9], [0.2, 0.3, 0.5, 0.25, 0.75]], dtype=torch.float64)
-    projected = _project_factors(t, (2, 1))
-    torch.testing.assert_close(projected[:, :3], _project(t[:, :3]), rtol=0, atol=0)
-    torch.testing.assert_close(projected[:, 3:], _project(t[:, 3:]), rtol=0, atol=0)
-    torch.testing.assert_close(_project_factors(t[:, :3], (2,)), _project(t[:, :3]), rtol=0, atol=0)
+@example(dimensions=(2, 1), data=None).via("two rows outside and inside the prism")
+@given(dimensions=simploid_types(), data=st.data())
+def test_projection_onto_products_projects_each_factor(dimensions, data):
+    width = sum(a + 1 for a in dimensions)
+    if data is None:
+        t = torch.tensor([[-2.0, 4.0, 1.0, 0.7, 0.9], [0.2, 0.3, 0.5, 0.25, 0.75]], dtype=torch.float64)
+    else:
+        n = data.draw(st.integers(1, 5))
+        t = data.draw(st.one_of(matrices(n, width, scale=st.floats(1e-3, 1e3)), simploid_points(dimensions, n)))
+    projected = _project_factors(t, dimensions)
+    assert projected.shape == t.shape and (projected >= 0).all()
+    # The same operations on each factor's columns, so the results agree exactly.
+    for block in _blocks(dimensions):
+        torch.testing.assert_close(
+            projected[:, block.start : block.stop], _project(t[:, block.start : block.stop]), rtol=0, atol=0
+        )
 
 
 @pytest.mark.parametrize(("dimensions", "degree"), [((1, 1), (2, 3)), ((2, 1), (2, 2))])
@@ -421,10 +432,12 @@ def test_high_degree_derivatives_of_simploids_match_the_monomial_formula():
         dtype=torch.float64,
     )
     t = sample(space, 4, seed=0).parameters
+    # On a product of simplices the scaled derivative basis of order k still sums to at most D**k, D = 18. The
+    # recursive basis of degree d in w coordinates rounds about w + 1 times per level, sum(d * (w + 1)) = 56 times in
+    # all, fewer than the N + D + 2w = 130 roundings that _derivative_tolerance allows each evaluation.
     for axes in [(), (0,), (2,), (0, 3), (1, 1), (2, 4), (0,) * 17, (2, 3, 4)]:
         expected = low.derivative(t, axes)
-        scale = 16 ** len(axes) * float(cp.abs().max()) * len(cp)
-        torch.testing.assert_close(high.derivative(t, axes), expected, rtol=0, atol=1e-10 * scale)
+        torch.testing.assert_close(high.derivative(t, axes), expected, rtol=0, atol=_derivative_tolerance(low, len(axes)))
     torch.testing.assert_close(high.derivative(t, (0,) * 17), torch.zeros(4, 1, dtype=torch.float64), rtol=0, atol=0)
 
 
@@ -470,7 +483,7 @@ def test_skeleton_recovers_a_simploid_from_face_values():
     required = _faces_with_interior_controls(cell.dimensions, cell.degree)
     face_values = {face: truth(points[[k for k, f in enumerate(support) if f == face]]).detach() for face in required}
     y = torch.cat(list(face_values.values()))
-    # Interior controls of the faces start far off; the vertices and boundaries are refitted from the face values.
+    # The vertex controls start 0.5 off and the other controls at the truth; every face is refitted from its values.
     initial = BezierModel(space, truth.coefficients.detach().clone())
     vertices = [
         space.control_index((tuple(2 if i == a else 0 for i in range(3)), tuple(2 if j == b else 0 for j in range(2))))
@@ -481,8 +494,11 @@ def test_skeleton_recovers_a_simploid_from_face_values():
         initial.coefficients[vertices] += 0.5
     result = fit_skeleton(space, y, face_values=face_values, initial=initial).require_success()
     assert list(result.faces) == required
-    # Vertex controls are means of identical values, exact up to the rounding of the truth's evaluation.
-    torch.testing.assert_close(result.model.coefficients[vertices], truth.coefficients[vertices].detach(), rtol=0, atol=1e-12)
+    # At a vertex, every basis function is exactly 0 or 1, so the truth's values there are its vertex controls exactly.
+    # Their mean over k identical rows rounds k times, k + 1 including the division.
+    rows = max(len(face_values[face]) for face in required if len(face) == 2)
+    atol = (rows + 1) * U * float(truth.coefficients.detach().abs().max())
+    torch.testing.assert_close(result.model.coefficients[vertices], truth.coefficients[vertices].detach(), rtol=0, atol=atol)
     # Each face fit lies on the truth: its surface reproduces the face's values.
     for face, local in result.faces.items():
         assert local.objective_history[-1] < 1e-8, face

@@ -737,7 +737,8 @@ def test_skeleton_regression_on_a_square_ignores_rows_without_interior_controls(
     result = fit_skeleton_regression(space, Samples(t, [[1.0], [2.0], [3.0], [4.0], [100.0], [100.0]])).require_success()
     # Every control is a corner value; the edge and interior rows have no interior controls to fit.
     assert result.model.coefficients[:, 0].tolist() == [1.0, 2.0, 3.0, 4.0]
-    assert "Ignored 2 rows" in result.message and list(result.faces) == [(0, 2), (0, 3), (1, 2), (1, 3)]
+    assert "Ignored 2 rows on faces with no interior controls." in result.message
+    assert list(result.faces) == [(0, 2), (0, 3), (1, 2), (1, 3)]
 
 
 def test_skeleton_regression_uses_only_rows_on_each_face():
@@ -851,7 +852,8 @@ def test_skeleton_regression_ignores_rows_on_faces_without_interior_controls():
     result = fit_skeleton_regression(space, Samples(t, [[1.0], [2.0], [3.0], [100.0], [100.0]])).require_success()
     # Each vertex control is its single row's value; the two interior rows would pull every control towards 100.
     assert result.model.coefficients[:, 0].tolist() == [1.0, 2.0, 3.0]
-    assert "Ignored 2 rows" in result.message and set(result.faces) == {(0,), (1,), (2,)}
+    assert "Ignored 2 rows on faces with more than degree=1 vertices." in result.message
+    assert set(result.faces) == {(0,), (1,), (2,)}
     failed = result.faces[(0,)]
     failed = type(failed)(failed.model, failed.metrics, failed.diagnostics, False, "numerical_failure", "boom")
     with patch("torch_bsf.fitting.fit", return_value=failed):

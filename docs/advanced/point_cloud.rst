@@ -26,7 +26,7 @@ for every observation. ``fit_point_cloud`` alternates two steps:
    the existing float64 SVD least-squares implementation.
 
 For example, fit a two-objective Schaffer front without providing its
-parameter coordinates to the fitting routine. The three examples on this
+parameter coordinates to the fitting routine. The examples on this
 page share the named ``point-cloud-demo`` session: run them in page order;
 the later examples reuse ``torch``, ``space`` and ``values`` from this one.
 
@@ -149,8 +149,10 @@ simploid needs an ``initial`` model for ``fit_point_cloud``, and both
 ``initial`` and ``face_values`` for ``fit_skeleton``. Face keys are the sorted
 global coordinate indices of a face's vertices, as in
 :func:`~torch_bsf.fitting.fit_skeleton_regression`. The required faces are
-those with at most the degree in vertices in every factor, and each face is
-fitted on the product of its factors' faces.
+those in which no factor has more vertices than its degree, and each face is
+fitted on the product of its factors' faces. A factor in which the face is a
+single vertex contributes no local coordinates, so a face's ``parameters``
+hold the face's vertices in the other factors, in key order.
 
 .. testcode:: point-cloud-demo
 

@@ -94,8 +94,8 @@ sampling
 lattices. Neither obtains response measurements. Product factors retain
 independent barycentric normalization, and assembled samples retain cell
 IDs. See :doc:`advanced/sampling` and :doc:`advanced/grid_sampling`.
-``sample_skeleton`` splits rows among a simplex's vertices, edges and larger
-faces, by default in the ratio that minimizes the asymptotic risk of
+``sample_skeleton`` splits rows among the vertices, edges and higher faces of
+a simplex or simploid, by default in the ratio that minimizes the asymptotic risk of
 inductive skeleton fitting; see :doc:`advanced/skeleton_sampling`.
 
 .. automodule:: torch_bsf.sampling
@@ -109,7 +109,7 @@ fitting
 ``FitResult``. Fixed controls and quadratic penalties participate in the
 same solve. Evaluate ``result.model(points)`` after checking the numerical
 status; there is no initial guess for this linear least-squares operation.
-``fit_skeleton_regression`` instead fits a simplex face by face from
+``fit_skeleton_regression`` instead fits a simplex or simploid face by face from
 observations on its faces; see :doc:`advanced/skeleton_sampling`.
 
 .. automodule:: torch_bsf.fitting

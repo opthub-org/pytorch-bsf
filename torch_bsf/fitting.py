@@ -8,7 +8,6 @@ import torch
 
 from torch_bsf._problem import LeastSquaresProblem
 from torch_bsf._skeleton import (
-    _blocks,
     _control_faces,
     _faces_with_interior_controls,
     _interior_and_boundary,
@@ -362,8 +361,8 @@ def fit_skeleton_regression(
     >>> sorted(result.faces), torch.allclose(result.model(t), (t[:, 1] ** 2)[:, None])
     ([(0,), (0, 1), (1,)], True)
 
-    On a square, the vertex and edge keys list one coordinate index of each factor
-    per vertex.
+    On a square of degree one, only the vertices have interior controls; each
+    vertex key lists one coordinate index of each factor.
 
     >>> square = BezierSpace.simploid((1, 1), degree=1)
     >>> points = sample_skeleton(square, 8, seed=0)
@@ -376,10 +375,6 @@ def fit_skeleton_regression(
         raise TypeError("samples must be Samples.")
     space.validate(samples.points)
     support = samples.points.parameters.cpu() != 0
-    blocks = _blocks(cell.dimensions)
-    too_wide = [support[:, block.start : block.stop].sum(1) > d for block, d in zip(blocks, cell.degree, strict=True)]
-    ignored = int(torch.stack(too_wide).any(0).sum())
-    ignored_message = f" Ignored {ignored} rows on faces without interior controls." if ignored else ""
     faces = _faces_with_interior_controls(cell.dimensions, cell.degree)
     # Group rows by their distinct supports in one vectorized pass; row order within a face is kept.
     supports, inverse = torch.unique(support, dim=0, return_inverse=True)
@@ -388,6 +383,10 @@ def fit_skeleton_regression(
     rows = {
         face: (inverse == face_of_support[face]).nonzero().flatten() if face in face_of_support else empty for face in faces
     }
+    # Rows on faces without interior controls belong to no face.
+    ignored = len(support) - sum(len(r) for r in rows.values())
+    without = f"more than degree={cell.degree[0]} vertices" if len(cell.dimensions) == 1 else "no interior controls"
+    ignored_message = f" Ignored {ignored} rows on faces with {without}." if ignored else ""
     missing = [face for face in faces if not (samples.weights[rows[face]] > 0).any()]
     if missing:
         raise ValueError(f"faces without rows of positive weight: {missing}.")

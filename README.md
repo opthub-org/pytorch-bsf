@@ -32,7 +32,7 @@ geometries use the same `BezierSpace`, `BezierModel` and regression API.
 ## Features
 
 - **Regression and point cloud fitting:** fit known parameter-response pairs,
-  or estimate unknown coordinates for points on a single Bézier simplex.
+  or estimate unknown coordinates for points on a single Bézier simplex or simploid.
 - **Controlled geometry:** use simplex, product and joined-cell domains, with
   shared control points, exact fixed controls and quadratic regularization.
 - **Interpolation and optimization:** construct shape-preserving interpolants
