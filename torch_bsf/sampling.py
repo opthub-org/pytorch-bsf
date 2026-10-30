@@ -544,6 +544,8 @@ def sample_skeleton(
     ends = torch.tensor([block.stop for block in _blocks(cell.dimensions)])
     chunks = [torch.zeros(0, cell.width, dtype=torch.float64)]
     for m, count in enumerate(counts):
+        if not count:
+            continue  # An empty level draws nothing; listing its face shapes can cost 2**n_factors on many factors.
         for face, rows in _face_counts(cell.dimensions, cell.degree, m, count, generator):
             exponentials = _exponentials(generator, rows, len(face), method)
             chunk = torch.zeros(rows, cell.width, dtype=torch.float64)

@@ -14,7 +14,7 @@ from hypothesis import example, given
 from hypothesis import strategies as st
 
 from tests.strategies import degrees, seeds, simploid_types
-from torch_bsf import BezierSpace, Samples, SimploidalSet, fit_skeleton_regression
+from torch_bsf import BezierSpace, Samples, SimploidalSet, fit_skeleton_regression, sampling
 from torch_bsf._kernels._sampling import simplex_grid, simplex_random, simplex_sobol
 from torch_bsf._kernels.combinatorics import _indices, _simplex_indices
 from torch_bsf._skeleton import _blocks, _faces_with_interior_controls
@@ -1767,6 +1767,15 @@ def test_sample_skeleton_of_a_simplex_keeps_its_draws(dimension, degree, n, meth
     counts = _skeleton_counts(n, _skeleton_fractions(ratio, space, dimension + 1))
     expected = _simplex_skeleton_reference(dimension + 1, counts, 7, method)
     assert torch.equal(sample_skeleton(space, n, ratio=ratio, seed=7, method=method).parameters, expected)
+
+
+def test_sample_skeleton_skips_empty_levels():
+    # Listing the face shapes of a level costs up to 2**n_factors, so levels without rows must not list them.
+    space = BezierSpace.simploid((1,) * 4, degree=(1,) * 4)
+    with patch("torch_bsf.sampling._face_counts", wraps=sampling._face_counts) as face_counts:
+        points = sample_skeleton(space, 3, ratio=[1, 0, 0, 0, 0], seed=0)
+    assert points.parameters.shape == (3, 8)
+    assert [call.args[2:4] for call in face_counts.call_args_list] == [(0, 3)]
 
 
 def test_skeleton_risk_coefficients_of_a_triangle_are_unchanged():
