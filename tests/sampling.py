@@ -5,7 +5,6 @@ from fractions import Fraction
 from functools import cache
 from itertools import combinations, count
 from math import comb
-from typing import Literal
 from unittest.mock import patch
 
 import numpy as np
@@ -24,6 +23,8 @@ from torch_bsf.sampling import (
     _exponentials,
     _face_gram,
     _n_skeleton_faces,
+    _skeleton_counts,
+    _skeleton_fractions,
     optimal_skeleton_ratio,
     sample,
     sample_skeleton,
@@ -1715,37 +1716,62 @@ def test_sample_skeleton_of_simploids_allocates_ratios(dimensions, data, n, seed
     assert torch.equal(points.parameters, sample_skeleton(space, n, ratio=ratio, seed=seed, method=method).parameters)
 
 
-def test_sample_skeleton_of_a_simplex_keeps_its_draws():
-    # Literals from the simplex-only implementation: generalizing to simploids must not change any simplex draw.
+def _simplex_skeleton_reference(width: int, counts: list[int], seed: int, method: str) -> torch.Tensor:
+    """The simplex-only ``sample_skeleton`` before simploids, with the same torch draws in the same order."""
+    generator = torch.Generator().manual_seed(seed)
+
+    def exponentials(n: int, size: int) -> torch.Tensor:
+        if method == "random":
+            uniforms = torch.rand(n, size, generator=generator, dtype=torch.float64)
+        else:
+            engine = torch.quasirandom.SobolEngine(
+                size, scramble=True, seed=int(torch.randint(2**31, (1,), generator=generator))
+            )
+            uniforms = torch.empty(n, size, dtype=torch.float64)
+            if n:
+                uniforms[0] = engine.quasi.to(torch.float64) / 2**engine.MAXBIT
+                if n > 1:
+                    engine.fast_forward(1)
+                    uniforms[1:] = engine.draw(n - 1, dtype=torch.float64)
+        return -uniforms.clamp_min(torch.finfo(torch.float64).tiny).log()
+
+    blocks = [torch.zeros(0, width, dtype=torch.float64)]
+    for size, total in enumerate(counts, start=1):
+        n_faces = comb(width, size)
+        if 2 * total < n_faces:
+            chosen: set[tuple[int, ...]] = set()
+            while len(chosen) < total:
+                chosen.add(tuple(sorted(torch.randperm(width, generator=generator)[:size].tolist())))
+            faces = [(face, 1) for face in sorted(chosen)]
+        else:
+            per_face = torch.full((n_faces,), total // n_faces, dtype=torch.long)
+            per_face[torch.randperm(n_faces, generator=generator)[: total % n_faces]] += 1
+            faces = [(f, r) for f, r in zip(combinations(range(width), size), per_face.tolist(), strict=True) if r]
+        for face, rows in faces:
+            draws = exponentials(rows, size)
+            block = torch.zeros(rows, width, dtype=torch.float64)
+            block[:, face] = draws / draws.sum(1, keepdim=True)
+            blocks.append(block)
+    return torch.cat(blocks)
+
+
+@pytest.mark.parametrize("dimension, degree", [(1, 3), (2, 2), (3, 2), (6, 2), (23, 1)])
+@pytest.mark.parametrize("n", [0, 5, 50])
+@pytest.mark.parametrize("method", ["random", "sobol"])
+def test_sample_skeleton_of_a_simplex_keeps_its_draws(dimension, degree, n, method):
+    # Generalizing to simploids must not change any simplex draw. Literals would pin one torch version's generator,
+    # so the reference reruns the simplex-only algorithm with the installed torch. The wide simplex samples its
+    # edges by rejection; the others mostly split equally.
+    space = BezierSpace.simplex(dimension, degree=degree)
+    ratio = [1.0] * (dimension + 1)
+    counts = _skeleton_counts(n, _skeleton_fractions(ratio, space, dimension + 1))
+    expected = _simplex_skeleton_reference(dimension + 1, counts, 7, method)
+    assert torch.equal(sample_skeleton(space, n, ratio=ratio, seed=7, method=method).parameters, expected)
+
+
+def test_skeleton_risk_coefficients_of_a_triangle_are_unchanged():
     space = BezierSpace.simplex(2, degree=2)
-    expected: dict[Literal["random", "sobol"], list[list[float]]] = {
-        "random": [
-            [0.0, 0.0, 1.0],
-            [0.15847102907809005, 0.8415289709219099, 0.0],
-            [0.11971856322903326, 0.0, 0.8802814367709668],
-            [0.6586592375219926, 0.0, 0.3413407624780073],
-            [0.0, 0.6109515658293208, 0.38904843417067925],
-        ],
-        "sobol": [
-            [0.0, 0.0, 1.0],
-            [0.41235458431613103, 0.5876454156838689, 0.0],
-            [0.8030284381902414, 0.0, 0.1969715618097586],
-            [0.038747341060959055, 0.0, 0.9612526589390409],
-            [0.0, 0.4151999628343648, 0.5848000371656352],
-        ],
-    }
-    for method, rows in expected.items():
-        assert sample_skeleton(space, 5, seed=0, method=method).parameters.tolist() == rows
     assert skeleton_risk_coefficients(space) == (0.375, 3.0, 0.0)
-
-    def supports(points):
-        return [tuple(row.nonzero().flatten().tolist()) for row in points.parameters]
-
-    # Rejection sampling of four distinct edges, and an equal split with random extra faces.
-    wide = sample_skeleton(BezierSpace.simplex(23, degree=1), 4, ratio=[0, 1] + [0] * 22, seed=0)
-    assert supports(wide) == [(0, 4), (5, 14), (5, 20), (12, 19)]
-    split = sample_skeleton(BezierSpace.simplex(3, degree=3), 10, ratio=[1, 1, 1, 1], seed=1)
-    assert supports(split) == [(1,), (2,), (3,), (0, 1), (1, 2), (1, 3), (0, 2, 3), (1, 2, 3), (0, 1, 2, 3), (0, 1, 2, 3)]
 
 
 def test_sample_skeleton_of_a_prism_chooses_edges_uniformly():
