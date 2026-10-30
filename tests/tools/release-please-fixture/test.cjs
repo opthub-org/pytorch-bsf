@@ -156,7 +156,8 @@ test('Action inputs and root outputs connect only created releases to publishing
   assert.equal(docker.on.workflow_call.inputs.tag_name.required, true);
   assert.equal(docker.jobs['build-and-push'].steps[0].with.ref,
     '${{ inputs.tag_name || github.event.release.tag_name }}');
-  assert.deepEqual(workflow.on, {push: {branches: ['master']}});
+  assert.deepEqual(workflow.on, {push: {branches: ['master']}, workflow_dispatch: null});
+  assert.equal(workflow.jobs['github-release'].if, "github.ref == 'refs/heads/master'");
 });
 
 test('PyPI publication requires a successful release build and only grants OIDC to the publisher', () => {

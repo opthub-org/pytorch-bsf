@@ -1,0 +1,65 @@
+name: Isolated coverage upload
+
+on:
+  workflow_call:
+    inputs:
+      commit:
+        required: true
+        type: string
+      branch:
+        required: true
+        type: string
+      pr:
+        type: string
+        default: ''
+    secrets:
+      codecov_token:
+        required: false
+
+permissions: {}
+
+jobs:
+  upload:
+    name: coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      # Candidate modules, hooks, config and background processes never enter this runner.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: master
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: coverage
+          path: ${{ runner.temp }}/coverage
+          digest-mismatch: error
+      - name: Validate the report file without parsing or executing its contents
+        run: |
+          python3 -I - <<'PY'
+          import os
+          from pathlib import Path
+          directory = Path(os.environ['RUNNER_TEMP']) / 'coverage'
+          report = directory / 'coverage.xml'
+          if sorted(p.name for p in directory.iterdir()) != ['coverage.xml']:
+              raise SystemExit('Unexpected coverage artifact entries')
+          if report.is_symlink() or not report.is_file() or report.stat().st_size > 20_000_000:
+              raise SystemExit('Invalid coverage report file')
+          PY
+      - name: Upload data with credentials isolated from the test runner
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          token: ${{ secrets.codecov_token }}
+          use_oidc: ${{ github.actor == 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository }}
+          files: ${{ runner.temp }}/coverage/coverage.xml
+          plugins: noop
+          disable_file_fixes: true
+          disable_search: true
+          cleanup: true
+          override_commit: ${{ inputs.commit }}
+          override_branch: ${{ inputs.branch }}
+          override_pr: ${{ inputs.pr }}
+          fail_ci_if_error: true

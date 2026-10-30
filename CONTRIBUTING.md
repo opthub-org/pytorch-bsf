@@ -37,6 +37,10 @@ pytorch-bsf is a library installed alongside other packages, so `[project].depen
 
 ### Python lifecycle updates
 
+Security alerts have a separate [automatic repair and merge policy](SECURITY.md).
+It covers Dependabot, CodeQL, and a daily source security audit, with independent
+AI review and exact-head CI gates before merging.
+
 The **Dependency lifecycle** workflow runs every Monday at 04:23 UTC (13:23 JST),
 and can also be run from Actions with **Run workflow**. After this workflow is
 merged into `master`, its first run catches up with any existing EOLs or releases.
