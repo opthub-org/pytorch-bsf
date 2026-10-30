@@ -94,6 +94,39 @@ class GitHub:
     def write(self, path: str, data: Any, method: str = "POST") -> Any:
         return self.request(f"/repos/{self.repo}/{path}", method, data)
 
+    def fetch_commit(self, root: Path, sha: str) -> None:
+        """Read immutable Git objects without checking out or executing candidate code."""
+        if not re.fullmatch(r"[0-9a-f]{40}", sha):
+            raise ValueError("Invalid candidate commit SHA")
+        credential = base64.b64encode(f"x-access-token:{self.token}".encode()).decode()
+        env = dict(os.environ)
+        env.update(
+            GIT_CONFIG_COUNT="1",
+            GIT_CONFIG_KEY_0="http.https://github.com/.extraheader",
+            GIT_CONFIG_VALUE_0="AUTHORIZATION: basic " + credential,
+        )
+        subprocess.run(
+            [
+                "git",
+                "-c",
+                "core.hooksPath=/dev/null",
+                "-c",
+                "core.fsmonitor=false",
+                "-c",
+                "http.followRedirects=false",
+                "fetch",
+                "--no-tags",
+                "--depth=1",
+                f"https://github.com/{self.repo}.git",
+                sha,
+            ],
+            cwd=root,
+            env=env,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
     def pages(self, path: str, key: str | None = None) -> list[Json]:
         result: list[Json] = []
         endpoint = f"/repos/{self.repo}/{path}"
@@ -168,18 +201,33 @@ def validate_path(path: str) -> None:
         raise ValueError("Credential path changes require maintainer review")
 
 
-def validate_file(root: Path, base: str, path: str) -> None:
+def file_content(root: Path, path: str, head: str | None) -> bytes | None:
+    """Read regular-file bytes; None denotes deletion, never a followed symlink."""
+    if head is None:
+        target = Path(root) / path
+        if target.is_symlink() or (target.exists() and not target.is_file()):
+            raise ValueError("Only regular text files can be published")
+        return target.read_bytes() if target.exists() else None
+    row = git(root, "--literal-pathspecs", "ls-tree", "-z", head, "--", path)
+    if row:
+        mode, kind, _ = row.split(b"\t", 1)[0].split()
+        if mode not in {b"100644", b"100755"} or kind != b"blob":
+            raise ValueError("Only regular text files can be published")
+    return git(root, "show", f"{head}:{path}") if row else None
+
+
+def validate_file(root: Path, base: str, path: str, head: str | None = None) -> None:
     validate_path(path)
-    target = Path(root) / path
-    if target.is_symlink() or (target.exists() and not target.is_file()):
-        raise ValueError("Only regular text files can be published")
-    if target.exists():
-        content = target.read_bytes()
-        if "\0" in content.decode("utf-8") or re.search(rb"sk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{20,}", content):
-            raise ValueError("Binary content or an API key is present in the patch")
+    content = file_content(root, path, head)
+    if content is not None and (
+        "\0" in content.decode("utf-8") or re.search(rb"sk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{20,}", content)
+    ):
+        raise ValueError("Binary content or an API key is present in the patch")
     if path == "pyproject.toml":
+        if content is None:
+            raise ValueError("The root manifest cannot be deleted automatically")
         before_data = tomllib.loads(git(root, "show", f"{base}:{path}").decode())
-        after_data = tomllib.loads(target.read_text())
+        after_data = tomllib.loads(content.decode())
         for value in (before_data, after_data):
             for field in ("dependencies", "optional-dependencies", "requires-python", "classifiers"):
                 value.get("project", {}).pop(field, None)
@@ -187,20 +235,22 @@ def validate_file(root: Path, base: str, path: str) -> None:
             raise ValueError("Only dependency and Python support declarations may change in pyproject.toml")
     if path.startswith(".github/workflows/"):
         before = git(root, "show", f"{base}:{path}").decode()
-        after = target.read_text() if target.exists() else ""
+        after = content.decode() if content is not None else ""
         if ACTION_PIN.sub(r"\1<PIN>", before) != ACTION_PIN.sub(r"\1<PIN>", after):
             raise ValueError("Automatic workflow repairs may only update existing action SHA pins")
 
 
-def validate_changes(root: Path, base: str) -> tuple[list[str], bytes]:
+def validate_changes(root: Path, base: str, head: str | None = None) -> tuple[list[str], bytes]:
     """Reject control-plane edits, executable links, binary files, and weakened CI."""
-    raw_paths = git(root, "diff", "--name-only", "-z", base).decode().split("\0")
+    revisions = [base] if head is None else [base, head]
+    options = ["--no-ext-diff", "--no-textconv", "--no-renames"]
+    raw_paths = git(root, "diff", *options, "--name-only", "-z", *revisions).decode().split("\0")
     paths = [path for path in raw_paths if path]
-    patch = git(root, "diff", "--binary", base)
+    patch = git(root, "diff", *options, "--binary", *revisions)
     if len(patch) > MAX_PATCH_BYTES:
         raise ValueError("Patch exceeds the automatic review size limit")
     for path in paths:
-        validate_file(root, base, path)
+        validate_file(root, base, path, head)
     return paths, patch
 
 
@@ -688,6 +738,8 @@ def merge(api: GitHub, task: Json, root: Path, verdict: Json) -> None:
     failed, pending, _ = ci_state(api, task["head"], root)
     if failed or pending or pr.get("mergeable_state") != "clean":
         raise ValueError("The exact-head merge gate is not satisfied")
+    api.fetch_commit(root, task["head"])
+    validate_changes(root, task["base"], task["head"])
     resolve_threads(api, pr["number"], verdict["resolved_threads"])
     reviews = api.pages(f"pulls/{pr['number']}/reviews")
     latest = {}

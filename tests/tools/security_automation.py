@@ -373,6 +373,7 @@ class MergeTests(unittest.TestCase):
             patch.object(security, "base_sha", side_effect=options.get("bases", [self.task["base"], self.task["base"]])),
             patch.object(security, "ci_state", return_value=options.get("ci", ([], [], {}))),
             patch.object(security, "review_threads", return_value=options.get("threads", [])),
+            patch.object(security, "validate_changes", return_value=([], b"")),
             patch.object(security, "update_task") as update,
         ):
             security.merge(self.api, self.task, ROOT, self.verdict)
@@ -431,6 +432,81 @@ class MergeTests(unittest.TestCase):
         self.api.write.return_value = {"merged": False}
         with self.assertRaisesRegex(ValueError, "did not confirm"):
             self.merge()
+
+
+class CommittedPolicyTests(GitFixture):
+    def commit(self):
+        self.run_git("add", ".")
+        self.run_git("commit", "-qm", "candidate")
+        head = self.run_git("rev-parse", "HEAD").strip()
+        self.run_git("checkout", "-q", self.base)
+        return head
+
+    def test_committed_bytes_are_checked_instead_of_trusted_working_tree(self):
+        (self.root / "source.py").write_text("value = 2\n")
+        head = self.commit()
+        paths, patch_data = security.validate_changes(self.root, self.base, head)
+        self.assertEqual(paths, ["source.py"])
+        self.assertIn(b"+value = 2", patch_data)
+        self.assertEqual((self.root / "source.py").read_text(), "value = 1\n")
+
+    def test_renaming_a_protected_file_cannot_hide_its_deletion(self):
+        protected = self.root / ".github/security/fix.md"
+        protected.parent.mkdir()
+        protected.write_text("Trusted security instructions\n")
+        self.run_git("add", ".github/security/fix.md")
+        self.run_git("commit", "-qm", "trusted policy")
+        self.base = self.run_git("rev-parse", "HEAD").strip()
+        self.run_git("mv", ".github/security/fix.md", "renamed.md")
+        with self.assertRaisesRegex(ValueError, "control-plane"):
+            security.validate_changes(self.root, self.base)
+        head = self.commit()
+        with self.assertRaisesRegex(ValueError, "control-plane"):
+            security.validate_changes(self.root, self.base, head)
+
+    def test_later_protected_commit_cannot_merge_even_with_green_ci_and_ai_approval(self):
+        target = self.root / "pkg/pyproject.toml"
+        target.parent.mkdir()
+        target.write_text('[tool.ruff.lint]\nignore = ["F401"]\n')
+        head = self.commit()
+        self.assertFalse(target.exists())
+        task = {"id": "id", "pr": 123, "base": self.base, "head": head}
+        api = api_mock()
+        pr = pull_request()
+        pr["head"]["sha"] = head
+        api.get.return_value = pr
+        with (
+            patch.object(security, "base_sha", return_value=self.base),
+            patch.object(security, "ci_state", return_value=([], [], {})),
+            self.assertRaisesRegex(ValueError, "Validation policy"),
+        ):
+            security.merge(api, task, self.root, {"approved": True, "findings": [], "resolved_threads": []})
+        api.fetch_commit.assert_called_once_with(self.root, head)
+        api.write.assert_not_called()
+
+    def test_committed_symlinks_and_secret_content_are_rejected(self):
+        target = self.root / "source.py"
+        target.unlink()
+        target.symlink_to("/etc/passwd")
+        head = self.commit()
+        with self.assertRaisesRegex(ValueError, "regular text files"):
+            security.validate_changes(self.root, self.base, head)
+        target.write_text("sk-proj-" + "x" * 40)
+        head = self.commit()
+        with self.assertRaisesRegex(ValueError, "API key"):
+            security.validate_changes(self.root, self.base, head)
+
+    def test_fetch_uses_scoped_header_without_secret_command_arguments(self):
+        api = security.GitHub.__new__(security.GitHub)
+        api.repo, api.token = REPO, "test-token"
+        with patch.object(security.subprocess, "run") as run:
+            api.fetch_commit(self.root, self.base)
+        args, kwargs = run.call_args
+        self.assertNotIn(api.token, " ".join(args[0]))
+        self.assertEqual(args[0][-2:], [f"https://github.com/{REPO}.git", self.base])
+        credential = base64.b64encode(b"x-access-token:test-token").decode()
+        self.assertEqual(kwargs["env"]["GIT_CONFIG_VALUE_0"], "AUTHORIZATION: basic " + credential)
+        self.assertEqual(kwargs["stderr"], subprocess.DEVNULL)
 
 
 class ThreadPaginationTests(unittest.TestCase):

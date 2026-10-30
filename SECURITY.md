@@ -47,8 +47,11 @@ budget. The automation:
    review threads are resolved only when the independent reviewer explicitly
    verifies the current code addresses every one.
 7. Rechecks the head, base, CI, review threads, and merge state immediately before
-   a squash merge with the expected head SHA. Active change-request reviews still
-   block merging. GitHub's repository rules remain in force.
+   a squash merge with the expected head SHA. It also reads the exact committed
+   diff as Git objects and reapplies the publication policy, including additions
+   pushed after the original patch. Candidate code is never executed by this check.
+   Active change-request reviews still block merging. GitHub's repository rules
+   remain in force.
 8. Explicitly dispatches validation, Pages, and Release after merging, since
    Actions-token merges do not reliably trigger downstream push workflows.
    Pending dispatches are persisted individually and retried without another AI
