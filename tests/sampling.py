@@ -22,6 +22,7 @@ from torch_bsf.sampling import (
     _RISK_RELATIVE_ERROR,
     _exponentials,
     _face_gram,
+    _factor_grams,
     _n_skeleton_faces,
     _skeleton_counts,
     _skeleton_fractions,
@@ -1308,18 +1309,30 @@ def test_skeleton_risk_coefficients_reject_ill_conditioned_degrees(dimension, de
         sample_skeleton(space, 4)
 
 
+@pytest.mark.parametrize(
+    ("dimension", "degree", "condition"), [(2, 12, r"3\.7e\+07"), (3, 11, r"1\.7e\+07"), (4, 9, r"2\.0e\+06")]
+)
+def test_skeleton_risk_coefficients_keep_the_documented_simplex_limits(dimension, degree, condition):
+    # The largest accepted degrees documented for 3, 4 and 5 vertices. One degree more, the edge block still passes and
+    # the Gram matrix on the whole simplex rejects the space, with the same condition number as before, but now before
+    # the computation of size n_controls starts.
+    assert len(skeleton_risk_coefficients(BezierSpace.simplex(dimension, degree=degree))) == dimension + 1
+    with (
+        patch("torch_bsf.sampling._control_faces", side_effect=AssertionError("the computation started")),
+        pytest.raises(ValueError, match=rf"\(condition number {condition}\)"),
+    ):
+        skeleton_risk_coefficients(BezierSpace.simplex(dimension, degree=degree + 1))
+
+
 @given(dimensions=simploid_types(min_factors=2), data=st.data())
 def test_full_gram_condition_is_the_product_of_factor_conditions(dimensions, data):
-    # Under the uniform distribution on a simploid, the full Gram matrix is the Kronecker product of the factors'
-    # up to the order of the controls, so its condition number is the product of theirs.
+    # Under the uniform distribution on a simploid, the Gram matrix on the whole simploid is, up to the order of the
+    # controls, the Kronecker product of the factors' Gram matrices, so its condition number is the product of theirs.
     degree = data.draw(degrees(dimensions, min_degree=1))
     alpha = torch.tensor([sum(index, ()) for index in _indices(dimensions, degree)])
     width, n_controls = sum(a + 1 for a in dimensions), len(alpha)
     full = torch.linalg.cond(_face_gram(alpha, alpha, range(width), dimensions, degree)).item()
-    product = 1.0
-    for a, d in zip(dimensions, degree, strict=True):
-        index = torch.tensor(_simplex_indices(a + 1, d))
-        product *= torch.linalg.cond(_face_gram(index, index, range(a + 1), (a,), (d,))).item()
+    product = math.prod(torch.linalg.cond(g).item() for g in _factor_grams(dimensions, degree))
     # The Gram entries are nonnegative with relative errors of at most (2 * width + 2) * U, so they move every
     # eigenvalue by at most that fraction of the largest one; the backward-stable SVD adds about n_controls * U of
     # it. Each computed condition number then has a relative error of at most (kappa + 1) (2 * width + 2 +
@@ -1330,9 +1343,9 @@ def test_full_gram_condition_is_the_product_of_factor_conditions(dimensions, dat
 
 @pytest.mark.parametrize(
     ("dimensions", "degree", "condition"),
-    # 12 segments and 9 triangles of degree 1 (4096 and 19683 controls), whose factors' Gram matrices have
-    # condition numbers 3 and 4, 5 segments of degree 3 (1024 controls), where it is 35, and 4 segments of degree 3
-    # with a triangle of degree 1 (768 controls), 35**4 * 4, which pairs each factor with its own degree.
+    # Factor condition numbers: 3 for a segment of degree 1, 4 for a triangle of degree 1, 35 for a segment of
+    # degree 3. The spaces have 4096, 19683, 1024 and 768 controls. The last case mixes dimensions and degrees, so it
+    # fails if a factor is paired with another factor's degree.
     [
         ((1,) * 12, (1,) * 12, r"5\.3e\+05"),
         ((2,) * 9, (1,) * 9, r"2\.6e\+05"),
