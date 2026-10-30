@@ -277,7 +277,10 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
         and degree in every factor, or if its Bernstein Gram matrices are too
         ill-conditioned to bound the float64 relative error by ``1e-6``. For a
         simplex, the largest accepted degree falls with the dimension: 14 for 2
-        vertices, 12 for 3, 11 for 4, 9 for 5, 8 for 6 and 7, and 7 for 8.
+        vertices, 12 for 3, 11 for 4, 9 for 5, 8 for 6 and 7, and 7 for 8. On
+        a simploid, the condition number of the full Gram matrix is the product
+        of its factors', so it also grows with the number of factors: 12
+        segments of degree 1 are rejected.
 
     Notes
     -----
@@ -322,6 +325,15 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
     if top >= 2:
         edge = torch.tensor([[j, top - j] for j in range(1, top)], dtype=torch.long)
         check(torch.linalg.cond(_face_gram(edge, edge, (0, 1), (1,), (top,))).item())
+    # Under the uniform distribution on the product, the full Gram matrix is, up to the order of the controls, the
+    # Kronecker product of the factors' full Gram matrices. Its condition number, the product of theirs, grows with
+    # the number of factors, so it is checked from the small factor matrices before allocating anything of size
+    # n_controls, and it stands in for the condition number of the full Gram matrix in the final check.
+    full_condition = 1.0
+    for a, d in zip(dimensions, degree, strict=True):
+        index = torch.tensor([sum(i, ()) for i in _indices((a,), (d,))], dtype=torch.long)
+        full_condition *= torch.linalg.cond(_face_gram(index, index, range(a + 1), (a,), (d,))).item()
+    check(full_condition)
     alpha = torch.tensor([sum(index, ()) for index in _indices(dimensions, degree)], dtype=torch.long)
     control_faces = _control_faces(dimensions, degree)
     # Control errors as linear maps of the independent face noises: on face I,
@@ -335,8 +347,8 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
         errors[interior] = -torch.linalg.solve(g_tt, g_tb @ errors[boundary])
         errors[interior[:, None], interior] = torch.eye(len(interior), dtype=torch.float64)
         face_grams.append((len(face) - len(dimensions), interior, g_tt))
+    check(max([full_condition] + [torch.linalg.cond(g_tt).item() for _, _, g_tt in face_grams]))
     full = _face_gram(alpha, alpha, range(width), dimensions, degree)
-    check(max(torch.linalg.cond(g).item() for g in [full] + [g_tt for _, _, g_tt in face_grams]))
     coefficients = [0.0] * levels
     n_faces = [_n_skeleton_faces(dimensions, degree, m) for m in range(levels)]
     for m, interior, g_tt in face_grams:

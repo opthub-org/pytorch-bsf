@@ -1308,6 +1308,48 @@ def test_skeleton_risk_coefficients_reject_ill_conditioned_degrees(dimension, de
         sample_skeleton(space, 4)
 
 
+@given(dimensions=simploid_types(min_factors=2), data=st.data())
+def test_full_gram_condition_is_the_product_of_factor_conditions(dimensions, data):
+    # Under the uniform distribution on a simploid, the full Gram matrix is the Kronecker product of the factors'
+    # up to the order of the controls, so its condition number is the product of theirs.
+    degree = data.draw(degrees(dimensions, min_degree=1))
+    alpha = torch.tensor([sum(index, ()) for index in _indices(dimensions, degree)])
+    width, n_controls = sum(a + 1 for a in dimensions), len(alpha)
+    full = torch.linalg.cond(_face_gram(alpha, alpha, range(width), dimensions, degree)).item()
+    product = 1.0
+    for a, d in zip(dimensions, degree, strict=True):
+        index = torch.tensor(_simplex_indices(a + 1, d))
+        product *= torch.linalg.cond(_face_gram(index, index, range(a + 1), (a,), (d,))).item()
+    # The Gram entries are nonnegative with relative errors of at most (2 * width + 2) * U, so they move every
+    # eigenvalue by at most that fraction of the largest one; the backward-stable SVD adds about n_controls * U of
+    # it. Each computed condition number then has a relative error of at most (kappa + 1) (2 * width + 2 +
+    # n_controls) * U to first order, and the product adds a rounding per factor; a factor of 2 covers higher orders.
+    bound = 2 * (len(dimensions) + 1) * (max(full, product) + 1) * (2 * width + 2 + n_controls) * U
+    assert abs(full - product) <= bound * product
+
+
+@pytest.mark.parametrize(
+    ("dimensions", "degree", "condition"),
+    # 12 segments and 9 triangles of degree 1 (4096 and 19683 controls), whose factors' Gram matrices have
+    # condition numbers 3 and 4, and 5 segments of degree 3 (1024 controls), where it is 35.
+    [((1,) * 12, (1,) * 12, r"5\.3e\+05"), ((2,) * 9, (1,) * 9, r"2\.6e\+05"), ((1,) * 5, (3,) * 5, r"5\.3e\+07")],
+)
+def test_skeleton_risk_coefficients_reject_many_factors_before_allocation(dimensions, degree, condition):
+    # The condition number of the full Gram matrix grows with the number of factors. It is checked from the factors'
+    # Gram matrices alone: no index list or Gram matrix spans two factors, and the face-by-face computation of size
+    # n_controls never starts.
+    space = BezierSpace.simploid(dimensions, degree=degree)
+    with (
+        patch("torch_bsf.sampling._indices", wraps=_indices) as indices,
+        patch("torch_bsf.sampling._face_gram", wraps=_face_gram) as face_gram,
+        patch("torch_bsf.sampling._control_faces", side_effect=AssertionError("the computation started")),
+        pytest.raises(ValueError, match=rf"\(condition number {condition}\)\. Pass ratio explicitly"),
+    ):
+        sample_skeleton(space, 10, seed=0)
+    assert indices.call_args_list and all(len(call.args[0]) == 1 for call in indices.call_args_list)
+    assert face_gram.call_args_list and all(len(call.args[3]) == 1 for call in face_gram.call_args_list)
+
+
 def _two_glued_segments() -> BezierSpace:
     domain = SimploidalSet()
     left, right = domain.add_simplex(1), domain.add_simplex(1)

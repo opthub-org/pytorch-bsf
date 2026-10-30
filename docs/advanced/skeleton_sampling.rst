@@ -299,7 +299,10 @@ ill-conditioned as the degree grows, and
 :func:`~torch_bsf.sampling.skeleton_risk_coefficients` raises ``ValueError``
 once the float64 result can no longer be guaranteed to six significant digits
 (above degree 14 for :math:`M = 2`, 12 for :math:`M = 3`, 11 for
-:math:`M = 4`, 9 for :math:`M = 5` and 8 for :math:`M = 6`). In that case, pass
+:math:`M = 4`, 9 for :math:`M = 5` and 8 for :math:`M = 6`). On a simploid,
+the condition number of the full Gram matrix is the product of its factors',
+so products of many factors are rejected even at low degree (for example, 12
+segments of degree 1). In that case, pass
 ``ratio`` to :func:`~torch_bsf.sampling.sample_skeleton` explicitly. A single
 simplex or simploid is supported, not assembled spaces. The closed forms and
 proofs in :doc:`skeleton_risk_theory` concern simplices only; for a simploid,
