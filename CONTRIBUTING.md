@@ -359,7 +359,8 @@ artifact by its immutable ID from the same workflow run and fails on a digest
 mismatch. It has no checkout or build steps; only this job has `id-token: write`.
 There is no API-token fallback.
 
-Before merging the migration, a maintainer must complete this one-time setup:
+Complete setup steps 1–2 before merging the migration. Retire the old token in
+step 3 after the first verified release:
 
 1. In the repository's **Settings → Environments**, create `pypi`. Under
    **Deployment branches and tags**, choose **Selected branches and tags** and
@@ -395,8 +396,13 @@ remain the same.
 For the first release, check **both** the wheel and sdist on PyPI's **Security**
 tab. Each should report Trusted Publishing and a PyPI Publish Attestation from
 `opthub-org/pytorch-bsf`, `release-please-action.yml`, and the expected workflow
-commit. Confirm that it matches the release tag's commit. For cryptographic
-verification, follow the
+commit. Compare that commit with the publishing workflow run's triggering SHA.
+Separately confirm that the build checked out the tag reported by Release Please,
+and that the published files' SHA-256 hashes match the distributions in that
+run's retained artifact. The workflow commit can be newer than the release tag
+when a later master push recovers a previously uncreated release. A Publish
+Attestation identifies the publishing workflow; it does not prove the source
+commit used by the build. For cryptographic verification, follow the
 [consumption guide](https://docs.pypi.org/attestations/consuming-attestations/):
 
 ```bash
