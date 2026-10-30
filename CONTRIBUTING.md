@@ -326,9 +326,10 @@ update `.release-please-manifest.json`, `pyproject.toml` and `CHANGELOG.md` toge
 Do not clear the manifest or set a new bootstrap version during an Action update.
 
 The root component's `release_created` and `tag_name` outputs connect to the
-Docker and PyPI jobs. Both publish only when `release_created == 'true'`, and
-both build the reported release tag. Keep the reusable Docker call: releases
-created with `GITHUB_TOKEN` do not start another release-event workflow.
+Docker and PyPI build jobs. Both build only when `release_created == 'true'`,
+and both build the reported release tag. The separate PyPI publishing job also
+requires a successful PyPI build. Keep the reusable Docker call: releases created
+with `GITHUB_TOKEN` do not start another release-event workflow.
 
 Validate release configuration without creating a release or publishing anything:
 
@@ -346,6 +347,84 @@ history boundary, Python/CHANGELOG/manifest updates and publication wiring with
 an in-memory repository that rejects writes. When changing the Action pin,
 update the fixture's engine dependency and lockfile to match the upstream
 Action's lockfile, then rerun the check.
+
+#### PyPI Trusted Publishing and provenance
+
+PyPI publication uses [Trusted Publishing](https://docs.pypi.org/trusted-publishers/)
+and the official PyPA publish Action, pinned to
+[v1.14.3](https://github.com/pypa/gh-action-pypi-publish/releases/tag/v1.14.3).
+The `pypi-build` job builds the release tag without OIDC or PyPI credentials and
+uploads the wheel and sdist as a single artifact. The `pypi` job downloads that
+artifact by its immutable ID from the same workflow run and fails on a digest
+mismatch. It has no checkout or build steps; only this job has `id-token: write`.
+There is no API-token fallback.
+
+Before merging the migration, a maintainer must complete this one-time setup:
+
+1. In the repository's **Settings → Environments**, create `pypi`. Under
+   **Deployment branches and tags**, choose **Selected branches and tags** and
+   allow only the branch `master`. The workflow starts on a `master` push, so
+   restricting this environment to release tags would block publication even
+   though the build checks out a release tag. Required reviewers are optional;
+   leave them unset to retain automatic releases.
+2. On the existing PyPI project's
+   [Publishing settings](https://pypi.org/manage/project/pytorch-bsf/settings/publishing/),
+   add a GitHub Trusted Publisher with these exact values:
+
+   | Field | Value |
+   |-------|-------|
+   | Owner | `opthub-org` |
+   | Repository | `pytorch-bsf` |
+   | Workflow filename | `release-please-action.yml` |
+   | Environment | `pypi` |
+
+   The workflow field is the filename, without `.github/workflows/`. Review the
+   [public transparency-log notice](https://docs.pypi.org/attestations/producing-attestations/#prerequisites)
+   before enabling attestations: signing records are public and permanent.
+3. After the first successful Trusted Publishing release and provenance check,
+   revoke the old project publishing token in PyPI and remove the GitHub Actions
+   secret `PYPI_API_TOKEN`. Keeping the old token during migration does not make
+   this workflow use it.
+
+`attestations: true` explicitly enables
+[PEP 740 PyPI Publish Attestations](https://docs.pypi.org/attestations/) for every
+distribution file. No signing key or new runtime dependency is needed. Regular
+PR checks, package installation and the Release Please merge/release process
+remain the same.
+
+For the first release, check **both** the wheel and sdist on PyPI's **Security**
+tab. Each should report Trusted Publishing and a PyPI Publish Attestation from
+`opthub-org/pytorch-bsf`, `release-please-action.yml`, and the expected workflow
+commit. Confirm that it matches the release tag's commit. For cryptographic
+verification, follow the
+[consumption guide](https://docs.pypi.org/attestations/consuming-attestations/):
+
+```bash
+# Use a separate tooling environment; this is not a library dependency.
+uvx --from pypi-attestations pypi-attestations verify pypi \
+  --repository https://github.com/opthub-org/pytorch-bsf '<PyPI file download URL>'
+```
+
+Run this for each of the two file URLs from PyPI. These attestations establish
+the publishing identity and file integrity; they do not certify code safety,
+dependency safety or reproducible builds. Full SLSA build provenance is a
+separate feature. Normal pip and uv installs do not yet verify these attestations
+automatically.
+
+For failures before any upload, correct the publisher/environment configuration
+or wait for the relevant service to recover, then use **Re-run failed jobs** on
+the same workflow run. The distribution artifact is retained for seven days,
+and a build retry gets a new artifact name. Re-running the entire workflow can
+skip publishing because Release Please has already created the release.
+
+If an upload partially succeeded, a retry can fail on duplicate files. Compare
+the already published files' hashes and attestations with the retained artifact
+before planning recovery; do not blindly enable `skip-existing`. Do not rebuild
+or replace an already published file under the same version. Changes to the
+repository owner/name, workflow filename or environment require updating the
+PyPI Trusted Publisher registration as well.
+
+#### Submitting and merging a PR
 
 1. Push your branch and open a Pull Request targeting `master`.
 2. In the PR description, include what changed, the related issue (`Closes #XXX`), how to test it, and the result of the local review.

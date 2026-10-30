@@ -156,17 +156,62 @@ test('Action inputs and root outputs connect only created releases to publishing
     release_created: '${{ steps.release-please.outputs.release_created }}',
     tag_name: '${{ steps.release-please.outputs.tag_name }}',
   });
-  for (const name of ['docker', 'pypi']) {
+  for (const name of ['docker', 'pypi-build']) {
     const job = workflow.jobs[name];
     assert.equal(job.needs, 'github-release');
     assert.equal(job.if, "${{ needs.github-release.outputs.release_created == 'true' }}");
   }
   assert.equal(workflow.jobs.docker.with.tag_name, '${{ needs.github-release.outputs.tag_name }}');
-  const checkout = workflow.jobs.pypi.steps.find(step => step.uses?.startsWith('actions/checkout@'));
+  const checkout = workflow.jobs['pypi-build'].steps.find(step => step.uses?.startsWith('actions/checkout@'));
   assert.equal(checkout.with.ref, '${{ needs.github-release.outputs.tag_name }}');
   const docker = YAML.parse(read('.github/workflows/docker.yml'));
   assert.equal(docker.on.workflow_call.inputs.tag_name.required, true);
   assert.equal(docker.jobs['build-and-push'].steps[0].with.ref,
     '${{ inputs.tag_name || github.event.release.tag_name }}');
   assert.deepEqual(workflow.on, {push: {branches: ['master']}});
+});
+
+test('PyPI publication requires a successful release build and only grants OIDC to the publisher', () => {
+  const build = workflow.jobs['pypi-build'];
+  const publish = workflow.jobs.pypi;
+  assert.deepEqual(workflow.permissions, {});
+  assert.deepEqual(build.permissions, {contents: 'read'});
+  assert.deepEqual(publish.permissions, {'id-token': 'write'});
+  for (const [name, job] of Object.entries(workflow.jobs)) {
+    if (name !== 'pypi') assert.equal(job.permissions?.['id-token'], undefined);
+  }
+  assert.deepEqual(publish.needs, ['github-release', 'pypi-build']);
+  assert.equal(publish.if, "${{ needs.github-release.outputs.release_created == 'true' }}");
+  assert.deepEqual(publish.environment, {
+    name: 'pypi', url: 'https://pypi.org/p/pytorch-bsf',
+  });
+
+  // The privileged job only transfers and publishes files; it must not run the
+  // package's build backend, install dependencies, or execute repository scripts.
+  assert.equal(publish.steps.length, 2);
+  assert.ok(publish.steps.every(step => step.uses && !step.run));
+  const [download, upload] = publish.steps;
+  assert.match(download.uses, /^actions\/download-artifact@[0-9a-f]{40}$/);
+  assert.match(upload.uses, /^pypa\/gh-action-pypi-publish@[0-9a-f]{40}$/);
+  assert.deepEqual(upload.with, {attestations: true});
+  assert.ok(!read('.github/workflows/release-please-action.yml').includes('PYPI_API_TOKEN'));
+});
+
+test('the publisher consumes only the immutable distribution artifact from its own build', () => {
+  const build = workflow.jobs['pypi-build'];
+  const artifact = build.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'));
+  assert.match(artifact.uses, /^actions\/upload-artifact@[0-9a-f]{40}$/);
+  assert.equal(build.outputs['artifact-id'], '${{ steps.distributions.outputs.artifact-id }}');
+  assert.equal(artifact.id, 'distributions');
+  assert.equal(artifact.with.path, 'dist/*');
+  assert.equal(artifact.with['if-no-files-found'], 'error');
+  // A new attempt keeps the original artifact available when retrying a failed
+  // publishing job; the output ID selects the artifact built for that attempt.
+  assert.ok(artifact.with.name.includes('${{ github.run_attempt }}'));
+  assert.deepEqual(workflow.jobs.pypi.steps[0].with, {
+    'artifact-ids': '${{ needs.pypi-build.outputs.artifact-id }}',
+    'merge-multiple': true,
+    path: 'dist',
+    'digest-mismatch': 'error',
+  });
 });
