@@ -411,8 +411,11 @@ ill-conditioned as the degree grows, and
 <a class="reference internal" href="../api.html#torch_bsf.sampling.skeleton_risk_coefficients" title="torch_bsf.sampling.skeleton_risk_coefficients"><code class="xref py py-func docutils literal notranslate"><span class="pre">skeleton_risk_coefficients()</span></code></a> raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>
 once the float64 result can no longer be guaranteed to six significant digits
 (above degree 14 for <span class="math notranslate nohighlight">\(M = 2\)</span>, 12 for <span class="math notranslate nohighlight">\(M = 3\)</span>, 11 for
-<span class="math notranslate nohighlight">\(M = 4\)</span>, 9 for <span class="math notranslate nohighlight">\(M = 5\)</span> and 8 for <span class="math notranslate nohighlight">\(M = 6\)</span>). In that case, pass
-<code class="docutils literal notranslate"><span class="pre">ratio</span></code> to <a class="reference internal" href="../api.html#torch_bsf.sampling.sample_skeleton" title="torch_bsf.sampling.sample_skeleton"><code class="xref py py-func docutils literal notranslate"><span class="pre">sample_skeleton()</span></code></a> explicitly. A single
+<span class="math notranslate nohighlight">\(M = 4\)</span>, 9 for <span class="math notranslate nohighlight">\(M = 5\)</span> and 8 for <span class="math notranslate nohighlight">\(M = 6\)</span>). On a simploid,
+the condition number of the Gram matrix on the whole simploid is the product
+of those of its factors’ Gram matrices, so products of many factors are
+rejected even at low degree (for example, 12 segments of degree 1). In that
+case, pass <code class="docutils literal notranslate"><span class="pre">ratio</span></code> to <a class="reference internal" href="../api.html#torch_bsf.sampling.sample_skeleton" title="torch_bsf.sampling.sample_skeleton"><code class="xref py py-func docutils literal notranslate"><span class="pre">sample_skeleton()</span></code></a> explicitly. A single
 simplex or simploid is supported, not assembled spaces. The closed forms and
 proofs in <a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a> concern simplices only; for a simploid,
 only the numerical coefficients are available.</p>
