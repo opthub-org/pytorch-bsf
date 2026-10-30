@@ -133,6 +133,13 @@ geometry does not depend on that count. A fitted model is a PyTorch module,
 so evaluation is differentiable with respect to coefficients and parameter
 coordinates. Numerical regression itself remains a CPU float64 solve.
 
+A single simplex or product also supports the face-by-face methods. These are
+skeleton sampling and inductive skeleton fitting (:doc:`skeleton_sampling`)
+and value-only fitting without parameter coordinates (:doc:`point_cloud`).
+They key a face of a product by the sorted global coordinate indices of its
+vertices, so ``(0, 3)`` is a corner of the prism above. Assembled spaces are
+not supported by these methods.
+
 Build a connected two-patch domain
 ----------------------------------
 

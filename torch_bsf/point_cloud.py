@@ -1,4 +1,4 @@
-"""Value-only Bézier simplex fitting (Kobayashi et al., AAAI 2019).
+"""Value-only Bézier simplex and simploid fitting (Kobayashi et al., AAAI 2019).
 
 Algorithm 2 alternates constrained Newton parameter updates and linear
 least squares. Algorithm 3 fits faces in increasing support size, preserving
@@ -7,16 +7,16 @@ the controls already estimated on their boundaries.
 
 import math
 import warnings
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
 import torch
 
-from torch_bsf._kernels.combinatorics import _indices, _recursive_basis, _simplex_indices
+from torch_bsf._kernels.combinatorics import _indices, _multinomial, _positions, _recursive_basis, _simplex_indices
 from torch_bsf._numeric import _finite_mean
-from torch_bsf._skeleton import _faces_with_interior_controls
-from torch_bsf.core import BezierModel, BezierSpace, FixedControls, Samples, _integer
+from torch_bsf._skeleton import _blocks, _control_faces, _faces_with_interior_controls
+from torch_bsf.core import BezierModel, BezierSpace, Cell, FixedControls, Samples, _integer
 from torch_bsf.fitting import fit
 from torch_bsf.results import ConvergenceWarning, FitResult
 
@@ -59,7 +59,10 @@ class SkeletonFitResult:
     """Assembled model and local results keyed by sorted zero-based vertex IDs.
 
     Each face result contains local barycentric coordinates for that face's
-    observations. Previously fitted boundary controls remain exactly fixed.
+    observations. On a simploid, factors in which the face is a single vertex
+    have no local coordinates, so the columns are the face's vertices in the
+    other factors, in key order. Previously fitted boundary controls remain
+    exactly fixed.
     """
 
     model: BezierModel
@@ -81,17 +84,16 @@ class SkeletonFitResult:
         return self
 
 
-def _simplex(space: BezierSpace) -> tuple[int, int]:
+def _cell(space: BezierSpace) -> Cell:
+    """The cell of a single simplex or simploid whose factors all have positive degree."""
     if not isinstance(space, BezierSpace):
         raise TypeError("space must be a BezierSpace.")
-    if space.n_cells != 1 or len(space.cells[0].dimensions) > 1:
-        raise ValueError("point-cloud fitting requires a single simplex.")
+    if space.n_cells != 1:
+        raise ValueError("point-cloud fitting requires a single simplex or simploid.")
     cell = space.cells[0]
-    dimension = cell.dimensions[0] if cell.dimensions else 0
-    degree = cell.degree[0] if cell.degree else 0
-    if dimension and degree < 1:
-        raise ValueError("a positive-dimensional simplex requires degree >= 1.")
-    return dimension + 1, degree
+    if any(d < 1 for d in cell.degree):
+        raise ValueError("every positive-dimensional factor requires degree >= 1.")
+    return cell
 
 
 def _values(values: Any) -> torch.Tensor:
@@ -117,38 +119,58 @@ def _project(t: torch.Tensor) -> torch.Tensor:
     return (t - threshold).clamp_min(0)
 
 
+def _project_factors(t: torch.Tensor, dimensions: tuple[int, ...]) -> torch.Tensor:
+    """Euclidean projection onto a product of probability simplices, one per factor block."""
+    if len(dimensions) == 1:
+        return _project(t)
+    return torch.cat([_project(t[:, block.start : block.stop]) for block in _blocks(dimensions)], 1)
+
+
+def _barycenters(n: int, dimensions: tuple[int, ...]) -> torch.Tensor:
+    """``n`` copies of the barycenter of every factor."""
+    return torch.tensor([1 / (a + 1) for a in dimensions for _ in range(a + 1)], dtype=torch.float64).repeat(n, 1)
+
+
 def _initial(space: BezierSpace, y: torch.Tensor, initial: BezierModel | None) -> BezierModel:
-    width, degree = _simplex(space)
+    cell = _cell(space)
     if initial is not None:
         if not isinstance(initial, BezierModel) or not initial.space.compatible(space) or initial.n_outputs != y.shape[1]:
             raise ValueError("initial must be a compatible BezierModel with the observed output dimension.")
         return BezierModel(space, initial.coefficients.detach().to(device="cpu").to(dtype=torch.float64))
-    if width == 1:
+    if not cell.dimensions:
         return BezierModel(space, _finite_mean(y, 0, keepdim=True))
-    if y.shape[1] != width:
+    if len(cell.dimensions) > 1:
+        raise ValueError("automatic initialization requires a single simplex; supply initial for a simploid.")
+    if y.shape[1] != cell.width:
         raise ValueError("automatic initialization requires one output per vertex; supply initial for other embeddings.")
     vertices = y[y.argmin(0)]
-    powers = torch.tensor([a[0] for a in _indices(space.cells[0].dimensions, (degree,))], dtype=torch.float64)
-    return BezierModel(space, (powers / degree) @ vertices)
+    powers = torch.tensor([a[0] for a in _indices(cell.dimensions, cell.degree)], dtype=torch.float64)
+    return BezierModel(space, (powers / cell.degree[0]) @ vertices)
 
 
 class _Polynomial:
-    """Analytic Bernstein derivatives, well-defined even at zero coordinates."""
+    """Analytic Bernstein derivatives, well-defined even at zero coordinates.
+
+    A product basis function is a product of multinomial coefficients times a monomial in the concatenated
+    coordinates, so ``powers`` holds the concatenated multi-indices and ``degrees`` the degree of each factor.
+    """
 
     def __init__(self, model: BezierModel):
-        width, degree = _simplex(model.space)
+        cell = _cell(model.space)
         self.coefficients = model.coefficients.detach()
-        self.powers = torch.tensor([a[0] for a in _indices((width - 1,), (degree,))], dtype=torch.long)
-        self.degree = degree
+        self.dimensions, self.degrees = cell.dimensions, cell.degree
+        indices = _indices(cell.dimensions, cell.degree)
+        self.powers = torch.tensor([sum(a, ()) for a in indices], dtype=torch.long).reshape(len(indices), cell.width)
+        self.high = max(cell.degree, default=0) >= 16
         self.factors = torch.tensor(
             [1.0] * len(self.powers)
-            if degree >= 16
-            else [math.factorial(degree) / math.prod(math.factorial(int(v)) for v in a) for a in self.powers],
+            if self.high
+            else [math.prod(_multinomial(d, factor) for d, factor in zip(cell.degree, a, strict=True)) for a in indices],
             dtype=torch.float64,
         )
 
     def derivative(self, t: torch.Tensor, axes: tuple[int, ...] = ()) -> torch.Tensor:
-        if self.degree >= 16:
+        if self.high:
             return self._high_derivative(t, axes)
         powers = self.powers.clone()
         factors = self.factors.clone()
@@ -159,18 +181,21 @@ class _Polynomial:
         return basis @ self.coefficients
 
     def _high_derivative(self, t: torch.Tensor, axes: tuple[int, ...]) -> torch.Tensor:
-        degree = self.degree - len(axes)
-        if degree < 0:
-            return torch.zeros((len(t), self.coefficients.shape[1]), dtype=t.dtype)
+        # The derivative of a product basis function is the product of the derivatives of its factors.
         powers = self.powers.clone()
         for axis in axes:
             powers[:, axis] -= 1
-        positions = {alpha: i + 1 for i, alpha in enumerate(_simplex_indices(t.shape[1], degree))}
-        indices = torch.tensor([positions.get(tuple(row), 0) for row in powers.tolist()])
-        basis = _recursive_basis(t, degree)
-        padded = torch.cat((torch.zeros_like(basis[:, :1]), basis), 1)
-        multiplier = math.prod(range(degree + 1, self.degree + 1))
-        return (padded[:, indices] * multiplier) @ self.coefficients
+        derivative = torch.ones((len(t), len(powers)), dtype=t.dtype)
+        for block, full in zip(_blocks(self.dimensions), self.degrees, strict=True):
+            degree = full - sum(axis in block for axis in axes)
+            if degree < 0:
+                return torch.zeros((len(t), self.coefficients.shape[1]), dtype=t.dtype)
+            positions = {alpha: i + 1 for i, alpha in enumerate(_simplex_indices(len(block), degree))}
+            indices = torch.tensor([positions.get(tuple(row), 0) for row in powers[:, block.start : block.stop].tolist()])
+            basis = _recursive_basis(t[:, block.start : block.stop], degree)
+            padded = torch.cat((torch.zeros_like(basis[:, :1]), basis), 1)
+            derivative = derivative * (padded[:, indices] * math.prod(range(degree + 1, full + 1)))
+        return derivative @ self.coefficients
 
     def geometry(self, t: torch.Tensor, y: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         residual = self.derivative(t) - y
@@ -193,7 +218,7 @@ def _line_search(poly: _Polynomial, t: torch.Tensor, direction: torch.Tensor, y:
     pending = torch.ones(len(t), dtype=torch.bool)
     step = 1.0
     for _ in range(25):
-        candidate = _project(t + step * direction)
+        candidate = _project_factors(t + step * direction, poly.dimensions)
         candidate_error = (poly.derivative(candidate) - y).square().sum(1)
         improved = pending & torch.isfinite(candidate_error) & (candidate_error < error)
         best[improved], error[improved] = candidate[improved], candidate_error[improved]
@@ -208,14 +233,13 @@ def _parameters(
     model: BezierModel, y: torch.Tensor, t: torch.Tensor, max_iter: int, tolerance: float
 ) -> tuple[torch.Tensor, bool]:
     poly = _Polynomial(model)
-    width = t.shape[1]
-    # Eliminate the final barycentric coordinate, enforcing sum(t) == 1.
-    tangent = torch.cat((torch.eye(width - 1), -torch.ones(1, width - 1))).to(torch.float64)
+    # Eliminate the final barycentric coordinate of each factor, enforcing a unit sum per factor.
+    tangent = torch.block_diag(*(torch.cat((torch.eye(a), -torch.ones(1, a))).to(torch.float64) for a in poly.dimensions))
     for _ in range(max_iter):
         _, gradient, hessian = poly.geometry(t, y)
         if not torch.isfinite(gradient).all() or not torch.isfinite(hessian).all():
             raise ArithmeticError("Non-finite parameter derivatives.")
-        if (_project(t - gradient) - t).abs().max().item() <= tolerance:
+        if (_project_factors(t - gradient, poly.dimensions) - t).abs().max().item() <= tolerance:
             return t, True
         reduced = tangent.T @ hessian @ tangent
         rhs = gradient @ tangent
@@ -227,7 +251,7 @@ def _parameters(
         use_newton = (poly.derivative(newton) - y).square().sum(1) < (poly.derivative(descent) - y).square().sum(1)
         t = torch.where(use_newton[:, None], newton, descent)
     _, gradient, _ = poly.geometry(t, y)
-    return t, bool((_project(t - gradient) - t).abs().max() <= tolerance)
+    return t, bool((_project_factors(t - gradient, poly.dimensions) - t).abs().max() <= tolerance)
 
 
 def _settings(max_iter: int, parameter_max_iter: int, tolerance: float, parameter_tolerance: float) -> None:
@@ -244,7 +268,8 @@ def _parameter_stationary(model: BezierModel, y: torch.Tensor, t: torch.Tensor, 
     poly = _Polynomial(model)
     residual = poly.derivative(t) - y
     gradient = torch.stack([(residual * poly.derivative(t, (i,))).sum(1) for i in range(t.shape[1])], 1)
-    return bool(torch.isfinite(gradient).all() and (_project(t - gradient) - t).abs().max() <= tolerance)
+    projected = _project_factors(t - gradient, poly.dimensions)
+    return bool(torch.isfinite(gradient).all() and (projected - t).abs().max() <= tolerance)
 
 
 def _apply_fixed(model: BezierModel, y: torch.Tensor, fixed: FixedControls | None) -> None:
@@ -257,7 +282,7 @@ def _apply_fixed(model: BezierModel, y: torch.Tensor, fixed: FixedControls | Non
     from torch_bsf.core import QuadraticPenalty
 
     space = model.space
-    coordinates = torch.full((len(y), space.width), 1 / max(space.width, 1), dtype=torch.float64)
+    coordinates = _barycenters(len(y), space.cells[0].dimensions)
     problem = LeastSquaresProblem(space, Samples(coordinates, y), QuadraticPenalty(), fixed)
     with torch.no_grad():
         model.coefficients[~problem.free] = problem.fixed[~problem.free]
@@ -286,8 +311,13 @@ def fit_point_cloud(
     vertex and the affine grid between those vertices, as in the paper. It
     assumes minimization objectives and one output per vertex. Supply an
     ``initial`` model for arbitrary embeddings or a different orientation.
-    No input model or observation is modified. Only single simplices are
-    supported. Exhausting either iteration budget does not certify convergence.
+    No input model or observation is modified. Exhausting either iteration
+    budget does not certify convergence.
+
+    A simploid, a product of simplices, is fitted the same way: each row's
+    coordinates stay on every factor's simplex, and Newton steps keep each
+    factor's coordinate sum. Automatic initialization needs a single simplex,
+    so supply ``initial`` for a simploid. Assembled spaces are not supported.
 
     ``tolerance`` bounds absolute change in root mean squared distance;
     ``parameter_tolerance`` bounds the projected gradient residual. The
@@ -298,11 +328,12 @@ def fit_point_cloud(
     Parameters
     ----------
     space : BezierSpace
-        Single-simplex space specifying the dimension and polynomial degree.
+        Single simplex or simploid specifying the dimensions and polynomial degrees.
     values : array-like
         Finite observations of shape ``(n_samples, n_outputs)`` in the original output units.
     initial : BezierModel, optional
-        Initial model with compatible space and output dimension; otherwise infer minimization vertices.
+        Initial model with compatible space and output dimension; otherwise infer minimization
+        vertices, which requires a single simplex.
     fixed : FixedControls, optional
         Coefficient rows kept exact throughout fitting, including initialization.
     max_iter : int, optional
@@ -318,13 +349,40 @@ def fit_point_cloud(
     -------
     PointCloudFitResult
         Model, inferred barycentric coordinates, objective history and convergence evidence.
+
+    Raises
+    ------
+    TypeError
+        If ``space`` is not a :class:`~torch_bsf.BezierSpace` or ``fixed`` is not
+        :class:`~torch_bsf.FixedControls`.
+    ValueError
+        If ``space`` has several cells or a positive-dimensional factor of degree
+        zero, ``values`` is not a finite two-dimensional array of the required
+        shape, a setting is invalid, ``initial`` is incompatible, or automatic
+        initialization is impossible. Non-numeric ``values`` raise the error of
+        :func:`torch.as_tensor`.
+
+    Examples
+    --------
+    Recover a bilinear map of a square, a product of two segments, from values
+    alone.
+
+    >>> import torch
+    >>> from torch_bsf import BezierModel, BezierSpace, fit_point_cloud
+    >>> from torch_bsf.sampling import grid
+    >>> space = BezierSpace.simploid((1, 1), degree=1)
+    >>> truth = BezierModel(space, torch.tensor([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]]))
+    >>> values = truth(grid(space, 4)).detach()
+    >>> result = fit_point_cloud(space, values, initial=truth).require_success()
+    >>> result.objective_history[-1] < 1e-12
+    True
     """
-    width, _ = _simplex(space)
+    cell = _cell(space)
     _settings(max_iter, parameter_max_iter, tolerance, parameter_tolerance)
     y = _values(values)
     model = _initial(space, y, initial)
     _apply_fixed(model, y, fixed)
-    t = torch.full((len(y), space.width), 1 / width, dtype=torch.float64)
+    t = _barycenters(len(y), cell.dimensions)
     control_result = None
     initial_residual = model(t).detach() - y
     history = [float(initial_residual.square().sum(1).mean())]
@@ -332,12 +390,12 @@ def fit_point_cloud(
         message = "Initial point-cloud objective overflowed."
         warnings.warn(message, ConvergenceWarning, stacklevel=2)
         return PointCloudFitResult(model, t, tuple(history), False, "numerical_failure", message, 0, False, None)
-    if width == 1 and (initial_residual == 0).all():
+    if not cell.dimensions and (initial_residual == 0).all():
         return PointCloudFitResult(model, t, tuple(history), True, "converged", "Exact initial fit.", 0, True, None)
     success, status, message, parameter_converged = False, "iteration_limit", "Alternating iteration limit reached.", False
     for _ in range(max_iter):
         try:
-            if width > 1:
+            if cell.dimensions:
                 # Solve the inner problem more tightly than the final-model check:
                 # the subsequent control update changes the parameter gradient.
                 t, parameter_converged = _parameters(model, y, t, parameter_max_iter, parameter_tolerance * 0.1)
@@ -379,6 +437,24 @@ def _nondominated(y: torch.Tensor, face: tuple[int, ...]) -> torch.Tensor:
     return y[keep]
 
 
+def _lift(
+    index: tuple[tuple[int, ...], ...], parts: list[list[int]], dimensions: Sequence[int], degree: Sequence[int]
+) -> tuple[tuple[int, ...], ...]:
+    """The global multi-index of a control of a face, given its multi-index on the face's local space.
+
+    ``parts`` holds the face's vertex positions within each factor. ``index`` has one entry per factor with more
+    than one vertex; a factor at one vertex puts its whole degree on that vertex.
+    """
+    local = iter(index)
+    lifted = []
+    for part, dimension, d in zip(parts, dimensions, degree, strict=True):
+        factor = [0] * (dimension + 1)
+        for v, power in zip(part, next(local) if len(part) > 1 else (d,), strict=True):
+            factor[v] = power
+        lifted.append(tuple(factor))
+    return tuple(lifted)
+
+
 def fit_skeleton(
     space: BezierSpace,
     values: Any,
@@ -392,10 +468,11 @@ def fit_skeleton(
 ) -> SkeletonFitResult:
     """Fit faces inductively while fixing their boundaries (paper Algorithm 3).
 
-    Faces are sorted tuples of zero-based vertex IDs. Only support sizes up
-    to ``min(degree, number_of_vertices)`` are needed. By default each face's
-    samples are the nondominated points for its objective subset (all outputs
-    are minimization objectives). This requires one output per vertex.
+    On a simplex, faces are sorted tuples of zero-based vertex IDs, and only
+    support sizes up to ``min(degree, number_of_vertices)`` are needed. By
+    default each face's samples are the nondominated points for its objective
+    subset (all outputs are minimization objectives). This requires a single
+    simplex and one output per vertex.
     ``face_values`` instead supplies every required face's value-only samples,
     allowing arbitrary embeddings with ``initial``. Full original output
     vectors must be retained on every face. No face memberships or coordinates
@@ -406,10 +483,16 @@ def fit_skeleton(
     stopping evidence; failure on a boundary stops assembly and returns the
     finite partial model with ``success=False``.
 
+    A face of a simploid, a product of simplices, is a product of one face per
+    factor, keyed by the sorted global coordinate indices of its vertices; the
+    faces with at most ``degree`` vertices in every factor are needed. Each face
+    is fitted on the product of its factors' faces. A simploid requires both
+    ``face_values`` and ``initial``.
+
     Parameters
     ----------
     space : BezierSpace
-        Single-simplex space specifying the dimension and polynomial degree.
+        Single simplex or simploid specifying the dimensions and polynomial degrees.
     values : array-like
         Finite observations of shape ``(n_samples, n_outputs)`` in the original output units.
     face_values : mapping, optional
@@ -429,37 +512,64 @@ def fit_skeleton(
     -------
     SkeletonFitResult
         Assembled model, per-face results and an explicit success or partial-failure state.
+
+    Raises
+    ------
+    TypeError
+        If ``space`` is not a :class:`~torch_bsf.BezierSpace`.
+    ValueError
+        If ``space`` has several cells or a positive-dimensional factor of degree
+        zero, ``values`` or a ``face_values`` entry is not a finite
+        two-dimensional array of the required shape, the ``face_values`` keys
+        are not the required faces, a setting is invalid, ``initial`` is
+        incompatible, or automatic initialization or face extraction is
+        impossible. Non-numeric arrays raise the error of :func:`torch.as_tensor`.
+
+    Examples
+    --------
+    Fit a bilinear square from values at its four corners.
+
+    >>> import torch
+    >>> from torch_bsf import BezierModel, BezierSpace, fit_skeleton
+    >>> space = BezierSpace.simploid((1, 1), degree=1)
+    >>> truth = BezierModel(space, torch.tensor([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [1.0, 1.0]]))
+    >>> corners = {(0, 2): [[0.0, 0.0]], (0, 3): [[1.0, 0.0]], (1, 2): [[0.0, 1.0]], (1, 3): [[1.0, 1.0]]}
+    >>> values = torch.tensor([v[0] for v in corners.values()])
+    >>> result = fit_skeleton(space, values, face_values=corners, initial=truth).require_success()
+    >>> sorted(result.faces), torch.equal(result.model.coefficients, truth.coefficients.double())
+    ([(0, 2), (0, 3), (1, 2), (1, 3)], True)
     """
-    width, degree = _simplex(space)
+    cell = _cell(space)
     _settings(max_iter, parameter_max_iter, tolerance, parameter_tolerance)
     y = _values(values)
     model = _initial(space, y, initial)
-    required = _faces_with_interior_controls(width, degree)
-    if width == 1:
-        required = [(0,)]
-    if face_values is None and width > 1 and y.shape[1] != width:
-        raise ValueError("automatic face extraction requires one output per vertex; supply face_values.")
+    required = _faces_with_interior_controls(cell.dimensions, cell.degree) if cell.dimensions else [(0,)]
+    automatic = len(cell.dimensions) == 1 and y.shape[1] == cell.width
+    if face_values is None and cell.dimensions and not automatic:
+        raise ValueError("automatic face extraction requires a single simplex and one output per vertex; supply face_values.")
     if face_values is not None and set(face_values) != set(required):
         raise ValueError(f"face_values must contain exactly these sorted vertex tuples: {required}.")
     data = {
-        face: _values(face_values[face]) if face_values is not None else y if width == 1 else _nondominated(y, face)
+        face: _values(face_values[face]) if face_values is not None else _nondominated(y, face) if cell.dimensions else y
         for face in required
     }
     if any(v.shape[1] != y.shape[1] for v in data.values()):
         raise ValueError("every face must retain the full observed output dimension.")
-    global_indices = _indices(space.cells[0].dimensions, space.cells[0].degree)
+    positions = _positions(cell.dimensions, cell.degree)
+    control_faces = _control_faces(cell.dimensions, cell.degree)
+    blocks = _blocks(cell.dimensions)
     faces: dict[tuple[int, ...], PointCloudFitResult] = {}
     for face in required:
-        local_space = BezierSpace.simplex(len(face) - 1, degree=degree)
-        local_indices = _indices(local_space.cells[0].dimensions, local_space.cells[0].degree)
+        # Each factor's face as vertex positions within that factor; factors at one vertex leave the local space.
+        parts = [[i - block.start for i in face if i in block] for block in blocks]
+        wide = [j for j, part in enumerate(parts) if len(part) > 1]
+        local_space = BezierSpace.simploid([len(parts[j]) - 1 for j in wide], degree=[cell.degree[j] for j in wide])
         rows = []
         boundary = {}
-        for k, index in enumerate(local_indices):
-            powers = index[0] if index else (degree,)
-            full = tuple(powers[face.index(i)] if i in face else 0 for i in range(width))
-            row = global_indices.index((full,)) if width > 1 else 0
+        for k, index in enumerate(_indices(local_space.cells[0].dimensions, local_space.cells[0].degree)):
+            row = positions[_lift(index, parts, cell.dimensions, cell.degree)]
             rows.append(row)
-            if len(face) > 1 and any(p == 0 for p in powers):
+            if wide and control_faces[row] != face:
                 boundary[k] = model.coefficients[row].detach()
         result = fit_point_cloud(
             local_space,

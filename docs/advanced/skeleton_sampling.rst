@@ -1,14 +1,15 @@
 Optimal skeleton sampling
 =========================
 
-When responses can be measured at chosen parameters, a simplex can be fitted
-face by face: vertices first, then edges, then larger faces, each time
+When responses can be measured at chosen parameters, a simplex, or a product
+of simplices, can be fitted face by face: vertices first, then edges, then larger faces, each time
 estimating only the controls interior to the face from observations on that
 face. This is the inductive skeleton fitting of :cite:t:`tanaka2020asymptotic`.
 Its accuracy depends on how a budget of :math:`N` observations is split among
 the skeletons. This chapter gives the asymptotic risk for every dimension and
 degree, the split that minimizes it, and the functions that compute, sample and
-fit with it.
+fit with it. The same functions accept simploids; see
+:ref:`skeleton-sampling-simploids`.
 
 Sample, fit and compare
 -----------------------
@@ -221,6 +222,52 @@ degree shown on curves (:math:`M = 2`), and on triangles at degrees five and six
   :math:`M = 29` at degree five, :math:`M = 39` at degree six,
   :math:`M = 49` at degree seven and :math:`M = 60` at degree eight.
 
+.. _skeleton-sampling-simploids:
+
+Products of simplices
+---------------------
+
+The same functions accept a single simploid, such as the prism
+:math:`\Delta^2 \times \Delta^1` of :doc:`simploidal`. A face of a product
+is a product of one face per factor, and its dimension is the sum of the
+factor dimensions. The :math:`m`-skeleton consists of the faces of dimension
+:math:`m`, so ``ratio`` has one entry per dimension from 0 to the dimension
+of the product. Face keys are the sorted global coordinate indices of the
+face's vertices, which list the vertices of every factor. On the prism,
+coordinates 0 to 2 belong to the triangle and 3 to 4 to the interval, so
+``(0, 3)`` is a corner and ``(0, 1, 3)`` a triangle edge at one end.
+
+.. testcode:: skeleton
+
+    prism = BezierSpace.simploid((2, 1), degree=(2, 1))
+    print([round(a, 4) for a in skeleton_risk_coefficients(prism)])
+    print([round(r, 3) for r in optimal_skeleton_ratio(prism)])
+
+    truth = BezierModel(prism, torch.linspace(-1, 1, prism.n_controls, dtype=torch.float64)[:, None])
+    points = sample_skeleton(prism, 300, seed=0)
+    result = fit_skeleton_regression(prism, Samples(points, truth(points).detach() + noise)).require_success()
+    print(list(result.faces)[:2], list(result.faces)[6:8])
+
+.. testoutput:: skeleton
+
+    [0.5, 4.0, 0.0, 0.0]
+    [0.261, 0.739, 0.0, 0.0]
+    [(0, 3), (0, 4)] [(0, 1, 3), (0, 1, 4)]
+
+A face has interior controls when no factor has more vertices than its
+degree. Faces of one dimension can differ in shape. The edges of the prism
+are six triangle edges at the two ends of the interval and three intervals at
+the triangle vertices. With degree one along the interval, only the triangle
+edges have interior controls.
+:func:`~torch_bsf.sampling.sample_skeleton` therefore splits each skeleton's
+rows equally among its faces with interior controls. It uses all faces of a
+skeleton only when none has interior controls, which happens only when
+``ratio`` asks for such a skeleton explicitly. The risk coefficients assume
+the same split, a uniform distribution on each factor of a face, and error
+integrated uniformly over the product. Here
+:math:`(\sum_m \sqrt{a_m})^2 \approx 7.33` is below the 12 controls of the
+prism, so the optimal skeleton design beats all-at-once least squares.
+
 Notes on the original derivation
 --------------------------------
 
@@ -244,12 +291,16 @@ The coefficients describe the limit as every active face receives more rows;
 they are not finite-sample error bounds. With few rows per face, a design can
 be rank deficient or have large inverse-Gram moments. The formulas
 assume the uniform distribution on each face, an equal split among faces of
-the same size, and risk averaged uniformly over the simplex; a different
-weighting of the error changes them. Bernstein Gram matrices become
+the same size, and risk averaged uniformly over the simplex or simploid; a different
+weighting of the error changes them. On a simploid, the equal split among the
+faces of one dimension with interior controls is a convention, not an
+optimum: faces of different shapes can deserve different shares. Bernstein Gram matrices become
 ill-conditioned as the degree grows, and
 :func:`~torch_bsf.sampling.skeleton_risk_coefficients` raises ``ValueError``
 once the float64 result can no longer be guaranteed to six significant digits
 (above degree 14 for :math:`M = 2`, 12 for :math:`M = 3`, 11 for
 :math:`M = 4`, 9 for :math:`M = 5` and 8 for :math:`M = 6`). In that case, pass
-``ratio`` to :func:`~torch_bsf.sampling.sample_skeleton` explicitly. Only a
-single simplex is supported, not products or assembled spaces.
+``ratio`` to :func:`~torch_bsf.sampling.sample_skeleton` explicitly. A single
+simplex or simploid is supported, not assembled spaces. The closed forms and
+proofs in :doc:`skeleton_risk_theory` concern simplices only; for a simploid,
+only the numerical coefficients are available.

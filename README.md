@@ -32,7 +32,7 @@ geometries use the same `BezierSpace`, `BezierModel` and regression API.
 ## Features
 
 - **Regression and point cloud fitting:** fit known parameter-response pairs,
-  or estimate unknown coordinates for points on a single Bézier simplex.
+  or estimate unknown coordinates for points on a single Bézier simplex or simploid.
 - **Controlled geometry:** use simplex, product and joined-cell domains, with
   shared control points, exact fixed controls and quadratic regularization.
 - **Interpolation and optimization:** construct shape-preserving interpolants
@@ -117,7 +117,7 @@ Choose a different entry point when your inputs differ:
 | Your inputs | Entry point | Guide |
 | --- | --- | --- |
 | Known parameter coordinates and measured responses | `fit(space, Samples(...))` | [Regression](https://opthub-org.github.io/pytorch-bsf/master/quickstart.html) |
-| Points with unknown parameter coordinates on a single simplex | `fit_point_cloud(space, values)` | [Point cloud fitting](https://opthub-org.github.io/pytorch-bsf/master/advanced/point_cloud.html) |
+| Points with unknown parameter coordinates on a single simplex or simploid | `fit_point_cloud(space, values)` | [Point cloud fitting](https://opthub-org.github.io/pytorch-bsf/master/advanced/point_cloud.html) |
 | An initial model and a differentiable cost function | `minimize(initial_model, loss, ...)` | [Objective minimization](https://opthub-org.github.io/pytorch-bsf/master/advanced/objective_minimization.html) |
 
 ### Command line

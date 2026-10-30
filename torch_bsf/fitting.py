@@ -7,7 +7,12 @@ from typing import TypeVar
 import torch
 
 from torch_bsf._problem import LeastSquaresProblem
-from torch_bsf._skeleton import _control_faces, _faces_with_interior_controls, _interior_and_boundary, _skeleton_shape
+from torch_bsf._skeleton import (
+    _control_faces,
+    _faces_with_interior_controls,
+    _interior_and_boundary,
+    _skeleton_cell,
+)
 from torch_bsf.core import BezierModel, BezierSpace, FixedControls, QuadraticPenalty, Samples
 from torch_bsf.results import FitDiagnostics, FitResult, MatrixDiagnostics, SkeletonRegressionResult
 from torch_bsf.solvers import DenseLeastSquares, LeastSquaresSolver, SparseLeastSquares
@@ -294,10 +299,10 @@ def fit_skeleton_regression(
     *,
     solver: LeastSquaresSolver = DenseLeastSquares(),
 ) -> SkeletonRegressionResult:
-    """Fit a simplex face by face from observations at known parameters.
+    """Fit a simplex or simploid face by face from observations at known parameters.
 
     This is the inductive skeleton fitting analyzed by Tanaka et al. (AAAI 2020).
-    Vertices are fitted first, then edges, then larger faces. On each face,
+    Vertices are fitted first, then edges, then faces of higher dimension. On each face,
     ordinary least squares on the observations lying on that face estimates
     the controls interior to it, with the controls on its boundary fixed at
     their estimates. Contrast :func:`fit`, which uses every observation for
@@ -305,19 +310,21 @@ def fit_skeleton_regression(
     infers unknown parameters.
 
     A row lies on the face spanned by its nonzero coordinates; zeros must be
-    exact. Draw rows with :func:`~torch_bsf.sampling.sample_skeleton` and the
+    exact. A face of a simploid is a product of one face per simplex factor and
+    is keyed by the sorted global coordinate indices of its vertices. Draw rows
+    with :func:`~torch_bsf.sampling.sample_skeleton` and the
     :func:`~torch_bsf.sampling.optimal_skeleton_ratio` to minimize the
     asymptotic risk given by :func:`~torch_bsf.sampling.skeleton_risk_coefficients`.
 
     Parameters
     ----------
     space
-        A single simplex of positive dimension and degree.
+        A single simplex or simploid of positive dimension and degree in every factor.
     samples
         Observations at known parameters. Every face with at most ``degree``
-        vertices needs at least one row of positive weight. Rows on larger
-        faces, which have no interior controls, are ignored and counted in the
-        result's message. Weights apply within each face.
+        vertices in each factor needs at least one row of positive weight. Rows
+        on other faces, which have no interior controls, are ignored and
+        counted in the result's message. Weights apply within each face.
     solver
         Least-squares configuration used for every face.
 
@@ -337,8 +344,9 @@ def fit_skeleton_regression(
     TypeError
         If ``space`` or ``samples`` has the wrong type.
     ValueError
-        If ``space`` is not a single simplex of positive dimension and degree,
-        or a face with interior controls has no row of positive weight.
+        If ``space`` is not a single simplex or simploid of positive dimension
+        and degree in every factor, or a face with interior controls has no row
+        of positive weight.
 
     Examples
     --------
@@ -352,15 +360,22 @@ def fit_skeleton_regression(
     >>> result = fit_skeleton_regression(space, Samples(points, (t[:, 1] ** 2)[:, None]))
     >>> sorted(result.faces), torch.allclose(result.model(t), (t[:, 1] ** 2)[:, None])
     ([(0,), (0, 1), (1,)], True)
+
+    On a square of degree one, only the vertices have interior controls; each
+    vertex key lists one coordinate index of each factor.
+
+    >>> square = BezierSpace.simploid((1, 1), degree=1)
+    >>> points = sample_skeleton(square, 8, seed=0)
+    >>> result = fit_skeleton_regression(square, Samples(points, points.parameters[:, [1]] * points.parameters[:, [3]]))
+    >>> sorted(result.faces)
+    [(0, 2), (0, 3), (1, 2), (1, 3)]
     """
-    width, degree = _skeleton_shape(space)
+    cell = _skeleton_cell(space)
     if not isinstance(samples, Samples):
         raise TypeError("samples must be Samples.")
     space.validate(samples.points)
     support = samples.points.parameters.cpu() != 0
-    ignored = int((support.sum(1) > degree).sum())
-    ignored_message = f" Ignored {ignored} rows on faces with more than degree={degree} vertices." if ignored else ""
-    faces = _faces_with_interior_controls(width, degree)
+    faces = _faces_with_interior_controls(cell.dimensions, cell.degree)
     # Group rows by their distinct supports in one vectorized pass; row order within a face is kept.
     supports, inverse = torch.unique(support, dim=0, return_inverse=True)
     face_of_support = {tuple(row.nonzero().flatten().tolist()): k for k, row in enumerate(supports)}
@@ -368,10 +383,14 @@ def fit_skeleton_regression(
     rows = {
         face: (inverse == face_of_support[face]).nonzero().flatten() if face in face_of_support else empty for face in faces
     }
+    # Rows on faces without interior controls belong to no face.
+    ignored = len(support) - sum(len(r) for r in rows.values())
+    reason = f"more than degree={cell.degree[0]} vertices" if len(cell.dimensions) == 1 else "no interior controls"
+    ignored_message = f" Ignored {ignored} rows on faces with {reason}." if ignored else ""
     missing = [face for face in faces if not (samples.weights[rows[face]] > 0).any()]
     if missing:
         raise ValueError(f"faces without rows of positive weight: {missing}.")
-    control_faces = _control_faces(width, degree)
+    control_faces = _control_faces(cell.dimensions, cell.degree)
     coefficients = torch.zeros(space.n_controls, samples.values.shape[1], dtype=torch.float64)
     results: dict[tuple[int, ...], FitResult] = {}
     for face in faces:

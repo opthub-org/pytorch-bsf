@@ -6,7 +6,8 @@ surface and its domain coordinate is unknown. The existing ``fit`` solves
 a different problem: regression from known parameter/value pairs.
 
 The value-only methods implement Algorithms 2 and 3 of
-:cite:t:`kobayashi2019bezier`. Both currently support a single simplex.
+:cite:t:`kobayashi2019bezier`. Both support a single simplex or simploid,
+but not assembled spaces; see :ref:`point-cloud-simploids`.
 ``fit_point_cloud`` returns a ``PointCloudFitResult``; ``fit_skeleton``
 returns a ``SkeletonFitResult``. Each result holds an ordinary ``BezierModel``
 in ``result.model`` for prediction, plotting and serialization. Inspect
@@ -25,7 +26,7 @@ for every observation. ``fit_point_cloud`` alternates two steps:
    the existing float64 SVD least-squares implementation.
 
 For example, fit a two-objective Schaffer front without providing its
-parameter coordinates to the fitting routine. The three examples on this
+parameter coordinates to the fitting routine. The examples on this
 page share the named ``point-cloud-demo`` session: run them in page order;
 the later examples reuse ``torch``, ``space`` and ``values`` from this one.
 
@@ -135,10 +136,54 @@ observations is fitted to their mean. Each face result contains coordinates
 local to that face, in its supplied or extracted sample order. A failed
 face stops assembly and leaves an explicitly unsuccessful partial result.
 
+.. _point-cloud-simploids:
+
+Products of simplices
+---------------------
+
+A simploid, a product of simplices, is fitted the same way. Every row's
+coordinates stay on each factor's simplex, and Newton steps keep each
+factor's coordinate sum. Automatic initialization and automatic face
+extraction rely on the Pareto-front structure of a single simplex, so a
+simploid needs an ``initial`` model for ``fit_point_cloud``, and both
+``initial`` and ``face_values`` for ``fit_skeleton``. Face keys are the sorted
+global coordinate indices of a face's vertices, as in
+:func:`~torch_bsf.fitting.fit_skeleton_regression`. The required faces are
+those in which no factor has more vertices than its degree, and each face is
+fitted on the product of its factors' faces. A factor in which the face is a
+single vertex contributes no local coordinates, so a face's ``parameters``
+hold the face's vertices in the other factors, in key order.
+
+.. testcode:: point-cloud-demo
+
+   from torch_bsf import BezierModel
+   from torch_bsf.sampling import sample
+
+   # A bilinear surface over the square, with one control per corner.
+   square = BezierSpace.simploid((1, 1), degree=1)
+   corners = torch.tensor(
+       [[0.0, 0.0, 0.0], [1.0, 0.0, 0.2], [0.0, 1.0, 0.1], [1.0, 1.0, 1.0]], dtype=torch.float64
+   )
+   surface = BezierModel(square, corners)
+   observed = surface(sample(square, 40, seed=0)).detach()
+
+   square_fit = fit_point_cloud(square, observed, initial=surface).require_success()
+   assert square_fit.objective_history[-1] < 1e-12
+   assert square_fit.parameters.shape == (40, 4)
+
+   corner_values = {(0, 2): corners[:1], (0, 3): corners[1:2], (1, 2): corners[2:3], (1, 3): corners[3:]}
+   square_skeleton = fit_skeleton(square, corners, face_values=corner_values, initial=surface)
+   print(sorted(square_skeleton.require_success().faces))
+
+.. testoutput:: point-cloud-demo
+
+   [(0, 2), (0, 3), (1, 2), (1, 3)]
+
 Numerical interpretation
 ------------------------
 
-The parameter updates enforce nonnegative coordinates summing to one.
+The parameter updates enforce nonnegative coordinates summing to one in
+every simplex factor.
 Projection, backtracking and a gradient fallback safeguard Newton updates
 at boundaries and singular or indefinite Hessians. These safeguards extend
 the paper's plain Newton description. The algorithm is a local nonlinear
