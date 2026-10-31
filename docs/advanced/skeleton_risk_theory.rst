@@ -395,6 +395,63 @@ All sums over shapes below use :math:`r_i\in\mathcal R_i`.
    :math:`a^{(i)}_r=f_{i,r}^2\operatorname{tr}(H_{I_i}^{-1}E_{I_i}^\top G_iE_{I_i})`.
    This proves :eq:`skeleton-product-face-trace`.
 
+The same propagation identity has a useful polynomial formulation. It
+shows how a closed form for a simplex error polynomial gives one on a
+product, before computing any Gram trace.
+
+.. prf:remark:: Tensor products of error polynomials
+   :label: rem-skeleton-product-polynomials
+
+   For source-face controls :math:`c_i\in\mathbb R^{T_{I_i}}`, let
+   :math:`p^{(i)}_{c_i}` be the factor's error polynomial. On the product
+   face :math:`F=\prod_i I_i`, put :math:`c=\bigotimes_i c_i`. Then
+
+   .. math::
+      :label: skeleton-product-polynomial
+
+      p_{F,c}(t_1,\ldots,t_k)=\prod_i p^{(i)}_{c_i}(t_i).
+
+   Here :math:`p_{F,c}=\sum_\alpha B_\alpha(E_Fc)_\alpha`.
+
+.. prf:proof::
+
+   The characterization in
+   :prf:ref:`lem-skeleton-propagation-characterization` holds in the
+   product Bernstein span, whose factor polynomials have degree at most
+   :math:`D_i`: prescribe
+   the controls on :math:`T_F`, set controls whose support does not contain
+   :math:`F` to zero, and impose orthogonality to the interior Bernstein
+   span on each strict active superface. Positive definite interior Gram
+   blocks determine successive controls uniquely. Inactive faces have no
+   interior controls and impose no condition.
+
+   The product on the right of :eq:`skeleton-product-polynomial` has
+   controls :math:`\prod_i(E_{I_i}c_i)_{\alpha_i}`. These agree with
+   :math:`c` on :math:`T_F` and vanish when the support does not contain
+   :math:`F`. The interior Bernstein span, or bubble space, on a superface
+   :math:`J=\prod_iJ_i` is spanned by products :math:`\prod_i g_i` of factor
+   bubbles. Since the face measure is a product,
+
+   .. math::
+
+      \int_J\prod_i p^{(i)}_{c_i}g_i\,dU_J
+      =\prod_i\int_{J_i}p^{(i)}_{c_i}g_i\,dU_{J_i}=0.
+
+   At least one :math:`J_i` strictly contains :math:`I_i`; its factor
+   vanishes by the simplex characterization. Uniqueness proves the
+   polynomial identity. Elementary tensors :math:`\bigotimes_i c_i` span
+   all source-face controls, so linearity also recovers the full matrix
+   identity :math:`E_F=\bigotimes_iE_{I_i}`.
+
+Tensor products of orthogonal factor boundary modes are orthogonal on the
+product face. Both their squared boundary norms and their propagated
+squared error norms factor. Consequently, the Jacobi extensions and mode
+norm ratios in :prf:ref:`thm-skeleton-scalar-sum` can be combined factor
+by factor to obtain product formulas. New closed forms for a factor
+therefore transfer through the polynomial identity as well as through
+:eq:`skeleton-product-coefficients`. Shortening an unevaluated factor sum
+remains a separate problem.
+
 .. prf:theorem:: Product risk and allocation by dimension
    :label: thm-skeleton-product-risk
 
@@ -478,7 +535,10 @@ arithmetic using the simplex scalar sums.
       &=\prod_i\left(\sum_{r\in\mathcal R_i}\sqrt{a^{(i)}_r}\right)^2
         \leq\left(\sum_m\sqrt{A_m}\right)^2.
 
-   This is also the optimum over all individual-face allocations.
+   This is also the optimum over all individual-face allocations. The
+   dimension-based optimum equals it if and only if all active faces of
+   each total dimension have the same trace. In particular, equality holds
+   when at most one factor has degree above one.
 
 .. prf:proof::
 
@@ -493,6 +553,23 @@ arithmetic using the simplex scalar sums.
    All faces of one shape have the same positive trace, so their optimal
    individual shares are equal. Finally, every dimension-based allocation
    is a permissible shape-based allocation, proving the inequality.
+
+   For the equality condition, let :math:`\tau_F` denote the trace of
+   face :math:`F`. Cauchy-Schwarz within dimension :math:`m` gives
+
+   .. math::
+
+      \sum_{\dim F=m}\sqrt{\tau_F}
+      \leq\sqrt{F_m\sum_{\dim F=m}\tau_F}=\sqrt{A_m}.
+
+   Equality holds precisely when those positive traces agree. Summing
+   over dimensions gives the square roots of the face and dimension
+   optima, respectively, so their equality requires equality at every
+   active dimension. If only factor :math:`i` has degree above one, an
+   active face of dimension :math:`m` has :math:`r_i=m` and
+   :math:`r_j=0` for :math:`j\neq i`. All faces of that dimension therefore
+   have the same shape and trace. If all factors are linear, only vertices
+   are active and their traces agree as well.
 
 This corollary describes a larger design class than the current sampling
 API: ``ratio`` has one entry per total dimension, and
@@ -518,6 +595,53 @@ it does not change the face-by-face fitting rule.
    :math:`\operatorname{tr}(G^{-1}G)` is the product of the factors'
    control counts. Thus the ratio of the shape-optimal risk to the
    all-at-once risk is the product of the corresponding simplex ratios.
+
+.. prf:corollary:: Closed forms on products
+   :label: cor-skeleton-product-closed-forms
+
+   The product coefficients :math:`A_m` have the following closed forms.
+
+   - If :math:`D_i\geq M_i` for every factor, then
+     :math:`A_{\dim P}=\prod_i\binom{D_i-1}{M_i-1}`, the number of controls
+     interior to :math:`P`.
+   - If :math:`D_i=1` for every factor, then
+     :math:`A_0=\prod_i 2M_i/(M_i+1)` and the other coefficients vanish.
+   - For :math:`k` segments of the same degree :math:`D\geq1`, put
+     :math:`a_0=4/(D(D+2))` and :math:`a_1=D-1`. Then
+
+     .. math::
+
+        A_m=\binom km^2a_1^ma_0^{k-m}\qquad(0\leq m\leq k).
+
+.. prf:proof::
+
+   Substitute the simplex formulas into :eq:`skeleton-product-coefficients`.
+   The top dimension has a single face, and :prf:ref:`prop-skeleton-top`
+   gives the first claim. At degree one only vertices are active;
+   :prf:ref:`prop-skeleton-degree-faces` gives the second. For segments,
+   :prf:ref:`thm-skeleton-curves` gives :math:`(a_0,a_1)` and the two
+   generating polynomials are :math:`(2+z)^k` and
+   :math:`(a_0/2+a_1z)^k` when :math:`D\geq2`. Their coefficients give the
+   third claim. At :math:`D=1` only :math:`A_0=a_0^k` is nonzero, giving
+   the same formula.
+
+For these equal-degree segments, every active face of dimension :math:`m`
+has trace :math:`a_1^m(a_0/4)^{k-m}`. Thus allocation by dimension attains
+the individual-face optimum of :prf:ref:`cor-skeleton-product-shape-ratio`.
+More explicitly, with
+
+.. math::
+
+   p=\frac{\sqrt{a_1}}{\sqrt{a_0}+\sqrt{a_1}},
+
+the optimal dimension fractions form the binomial distribution
+:math:`\rho_m^*=\binom kmp^m(1-p)^{k-m}` and the normalized optimal risk is
+:math:`(\sqrt{a_0}+\sqrt{a_1})^{2k}`. At :math:`D=1`, :math:`p=0` means all
+rows go to vertices. Taking square roots of the closed form for
+:math:`A_m` and applying the binomial theorem proves these statements.
+By :prf:ref:`cor-skeleton-curves-win`, this risk is strictly below the
+:math:`(D+1)^k` of all-at-once fitting at every :math:`k\geq1` and degree
+:math:`D\geq1`.
 
 For example, on a square with degrees :math:`(2,3)`, the two curve factors
 have coefficients :math:`(1/2,1)` and :math:`(4/15,2)`. Both have face
@@ -1491,6 +1615,16 @@ every coefficient are proved above. The questions below concern further
 evaluation of those expressions and the comparison with all-at-once
 fitting. The curves, all triangle coefficients, the top face, and the
 families :math:`m=D-1,D-2,D-3` are already resolved in closed form.
+
+The product formula :eq:`skeleton-product-coefficients` reduces coefficient
+evaluation to the simplex factors. Winning against all-at-once fitting
+does not require every factor to win: a cubic triangle loses against its
+10 controls, while its product with a linear segment has optimal
+dimension-based risk approximately :math:`14.2`, below its 20 controls.
+The linear segment multiplies every nonzero triangle coefficient by
+:math:`4/3`, and the two normalized optimal risks are approximately
+:math:`10.65` and :math:`14.20`. In this example only the triangle has
+active positive-dimensional faces, so the dimension and shape optima agree.
 
 - **Shorter evaluations of the remaining nonvertex coefficients.**
   The remaining range is :math:`M\geq4`, :math:`D\geq5` and
