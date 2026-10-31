@@ -2,8 +2,9 @@ Theory of the skeleton risk
 ===========================
 
 This chapter develops the asymptotic risk of inductive skeleton fitting
-from its assumptions to the general scalar formula, then derives the
-closed forms and comparisons used in :doc:`skeleton_sampling`.
+on simplices and their products, from its assumptions to the general scalar
+formula, then derives the closed forms and comparisons used in
+:doc:`skeleton_sampling`.
 The results are organized by mathematical dependence; finite verification
 and reference tables are collected in :doc:`skeleton_risk_verification`.
 
@@ -35,6 +36,9 @@ explicit evaluations. The conditions in each row are part of the result.
    * - Risk comparison
      - Curves win at every degree; :prf:ref:`prop-skeleton-wins` classifies
        all vertex counts for :math:`D\leq8`; every fixed degree wins for sufficiently large :math:`M`.
+   * - A single product of simplices, with any positive factor degrees
+     - :prf:ref:`thm-skeleton-product-risk`: coefficients from the simplex factors;
+       :prf:ref:`cor-skeleton-product-shape-ratio`: optimal allocation by face shape.
 
 The proofs are self-contained apart from the cited small-ball inequality.
 Statements certified by a finite computation are labeled computer-assisted.
@@ -311,6 +315,218 @@ gives the all-at-once risk.
    \leq \sum_m a_m/\rho_m`. Equality requires zero share on inactive
    indices and :math:`\sqrt{a_m/\rho_m}` proportional to
    :math:`\sqrt{\rho_m}` on the active ones, giving the stated ratio.
+
+.. _skeleton-risk-products:
+
+Products of simplices
+---------------------
+
+Let :math:`P=\prod_{i=1}^k\Delta^{M_i-1}` have :math:`M_i\geq2` vertices
+and degree :math:`D_i\geq1` in factor :math:`i`. Zero-dimensional factors
+can be omitted. A face :math:`F=\prod_i I_i` has dimension
+:math:`\sum_i(\lvert I_i\rvert-1)` and interior controls exactly when
+:math:`\lvert I_i\rvert\leq D_i` for every factor. Call these faces
+*active*. On every face and on :math:`P`, use the product of the uniform
+probability measures on its factors. Retain the correctly specified model,
+independent noise with covariance :math:`\sigma^2I_L` for :math:`\sigma>0`,
+and the estimator from the setting above, visiting faces in increasing
+dimension. Here :math:`R_N` integrates the expected squared prediction
+error over the uniform probability measure on :math:`P`.
+
+Write :math:`a^{(i)}_r=a_r(M_i,D_i)` for the simplex risk coefficients and set
+
+.. math::
+
+   \mathcal R_i=\{0,\ldots,\min(M_i,D_i)-1\},\qquad
+   f_{i,r}=\binom{M_i}{r+1}\quad(r\in\mathcal R_i).
+
+Thus :math:`f_{i,r}` counts active :math:`r`-faces in factor :math:`i`.
+The vector :math:`\mathbf r=(r_1,\ldots,r_k)` is the *shape* of a product
+face; the factors retain their order, even when they have equal dimensions.
+All sums over shapes below use :math:`r_i\in\mathcal R_i`.
+
+.. prf:lemma:: Product propagation
+   :label: lem-skeleton-product-propagation
+
+   For an active face :math:`F=\prod_i I_i`, let
+   :math:`H_F=G^F_{T_FT_F}`. Up to the common ordering of controls,
+
+   .. math::
+
+      G=\bigotimes_iG_i,\qquad H_F=\bigotimes_iH_{I_i},\qquad
+      E_F=\bigotimes_iE_{I_i}.
+
+   Consequently, the trace contributed by one face of shape :math:`\mathbf r` is
+
+   .. math::
+      :label: skeleton-product-face-trace
+
+      \tau_{\mathbf r}
+      =\operatorname{tr}(H_F^{-1}E_F^\top G E_F)
+      =\prod_i\frac{a^{(i)}_{r_i}}{f_{i,r_i}^2}.
+
+.. prf:proof::
+
+   The Bernstein basis, the measure and the set of interior controls are
+   products, which proves the two Gram identities. To prove the propagation
+   identity, take the tensor product of the factor propagation matrices.
+   Its block on :math:`T_F` is the identity, and its row at a control whose
+   support does not contain :math:`F` is zero.
+
+   For any strict active superface :math:`J=\prod_iJ_i\supsetneq F`, at
+   least one :math:`J_i` strictly contains :math:`I_i`. On that factor, the
+   error polynomial propagated from :math:`I_i` is orthogonal to every
+   interior Bernstein polynomial of :math:`J_i`, by
+   :eq:`skeleton-propagation`. Integrating a product interior polynomial
+   against a column of the tensor-product error therefore gives zero on
+   :math:`J`. These are exactly the normal equations
+   :math:`H_J E_F[T_J]+G^J_{T_JB_J}E_F[B_J]=0`.
+   Their unique solution on each successive face is
+   :eq:`skeleton-propagation`, so the tensor product is :math:`E_F`.
+
+   Inverses, matrix products and traces factor over Kronecker products.
+   On factor :math:`i`, symmetry makes the trace equal on its
+   :math:`f_{i,r}` faces, and the allocation convention gives
+   :math:`a^{(i)}_r=f_{i,r}^2\operatorname{tr}(H_{I_i}^{-1}E_{I_i}^\top G_iE_{I_i})`.
+   This proves :eq:`skeleton-product-face-trace`.
+
+.. prf:theorem:: Product risk and allocation by dimension
+   :label: thm-skeleton-product-risk
+
+   Assign a deterministic number :math:`n_F` of independently drawn rows
+   to every active face, with independent draws across faces, and let
+   :math:`N=\sum_F n_F`. If :math:`n_F/N\to q_F>0`, then
+
+   .. math::
+      :label: skeleton-product-face-risk
+
+      \lim_{N\to\infty}\frac{NR_N}{\sigma^2L}
+      =\sum_{F\text{ active}}\frac{\tau_{\operatorname{shape}(F)}}{q_F}.
+
+   In particular, let :math:`N^{(m)}` rows be split equally, up to one row,
+   among the :math:`F_m` active faces of dimension :math:`m`, with
+   :math:`N^{(m)}/N\to\rho_m>0` whenever :math:`F_m>0`. Then
+
+   .. math::
+      :label: skeleton-product-coefficients
+
+      F_m&=\sum_{r_1+\cdots+r_k=m}\prod_i f_{i,r_i},\\
+      A_m&=F_m\sum_{r_1+\cdots+r_k=m}
+                      \prod_i\frac{a^{(i)}_{r_i}}{f_{i,r_i}},\\
+      \lim_{N\to\infty}NR_N&=\sigma^2L\sum_{m:F_m>0}\frac{A_m}{\rho_m}.
+
+   Empty sums give :math:`F_m=A_m=0`. Among these dimension-based
+   allocations, the optimum is
+   :math:`\rho_m^*=\sqrt{A_m}/\sum_j\sqrt{A_j}`, with normalized risk
+   :math:`(\sum_m\sqrt{A_m})^2`.
+
+.. prf:proof::
+
+   The exact error recursion and conditional covariance argument of
+   :prf:ref:`thm-skeleton-risk` apply to the finite collection of product
+   faces. For the expectation limit, each face is convex in its affine
+   span, its uniform measure is log-concave, and the product Bernstein
+   basis has total polynomial degree at most :math:`\sum_iD_i`.
+   Thus :prf:ref:`lem-skeleton-inverse-moments` and the same uniform
+   integrability argument apply. At a vertex, the Gram block is the
+   deterministic scalar one. This proves :eq:`skeleton-product-face-risk`.
+
+   There are :math:`\prod_i f_{i,r_i}` faces of shape :math:`\mathbf r`.
+   An equal split within dimension :math:`m` gives
+   :math:`q_F=\rho_m/F_m`. Substitute
+   :eq:`skeleton-product-face-trace` and count the faces to obtain
+   :eq:`skeleton-product-coefficients`. Cauchy-Schwarz, as in
+   :prf:ref:`thm-skeleton-ratio`, gives the optimum.
+
+Equivalently, :math:`F_m` and :math:`A_m/F_m` are the coefficients of
+:math:`z^m` in
+:math:`\prod_i\sum_{r\in\mathcal R_i}f_{i,r}z^r` and
+:math:`\prod_i\sum_{r\in\mathcal R_i}(a^{(i)}_r/f_{i,r})z^r`, respectively,
+for active dimensions. This expresses the product coefficients using only
+the simplex coefficients. Substitution of
+:prf:ref:`thm-skeleton-scalar-sum` gives a finite scalar expression at
+every factor dimension and degree. Closed forms for curves and triangles
+therefore give closed forms for all products of those factors.
+
+:func:`~torch_bsf.sampling.skeleton_risk_coefficients` computes
+:math:`A_m`, and :func:`~torch_bsf.sampling.optimal_skeleton_ratio` returns
+the optimal dimension-based allocation. The implementation combines
+the factors' numerical trace sums; the formula also permits exact
+arithmetic using the simplex scalar sums.
+
+.. prf:corollary:: Allocation by face shape
+   :label: cor-skeleton-product-shape-ratio
+
+   Allow the share :math:`\rho_{\mathbf r}` of every active shape to be
+   chosen separately, splitting it equally among faces of that shape.
+   Then
+
+   .. math::
+      :label: skeleton-product-shape-risk
+
+      \lim_{N\to\infty}\frac{NR_N}{\sigma^2L}
+      &=\sum_{\mathbf r}\frac{\prod_i a^{(i)}_{r_i}}{\rho_{\mathbf r}},\\
+      \rho_{\mathbf r}^*
+      &=\prod_i\frac{\sqrt{a^{(i)}_{r_i}}}
+                        {\sum_{s\in\mathcal R_i}\sqrt{a^{(i)}_s}},\\
+      C_{\mathrm{shape}}^*
+      &=\prod_i\left(\sum_{r\in\mathcal R_i}\sqrt{a^{(i)}_r}\right)^2
+        \leq\left(\sum_m\sqrt{A_m}\right)^2.
+
+   This is also the optimum over all individual-face allocations.
+
+.. prf:proof::
+
+   For shape :math:`\mathbf r`, the face count
+   :math:`K_{\mathbf r}=\prod_i f_{i,r_i}` gives
+   :math:`q_F=\rho_{\mathbf r}/K_{\mathbf r}`. Its total coefficient in
+   :eq:`skeleton-product-face-risk` is
+   :math:`K_{\mathbf r}^2\tau_{\mathbf r}=\prod_i a^{(i)}_{r_i}`.
+   Cauchy-Schwarz minimizes the resulting sum, and
+   :math:`\sum_{\mathbf r}\sqrt{\prod_i a^{(i)}_{r_i}}
+   =\prod_i\sum_r\sqrt{a^{(i)}_r}` proves the factorization.
+   All faces of one shape have the same positive trace, so their optimal
+   individual shares are equal. Finally, every dimension-based allocation
+   is a permissible shape-based allocation, proving the inequality.
+
+This corollary describes a larger design class than the current sampling
+API: ``ratio`` has one entry per total dimension, and
+:func:`~torch_bsf.sampling.sample_skeleton` splits it equally among that
+dimension's active faces. It cannot specify independent shape shares.
+The shape optimum requires a sampling design that implements those shares;
+it does not change the face-by-face fitting rule.
+
+.. prf:corollary:: All-at-once fitting on a product
+   :label: cor-skeleton-product-aao-risk
+
+   For ordinary least squares on :math:`N` independent rows from the
+   uniform product measure,
+
+   .. math::
+
+      \lim_{N\to\infty}\frac{NR_N}{\sigma^2L}
+      =\prod_i\binom{D_i+M_i-1}{D_i}.
+
+.. prf:proof::
+
+   The inverse-moment argument above applies to the full basis, and
+   :math:`\operatorname{tr}(G^{-1}G)` is the product of the factors'
+   control counts. Thus the ratio of the shape-optimal risk to the
+   all-at-once risk is the product of the corresponding simplex ratios.
+
+For example, on a square with degrees :math:`(2,3)`, the two curve factors
+have coefficients :math:`(1/2,1)` and :math:`(4/15,2)`. Both have face
+counts :math:`(2,1)`. Therefore
+:math:`(A_0,A_1,A_2)=(2/15,38/15,2)`. The normalized optimal risks are
+approximately :math:`11.363687` with dimension-based allocation,
+:math:`10.862032` with shape-based allocation, and :math:`12` for
+all-at-once fitting. For a prism of degrees :math:`(2,1)`, the triangle
+and segment coefficients :math:`(3/8,3,0)` and :math:`(4/3,0)` give
+:math:`(A_0,A_1,A_2,A_3)=(1/2,4,0,0)`.
+
+These results concern a single product cell. In an assembled simploidal
+set, identified faces share controls, so the independent product
+propagation argument does not by itself give the global risk.
 
 How errors propagate
 --------------------
