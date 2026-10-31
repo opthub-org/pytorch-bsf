@@ -1871,7 +1871,7 @@ def test_simploid_shape_allocation_factorizes_the_optimum(dimensions, degree):
     # Positive square roots, sums and products have no cancellation. There are at most prod(len(factor))
     # shape terms; 16 U per term and factor bounds the two evaluations' first-order relative rounding errors.
     tolerance = 16 * (len(shape_coefficients) + len(factors)) * U
-    assert direct == pytest.approx(factorized, rel=tolerance)
+    assert direct == pytest.approx(factorized, rel=tolerance, abs=0)
     assert factorized <= dimension_based * (1 + tolerance)
 
 
