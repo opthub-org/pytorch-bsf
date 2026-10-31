@@ -181,9 +181,9 @@ source factor that no target factor follows is projected away.</p>
 <span class="math notranslate nohighlight">\((\mathbf u^1, \ldots, \mathbf u^n)\)</span> to the point whose <span class="math notranslate nohighlight">\(l\)</span>-th
 factor is <span class="math notranslate nohighlight">\(\sum_x u^{k_l}_x \mathbf e_{g_l(x)}\)</span> for <span class="math notranslate nohighlight">\(l \in L\)</span> and the
 vertex <span class="math notranslate nohighlight">\(\mathbf e_{v_l}\)</span> otherwise.  These are exactly the maps between
-simploids that faces and degeneracies generate (<a class="reference internal" href="#lem-generation">Lemma 6</a>).</p>
+simploids that faces and degeneracies generate (<a class="reference internal" href="#lem-generation">Lemma 7</a>).</p>
 <div class="proof lemma admonition" id="lem-small-category">
-<p class="admonition-title"><span class="caption-number">Lemma 5 </span></p>
+<p class="admonition-title"><span class="caption-number">Lemma 6 </span></p>
 <section class="lemma-content" id="proof-content">
 <p><span class="math notranslate nohighlight">\(\mathbb S\)</span> is a small category.</p>
 </section>
@@ -247,7 +247,7 @@ the composite codegeneracy from its type to the type of its base: for each
 factor, the factor of the base it follows and the monotone surjection, or
 <code class="docutils literal notranslate"><span class="pre">-1</span></code> when the factor is forgotten.</p>
 <div class="proof lemma admonition" id="lem-generation">
-<p class="admonition-title"><span class="caption-number">Lemma 6 </span> (Generation)</p>
+<p class="admonition-title"><span class="caption-number">Lemma 7 </span> (Generation)</p>
 <section class="lemma-content" id="proof-content">
 <p>Every morphism of <span class="math notranslate nohighlight">\(\mathbb S\)</span> is a composite of cofaces and
 codegeneracies.  More precisely, every <span class="math notranslate nohighlight">\(f: \mathbf a \to \mathbf b\)</span>
@@ -307,7 +307,7 @@ analogue of the standard simplex <span class="math notranslate nohighlight">\(\D
 Yoneda lemma, the simploids of type <span class="math notranslate nohighlight">\(\mathbf a\)</span> of <span class="math notranslate nohighlight">\(X\)</span> are the
 morphisms <span class="math notranslate nohighlight">\(\Delta^{\mathbf a} \to X\)</span>.</p>
 <div class="proof corollary admonition" id="cor-morphisms">
-<p class="admonition-title"><span class="caption-number">Corollary 6 </span></p>
+<p class="admonition-title"><span class="caption-number">Corollary 8 </span></p>
 <section class="corollary-content" id="proof-content">
 <p>A family of maps <span class="math notranslate nohighlight">\(\phi_{\mathbf a}: X_{\mathbf a} \to Y_{\mathbf a}\)</span>
 between simploidal sets is a morphism if and only if it commutes with all
@@ -315,7 +315,7 @@ face operators <span class="math notranslate nohighlight">\(d^i_j\)</span> and a
 </section>
 </div><div class="proof admonition" id="proof">
 <p>Proof. Naturality with respect to every generator implies naturality with respect
-to their composites, which are all morphisms by <a class="reference internal" href="#lem-generation">Lemma 6</a>.</p>
+to their composites, which are all morphisms by <a class="reference internal" href="#lem-generation">Lemma 7</a>.</p>
 </div>
 <p>So <span class="math notranslate nohighlight">\(\mathbf{sSpd}\)</span> is the analogue of the category of simplicial sets
 that the corollary describes: graded sets with face and degeneracy operators,
@@ -335,7 +335,7 @@ simploidal sets is a topos with either definition.</p>
 <p>The equations hold in <span class="math notranslate nohighlight">\(\mathbb S\)</span>, since they are relations among
 the faces and degeneracies of standard simploids, so there is a functor
 <span class="math notranslate nohighlight">\(\mathbb P \to \mathbb S\)</span> that is the identity on objects.  It is
-full by <a class="reference internal" href="#lem-generation">Lemma 6</a>.  It is faithful precisely when the
+full by <a class="reference internal" href="#lem-generation">Lemma 7</a>.  It is faithful precisely when the
 equations are a complete presentation of <span class="math notranslate nohighlight">\(\mathbb S\)</span>, the analogue
 of the simplicial identities presenting <span class="math notranslate nohighlight">\(\Delta\)</span>; the topos
 property does not depend on this.</p>
@@ -344,7 +344,7 @@ property does not depend on this.</p>
 <section id="the-topos-theorem">
 <h2>The topos theorem<a class="headerlink" href="#the-topos-theorem" title="Link to this heading"></a></h2>
 <div class="proof theorem admonition" id="thm-topos">
-<p class="admonition-title"><span class="caption-number">Theorem 17 </span></p>
+<p class="admonition-title"><span class="caption-number">Theorem 18 </span></p>
 <section class="theorem-content" id="proof-content">
 <p>For every small category <span class="math notranslate nohighlight">\(\mathcal C\)</span>, the presheaf category
 <span class="math notranslate nohighlight">\(\widehat{\mathcal C} = \mathbf{Set}^{\mathcal C^{\mathrm{op}}}\)</span>
@@ -411,7 +411,7 @@ pullback of <span class="math notranslate nohighlight">\(\top\)</span>, then for
 <p>so <span class="math notranslate nohighlight">\(\chi' = \chi\)</span>.  Thus <span class="math notranslate nohighlight">\(\Omega\)</span> is a subobject classifier.</p>
 <p>A category with finite limits, exponentials and a subobject classifier is
 an elementary topos.  <span class="math notranslate nohighlight">\(\mathbb S\)</span> is small by
-<a class="reference internal" href="#lem-small-category">Lemma 5</a>, so <span class="math notranslate nohighlight">\(\mathbf{sSpd}\)</span> is a topos.
+<a class="reference internal" href="#lem-small-category">Lemma 6</a>, so <span class="math notranslate nohighlight">\(\mathbf{sSpd}\)</span> is a topos.
 Presheaf categories are also the Grothendieck toposes of sheaves for the
 trivial topology <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../references.html#id45" title="Saunders Mac Lane and Ieke Moerdijk. Sheaves in Geometry and Logic: A First Introduction to Topos Theory. Universitext. Springer, 1992.">MLM92</a>]</span>.</p>
 </div>

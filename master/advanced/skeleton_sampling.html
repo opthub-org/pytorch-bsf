@@ -230,11 +230,11 @@ same Gram matrix it was fitted with.</p></li>
 <span class="math notranslate nohighlight">\(a_0 = 2M / (M + 1)\)</span>. <span class="math notranslate nohighlight">\(a_{D-2}\)</span> and <span class="math notranslate nohighlight">\(a_{D-3}\)</span>
 also have closed forms in both <span class="math notranslate nohighlight">\(D\)</span> and <span class="math notranslate nohighlight">\(M\)</span>; see
 <a class="reference internal" href="skeleton_risk_theory.html#prop-skeleton-second-faces">Proposition 3</a> and
-<a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-third-faces">Theorem 11</a>.</p></li>
+<a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-third-faces">Theorem 12</a>.</p></li>
 <li><p>On curves (<span class="math notranslate nohighlight">\(M = 2\)</span>), <span class="math notranslate nohighlight">\(a_0 = 4 / (D (D + 2))\)</span> and
 <span class="math notranslate nohighlight">\(a_1 = D - 1\)</span>.</p></li>
 <li><p>On triangles (<span class="math notranslate nohighlight">\(M=3\)</span>), all coefficients are closed for every degree:
-<a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-triangle-vertex-risk">Theorem 15</a> gives
+<a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-triangle-vertex-risk">Theorem 16</a> gives
 <span class="math notranslate nohighlight">\(a_0(3,D)\)</span> in harmonic numbers and <span class="math notranslate nohighlight">\(\binom{2D}{D}\)</span> for
 <span class="math notranslate nohighlight">\(D\geq1\)</span>;
 <span class="math notranslate nohighlight">\(a_1=18(H_{D-1}+H_{2D+2}-H_{D+3})/(2D+3)\)</span> for
@@ -243,15 +243,15 @@ Here <span class="math notranslate nohighlight">\(H_j=\sum_{i=1}^j1/i\)</span>; 
 <span class="math notranslate nohighlight">\((\sqrt{a_0}+\sqrt{a_1}+\sqrt{a_2})^2\)</span> is an explicit formula
 for the optimal normalized triangle risk at every degree.</p></li>
 <li><p>Every codimension-one coefficient has a single finite rational sum:
-see <a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-codimension-one">Theorem 12</a>.</p></li>
+see <a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-codimension-one">Theorem 13</a>.</p></li>
 <li><p>For a fixed degree, every <span class="math notranslate nohighlight">\(a_m\)</span> is a rational function of <span class="math notranslate nohighlight">\(M\)</span>
 and converges as <span class="math notranslate nohighlight">\(M\)</span> grows.
-<a class="reference internal" href="skeleton_risk_theory.html#cor-skeleton-large-dimension">Corollary 5</a> gives every limit; for example,
+<a class="reference internal" href="skeleton_risk_theory.html#cor-skeleton-large-dimension">Corollary 7</a> gives every limit; for example,
 <span class="math notranslate nohighlight">\(a_0 \to 2 D^2 (D+1)^2 / 4^D\)</span>.</p></li>
 </ul>
 <p>These closed forms rest on a structure theorem: the errors that a face
 passes to larger faces are determined by the errors it passes to the faces
-with one more vertex. More generally, <a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-scalar-sum">Theorem 10</a>
+with one more vertex. More generally, <a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-scalar-sum">Theorem 11</a>
 gives every coefficient as a finite scalar sum, without Gram-matrix
 inversion or propagation recursion. Simplification to a bounded number of
 functions remains open in the ranges listed in the theory chapter.</p>
@@ -380,6 +380,40 @@ the same split, a uniform distribution on each factor of a face, and error
 integrated uniformly over the product. Here
 <span class="math notranslate nohighlight">\((\sum_m \sqrt{a_m})^2 \approx 7.33\)</span> is below the 12 controls of the
 prism, so the optimal skeleton design beats all-at-once least squares.</p>
+<p><a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-product-risk">Theorem 9</a> gives these coefficients directly in
+terms of the simplex factors. If <span class="math notranslate nohighlight">\(a^{(i)}_r\)</span> is factor <span class="math notranslate nohighlight">\(i\)</span>’s
+coefficient and <span class="math notranslate nohighlight">\(f_{i,r}=\binom{M_i}{r+1}\)</span> its active face count, then</p>
+<div class="math notranslate nohighlight">
+\[F_m=\sum_{r_1+\cdots+r_k=m}\prod_i f_{i,r_i},\qquad
+A_m=F_m\sum_{r_1+\cdots+r_k=m}\prod_i\frac{a^{(i)}_{r_i}}{f_{i,r_i}}.\]</div>
+<p>The sums use <span class="math notranslate nohighlight">\(0\leq r_i&lt;\min(M_i,D_i)\)</span> for factor vertex counts
+<span class="math notranslate nohighlight">\(M_i\)</span> and degrees <span class="math notranslate nohighlight">\(D_i\)</span>; an empty sum gives <span class="math notranslate nohighlight">\(A_m=0\)</span>.
+The optimal dimension-based ratio remains proportional to
+<span class="math notranslate nohighlight">\(\sqrt{A_m}\)</span>. If sampling shares can instead be chosen separately
+for every vector of factor face dimensions, the optimal normalized risk is
+<span class="math notranslate nohighlight">\(\prod_i(\sum_r\sqrt{a^{(i)}_r})^2\)</span>, by
+<a class="reference internal" href="skeleton_risk_theory.html#cor-skeleton-product-shape-ratio">Corollary 2</a>. This can improve on the
+dimension-based optimum. The current <code class="docutils literal notranslate"><span class="pre">ratio</span></code> argument only chooses
+shares by total dimension; implementing independent shares by face shape
+requires a separate sampling design.</p>
+<p>For a square with degrees <span class="math notranslate nohighlight">\((2,3)\)</span>, the two curve factors have
+coefficients <span class="math notranslate nohighlight">\((1/2,1)\)</span> and <span class="math notranslate nohighlight">\((4/15,2)\)</span>. The following checks the
+product coefficients and the two allocation optima against the control
+count of all-at-once fitting:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">math</span><span class="w"> </span><span class="kn">import</span> <span class="n">prod</span><span class="p">,</span> <span class="n">sqrt</span>
+
+<span class="n">square</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="n">coefficients</span> <span class="o">=</span> <span class="n">skeleton_risk_coefficients</span><span class="p">(</span><span class="n">square</span><span class="p">)</span>
+<span class="n">dimension_risk</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">sqrt</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">coefficients</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+<span class="n">shape_risk</span> <span class="o">=</span> <span class="n">prod</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">sqrt</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">factor</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">factor</span> <span class="ow">in</span> <span class="p">[(</span><span class="mi">1</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">4</span><span class="o">/</span><span class="mi">15</span><span class="p">,</span> <span class="mi">2</span><span class="p">)])</span>
+<span class="nb">print</span><span class="p">([</span><span class="nb">round</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">coefficients</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">dimension_risk</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span> <span class="nb">round</span><span class="p">(</span><span class="n">shape_risk</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span> <span class="n">square</span><span class="o">.</span><span class="n">n_controls</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[0.133333, 2.533333, 2.0]
+11.363687 10.862032 12
+</pre></div>
+</div>
 </section>
 <section id="notes-on-the-original-derivation">
 <h2>Notes on the original derivation<a class="headerlink" href="#notes-on-the-original-derivation" title="Link to this heading"></a></h2>
@@ -419,9 +453,10 @@ the Gram matrix on the whole simploid is the product of those of its factors’
 Gram matrices, so products of many factors are rejected even at low degree
 (for example, 12 segments of degree 1). In that case, pass <code class="docutils literal notranslate"><span class="pre">ratio</span></code> to
 <a class="reference internal" href="../api.html#torch_bsf.sampling.sample_skeleton" title="torch_bsf.sampling.sample_skeleton"><code class="xref py py-func docutils literal notranslate"><span class="pre">sample_skeleton()</span></code></a> explicitly. A single
-simplex or simploid is supported, not assembled spaces. The closed forms and
-proofs in <a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a> concern simplices only; for a simploid,
-only the numerical coefficients are available.</p>
+simplex or simploid is supported, not assembled spaces. The product
+formulas and proofs in <a class="reference internal" href="skeleton_risk_theory.html#skeleton-risk-products"><span class="std std-ref">Products of simplices</span></a> reduce a simploid’s
+coefficients to its simplex factors. Thus products of curves and triangles
+inherit their closed forms; other factors can use the general scalar sum.</p>
 <p>The coefficients are computed factor by factor. On a face of a simploid, the
 Gram matrices and the errors that the face passes on are Kronecker products
 of those of its factor faces, so the trace of the face is the product of

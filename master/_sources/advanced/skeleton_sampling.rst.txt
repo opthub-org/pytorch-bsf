@@ -268,6 +268,47 @@ integrated uniformly over the product. Here
 :math:`(\sum_m \sqrt{a_m})^2 \approx 7.33` is below the 12 controls of the
 prism, so the optimal skeleton design beats all-at-once least squares.
 
+:prf:ref:`thm-skeleton-product-risk` gives these coefficients directly in
+terms of the simplex factors. If :math:`a^{(i)}_r` is factor :math:`i`'s
+coefficient and :math:`f_{i,r}=\binom{M_i}{r+1}` its active face count, then
+
+.. math::
+
+   F_m=\sum_{r_1+\cdots+r_k=m}\prod_i f_{i,r_i},\qquad
+   A_m=F_m\sum_{r_1+\cdots+r_k=m}\prod_i\frac{a^{(i)}_{r_i}}{f_{i,r_i}}.
+
+The sums use :math:`0\leq r_i<\min(M_i,D_i)` for factor vertex counts
+:math:`M_i` and degrees :math:`D_i`; an empty sum gives :math:`A_m=0`.
+The optimal dimension-based ratio remains proportional to
+:math:`\sqrt{A_m}`. If sampling shares can instead be chosen separately
+for every vector of factor face dimensions, the optimal normalized risk is
+:math:`\prod_i(\sum_r\sqrt{a^{(i)}_r})^2`, by
+:prf:ref:`cor-skeleton-product-shape-ratio`. This can improve on the
+dimension-based optimum. The current ``ratio`` argument only chooses
+shares by total dimension; implementing independent shares by face shape
+requires a separate sampling design.
+
+For a square with degrees :math:`(2,3)`, the two curve factors have
+coefficients :math:`(1/2,1)` and :math:`(4/15,2)`. The following checks the
+product coefficients and the two allocation optima against the control
+count of all-at-once fitting:
+
+.. testcode:: skeleton
+
+    from math import prod, sqrt
+
+    square = BezierSpace.simploid((1, 1), degree=(2, 3))
+    coefficients = skeleton_risk_coefficients(square)
+    dimension_risk = sum(sqrt(a) for a in coefficients) ** 2
+    shape_risk = prod(sum(sqrt(a) for a in factor) ** 2 for factor in [(1/2, 1), (4/15, 2)])
+    print([round(a, 6) for a in coefficients])
+    print(round(dimension_risk, 6), round(shape_risk, 6), square.n_controls)
+
+.. testoutput:: skeleton
+
+    [0.133333, 2.533333, 2.0]
+    11.363687 10.862032 12
+
 Notes on the original derivation
 --------------------------------
 
@@ -307,9 +348,10 @@ the Gram matrix on the whole simploid is the product of those of its factors'
 Gram matrices, so products of many factors are rejected even at low degree
 (for example, 12 segments of degree 1). In that case, pass ``ratio`` to
 :func:`~torch_bsf.sampling.sample_skeleton` explicitly. A single
-simplex or simploid is supported, not assembled spaces. The closed forms and
-proofs in :doc:`skeleton_risk_theory` concern simplices only; for a simploid,
-only the numerical coefficients are available.
+simplex or simploid is supported, not assembled spaces. The product
+formulas and proofs in :ref:`skeleton-risk-products` reduce a simploid's
+coefficients to its simplex factors. Thus products of curves and triangles
+inherit their closed forms; other factors can use the general scalar sum.
 
 The coefficients are computed factor by factor. On a face of a simploid, the
 Gram matrices and the errors that the face passes on are Kronecker products

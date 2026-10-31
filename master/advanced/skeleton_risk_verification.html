@@ -66,6 +66,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Exact verification of the skeleton risk</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#independent-checks">Independent checks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#products-of-simplices">Products of simplices</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#reproducing-the-vertex-certificate">Reproducing the vertex certificate</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#reference-dimension-polynomials">Reference dimension polynomials</a></li>
 </ul>
@@ -171,6 +172,10 @@ counting; every leading coefficient is checked against the general limit.</p></t
 <td><p>Exact polynomial evaluation with a floating-point rounding bound
 on square roots, together with a proven tail bound, at <span class="math notranslate nohighlight">\(D\leq8\)</span>.</p></td>
 </tr>
+<tr class="row-odd"><td><p>Simploid coefficients and allocation by face shape</p></td>
+<td><p>Exact scalar factor sums versus full product-face Gram propagation
+in the 12 cases below, including inactive dimensions and mixed degrees.</p></td>
+</tr>
 </tbody>
 </table>
 <p>The high-degree triangle checks are outside the exploratory range
@@ -185,11 +190,69 @@ These checks remain in normal CI; timings are observations, not performance
 guarantees. The unreduced <span class="math notranslate nohighlight">\(D=6,m=0\)</span> computation took 31.6 seconds,
 versus 0.04 seconds with propagation reduction.</p>
 </section>
+<section id="products-of-simplices">
+<h2>Products of simplices<a class="headerlink" href="#products-of-simplices" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-product-risk">Theorem 9</a> and
+<a class="reference internal" href="skeleton_risk_theory.html#cor-skeleton-product-shape-ratio">Corollary 2</a> are checked in
+<code class="docutils literal notranslate"><span class="pre">tests/sampling.py</span></code> independently of the runtime factor-by-factor
+algorithm. <code class="docutils literal notranslate"><span class="pre">_scalar_product_risk</span></code> substitutes the exact simplex scalar
+sums into <a class="reference internal" href="skeleton_risk_theory.html#equation-skeleton-product-coefficients">(5)</a>.
+<code class="docutils literal notranslate"><span class="pre">_rational_face_traces</span></code> instead constructs the full product Bernstein
+Gram matrices from Dirichlet moments, propagates errors face by face by
+rational Gauss-Jordan elimination, and retains every face trace as a
+<a class="reference external" href="https://docs.python.org/3/library/fractions.html#fractions.Fraction" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">fractions.Fraction</span></code></a>. The dimension coefficients agree exactly.
+The runtime numerical coefficients are also checked against those exact
+values with the documented relative tolerance <span class="math notranslate nohighlight">\(10^{-6}\)</span>.</p>
+<p>Grouping the independent face traces by the vector of factor face
+dimensions checks that the faces of one shape have equal traces, that all
+active shapes occur, and that each shape coefficient is exactly
+<span class="math notranslate nohighlight">\(\prod_i a^{(i)}_{r_i}\)</span>. The two evaluations of the optimal
+shape-based risk, by summing square roots of those coefficients and by
+multiplying the factor optima, agree within a bound on floating-point
+rounding. Its comparison with the dimension-based optimum allows the same
+rounding bound. These checks cover the following cases; the type lists
+factor dimensions, as in <a class="reference internal" href="simploidal.html"><span class="doc">Single and assembled domains</span></a>.</p>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-number">Table 13 </span><span class="caption-text">Exact product-risk checks</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Factor degrees</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\((1,1)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\((1,1),(2,2),(3,1),(2,3)\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\((2,1)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\((2,2),(2,3),(2,1)\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\((1,1,1)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\((2,1,2),(1,2,3)\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\((3,1)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\((2,2)\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\((2,2)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\((2,2)\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\((1,1,1,1)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\((1,1,1,1)\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<p>The square of degrees <span class="math notranslate nohighlight">\((2,3)\)</span> in <a class="reference internal" href="skeleton_sampling.html"><span class="doc">Optimal skeleton sampling</span></a> is also a
+Sphinx doctest. It checks the printed coefficients and both optimal risk
+values, including the strict improvement when shape shares are allowed.
+The proofs, rather than these finite checks, establish the formulas for
+all factor dimensions and degrees. Sampling by independent shape shares
+is a theoretical design here; the current <code class="docutils literal notranslate"><span class="pre">ratio</span></code> API is indexed by
+total dimension.</p>
+</section>
 <section id="reproducing-the-vertex-certificate">
 <h2>Reproducing the vertex certificate<a class="headerlink" href="#reproducing-the-vertex-certificate" title="Link to this heading"></a></h2>
 <p>The certificate can also be regenerated with the existing SymPy
 dependency. This optional search is outside the test suite; the proof of
-<a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-triangle-vertex-risk">Theorem 15</a> only needs the rational identity
+<a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-triangle-vertex-risk">Theorem 16</a> only needs the rational identity
 and its boundary values:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">sympy</span><span class="w"> </span><span class="kn">import</span> <span class="n">binomial</span><span class="p">,</span> <span class="n">cancel</span><span class="p">,</span> <span class="n">symbols</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sympy.concrete.gosper</span><span class="w"> </span><span class="kn">import</span> <span class="n">gosper_sum</span>
@@ -210,7 +273,7 @@ and its boundary values:</p>
 <p>The table is regenerated independently of the scalar sum by exact Gram
 solves and orbit counting. For a face of size <span class="math notranslate nohighlight">\(m+1\)</span>, use a simplex
 with <span class="math notranslate nohighlight">\(V=2D-m-1\)</span> vertices, which contains every control-pair support.
-<a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-propagation-reduction">Theorem 9</a> reduces the propagation solve
+<a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-propagation-reduction">Theorem 10</a> reduces the propagation solve
 to <span class="math notranslate nohighlight">\(m+2\)</span> vertices. For a union with <span class="math notranslate nohighlight">\(j\)</span> outside vertices,
 its multiplicity on <span class="math notranslate nohighlight">\(M\)</span> vertices is its multiplicity on
 <span class="math notranslate nohighlight">\(V\)</span> vertices times <span class="math notranslate nohighlight">\((M-m-1)_{\underline j}/(V-m-1)_{\underline j}\)</span>,
@@ -223,8 +286,8 @@ is the product of the same expression within the equal-exponent groups.
 This gives every polynomial coefficient over the rationals, without
 interpolation in the dimension or reliance on the closed forms.
 The <span class="math notranslate nohighlight">\(m=D-1,D-2,D-3\)</span> rows agree with the corresponding general formulas.</p>
-<table class="docutils align-default" id="id2">
-<caption><span class="caption-number">Table 13 </span><span class="caption-text"><span class="math notranslate nohighlight">\(P_{D,m}(M)\)</span> for <span class="math notranslate nohighlight">\(D \leq 8\)</span></span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-number">Table 14 </span><span class="caption-text"><span class="math notranslate nohighlight">\(P_{D,m}(M)\)</span> for <span class="math notranslate nohighlight">\(D \leq 8\)</span></span><a class="headerlink" href="#id3" title="Link to this table"></a></caption>
 <thead>
 <tr class="row-odd"><th class="head stub"><p><span class="math notranslate nohighlight">\(D\)</span></p></th>
 <th class="head stub"><p><span class="math notranslate nohighlight">\(m\)</span></p></th>

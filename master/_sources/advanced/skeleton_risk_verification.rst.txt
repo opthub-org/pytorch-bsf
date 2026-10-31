@@ -39,6 +39,9 @@ Independent checks
    * - Winning vertex counts
      - Exact polynomial evaluation with a floating-point rounding bound
        on square roots, together with a proven tail bound, at :math:`D\leq8`.
+   * - Simploid coefficients and allocation by face shape
+     - Exact scalar factor sums versus full product-face Gram propagation
+       in the 12 cases below, including inactive dimensions and mixed degrees.
 
 The high-degree triangle checks are outside the exploratory range
 :math:`D\leq80` used before the vertex proof was obtained. Degree 1000 was
@@ -52,6 +55,57 @@ polynomials took about 0.09, 0.75 and 6.6 seconds at :math:`D=6,7,8`.
 These checks remain in normal CI; timings are observations, not performance
 guarantees. The unreduced :math:`D=6,m=0` computation took 31.6 seconds,
 versus 0.04 seconds with propagation reduction.
+
+Products of simplices
+---------------------
+
+:prf:ref:`thm-skeleton-product-risk` and
+:prf:ref:`cor-skeleton-product-shape-ratio` are checked in
+``tests/sampling.py`` independently of the runtime factor-by-factor
+algorithm. ``_scalar_product_risk`` substitutes the exact simplex scalar
+sums into :eq:`skeleton-product-coefficients`.
+``_rational_face_traces`` instead constructs the full product Bernstein
+Gram matrices from Dirichlet moments, propagates errors face by face by
+rational Gauss-Jordan elimination, and retains every face trace as a
+:class:`fractions.Fraction`. The dimension coefficients agree exactly.
+The runtime numerical coefficients are also checked against those exact
+values with the documented relative tolerance :math:`10^{-6}`.
+
+Grouping the independent face traces by the vector of factor face
+dimensions checks that the faces of one shape have equal traces, that all
+active shapes occur, and that each shape coefficient is exactly
+:math:`\prod_i a^{(i)}_{r_i}`. The two evaluations of the optimal
+shape-based risk, by summing square roots of those coefficients and by
+multiplying the factor optima, agree within a bound on floating-point
+rounding. Its comparison with the dimension-based optimum allows the same
+rounding bound. These checks cover the following cases; the type lists
+factor dimensions, as in :doc:`simploidal`.
+
+.. list-table:: Exact product-risk checks
+   :header-rows: 1
+
+   * - Type
+     - Factor degrees
+   * - :math:`(1,1)`
+     - :math:`(1,1),(2,2),(3,1),(2,3)`
+   * - :math:`(2,1)`
+     - :math:`(2,2),(2,3),(2,1)`
+   * - :math:`(1,1,1)`
+     - :math:`(2,1,2),(1,2,3)`
+   * - :math:`(3,1)`
+     - :math:`(2,2)`
+   * - :math:`(2,2)`
+     - :math:`(2,2)`
+   * - :math:`(1,1,1,1)`
+     - :math:`(1,1,1,1)`
+
+The square of degrees :math:`(2,3)` in :doc:`skeleton_sampling` is also a
+Sphinx doctest. It checks the printed coefficients and both optimal risk
+values, including the strict improvement when shape shares are allowed.
+The proofs, rather than these finite checks, establish the formulas for
+all factor dimensions and degrees. Sampling by independent shape shares
+is a theoretical design here; the current ``ratio`` API is indexed by
+total dimension.
 
 Reproducing the vertex certificate
 ----------------------------------
