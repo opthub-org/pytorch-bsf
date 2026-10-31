@@ -348,11 +348,11 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
     factor's Gram matrix is :math:`\binom{2D + k}{D}` in closed form, so a
     space that the conditioning check rejects is rejected before anything of
     the size of a factor is allocated. Accepted wide simplices remain costly:
-    the widest ones, such as :math:`M = 22` vertices at degree 4 with 12650
-    controls, need several dense float64 matrices of 1.3 GB each. If an
-    allocation fails, PyTorch raises ``RuntimeError``; on systems that
-    overcommit memory, such as Linux by default, the process may be terminated
-    instead.
+    the widest ones, such as :math:`M = 22` vertices (:math:`k = 21`) at
+    degree 4 with 12650 controls, need several dense float64 matrices of
+    1.3 GB each. If an allocation fails, PyTorch raises ``RuntimeError``; on
+    systems that overcommit memory, such as Linux by default, the process may
+    be terminated instead.
 
     Examples
     --------

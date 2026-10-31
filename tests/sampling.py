@@ -1319,7 +1319,7 @@ def test_skeleton_risk_coefficients_keep_the_documented_simplex_limits(dimension
     # n_controls x n_controls error matrix) starts.
     assert len(skeleton_risk_coefficients(BezierSpace.simplex(dimension, degree=degree))) == dimension + 1
     with (
-        patch("torch_bsf.sampling._control_faces", side_effect=AssertionError("the computation started")),
+        patch("torch_bsf.sampling._face_trace_sums", side_effect=AssertionError("the computation started")),
         pytest.raises(ValueError, match=rf"\(condition number {condition}\)"),
     ):
         skeleton_risk_coefficients(BezierSpace.simplex(dimension, degree=degree + 1))
