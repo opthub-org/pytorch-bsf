@@ -1,0 +1,445 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Output scaling &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Sampling and grids" href="sampling.html" />
+    <link rel="prev" title="Advanced Topics" href="../advanced.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Output scaling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#when-and-why-to-change-output-coordinates">When and why to change output coordinates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#a-complete-explicit-transformation">A complete explicit transformation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#choose-a-scaler">Choose a scaler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#what-changes-mathematically">What changes mathematically?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#validation-without-leakage">Validation without leakage</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#extreme-finite-values">Extreme finite values</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Output scaling</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/normalization.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="output-scaling">
+<h1>Output scaling<a class="headerlink" href="#output-scaling" title="Link to this heading"></a></h1>
+<section id="when-and-why-to-change-output-coordinates">
+<h2>When and why to change output coordinates<a class="headerlink" href="#when-and-why-to-change-output-coordinates" title="Link to this heading"></a></h2>
+<p>A surrogate may predict quantities with very different units, such as latency
+in seconds and energy in joules. Their numerical ranges can differ by several
+orders of magnitude. Plotting raw outputs can hide the smaller response, and
+an error metric that averages squared output errors can be dominated by the
+larger one. Explicit scaling makes the choice of relative units visible and
+can make comparisons and optimization gradients easier to interpret.</p>
+<p>Core regression does not normalize automatically. <code class="docutils literal notranslate"><span class="pre">fit</span></code> defines residuals,
+ridge and smoothness in the output coordinates you provide. This is intentional:
+normalizing a response changes the meaning of zero, and therefore can change
+the prior expressed by a penalty. Choose units according to the prediction
+problem, retain the transformation, and invert it before reporting physical
+errors or sending predictions to downstream software.</p>
+<p>Output scaling is separate from parameter coordinates. A simplex input row
+must still contain nonnegative barycentric values summing to one. Never apply
+an ordinary feature standardizer independently to those columns and then pass
+them to a Bézier space: the resulting rows will generally leave the domain.
+For a product domain, each barycentric factor has its own sum-to-one constraint.</p>
+</section>
+<section id="a-complete-explicit-transformation">
+<h2>A complete explicit transformation<a class="headerlink" href="#a-complete-explicit-transformation" title="Link to this heading"></a></h2>
+<p>This example standardizes two responses, fits the transformed observations,
+and restores predictions. Every tensor is float64 so that comparisons probe
+the transformation rather than float32 rounding of large offsets.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">Samples</span><span class="p">,</span> <span class="n">fit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">StdScaler</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">21</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">square</span><span class="p">(),</span> <span class="mi">1000</span> <span class="o">+</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">square</span><span class="p">()],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">scaler</span> <span class="o">=</span> <span class="n">StdScaler</span><span class="p">()</span>
+<span class="n">transformed</span> <span class="o">=</span> <span class="n">scaler</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+<span class="n">scaled_result</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">Samples</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">transformed</span><span class="p">))</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="n">restored</span> <span class="o">=</span> <span class="n">scaler</span><span class="o">.</span><span class="n">inverse_transform</span><span class="p">(</span><span class="n">scaled_result</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+<span class="n">direct_result</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">Samples</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">values</span><span class="p">))</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">restored</span><span class="p">,</span> <span class="n">direct_result</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The scaler’s statistics are fitted once to training outputs. Apply
+<code class="docutils literal notranslate"><span class="pre">transform</span></code> to later observations with those same statistics; do not refit
+them at prediction time. <code class="docutils literal notranslate"><span class="pre">inverse_transform</span></code> expects the same output-column
+order. If column names or units change, update the transformation and model
+together rather than silently reusing old statistics.</p>
+<p>The model archive stores the learned model in its current coordinates. It
+does not package an arbitrary preprocessing object. Save the scaler’s numeric
+statistics and column schema through your application, and apply the inverse
+transformation when loading the model. A <code class="docutils literal notranslate"><span class="pre">.bsf</span></code> extension does not imply that
+normalization has been inferred or remembered.</p>
+</section>
+<section id="choose-a-scaler">
+<h2>Choose a scaler<a class="headerlink" href="#choose-a-scaler" title="Link to this heading"></a></h2>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-number">Table 9 </span><span class="caption-text">Available output transforms</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 42.0%" />
+<col style="width: 36.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Scaler</p></th>
+<th class="head"><p>Transform</p></th>
+<th class="head"><p>When to try it</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MinMaxScaler</span></code></p></td>
+<td><p>Subtract column minimum and divide by its training range.</p></td>
+<td><p>Known bounded responses; a convenient nominal zero-to-one scale.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">StdScaler</span></code></p></td>
+<td><p>Subtract column mean and divide by its training standard deviation.</p></td>
+<td><p>Compare variations relative to typical observed spread.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">QuantileScaler</span></code></p></td>
+<td><p>Use lower and upper quantiles as the reference range, without clipping.</p></td>
+<td><p>Extreme observations would dominate a min-max scale.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">NoneScaler</span></code></p></td>
+<td><p>Identity transform and inverse.</p></td>
+<td><p>Keep original units within a common preprocessing workflow.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Min-max scaling maps the training extrema to zero and one, but future
+observations may fall outside that interval. Standardization does not bound
+values at all. Quantile scaling is an affine change of units based on robust
+reference points, not a nonlinear transform to a uniform distribution. Values
+outside the selected quantile interval remain below zero or above one; they
+are not clipped or discarded.</p>
+<p><code class="docutils literal notranslate"><span class="pre">QuantileScaler</span></code> exposes its lower quantile fraction as <code class="docutils literal notranslate"><span class="pre">q</span></code> (default .05).
+Set it before fitting, for example <code class="docutils literal notranslate"><span class="pre">scaler</span> <span class="pre">=</span> <span class="pre">QuantileScaler();</span> <span class="pre">scaler.q</span> <span class="pre">=</span> <span class="pre">.1</span></code>.
+Use <code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">&lt;=</span> <span class="pre">q</span> <span class="pre">&lt;</span> <span class="pre">.5</span></code> so the reference interval is ordered and has a meaningful
+width. Increasing <code class="docutils literal notranslate"><span class="pre">q</span></code> ignores more tail observations when defining the
+reference range, usually reducing the divisor and making tails numerically
+larger after transformation. It does not reduce their regression weights.
+If robust fitting rather than robust scale estimation is required, this
+transform alone does not implement it.</p>
+<p>Constant output columns use a divisor of one to avoid division by zero.
+<code class="docutils literal notranslate"><span class="pre">StdScaler</span></code> also guards its single-sample standard deviation. Near-constant
+columns can still have tiny nonzero ranges: check fitted statistics and decide
+whether amplifying their noise is useful. The supplied scalers estimate
+unweighted column statistics. Observation weights supplied to <code class="docutils literal notranslate"><span class="pre">Samples</span></code> do
+not automatically change those statistics; calculate an application-specific
+weighted transform when that is the intended meaning.</p>
+</section>
+<section id="what-changes-mathematically">
+<h2>What changes mathematically?<a class="headerlink" href="#what-changes-mathematically" title="Link to this heading"></a></h2>
+<p>For one output, write the transform as <span class="math notranslate nohighlight">\(z=(y-a)/s\)</span>, with nonzero scale
+<span class="math notranslate nohighlight">\(s\)</span>. Bernstein bases contain constants, so transforming each control
+<span class="math notranslate nohighlight">\(Q=(P-a)/s\)</span> gives the corresponding transformed polynomial. Without
+penalties or constraints, affine scaling leaves the exact least-squares
+predictions unchanged after inversion. It can change numerical rounding, but
+is not a mechanism for making an unregularized independent-column fit more
+expressive or statistically more accurate.</p>
+<p>This observation also applies to multiple independent outputs: rescaling an
+output multiplies its data objective by a positive constant, without coupling
+it to other output columns. However, reported aggregate errors and acquisition
+scores do change their relative weighting across columns. Distinguish the
+model solution from the statistic used to rank competing models or queries.</p>
+<p>With ridge, centering changes the preferred origin. Penalizing
+<span class="math notranslate nohighlight">\(\|Q\|^2\)</span> favors output <span class="math notranslate nohighlight">\(a\)</span> after inversion, whereas penalizing
+<span class="math notranslate nohighlight">\(\|P\|^2\)</span> favors original zero. Smoothness uses differences between
+neighboring controls and is invariant under translation. Pure multiplicative
+scaling of an independent output scales its data and quadratic penalty terms
+together, so it need not change its inverse-transformed optimum at unchanged
+penalty weights. Avoid assuming that every change of units automatically
+requires a different fitted curve. Check the exact transform, objective and
+cross-output selection criterion.</p>
+<p>Fixed values must be transformed by the same affine rule as observations.
+If a known endpoint is 1000 in original units, fixing it to 1000 inside a
+standardized fit imposes an entirely different constraint. Transform its
+one-row output tensor, then create <code class="docutils literal notranslate"><span class="pre">FixedControls</span></code> from that transformed
+value. Invert predictions before checking agreement with physical boundary
+conditions. See <a class="reference internal" href="fixed_controls.html"><span class="doc">Fixed controls</span></a> for resolving coefficient indices.</p>
+<figure class="align-default" id="id2">
+<a class="reference internal image-reference" href="../_images/scaling.png"><img alt="Two output columns with different units before scaling and comparable standardized ranges afterward." src="../_images/scaling.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 7 </span><span class="caption-text">Before: the larger output offset hides the smaller response. After:
+explicit standardization makes both variations visible. This display
+change does not claim improved unregularized fitting accuracy: the
+generator verifies that inverse-transformed and direct predictions agree.</span><a class="headerlink" href="#id2" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>The comparison uses a cubic model and the same noisy observations in both
+outputs, with the second output translated and scaled. Reproduce it with
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">examples/generate_guide_figures.py</span></code>; the maximum inverse-prediction
+difference is recorded in <a class="reference download internal" download="" href="../_downloads/84af9d5d5260b756f659bd39d1ec8602/metrics.json"><code class="xref download docutils literal notranslate"><span class="pre">metrics.json</span></code></a>.</p>
+</section>
+<section id="validation-without-leakage">
+<h2>Validation without leakage<a class="headerlink" href="#validation-without-leakage" title="Link to this heading"></a></h2>
+<p>Fit preprocessing on each training fold, transform that fold’s held-out
+outputs with the training statistics, predict, invert, and evaluate in the
+units that matter. Fitting the scaler on all outputs before splitting uses
+test information. For a regularized fit, that can also change its preferred
+origin using held-out data. The convenience <code class="docutils literal notranslate"><span class="pre">cross_validate</span></code> function does
+not fit preprocessing objects for you.</p>
+<p>A practical manual fold loop uses <code class="docutils literal notranslate"><span class="pre">KFold.split(len(samples))</span></code> and
+<code class="docutils literal notranslate"><span class="pre">samples.take(indices)</span></code>. Create a fresh scaler in each iteration. Keep
+original held-out values for reporting error, and use the same fold partitions
+for every degree and penalty comparison. If you select candidates by
+standardized error, explain that each output is weighted relative to its
+training spread; if you select by original-unit error, report the units and
+output-specific tolerances.</p>
+<p>After selection, refit the scaler on all available training data and train a
+fresh model with the chosen settings. Keep a final untouched test set if one
+is needed. See <a class="reference internal" href="model_selection.html"><span class="doc">Cross-validation and degree search</span></a> for metrics and <a class="reference internal" href="active_learning.html"><span class="doc">Explicit ensembles and active learning</span></a> for
+how changing output scales changes committee disagreement rankings.</p>
+</section>
+<section id="extreme-finite-values">
+<h2>Extreme finite values<a class="headerlink" href="#extreme-finite-values" title="Link to this heading"></a></h2>
+<p>Fitting requires nonempty finite input tables. After fitting, <code class="docutils literal notranslate"><span class="pre">transform</span></code>
+and <code class="docutils literal notranslate"><span class="pre">inverse_transform</span></code> require a two-dimensional table with the same number
+of features as the fitted data, raising <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> for other shapes rather
+than broadcasting columns. The number of rows may differ, including a batch of
+zero rows with shape <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">n_features)</span></code>. For example, after fitting two columns,
+<code class="docutils literal notranslate"><span class="pre">scaler.transform(torch.ones(3,</span> <span class="pre">1))</span></code> raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>; provide both
+columns in their original order. Refitting establishes a new feature count.</p>
+<p><code class="docutils literal notranslate"><span class="pre">StdScaler</span></code> and
+<code class="docutils literal notranslate"><span class="pre">QuantileScaler</span></code> require floating values; <code class="docutils literal notranslate"><span class="pre">MinMaxScaler</span></code> also accepts
+integral tensors. For floating input, statistics and transformed outputs must
+fit the input dtype. Standard deviations and quantiles retry with scaled
+arithmetic when ordinary reductions overflow; constant and single-sample columns retain their
+unit-scale convention. Transforms and inverse transforms also retry a factored
+affine expression when a subtraction or product overflows before cancellation.</p>
+<p>The fitted public <code class="docutils literal notranslate"><span class="pre">scales</span></code> / <code class="docutils literal notranslate"><span class="pre">stds</span></code> attributes remain single tensors in the
+original units. If a range or sample standard deviation itself exceeds that
+dtype, fitting raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> with a recommendation to rescale the
+original units. For example, float64 <code class="docutils literal notranslate"><span class="pre">[-1e308,</span> <span class="pre">1e308]</span></code> has an unrepresentable
+min-max range (<code class="docutils literal notranslate"><span class="pre">2e308</span></code>), although its sample standard deviation is representable.
+The min-max and default quantile scalers reject this range explicitly; the
+standard scaler returns approximately <code class="docutils literal notranslate"><span class="pre">[-0.7071,</span> <span class="pre">0.7071]</span></code>. Divide the original
+data by a suitable unit (for example <code class="docutils literal notranslate"><span class="pre">1e308</span></code>) before fitting when needed,
+and retain that unit separately for interpreting inverse transforms.</p>
+<p>Non-finite input and genuinely unrepresentable forward or inverse results also
+raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> instead of propagating NaN/Inf. A successful inverse is
+still subject to floating rounding: a spread smaller than the precision of a
+large offset may already have been lost in the supplied data. These scalers do
+not recover information absent from the input dtype. <code class="docutils literal notranslate"><span class="pre">NoneScaler</span></code> remains a
+pass-through, without numerical validation.</p>
+<p>A varying column whose nonzero standard deviation rounds to zero also raises
+<code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. The unit-scale convention applies to genuinely constant
+columns and single samples. Scale tiny original units upward before fitting;
+otherwise substituting a unit standard deviation would silently skip
+standardization of varying data.</p>
+<p>For integral <code class="docutils literal notranslate"><span class="pre">MinMaxScaler</span></code> input, fitted minima and ranges retain their
+integer dtype; a range exceeding that dtype raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> before
+subtraction can wrap. Subtraction happens before true division, preserving adjacent
+integer differences even at large offsets. Normalized values follow PyTorch’s
+default floating dtype; half outputs use float32 division before casting to
+that dtype. A remaining nonfinite integer transform uses exact rational CPU
+arithmetic before rounding once to the output dtype; this preserves the last
+finite half rounding interval. Floating inverse results have floating precision, so adjacent
+large integers can round together in that output dtype. Boolean and complex
+inputs remain unsupported. Integer extrapolation retries a floating expression
+when subtraction would wrap. Integer inputs to <code class="docutils literal notranslate"><span class="pre">inverse_transform</span></code> keep their
+promoted integer output dtype: risky multiplication or addition uses exact
+Python integers on the CPU, and a final result outside that dtype raises
+<code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. Ordinary integer inverse operations stay on the tensor device.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../advanced.html" class="btn btn-neutral float-left" title="Advanced Topics" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sampling.html" class="btn btn-neutral float-right" title="Sampling and grids" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: perf/595-factorized-skeleton-risk
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/advanced/normalization.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/advanced/normalization.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/advanced/normalization.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/advanced/normalization.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/advanced/normalization.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/advanced/normalization.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/advanced/normalization.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/advanced/normalization.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/advanced/normalization.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/advanced/normalization.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/advanced/normalization.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/advanced/normalization.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/advanced/normalization.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="normalization.html">perf/595-factorized-skeleton-risk</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
