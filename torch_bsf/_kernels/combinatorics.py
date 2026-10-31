@@ -1,16 +1,20 @@
 r"""Simploid types, control point indices, Bernstein bases and sampling."""
 
-from collections.abc import Sequence
-from functools import cache
+from collections.abc import Iterator, Sequence
+from functools import cache, lru_cache
 from itertools import product as iproduct
-from math import factorial, prod
+from math import comb, factorial, prod
 from numbers import Integral
 from typing import Any, TypeAlias, cast
 
+import numpy as np
+import numpy.typing as npt
 import torch
 
 #: The type :math:`(a_1, \ldots, a_n)` of a simploid; ``()`` is a vertex.
 SimploidType: TypeAlias = tuple[int, ...]
+
+_EdgeKeys: TypeAlias = npt.NDArray[np.int64] | npt.NDArray[np.uint32]
 
 #: The index of a control point of a Bézier simploid: a tuple of multi-indices, one per factor.
 SimploidIndex: TypeAlias = tuple[tuple[int, ...], ...]
@@ -249,30 +253,100 @@ def _recursive_basis(t: torch.Tensor, degree: int) -> torch.Tensor:
     return basis
 
 
-@cache
+def _simplex_pair_keys(dimension: int, degree: int) -> _EdgeKeys:
+    """Encode simplex edges as ``p * n + q`` using reverse-lexicographic composition ranks."""
+    n = comb(degree + dimension, dimension)
+    if not degree:
+        return np.empty(0, dtype=np.int64)
+    dtype = np.int32 if max(n, comb(degree + dimension, dimension - 1)) <= np.iinfo(np.int32).max else np.int64
+    alpha = np.asarray([index[0] for index in _indices((dimension,), (degree,))], dtype=dtype)
+    # rank(alpha) = sum_k C(sum(alpha[k + 1:]) + dimension - k - 1, dimension - k).
+    # Moving a unit from i to j > i increments the suffix sums k = i, ..., j - 1. Pascal's identity gives
+    # the rank increment as a sum of C(suffix[k] + dimension - k - 1, dimension - k - 1).
+    suffix = degree - np.cumsum(alpha[:, :-1], axis=1, dtype=dtype)
+    del alpha
+    increments = np.empty_like(suffix)
+    for k in range(dimension):
+        table = np.asarray([comb(r + dimension - k - 1, dimension - k - 1) for r in range(degree + 1)], dtype=np.int64)
+        increments[:, k] = table[suffix[:, k]]
+    np.cumsum(increments, axis=1, dtype=dtype, out=increments)
+    key_dtype = np.uint32 if n * n - 1 <= np.iinfo(np.uint32).max else np.int64
+    keys = cast(_EdgeKeys, np.empty(comb(degree + dimension - 1, dimension) * comb(dimension + 1, 2), dtype=key_dtype))
+    offset = 0
+    for i in range(dimension):
+        previous = degree if i == 0 else suffix[:, i - 1]
+        p = np.flatnonzero(previous != suffix[:, i])
+        for j in range(i + 1, dimension + 1):
+            q = p + increments[p, j - 1]
+            if i:
+                q -= increments[p, i - 1]
+            keys[offset : offset + len(p)] = p * n + q
+            offset += len(p)
+    keys.sort()
+    return keys
+
+
+def _product_pair_keys(simploid_type: SimploidType, degree: tuple[int, ...]) -> _EdgeKeys:
+    """Generate sorted edge keys in the product's mixed-radix control order."""
+    if len(simploid_type) == 1:
+        return _simplex_pair_keys(simploid_type[0], degree[0])
+    sizes = [comb(a + d, a) for a, d in zip(simploid_type, degree, strict=True)]
+    n = prod(sizes)
+    keys_by_factor = []
+    stride = n
+    for a, d, size in zip(simploid_type, degree, sizes, strict=True):
+        stride //= size
+        local = _simplex_pair_keys(a, d)
+        p, q = local // size, local % size
+        # The product's control order is mixed radix: preceding factors select a block, following ones a suffix.
+        prefix = np.arange(n // (size * stride), dtype=np.int64) * size * stride
+        suffix = np.arange(stride, dtype=np.int64)
+        keys = (prefix[:, None, None] + p[None, :, None] * stride + suffix) * n
+        keys += prefix[:, None, None] + q[None, :, None] * stride + suffix
+        keys_by_factor.append(keys.reshape(-1))
+    keys = np.concatenate(keys_by_factor) if keys_by_factor else np.empty(0, dtype=np.int64)
+    del keys_by_factor
+    keys.sort()
+    return keys
+
+
+def _make_adjacent_pairs(simploid_type: SimploidType, degree: tuple[int, ...]) -> tuple[tuple[int, int], ...]:
+    """Convert sorted integer keys after releasing the generation temporaries."""
+    keys = _product_pair_keys(simploid_type, degree)
+    n = prod(comb(a + d, a) for a, d in zip(simploid_type, degree, strict=True))
+    # Reuse one Python integer per control, as the old position dictionary did. Converting endpoint arrays with
+    # tolist() would create two Python integers per edge and more than double the wide-simplex memory use.
+    endpoints = np.arange(n, dtype=np.int64).astype(object)
+    return tuple(_edge_tuple_chunks(keys, endpoints, n))
+
+
+def _edge_tuple_chunks(keys: _EdgeKeys, endpoints: npt.NDArray[np.object_], n: int) -> Iterator[tuple[int, int]]:
+    """Bound temporary object arrays while yielding the already sorted edges."""
+    for start in range(0, len(keys), 65536):
+        chunk = keys[start : start + 65536]
+        yield from zip(endpoints[chunk // n], endpoints[chunk % n], strict=True)
+
+
+@lru_cache(maxsize=128)
+def _small_adjacent_pairs(simploid_type: SimploidType, degree: tuple[int, ...]) -> tuple[tuple[int, int], ...]:
+    """Cache only small immutable edge tuples; large results must die with their owning spaces."""
+    return _make_adjacent_pairs(simploid_type, degree)
+
+
 def _adjacent_pairs(simploid_type: SimploidType, degree: tuple[int, ...]) -> tuple[tuple[int, int], ...]:
     """The pairs ``(p, q)``, ``p < q``, of positions of adjacent control points in :func:`simploid_indices` order.
 
     Two control points are adjacent if their multi-indices differ in a single factor, by moving one unit
-    from one component to another (an :math:`L^1` distance of 2 in that factor).
+    from one component to another (an :math:`L^1` distance of 2 in that factor). Results with at most 4096
+    edges share a bounded cache; larger tuples are not retained after their caller releases them.
     """
-    pos = _positions(simploid_type, degree)
-    pairs = []
-    for alpha, p in pos.items():
-        for k, m in enumerate(alpha):
-            for i in range(len(m)):
-                if m[i] == 0:
-                    continue
-                for j in range(len(m)):
-                    if j == i:
-                        continue
-                    n = list(m)
-                    n[i] -= 1
-                    n[j] += 1
-                    q = pos[alpha[:k] + (tuple(n),) + alpha[k + 1 :]]
-                    if p < q:
-                        pairs.append((p, q))
-    return tuple(sorted(pairs))
+    sizes = [comb(a + d, a) for a, d in zip(simploid_type, degree, strict=True)]
+    n = prod(sizes)
+    count = sum(
+        comb(a + d - 1, a) * comb(a + 1, 2) * (n // size) if d else 0
+        for a, d, size in zip(simploid_type, degree, sizes, strict=True)
+    )
+    return _small_adjacent_pairs(simploid_type, degree) if count <= 4096 else _make_adjacent_pairs(simploid_type, degree)
 
 
 def sample_simploid(simploid_type: Sequence[int], n_samples: int, seed: int | None = None) -> torch.Tensor:
