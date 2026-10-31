@@ -1921,14 +1921,16 @@ def test_a_product_can_win_although_a_factor_loses():
     assert abs(prism_risk - 14.20) <= _printed_unit("14.20") / 2
 
 
-@pytest.mark.parametrize(("dimensions", "degree"), _PRODUCT_THEORY_CASES)
+@pytest.mark.parametrize(("dimensions", "degree"), _PRODUCT_THEORY_CASES + [((2, 1), (3, 1)), ((1, 2, 1), (1, 2, 1))])
 def test_simploid_shape_allocation_factorizes_the_optimum(dimensions, degree):
     coefficients, factors = _scalar_product_risk(dimensions, degree)
     blocks = _blocks(dimensions)
     by_shape: dict[tuple[int, ...], list[Fraction]] = {}
+    by_dimension: dict[int, list[Fraction]] = {}
     for face, trace in _rational_face_traces(dimensions, degree):
         shape = tuple(sum(i in block for i in face) - 1 for block in blocks)
         by_shape.setdefault(shape, []).append(trace)
+        by_dimension.setdefault(sum(shape), []).append(trace)
     assert set(by_shape) == set(product(*(range(len(factor)) for factor in factors)))
     shape_coefficients = []
     for shape, traces in by_shape.items():
@@ -1944,6 +1946,15 @@ def test_simploid_shape_allocation_factorizes_the_optimum(dimensions, degree):
     tolerance = 16 * (len(shape_coefficients) + len(factors)) * U
     assert direct == pytest.approx(factorized, rel=tolerance, abs=0)
     assert factorized <= dimension_based * (1 + tolerance)
+    # The Cauchy-Schwarz equality condition is exact in the rational traces. Numerical risk comparisons use
+    # the same rounding bound; unequal cases must be separated by more than that bound in these examples.
+    equal_traces = all(all(trace == traces[0] for trace in traces) for traces in by_dimension.values())
+    if equal_traces:
+        assert factorized == pytest.approx(dimension_based, rel=tolerance, abs=0)
+    else:
+        assert factorized < dimension_based * (1 - tolerance)
+    if sum(d > 1 for d in degree) <= 1:
+        assert equal_traces
 
 
 def _assert_simploid_rows(space, degree, points, n, fractions):

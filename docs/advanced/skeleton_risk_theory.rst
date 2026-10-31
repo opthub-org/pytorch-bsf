@@ -395,6 +395,63 @@ All sums over shapes below use :math:`r_i\in\mathcal R_i`.
    :math:`a^{(i)}_r=f_{i,r}^2\operatorname{tr}(H_{I_i}^{-1}E_{I_i}^\top G_iE_{I_i})`.
    This proves :eq:`skeleton-product-face-trace`.
 
+The same propagation identity has a useful polynomial formulation. It
+shows how a closed form for a simplex error polynomial gives one on a
+product, before computing any Gram trace.
+
+.. prf:remark:: Tensor products of error polynomials
+   :label: rem-skeleton-product-polynomials
+
+   For source-face controls :math:`c_i\in\mathbb R^{T_{I_i}}`, let
+   :math:`p^{(i)}_{c_i}` be the factor's error polynomial. On the product
+   face :math:`F=\prod_i I_i`, put :math:`c=\bigotimes_i c_i`. Then
+
+   .. math::
+      :label: skeleton-product-polynomial
+
+      p_{F,c}(t_1,\ldots,t_k)=\prod_i p^{(i)}_{c_i}(t_i).
+
+   Here :math:`p_{F,c}=\sum_\alpha B_\alpha(E_Fc)_\alpha`.
+
+.. prf:proof::
+
+   The characterization in
+   :prf:ref:`lem-skeleton-propagation-characterization` holds in the
+   product Bernstein span, whose factor polynomials have degree at most
+   :math:`D_i`: prescribe
+   the controls on :math:`T_F`, set controls whose support does not contain
+   :math:`F` to zero, and impose orthogonality to the interior Bernstein
+   span on each strict active superface. Positive definite interior Gram
+   blocks determine successive controls uniquely. Inactive faces have no
+   interior controls and impose no condition.
+
+   The product on the right of :eq:`skeleton-product-polynomial` has
+   controls :math:`\prod_i(E_{I_i}c_i)_{\alpha_i}`. These agree with
+   :math:`c` on :math:`T_F` and vanish when the support does not contain
+   :math:`F`. The interior Bernstein span, or bubble space, on a superface
+   :math:`J=\prod_iJ_i` is spanned by products :math:`\prod_i g_i` of factor
+   bubbles. Since the face measure is a product,
+
+   .. math::
+
+      \int_J\prod_i p^{(i)}_{c_i}g_i\,dU_J
+      =\prod_i\int_{J_i}p^{(i)}_{c_i}g_i\,dU_{J_i}=0.
+
+   At least one :math:`J_i` strictly contains :math:`I_i`; its factor
+   vanishes by the simplex characterization. Uniqueness proves the
+   polynomial identity. Elementary tensors :math:`\bigotimes_i c_i` span
+   all source-face controls, so linearity also recovers the full matrix
+   identity :math:`E_F=\bigotimes_iE_{I_i}`.
+
+Tensor products of orthogonal factor boundary modes are orthogonal on the
+product face. Both their squared boundary norms and their propagated
+squared error norms factor. Consequently, the Jacobi extensions and mode
+norm ratios in :prf:ref:`thm-skeleton-scalar-sum` can be combined factor
+by factor to obtain product formulas. New closed forms for a factor
+therefore transfer through the polynomial identity as well as through
+:eq:`skeleton-product-coefficients`. Shortening an unevaluated factor sum
+remains a separate problem.
+
 .. prf:theorem:: Product risk and allocation by dimension
    :label: thm-skeleton-product-risk
 
@@ -478,7 +535,10 @@ arithmetic using the simplex scalar sums.
       &=\prod_i\left(\sum_{r\in\mathcal R_i}\sqrt{a^{(i)}_r}\right)^2
         \leq\left(\sum_m\sqrt{A_m}\right)^2.
 
-   This is also the optimum over all individual-face allocations.
+   This is also the optimum over all individual-face allocations. The
+   dimension-based optimum equals it if and only if all active faces of
+   each total dimension have the same trace. In particular, equality holds
+   when at most one factor has degree above one.
 
 .. prf:proof::
 
@@ -493,6 +553,23 @@ arithmetic using the simplex scalar sums.
    All faces of one shape have the same positive trace, so their optimal
    individual shares are equal. Finally, every dimension-based allocation
    is a permissible shape-based allocation, proving the inequality.
+
+   For the equality condition, let :math:`\tau_F` denote the trace of
+   face :math:`F`. Cauchy-Schwarz within dimension :math:`m` gives
+
+   .. math::
+
+      \sum_{\dim F=m}\sqrt{\tau_F}
+      \leq\sqrt{F_m\sum_{\dim F=m}\tau_F}=\sqrt{A_m}.
+
+   Equality holds precisely when those positive traces agree. Summing
+   over dimensions gives the square roots of the face and dimension
+   optima, respectively, so their equality requires equality at every
+   active dimension. If only factor :math:`i` has degree above one, an
+   active face of dimension :math:`m` has :math:`r_i=m` and
+   :math:`r_j=0` for :math:`j\neq i`. All faces of that dimension therefore
+   have the same shape and trace. If all factors are linear, only vertices
+   are active and their traces agree as well.
 
 This corollary describes a larger design class than the current sampling
 API: ``ratio`` has one entry per total dimension, and

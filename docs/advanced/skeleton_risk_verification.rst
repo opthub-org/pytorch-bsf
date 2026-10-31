@@ -113,6 +113,9 @@ against the Kronecker product of the factors' matrices, evaluated by the
 independent simplex recursion. This equality is checked in rational
 arithmetic before taking any trace, directly testing
 :prf:ref:`lem-skeleton-product-propagation`.
+Since elementary tensors of factor control vectors span all source-face
+controls, the same matrix check verifies the polynomial identity in
+:prf:ref:`rem-skeleton-product-polynomials` for arbitrary boundary modes.
 
 Grouping the independent face traces by the vector of factor face
 dimensions checks that the faces of one shape have equal traces, that all
@@ -149,6 +152,15 @@ The proofs, rather than these finite checks, establish the formulas for
 all factor dimensions and degrees. Sampling by independent shape shares
 is a theoretical design here; the current ``ratio`` API is indexed by
 total dimension.
+
+The allocation checks also group the exact traces by total dimension.
+They verify that the dimension and face optima agree exactly when each
+dimension has equal face traces, using the rounding bound above to compare
+the numerical risks. Two additional cases, type :math:`(2,1)` with degrees
+:math:`(3,1)` and type :math:`(1,2,1)` with degrees :math:`(1,2,1)`, check the
+sufficient condition that at most one factor has degree above one. This
+also includes the cubic-triangle example below. The mixed-degree square
+provides a case with strict inequality.
 
 Separate numerical checks cover :prf:ref:`cor-skeleton-product-closed-forms`:
 the top coefficient on types :math:`(1,2)` and :math:`(2,2)` with degrees
