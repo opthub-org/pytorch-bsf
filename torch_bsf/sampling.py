@@ -320,7 +320,7 @@ def _n_skeleton_faces(dimensions: Sequence[int], degree: Sequence[int], m: int) 
 def _float_weight(weight: float, name: str) -> float:
     """Convert real weights before tensor accumulation, retaining the distinction between zero and underflow."""
     message = f"{name} must contain finite nonnegative real weights representable in float64."
-    if isinstance(weight, bool) or not isinstance(weight, numbers.Real):
+    if isinstance(weight, bool) or not isinstance(weight, numbers.Real) or weight < 0:
         raise ValueError(message)
     try:
         converted = float(weight)

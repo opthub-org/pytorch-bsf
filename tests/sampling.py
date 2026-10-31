@@ -2430,3 +2430,14 @@ def test_assembled_skeleton_allocation_property(kind, degree, n, seed, method, d
             # Positive sum followed by division: the sum has at most block.width roundings.
             tolerance = 8 * len(block) * 2**-53
             assert torch.allclose(local[:, block].sum(1), torch.ones(len(local), dtype=torch.float64), rtol=0, atol=tolerance)
+
+
+@pytest.mark.parametrize("negative", [Fraction(-1, 10**1000)])
+def test_assembled_negative_weight_cannot_underflow_into_zero(negative):
+    space = _two_glued_segments()
+    left, right = space.main_cells
+    weights = {left: 1.0, right: negative}
+    with pytest.raises(ValueError, match="evaluation_weights.*nonnegative"):
+        skeleton_risk_coefficients(space, evaluation_weights=weights)
+    with pytest.raises(ValueError, match="cell_weights.*nonnegative"):
+        sample_skeleton(space, 4, cell_weights=weights)
