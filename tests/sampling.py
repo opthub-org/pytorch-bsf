@@ -1784,9 +1784,9 @@ def _rational_gram(dimensions, degree, alphas, face, rows, columns):
     return [[entry(r, c) for c in columns] for r in rows]
 
 
-@cache  # Pure; callers only read the returned face traces.
-def _rational_face_traces(dimensions, degree):
-    """Independent product-face propagation and Gram traces, retaining exact rational values."""
+@cache  # Pure; callers only read the returned lists.
+def _rational_product_propagation(dimensions, degree):
+    """Exact face traces and propagated errors, with controls in the order of :func:`_indices`."""
     alphas = [sum(index, ()) for index in _indices(tuple(dimensions), tuple(degree))]
     n = len(alphas)
     supports = [tuple(i for i, v in enumerate(alpha) if v) for alpha in alphas]
@@ -1811,7 +1811,12 @@ def _rational_face_traces(dimensions, degree):
         inner = [[sum(x * full[r][c] * y[c] for r, x in enumerate(u) for c in range(n)) for y in columns] for u in columns]
         trace = sum(row[i] for i, row in enumerate(_rational_solve(g_tt, inner)))
         traces.append((face, trace))
-    return traces
+    return traces, errors
+
+
+def _rational_face_traces(dimensions, degree):
+    """Independent product-face Gram traces, retaining exact rational values."""
+    return _rational_product_propagation(dimensions, degree)[0]
 
 
 def _rational_skeleton_risk(dimensions, degree):
@@ -1848,6 +1853,72 @@ def test_simploid_scalar_product_formula_matches_exact_propagation(dimensions, d
     assert coefficients == _rational_skeleton_risk(dimensions, degree)
     numerical = skeleton_risk_coefficients(BezierSpace.simploid(dimensions, degree=degree))
     assert numerical == pytest.approx(coefficients, rel=1e-6, abs=0)
+
+
+@pytest.mark.parametrize(("dimensions", "degree"), _PRODUCT_THEORY_CASES)
+def test_simploid_propagation_is_the_kronecker_product_of_its_factors(dimensions, degree):
+    # lem-skeleton-product-propagation: compare every matrix entry, before taking any Gram trace. The factors
+    # use the independent simplex recursion, and all operations are rational, so no rounding tolerance is needed.
+    _, errors = _rational_product_propagation(dimensions, degree)
+    kronecker = [[Fraction(1)]]
+    for dimension, d in zip(dimensions, degree, strict=True):
+        _, _, factor_errors = _exact_coefficients(dimension + 1, d)
+        kronecker = [[x * y for x in row for y in factor_row] for row in kronecker for factor_row in factor_errors]
+    assert errors == kronecker
+
+
+@pytest.mark.parametrize(("dimensions", "degree"), [((1, 2), (2, 3)), ((2, 2), (3, 4))])
+def test_simploid_top_risk_coefficient_counts_interior_controls(dimensions, degree):
+    # cor-skeleton-product-closed-forms: the full product face has no superfaces. Each factor degree is at least
+    # its vertex count, so the product has interior controls. Converting the integer reference is exact here.
+    a = skeleton_risk_coefficients(BezierSpace.simploid(dimensions, degree=degree))
+    interior = math.prod(comb(d - 1, dimension) for dimension, d in zip(dimensions, degree, strict=True))
+    assert a[-1] == pytest.approx(interior, rel=_RISK_RELATIVE_ERROR, abs=0)
+
+
+@pytest.mark.parametrize("dimensions", [(1, 1), (2, 3), (1, 1, 1, 1)])
+def test_linear_simploid_risk_has_only_a_vertex_coefficient(dimensions):
+    # cor-skeleton-product-closed-forms: only vertices are active. The runtime error is bounded by
+    # _RISK_RELATIVE_ERROR, and converting the exact rational reference adds one rounding.
+    a = skeleton_risk_coefficients(BezierSpace.simploid(dimensions, degree=1))
+    exact = math.prod(Fraction(2 * (dimension + 1), dimension + 2) for dimension in dimensions)
+    assert a[0] == pytest.approx(float(exact), rel=_RISK_RELATIVE_ERROR + U, abs=0)
+    assert a[1:] == (0.0,) * sum(dimensions)
+
+
+@pytest.mark.parametrize("k", [1, 2, 3])
+@pytest.mark.parametrize("degree", [1, 2, 3])
+def test_equal_degree_segments_have_binomial_optimal_allocation(k, degree):
+    # cor-skeleton-product-closed-forms and its binomial allocation. The runtime coefficients have relative
+    # error at most _RISK_RELATIVE_ERROR; the exact reference is rounded once on conversion to float.
+    space = BezierSpace.simploid((1,) * k, degree=degree)
+    coefficients = skeleton_risk_coefficients(space)
+    a_0, a_1 = Fraction(4, degree * (degree + 2)), degree - 1
+    exact = [comb(k, m) ** 2 * a_1**m * a_0 ** (k - m) for m in range(k + 1)]
+    assert coefficients == pytest.approx([float(a) for a in exact], rel=_RISK_RELATIVE_ERROR + U, abs=0)
+    p = math.sqrt(a_1) / (math.sqrt(a_0) + math.sqrt(a_1))
+    binomial = [comb(k, m) * p**m * (1 - p) ** (k - m) for m in range(k + 1)]
+    # Square roots and normalization propagate coefficient error by at most epsilon/(1-epsilon).
+    # Evaluating and normalizing the k+1 terms adds at most 16(k+1) U at these k and degrees.
+    rel = _RISK_RELATIVE_ERROR / (1 - _RISK_RELATIVE_ERROR) + 16 * (k + 1) * U
+    assert optimal_skeleton_ratio(space) == pytest.approx(binomial, rel=rel, abs=0)
+    optimum = sum(math.sqrt(a) for a in coefficients) ** 2
+    assert optimum == pytest.approx((math.sqrt(a_0) + math.sqrt(a_1)) ** (2 * k), rel=rel, abs=0)
+    # The coefficient error and rounding above are far below the winning margin in these cases.
+    assert optimum < space.n_controls
+
+
+def test_a_product_can_win_although_a_factor_loses():
+    # The open-questions example: coefficient errors bounded by _RISK_RELATIVE_ERROR are far below both
+    # winning margins and half a unit in the printed last decimal place.
+    triangle = skeleton_risk_coefficients(BezierSpace.simplex(2, degree=3))
+    prism = skeleton_risk_coefficients(BezierSpace.simploid((2, 1), degree=(3, 1)))
+    triangle_risk = sum(math.sqrt(a) for a in triangle) ** 2
+    prism_risk = sum(math.sqrt(a) for a in prism) ** 2
+    assert triangle_risk > 10
+    assert prism_risk < 20
+    assert abs(triangle_risk - 10.65) <= _printed_unit("10.65") / 2
+    assert abs(prism_risk - 14.20) <= _printed_unit("14.20") / 2
 
 
 @pytest.mark.parametrize(("dimensions", "degree"), _PRODUCT_THEORY_CASES)

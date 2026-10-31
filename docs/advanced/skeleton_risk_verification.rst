@@ -108,6 +108,12 @@ rational Gauss-Jordan elimination, and retains every face trace as a
 The runtime numerical coefficients are also checked against those exact
 values with the documented relative tolerance :math:`10^{-6}`.
 
+The same 12 cases also check every entry of the propagated error matrix
+against the Kronecker product of the factors' matrices, evaluated by the
+independent simplex recursion. This equality is checked in rational
+arithmetic before taking any trace, directly testing
+:prf:ref:`lem-skeleton-product-propagation`.
+
 Grouping the independent face traces by the vector of factor face
 dimensions checks that the faces of one shape have equal traces, that all
 active shapes occur, and that each shape coefficient is exactly
@@ -143,6 +149,19 @@ The proofs, rather than these finite checks, establish the formulas for
 all factor dimensions and degrees. Sampling by independent shape shares
 is a theoretical design here; the current ``ratio`` API is indexed by
 total dimension.
+
+Separate numerical checks cover :prf:ref:`cor-skeleton-product-closed-forms`:
+the top coefficient on types :math:`(1,2)` and :math:`(2,2)` with degrees
+:math:`(2,3)` and :math:`(3,4)`, respectively; the vertex coefficient and
+inactive dimensions at degree one on types :math:`(1,1)`, :math:`(2,3)` and
+:math:`(1,1,1,1)`; and products of one, two and three segments at each of
+degrees one through three. The segment products also check the binomial
+optimal dimension fractions, the closed-form optimal risk and its strict
+improvement over all-at-once fitting. Coefficient comparisons allow the
+runtime relative error bound plus the reference's rounding error; derived
+quantities also allow for square roots, sums and normalization. The cubic
+triangle times a linear segment checks the printed risks :math:`10.65`
+and :math:`14.20`, and that the factor loses while the product wins.
 
 Reproducing the vertex certificate
 ----------------------------------

@@ -519,6 +519,53 @@ it does not change the face-by-face fitting rule.
    control counts. Thus the ratio of the shape-optimal risk to the
    all-at-once risk is the product of the corresponding simplex ratios.
 
+.. prf:corollary:: Closed forms on products
+   :label: cor-skeleton-product-closed-forms
+
+   The product coefficients :math:`A_m` have the following closed forms.
+
+   - If :math:`D_i\geq M_i` for every factor, then
+     :math:`A_{\dim P}=\prod_i\binom{D_i-1}{M_i-1}`, the number of controls
+     interior to :math:`P`.
+   - If :math:`D_i=1` for every factor, then
+     :math:`A_0=\prod_i 2M_i/(M_i+1)` and the other coefficients vanish.
+   - For :math:`k` segments of the same degree :math:`D\geq1`, put
+     :math:`a_0=4/(D(D+2))` and :math:`a_1=D-1`. Then
+
+     .. math::
+
+        A_m=\binom km^2a_1^ma_0^{k-m}\qquad(0\leq m\leq k).
+
+.. prf:proof::
+
+   Substitute the simplex formulas into :eq:`skeleton-product-coefficients`.
+   The top dimension has a single face, and :prf:ref:`prop-skeleton-top`
+   gives the first claim. At degree one only vertices are active;
+   :prf:ref:`prop-skeleton-degree-faces` gives the second. For segments,
+   :prf:ref:`thm-skeleton-curves` gives :math:`(a_0,a_1)` and the two
+   generating polynomials are :math:`(2+z)^k` and
+   :math:`(a_0/2+a_1z)^k` when :math:`D\geq2`. Their coefficients give the
+   third claim. At :math:`D=1` only :math:`A_0=a_0^k` is nonzero, giving
+   the same formula.
+
+For these equal-degree segments, every active face of dimension :math:`m`
+has trace :math:`a_1^m(a_0/4)^{k-m}`. Thus allocation by dimension attains
+the individual-face optimum of :prf:ref:`cor-skeleton-product-shape-ratio`.
+More explicitly, with
+
+.. math::
+
+   p=\frac{\sqrt{a_1}}{\sqrt{a_0}+\sqrt{a_1}},
+
+the optimal dimension fractions form the binomial distribution
+:math:`\rho_m^*=\binom kmp^m(1-p)^{k-m}` and the normalized optimal risk is
+:math:`(\sqrt{a_0}+\sqrt{a_1})^{2k}`. At :math:`D=1`, :math:`p=0` means all
+rows go to vertices. Taking square roots of the closed form for
+:math:`A_m` and applying the binomial theorem proves these statements.
+By :prf:ref:`cor-skeleton-curves-win`, this risk is strictly below the
+:math:`(D+1)^k` of all-at-once fitting at every :math:`k\geq1` and degree
+:math:`D\geq1`.
+
 For example, on a square with degrees :math:`(2,3)`, the two curve factors
 have coefficients :math:`(1/2,1)` and :math:`(4/15,2)`. Both have face
 counts :math:`(2,1)`. Therefore
@@ -1491,6 +1538,16 @@ every coefficient are proved above. The questions below concern further
 evaluation of those expressions and the comparison with all-at-once
 fitting. The curves, all triangle coefficients, the top face, and the
 families :math:`m=D-1,D-2,D-3` are already resolved in closed form.
+
+The product formula :eq:`skeleton-product-coefficients` reduces coefficient
+evaluation to the simplex factors. Winning against all-at-once fitting
+does not require every factor to win: a cubic triangle loses against its
+10 controls, while its product with a linear segment has optimal
+dimension-based risk approximately :math:`14.2`, below its 20 controls.
+The linear segment multiplies every nonzero triangle coefficient by
+:math:`4/3`, and the two normalized optimal risks are approximately
+:math:`10.65` and :math:`14.20`. In this example only the triangle has
+active positive-dimensional faces, so the dimension and shape optima agree.
 
 - **Shorter evaluations of the remaining nonvertex coefficients.**
   The remaining range is :math:`M\geq4`, :math:`D\geq5` and
