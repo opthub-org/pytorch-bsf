@@ -1,0 +1,330 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Robust Portfolio Management &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Distributed Smart Grids and Energy Operations" href="smart_grids.html" />
+    <link rel="prev" title="Facility Location and Continuous Approximations" href="facility_location.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../advanced.html">Advanced Topics</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../applications.html">Applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../applications.html#what-is-fitted-in-each-application">What is fitted in each application?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../applications.html#a-common-reproduction-and-validation-workflow">A common reproduction and validation workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../applications.html#choosing-a-domain-and-a-next-guide">Choosing a domain and a next guide</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../applications.html#application-guides">Application guides</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="elastic_net.html">Elastic Net Model Selection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="medical_imaging.html">Medical Imaging and Radiation Therapy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="facility_location.html">Facility Location and Continuous Approximations</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Robust Portfolio Management</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#numerical-experiments">Numerical Experiments</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#inputs-allocations-and-objective-values">Inputs, allocations and objective values</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#fit-and-validate-the-decision-map">Fit and validate the decision map</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#choosing-capacity-and-updating-the-model">Choosing capacity and updating the model</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="smart_grids.html">Distributed Smart Grids and Energy Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="communications.html">Communication Systems and Routing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="federated_learning.html">Multi-Task and Federated Learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="supply_chain.html">Supply Chain and Logistics Optimization</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../applications.html">Applications</a></li>
+      <li class="breadcrumb-item active">Robust Portfolio Management</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/applications/portfolio.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="robust-portfolio-management">
+<h1>Robust Portfolio Management<a class="headerlink" href="#robust-portfolio-management" title="Link to this heading"></a></h1>
+<p>In financial engineering and asset management, the most classical real-world application is Markowitz’s mean-variance portfolio optimization <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id35" title="Harry Markowitz. Portfolio selection. The Journal of Finance, 7(1):77–91, 1952. doi:10.2307/2975974.">Mar52</a>]</span>. Investors and fund managers seek to simultaneously maximize expected returns and minimize risk (often modeled as the variance of returns). This framework is widely utilized by institutional pension funds (e.g., GPIF), treasury departments, and risk management teams to quantify trade-offs and build consensus on asset allocation decisions.</p>
+<p>However, in practice, estimating the covariance matrix from limited observations or highly collinear assets often leads to numerical instability. To resolve this, it is common to introduce a strongly convex regularization term, such as an <span class="math notranslate nohighlight">\(L_2\)</span> norm penalty on the asset allocation weights or a turnover penalty to suppress excessive trading compared to a previous portfolio <span class="math notranslate nohighlight">\(x^{\text{prev}}\)</span> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id18" title="Houduo Qi. Optimal portfolio selections via l1,2-norm regularization. URL: https://eprints.soton.ac.uk/451606/1/mvpl12_for_PURE.pdf.">Qi</a>]</span>.</p>
+<p>This formulation effectively creates a three-objective optimization problem over the allocation weights <span class="math notranslate nohighlight">\(x \in \mathbb{R}^n\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\text{Expected Return: } &amp; f_1(x) = -\mu^T x \\
+\text{Risk (Variance): } &amp; f_2(x) = x^T \Sigma x \\
+\text{Stability (Turnover): } &amp; f_3(x) = \lambda \|x - x^{\text{prev}}\|_2^2\end{split}\]</div>
+<p>Subject to classical constraints such as the budget constraint <span class="math notranslate nohighlight">\(\mathbf{1}^T x = 1\)</span> and long-only constraints <span class="math notranslate nohighlight">\(x \ge 0\)</span>.</p>
+<p>For weights <span class="math notranslate nohighlight">\(w\)</span>, the scalarized Hessian is
+<span class="math notranslate nohighlight">\(2w_2\Sigma+2w_3\lambda I\)</span>. A positive turnover weight guarantees
+strong convexity, but that guarantee can disappear on the face
+<span class="math notranslate nohighlight">\(w_3=0\)</span>; the return objective alone is linear. The unconstrained
+strongly convex theorem in <a class="reference internal" href="../whatis.html"><span class="doc">What is Bézier simplex fitting?</span></a> therefore cannot be applied to
+this entire constrained three-objective formulation without further work.</p>
+<p>Fitting a Bézier simplex gives a continuous approximation of sampled
+trade-offs. Uniqueness comes from the reference problem’s assumptions,
+rather than the surrogate representation. Weighted quadratic subproblems
+can be solved offline, with their decisions and objective values retained
+as training responses. Extensions such as CVaR or uncertain market inputs
+change the reference problem and require their own parameterization and
+validation.</p>
+<section id="numerical-experiments">
+<h2>Numerical Experiments<a class="headerlink" href="#numerical-experiments" title="Link to this heading"></a></h2>
+<p>To illustrate Bézier simplex fitting on a portfolio Pareto front, we conducted an experiment using a three-asset mean-variance problem with L2 regularization to ensure strong convexity.</p>
+<p><strong>Problem Setup:</strong></p>
+<ul class="simple">
+<li><p>Decision variable: <span class="math notranslate nohighlight">\(x \in \mathbb{R}^3\)</span> (portfolio weights, unconstrained)</p></li>
+<li><p>Expected returns: <span class="math notranslate nohighlight">\(\mu = [0.05, 0.12, 0.08]\)</span></p></li>
+<li><p>Asset variances: <span class="math notranslate nohighlight">\(\text{diag}(\Sigma) = [0.10, 0.15, 0.08]\)</span></p></li>
+<li><p>Regularized objectives:</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\begin{split}f_1(x) &amp;= -\mu^T x + 0.2\|x\|^2 \quad \text{(negative return + L2)} \\
+f_2(x) &amp;= x^T \mathrm{diag}(\Sigma) x + 0.05\|x\|^2 \quad \text{(variance + L2)}\end{split}\]</div>
+<p><strong>Experiment Procedure:</strong></p>
+<ol class="arabic simple">
+<li><p>Sample 10 weight vectors <span class="math notranslate nohighlight">\(w = (w_1, w_2)\)</span> uniformly on the 1-simplex from <span class="math notranslate nohighlight">\((1,0)\)</span> to <span class="math notranslate nohighlight">\((0,1)\)</span>.</p></li>
+<li><p>For each <span class="math notranslate nohighlight">\(w\)</span>, solve <span class="math notranslate nohighlight">\(x^*(w) = \arg\min_x [w_1 f_1(x) + w_2 f_2(x)]\)</span> using L-BFGS-B.</p></li>
+<li><p>Collect the Pareto front points <span class="math notranslate nohighlight">\((f_1(x^*(w)), f_2(x^*(w)))\)</span>.</p></li>
+<li><p>Fit a degree-3 Bézier simplex to the weight–objective pairs and another to the weight–decision pairs.</p></li>
+<li><p>Evaluate the fitted Bézier curve on 101 test weights.</p></li>
+</ol>
+<p>The maximum error on the test weights is about <span class="math notranslate nohighlight">\(10^{-4}\)</span>, i.e., below 0.5% of the range of each objective.
+The regularization weight of <span class="math notranslate nohighlight">\(f_1\)</span> matters: the weighted-sum solution <span class="math notranslate nohighlight">\(x^*(w)\)</span> is a rational function of <span class="math notranslate nohighlight">\(w\)</span>, and with a weaker regularization (e.g., <span class="math notranslate nohighlight">\(0.05\|x\|^2\)</span>) its poles come close to the weight simplex and a cubic Bézier curve visibly deviates from the Pareto front.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><a class="reference internal image-reference" href="../_images/portfolio_pareto_set.png"><img alt="Pareto set for 3-asset portfolio (asset allocation space)" src="../_images/portfolio_pareto_set.png" style="width: 100%;" />
+</a>
+</td>
+<td><a class="reference internal image-reference" href="../_images/portfolio_pareto.png"><img alt="Bézier simplex fitting to 3-asset portfolio Pareto front" src="../_images/portfolio_pareto.png" style="width: 100%;" />
+</a>
+</td>
+</tr>
+<tr class="row-even"><td><p>Pareto set.</p></td>
+<td><p>Pareto front.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The complete example script is available at <code class="file docutils literal notranslate"><span class="pre">examples/generate_portfolio_pareto.py</span></code>.</p>
+</section>
+<section id="inputs-allocations-and-objective-values">
+<h2>Inputs, allocations and objective values<a class="headerlink" href="#inputs-allocations-and-objective-values" title="Link to this heading"></a></h2>
+<p>The numerical example uses two regularized objectives, so its input is a
+segment of priority weights <code class="docutils literal notranslate"><span class="pre">[w1,</span> <span class="pre">w2]</span></code>. It differs from the three-objective,
+budget-constrained formulation above: it has no budget or nonnegativity
+constraints, and its first objective includes an allocation penalty. Its
+three decision outputs are unconstrained coefficients rather than guaranteed
+portfolio percentages. The figure illustrates surrogate construction for
+that stated toy problem.</p>
+<p>For a diagonal covariance with entries <span class="math notranslate nohighlight">\(s_j\)</span>, stationarity gives</p>
+<div class="math notranslate nohighlight">
+\[x_j^*(w)=\frac{w_1\mu_j}
+    {2\left(0.2w_1+(s_j+0.05)w_2\right)}.\]</div>
+<p>The denominator stays positive on the weight segment, but the solution is
+rational rather than polynomial. A cubic fit approximates this map. It does
+not become exact merely because the optimization objectives are quadratic.
+Reducing the regularization can make the map vary sharply near an endpoint,
+which explains why the same degree and sample count can then perform worse.</p>
+</section>
+<section id="fit-and-validate-the-decision-map">
+<h2>Fit and validate the decision map<a class="headerlink" href="#fit-and-validate-the-decision-map" title="Link to this heading"></a></h2>
+<p>Store one row of weights and three allocation outputs for each reference
+solve. Fit them with <code class="docutils literal notranslate"><span class="pre">BezierSpace.simplex(1,</span> <span class="pre">degree=3)</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Samples(weights,</span> <span class="pre">allocations)</span></code>. A separate two-output fit gives the front.
+Keep objective scaling explicit: variance and return have different units,
+and changing their scales changes the interpretation of the input weights.
+See <a class="reference internal" href="../advanced/normalization.html"><span class="doc">Output scaling</span></a> for output transformations.</p>
+<p>At held-out weights, compare the predicted allocations with the reference
+optimizer, then evaluate the original objectives on those allocations.
+Report the maximum error in each output in addition to average error. The
+quoted test-grid result describes these constants and this parameter range;
+it is not a guarantee for another covariance estimate or asset universe.</p>
+<p>For a constrained extension, check the budget residual, minimum holding and
+any turnover or exposure limits. Least squares does not automatically
+preserve such inequalities between training rows. Projecting a prediction
+onto a feasible set can restore feasibility but changes its objectives;
+evaluate the projected allocation as well.</p>
+</section>
+<section id="choosing-capacity-and-updating-the-model">
+<h2>Choosing capacity and updating the model<a class="headerlink" href="#choosing-capacity-and-updating-the-model" title="Link to this heading"></a></h2>
+<p>Increasing degree gives more flexibility, while adding samples improves
+coverage of the same chosen function class. Select them using fresh
+reference solves, especially near active-set transitions in a constrained
+portfolio. Adding ridge to the Bézier fit shrinks its controls; it does not
+replace the allocation regularization in the original portfolio objective.</p>
+<p>The fitted map assumes fixed expected returns, covariance and objective
+definitions. When those inputs change, the old surrogate represents the
+old problem. Refit it, or introduce a bounded independent scenario parameter
+as a product factor when an explicit scenario model is available. Arbitrary
+market changes are not represented by moving along the priority segment.</p>
+<p>The workflow is a numerical approximation example. Evidence for a practical
+allocation model also requires evaluation under the intended data and
+constraints. See <a class="reference internal" href="../advanced/sampling.html"><span class="doc">Sampling and grids</span></a> for boundary coverage and
+<a class="reference internal" href="../advanced/model_selection.html"><span class="doc">Cross-validation and degree search</span></a> for validation-based capacity selection.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="facility_location.html" class="btn btn-neutral float-left" title="Facility Location and Continuous Approximations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="smart_grids.html" class="btn btn-neutral float-right" title="Distributed Smart Grids and Energy Operations" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: feat/602-assembled-skeleton
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/applications/portfolio.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/applications/portfolio.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/applications/portfolio.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/applications/portfolio.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/applications/portfolio.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/applications/portfolio.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/applications/portfolio.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/applications/portfolio.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/applications/portfolio.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/applications/portfolio.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/applications/portfolio.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/applications/portfolio.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/applications/portfolio.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/applications/portfolio.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="portfolio.html">feat/602-assembled-skeleton</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
