@@ -1,0 +1,342 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Medical Imaging and Radiation Therapy &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Facility Location and Continuous Approximations" href="facility_location.html" />
+    <link rel="prev" title="Elastic Net Model Selection" href="elastic_net.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../advanced.html">Advanced Topics</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../applications.html">Applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../applications.html#what-is-fitted-in-each-application">What is fitted in each application?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../applications.html#a-common-reproduction-and-validation-workflow">A common reproduction and validation workflow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../applications.html#choosing-a-domain-and-a-next-guide">Choosing a domain and a next guide</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../applications.html#application-guides">Application guides</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="elastic_net.html">Elastic Net Model Selection</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Medical Imaging and Radiation Therapy</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#numerical-experiments">Numerical Experiments</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#distinguish-the-fit-parameter-from-objective-weights">Distinguish the fit parameter from objective weights</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#construct-and-compare-the-two-models">Construct and compare the two models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#read-error-in-image-space-as-well-as-loss-space">Read error in image space as well as loss space</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="facility_location.html">Facility Location and Continuous Approximations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="portfolio.html">Robust Portfolio Management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="smart_grids.html">Distributed Smart Grids and Energy Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="communications.html">Communication Systems and Routing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="federated_learning.html">Multi-Task and Federated Learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_predictive_control.html">Multi-Objective Model Predictive Control</a></li>
+<li class="toctree-l3"><a class="reference internal" href="supply_chain.html">Supply Chain and Logistics Optimization</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../applications.html">Applications</a></li>
+      <li class="breadcrumb-item active">Medical Imaging and Radiation Therapy</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/applications/medical_imaging.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="medical-imaging-and-radiation-therapy">
+<h1>Medical Imaging and Radiation Therapy<a class="headerlink" href="#medical-imaging-and-radiation-therapy" title="Link to this heading"></a></h1>
+<p>Optimizing diagnostic clarity and therapeutic safety simultaneously is paramount in medical fields, making multi-objective optimization frameworks indispensable.</p>
+<p>For instance, Computed Tomography (CT) image reconstruction represents an ill-posed multi-objective inverse problem where doctors must minimize a data fidelity term (noise residual) against a regularization term safeguarding spatial continuity. Utilizing the L-Curve method <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id37" title="Per Christian Hansen and Dianne Prost O'Leary. The use of the l-curve in the regularization of discrete ill-posed problems. SIAM Journal on Scientific Computing, 14(6):1487–1503, 1993. doi:10.1137/0914086.">HOLeary93</a>]</span>, this is routinely formulated mathematically as balancing:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}f_1(x) &amp;= \|Kx - y\|_2^2 \quad \text{(Fidelity)} \\
+f_2(x) &amp;= \|Lx\|_2^2     \quad \text{(Regularization)}\end{split}\]</div>
+<p>Similarly, Intensity-Modulated Radiation Therapy (IMRT) requires treating patients via highly constrained inverse planning <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id36" title="S Breedveld, P Storchi, M Keijzer, A Heemink, and B Heijmen. A novel approach to multi-criteria inverse planning for imrt. Physics in Medicine and Biology, 2007.">BSK+07</a>]</span>. Planners must aggressively deliver prescriptive radiation doses to tumors while strictly repressing the doses affecting adjacent healthy Organs At Risk (OAR). The optimization minimizes heavily competing quadratic objectives:</p>
+<div class="math notranslate nohighlight">
+\[s(f) = \sum_{v \in V} \xi_v (Hf - d_v^p)^T \tilde{\eta}_v (Hf - d_v^p) + \kappa (Mf)^T (Mf)\]</div>
+<p>where the first component penalizes dose errors via beamlet fluence <span class="math notranslate nohighlight">\(f\)</span>, and the second component applies spatial smoothing.</p>
+<p>For CT, the quadratic Hessian is
+<span class="math notranslate nohighlight">\(2(K^T K+\lambda^2L^T L)\)</span>. For <span class="math notranslate nohighlight">\(\lambda&gt;0\)</span>, it is positive
+definite precisely when <span class="math notranslate nohighlight">\(\ker K\cap\ker L=\{0\}\)</span>. A smoothing
+penalty alone need not remove all null directions. The analogous nullspace
+check is needed for the IMRT Hessian. The numerical experiment below instead
+adds an explicit positive ridge to each objective, ensuring positive
+curvature in all pixel directions.</p>
+<p>A surrogate can make exploration of a fixed inverse problem less expensive.
+The experiment here evaluates that approximation on a synthetic CT phantom;
+it does not evaluate treatment plans or clinical decisions.</p>
+<section id="numerical-experiments">
+<h2>Numerical Experiments<a class="headerlink" href="#numerical-experiments" title="Link to this heading"></a></h2>
+<p>We illustrate Bézier simplex fitting on a small CT reconstruction problem, tracing the L-curve between data fidelity and spatial smoothness.</p>
+<p><strong>Problem Setup:</strong></p>
+<ul class="simple">
+<li><p>Image: <span class="math notranslate nohighlight">\(x \in \mathbb{R}^{256}\)</span> (flattened 16×16 circular phantom)</p></li>
+<li><p>Forward operator: <span class="math notranslate nohighlight">\(K \in \mathbb{R}^{128 \times 256}\)</span> (simplified 2D Radon transform, 8 angles × 16 rays per angle)</p></li>
+<li><p>Finite-difference operator: <span class="math notranslate nohighlight">\(L\)</span> (horizontal and vertical differences;
+the squared norm below is quadratic smoothing, rather than total variation)</p></li>
+<li><p>Noisy measurement: <span class="math notranslate nohighlight">\(y = Kx^* + \epsilon\)</span> (<span class="math notranslate nohighlight">\(\epsilon \sim \mathcal{N}(0, 0.05^2)\)</span>)</p></li>
+<li><p>Regularized objectives:</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\begin{split}f_1(x) &amp;= \|Kx - y\|^2 + 0.01\|x\|^2 \quad \text{(fidelity)} \\
+f_2(x) &amp;= \|Lx\|^2 + 0.01\|x\|^2 \quad \text{(smoothness)}\end{split}\]</div>
+<p><strong>Parametrization of the trade-off:</strong></p>
+<p>The weighted-sum solution <span class="math notranslate nohighlight">\(x^*(w)\)</span> depends only on the regularization parameter <span class="math notranslate nohighlight">\(\lambda = w_2 / w_1\)</span>.
+Because <span class="math notranslate nohighlight">\(K^\top K\)</span> and <span class="math notranslate nohighlight">\(L^\top L\)</span> have nearly complementary spectra (smooth images are barely penalized by <span class="math notranslate nohighlight">\(L\)</span> but strongly seen by <span class="math notranslate nohighlight">\(K\)</span>, and vice versa),
+<span class="math notranslate nohighlight">\(x^*(w)\)</span> has poles just outside the weight simplex: with uniformly spaced weights, almost all of the L-curve is squeezed into a tiny neighborhood of <span class="math notranslate nohighlight">\(w = (1, 0)\)</span>, where no low-degree polynomial can follow it.
+As in the classical L-curve analysis, we therefore sweep <span class="math notranslate nohighlight">\(\lambda\)</span> on a logarithmic scale and fit the Bézier simplex on the parameter <span class="math notranslate nohighlight">\((1 - t, t)\)</span> of the 1-simplex:</p>
+<div class="math notranslate nohighlight">
+\[\lambda(t) = 10^{-2 + 3t}, \qquad w(t) = \left(\frac{1}{1 + \lambda(t)}, \frac{\lambda(t)}{1 + \lambda(t)}\right), \qquad t \in [0, 1].\]</div>
+<p><strong>Experiment Procedure:</strong></p>
+<ol class="arabic simple">
+<li><p>Sample 41 equally spaced parameters <span class="math notranslate nohighlight">\(t \in [0, 1]\)</span>, i.e., <span class="math notranslate nohighlight">\(\lambda\)</span> from <span class="math notranslate nohighlight">\(10^{-2}\)</span> to <span class="math notranslate nohighlight">\(10^{1}\)</span>.</p></li>
+<li><p>For each <span class="math notranslate nohighlight">\(t\)</span>, solve <span class="math notranslate nohighlight">\(x^*(t) = \arg\min_x [w_1(t) f_1(x) + w_2(t) f_2(x)]\)</span> using L-BFGS-B with the analytic gradient.</p></li>
+<li><p>Collect the Pareto front points <span class="math notranslate nohighlight">\((f_1(x^*(t)), f_2(x^*(t)))\)</span> and the reconstructions <span class="math notranslate nohighlight">\(x^*(t)\)</span>.</p></li>
+<li><p>Fit degree-10 Bézier simplices to the Pareto front and to the Pareto set (the 256 pixels) by exact linear least squares (<code class="xref py py-func docutils literal notranslate"><span class="pre">torch_bsf.fit()</span></code>).</p></li>
+<li><p>Evaluate the fitted Bézier curves on 20 held-out parameters between the training ones.</p></li>
+</ol>
+<p>On the held-out parameters, the maximum error is about <span class="math notranslate nohighlight">\(10^{-3}\)</span> on the Pareto front (whose <span class="math notranslate nohighlight">\(f_1\)</span> ranges over <span class="math notranslate nohighlight">\([0.4, 31]\)</span>) and below <span class="math notranslate nohighlight">\(10^{-4}\)</span> per pixel on the Pareto set.</p>
+<table class="docutils align-center">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><a class="reference internal image-reference" href="../_images/medical_imaging_pareto_set.png"><img alt="Pareto set for CT reconstruction (pixel space)" src="../_images/medical_imaging_pareto_set.png" style="width: 100%;" />
+</a>
+</td>
+<td><a class="reference internal image-reference" href="../_images/medical_imaging_pareto.png"><img alt="Bézier simplex fitting to CT reconstruction L-curve" src="../_images/medical_imaging_pareto.png" style="width: 100%;" />
+</a>
+</td>
+</tr>
+<tr class="row-even"><td><p>Pareto set (two background pixels).</p></td>
+<td><p>Pareto front.</p></td>
+</tr>
+</tbody>
+</table>
+<figure class="align-center" id="id3">
+<a class="reference internal image-reference" href="../_images/medical_imaging_pareto_samples.png"><img alt="Reconstructions predicted by the fitted Bézier simplex" src="../_images/medical_imaging_pareto_samples.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 45 </span><span class="caption-text">Reconstructions predicted by the Bézier simplex fitted to the Pareto set, from weak (left) to strong (right) smoothing.</span><a class="headerlink" href="#id3" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>The complete example script is available at <code class="file docutils literal notranslate"><span class="pre">examples/generate_medical_imaging_pareto.py</span></code>.</p>
+</section>
+<section id="distinguish-the-fit-parameter-from-objective-weights">
+<h2>Distinguish the fit parameter from objective weights<a class="headerlink" href="#distinguish-the-fit-parameter-from-objective-weights" title="Link to this heading"></a></h2>
+<p>The input to the fitted curve is <code class="docutils literal notranslate"><span class="pre">[1-t,</span> <span class="pre">t]</span></code>, not <code class="docutils literal notranslate"><span class="pre">[w1(t),</span> <span class="pre">w2(t)]</span></code>.
+The logarithmic transform spreads the selected regularization range across
+the segment. At <code class="docutils literal notranslate"><span class="pre">t=0</span></code> the ratio is <span class="math notranslate nohighlight">\(10^{-2}\)</span>; at <code class="docutils literal notranslate"><span class="pre">t=1</span></code> it is
+<span class="math notranslate nohighlight">\(10\)</span>. Neither endpoint represents a pure single-objective optimum.
+Record this transform alongside the fitted model so a requested
+regularization value is converted consistently.</p>
+<p>For a requested <span class="math notranslate nohighlight">\(\lambda\)</span> in that range, use</p>
+<div class="math notranslate nohighlight">
+\[t=\frac{\log_{10}\lambda+2}{3}.\]</div>
+<p>Changing the logarithmic range changes the function being approximated and
+requires a new fit. Passing the normalized objective weights directly to
+the existing model would query a different location and give the wrong
+reconstruction even though that row is a valid simplex point.</p>
+</section>
+<section id="construct-and-compare-the-two-models">
+<h2>Construct and compare the two models<a class="headerlink" href="#construct-and-compare-the-two-models" title="Link to this heading"></a></h2>
+<p>The front model has two output columns, while the reconstruction model has
+256, one per flattened pixel. Both use
+<code class="docutils literal notranslate"><span class="pre">BezierSpace.simplex(1,</span> <span class="pre">degree=10)</span></code> and 11 controls. The same 41 parameter
+rows are paired with the corresponding objectives or reconstructed images.
+The core least-squares solve handles all columns with the same design
+matrix; the large pixel count does not increase the domain dimension.</p>
+<p>For an independent reconstruction at a new parameter, the exact quadratic
+stationarity equation is</p>
+<div class="math notranslate nohighlight">
+\[\left(w_1K^TK+w_2L^TL+0.01I\right)x=w_1K^Ty.\]</div>
+<p>The ridge stays <span class="math notranslate nohighlight">\(0.01I\)</span> because the two objective weights sum to one.
+This system supplies a reference for the stated unconstrained example.
+Use its residual or the original solver’s convergence evidence to separate
+reference-solve error from surrogate approximation error.</p>
+</section>
+<section id="read-error-in-image-space-as-well-as-loss-space">
+<h2>Read error in image space as well as loss space<a class="headerlink" href="#read-error-in-image-space-as-well-as-loss-space" title="Link to this heading"></a></h2>
+<p>The Pareto-set projection shows only two pixel coordinates. It cannot show
+the quality of a whole 16-by-16 image. Compare full reconstructed images,
+per-pixel errors and their maximum over the held-out parameters. Inspect
+edges and low-contrast regions separately, since a mean over background
+pixels can conceal a localized defect.</p>
+<p>Recompute fidelity and smoothness on predicted images and compare them
+with both the reference values and the independently fitted front. A close
+front prediction does not determine an image uniquely in a general inverse
+problem. The quoted errors describe this phantom, noise realization,
+operators and regularization interval. They do not establish performance
+on another acquisition geometry or a clinical image population.</p>
+<p>The surrogate assumes fixed measurements <span class="math notranslate nohighlight">\(y\)</span> and fixed operators.
+New measurements generally require new reference reconstructions and a
+new fit; the segment parameter changes regularization, not the patient or
+the data. If nonnegative pixels or other constraints are introduced, check
+their satisfaction after prediction. See <a class="reference internal" href="../advanced/normalization.html"><span class="doc">Output scaling</span></a>
+for preserving output units and <a class="reference internal" href="../advanced/model_selection.html"><span class="doc">Cross-validation and degree search</span></a> for choosing
+capacity using held-out responses.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="elastic_net.html" class="btn btn-neutral float-left" title="Elastic Net Model Selection" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="facility_location.html" class="btn btn-neutral float-right" title="Facility Location and Continuous Approximations" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: docs/simploid-risk-followup
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/applications/medical_imaging.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/applications/medical_imaging.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/applications/medical_imaging.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/applications/medical_imaging.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/applications/medical_imaging.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/applications/medical_imaging.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/applications/medical_imaging.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/applications/medical_imaging.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/applications/medical_imaging.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/applications/medical_imaging.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/applications/medical_imaging.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/applications/medical_imaging.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/applications/medical_imaging.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/applications/medical_imaging.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="medical_imaging.html">docs/simploid-risk-followup</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

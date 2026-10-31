@@ -1,0 +1,404 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fitting from values alone &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Visualization" href="visualization.html" />
+    <link rel="prev" title="Exact verification of the skeleton risk" href="skeleton_risk_verification.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Fitting from values alone</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#all-at-once-fitting">All-at-once fitting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#inductive-skeleton-fitting">Inductive skeleton fitting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#products-of-simplices">Products of simplices</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#numerical-interpretation">Numerical interpretation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Fitting from values alone</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/point_cloud.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="fitting-from-values-alone">
+<h1>Fitting from values alone<a class="headerlink" href="#fitting-from-values-alone" title="Link to this heading"></a></h1>
+<p>Use <code class="docutils literal notranslate"><span class="pre">fit_point_cloud</span></code> when each observation is a point on a curve or
+surface and its domain coordinate is unknown. The existing <code class="docutils literal notranslate"><span class="pre">fit</span></code> solves
+a different problem: regression from known parameter/value pairs.</p>
+<p>The value-only methods implement Algorithms 2 and 3 of
+<span class="bibtex-citation" id="id1">Kobayashi <em>et al.</em> [<a class="reference internal" href="../references.html#id13" title="Ken Kobayashi, Naoki Hamada, Akiyoshi Sannai, Aiko Tanaka, Kenichi Bannai, and Masashi Sugiyama. Bézier simplex fitting: describing pareto fronts of simplicial problems with small samples in multi-objective optimization. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 33, 2304–2313. 2019. URL: https://doi.org/10.1609/aaai.v33i01.33012304.">KHS+19</a>]</span>. Both support a single simplex or simploid,
+but not assembled spaces; see <a class="reference internal" href="#point-cloud-simploids"><span class="std std-ref">Products of simplices</span></a>.
+<code class="docutils literal notranslate"><span class="pre">fit_point_cloud</span></code> returns a <code class="docutils literal notranslate"><span class="pre">PointCloudFitResult</span></code>; <code class="docutils literal notranslate"><span class="pre">fit_skeleton</span></code>
+returns a <code class="docutils literal notranslate"><span class="pre">SkeletonFitResult</span></code>. Each result holds an ordinary <code class="docutils literal notranslate"><span class="pre">BezierModel</span></code>
+in <code class="docutils literal notranslate"><span class="pre">result.model</span></code> for prediction, plotting and serialization. Inspect
+<code class="docutils literal notranslate"><span class="pre">result.success</span></code>, <code class="docutils literal notranslate"><span class="pre">result.status</span></code> and <code class="docutils literal notranslate"><span class="pre">result.message</span></code> for numerical
+termination, or call <code class="docutils literal notranslate"><span class="pre">result.require_success()</span></code> to raise on failure.</p>
+<section id="all-at-once-fitting">
+<h2>All-at-once fitting<a class="headerlink" href="#all-at-once-fitting" title="Link to this heading"></a></h2>
+<p>The unknowns are both the control points and a barycentric coordinate
+for every observation. <code class="docutils literal notranslate"><span class="pre">fit_point_cloud</span></code> alternates two steps:</p>
+<ol class="arabic simple">
+<li><p>Hold the model fixed and minimize each point’s squared distance to
+the surface using analytic first and second derivatives and Newton steps.</p></li>
+<li><p>Hold the inferred coordinates fixed and solve for the controls using
+the existing float64 SVD least-squares implementation.</p></li>
+</ol>
+<p>For example, fit a two-objective Schaffer front without providing its
+parameter coordinates to the fitting routine. The examples on this
+page share the named <code class="docutils literal notranslate"><span class="pre">point-cloud-demo</span></code> session: run them in page order;
+the later examples reuse <code class="docutils literal notranslate"><span class="pre">torch</span></code>, <code class="docutils literal notranslate"><span class="pre">space</span></code> and <code class="docutils literal notranslate"><span class="pre">values</span></code> from this one.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">fit_point_cloud</span>
+
+<span class="n">u</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">21</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="n">values</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">((</span><span class="n">u</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">u</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="n">dimension</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">fit_point_cloud</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+
+<span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">success</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"converged"</span>
+<span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">parameters</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span>
+<span class="n">torch</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_close</span><span class="p">(</span>
+    <span class="n">result</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span>
+    <span class="n">rtol</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mi">8</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">fitted_values</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+<span class="c1"># Row i reconstructs values[i], rather than a reordered cloud.</span>
+<span class="n">row_errors</span> <span class="o">=</span> <span class="p">(</span><span class="n">fitted_values</span> <span class="o">-</span> <span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">square</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">row_errors</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mf">1e-12</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">result.parameters</span></code> contains the inferred barycentric rows in the
+original observation order, with shape <code class="docutils literal notranslate"><span class="pre">(n_observations,</span> <span class="pre">dimension</span> <span class="pre">+</span> <span class="pre">1)</span></code>
+for a positive-dimensional simplex. Here the 21 observations have two
+barycentric coordinates each; <code class="docutils literal notranslate"><span class="pre">result.model(result.parameters)[i]</span></code>
+approximates <code class="docutils literal notranslate"><span class="pre">values[i]</span></code>. A zero-dimensional simplex uses empty
+coordinate rows, consistent with <code class="docutils literal notranslate"><span class="pre">BezierSpace</span></code>. <code class="docutils literal notranslate"><span class="pre">objective_history</span></code>
+records mean squared Euclidean distances, starting with the initial model
+and coordinates; <code class="docutils literal notranslate"><span class="pre">control_result</span></code> retains the last linear solve’s
+diagnostics. Controls supplied through <code class="docutils literal notranslate"><span class="pre">fixed=FixedControls(...)</span></code> remain
+exact throughout fitting.</p>
+<p>Automatic initialization places vertex <code class="docutils literal notranslate"><span class="pre">i</span></code> at the sample minimizing
+output <code class="docutils literal notranslate"><span class="pre">i</span></code>, then initializes the remaining controls on the affine grid
+between vertices. This follows the paper and assumes minimization
+objectives, with one output per vertex. Use <code class="docutils literal notranslate"><span class="pre">initial=BezierModel(...)</span></code>
+to specify another orientation or fit a simplex embedded in a different
+output dimension. The initial model is copied.</p>
+</section>
+<section id="inductive-skeleton-fitting">
+<h2>Inductive skeleton fitting<a class="headerlink" href="#inductive-skeleton-fitting" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">fit_skeleton</span></code> fits vertices first, then edges, then higher faces. Each
+face keeps every previously estimated boundary control fixed exactly.
+Only faces with at most <code class="docutils literal notranslate"><span class="pre">min(degree,</span> <span class="pre">number_of_vertices)</span></code> vertices are
+needed: a degree-three simplex has no controls supported on four or more
+vertices, even when its domain dimension is larger.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">fit_skeleton</span>
+
+<span class="n">skeleton</span> <span class="o">=</span> <span class="n">fit_skeleton</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">skeleton</span><span class="o">.</span><span class="n">model</span>
+<span class="k">assert</span> <span class="n">skeleton</span><span class="o">.</span><span class="n">success</span> <span class="ow">and</span> <span class="n">skeleton</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="s2">"converged"</span>
+<span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">skeleton</span><span class="o">.</span><span class="n">faces</span><span class="p">)</span> <span class="o">==</span> <span class="p">{(</span><span class="mi">0</span><span class="p">,),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)}</span>
+<span class="n">edge_result</span> <span class="o">=</span> <span class="n">skeleton</span><span class="o">.</span><span class="n">faces</span><span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span>
+<span class="k">assert</span> <span class="n">edge_result</span><span class="o">.</span><span class="n">success</span>
+<span class="k">assert</span> <span class="n">edge_result</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+<span class="c1"># The assembled edge retains the fitted vertex controls exactly.</span>
+<span class="k">for</span> <span class="n">vertex</span><span class="p">,</span> <span class="n">powers</span> <span class="ow">in</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">))]:</span>
+    <span class="n">vertex_result</span> <span class="o">=</span> <span class="n">skeleton</span><span class="o">.</span><span class="n">faces</span><span class="p">[(</span><span class="n">vertex</span><span class="p">,)]</span>
+    <span class="k">assert</span> <span class="n">vertex_result</span><span class="o">.</span><span class="n">success</span>
+    <span class="n">control</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">coefficients</span><span class="p">[</span><span class="n">space</span><span class="o">.</span><span class="n">control_index</span><span class="p">(</span><span class="n">powers</span><span class="p">)]</span>
+    <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">control</span><span class="p">,</span> <span class="n">vertex_result</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">coefficients</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">skeleton.faces</span></code> maps sorted vertex-ID tuples to <code class="docutils literal notranslate"><span class="pre">PointCloudFitResult</span></code>
+objects. In this segment example, <code class="docutils literal notranslate"><span class="pre">(0,)</span></code> and <code class="docutils literal notranslate"><span class="pre">(1,)</span></code> identify the vertices
+and <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">1)</span></code> identifies the whole edge. Each face has its own numerical
+status and locally inferred coordinates; the assembled predictor is
+<code class="docutils literal notranslate"><span class="pre">skeleton.model</span></code>.</p>
+<p>By default, a face’s samples are the points nondominated under the
+objectives corresponding to its vertices, using the paper’s definition
+of <code class="docutils literal notranslate"><span class="pre">X_J</span></code>. All output columns are retained. This extraction assumes that
+output columns are minimization objectives and that the Pareto front has
+the stated simplex structure. It takes quadratic time in sample count
+per face and linear auxiliary memory. For larger data or observations
+already separated by subproblem, supply the samples explicitly:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">faces</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="p">(</span><span class="mi">0</span><span class="p">,):</span> <span class="n">values</span><span class="p">[:</span><span class="mi">1</span><span class="p">],</span>
+    <span class="p">(</span><span class="mi">1</span><span class="p">,):</span> <span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:],</span>
+    <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span> <span class="n">values</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">explicit</span> <span class="o">=</span> <span class="n">fit_skeleton</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">face_values</span><span class="o">=</span><span class="n">faces</span><span class="p">)</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">face</span><span class="o">.</span><span class="n">success</span> <span class="k">for</span> <span class="n">face</span> <span class="ow">in</span> <span class="n">explicit</span><span class="o">.</span><span class="n">faces</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+<span class="k">for</span> <span class="n">vertex</span><span class="p">,</span> <span class="n">powers</span> <span class="ow">in</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">))]:</span>
+    <span class="n">control</span> <span class="o">=</span> <span class="n">explicit</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">coefficients</span><span class="p">[</span><span class="n">space</span><span class="o">.</span><span class="n">control_index</span><span class="p">(</span><span class="n">powers</span><span class="p">)]</span>
+    <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">control</span><span class="p">,</span> <span class="n">faces</span><span class="p">[(</span><span class="n">vertex</span><span class="p">,)][</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">edge</span> <span class="o">=</span> <span class="n">explicit</span><span class="o">.</span><span class="n">faces</span><span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span>
+<span class="k">assert</span> <span class="n">edge</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">row_errors</span> <span class="o">=</span> <span class="p">(</span><span class="n">edge</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">edge</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span> <span class="o">-</span> <span class="n">faces</span><span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)])</span><span class="o">.</span><span class="n">square</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">row_errors</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mf">1e-12</span>
+</pre></div>
+</div>
+<p>Face keys are sorted tuples of zero-based vertex IDs. Supply exactly all
+required faces and full output vectors for each sample. No parameter
+coordinates are needed. Explicit <code class="docutils literal notranslate"><span class="pre">face_values</span></code> and an <code class="docutils literal notranslate"><span class="pre">initial</span></code> model
+also allow fitting arbitrary embeddings. A vertex with repeated or noisy
+observations is fitted to their mean. Each face result contains coordinates
+local to that face, in its supplied or extracted sample order. A failed
+face stops assembly and leaves an explicitly unsuccessful partial result.</p>
+</section>
+<section id="products-of-simplices">
+<span id="point-cloud-simploids"></span><h2>Products of simplices<a class="headerlink" href="#products-of-simplices" title="Link to this heading"></a></h2>
+<p>A simploid, a product of simplices, is fitted the same way. Every row’s
+coordinates stay on each factor’s simplex, and Newton steps keep each
+factor’s coordinate sum. Automatic initialization and automatic face
+extraction rely on the Pareto-front structure of a single simplex, so a
+simploid needs an <code class="docutils literal notranslate"><span class="pre">initial</span></code> model for <code class="docutils literal notranslate"><span class="pre">fit_point_cloud</span></code>, and both
+<code class="docutils literal notranslate"><span class="pre">initial</span></code> and <code class="docutils literal notranslate"><span class="pre">face_values</span></code> for <code class="docutils literal notranslate"><span class="pre">fit_skeleton</span></code>. Face keys are the sorted
+global coordinate indices of a face’s vertices, as in
+<a class="reference internal" href="../api.html#torch_bsf.fitting.fit_skeleton_regression" title="torch_bsf.fitting.fit_skeleton_regression"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_skeleton_regression()</span></code></a>. The required faces are
+those in which no factor has more vertices than its degree, and each face is
+fitted on the product of its factors’ faces. A factor in which the face is a
+single vertex contributes no local coordinates, so a face’s <code class="docutils literal notranslate"><span class="pre">parameters</span></code>
+hold the face’s vertices in the other factors, in key order.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.sampling</span><span class="w"> </span><span class="kn">import</span> <span class="n">sample</span>
+
+<span class="c1"># A bilinear surface over the square, with one control per corner.</span>
+<span class="n">square</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simploid</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">corners</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+    <span class="p">[[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span>
+<span class="p">)</span>
+<span class="n">surface</span> <span class="o">=</span> <span class="n">BezierModel</span><span class="p">(</span><span class="n">square</span><span class="p">,</span> <span class="n">corners</span><span class="p">)</span>
+<span class="n">observed</span> <span class="o">=</span> <span class="n">surface</span><span class="p">(</span><span class="n">sample</span><span class="p">(</span><span class="n">square</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+
+<span class="n">square_fit</span> <span class="o">=</span> <span class="n">fit_point_cloud</span><span class="p">(</span><span class="n">square</span><span class="p">,</span> <span class="n">observed</span><span class="p">,</span> <span class="n">initial</span><span class="o">=</span><span class="n">surface</span><span class="p">)</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="k">assert</span> <span class="n">square_fit</span><span class="o">.</span><span class="n">objective_history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">1e-12</span>
+<span class="k">assert</span> <span class="n">square_fit</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">40</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+
+<span class="n">corner_values</span> <span class="o">=</span> <span class="p">{(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span> <span class="n">corners</span><span class="p">[:</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span> <span class="n">corners</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span> <span class="n">corners</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="p">],</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span> <span class="n">corners</span><span class="p">[</span><span class="mi">3</span><span class="p">:]}</span>
+<span class="n">square_skeleton</span> <span class="o">=</span> <span class="n">fit_skeleton</span><span class="p">(</span><span class="n">square</span><span class="p">,</span> <span class="n">corners</span><span class="p">,</span> <span class="n">face_values</span><span class="o">=</span><span class="n">corner_values</span><span class="p">,</span> <span class="n">initial</span><span class="o">=</span><span class="n">surface</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">square_skeleton</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span><span class="o">.</span><span class="n">faces</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[(0, 2), (0, 3), (1, 2), (1, 3)]
+</pre></div>
+</div>
+</section>
+<section id="numerical-interpretation">
+<h2>Numerical interpretation<a class="headerlink" href="#numerical-interpretation" title="Link to this heading"></a></h2>
+<p>The parameter updates enforce nonnegative coordinates summing to one in
+every simplex factor.
+Projection, backtracking and a gradient fallback safeguard Newton updates
+at boundaries and singular or indefinite Hessians. These safeguards extend
+the paper’s plain Newton description. The algorithm is a local nonlinear
+method: different initializations can give different surfaces and domain
+parameterizations are generally not identifiable from values alone.</p>
+<p><code class="docutils literal notranslate"><span class="pre">tolerance</span></code> bounds the absolute change in root mean squared distance;
+<code class="docutils literal notranslate"><span class="pre">parameter_tolerance</span></code> bounds the projected gradient residual. The code
+uses an absolute change rather than the signed stopping expression printed
+in the paper. Success requires both stopping checks. Iteration exhaustion
+returns <code class="docutils literal notranslate"><span class="pre">success=False</span></code>, <code class="docutils literal notranslate"><span class="pre">status=&quot;iteration_limit&quot;</span></code> and emits
+<code class="docutils literal notranslate"><span class="pre">ConvergenceWarning</span></code>, preserving the finite model. Use <code class="docutils literal notranslate"><span class="pre">require_success()</span></code> when a failed fit must halt a
+workflow. Convergence is a numerical stopping statement, not a certificate
+of global optimality or reconstruction accuracy.</p>
+<p>Distances and tolerances use the original output units. Normalize outputs
+explicitly when their scales should contribute equally. These routines
+do not automatically filter the input cloud to a Pareto front or infer
+face memberships for arbitrary embeddings. Choose degree and validate
+surface coverage separately from numerical convergence.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="skeleton_risk_verification.html" class="btn btn-neutral float-left" title="Exact verification of the skeleton risk" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="visualization.html" class="btn btn-neutral float-right" title="Visualization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: docs/simploid-risk-followup
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/advanced/point_cloud.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/advanced/point_cloud.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/advanced/point_cloud.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/advanced/point_cloud.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="point_cloud.html">docs/simploid-risk-followup</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
