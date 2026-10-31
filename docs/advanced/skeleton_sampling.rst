@@ -10,8 +10,9 @@ the skeletons. This chapter gives the asymptotic risk for every dimension and
 degree, the split that minimizes it, and the functions that compute, sample and
 fit with it. The same functions accept simploids; see
 :ref:`skeleton-sampling-simploids`.
-For the theoretical extension to assembled domains, with shared or
-degenerate faces and a chosen evaluation measure, see :doc:`simploidal_risk`.
+The same APIs also accept assembled domains, with shared or degenerate faces,
+isolated vertices and a chosen evaluation measure. See :doc:`simploidal_risk`
+for executable examples, cell-specific allocation and the assembled theory.
 
 Sample, fit and compare
 -----------------------

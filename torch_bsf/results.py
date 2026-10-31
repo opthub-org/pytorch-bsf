@@ -127,17 +127,20 @@ class FitResult:
 
 @dataclass(frozen=True)
 class SkeletonRegressionResult:
-    """Assembled model and face least-squares results keyed by sorted zero-based vertex IDs.
+    """Assembled model and per-stage least-squares results.
 
     The vertex IDs of a simploid are its global coordinate indices, so a face
     lists the vertices of every factor. Each face result solves for that face's
     interior controls with every other control fixed. Faces are fitted in
     increasing dimension; a failed face stops assembly, leaving later faces
-    absent and their controls zero.
+    absent and their controls zero. For spaces created with ``BezierSpace.on_set``
+    and zero-dimensional spaces, keys are integer nondegenerate cell IDs,
+    which distinguish local coordinate indices in different cells. The original
+    single-cell simplex/simploid API retains its sorted coordinate-tuple keys.
     """
 
     model: BezierModel
-    faces: dict[tuple[int, ...], FitResult]
+    faces: dict[tuple[int, ...] | int, FitResult]
     success: bool
     status: str
     message: str

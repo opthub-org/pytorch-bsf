@@ -1,6 +1,6 @@
 """Exact and estimator-level checks of the assembled-domain risk theorem.
 
-These are reference calculations for the theory, not a public skeleton API.
+Independent Fraction and quadrature references also check the public skeleton APIs.
 """
 
 import math
@@ -12,14 +12,22 @@ import pytest
 import torch
 
 from tests.sampling import _condition, _exact_solve, _rational_gram, _rational_skeleton_risk
-from torch_bsf import BezierSpace, FixedControls, Points, Samples, SimploidalSet, fit
+from torch_bsf import BezierModel, BezierSpace, FixedControls, Points, Samples, SimploidalSet, fit
 from torch_bsf._kernels.combinatorics import _indices
+from torch_bsf.fitting import fit_skeleton_regression
+from torch_bsf.sampling import optimal_skeleton_ratio, sample_skeleton, skeleton_risk_coefficients
 
 
 def _space(kind, degree):
     domain = SimploidalSet()
     if kind == "point":
         domain.add_simplex(0)
+    elif kind == "vertices":
+        domain.add_vertex()
+        domain.add_vertex()
+    elif kind == "isolated":
+        domain.add_simplex(1)
+        domain.add_vertex()
     elif kind in ("segment", "loop", "chain", "disconnected"):
         left = domain.add_simplex(1)
         if kind == "loop":
@@ -36,16 +44,20 @@ def _space(kind, degree):
         left, right = domain.add_simplex(2), domain.add_simplex(2)
         domain.identify(left.face(0, 0), right.face(0, 1))
     else:
-        square = domain.add_simploid((1, 1))
-        if kind == "sphere":
-            for j in range(2):
-                edge = square.face(1, j)
-                domain.degenerate(edge, edge.face(0, 0), 0, -1)
-        else:
-            assert kind == "torus"
-            domain.identify(square.face(1, 0), square.face(1, 1))
-        domain.identify(square.face(0, 0), square.face(0, 1))
+        _surface(domain, kind)
     return BezierSpace.on_set(domain, degree=degree)
+
+
+def _surface(domain, kind):
+    square = domain.add_simploid((1, 1))
+    if kind == "sphere":
+        for j in range(2):
+            edge = square.face(1, j)
+            domain.degenerate(edge, edge.face(0, 0), 0, -1)
+    else:
+        assert kind == "torus"
+        domain.identify(square.face(1, 0), square.face(1, 1))
+    domain.identify(square.face(0, 0), square.face(0, 1))
 
 
 def _assembled_grams(space):
@@ -162,6 +174,8 @@ def _propagation_error(space, stages, propagation, blocks):
 
 _CASES = [
     ("point", 1),
+    ("vertices", 1),
+    ("isolated", 2),
     ("segment", 3),
     ("loop", 1),
     ("loop", 3),
@@ -340,3 +354,103 @@ def test_global_all_at_once_risk_with_matching_and_different_evaluation_weights(
     observed = _integrated_risk(space, covariance, evaluation_weights)
     # Different evaluation weights additionally amplify norm-to-relative-risk error by cond(G_mu).
     assert observed == pytest.approx(expected, rel=trace_error * _condition(evaluation_metric), abs=0)
+
+
+def _fit_error(result, scale):
+    # Backward-stable local SVD solves and basis/reduction rounding, propagated through
+    # at most dimension+1 levels; use measured design conditioning as in tests/fitting.py.
+    kappa = max(face.diagnostics.data.condition_number for face in result.faces.values())
+    size = max(face.diagnostics.n_samples for face in result.faces.values()) + result.model.space.n_controls
+    levels = max(sum(c.dimensions) for c in result.model.space.cells) + 1
+    return 8 * size * _U * kappa * (1 + kappa) ** levels * max(1.0, scale)
+
+
+@pytest.mark.parametrize(("kind", "degree"), _CASES)
+@pytest.mark.parametrize("nonuniform", [False, True])
+def test_public_risk_matches_exact_propagation_and_chart_integrals(kind, degree, nonuniform):
+    from torch_bsf.sampling import _assembled_risk_system
+
+    space = _space(kind, degree)
+    grams, stages = _assembled_grams(space)
+    propagation, blocks = _population_system(space, grams, stages)
+    weights = (
+        [Fraction(i + 1, sum(range(1, space.n_cells + 1))) for i in range(space.n_cells)]
+        if nonuniform
+        else [Fraction(int(i in space.main_cells), len(space.main_cells)) for i in range(space.n_cells)]
+    )
+    evaluation = {i: float(w) for i, w in enumerate(weights)} if nonuniform else None
+    expected = _traces(_metric(grams, weights), propagation, stages, blocks)
+    actual = skeleton_risk_coefficients(space, evaluation_weights=evaluation, allocation="cell")
+    tolerance = 8 * _propagation_error(space, stages, propagation, blocks)
+    assert list(actual) == [cid for cid, _ in stages]
+    assert list(actual.values()) == pytest.approx([float(c) for c in expected], rel=tolerance, abs=0)
+    observed_stages, observed_p, _, bound = _assembled_risk_system(space)
+    assert observed_stages == stages and 0 < bound <= 1e-6
+    assert torch.allclose(observed_p, torch.tensor(propagation, dtype=torch.float64), rtol=tolerance, atol=tolerance)
+    coefficients = skeleton_risk_coefficients(space, evaluation_weights=evaluation)
+    grouped = []
+    for m in range(max(sum(c.dimensions) for c in space.cells) + 1):
+        cs = [c for (cid, _), c in zip(stages, expected, strict=True) if sum(space.cells[cid].dimensions) == m]
+        grouped.append(float(len(cs) * sum(cs)))
+    assert coefficients == pytest.approx(grouped, rel=tolerance, abs=0)
+    parameters, innovations, row_weights = [], [], []
+    for cid, proper in stages:
+        t, w = _quadrature(space.cells[cid])
+        chart = Points.from_cells(space, [(cid, t)])
+        design = space.basis(chart).to_dense()
+        response = torch.zeros(len(chart), space.n_controls, dtype=torch.float64)
+        response[:, list(proper)] = design[:, list(proper)]
+        parameters.append((cid, t))
+        innovations.append(response)
+        row_weights.append(w)
+    observations = Samples(Points.from_cells(space, parameters), torch.cat(innovations), weights=torch.cat(row_weights))
+    public = fit_skeleton_regression(space, observations).require_success()
+    assert torch.allclose(public.model.coefficients, observed_p, rtol=tolerance, atol=tolerance)
+    # Independently vary the sampling shares; integrate the covariance in charts without using G_mu.
+    covariance = torch.zeros(space.n_controls, space.n_controls, dtype=torch.float64)
+    shares = [Fraction(i + 1, sum(range(1, len(stages) + 1))) for i in range(len(stages))]
+    for (_, proper), h, q in zip(stages, blocks, shares, strict=True):
+        e = observed_p[:, list(proper)]
+        covariance += e @ torch.linalg.solve(torch.tensor(h, dtype=torch.float64), e.T) / float(q)
+    assert _integrated_risk(space, covariance, weights) == pytest.approx(
+        sum(c / float(q) for c, q in zip(actual.values(), shares, strict=True)), rel=tolerance, abs=0
+    )
+    # Both optimizers must minimize the original cell objective under their respective constraints.
+    cell_q = optimal_skeleton_ratio(space, evaluation_weights=evaluation, allocation="cell")
+    dim_q = optimal_skeleton_ratio(space, evaluation_weights=evaluation)
+    assert sum(cell_q.values()) == pytest.approx(1) and sum(dim_q) == pytest.approx(1)
+    cell_risk = sum(float(c) / cell_q[cid] for (cid, _), c in zip(stages, expected, strict=True))
+    assert cell_risk == pytest.approx(sum(math.sqrt(float(c)) for c in expected) ** 2, rel=tolerance, abs=0)
+    group_risk = 0.0
+    for m, rho in enumerate(dim_q):
+        cs = [c for (cid, _), c in zip(stages, expected, strict=True) if sum(space.cells[cid].dimensions) == m]
+        if cs:
+            group_risk += sum(float(c) / (rho / len(cs)) for c in cs)
+    assert group_risk == pytest.approx(sum(math.sqrt(a) for a in grouped) ** 2, rel=tolerance, abs=0)
+
+
+@pytest.mark.parametrize(("kind", "degree"), _CASES)
+@pytest.mark.parametrize("method", ["random", "sobol"])
+@pytest.mark.parametrize("allocation", ["dimension", "cell"])
+def test_public_assembled_sample_fit_predict(kind, degree, method, allocation):
+    space = _space(kind, degree)
+    _, stages = _assembled_grams(space)
+    cell_weights = optimal_skeleton_ratio(space, allocation="cell") if allocation == "cell" else None
+    state = torch.random.get_rng_state().clone()
+    points = sample_skeleton(space, 350, method=method, seed=13, cell_weights=cell_weights)
+    assert torch.equal(torch.random.get_rng_state(), state)
+    repeat = sample_skeleton(space, 350, method=method, seed=13, cell_weights=cell_weights)
+    assert torch.equal(points.parameters, repeat.parameters) and torch.equal(points.cell_ids, repeat.cell_ids)
+    assert len(points) == 350
+    assert set(points.cell_ids.tolist()) == {cid for cid, _ in stages}
+    space.validate(points)
+    truth = BezierModel(space, torch.arange(space.n_controls * 2, dtype=torch.float64).reshape(-1, 2) / 7)
+    result = fit_skeleton_regression(space, Samples(points, truth(points).detach())).require_success()
+    assert list(result.faces) == [cid for cid, _ in stages]
+    assert sum(face.diagnostics.n_samples for face in result.faces.values()) == 350
+    error = _fit_error(result, truth.coefficients.abs().max().item())
+    assert torch.allclose(result.model.coefficients, truth.coefficients, rtol=0, atol=error)
+    for cid in range(space.n_cells):
+        parameters, _ = _quadrature(space.cells[cid])
+        chart = Points.from_cells(space, [(cid, parameters)])
+        assert torch.allclose(result.model(chart), truth(chart), rtol=0, atol=2 * error)
