@@ -1,0 +1,361 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Migrating to the unified v0 API &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=a9084e48"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="References" href="references.html" />
+    <link rel="prev" title="Python API reference" href="api.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command-line reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="api.html">Python API reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Migrating to the unified v0 API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#python-3-11-minimum-unreleased">Python 3.11 minimum (unreleased)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#separate-geometry-observations-and-fitted-state">Separate geometry, observations and fitted state</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#translate-penalties-and-constraints-deliberately">Translate penalties and constraints deliberately</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#replace-implicit-preprocessing-and-model-storage">Replace implicit preprocessing and model storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#validation-and-integration-changes">Validation and integration changes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Migrating to the unified v0 API</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/migration.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="migrating-to-the-unified-v0-api">
+<h1>Migrating to the unified v0 API<a class="headerlink" href="#migrating-to-the-unified-v0-api" title="Link to this heading"></a></h1>
+<p>This guide describes the unified API in documentation version 0.24.0. There are no
+legacy aliases or alternate result types. Later pre-1.0 releases can add
+further changes: use the version selector to read the guide matching your
+installed release, and consult its changelog. The <code class="docutils literal notranslate"><span class="pre">master</span></code> copy documents
+development toward the next release; it can include unreleased additions.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Previous API</p></th>
+<th class="head"><p>Replacement</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>BezierSimploid / SimploidalBezierSpace</p></td>
+<td><p>BezierSpace + BezierModel</p></td>
+</tr>
+<tr class="row-odd"><td><p>fit(params, values, degree, …)</p></td>
+<td><p>fit(space, Samples(params, values), …).model</p></td>
+</tr>
+<tr class="row-even"><td><p>fit_simploidal_set</p></td>
+<td><p>BezierSpace.on_set + Samples.from_cells + fit</p></td>
+</tr>
+<tr class="row-odd"><td><p>fit_sgd</p></td>
+<td><p>minimize(model, loss, method=PreconditionedSGD(…))</p></td>
+</tr>
+<tr class="row-even"><td><p>fit_kfold / automatic ensemble</p></td>
+<td><p>cross_validate / explicit Ensemble(result.models)</p></td>
+</tr>
+<tr class="row-odd"><td><p>solver=”trainer” and Trainer keyword arguments</p></td>
+<td><p>integrations.lightning.regression_module</p></td>
+</tr>
+<tr class="row-even"><td><p>init / freeze for regression</p></td>
+<td><p>FixedControls with explicit global coefficient values</p></td>
+</tr>
+<tr class="row-odd"><td><p>ridge / smoothness_weight</p></td>
+<td><p>QuadraticPenalty(ridge=…, smoothness=…)</p></td>
+</tr>
+<tr class="row-even"><td><p>implicit normalization</p></td>
+<td><p>explicit output transforms before fitting</p></td>
+</tr>
+<tr class="row-odd"><td><p>save/load chosen by extension</p></td>
+<td><p>io.save_model / io.load_model</p></td>
+</tr>
+<tr class="row-even"><td><p>separate simplex and simploid samplers and plotters</p></td>
+<td><p>sampling.sample / sampling.grid / plotting.plot_model</p></td>
+</tr>
+<tr class="row-odd"><td><p>BezierSimploidRegressor</p></td>
+<td><p>sklearn.BezierRegressor</p></td>
+</tr>
+</tbody>
+</table>
+<p>Regression now solves in CPU float64 and returns a float64 model. Penalties
+are defined relative to weighted mean squared output-vector error, not a
+sample-count-dependent sum. <code class="docutils literal notranslate"><span class="pre">data_mse</span></code> additionally divides by output size.
+Existing numerical penalty values may therefore need retuning.</p>
+<p>The internal <code class="docutils literal notranslate"><span class="pre">_kernels</span></code> package retains tested geometry algorithms. It is
+private and is not a compatibility API.</p>
+<section id="python-3-11-minimum-unreleased">
+<h2>Python 3.11 minimum (unreleased)<a class="headerlink" href="#python-3-11-minimum-unreleased" title="Link to this heading"></a></h2>
+<p>The next release supports Python 3.11 through 3.15. Recreate Python 3.10
+environments with a supported interpreter before upgrading pytorch-bsf.
+The Python 3.10 dependency resolution selected vulnerable Pillow 12.3.0
+and filelock 4.1.0. Their security fixes require Python 3.11 or later:
+Pillow 13.0.0 and filelock 4.2.1. The refreshed <code class="docutils literal notranslate"><span class="pre">uv.lock</span></code> keeps Pillow
+13.0.0 and filelock 4.2.4 for supported interpreters.
+The NumPy lower bound is now 1.23.2, which provides Python 3.11 wheels.</p>
+<p>Python 3.15 is tested with the core and the Lightning, SciPy, scikit-learn
+and plotting integrations. The <code class="docutils literal notranslate"><span class="pre">mlflow</span></code> and <code class="docutils literal notranslate"><span class="pre">all</span></code> extras currently
+require Python 3.11-3.14: MLflow 3.17.2 requires PyArrow below 26, while
+Python 3.15 wheels start with PyArrow 26. Use the other extras on Python
+3.15 until MLflow supports that dependency combination.</p>
+<p>See the <a class="reference external" href="https://github.com/advisories/GHSA-5x8w-8jj5-q52h">Pillow security advisory</a> and
+<a class="reference external" href="https://github.com/advisories/GHSA-v4x8-3wr5-3wq8">filelock security advisory</a>.</p>
+</section>
+<section id="separate-geometry-observations-and-fitted-state">
+<h2>Separate geometry, observations and fitted state<a class="headerlink" href="#separate-geometry-observations-and-fitted-state" title="Link to this heading"></a></h2>
+<p>Construct <code class="docutils literal notranslate"><span class="pre">BezierSpace</span></code> from your input domain, then pair parameter rows
+and outputs in <code class="docutils literal notranslate"><span class="pre">Samples</span></code>. Regression returns a <code class="docutils literal notranslate"><span class="pre">FitResult</span></code> containing a
+model, numerical status, metrics and diagnostics. Call the model to predict;
+the result object itself is not callable.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">Samples</span><span class="p">,</span> <span class="n">fit</span><span class="p">,</span> <span class="n">QuadraticPenalty</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="n">parameters</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">values</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">square</span><span class="p">()</span> <span class="o">+</span> <span class="mf">.2</span> <span class="o">*</span> <span class="n">x</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+<span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">Samples</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">values</span><span class="p">))</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="n">predictions</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">predictions</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">metrics</span><span class="p">[</span><span class="s2">"data_mse"</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">1e-24</span>
+<span class="k">assert</span> <span class="n">result</span><span class="o">.</span><span class="n">diagnostics</span><span class="o">.</span><span class="n">compute_dtype</span> <span class="o">==</span> <span class="s2">"float64"</span>
+</pre></div>
+</div>
+<p>For <code class="docutils literal notranslate"><span class="pre">simplex</span></code>, the dimension is one less than the barycentric column
+count: two columns describe a segment, three describe a triangle. For
+<code class="docutils literal notranslate"><span class="pre">simploid</span></code>, pass factor dimensions and a matching degree tuple. For an
+assembled domain, retain per-row cell IDs with <code class="docutils literal notranslate"><span class="pre">Points</span></code> or
+<code class="docutils literal notranslate"><span class="pre">Samples.from_cells</span></code>. Equal local coordinates in different cells need
+not describe the same location. See <a class="reference internal" href="advanced/simploidal.html"><span class="doc">Single and assembled domains</span></a> for the
+geometric picture and coordinate conventions.</p>
+</section>
+<section id="translate-penalties-and-constraints-deliberately">
+<h2>Translate penalties and constraints deliberately<a class="headerlink" href="#translate-penalties-and-constraints-deliberately" title="Link to this heading"></a></h2>
+<p>Replace numeric penalty keywords with a <code class="docutils literal notranslate"><span class="pre">QuadraticPenalty</span></code> configuration:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">regularized</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span>
+    <span class="n">space</span><span class="p">,</span> <span class="n">Samples</span><span class="p">(</span><span class="n">parameters</span><span class="p">,</span> <span class="n">values</span><span class="p">),</span>
+    <span class="n">penalty</span><span class="o">=</span><span class="n">QuadraticPenalty</span><span class="p">(</span><span class="n">ridge</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span> <span class="n">smoothness</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">),</span>
+<span class="p">)</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="k">assert</span> <span class="n">regularized</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">values</span><span class="o">.</span><span class="n">shape</span>
+</pre></div>
+</div>
+<p>Retune these strengths under the new normalized objective rather than
+assuming that the old numbers have the same effect. The regression data
+term is weighted mean squared vector error; the reported <code class="docutils literal notranslate"><span class="pre">data_mse</span></code> is
+also divided by output count. Compare predictions in original output units,
+not just an old scalar loss value.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">FixedControls</span></code> for coefficient values known exactly. An old initial
+guess is not an exact constraint and should not automatically become a
+fixed row. Conversely, a boundary that must remain exact should not be
+represented only by a large sample weight. Resolve rows with
+<code class="docutils literal notranslate"><span class="pre">space.control_index</span></code> because coefficient ordering is a property of the
+compiled space. See <a class="reference internal" href="advanced/fixed_controls.html"><span class="doc">Fixed controls</span></a>.</p>
+<p>For an original differentiable cost, construct a <code class="docutils literal notranslate"><span class="pre">BezierModel</span></code> with
+explicit coefficients and pass it to <code class="docutils literal notranslate"><span class="pre">minimize</span></code> with a typed method.
+Regression <code class="docutils literal notranslate"><span class="pre">fit</span></code> has no iterative initial model. Lightning is an optional
+adapter around the common model rather than a regression solver selector.
+See <a class="reference internal" href="advanced/initial_models.html"><span class="doc">Explicit initial models</span></a> and <a class="reference internal" href="advanced/objective_minimization.html"><span class="doc">Objective minimization</span></a>.</p>
+</section>
+<section id="replace-implicit-preprocessing-and-model-storage">
+<h2>Replace implicit preprocessing and model storage<a class="headerlink" href="#replace-implicit-preprocessing-and-model-storage" title="Link to this heading"></a></h2>
+<p>Fit output transforms on training data, apply the same transform to exact
+fixed values, and invert predictions before reporting physical errors.
+Within cross-validation, learn preprocessing separately inside each fold.
+Generic feature standardization is inappropriate for barycentric inputs
+because it destroys their per-factor sum-to-one constraints.</p>
+<p>Use the explicit archive interface for new models:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tempfile</span><span class="w"> </span><span class="kn">import</span> <span class="n">TemporaryDirectory</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">save_model</span><span class="p">,</span> <span class="n">load_model</span>
+
+<span class="k">with</span> <span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">directory</span><span class="p">:</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span> <span class="o">/</span> <span class="s2">"curve.bsf"</span>
+    <span class="n">save_model</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+    <span class="n">restored</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">restored</span><span class="p">(</span><span class="n">parameters</span><span class="p">),</span> <span class="n">predictions</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The archive stores compiled geometry and coefficients regardless of the
+filename extension. It does not imply conversion of a legacy artifact.
+For old models, reconstruct their space and coefficient correspondence
+explicitly, then compare predictions at reference points before saving in
+the new format. A control-point CSV alone does not reconstruct glued topology.</p>
+</section>
+<section id="validation-and-integration-changes">
+<h2>Validation and integration changes<a class="headerlink" href="#validation-and-integration-changes" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">cross_validate</span></code> returns fold results, and an ensemble must be constructed
+explicitly when that is the intended predictor. Selecting a degree does
+not by itself refit on all observations; perform that final fit with the
+selected configuration. The scikit-learn <code class="docutils literal notranslate"><span class="pre">GridSearchCV</span></code> adapter follows
+its own default refit policy. See <a class="reference internal" href="advanced/model_selection.html"><span class="doc">Cross-validation and degree search</span></a> and
+<a class="reference internal" href="advanced/sklearn.html"><span class="doc">Scikit-learn integration</span></a>.</p>
+<p>Before replacing an existing workflow, compare a fixed batch of predictions,
+boundary values, transformed outputs and save/load results. Inspect
+<code class="docutils literal notranslate"><span class="pre">success</span></code> and solver diagnostics rather than treating a returned model
+as sufficient evidence of convergence. Numerical differences may reflect
+the new precision, objective normalization or deliberately changed penalties;
+identify which configuration is being compared.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="api.html" class="btn btn-neutral float-left" title="Python API reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="references.html" class="btn btn-neutral float-right" title="References" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: docs/general-simploidal-risk
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../v0.21.0/migration.html">v0.21.0</a></dd>
+            <dd><a href="../../v0.22.0/migration.html">v0.22.0</a></dd>
+            <dd><a href="../../v0.23.0/migration.html">v0.23.0</a></dd>
+            <dd><a href="../../v0.24.0/migration.html">v0.24.0</a></dd>
+            <dd><a href="../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="migration.html">docs/general-simploidal-risk</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
