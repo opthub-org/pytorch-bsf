@@ -10,6 +10,8 @@ the skeletons. This chapter gives the asymptotic risk for every dimension and
 degree, the split that minimizes it, and the functions that compute, sample and
 fit with it. The same functions accept simploids; see
 :ref:`skeleton-sampling-simploids`.
+For the theoretical extension to assembled domains, with shared or
+degenerate faces and a chosen evaluation measure, see :doc:`simploidal_risk`.
 
 Sample, fit and compare
 -----------------------
@@ -348,7 +350,10 @@ the Gram matrix on the whole simploid is the product of those of its factors'
 Gram matrices, so products of many factors are rejected even at low degree
 (for example, 12 segments of degree 1). In that case, pass ``ratio`` to
 :func:`~torch_bsf.sampling.sample_skeleton` explicitly. A single
-simplex or simploid is supported, not assembled spaces. The product
+simplex or simploid is supported by these functions. The general
+assembled-space risk and optimal allocation are proved in
+:doc:`simploidal_risk`; its estimator requires a separate cell-by-cell
+design and constrained fits. The product
 formulas and proofs in :ref:`skeleton-risk-products` reduce a simploid's
 coefficients to its simplex factors. Thus products of curves and triangles
 inherit their closed forms; other factors can use the general scalar sum.
