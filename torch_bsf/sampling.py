@@ -230,6 +230,8 @@ def _face_trace_sums(dimensions: Sequence[int], degree: Sequence[int]) -> tuple[
     """
     alpha = torch.tensor([sum(index, ()) for index in _indices(dimensions, degree)], dtype=torch.long)
     control_faces = _control_faces(dimensions, degree)
+    # Built first, so that its temporaries are freed before the error matrix of the same size is allocated.
+    full = _face_gram(alpha, alpha, range(alpha.shape[1]), dimensions, degree)
     # Control errors as linear maps of the independent face noises: on face I,
     # e_T = eta_I - G_TT^{-1} G_TB e_B, where T are the controls interior to I and B those on its boundary.
     errors = torch.zeros(len(alpha), len(alpha), dtype=torch.float64)
@@ -241,7 +243,6 @@ def _face_trace_sums(dimensions: Sequence[int], degree: Sequence[int]) -> tuple[
         errors[interior] = -torch.linalg.solve(g_tt, g_tb @ errors[boundary])
         errors[interior[:, None], interior] = torch.eye(len(interior), dtype=torch.float64)
         face_grams.append((len(face) - len(dimensions), interior, g_tt))
-    full = _face_gram(alpha, alpha, range(alpha.shape[1]), dimensions, degree)
     sums = [0.0] * (sum(dimensions) + 1)
     for m, interior, g_tt in face_grams:
         propagated = errors[:, interior]

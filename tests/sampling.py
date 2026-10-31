@@ -1353,7 +1353,8 @@ def test_gram_condition_is_the_product_of_closed_forms(dimensions, data):
 )
 def test_gram_condition_of_simplices_has_a_closed_form(dimension, degree):
     # Up to the largest accepted degrees documented for 2 to 8 vertices, where the condition number reaches 7.8e7,
-    # and on wider simplices, which the closed form rejects without building their Gram matrices.
+    # and on wider simplices of low degree, whose acceptance the closed form decides without building their Gram
+    # matrices.
     _assert_gram_condition((dimension,), (degree,))
 
 
@@ -1432,8 +1433,9 @@ def test_skeleton_risk_coefficients_of_eight_triangles_are_computed_factor_by_fa
     # 6561 controls, accepted with the condition number 4 ** 8 = 65536 (bound 8.2e-7); the computation on all
     # controls of the product took two minutes. Degree one has only vertex controls, so, as on each triangle,
     # a_0 = prod_j 2 M_j / (M_j + 1) = (3 / 2) ** 8, and no Gram matrix has more rows than a factor has controls.
-    # Each triangle adds three traces 1 / 6, rounded once, with two roundings (3 U); the seven products of the
-    # factors' sums and the factor 3 ** 8 add one rounding each: 32 U to first order, doubled for higher orders.
+    # On each triangle, the three vertex traces 1 / 6 are each rounded once and summed with two roundings (3 U); the
+    # seven products of the factors' sums and the factor 3 ** 8 add one rounding each: 32 U to first order, doubled
+    # for higher orders.
     space = BezierSpace.simploid((2,) * 8, degree=(1,) * 8)
     with patch("torch_bsf.sampling._face_gram", wraps=_face_gram) as face_gram:
         a = skeleton_risk_coefficients(space)
@@ -1717,8 +1719,9 @@ def test_simploid_faces_are_products_of_factor_faces(dimensions, degree):
 
 def test_square_risk_coefficients_have_closed_forms():
     # Degree 1: the four vertex controls are vertex means, each with N / 4 rows, and the squared bilinear basis
-    # functions integrate to 1 / 9 each, so a_0 = 4 * 4 / 9. The Gram entry 1 / 9 is rounded once, and the trace,
-    # the factor 4 and the sum over four vertices add six roundings: 8 U bounds the relative error.
+    # functions integrate to 1 / 9 each, so a_0 = 4 * 4 / 9. It is computed factor by factor: each segment's vertex
+    # traces 1 / 3 are rounded once and add exactly, the product of the two segments' sums adds one rounding, and the
+    # factor 4 is exact: 3 U to first order, so 8 U bounds the relative error.
     a = skeleton_risk_coefficients(BezierSpace.simploid((1, 1), degree=1))
     assert a == pytest.approx((16 / 9, 0, 0), rel=8 * U, abs=0)
 
