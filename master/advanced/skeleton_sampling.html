@@ -269,8 +269,8 @@ simplex (all-at-once fitting) has risk
 <span class="math notranslate nohighlight">\(\sigma^2 L \binom{D+M-1}{D} / N\)</span>, the number of controls over
 <span class="math notranslate nohighlight">\(N\)</span>. The table lists <span class="math notranslate nohighlight">\(N R^\ast / (\sigma^2 L)\)</span> and the all-at-once
 value; the smaller one is in bold.</p>
-<table class="docutils align-default" id="id3">
-<caption><span class="caption-number">Table 10 </span><span class="caption-text">Optimal inductive skeleton risk versus all-at-once risk</span><a class="headerlink" href="#id3" title="Link to this table"></a></caption>
+<table class="docutils align-default" id="id4">
+<caption><span class="caption-number">Table 10 </span><span class="caption-text">Optimal inductive skeleton risk versus all-at-once risk</span><a class="headerlink" href="#id4" title="Link to this table"></a></caption>
 <thead>
 <tr class="row-odd"><th class="head stub"><p>Degree</p></th>
 <th class="head"><p><span class="math notranslate nohighlight">\(M = 2\)</span></p></th>
@@ -411,14 +411,31 @@ ill-conditioned as the degree grows, and
 <a class="reference internal" href="../api.html#torch_bsf.sampling.skeleton_risk_coefficients" title="torch_bsf.sampling.skeleton_risk_coefficients"><code class="xref py py-func docutils literal notranslate"><span class="pre">skeleton_risk_coefficients()</span></code></a> raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>
 once the float64 result can no longer be guaranteed to six significant digits
 (above degree 14 for <span class="math notranslate nohighlight">\(M = 2\)</span>, 12 for <span class="math notranslate nohighlight">\(M = 3\)</span>, 11 for
-<span class="math notranslate nohighlight">\(M = 4\)</span>, 9 for <span class="math notranslate nohighlight">\(M = 5\)</span> and 8 for <span class="math notranslate nohighlight">\(M = 6\)</span>). On a simploid,
-the condition number of the Gram matrix on the whole simploid is the product
-of those of its factors’ Gram matrices, so products of many factors are
-rejected even at low degree (for example, 12 segments of degree 1). In that
-case, pass <code class="docutils literal notranslate"><span class="pre">ratio</span></code> to <a class="reference internal" href="../api.html#torch_bsf.sampling.sample_skeleton" title="torch_bsf.sampling.sample_skeleton"><code class="xref py py-func docutils literal notranslate"><span class="pre">sample_skeleton()</span></code></a> explicitly. A single
+<span class="math notranslate nohighlight">\(M = 4\)</span>, 9 for <span class="math notranslate nohighlight">\(M = 5\)</span> and 8 for <span class="math notranslate nohighlight">\(M = 6\)</span>). The Gram
+matrix of degree <span class="math notranslate nohighlight">\(D\)</span> on a simplex with <span class="math notranslate nohighlight">\(M\)</span> vertices has the
+condition number <span class="math notranslate nohighlight">\(\binom{2D + M - 1}{D}\)</span>, which follows from its
+eigenvalues <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../references.html#id57" title="Robert C. Kirby. Fast inversion of the simplicial Bernstein mass matrix. Numerische Mathematik, 135(1):73–95, 2017. URL: https://doi.org/10.1007/s00211-016-0795-0.">Kir17</a>]</span>. On a simploid, the condition number of
+the Gram matrix on the whole simploid is the product of those of its factors’
+Gram matrices, so products of many factors are rejected even at low degree
+(for example, 12 segments of degree 1). In that case, pass <code class="docutils literal notranslate"><span class="pre">ratio</span></code> to
+<a class="reference internal" href="../api.html#torch_bsf.sampling.sample_skeleton" title="torch_bsf.sampling.sample_skeleton"><code class="xref py py-func docutils literal notranslate"><span class="pre">sample_skeleton()</span></code></a> explicitly. A single
 simplex or simploid is supported, not assembled spaces. The closed forms and
 proofs in <a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a> concern simplices only; for a simploid,
 only the numerical coefficients are available.</p>
+<p>The coefficients are computed factor by factor. On a face of a simploid, the
+Gram matrices and the errors that the face passes on are Kronecker products
+of those of its factor faces, so the trace of the face is the product of
+theirs, and each <span class="math notranslate nohighlight">\(a_m\)</span> is the number of faces of dimension <span class="math notranslate nohighlight">\(m\)</span> with
+interior controls times a sum of such products of traces computed on the
+factors’ simplices. Time and memory therefore grow with the cube and the
+square of the number of controls of the largest factor, not of the product:
+the product of eight triangles of degree one, with 6561 controls, takes a
+fraction of a second. A simplex is its own only factor, so time grows with the
+cube and memory with the square of its <span class="math notranslate nohighlight">\(\binom{D + M - 1}{D}\)</span> controls.
+Because the condition number of the Gram matrix has a closed form, a rejected
+space is rejected before anything of the size of a factor is allocated. The
+widest accepted simplices, such as <span class="math notranslate nohighlight">\(M = 22\)</span> at degree 4 with 12650
+controls, still need several dense float64 matrices of 1.3 GB each.</p>
 </section>
 </section>
 
