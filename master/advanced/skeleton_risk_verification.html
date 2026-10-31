@@ -223,7 +223,7 @@ formulas and their assembly, rather than prove the expectation limit or extend t
 skeleton API to assembled domains. Those functions still reject assembled
 spaces. The all-at-once count uses global proper controls, not a sum of
 local control counts. Quadrature and the public joint solver also check
-<a class="reference internal" href="simploidal_risk.html#cor-skeleton-assembled-aao">Corollary 9</a> with matching design/evaluation
+<a class="reference internal" href="simploidal_risk.html#cor-skeleton-assembled-aao">Corollary 10</a> with matching design/evaluation
 weights and with different weights, over all ten domains.</p>
 </section>
 <section id="products-of-simplices">
@@ -232,13 +232,21 @@ weights and with different weights, over all ten domains.</p>
 <a class="reference internal" href="skeleton_risk_theory.html#cor-skeleton-product-shape-ratio">Corollary 2</a> are checked in
 <code class="docutils literal notranslate"><span class="pre">tests/sampling.py</span></code> independently of the runtime factor-by-factor
 algorithm. <code class="docutils literal notranslate"><span class="pre">_scalar_product_risk</span></code> substitutes the exact simplex scalar
-sums into <a class="reference internal" href="skeleton_risk_theory.html#equation-skeleton-product-coefficients">(5)</a>.
+sums into <a class="reference internal" href="skeleton_risk_theory.html#equation-skeleton-product-coefficients">(6)</a>.
 <code class="docutils literal notranslate"><span class="pre">_rational_face_traces</span></code> instead constructs the full product Bernstein
 Gram matrices from Dirichlet moments, propagates errors face by face by
 rational Gauss-Jordan elimination, and retains every face trace as a
 <a class="reference external" href="https://docs.python.org/3/library/fractions.html#fractions.Fraction" title="(in Python v3.15)"><code class="xref py py-class docutils literal notranslate"><span class="pre">fractions.Fraction</span></code></a>. The dimension coefficients agree exactly.
 The runtime numerical coefficients are also checked against those exact
 values with the documented relative tolerance <span class="math notranslate nohighlight">\(10^{-6}\)</span>.</p>
+<p>The same 12 cases also check every entry of the propagated error matrix
+against the Kronecker product of the factors’ matrices, evaluated by the
+independent simplex recursion. This equality is checked in rational
+arithmetic before taking any trace, directly testing
+<a class="reference internal" href="skeleton_risk_theory.html#lem-skeleton-product-propagation">Lemma 3</a>.
+Since elementary tensors of factor control vectors span all source-face
+controls, the same matrix check verifies the polynomial identity in
+<a class="reference internal" href="skeleton_risk_theory.html#rem-skeleton-product-polynomials">Remark 1</a> for arbitrary boundary modes.</p>
 <p>Grouping the independent face traces by the vector of factor face
 dimensions checks that the faces of one shape have equal traces, that all
 active shapes occur, and that each shape coefficient is exactly
@@ -283,6 +291,26 @@ The proofs, rather than these finite checks, establish the formulas for
 all factor dimensions and degrees. Sampling by independent shape shares
 is a theoretical design here; the current <code class="docutils literal notranslate"><span class="pre">ratio</span></code> API is indexed by
 total dimension.</p>
+<p>The allocation checks also group the exact traces by total dimension.
+They verify that the dimension and face optima agree exactly when each
+dimension has equal face traces, using the rounding bound above to compare
+the numerical risks. Two additional cases, type <span class="math notranslate nohighlight">\((2,1)\)</span> with degrees
+<span class="math notranslate nohighlight">\((3,1)\)</span> and type <span class="math notranslate nohighlight">\((1,2,1)\)</span> with degrees <span class="math notranslate nohighlight">\((1,2,1)\)</span>, check the
+sufficient condition that at most one factor has degree above one. This
+also includes the cubic-triangle example below. The mixed-degree square
+provides a case with strict inequality.</p>
+<p>Separate numerical checks cover <a class="reference internal" href="skeleton_risk_theory.html#cor-skeleton-product-closed-forms">Corollary 4</a>:
+the top coefficient on types <span class="math notranslate nohighlight">\((1,2)\)</span> and <span class="math notranslate nohighlight">\((2,2)\)</span> with degrees
+<span class="math notranslate nohighlight">\((2,3)\)</span> and <span class="math notranslate nohighlight">\((3,4)\)</span>, respectively; the vertex coefficient and
+inactive dimensions at degree one on types <span class="math notranslate nohighlight">\((1,1)\)</span>, <span class="math notranslate nohighlight">\((2,3)\)</span> and
+<span class="math notranslate nohighlight">\((1,1,1,1)\)</span>; and products of one, two and three segments at each of
+degrees one through three. The segment products also check the binomial
+optimal dimension fractions, the closed-form optimal risk and its strict
+improvement over all-at-once fitting. Coefficient comparisons allow the
+runtime relative error bound plus the reference’s rounding error; derived
+quantities also allow for square roots, sums and normalization. The cubic
+triangle times a linear segment checks the printed risks <span class="math notranslate nohighlight">\(10.65\)</span>
+and <span class="math notranslate nohighlight">\(14.20\)</span>, and that the factor loses while the product wins.</p>
 </section>
 <section id="reproducing-the-vertex-certificate">
 <h2>Reproducing the vertex certificate<a class="headerlink" href="#reproducing-the-vertex-certificate" title="Link to this heading"></a></h2>
