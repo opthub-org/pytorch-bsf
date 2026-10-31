@@ -1,6 +1,7 @@
 import math
 import warnings
 from collections import Counter
+from collections.abc import Sequence
 from fractions import Fraction
 from functools import cache
 from itertools import combinations, count, product
@@ -17,7 +18,7 @@ from tests.strategies import degrees, seeds, simploid_types
 from torch_bsf import BezierSpace, Samples, SimploidalSet, fit_skeleton_regression, sampling
 from torch_bsf._kernels._sampling import simplex_grid, simplex_random, simplex_sobol
 from torch_bsf._kernels.combinatorics import _indices, _simplex_indices
-from torch_bsf._skeleton import _blocks, _faces_with_interior_controls
+from torch_bsf._skeleton import _blocks, _control_faces, _faces_with_interior_controls, _interior_and_boundary
 from torch_bsf.sampling import (
     _RISK_RELATIVE_ERROR,
     _exponentials,
@@ -2052,3 +2053,41 @@ def test_sample_skeleton_skips_faces_without_interior_controls():
     assert len({tuple(row.tolist()) for row in support}) == 5
     points = sample_skeleton(space, 300, seed=0)
     assert "Ignored" not in fit_skeleton_regression(space, Samples(points, points.parameters[:, :1])).message
+
+
+def _unrestricted_face_trace_sums(dimensions: Sequence[int], degree: Sequence[int]) -> tuple[list[float], float]:
+    """Reference from master 60781a5ef: all noise columns and one contraction per face."""
+    alpha = torch.tensor([sum(index, ()) for index in _indices(dimensions, degree)], dtype=torch.long)
+    control_faces = _control_faces(dimensions, degree)
+    # Built first, so that its temporaries are freed before the error matrix of the same size is allocated.
+    full = _face_gram(alpha, alpha, range(alpha.shape[1]), dimensions, degree)
+    # Control errors as linear maps of the independent face noises: on face I,
+    # e_T = eta_I - G_TT^{-1} G_TB e_B, where T are the controls interior to I and B those on its boundary.
+    errors = torch.zeros(len(alpha), len(alpha), dtype=torch.float64)
+    face_grams: list[tuple[int, torch.Tensor, torch.Tensor]] = []
+    for face in _faces_with_interior_controls(dimensions, degree):
+        interior, boundary = (torch.tensor(k, dtype=torch.long) for k in _interior_and_boundary(control_faces, face))
+        gram = _face_gram(alpha[interior], alpha[torch.cat([interior, boundary])], face, dimensions, degree)
+        g_tt, g_tb = gram[:, : len(interior)], gram[:, len(interior) :]
+        errors[interior] = -torch.linalg.solve(g_tt, g_tb @ errors[boundary])
+        errors[interior[:, None], interior] = torch.eye(len(interior), dtype=torch.float64)
+        face_grams.append((len(face) - len(dimensions), interior, g_tt))
+    sums = [0.0] * (sum(dimensions) + 1)
+    for m, interior, g_tt in face_grams:
+        propagated = errors[:, interior]
+        sums[m] += torch.linalg.solve(g_tt, propagated.T @ full @ propagated).trace().item()
+    return sums, max(torch.linalg.cond(g_tt).item() for _, _, g_tt in face_grams)
+
+
+@given(dimensions=simploid_types(max_width=6), data=st.data())
+def test_face_trace_sums_match_unrestricted_propagation(dimensions, data):
+    degree = data.draw(degrees(dimensions, min_degree=1))
+    actual, condition = _face_trace_sums(dimensions, degree)
+    expected, original_condition = _unrestricted_face_trace_sums(dimensions, degree)
+    n = len(_indices(dimensions, degree))
+    width, levels = sum(a + 1 for a in dimensions), sum(dimensions) + 1
+    # Each computation obeys check's bound: entry perturbations plus backward-stable solves per level,
+    # and the final trace reduction. Twice their sum covers the first-order comparison and higher orders.
+    bound = (levels * (2 * width + 2 + n) * _gram_condition(dimensions, degree) + n) * U
+    assert actual == pytest.approx(expected, rel=4 * bound, abs=0)
+    assert condition == original_condition

@@ -363,12 +363,17 @@ Gram matrices and the errors that the face passes on are Kronecker products
 of those of its factor faces, so the trace of the face is the product of
 theirs, and each :math:`a_m` is the number of faces of dimension :math:`m` with
 interior controls times a sum of such products of traces computed on the
-factors' simplices. Time and memory therefore grow with the cube and the
-square of the number of controls of the largest factor, not of the product:
+factors' simplices. Vertex permutation symmetry retains the noises of one
+representative face per dimension, propagated to all controls; propagation
+uses only noises in each face closure, and trace contractions are batched
+by dimension. The dense Gram matrix still needs quadratic memory in the
+number of controls of the largest factor, not of the product:
 the product of eight triangles of degree one, with 6561 controls, takes a
-fraction of a second. A simplex is its own only factor, so time grows with the
-cube and memory with the square of its :math:`\binom{D + M - 1}{D}` controls.
+fraction of a second. A simplex is its own only factor. At fixed degree,
+Gram construction and trace contractions take quadratic time in its
+:math:`\binom{D + M - 1}{D}` controls, apart from coordinate and face bookkeeping.
 Because the condition number of the Gram matrix has a closed form, a rejected
 space is rejected before anything of the size of a factor is allocated. The
 widest accepted simplices, such as :math:`M = 22` at degree 4 with 12650
-controls, still need several dense float64 matrices of 1.3 GB each.
+controls, still need a dense float64 Gram matrix of 1.3 GB and similarly
+sized temporaries during its construction.
