@@ -495,3 +495,13 @@ def test_constant_model_preserves_zero_coordinate_gradients(dimensions):
     parameters.requires_grad_()
     gradient = torch.autograd.grad(model(parameters).sum(), parameters)[0]
     torch.testing.assert_close(gradient, torch.zeros_like(parameters), atol=0, rtol=0)
+
+
+def test_space_preserves_immutable_edges_and_snapshots_mutable_edges():
+    original = bsf.BezierSpace.simplex(1, degree=2)
+    same = bsf.BezierSpace(original.cells, original.n_controls, original.main_cells, original._edges)
+    assert same._edges is original._edges
+    mutable = [list(edge) for edge in original._edges]
+    snapshot = bsf.BezierSpace(original.cells, original.n_controls, original.main_cells, mutable)  # type: ignore[arg-type]
+    mutable[0][0] = 999
+    assert snapshot._edges == original._edges

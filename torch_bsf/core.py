@@ -84,7 +84,10 @@ class BezierSpace:
     def __post_init__(self) -> None:
         object.__setattr__(self, "cells", tuple(self.cells))
         object.__setattr__(self, "main_cells", tuple(self.main_cells))
-        object.__setattr__(self, "_edges", tuple(tuple(edge) for edge in self._edges))
+        edges = tuple(self._edges)
+        if any(not isinstance(edge, tuple) for edge in edges):
+            edges = tuple((a, b) for a, b in edges)
+        object.__setattr__(self, "_edges", edges)
         _integer(self.n_controls, "n_controls", 1)
         if not self.cells or not self.main_cells:
             raise ValueError("a space requires cells and at least one maximal cell.")

@@ -39,7 +39,12 @@ def test_roundtrip(dtype, kind, data, seed):
         path = Path(directory) / "arbitrary.extension"
         save_model(path, model)
         loaded = load_model(path)
+        with zipfile.ZipFile(path) as archive:
+            document = json.loads(archive.read("model.json"))
+        assert document["schema_version"] == 1
+        assert document["space"]["edges"] == space.adjacency().tolist()
     assert loaded.space.compatible(model.space)
+    assert torch.equal(loaded.space.adjacency(), model.space.adjacency())
     assert loaded.coefficients.dtype == dtype
     assert torch.equal(loaded.coefficients, model.coefficients)
     assert torch.equal(loaded(points), model(points))

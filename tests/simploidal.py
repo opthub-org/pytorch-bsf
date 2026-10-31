@@ -28,6 +28,7 @@ from torch_bsf._kernels import (
     simploid_n_params,
 )
 from torch_bsf._kernels.api import fit
+from torch_bsf._kernels.combinatorics import _adjacent_pairs, _positions, _small_adjacent_pairs
 from torch_bsf._kernels.fitting import _check_solver
 from torch_bsf.preprocessing import NormalizeType
 
@@ -2246,3 +2247,55 @@ def test_constant_basis_preserves_zero_coordinate_gradients(dimensions):
     cached = BezierSimploid(dimensions, degree, torch.tensor([[2.0]], dtype=torch.float64))
     cached_gradient = torch.autograd.grad(cached(parameters).sum(), parameters)[0]
     torch.testing.assert_close(cached_gradient, torch.zeros_like(parameters), atol=0, rtol=0)
+
+
+def _reference_adjacent_pairs(simploid_type, degree):
+    """Unvectorized reference from master 60781a5ef."""
+    pos = _positions(simploid_type, degree)
+    pairs = []
+    for alpha, p in pos.items():
+        for k, m in enumerate(alpha):
+            for i in range(len(m)):
+                if m[i] == 0:
+                    continue
+                for j in range(len(m)):
+                    if j == i:
+                        continue
+                    n = list(m)
+                    n[i] -= 1
+                    n[j] += 1
+                    q = pos[alpha[:k] + (tuple(n),) + alpha[k + 1 :]]
+                    if p < q:
+                        pairs.append((p, q))
+    return tuple(sorted(pairs))
+
+
+@given(dimensions=simploid_types(min_factors=0), data=st.data())
+def test_adjacent_pairs_match_unvectorized_reference(dimensions, data):
+    from torch_bsf import BezierSpace
+
+    degree = data.draw(degrees(dimensions, max_degree=5))
+    expected = _reference_adjacent_pairs(dimensions, degree)
+    actual = _adjacent_pairs(dimensions, degree)
+    assert isinstance(actual, tuple)
+    assert actual == expected
+    assert all(type(p) is int and type(q) is int for p, q in actual)
+    space = BezierSpace.simploid(dimensions, degree=degree)
+    assert space.adjacency().tolist() == [list(edge) for edge in expected]
+    kernel = BezierSimploid.zeros(dimensions, degree, n_values=1)
+    assert torch.equal(kernel.adjacency(), space.adjacency())
+
+
+def test_large_adjacent_pairs_are_not_cached():
+    # 16 vertices at degree 3 have C(17, 15) * C(16, 2) = 16320 edges, exceeding the 4096-edge cache limit.
+    before = _small_adjacent_pairs.cache_info()
+    first = _adjacent_pairs((15,), (3,))
+    second = _adjacent_pairs((15,), (3,))
+    assert first == second and first is not second
+    assert _small_adjacent_pairs.cache_info() == before
+
+
+@pytest.mark.parametrize("degree", [65534, 65535, 65536])
+def test_adjacent_pair_keys_cross_the_uint32_boundary(degree):
+    # n**2 - 1 crosses uint32 at n = 65537; endpoints must remain exact on both sides.
+    assert _adjacent_pairs((1,), (degree,)) == tuple(zip(range(degree), range(1, degree + 1), strict=True))
