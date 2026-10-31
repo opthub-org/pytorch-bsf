@@ -3,7 +3,7 @@ import warnings
 from collections import Counter
 from fractions import Fraction
 from functools import cache
-from itertools import combinations, count
+from itertools import combinations, count, product
 from math import comb
 from unittest.mock import patch
 
@@ -1683,6 +1683,15 @@ def test_sample_skeleton_rejects_bad_arguments():
 
 _SIMPLOIDS = [((1, 1), (1, 1)), ((1, 1), (2, 2)), ((1, 1), (3, 1)), ((2, 1), (2, 2)), ((2, 1), (2, 3)), ((1, 1, 1), (2, 1, 2))]
 
+_PRODUCT_THEORY_CASES = _SIMPLOIDS + [
+    ((2, 1), (2, 1)),
+    ((1, 1), (2, 3)),
+    ((3, 1), (2, 2)),
+    ((2, 2), (2, 2)),
+    ((1, 1, 1), (1, 2, 3)),
+    ((1, 1, 1, 1), (1, 1, 1, 1)),
+]
+
 
 def _skeleton_faces(dimensions, m):
     """Every face of dimension ``m``, listed by brute force over vertex subsets with one vertex in each factor."""
@@ -1775,7 +1784,9 @@ def _rational_gram(dimensions, degree, alphas, face, rows, columns):
     return [[entry(r, c) for c in columns] for r in rows]
 
 
-def _rational_skeleton_risk(dimensions, degree):
+@cache  # Pure; callers only read the returned face traces.
+def _rational_face_traces(dimensions, degree):
+    """Independent product-face propagation and Gram traces, retaining exact rational values."""
     alphas = [sum(index, ()) for index in _indices(tuple(dimensions), tuple(degree))]
     n = len(alphas)
     supports = [tuple(i for i, v in enumerate(alpha) if v) for alpha in alphas]
@@ -1794,14 +1805,74 @@ def _rational_skeleton_risk(dimensions, degree):
             errors[k][k] = Fraction(1)
         faces.append((face, interior, g_tt))
     full = _rational_gram(dimensions, degree, alphas, tuple(range(len(alphas[0]))), range(n), range(n))
-    coefficients = [Fraction(0)] * (sum(dimensions) + 1)
+    traces = []
     for face, interior, g_tt in faces:
-        m = len(face) - len(dimensions)
         columns = [[errors[r][k] for r in range(n)] for k in interior]
         inner = [[sum(x * full[r][c] * y[c] for r, x in enumerate(u) for c in range(n)) for y in columns] for u in columns]
         trace = sum(row[i] for i, row in enumerate(_rational_solve(g_tt, inner)))
+        traces.append((face, trace))
+    return traces
+
+
+def _rational_skeleton_risk(dimensions, degree):
+    coefficients = [Fraction(0)] * (sum(dimensions) + 1)
+    for face, trace in _rational_face_traces(dimensions, degree):
+        m = len(face) - len(dimensions)
         coefficients[m] += len(_sampled_faces(dimensions, degree, m)) * trace
-    return [float(c) for c in coefficients]
+    return coefficients
+
+
+def _scalar_product_risk(dimensions, degree):
+    """The theory's face-count formula, using scalar simplex sums without any Gram solve."""
+    factors = [
+        [_scalar_risk_sum(a + 1, d, r + 1) for r in range(min(a + 1, d))] for a, d in zip(dimensions, degree, strict=True)
+    ]
+    shapes = list(product(*(range(len(factor)) for factor in factors)))
+    coefficients = []
+    for m in range(sum(dimensions) + 1):
+        n_faces, traces = 0, Fraction(0)
+        for shape in shapes:
+            if sum(shape) != m:
+                continue
+            counts = [comb(a + 1, r + 1) for a, r in zip(dimensions, shape, strict=True)]
+            n_faces += math.prod(counts)
+            traces += math.prod(factors[i][r] / counts[i] for i, r in enumerate(shape))
+        coefficients.append(n_faces * traces)
+    return coefficients, factors
+
+
+@pytest.mark.parametrize(("dimensions", "degree"), _PRODUCT_THEORY_CASES)
+def test_simploid_scalar_product_formula_matches_exact_propagation(dimensions, degree):
+    # The factor scalar sums and face counts are independent of the full product's rational Gram recursion.
+    coefficients, _ = _scalar_product_risk(dimensions, degree)
+    assert coefficients == _rational_skeleton_risk(dimensions, degree)
+    numerical = skeleton_risk_coefficients(BezierSpace.simploid(dimensions, degree=degree))
+    assert numerical == pytest.approx(coefficients, rel=1e-6, abs=0)
+
+
+@pytest.mark.parametrize(("dimensions", "degree"), _PRODUCT_THEORY_CASES)
+def test_simploid_shape_allocation_factorizes_the_optimum(dimensions, degree):
+    coefficients, factors = _scalar_product_risk(dimensions, degree)
+    blocks = _blocks(dimensions)
+    by_shape: dict[tuple[int, ...], list[Fraction]] = {}
+    for face, trace in _rational_face_traces(dimensions, degree):
+        shape = tuple(sum(i in block for i in face) - 1 for block in blocks)
+        by_shape.setdefault(shape, []).append(trace)
+    assert set(by_shape) == set(product(*(range(len(factor)) for factor in factors)))
+    shape_coefficients = []
+    for shape, traces in by_shape.items():
+        assert all(trace == traces[0] for trace in traces)
+        coefficient = len(traces) * sum(traces)
+        assert coefficient == math.prod(factors[i][r] for i, r in enumerate(shape))
+        shape_coefficients.append(coefficient)
+    direct = sum(math.sqrt(a) for a in shape_coefficients) ** 2
+    factorized = math.prod(sum(math.sqrt(a) for a in factor) ** 2 for factor in factors)
+    dimension_based = sum(math.sqrt(a) for a in coefficients) ** 2
+    # Positive square roots, sums and products have no cancellation. There are at most prod(len(factor))
+    # shape terms; 16 U per term and factor bounds the two evaluations' first-order relative rounding errors.
+    tolerance = 16 * (len(shape_coefficients) + len(factors)) * U
+    assert direct == pytest.approx(factorized, rel=tolerance, abs=0)
+    assert factorized <= dimension_based * (1 + tolerance)
 
 
 def _assert_simploid_rows(space, degree, points, n, fractions):
