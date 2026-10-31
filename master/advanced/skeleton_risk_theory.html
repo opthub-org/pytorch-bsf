@@ -24,7 +24,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Exact verification of the skeleton risk" href="skeleton_risk_verification.html" />
+    <link rel="next" title="Risk on an assembled simploidal set" href="simploidal_risk.html" />
     <link rel="prev" title="Optimal skeleton sampling" href="skeleton_sampling.html" /> 
 </head>
 
@@ -78,6 +78,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#open-questions">Open questions</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
 <li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
@@ -139,6 +140,8 @@
 on simplices and their products, from its assumptions to the general scalar
 formula, then derives the closed forms and comparisons used in
 <a class="reference internal" href="skeleton_sampling.html"><span class="doc">Optimal skeleton sampling</span></a>.
+The extension to general finite simploidal sets, including shared and
+degenerate faces, is proved in <a class="reference internal" href="simploidal_risk.html"><span class="doc">Risk on an assembled simploidal set</span></a>.
 The results are organized by mathematical dependence; finite verification
 and reference tables are collected in <a class="reference internal" href="skeleton_risk_verification.html"><span class="doc">Exact verification of the skeleton risk</span></a>.</p>
 <p><span class="bibtex-citation" id="id1">Tanaka <em>et al.</em> [<a class="reference internal" href="../references.html#id15" title="Aiko Tanaka, Akiyoshi Sannai, Ken Kobayashi, and Naoki Hamada. Asymptotic risk of bézier simplex fitting. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 34, 2416–2424. 2020. URL: https://doi.org/10.1609/aaai.v34i03.5622.">TSKH20</a>]</span> derived a Gram recursion and evaluated degrees
@@ -181,6 +184,10 @@ all vertex counts for <span class="math notranslate nohighlight">\(D\leq8\)</spa
 <tr class="row-odd"><td><p>A single product of simplices, with any positive factor degrees</p></td>
 <td><p><a class="reference internal" href="#thm-skeleton-product-risk">Theorem 9</a>: coefficients from the simplex factors;
 <a class="reference internal" href="#cor-skeleton-product-shape-ratio">Corollary 2</a>: optimal allocation by face shape.</p></td>
+</tr>
+<tr class="row-even"><td><p>Any finite simploidal set, with compatible positive factor degrees</p></td>
+<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-assembled-risk">Theorem 18</a>: global propagation and weighted risk;
+<a class="reference internal" href="simploidal_risk.html#cor-skeleton-assembled-allocation">Corollary 8</a>: cell and grouped optima.</p></td>
 </tr>
 </tbody>
 </table>
@@ -580,9 +587,9 @@ approximately <span class="math notranslate nohighlight">\(11.363687\)</span> wi
 all-at-once fitting. For a prism of degrees <span class="math notranslate nohighlight">\((2,1)\)</span>, the triangle
 and segment coefficients <span class="math notranslate nohighlight">\((3/8,3,0)\)</span> and <span class="math notranslate nohighlight">\((4/3,0)\)</span> give
 <span class="math notranslate nohighlight">\((A_0,A_1,A_2,A_3)=(1/2,4,0,0)\)</span>.</p>
-<p>These results concern a single product cell. In an assembled simploidal
-set, identified faces share controls, so the independent product
-propagation argument does not by itself give the global risk.</p>
+<p>These product factorizations concern a single product cell. In an assembled
+simploidal set, identified faces share controls; <a class="reference internal" href="simploidal_risk.html"><span class="doc">Risk on an assembled simploidal set</span></a>
+incorporates their multiplicities and propagation into the global risk.</p>
 </section>
 <section id="how-errors-propagate">
 <h2>How errors propagate<a class="headerlink" href="#how-errors-propagate" title="Link to this heading"></a></h2>
@@ -1379,7 +1386,7 @@ before they yield a classification over all degrees.</p></li>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="skeleton_sampling.html" class="btn btn-neutral float-left" title="Optimal skeleton sampling" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="skeleton_risk_verification.html" class="btn btn-neutral float-right" title="Exact verification of the skeleton risk" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="simploidal_risk.html" class="btn btn-neutral float-right" title="Risk on an assembled simploidal set" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

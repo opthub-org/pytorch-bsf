@@ -92,6 +92,7 @@ choose them when your domain, objective or execution environment requires it.
    advanced/sampling
    advanced/skeleton_sampling
    advanced/skeleton_risk_theory
+   advanced/simploidal_risk
    advanced/skeleton_risk_verification
    advanced/point_cloud
 
