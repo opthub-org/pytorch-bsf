@@ -1,0 +1,474 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Risk on an assembled simploidal set &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Exact verification of the skeleton risk" href="skeleton_risk_verification.html" />
+    <link rel="prev" title="Theory of the skeleton risk" href="skeleton_risk_theory.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Risk on an assembled simploidal set</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#global-controls-and-moments">Global controls and moments</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#estimator-and-finite-propagation-formula">Estimator and finite propagation formula</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#optimal-allocation-and-all-at-once-comparison">Optimal allocation and all-at-once comparison</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#two-small-examples">Two small examples</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Risk on an assembled simploidal set</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/simploidal_risk.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="risk-on-an-assembled-simploidal-set">
+<span id="skeleton-risk-assembled"></span><h1>Risk on an assembled simploidal set<a class="headerlink" href="#risk-on-an-assembled-simploidal-set" title="Link to this heading"></a></h1>
+<p>The product formulas in <a class="reference internal" href="skeleton_risk_theory.html#skeleton-risk-products"><span class="std std-ref">Products of simplices</span></a> extend to any finite
+simploidal set with compatible positive factor degrees. Shared faces are
+fitted once, and their errors enter every incident cell. Consequently,
+adding the risks of independently fitted maximal cells gives the wrong
+answer. The formula below uses the global proper controls of
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">on_set()</span></code>, including repeated controls caused by
+self-identifications and degenerate boundary faces.</p>
+<p>This chapter proves the formula and optimal allocations. The public
+<a class="reference internal" href="../api.html#torch_bsf.sampling.skeleton_risk_coefficients" title="torch_bsf.sampling.skeleton_risk_coefficients"><code class="xref py py-func docutils literal notranslate"><span class="pre">skeleton_risk_coefficients()</span></code></a>,
+<a class="reference internal" href="../api.html#torch_bsf.sampling.sample_skeleton" title="torch_bsf.sampling.sample_skeleton"><code class="xref py py-func docutils literal notranslate"><span class="pre">sample_skeleton()</span></code></a> and
+<a class="reference internal" href="../api.html#torch_bsf.fitting.fit_skeleton_regression" title="torch_bsf.fitting.fit_skeleton_regression"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_skeleton_regression()</span></code></a> still accept only a single
+simplex or product cell. The assembled estimator defined here can be
+implemented by successive calls to <code class="xref py py-func docutils literal notranslate"><span class="pre">fit()</span></code> with
+<code class="xref py py-class docutils literal notranslate"><span class="pre">FixedControls</span></code>; the verification tests do exactly that.</p>
+<section id="global-controls-and-moments">
+<h2>Global controls and moments<a class="headerlink" href="#global-controls-and-moments" title="Link to this heading"></a></h2>
+<p>Let <span class="math notranslate nohighlight">\(\mathcal S\)</span> be the finite collection of non-degenerate cells,
+with maximal dimension <span class="math notranslate nohighlight">\(d\)</span>. The set may be disconnected, have cells of
+different dimensions or types, and have identified or degenerate faces.
+Use a compatible degree assignment as in <a class="reference internal" href="simploidal.html"><span class="doc">Single and assembled domains</span></a>. For a cell
+<span class="math notranslate nohighlight">\(s\)</span> of type <span class="math notranslate nohighlight">\((d_{s,1},\ldots,d_{s,k_s})\)</span> and factor degrees
+<span class="math notranslate nohighlight">\(D_{s,i}\geq1\)</span>, let <span class="math notranslate nohighlight">\(T_s\)</span> be its proper controls, namely the
+local Bernstein indices that are strictly positive in every coordinate.
+They are distinct global controls, and</p>
+<div class="math notranslate nohighlight">
+\[p_s=|T_s|=\prod_i\binom{D_{s,i}-1}{d_{s,i}},\qquad
+p=\sum_{s\in\mathcal S}p_s.\]</div>
+<p>A binomial coefficient is zero when its lower index exceeds its upper
+index. A vertex has an empty product and one control. The sets <span class="math notranslate nohighlight">\(T_s\)</span>
+partition the <span class="math notranslate nohighlight">\(p\)</span> global proper controls. Call a cell <em>active</em> if
+<span class="math notranslate nohighlight">\(p_s&gt;0\)</span>, and write <span class="math notranslate nohighlight">\(\mathcal A\)</span> for the active cells.
+Degenerate cells add no controls or fitting stages: their coefficients are
+pulled back from their non-degenerate base.</p>
+<p>Let <span class="math notranslate nohighlight">\(\beta_s(t)\)</span> be the column vector of the full local product
+Bernstein basis. Define the local-to-global matrix <span class="math notranslate nohighlight">\(A_s\)</span> by</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}(A_s)_{\alpha j}=\begin{cases}1&amp;\text{local control }\alpha
+       \text{ is global control }j,\\0&amp;\text{otherwise},\end{cases}
+\qquad \phi_s(t)=A_s^\top\beta_s(t).\end{split}\]</div>
+<p>Each row of <span class="math notranslate nohighlight">\(A_s\)</span> has one 1, but a column may have several.
+Thus the corresponding entries of <span class="math notranslate nohighlight">\(\beta_s\)</span> must be <strong>summed</strong>.
+This includes multiplicities from every face map; replacing them by a set
+of distinct control IDs would lose cross terms.</p>
+<p>Use the product uniform probability measure <span class="math notranslate nohighlight">\(U_s\)</span> on each chart.
+The local and assembled Gram matrices are</p>
+<div class="math notranslate nohighlight" id="equation-assembled-risk-grams">
+<span class="eqno">(22)<a class="headerlink" href="#equation-assembled-risk-grams" title="Link to this equation"></a></span>\[Q_s=\int\beta_s\beta_s^\top\,dU_s,\qquad
+G_s=A_s^\top Q_s A_s=\int\phi_s\phi_s^\top\,dU_s.\]</div>
+<p>Every entry follows directly from Dirichlet moments:</p>
+<div class="math notranslate nohighlight">
+\[(Q_s)_{\alpha\gamma}
+=\prod_i\frac{(D_{s,i}!)^2d_{s,i}!
+                    \prod_j(\alpha_{ij}+\gamma_{ij})!}
+                   {(2D_{s,i}+d_{s,i})!
+                    \prod_j\alpha_{ij}!\gamma_{ij}!}.\]</div>
+<p>For risk evaluation, choose fixed weights <span class="math notranslate nohighlight">\(w_s\geq0\)</span> summing to one,
+and put <span class="math notranslate nohighlight">\(\mu=\sum_s w_sU_s\)</span>, interpreting each chart measure on the
+identified domain. Then</p>
+<div class="math notranslate nohighlight">
+\[G_\mu=\sum_s w_sG_s,\qquad
+R_N=E\sum_s w_s\int\|\hat b_s(t)-b_s(t)\|^2\,dU_s(t).\]</div>
+<p>There is no canonical uniform probability measure across cells of different
+dimensions. Equal weights on maximal cells, geometric-volume weights, and
+weights on lower cells describe different risks. The evaluation weights
+are independent of the sampling fractions below.</p>
+</section>
+<section id="estimator-and-finite-propagation-formula">
+<h2>Estimator and finite propagation formula<a class="headerlink" href="#estimator-and-finite-propagation-formula" title="Link to this heading"></a></h2>
+<p>Assume the correctly specified model <span class="math notranslate nohighlight">\(b_s(t)=\phi_s(t)^\top b\)</span> with
+<span class="math notranslate nohighlight">\(L\)</span> outputs. On each active cell <span class="math notranslate nohighlight">\(s\)</span>, take a deterministic
+number <span class="math notranslate nohighlight">\(n_s\)</span> of independent <span class="math notranslate nohighlight">\(U_s\)</span> samples, with independent
+draws across cells, including cells that share a face. All noise vectors
+are mutually independent and independent of all design rows, with mean
+zero and covariance <span class="math notranslate nohighlight">\(\sigma^2I_L\)</span>, with <span class="math notranslate nohighlight">\(\sigma&gt;0\)</span>.</p>
+<p>Visit active cells in increasing dimension. On <span class="math notranslate nohighlight">\(s\)</span>, estimate only
+<span class="math notranslate nohighlight">\(b_{T_s}\)</span> by ordinary least squares, holding all proper controls on
+its boundary at their earlier estimates. Every nonzero entry of
+<span class="math notranslate nohighlight">\(\phi_s\)</span> belongs either to <span class="math notranslate nohighlight">\(T_s\)</span> or to these boundary controls,
+whose set of distinct global IDs is denoted by <span class="math notranslate nohighlight">\(B_s\)</span>.
+No second fit is made for another occurrence of an identified face.</p>
+<p>Set <span class="math notranslate nohighlight">\(H_s=G_s[T_s,T_s]\)</span>. This block equals the local proper-control
+Gram block and is positive definite, because those local Bernstein
+polynomials are linearly independent. Order the global controls by their
+owning cell’s dimension, and define the <span class="math notranslate nohighlight">\(p\times p\)</span> matrix <span class="math notranslate nohighlight">\(C\)</span>
+by the blocks</p>
+<div class="math notranslate nohighlight" id="equation-assembled-risk-propagation">
+<span class="eqno">(23)<a class="headerlink" href="#equation-assembled-risk-propagation" title="Link to this equation"></a></span>\[C[T_s,B_s]=H_s^{-1}G_s[T_s,B_s],\qquad
+C[T_s,j]=0\quad(j\notin B_s),\qquad
+P=(I+C)^{-1}=\sum_{\ell=0}^{d}(-C)^\ell.\]</div>
+<p>Indeed, every nonzero block has a strictly higher row dimension than
+column dimension, so
+<span class="math notranslate nohighlight">\(C^{d+1}=0\)</span>. No inverse of a global Gram matrix is needed.
+Write <span class="math notranslate nohighlight">\(E_s=P[:,T_s]\)</span> and define the nonnegative cell coefficients</p>
+<div class="math notranslate nohighlight" id="equation-assembled-risk-traces">
+<span class="eqno">(24)<a class="headerlink" href="#equation-assembled-risk-traces" title="Link to this equation"></a></span>\[c_s(\mu)=\operatorname{tr}\bigl(H_s^{-1}E_s^\top G_\mu E_s\bigr).\]</div>
+<p>Equations <a class="reference internal" href="#equation-assembled-risk-grams">(22)</a>–<a class="reference internal" href="#equation-assembled-risk-traces">(24)</a> are a
+finite expression for every compatible degree and finite simploidal set.
+They require only local proper-block solves and a finite polynomial in
+<span class="math notranslate nohighlight">\(C\)</span>. Rational evaluation weights give rational coefficients.
+In general the matrices do not factor globally over the simplex factors:
+the identifications and the evaluation measure are part of the answer.</p>
+<div class="proof theorem admonition" id="thm-skeleton-assembled-risk">
+<p class="admonition-title"><span class="caption-number">Theorem 18 </span> (Assembled asymptotic risk)</p>
+<section class="theorem-content" id="proof-content">
+<p>With the estimator and assumptions above, let
+<span class="math notranslate nohighlight">\(N=\sum_{s\in\mathcal A}n_s\)</span> and suppose
+<span class="math notranslate nohighlight">\(n_s/N\to q_s&gt;0\)</span> for every active cell. Then <span class="math notranslate nohighlight">\(R_N\)</span> is finite
+for all sufficiently large <span class="math notranslate nohighlight">\(N\)</span>, and</p>
+<div class="math notranslate nohighlight" id="equation-assembled-risk-limit">
+<span class="eqno">(25)<a class="headerlink" href="#equation-assembled-risk-limit" title="Link to this equation"></a></span>\[\lim_{N\to\infty}\frac{NR_N}{\sigma^2L}
+=\sum_{s\in\mathcal A}\frac{c_s(\mu)}{q_s}.\]</div>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Let <span class="math notranslate nohighlight">\(Z_{s,T}\)</span> and <span class="math notranslate nohighlight">\(Z_{s,B}\)</span> be the design blocks on
+cell <span class="math notranslate nohighlight">\(s\)</span>. With empirical moments denoted by hats, its exact error
+equation is</p>
+<div class="math notranslate nohighlight">
+\[e_{T_s}=\eta_s-\hat H_s^{-1}\hat G_s[T_s,B_s]e_{B_s},\qquad
+\eta_s=(Z_{s,T}^\top Z_{s,T})^{-1}Z_{s,T}^\top\varepsilon_s.\]</div>
+<p>Hence <span class="math notranslate nohighlight">\(e=\hat P\eta=\sum_s\hat E_s\eta_s\)</span>, using the same finite
+polynomial as <a class="reference internal" href="#equation-assembled-risk-propagation">(23)</a>. Conditional on all
+design rows, the innovations are independent, and each output column
+of <span class="math notranslate nohighlight">\(\eta_s\)</span> has covariance <span class="math notranslate nohighlight">\(\sigma^2\hat H_s^{-1}/n_s\)</span>.
+Therefore, exactly,</p>
+<div class="math notranslate nohighlight">
+\[\frac{NR_N}{\sigma^2L}=E X_N,\qquad
+X_N=\sum_s\frac{N}{n_s}
+          \operatorname{tr}(\hat H_s^{-1}\hat E_s^\top G_\mu\hat E_s).\]</div>
+<p>The strong law on each of the finitely many charts gives
+<span class="math notranslate nohighlight">\(\hat H_s\to H_s\)</span>, <span class="math notranslate nohighlight">\(\hat C\to C\)</span> and <span class="math notranslate nohighlight">\(\hat P\to P\)</span>
+almost surely, proving the corresponding limit of <span class="math notranslate nohighlight">\(X_N\)</span>.</p>
+<p>For expectation convergence, each chart is convex in its affine span
+and its basis has bounded total polynomial degree
+<span class="math notranslate nohighlight">\(\sum_iD_{s,i}\)</span>. Thus
+<a class="reference internal" href="skeleton_risk_theory.html#lem-skeleton-inverse-moments">Lemma 2</a> applies on every positive-dimensional
+active cell. Vertices have the deterministic block <span class="math notranslate nohighlight">\(H_s=1\)</span>.
+The assembled basis entries are sums of finitely many Bernstein
+polynomials and are bounded. The finite propagation polynomial bounds
+<span class="math notranslate nohighlight">\(X_N\)</span> by a fixed polynomial in the local inverse norms, since
+<span class="math notranslate nohighlight">\(N/n_s\)</span> is bounded. Hölder’s inequality and the inverse-moment lemma
+give a uniform second-moment bound, exactly as in
+<a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-risk">Theorem 7</a>. This proves finiteness and uniform
+integrability, and hence <a class="reference internal" href="#equation-assembled-risk-limit">(25)</a>.</p>
+</div>
+</section>
+<section id="optimal-allocation-and-all-at-once-comparison">
+<h2>Optimal allocation and all-at-once comparison<a class="headerlink" href="#optimal-allocation-and-all-at-once-comparison" title="Link to this heading"></a></h2>
+<p>If <span class="math notranslate nohighlight">\(G_\mu\)</span> is positive definite, every active <span class="math notranslate nohighlight">\(c_s\)</span> is positive:
+<span class="math notranslate nohighlight">\(E_s[T_s]=I\)</span>, so it has full column rank. A sufficient condition is
+positive evaluation weight on every maximal cell. Each global control
+occurs in at least one maximal chart, and every local Bernstein basis is
+linearly independent, so their assembled Gram sum is positive definite.</p>
+<div class="proof corollary admonition" id="cor-skeleton-assembled-allocation">
+<p class="admonition-title"><span class="caption-number">Corollary 8 </span> (Cell and grouped allocations)</p>
+<section class="corollary-content" id="proof-content">
+<p>When <span class="math notranslate nohighlight">\(G_\mu\)</span> is positive definite, the optimal individual-cell
+allocation and normalized risk are</p>
+<div class="math notranslate nohighlight">
+\[q_s^*=\frac{\sqrt{c_s}}{\sum_t\sqrt{c_t}},\qquad
+C_{\rm cell}^*=\left(\sum_s\sqrt{c_s}\right)^2.\]</div>
+<p>More generally, partition the active cells into groups
+<span class="math notranslate nohighlight">\(\mathcal A_g\)</span> and require an equal split within each group.
+With <span class="math notranslate nohighlight">\(K_g=|\mathcal A_g|\)</span> and total group fraction <span class="math notranslate nohighlight">\(\rho_g\)</span>,</p>
+<div class="math notranslate nohighlight" id="equation-assembled-risk-grouped">
+<span class="eqno">(26)<a class="headerlink" href="#equation-assembled-risk-grouped" title="Link to this equation"></a></span>\[a_g=K_g\sum_{s\in\mathcal A_g}c_s,\qquad
+C(\rho)=\sum_g\frac{a_g}{\rho_g},\qquad
+\rho_g^*=\frac{\sqrt{a_g}}{\sum_h\sqrt{a_h}},\qquad
+C_{\rm group}^*=\left(\sum_g\sqrt{a_g}\right)^2\geq C_{\rm cell}^*.\]</div>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Substitute <span class="math notranslate nohighlight">\(q_s=\rho_g/K_g\)</span> in <a class="reference internal" href="#equation-assembled-risk-limit">(25)</a>.
+Cauchy-Schwarz gives both minima as in <a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-ratio">Theorem 8</a>.
+Individual-cell allocations include the group-constrained ones.</p>
+</div>
+<p>Grouping by <span class="math notranslate nohighlight">\(\dim s=m\)</span> gives the general skeleton coefficients
+<span class="math notranslate nohighlight">\(a_m=K_m\sum_{\dim s=m}c_s\)</span>; an empty group has coefficient zero.
+There is generally no symmetry making all <span class="math notranslate nohighlight">\(c_s\)</span> in a group equal.
+For one unglued product cell and uniform evaluation on it, the propagation
+matrices reduce to <a class="reference internal" href="skeleton_risk_theory.html#lem-skeleton-product-propagation">Lemma 3</a>; this recovers
+<a class="reference internal" href="skeleton_risk_theory.html#equation-skeleton-product-coefficients">(5)</a> and the face-shape optimum.</p>
+<p>If <span class="math notranslate nohighlight">\(G_\mu\)</span> is only positive semidefinite, the risk theorem still
+requires strictly positive fractions on <strong>all</strong> active cells. For individual
+allocations, the square-root expression is an infimum approached by making
+the fractions of zero-<span class="math notranslate nohighlight">\(c_s\)</span> cells arbitrarily small and positive; it is
+attained when every <span class="math notranslate nohighlight">\(c_s&gt;0\)</span>. For equal-within-group allocations, only
+groups with <span class="math notranslate nohighlight">\(a_g=0\)</span> receive vanishing fractions in this limiting
+argument. If every nonempty group has <span class="math notranslate nohighlight">\(a_g&gt;0\)</span>, the grouped minimum is
+attained, even when some cells within a group have zero trace: those cells
+receive the same positive fraction as the other members of their group.
+Neither limiting prescription justifies leaving active cells unfitted, or
+a simultaneous limit with vanishing fractions. The estimator still needs
+their controls, even when the evaluation measure cannot see them.</p>
+<div class="proof corollary admonition" id="cor-skeleton-assembled-aao">
+<p class="admonition-title"><span class="caption-number">Corollary 9 </span> (Global all-at-once fitting)</p>
+<section class="corollary-content" id="proof-content">
+<p>Fit all <span class="math notranslate nohighlight">\(p\)</span> proper controls jointly, with deterministic chart counts
+<span class="math notranslate nohighlight">\(n_s/N\to v_s&gt;0\)</span> on a fixed collection <span class="math notranslate nohighlight">\(\mathcal D\)</span> of
+non-degenerate cells. Suppose
+<span class="math notranslate nohighlight">\(G_\nu=\sum_{s\in\mathcal D}v_sG_s\)</span> is positive definite.
+With the same model and independent noise,</p>
+<div class="math notranslate nohighlight">
+\[\lim_{N\to\infty}\frac{NR_N}{\sigma^2L}
+ =\operatorname{tr}(G_\nu^{-1}G_\mu).\]</div>
+<p>In particular, matching the design and evaluation weights gives
+<span class="math notranslate nohighlight">\(p\)</span>, the number of <strong>global proper controls</strong>, whenever
+<span class="math notranslate nohighlight">\(G_\mu\)</span> is positive definite.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Conditional covariance is <span class="math notranslate nohighlight">\(\sigma^2(Z^\top Z)^{-1}\)</span> per output,
+and <span class="math notranslate nohighlight">\(Z^\top Z/N\to G_\nu\)</span>. To justify the expectation limit,
+apply the inverse-moment lemma to the full local Bernstein basis on
+each sampled chart. If <span class="math notranslate nohighlight">\(\lambda_s\)</span> is the smallest eigenvalue of
+its whitened empirical Gram matrix, then, for all sufficiently large
+<span class="math notranslate nohighlight">\(N\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[Z^\top Z/N\succeq\tfrac12(\min_{s\in\mathcal D}\lambda_s)G_\nu.\]</div>
+<p>The inverse moments of the minimum are bounded by sums of the finitely
+many local inverse moments. This gives uniform integrability; the trace
+limit follows. For <span class="math notranslate nohighlight">\(G_\nu=G_\mu\)</span>, the trace is <span class="math notranslate nohighlight">\(p\)</span>.</p>
+</div>
+<p>The deterministic chart counts matter for this statement. Randomly selecting
+chart labels can leave a whole connected component unobserved with positive
+probability at finite <span class="math notranslate nohighlight">\(N\)</span>; invertibility then needs a separate argument.</p>
+</section>
+<section id="two-small-examples">
+<h2>Two small examples<a class="headerlink" href="#two-small-examples" title="Link to this heading"></a></h2>
+<p>Take two quadratic segments meeting at one endpoint, and evaluate equally
+on the two segments. A single quadratic segment has vertex propagation
+polynomials
+<span class="math notranslate nohighlight">\(f_0(t)=(1-t)^2-\tfrac32t(1-t)\)</span> and
+<span class="math notranslate nohighlight">\(f_1(t)=t^2-\tfrac32t(1-t)\)</span>, each with squared integral <span class="math notranslate nohighlight">\(1/8\)</span>.
+The shared vertex propagates onto both segments. Consequently the three
+vertex traces are <span class="math notranslate nohighlight">\(1/16,1/8,1/16\)</span>, while each segment-interior trace
+is <span class="math notranslate nohighlight">\(1/2\)</span>. Thus</p>
+<div class="math notranslate nohighlight">
+\[a_0=3/4,\qquad a_1=2,\qquad
+C_{\rm cell}^*=\left(\tfrac12+\tfrac{5}{2\sqrt2}\right)^2
+  &lt;\left(\sqrt{3/4}+\sqrt2\right)^2=C_{\rm dimension}^*,\]</div>
+<p>and matching all-at-once fitting has normalized risk <span class="math notranslate nohighlight">\(p=5\)</span>.
+The optimal shared-vertex fraction is <span class="math notranslate nohighlight">\(\sqrt2\)</span> times either
+outer-vertex fraction, despite all three cells having dimension zero.</p>
+<p>For a single quadratic segment with its two endpoints identified, both
+endpoint occurrences carry the same innovation. Its vertex propagation
+is <span class="math notranslate nohighlight">\(f_0+f_1=1-5t(1-t)\)</span>, whose squared integral is <span class="math notranslate nohighlight">\(1/6\)</span>.
+The coefficients are therefore <span class="math notranslate nohighlight">\((a_0,a_1)=(1/6,1)\)</span> and the all-at-once
+count is <span class="math notranslate nohighlight">\(p=2\)</span>. Treating the endpoint occurrences as independent
+would instead give <span class="math notranslate nohighlight">\(1/4\)</span> for their combined vertex trace and miss
+the cross term. At degree one this loop has only one global control,
+<span class="math notranslate nohighlight">\(\phi=1\)</span>, so its normalized risk is exactly <span class="math notranslate nohighlight">\(1\)</span>.</p>
+<p>Exact checks of these examples, mixed triangle-square domains, shared
+triangles, a torus and a sphere with collapsed edges are recorded in
+<a class="reference internal" href="skeleton_risk_verification.html"><span class="doc">Exact verification of the skeleton risk</span></a>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="skeleton_risk_theory.html" class="btn btn-neutral float-left" title="Theory of the skeleton risk" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="skeleton_risk_verification.html" class="btn btn-neutral float-right" title="Exact verification of the skeleton risk" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: perf/600-face-trace-sums
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/index.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="simploidal_risk.html">perf/600-face-trace-sums</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
