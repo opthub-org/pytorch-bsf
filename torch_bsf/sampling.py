@@ -216,31 +216,34 @@ def _gram_condition(dimensions: Sequence[int], degree: Sequence[int]) -> float:
     return float(math.prod(math.comb(2 * d + a, d) for a, d in zip(dimensions, degree, strict=True)))
 
 
-def _simplex_trace_sums(dimension: int, degree: int) -> tuple[list[float], float]:
-    r"""Risk traces of the faces of a simplex, summed by face dimension, and the largest condition number of their blocks.
+def _face_trace_sums(dimensions: Sequence[int], degree: Sequence[int]) -> tuple[list[float], float]:
+    r"""Risk traces of the faces of a simploid, summed by face dimension, and the largest condition number of their blocks.
 
-    The trace of a face :math:`I` is :math:`\mathrm{tr}(G^I_{TT}{}^{-1} E_I^\top G E_I)`, as in
-    :func:`skeleton_risk_coefficients`; its coefficient :math:`a_m` is the number of faces of dimension :math:`m`
-    times the sum returned for :math:`m`. The condition number is that of the blocks :math:`G^I_{TT}`.
+    The trace of a face :math:`I` with interior controls :math:`T` is
+    :math:`\mathrm{tr}(G^I_{TT}{}^{-1} E_I^\top G E_I)`, where :math:`G^I` and :math:`G` are the Gram matrices under
+    the uniform distributions on :math:`I` and on the simploid, and :math:`E_I` maps the noise of the least-squares
+    estimate of the controls :math:`T` to the errors of all controls. With :math:`n_I` observations on :math:`I`, that
+    noise has the covariance :math:`\sigma^2 G^I_{TT}{}^{-1} / n_I`, so the face adds :math:`\sigma^2 L / n_I` times
+    its trace to the risk of :func:`skeleton_risk_coefficients`; the sums leave out :math:`1 / n_I`. The condition
+    number is the largest one of the blocks :math:`G^I_{TT}`. Time grows with the cube and memory with the square of
+    the number of controls.
     """
-    dimensions, degrees = (dimension,), (degree,)
-    alpha = torch.tensor([sum(index, ()) for index in _indices(dimensions, degrees)], dtype=torch.long)
-    control_faces = _control_faces(dimensions, degrees)
+    alpha = torch.tensor([sum(index, ()) for index in _indices(dimensions, degree)], dtype=torch.long)
+    control_faces = _control_faces(dimensions, degree)
     # Control errors as linear maps of the independent face noises: on face I,
     # e_T = eta_I - G_TT^{-1} G_TB e_B, where T are the controls interior to I and B those on its boundary.
     errors = torch.zeros(len(alpha), len(alpha), dtype=torch.float64)
     face_grams: list[tuple[int, torch.Tensor, torch.Tensor]] = []
-    for face in _faces_with_interior_controls(dimensions, degrees):
+    for face in _faces_with_interior_controls(dimensions, degree):
         interior, boundary = (torch.tensor(k, dtype=torch.long) for k in _interior_and_boundary(control_faces, face))
-        gram = _face_gram(alpha[interior], alpha[torch.cat([interior, boundary])], face, dimensions, degrees)
+        gram = _face_gram(alpha[interior], alpha[torch.cat([interior, boundary])], face, dimensions, degree)
         g_tt, g_tb = gram[:, : len(interior)], gram[:, len(interior) :]
         errors[interior] = -torch.linalg.solve(g_tt, g_tb @ errors[boundary])
         errors[interior[:, None], interior] = torch.eye(len(interior), dtype=torch.float64)
-        face_grams.append((len(face) - 1, interior, g_tt))
-    full = _face_gram(alpha, alpha, range(dimension + 1), dimensions, degrees)
-    sums = [0.0] * (dimension + 1)
+        face_grams.append((len(face) - len(dimensions), interior, g_tt))
+    full = _face_gram(alpha, alpha, range(alpha.shape[1]), dimensions, degree)
+    sums = [0.0] * (sum(dimensions) + 1)
     for m, interior, g_tt in face_grams:
-        # n_I = N^(m) / K_m observations, with K_m faces of dimension m, give Cov(eta_I) = sigma^2 G_TT^{-1} / n_I.
         propagated = errors[:, interior]
         sums[m] += torch.linalg.solve(g_tt, propagated.T @ full @ propagated).trace().item()
     return sums, max(torch.linalg.cond(g_tt).item() for _, _, g_tt in face_grams)
@@ -340,13 +343,15 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
     with the number of controls of the product.
 
     A simplex is its own only factor, so time grows with the cube and memory
-    with the square of its :math:`\binom{D + M - 1}{D}` controls. The condition
-    number of a factor's Gram matrix is :math:`\binom{2D + k}{D}` in closed
-    form, so a space that the conditioning check rejects is rejected before
-    anything of the size of a factor is allocated. Accepted wide simplices
-    remain costly: the widest ones, such as :math:`M = 22` vertices at degree
-    4 with 12650 controls, need several dense float64 matrices of 1.3 GB each,
-    and PyTorch raises ``RuntimeError`` when memory runs out.
+    with the square of its number of controls. The condition number of a
+    factor's Gram matrix is :math:`\binom{2D + k}{D}` in closed form, so a
+    space that the conditioning check rejects is rejected before anything of
+    the size of a factor is allocated. Accepted wide simplices remain costly:
+    the widest ones, such as :math:`M = 22` vertices at degree 4 with 12650
+    controls, need several dense float64 matrices of 1.3 GB each. If an
+    allocation fails, PyTorch raises ``RuntimeError``; on systems that
+    overcommit memory, such as Linux by default, the process may be terminated
+    instead.
 
     Examples
     --------
@@ -386,6 +391,8 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
     # the small Gram block of the controls interior to one edge of the factor of highest degree, among those whose
     # largest condition number enters the bound, must already pass it; and so must the Gram matrix on the whole
     # simploid, whose condition number has a closed form (see _gram_condition) that grows with the number of factors.
+    # In exact arithmetic, the edge block passes whenever the closed form does (see the check after the computation);
+    # it is checked first so that a space rejected at a high degree reports the condition number of that block.
     factors = list(zip(dimensions, degree, strict=True))
     if math.prod(math.comb(2 * d, d) * math.comb(2 * d + a, a) for a, d in factors) > sys.float_info.max:
         check(math.inf)
@@ -397,19 +404,23 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
     check(full_condition)
     # On a face I = I_1 x ... x I_K, the Gram matrices under the uniform distribution and the errors that eta_I passes
     # on (fixed by the orthogonality of the error on every larger face to its interior controls) are, up to the
-    # order of the controls, Kronecker products of those of the factor faces I_j on their simplices. The trace of I
-    # is then the product of theirs, and the sum of the traces of the faces of dimension m is the coefficient of
-    # x^m in the product of the factors' polynomials of trace sums by face dimension.
-    traces, condition = [1.0], 1.0
+    # order of the controls, Kronecker products of those of the factor faces I_j on their simplices. The face has
+    # interior controls exactly when every I_j does, and its trace and the condition number of its block G_TT are the
+    # products of theirs. The sum of the traces of the faces of dimension m is then the coefficient of x^m in the
+    # product of the factors' polynomials of trace sums by face dimension.
+    trace_sums, block_condition = [1.0], 1.0
     for a, d in factors:
-        sums, factor_condition = _simplex_trace_sums(a, d)
-        traces = np.convolve(traces, sums).tolist()
-        condition *= factor_condition
-    # In exact arithmetic, the blocks G_TT are principal submatrices of Gram matrices on faces and are no worse
-    # conditioned than the Gram matrix on the whole simploid (Cauchy interlacing); this check guards rounding.
-    check(max(full_condition, condition))
-    # The N^(m) rows are split among the K_m faces of dimension m with interior controls; other levels have no traces.
-    return tuple(_n_skeleton_faces(dimensions, degree, m) * t if t else 0.0 for m, t in enumerate(traces))
+        sums, condition = _face_trace_sums((a,), (d,))
+        trace_sums = np.convolve(trace_sums, sums).tolist()
+        block_condition *= condition
+    # In exact arithmetic, each block G_TT is a principal submatrix of the Gram matrix on its face and no worse
+    # conditioned (Cauchy interlacing), and the closed form of _gram_condition grows with the face's dimension in every
+    # factor, so no block is worse conditioned than the Gram matrix on the whole simploid; this check guards rounding.
+    check(max(full_condition, block_condition))
+    # The N^(m) rows are split equally among the K_m faces of dimension m with interior controls, so n_I = N^(m) / K_m
+    # and a_m is K_m times the sum of the traces. Levels without interior controls have no traces; skipping them also
+    # skips the count of all their faces, which exceeds float64 on wide simplices of degree 1.
+    return tuple(_n_skeleton_faces(dimensions, degree, m) * t if t else 0.0 for m, t in enumerate(trace_sums))
 
 
 def optimal_skeleton_ratio(space: BezierSpace) -> tuple[float, ...]:
