@@ -11,13 +11,143 @@ answer. The formula below uses the global proper controls of
 :meth:`~torch_bsf.BezierSpace.on_set`, including repeated controls caused by
 self-identifications and degenerate boundary faces.
 
-This chapter proves the formula and optimal allocations. The public
+This chapter proves the formula and optimal allocations implemented by
 :func:`~torch_bsf.sampling.skeleton_risk_coefficients`,
+:func:`~torch_bsf.sampling.optimal_skeleton_ratio`,
 :func:`~torch_bsf.sampling.sample_skeleton` and
-:func:`~torch_bsf.fitting.fit_skeleton_regression` still accept only a single
-simplex or product cell. The assembled estimator defined here can be
-implemented by successive calls to :func:`~torch_bsf.fit` with
-:class:`~torch_bsf.FixedControls`; the verification tests do exactly that.
+:func:`~torch_bsf.fitting.fit_skeleton_regression` for spaces constructed with
+:meth:`~torch_bsf.BezierSpace.on_set`. The single-cell constructors retain
+their factorized risk calculation and original sampling behavior.
+
+Using the assembled APIs
+-------------------------
+
+Two quadratic intervals with one shared endpoint illustrate the whole path:
+
+.. testcode:: assembled-skeleton
+
+    import torch
+    from torch_bsf import BezierModel, BezierSpace, Samples, SimploidalSet
+    from torch_bsf.fitting import fit_skeleton_regression
+    from torch_bsf.sampling import (
+        optimal_skeleton_ratio, sample_skeleton, skeleton_risk_coefficients,
+    )
+
+    domain = SimploidalSet()
+    left, right = domain.add_simplex(1), domain.add_simplex(1)
+    domain.identify(left.face(0, 0), right.face(0, 1))
+    space = BezierSpace.on_set(domain, degree=2)
+    print(tuple(round(a, 6) for a in skeleton_risk_coefficients(space)))
+    ratio = optimal_skeleton_ratio(space)
+    points = sample_skeleton(space, 120, ratio=ratio, seed=0)
+    truth = BezierModel(space, torch.arange(space.n_controls, dtype=torch.float64)[:, None])
+    result = fit_skeleton_regression(space, Samples(points, truth(points).detach())).require_success()
+    assert torch.allclose(result.model.coefficients, truth.coefficients)
+    assert torch.allclose(result.model(points), truth(points))
+    assert all(isinstance(cid, int) for cid in result.faces)
+    assert sum(face.diagnostics.n_samples for face in result.faces.values()) == 120
+
+.. testoutput:: assembled-skeleton
+
+    (0.75, 2.0)
+
+The default evaluation measure gives equal weight to maximal cells. Specify
+``evaluation_weights`` separately from the sampling allocation to evaluate
+another measure, including a mixture with lower-dimensional cells:
+
+.. testcode:: assembled-skeleton
+
+    evaluation = {left: 3.0, right: 1.0}
+    c = skeleton_risk_coefficients(space, evaluation_weights=evaluation, allocation="cell")
+    q = optimal_skeleton_ratio(space, evaluation_weights=evaluation, allocation="cell")
+    points = sample_skeleton(space, 120, cell_weights=q, seed=0)
+    assert set(c) == set(q) == set(result.faces)
+    assert abs(sum(q.values()) - 1) < 1e-14
+    risk_factor = sum(c[cid] / q[cid] for cid in c)
+    assert abs(risk_factor - sum(value**0.5 for value in c.values())**2) < 1e-12
+
+``allocation="dimension"`` (the default) returns a tuple indexed by dimension,
+including zero entries for dimensions without active cells. It uses
+:math:`a_m=K_m\sum_{\dim s=m}c_s` and assigns equal shares to the
+:math:`K_m` active cells of each dimension. ``allocation="cell"`` returns an
+increasing-dimension, then increasing-cell-ID dictionary and optimizes the
+original cell objective. Cell mode needs addressable faces: use ``on_set``
+for positive-dimensional spaces; a bare ``BezierSpace.simplex`` or
+``simploid`` has only one chart ID and cannot name its faces this way.
+Zero-dimensional spaces support both modes.
+
+``evaluation_weights`` and ``cell_weights`` accept integer IDs or the original
+builder handles. An ID and its handle are aliases whose weights add. Missing
+keys have weight zero. Weights must be real, finite, nonnegative, with a finite
+positive total, and are normalized to sum to one. Real values are converted to
+float64 before accumulation; values outside its range and normalization that
+underflows a positive cell weight raise ``ValueError``. Unknown cells, booleans and
+invalid weights raise ``ValueError``. ``cell_weights`` may give positive mass
+only to active cells and is mutually exclusive with ``ratio``. Evaluation
+weights may include any compiled cell. They never change an explicit sampling
+allocation. Pass the same evaluation weights when requesting coefficients and
+an automatic ratio.
+
+Sampling first rounds dimension budgets by largest remainder (dimension order
+breaks ties), then splits each budget equally among its active cells, randomly
+breaking remainder ties with a local generator. Explicit cell shares use one
+largest-remainder rounding in fitting order. Both paths return exactly ``n``
+rows, including for ``n=0`` or budgets smaller than the active-cell count.
+Positive shares on empty dimensions are rejected. Small budgets and rounded
+zero counts do not guarantee that fitting has enough observations or full
+rank. Within each cell, ``method="random"`` and ``method="sobol"`` retain the
+existing product-uniform exponential normalization; neither changes global
+random state. Reusing a seed reproduces coordinates, IDs and row order.
+
+For fitting, a directly tagged lower-cell row and a boundary row expressed in
+an upper chart both reach their nondegenerate cell. Boundary coordinates must
+be exactly zero. Face restriction and degeneracy maps sum coordinates of
+repeated vertices and discard collapsed factors. Each input row is assigned
+once, and every shared cell is estimated once. The constrained solves retain
+the original chart coordinates, so membership-validation tolerances do not
+change the observed design when a nearly unit factor is collapsed. Cells without proper controls
+are ignored and counted in the result message. Result ``faces`` keys are
+integer cell IDs and each value has the ordinary fit diagnostics. The original
+single-cell coordinate-tuple keys are preserved. Missing positive-weight
+observations raise an error naming the cells; deficient rank remains a
+successful least-squares solve with explicit rank diagnostics. A solver failure
+stops assembly, identifies the failed cell, and leaves later stages absent and
+their proper controls zero.
+
+A zero evaluation weight need not make a cell coefficient zero: boundary
+errors can propagate into evaluated cells. If a coefficient is zero, that cell
+still owns controls and needs positive sampling share for the theorem's
+estimator. With a zero-coefficient active cell, the cell formula describes
+only an infimum over strictly positive allocations, so automatic cell
+allocation raises ``ValueError``. Dimension allocation remains feasible when
+such a cell shares a dimension with a positive coefficient; the equal split
+still samples it. It raises when an entire active dimension has zero
+coefficient. Supply strictly positive explicit shares to estimate all active
+controls in either case. Explicit zero shares are allowed for sampling but do
+not promise that fitting all controls will succeed.
+
+The assembled risk implementation uses float64 local moment/Cholesky solves
+and a unit triangular propagation solve. It retains repeated-control cross
+terms. It checks local Gram and propagation condition numbers, rejecting a
+first-order roundoff budget above ``1e-6``. Positive subnormal evaluation
+weights or weighted trace contributions are rejected as numerically unreliable;
+they are never reported as structural zeros or as a mathematical infimum.
+The first-order screen budgets moment/reduction errors of order
+:math:`(2w+p+2)u` across :math:`d+1` propagation levels, multiplied by the
+largest local Gram condition and the squared propagation condition, with a
+safety factor of eight for whitening, trace rounding and higher orders. Here
+:math:`w` is the maximum chart width, :math:`p` the global control count and
+:math:`u=2^{-53}`. This conservative screen is not an all-degree certificate.
+Its conservative work limits are
+512 global controls and a total of 4,000,000 local Gram entries. Dense
+propagation costs quadratic global memory and cubic global time, with extra
+local moment and trace contractions. Explicit ``ratio`` or ``cell_weights``
+lets sampling proceed without this risk calculation; fitting uses the usual
+solver and its diagnostics. Positive-dimensional degree-zero factors remain
+unsupported. These risk formulas assume the correctly specified model,
+independent homoscedastic noise, independent product-uniform observations and
+unregularized least squares; Sobol sampling is a design option rather than a
+claim that the independent-design risk theorem applies to its dependence.
 
 Global controls and moments
 ---------------------------

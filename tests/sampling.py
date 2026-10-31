@@ -15,7 +15,7 @@ from hypothesis import example, given
 from hypothesis import strategies as st
 
 from tests.strategies import degrees, seeds, simploid_types
-from torch_bsf import BezierSpace, Samples, SimploidalSet, fit_skeleton_regression, sampling
+from torch_bsf import BezierSpace, Samples, Simploid, SimploidalSet, fit_skeleton_regression, sampling
 from torch_bsf._kernels._sampling import simplex_grid, simplex_random, simplex_sobol
 from torch_bsf._kernels.combinatorics import _indices, _simplex_indices
 from torch_bsf._skeleton import _blocks, _control_faces, _faces_with_interior_controls, _interior_and_boundary
@@ -1469,16 +1469,14 @@ def _two_glued_segments() -> BezierSpace:
 @pytest.mark.parametrize(
     "space",
     [
-        BezierSpace.simplex(0, degree=2),
         BezierSpace.simplex(2, degree=0),
         BezierSpace.simploid((1, 1), degree=(2, 0)),
-        _two_glued_segments(),
     ],
 )
 def test_skeleton_methods_reject_other_spaces(space):
-    with pytest.raises(ValueError, match="single simplex or simploid"):
+    with pytest.raises(ValueError, match="positive degree"):
         skeleton_risk_coefficients(space)
-    with pytest.raises(ValueError, match="single simplex or simploid"):
+    with pytest.raises(ValueError, match="positive degree"):
         sample_skeleton(space, 4)
 
 
@@ -1491,7 +1489,7 @@ def test_sample_skeleton_default_ratio_needs_a_well_conditioned_degree():
 
 def test_skeleton_methods_reject_non_spaces():
     with pytest.raises(TypeError, match="BezierSpace"):
-        optimal_skeleton_ratio(2)  # type: ignore[arg-type]
+        optimal_skeleton_ratio(2)  # type: ignore[call-overload]
 
 
 # ---------------------------------------------------------------------------
@@ -2173,3 +2171,273 @@ def test_face_trace_sums_match_unrestricted_propagation(dimensions, data):
     bound = (levels * (2 * width + 2 + n) * _gram_condition(dimensions, degree) + n) * U
     assert actual == pytest.approx(expected, rel=4 * bound, abs=0)
     assert condition == original_condition
+
+
+@pytest.mark.parametrize("n", [0, 1, 4, 17])
+@pytest.mark.parametrize("method", ["random", "sobol"])
+def test_assembled_skeleton_rounds_exact_budgets(n, method):
+    space = _two_glued_segments()
+    cells = skeleton_risk_coefficients(space, allocation="cell")
+    points = sample_skeleton(space, n, ratio=[2, 3], method=method, seed=4)
+    assert len(points) == n and points.parameters.shape == (n, space.width)
+    by_dimension = [sum(sum(space.cells[cid].dimensions) == m for cid in points.cell_ids.tolist()) for m in range(2)]
+    # Independently round the two quotas, breaking dimension ties by increasing dimension.
+    quotas = [n * 2 / 5, n * 3 / 5]
+    expected = [math.floor(q) for q in quotas]
+    if sum(expected) < n:
+        expected[0 if quotas[0] - expected[0] >= quotas[1] - expected[1] else 1] += 1
+    assert by_dimension == expected
+    for m in range(2):
+        counts = [int((points.cell_ids == cid).sum()) for cid in cells if sum(space.cells[cid].dimensions) == m]
+        assert max(counts) - min(counts) <= 1
+    shares = {cid: i + 1 for i, cid in enumerate(cells)}
+    points = sample_skeleton(space, n, cell_weights=shares, method=method, seed=4)
+    total = sum(shares.values())
+    cell_quotas = {cid: n * w / total for cid, w in shares.items()}
+    cell_counts = {cid: math.floor(q) for cid, q in cell_quotas.items()}
+    for cid in sorted(cell_counts, key=lambda cid: (cell_counts[cid] - cell_quotas[cid], cid))[
+        : n - sum(cell_counts.values())
+    ]:
+        cell_counts[cid] += 1
+    assert {cid: int((points.cell_ids == cid).sum()) for cid in cells} == cell_counts
+
+
+@pytest.mark.parametrize(
+    "weights", [{}, {0: -1}, {0: float("nan")}, {0: float("inf")}, {0: 0}, {0: True}, {0: "1"}, {99: 1}, {True: 1}, [1]]
+)
+def test_skeleton_evaluation_weights_are_validated(weights):
+    space = _two_glued_segments()
+    with pytest.raises(ValueError):
+        skeleton_risk_coefficients(space, evaluation_weights=weights)
+    with pytest.raises(ValueError):
+        sample_skeleton(space, 0, ratio=[1, 1], evaluation_weights=weights)
+    with pytest.raises(ValueError):
+        sample_skeleton(space, 0, cell_weights=weights)
+
+
+def test_assembled_weight_aliases_and_normalization():
+    domain = SimploidalSet()
+    segment = domain.add_simplex(1)
+    space = BezierSpace.on_set(domain, degree=2)
+    cid = space.cell_id(segment)
+    expected = skeleton_risk_coefficients(space)
+    aliases: dict[int | Simploid, float] = {cid: 2, segment: 3}
+    assert skeleton_risk_coefficients(space, evaluation_weights=aliases) == expected
+    p = sample_skeleton(space, 5, cell_weights=aliases, seed=0)
+    assert p.cell_ids.tolist() == [cid] * 5
+    with pytest.raises(ValueError, match="positive sum"):
+        overflowing: dict[int | Simploid, float] = {cid: 1e308, segment: 1e308}
+        skeleton_risk_coefficients(space, evaluation_weights=overflowing)
+    with pytest.raises(ValueError, match="belong"):
+        skeleton_risk_coefficients(space, evaluation_weights={SimploidalSet().add_vertex(): 1})
+
+
+def test_skeleton_zero_cells_and_zero_groups_have_different_optima():
+    domain = SimploidalSet()
+    segment = domain.add_simplex(1)
+    linear = BezierSpace.on_set(domain, degree=1)
+    vertex = linear.cell_id(segment.face(0, 0))
+    weights = {vertex: 1}
+    cells = skeleton_risk_coefficients(linear, evaluation_weights=weights, allocation="cell")
+    assert sorted(cells.values()) == [0, 1]
+    assert skeleton_risk_coefficients(linear, evaluation_weights=weights) == (2, 0)
+    assert optimal_skeleton_ratio(linear, evaluation_weights=weights) == (1, 0)
+    assert len(sample_skeleton(linear, 6, evaluation_weights=weights)) == 6
+    with pytest.raises(ValueError, match="zero-risk active cells.*infimum"):
+        optimal_skeleton_ratio(linear, evaluation_weights=weights, allocation="cell")
+    quadratic = BezierSpace.on_set(domain, degree=2)
+    assert skeleton_risk_coefficients(quadratic, evaluation_weights=weights) == (2, 0)
+    with pytest.raises(ValueError, match="zero-risk active groups.*infimum"):
+        optimal_skeleton_ratio(quadratic, evaluation_weights=weights)
+    with pytest.raises(ValueError, match="Pass ratio explicitly"):
+        sample_skeleton(quadratic, 10, evaluation_weights=weights)
+    points = sample_skeleton(quadratic, 30, ratio=[1, 1], evaluation_weights=weights, seed=0)
+    result = fit_skeleton_regression(quadratic, Samples(points, torch.ones(30, 1))).require_success()
+    assert len(result.faces) == 3
+
+
+def test_assembled_sampling_validates_allocation_controls():
+    space = _two_glued_segments()
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        sample_skeleton(space, 2, ratio=[1, 1], cell_weights={0: 1})
+    triangle_domain = SimploidalSet()
+    triangle = triangle_domain.add_simplex(2)
+    linear = BezierSpace.on_set(triangle_domain, degree=1)
+    with pytest.raises(ValueError, match="proper controls"):
+        sample_skeleton(linear, 2, cell_weights={triangle: 1})
+    with pytest.raises(ValueError, match="without active cells"):
+        sample_skeleton(linear, 2, ratio=[0, 0, 1])
+    with pytest.raises(ValueError, match="allocation"):
+        skeleton_risk_coefficients(space, allocation="wrong")  # type: ignore[call-overload]
+    with pytest.raises(ValueError, match="allocation"):
+        optimal_skeleton_ratio(space, allocation="wrong")  # type: ignore[call-overload]
+    bare = BezierSpace.simplex(1, degree=2)
+    with pytest.raises(ValueError, match="addressable faces"):
+        skeleton_risk_coefficients(bare, allocation="cell")
+    with pytest.raises(ValueError, match="addressable faces"):
+        sample_skeleton(bare, 2, cell_weights={0: 1})
+
+
+def test_assembled_risk_limits_do_not_prevent_explicit_sampling(monkeypatch):
+    space = _two_glued_segments()
+    monkeypatch.setattr(sampling, "_ASSEMBLED_RISK_CONTROLS", 1)
+    with pytest.raises(ValueError, match="dense limit"):
+        skeleton_risk_coefficients(space)
+    assert len(sample_skeleton(space, 2, ratio=[1, 1], seed=0)) == 2
+    assert len(sample_skeleton(space, 2, cell_weights={0: 1}, seed=0)) == 2
+    monkeypatch.setattr(sampling, "_ASSEMBLED_RISK_CONTROLS", 512)
+    monkeypatch.setattr(sampling, "_ASSEMBLED_RISK_ENTRIES", 1)
+    with pytest.raises(ValueError, match="dense limit"):
+        skeleton_risk_coefficients(space)
+
+
+def test_assembled_risk_rejects_unreliable_computations(monkeypatch):
+    domain = SimploidalSet()
+    domain.add_simplex(1)
+    high = BezierSpace.on_set(domain, degree=16)
+    with pytest.raises(ValueError, match="condition number"):
+        skeleton_risk_coefficients(high)
+    assert len(sample_skeleton(high, 3, ratio=[1, 1], seed=0)) == 3
+    space = _two_glued_segments()
+    with (
+        patch("torch_bsf.sampling._gram_condition", side_effect=OverflowError),
+        pytest.raises(ValueError, match="condition number"),
+    ):
+        skeleton_risk_coefficients(space)
+    with (
+        patch("torch.linalg.cond", return_value=torch.tensor(1e30)),
+        pytest.raises(ValueError, match="propagated roundoff"),
+    ):
+        skeleton_risk_coefficients(space)
+    with (
+        patch("torch.linalg.cholesky", side_effect=torch.linalg.LinAlgError("failed")),
+        pytest.raises(ValueError, match="factorization failed"),
+    ):
+        skeleton_risk_coefficients(space)
+    with (
+        patch("torch.linalg.solve_triangular", return_value=torch.full((5, 5), float("nan"), dtype=torch.float64)),
+        pytest.raises(ValueError, match="unreliable"),
+    ):
+        skeleton_risk_coefficients(space)
+
+
+@pytest.mark.parametrize("method", ["random", "sobol"])
+def test_single_vertex_skeleton(method):
+    space = BezierSpace.simplex(0, degree=0)
+    assert skeleton_risk_coefficients(space) == (1,)
+    assert optimal_skeleton_ratio(space, allocation="cell") == {0: 1}
+    points = sample_skeleton(space, 4, seed=0, method=method)
+    assert points.parameters.shape == (4, 0) and points.cell_ids.tolist() == [0] * 4
+    result = fit_skeleton_regression(space, Samples(points, [1, 2, 3, 4])).require_success()
+    assert list(result.faces) == [0]
+    assert result.model.coefficients.item() == pytest.approx(2.5)
+
+
+def test_assembled_risk_rejects_nonfinite_trace():
+    solve = torch.linalg.solve_triangular
+
+    def overflow_trace(a, b, **kwargs):
+        result = solve(a, b, **kwargs)
+        return result if kwargs.get("unitriangular") else torch.full_like(result, float("inf"))
+
+    with (
+        patch("torch.linalg.solve_triangular", side_effect=overflow_trace),
+        pytest.raises(ValueError, match="not finite"),
+    ):
+        skeleton_risk_coefficients(_two_glued_segments())
+
+
+@pytest.mark.parametrize("weight", [Fraction(1, 2), np.float64(0.5)])
+def test_assembled_sampling_and_evaluation_accept_real_weights(weight):
+    space = _two_glued_segments()
+    weights = {cid: weight for cid in space.main_cells}
+    assert skeleton_risk_coefficients(space, evaluation_weights=weights) == skeleton_risk_coefficients(space)
+    points = sample_skeleton(space, 8, cell_weights=weights, seed=0)
+    assert len(points) == 8 and set(points.cell_ids.tolist()) == set(space.main_cells)
+
+
+@pytest.mark.parametrize("weight", [10**1000, Fraction(1, 10**1000)])
+def test_assembled_weight_conversion_fails_with_value_error(weight):
+    space = _two_glued_segments()
+    with pytest.raises(ValueError, match="evaluation_weights"):
+        skeleton_risk_coefficients(space, evaluation_weights={space.main_cells[0]: weight})
+    with pytest.raises(ValueError, match="cell_weights"):
+        sample_skeleton(space, 1, cell_weights={space.main_cells[0]: weight})
+
+
+@pytest.mark.parametrize("weights", [(1.0, 5e-324), (1.0, 2.3e-308), (1e308, 1e-308)])
+def test_assembled_positive_risk_underflow_is_not_a_structural_zero(weights):
+    from tests.simploidal_risk import _space
+
+    space = _space("disconnected", 2)
+    evaluation = dict(zip(space.main_cells, weights, strict=True))
+    with pytest.raises(ValueError, match="underflow"):
+        skeleton_risk_coefficients(space, evaluation_weights=evaluation, allocation="cell")
+    with pytest.raises(ValueError, match="underflow"):
+        optimal_skeleton_ratio(space, evaluation_weights=evaluation, allocation="cell")
+
+
+def test_assembled_small_normal_risks_retain_relative_precision():
+    from tests.simploidal_risk import _space
+
+    space = _space("disconnected", 2)
+    left, right = space.main_cells
+    coefficients = skeleton_risk_coefficients(space, evaluation_weights={left: 1.0, right: 1e-300}, allocation="cell")
+    assert coefficients[right] == pytest.approx(1e-300, rel=1e-6, abs=0)
+    for _, _, vertex, _ in space._topology[right]:
+        assert coefficients[vertex] == pytest.approx(1.25e-301, rel=1e-6, abs=0)
+    # A subnormal raw weight is harmless when its normalized measure is exactly representable.
+    assert skeleton_risk_coefficients(BezierSpace.simplex(0, degree=0), evaluation_weights={0: 5e-324}) == (1.0,)
+
+
+@given(
+    kind=st.sampled_from(["chain", "loop", "triangles", "mixed", "sphere", "torus", "vertices", "isolated"]),
+    degree=st.integers(1, 3),
+    n=st.integers(0, 60),
+    seed=seeds(),
+    method=st.sampled_from(["random", "sobol"]),
+    data=st.data(),
+)
+def test_assembled_skeleton_allocation_property(kind, degree, n, seed, method, data):
+    from tests.simploidal_risk import _space
+
+    space = _space(kind, degree)
+    levels = max(sum(c.dimensions) for c in space.cells) + 1
+    # Proper-control cardinalities are the independent combinatorial formula in the theorem.
+    active = [
+        cid
+        for cid, c in enumerate(space.cells)
+        if math.prod(comb(d - 1, a) for a, d in zip(c.dimensions, c.degree, strict=True))
+    ]
+    groups = [[cid for cid in active if sum(space.cells[cid].dimensions) == m] for m in range(levels)]
+    scores = data.draw(st.lists(st.integers(1, 10), min_size=levels, max_size=levels))
+    ratio = [score if group else 0 for score, group in zip(scores, groups, strict=True)]
+    state = torch.random.get_rng_state().clone()
+    points = sample_skeleton(space, n, ratio=ratio, method=method, seed=seed)
+    assert torch.equal(torch.random.get_rng_state(), state)
+    assert len(points) == n and set(points.cell_ids.tolist()).issubset(active)
+    repeat = sample_skeleton(space, n, ratio=ratio, method=method, seed=seed)
+    assert torch.equal(points.parameters, repeat.parameters) and torch.equal(points.cell_ids, repeat.cell_ids)
+    for m, group in enumerate(groups):
+        counts = [int((points.cell_ids == cid).sum()) for cid in group]
+        quota = n * ratio[m] / sum(ratio)
+        assert math.floor(quota) <= sum(counts) <= math.ceil(quota)
+        if counts:
+            assert max(counts) - min(counts) <= 1
+    for cid in active:
+        local = points.parameters[points.cell_ids == cid]
+        for block in _blocks(space.cells[cid].dimensions):
+            # Positive sum followed by division: the sum has at most block.width roundings.
+            tolerance = 8 * len(block) * 2**-53
+            assert torch.allclose(local[:, block].sum(1), torch.ones(len(local), dtype=torch.float64), rtol=0, atol=tolerance)
+
+
+@pytest.mark.parametrize("negative", [Fraction(-1, 10**1000)])
+def test_assembled_negative_weight_cannot_underflow_into_zero(negative):
+    space = _two_glued_segments()
+    left, right = space.main_cells
+    weights = {left: 1.0, right: negative}
+    with pytest.raises(ValueError, match="evaluation_weights.*nonnegative"):
+        skeleton_risk_coefficients(space, evaluation_weights=weights)
+    with pytest.raises(ValueError, match="cell_weights.*nonnegative"):
+        sample_skeleton(space, 4, cell_weights=weights)

@@ -8,7 +8,10 @@ from unittest.mock import patch
 
 import pytest
 import torch
+from hypothesis import example, given
+from hypothesis import strategies as st
 
+from tests.strategies import simplex_points
 from torch_bsf import BezierModel, BezierSpace, FixedControls, Points, QuadraticPenalty, Samples, SimploidalSet, fit
 from torch_bsf._kernels.combinatorics import _indices, _simplex_indices
 from torch_bsf._problem import LeastSquaresProblem
@@ -880,8 +883,147 @@ def test_skeleton_regression_rejects_invalid_inputs():
     left, right = domain.add_simplex(1), domain.add_simplex(1)
     domain.identify(left.face(0, 0), right.face(0, 1))
     glued = BezierSpace.on_set(domain, degree=1)
-    with pytest.raises(ValueError, match="single simplex or simploid"):
+    with pytest.raises(ValueError, match="cells without rows of positive weight"):
         fit_skeleton_regression(glued, Samples.from_cells(glued, [(left, torch.eye(2), [[1.0], [2.0]])]))
     vertices_only = Samples(torch.eye(3, dtype=torch.float64), [1.0, 2.0, 3.0])
     with pytest.raises(ValueError, match=r"faces without rows of positive weight: \[\(0, 1\), \(0, 2\), \(1, 2\)\]"):
         fit_skeleton_regression(space, vertices_only)
+
+
+@pytest.mark.parametrize("kind", ["chain", "triangles", "mixed", "torus", "sphere"])
+def test_assembled_skeleton_assigns_boundary_rows_once(kind):
+    from tests.simploidal_risk import _fit_error, _space
+    from torch_bsf._skeleton import _skeleton_observations, _skeleton_stages
+    from torch_bsf.sampling import grid
+
+    space = _space(kind, 3)
+    boundary = grid(space, resolution=5)
+    direct = sample_skeleton(space, 300, seed=0)
+    points = Points(torch.cat([boundary.parameters, direct.parameters]), torch.cat([boundary.cell_ids, direct.cell_ids]))
+    canonical, groups = _skeleton_observations(space, points)
+    assert sorted(i for rows in groups.values() for i in rows.tolist()) == list(range(len(points)))
+    space.validate(canonical)
+    # Basis products, repeated-control sums and at most dimension face maps contribute O(p+width+degree) roundings.
+    operations = space.n_controls + space.width + max(sum(c.degree) + sum(c.dimensions) for c in space.cells)
+    tolerance = 16 * operations * 2**-53
+    assert torch.allclose(space.basis(canonical).to_dense(), space.basis(points).to_dense(), rtol=tolerance, atol=tolerance)
+    truth = BezierModel(space, torch.arange(space.n_controls, dtype=torch.float64)[:, None])
+    result = fit_skeleton_regression(space, Samples(points, truth(points).detach())).require_success()
+    error = _fit_error(result, truth.coefficients.abs().max().item())
+    assert torch.allclose(result.model.coefficients, truth.coefficients, rtol=0, atol=error)
+    for cid, _ in _skeleton_stages(space):
+        assert result.faces[cid].diagnostics.n_samples == len(groups[cid])
+    if kind == "sphere":
+        pole_ids = [cid for cid, c in enumerate(space.cells) if not c.dimensions]
+        _, boundary_groups = _skeleton_observations(space, boundary)
+        assert all(len(boundary_groups[cid]) == 6 for cid in pole_ids)
+
+
+def test_assembled_skeleton_pushes_nontrivial_degeneracy_coordinates():
+    from torch_bsf._skeleton import _skeleton_observations
+
+    domain = SimploidalSet()
+    tetrahedron = domain.add_simplex(3)
+    face = tetrahedron.face(0, 0)
+    domain.degenerate(face, face.face(0, 0), 0, 0)
+    space = BezierSpace.on_set(domain, degree=3)
+    coordinates = torch.tensor([[0, 0.2, 0.3, 0.5]], dtype=torch.float64)
+    points = Points.from_cells(space, [(tetrahedron, coordinates)])
+    canonical, groups = _skeleton_observations(space, points)
+    _, _, base, dmap = space._topology[space.cell_id(tetrahedron)][0]
+    assert dmap == ((0, (0, 0, 1)),) and list(groups) == [base]
+    assert canonical.parameters[0, :2].tolist() == [0.5, 0.5]
+    tolerance = 16 * (space.n_controls + space.width + 3) * 2**-53
+    assert torch.allclose(space.basis(canonical).to_dense(), space.basis(points).to_dense(), rtol=tolerance, atol=tolerance)
+
+
+def test_assembled_skeleton_missing_rows_weights_rank_and_failure():
+    from dataclasses import replace
+
+    from tests.simploidal_risk import _space
+    from torch_bsf._skeleton import _skeleton_stages
+
+    space = _space("chain", 3)
+    stages = _skeleton_stages(space)
+    points = sample_skeleton(space, 100, seed=0)
+    truth = BezierModel(space, torch.arange(space.n_controls, dtype=torch.float64)[:, None])
+    values = truth(points).detach()
+    with pytest.raises(TypeError, match="Samples"):
+        fit_skeleton_regression(space, points)  # type: ignore[arg-type]
+    weights = torch.ones(len(points), dtype=torch.float64)
+    weights[points.cell_ids == stages[0][0]] = 0
+    with pytest.raises(ValueError, match=f"cells without rows of positive weight: .{stages[0][0]}"):
+        fit_skeleton_regression(space, Samples(points, values, weights=weights))
+    small = sample_skeleton(space, 1, seed=0)
+    with pytest.raises(ValueError, match="positive weight"):
+        fit_skeleton_regression(space, Samples(small, truth(small).detach()))
+    # One row per active cell is accepted with explicit deficient-rank diagnostics.
+    domain = SimploidalSet()
+    domain.add_simplex(1)
+    segment = BezierSpace.on_set(domain, degree=3)
+    p = sample_skeleton(segment, 3, cell_weights={cid: 1 for cid, _ in _skeleton_stages(segment)}, seed=0)
+    deficient = fit_skeleton_regression(segment, Samples(p, torch.ones(3, 1))).require_success()
+    interior = deficient.faces[segment.main_cells[0]].diagnostics.data
+    assert interior.rank == 1 and interior.shape == (1, 2)
+    failed = replace(fit(space, Samples(points, values)), success=False, status="numerical_failure", message="boom")
+    with patch("torch_bsf.fitting.fit", return_value=failed):
+        result = fit_skeleton_regression(space, Samples(points, values))
+    assert not result.success and list(result.faces) == [stages[0][0]]
+    later = [i for _, controls in stages[1:] for i in controls]
+    assert not result.model.coefficients[later].any()
+    with pytest.raises(ConvergenceError, match=f"Cell {stages[0][0]}: boom"):
+        result.require_success()
+
+
+def test_assembled_skeleton_ignores_inactive_cells():
+    from tests.simploidal_risk import _space
+    from torch_bsf.sampling import grid
+
+    space = _space("segment", 1)
+    points = grid(space, resolution=2)
+    result = fit_skeleton_regression(space, Samples(points, [[1], [100], [3]])).require_success()
+    assert "Ignored 1 rows" in result.message and len(result.faces) == 2
+    assert result.model.coefficients[:, 0].tolist() == [1.0, 3.0]
+
+
+@pytest.mark.parametrize("kind", ["segment", "chain", "sphere"])
+@pytest.mark.parametrize("scale", [1 - 5e-7, 1 + 5e-7])
+def test_assembled_skeleton_preserves_accepted_original_design(kind, scale):
+    from tests.simploidal_risk import _fit_error, _space
+    from torch_bsf.sampling import grid
+
+    space = _space(kind, 3)
+    base = grid(space, resolution=5)
+    points = Points(base.parameters * scale, base.cell_ids)
+    space.validate(points)  # Near-unit barycentric masses are part of the existing membership contract.
+    truth = BezierModel(space, torch.arange(1, space.n_controls + 1, dtype=torch.float64)[:, None])
+    result = fit_skeleton_regression(space, Samples(points, truth(points).detach())).require_success()
+    error = _fit_error(result, truth.coefficients.abs().max().item())
+    assert torch.allclose(result.model.coefficients, truth.coefficients, rtol=0, atol=error)
+    assert torch.allclose(result.model(points), truth(points), rtol=0, atol=2 * error)
+
+
+@example(t=torch.tensor([[1e-13, 1 - 1e-13], [0.0, 1.0], [1.0, 0.0]], dtype=torch.float64), loop=False)
+@example(t=torch.tensor([[torch.finfo(torch.float64).tiny, 1.0], [0.0, 1.0], [1.0, 0.0]], dtype=torch.float64), loop=True)
+@given(t=simplex_points(2, 8), loop=st.booleans())
+def test_assembled_observation_assignment_uses_exact_zeros(t, loop):
+    from torch_bsf._skeleton import _skeleton_observations
+
+    domain = SimploidalSet()
+    segment = domain.add_simplex(1)
+    if loop:
+        domain.identify(segment.face(0, 0), segment.face(0, 1))
+    space = BezierSpace.on_set(domain, degree=2)
+    points = Points.from_cells(space, [(segment, t)])
+    canonical, groups = _skeleton_observations(space, points)
+    # This reference uses the builder's endpoint identities, not compiled face-map traversal.
+    expected = [
+        space.cell_id(segment.face(0, 0))
+        if row[0] == 0
+        else space.cell_id(segment.face(0, 1))
+        if row[1] == 0
+        else space.cell_id(segment)
+        for row in t
+    ]
+    assert canonical.cell_ids.tolist() == expected
+    assert sorted(row for rows in groups.values() for row in rows.tolist()) == list(range(len(t)))

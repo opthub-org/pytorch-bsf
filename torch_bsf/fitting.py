@@ -11,7 +11,10 @@ from torch_bsf._skeleton import (
     _control_faces,
     _faces_with_interior_controls,
     _interior_and_boundary,
+    _single_skeleton,
     _skeleton_cell,
+    _skeleton_observations,
+    _skeleton_stages,
 )
 from torch_bsf.core import BezierModel, BezierSpace, FixedControls, QuadraticPenalty, Samples
 from torch_bsf.results import FitDiagnostics, FitResult, MatrixDiagnostics, SkeletonRegressionResult
@@ -299,7 +302,7 @@ def fit_skeleton_regression(
     *,
     solver: LeastSquaresSolver = DenseLeastSquares(),
 ) -> SkeletonRegressionResult:
-    """Fit a simplex or simploid face by face from observations at known parameters.
+    """Fit a simploidal space cell by cell from observations at known parameters.
 
     This is the inductive skeleton fitting analyzed by Tanaka et al. (AAAI 2020).
     Vertices are fitted first, then edges, then faces of higher dimension. On each face,
@@ -316,10 +319,16 @@ def fit_skeleton_regression(
     :func:`~torch_bsf.sampling.optimal_skeleton_ratio` to minimize the
     asymptotic risk given by :func:`~torch_bsf.sampling.skeleton_risk_coefficients`.
 
+    For an assembled set, exact-zero boundaries are mapped through the compiled
+    face and degeneracy maps to their nondegenerate cell. Each row is used once.
+    Shared cells are fitted once. ``faces`` uses integer cell IDs, while single
+    simplex/simploid spaces retain their coordinate-tuple keys. Vertices, including
+    isolated vertices, have one proper control and use their directly tagged rows.
+
     Parameters
     ----------
     space
-        A single simplex or simploid of positive dimension and degree in every factor.
+        A simplex, simploid or assembled set, with positive degrees in positive-dimensional factors.
     samples
         Observations at known parameters. Every face with at most ``degree``
         vertices in each factor needs at least one row of positive weight. Rows
@@ -344,9 +353,7 @@ def fit_skeleton_regression(
     TypeError
         If ``space`` or ``samples`` has the wrong type.
     ValueError
-        If ``space`` is not a single simplex or simploid of positive dimension
-        and degree in every factor, or a face with interior controls has no row
-        of positive weight.
+        If a positive-dimensional factor has degree zero, or an active face/cell has no row of positive weight.
 
     Examples
     --------
@@ -370,6 +377,8 @@ def fit_skeleton_regression(
     >>> sorted(result.faces)
     [(0, 2), (0, 3), (1, 2), (1, 3)]
     """
+    if not _single_skeleton(space):
+        return _fit_assembled_skeleton(space, samples, solver)
     cell = _skeleton_cell(space)
     if not isinstance(samples, Samples):
         raise TypeError("samples must be Samples.")
@@ -392,7 +401,7 @@ def fit_skeleton_regression(
         raise ValueError(f"faces without rows of positive weight: {missing}.")
     control_faces = _control_faces(cell.dimensions, cell.degree)
     coefficients = torch.zeros(space.n_controls, samples.values.shape[1], dtype=torch.float64)
-    results: dict[tuple[int, ...], FitResult] = {}
+    results: dict[tuple[int, ...] | int, FitResult] = {}
     for face in faces:
         free, _ = _interior_and_boundary(control_faces, face)
         fixed = FixedControls({k: coefficients[k] for k in range(space.n_controls) if k not in free})
@@ -406,3 +415,33 @@ def fit_skeleton_regression(
     status = results[faces[-1]].status
     message = f"Every face least-squares problem was solved.{ignored_message}"
     return SkeletonRegressionResult(BezierModel(space, coefficients), results, True, status, message)
+
+
+def _fit_assembled_skeleton(space: BezierSpace, samples: Samples, solver: LeastSquaresSolver) -> SkeletonRegressionResult:
+    """Estimate each nondegenerate cell's proper controls once, sharing all boundary estimates."""
+    stages = _skeleton_stages(space)
+    if not isinstance(samples, Samples):
+        raise TypeError("samples must be Samples.")
+    _, groups = _skeleton_observations(space, samples.points)
+    empty = torch.empty(0, dtype=torch.long)
+    missing = [cid for cid, _ in stages if not (samples.weights[groups.get(cid, empty)] > 0).any()]
+    if missing:
+        raise ValueError(f"cells without rows of positive weight: {missing}.")
+    ignored = len(samples) - sum(len(groups[cid]) for cid, _ in stages)
+    suffix = f" Ignored {ignored} rows on cells with no interior controls." if ignored else ""
+    coefficients = torch.zeros(space.n_controls, samples.values.shape[1], dtype=torch.float64)
+    results: dict[tuple[int, ...] | int, FitResult] = {}
+    for cid, proper in stages:
+        rows = groups[cid]
+        # Canonicalization determines ownership. Preserve the validated original design:
+        # dropping a nearly unit collapsed factor would otherwise change its basis values.
+        selected = samples.take(rows)
+        fixed = FixedControls({k: coefficients[k] for k in range(space.n_controls) if k not in proper})
+        result = fit(space, selected, solver=solver, fixed=fixed)
+        results[cid] = result
+        coefficients[list(proper)] = result.model.coefficients.detach()[list(proper)]
+        if not result.success:
+            message = f"Cell {cid}: {result.message}{suffix}"
+            return SkeletonRegressionResult(BezierModel(space, coefficients), results, False, result.status, message)
+    message = f"Every cell least-squares problem was solved.{suffix}"
+    return SkeletonRegressionResult(BezierModel(space, coefficients), results, True, result.status, message)

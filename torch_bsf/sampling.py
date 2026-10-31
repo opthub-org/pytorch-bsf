@@ -10,7 +10,7 @@ import numbers
 import sys
 from collections.abc import Mapping, Sequence
 from itertools import combinations, product
-from typing import Literal
+from typing import Literal, overload
 
 import numpy as np
 import torch
@@ -22,11 +22,15 @@ from torch_bsf._skeleton import (
     _control_faces,
     _faces_with_interior_controls,
     _interior_and_boundary,
+    _single_skeleton,
     _skeleton_cell,
+    _skeleton_stages,
 )
 from torch_bsf._validation import _choice
 from torch_bsf.core import BezierSpace, Points, _integer
 from torch_bsf.geometry import Simploid
+
+_CellWeights = Mapping[int, float] | Mapping[Simploid, float] | Mapping[int | Simploid, float]
 
 
 def _generator(seed: int | None) -> torch.Generator:
@@ -38,7 +42,7 @@ def _generator(seed: int | None) -> torch.Generator:
     return generator
 
 
-def _probabilities(space: BezierSpace, weights: Mapping[int | Simploid, float] | None) -> torch.Tensor:
+def _probabilities(space: BezierSpace, weights: _CellWeights | None) -> torch.Tensor:
     probability = torch.zeros(space.n_cells, dtype=torch.float64)
     if weights is None:
         probability[list(space.main_cells)] = 1.0
@@ -75,7 +79,7 @@ def sample(
     *,
     method: Literal["random", "sobol"] = "random",
     seed: int | None = None,
-    cell_weights: Mapping[int | Simploid, float] | None = None,
+    cell_weights: _CellWeights | None = None,
 ) -> Points:
     """Sample a space, uniformly within each selected cell's simplex factors.
 
@@ -313,8 +317,195 @@ def _n_skeleton_faces(dimensions: Sequence[int], degree: Sequence[int], m: int) 
     return sum(_n_faces(dimensions, sizes) for sizes in _sampled_shapes(dimensions, degree, m))
 
 
-def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
-    r"""Asymptotic risk coefficients of inductive skeleton fitting on a simplex or simploid.
+def _float_weight(weight: float, name: str) -> float:
+    """Convert real weights before tensor accumulation, retaining the distinction between zero and underflow."""
+    message = f"{name} must contain finite nonnegative real weights representable in float64."
+    if isinstance(weight, bool) or not isinstance(weight, numbers.Real) or weight < 0:
+        raise ValueError(message)
+    try:
+        converted = float(weight)
+    except OverflowError as error:
+        raise ValueError(message) from error
+    if not math.isfinite(converted) or converted < 0:
+        raise ValueError(message)
+    if weight > 0 and converted == 0:
+        raise ValueError(f"{name} underflow: a positive weight is not representable in float64.")
+    return converted
+
+
+def _evaluation_probabilities(
+    space: BezierSpace, weights: _CellWeights | None, name: str = "evaluation_weights"
+) -> torch.Tensor:
+    """Normalize chart evaluation weights, combining ID/handle aliases and rejecting invalid entries."""
+    if weights is not None and not isinstance(weights, Mapping):
+        raise ValueError(f"{name} must be a mapping of finite nonnegative real weights.")
+    converted = None if weights is None else {cell: _float_weight(w, name) for cell, w in weights.items()}
+    try:
+        probability = _probabilities(space, converted)
+    except ValueError as error:
+        raise ValueError(str(error).replace("cell_weights", name)) from error
+    if converted is not None and any(w > 0 and probability[space.cell_id(cell)] == 0 for cell, w in converted.items()):
+        raise ValueError(f"{name} underflow: normalized positive weights are not representable in float64.")
+    return probability
+
+
+_ASSEMBLED_RISK_CONTROLS = 512
+_ASSEMBLED_RISK_ENTRIES = 4_000_000
+
+
+def _assembled_gram(space: BezierSpace, cid: int) -> torch.Tensor:
+    """Scatter local moments, retaining cross terms of every repeated global control."""
+    cell = space.cells[cid]
+    indices = torch.tensor([sum(alpha, ()) for alpha in _indices(cell.dimensions, cell.degree)], dtype=torch.long)
+    local = (
+        _face_gram(indices, indices, tuple(range(cell.width)), cell.dimensions, cell.degree)
+        if cell.dimensions
+        else torch.ones(1, 1, dtype=torch.float64)
+    )
+    columns = torch.tensor(cell.controls, dtype=torch.long)
+    gram = torch.zeros(space.n_controls, space.n_controls, dtype=torch.float64)
+    gram.index_put_((columns[:, None], columns[None, :]), local, accumulate=True)
+    return gram
+
+
+def _assembled_risk_system(
+    space: BezierSpace,
+) -> tuple[list[tuple[int, tuple[int, ...]]], torch.Tensor, list[torch.Tensor], float]:
+    """Build the unit triangular population system with local proper-block solves, checking roundoff."""
+    stages = _skeleton_stages(space)
+    p = space.n_controls
+    if p > _ASSEMBLED_RISK_CONTROLS or sum(len(c.controls) ** 2 for c in space.cells) > _ASSEMBLED_RISK_ENTRIES:
+        raise ValueError("assembled risk exceeds the dense limit (512 global controls or 4000000 local Gram entries).")
+    width = max(cell.width for cell in space.cells)
+    levels = max(sum(cell.dimensions) for cell in space.cells) + 1
+    # Check local conditioning before allocating moment tables or dense matrices.
+    try:
+        condition = max(_gram_condition(cell.dimensions, cell.degree) for cell in space.cells)
+    except OverflowError:
+        condition = math.inf
+    # A moment entry has relative error <= (2*width+2)*U; backward-stable local
+    # solves/reductions add O(p*U), amplified by the local Gram condition number.
+    # Dependencies span at most `levels` dimensions. The factor eight budgets
+    # both moment/whitening paths, solve and trace rounding, and higher orders.
+    scale = 8 * levels * (2 * width + p + 2) * _UNIT_ROUNDOFF
+    if not scale * condition <= _RISK_RELATIVE_ERROR:
+        raise ValueError("assembled risk is unreliable in float64: local Gram condition number is too large.")
+    system = torch.eye(p, dtype=torch.float64)
+    blocks = []
+    for cid, proper in stages:
+        gram = _assembled_gram(space, cid)
+        h = gram[list(proper)][:, list(proper)]
+        chol = torch.linalg.cholesky(h)
+        system[list(proper)] = torch.cholesky_solve(gram[list(proper)], chol)
+        # The proper block is mathematically the identity; assigning it exactly preserves unit triangularity.
+        system[torch.tensor(proper)[:, None], torch.tensor(proper)[None, :]] = torch.eye(len(proper), dtype=torch.float64)
+        blocks.append(chol)
+    order = torch.tensor([i for _, proper in stages for i in proper], dtype=torch.long)
+    ordered = system[order][:, order]
+    inverse = torch.linalg.solve_triangular(ordered, torch.eye(p, dtype=torch.float64), upper=False, unitriangular=True)
+    propagation = torch.empty_like(inverse)
+    propagation[order[:, None], order[None, :]] = inverse
+    # One propagation condition factor covers the unit triangular solve; a second
+    # covers conversion of its normwise perturbation to the quadratic trace energy.
+    # This is a conservative first-order reliability screen, not an all-degree certificate.
+    bound = scale * condition * max(1.0, torch.linalg.cond(propagation).item()) ** 2
+    if not math.isfinite(bound) or bound > _RISK_RELATIVE_ERROR:
+        raise ValueError("assembled risk is unreliable in float64: propagated roundoff exceeds 1e-6.")
+    return stages, propagation, blocks, bound
+
+
+def _assembled_coefficients(space: BezierSpace, weights: torch.Tensor) -> dict[int, float]:
+    """Evaluate the propagated cell traces as nonnegative squared norms under the chosen chart measure."""
+    if ((weights > 0) & (weights < sys.float_info.min)).any():
+        raise ValueError("assembled risk underflow: evaluation weights have insufficient float64 relative precision.")
+    try:
+        stages, propagation, blocks, _ = _assembled_risk_system(space)
+        traces = torch.zeros(len(stages), dtype=torch.float64)
+        for cid, weight in enumerate(weights):
+            if not weight:
+                continue
+            cell = space.cells[cid]
+            indices = torch.tensor([sum(a, ()) for a in _indices(cell.dimensions, cell.degree)], dtype=torch.long)
+            gram = (
+                _face_gram(indices, indices, range(cell.width), cell.dimensions, cell.degree)
+                if cell.dimensions
+                else torch.ones(1, 1, dtype=torch.float64)
+            )
+            root = torch.linalg.cholesky(gram).T
+            for k, ((_, proper), block) in enumerate(zip(stages, blocks, strict=True)):
+                evaluated = root @ propagation[list(cell.controls)][:, list(proper)]
+                whitened = torch.linalg.solve_triangular(block, evaluated.T, upper=False)
+                unweighted = whitened.square().sum()
+                contribution = weight * unweighted
+                if unweighted > 0 and contribution < sys.float_info.min:
+                    raise ValueError("assembled risk underflow: a positive trace has insufficient float64 relative precision.")
+                traces[k] += contribution
+        if not torch.isfinite(traces).all():
+            raise ValueError("assembled risk is not finite in float64.")
+        return {cid: value for (cid, _), value in zip(stages, traces.tolist(), strict=True)}
+    except torch.linalg.LinAlgError as error:
+        raise ValueError("assembled risk is unreliable in float64: a Gram factorization failed.") from error
+
+
+@overload
+def skeleton_risk_coefficients(  # noqa: D418 - numpydoc validates overload docstrings.
+    space: BezierSpace,
+    *,
+    evaluation_weights: _CellWeights | None = None,
+    allocation: Literal["dimension"] = "dimension",
+) -> tuple[float, ...]:
+    """Risk coefficients indexed by dimension.
+
+    Parameters
+    ----------
+    space
+        Compiled simploidal space.
+    evaluation_weights
+        Optional nonnegative chart weights for risk evaluation.
+    allocation
+        Select dimension-indexed results.
+
+    Returns
+    -------
+    tuple of float
+        Risk coefficients for the selected allocation.
+    """
+    ...
+
+
+@overload
+def skeleton_risk_coefficients(  # noqa: D418 - numpydoc validates overload docstrings.
+    space: BezierSpace,
+    *,
+    evaluation_weights: _CellWeights | None = None,
+    allocation: Literal["cell"],
+) -> dict[int, float]:
+    """Risk coefficients indexed by cell.
+
+    Parameters
+    ----------
+    space
+        Compiled simploidal space.
+    evaluation_weights
+        Optional nonnegative chart weights for risk evaluation.
+    allocation
+        Select cell-indexed results.
+
+    Returns
+    -------
+    dict of int to float
+        Risk coefficients for the selected allocation.
+    """
+    ...
+
+
+def skeleton_risk_coefficients(
+    space: BezierSpace,
+    *,
+    evaluation_weights: _CellWeights | None = None,
+    allocation: Literal["dimension", "cell"] = "dimension",
+) -> tuple[float, ...] | dict[int, float]:
+    r"""Asymptotic risk coefficients of inductive skeleton fitting on a simploidal space.
 
     Inductive skeleton fitting estimates the controls interior to each face by
     least squares on that face's observations, holding the controls of lower
@@ -342,11 +533,21 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
     Parameters
     ----------
     space
-        A single simplex or simploid of positive dimension and degree in every factor.
+        A simplex, simploid or assembled set with positive degrees in positive-dimensional factors.
+
+    evaluation_weights
+        Nonnegative chart weights by cell ID or builder handle, normalized to a
+        probability measure; omitted cells have zero weight. Defaults to equal
+        weights on maximal cells. ID/handle aliases add. Unknown cells, nonfinite
+        or negative weights and a nonfinite or zero total are rejected.
+    allocation
+        ``"dimension"`` returns the usual tuple; ``"cell"`` returns a dictionary
+        of active cell IDs to coefficients and requires addressable faces via
+        ``BezierSpace.on_set`` (or a zero-dimensional space).
 
     Returns
     -------
-    tuple of float
+    tuple of float or dict of int to float
         :math:`a_0, \dots, a_n` for a domain of dimension :math:`n`, which is
         :math:`M - 1` for a simplex with :math:`M` vertices.
 
@@ -355,8 +556,7 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
     TypeError
         If ``space`` is not a :class:`~torch_bsf.BezierSpace`.
     ValueError
-        If ``space`` is not a single simplex or simploid of positive dimension
-        and degree in every factor, or if its Bernstein Gram matrices are too
+        If a positive-dimensional factor has degree zero, or its Bernstein Gram matrices are too
         ill-conditioned to bound the float64 relative error by ``1e-6``. For a
         simplex, the largest accepted degree falls with the dimension: 14 for 2
         vertices, 12 for 3, 11 for 4, 9 for 5, 8 for 6 and 7, and 7 for 8. On
@@ -367,7 +567,19 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
 
     Notes
     -----
-    On a face of a simploid, the Gram matrices and the propagated errors are
+    On an assembled set, cell coefficients satisfy ``risk = sum(c_s / q_s)``
+    up to the common noise/output/budget factor. Dimension coefficients are
+    ``a_m = K_m * sum(c_s for dim(s) == m)``. The evaluator is independent of
+    sampling allocation and may include lower cells. The model must be correctly
+    specified, with independent homoscedastic noise, uniform within-cell designs
+    and unregularized least squares. Dense assembled computation is limited to
+    512 global controls and 4,000,000 local Gram entries in total; it checks local
+    and propagated conditioning before returning coefficients. Unrepresentable
+    positive weights and subnormal weighted risk contributions raise a numerical
+    reliability error instead of being classified as mathematical zeros. Zero coefficients
+    do not remove active cells from the estimator. See :ref:`skeleton-risk-assembled`.
+
+    On a face of a single simploid, the Gram matrices and the propagated errors are
     Kronecker products of those of its factor faces, so a face's trace
     :math:`\mathrm{tr}(G^I_{TT}{}^{-1} E_I^\top G E_I)` is the product of
     theirs. The coefficients are therefore computed factor by factor:
@@ -400,6 +612,16 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
     >>> [round(a, 4) for a in skeleton_risk_coefficients(BezierSpace.simplex(2, degree=3))]
     [0.1464, 3.5357, 1.0]
     """
+    single = _single_skeleton(space)
+    _choice(allocation, "allocation", ("dimension", "cell"))
+    weights = _evaluation_probabilities(space, evaluation_weights)
+    if not single or allocation == "cell":
+        coefficients = _assembled_coefficients(space, weights)
+        if allocation == "cell":
+            return coefficients
+        levels = max(sum(c.dimensions) for c in space.cells) + 1
+        groups = [[v for cid, v in coefficients.items() if sum(space.cells[cid].dimensions) == m] for m in range(levels)]
+        return tuple(len(values) * math.fsum(values) for values in groups)
     cell = _skeleton_cell(space)
     dimensions, degree = cell.dimensions, cell.degree
     width, n_controls, levels = cell.width, space.n_controls, sum(dimensions) + 1
@@ -463,7 +685,64 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
     return tuple(_n_skeleton_faces(dimensions, degree, m) * t if t else 0.0 for m, t in enumerate(trace_sums))
 
 
-def optimal_skeleton_ratio(space: BezierSpace) -> tuple[float, ...]:
+@overload
+def optimal_skeleton_ratio(  # noqa: D418 - numpydoc validates overload docstrings.
+    space: BezierSpace,
+    *,
+    evaluation_weights: _CellWeights | None = None,
+    allocation: Literal["dimension"] = "dimension",
+) -> tuple[float, ...]:
+    """Optimal fractions indexed by dimension.
+
+    Parameters
+    ----------
+    space
+        Compiled simploidal space.
+    evaluation_weights
+        Optional nonnegative chart weights for risk evaluation.
+    allocation
+        Select dimension-indexed results.
+
+    Returns
+    -------
+    tuple of float
+        Optimal fractions for the selected allocation.
+    """
+    ...
+
+
+@overload
+def optimal_skeleton_ratio(  # noqa: D418 - numpydoc validates overload docstrings.
+    space: BezierSpace,
+    *,
+    evaluation_weights: _CellWeights | None = None,
+    allocation: Literal["cell"],
+) -> dict[int, float]:
+    """Optimal fractions indexed by cell.
+
+    Parameters
+    ----------
+    space
+        Compiled simploidal space.
+    evaluation_weights
+        Optional nonnegative chart weights for risk evaluation.
+    allocation
+        Select cell-indexed results.
+
+    Returns
+    -------
+    dict of int to float
+        Optimal fractions for the selected allocation.
+    """
+    ...
+
+
+def optimal_skeleton_ratio(
+    space: BezierSpace,
+    *,
+    evaluation_weights: _CellWeights | None = None,
+    allocation: Literal["dimension", "cell"] = "dimension",
+) -> tuple[float, ...] | dict[int, float]:
     r"""Skeleton sample fractions that minimize the asymptotic risk of inductive skeleton fitting.
 
     Minimizing :math:`\sum_m a_m / N^{(m)}` subject to :math:`\sum_m N^{(m)} = N`
@@ -474,11 +753,17 @@ def optimal_skeleton_ratio(space: BezierSpace) -> tuple[float, ...]:
     Parameters
     ----------
     space
-        A single simplex or simploid of positive dimension and degree in every factor.
+        A simplex, simploid or assembled set with positive degrees in positive-dimensional factors.
+
+    evaluation_weights
+        Chart evaluation weights, as in :func:`skeleton_risk_coefficients`.
+    allocation
+        ``"dimension"`` for dimension fractions; ``"cell"`` for cell-ID fractions
+        proportional to the square roots of the cell coefficients.
 
     Returns
     -------
-    tuple of float
+    tuple of float or dict of int to float
         Nonnegative fractions for the 0-, 1-, ..., n-skeletons of a domain of
         dimension n (n = M - 1 for a simplex with M vertices), summing to one.
 
@@ -488,7 +773,10 @@ def optimal_skeleton_ratio(space: BezierSpace) -> tuple[float, ...]:
         If ``space`` is not a :class:`~torch_bsf.BezierSpace`.
     ValueError
         As :func:`skeleton_risk_coefficients`, including degrees too high for
-        float64 and simploids with too many factors.
+        float64 and simploids with too many factors. Automatic allocation is
+        rejected when an active cell (cell mode) or whole active dimension
+        (dimension mode) has zero coefficient: a positive-allocation minimizer
+        then does not exist. Supply positive explicit shares to fit all controls.
 
     Examples
     --------
@@ -497,7 +785,22 @@ def optimal_skeleton_ratio(space: BezierSpace) -> tuple[float, ...]:
     >>> [round(r, 4) for r in optimal_skeleton_ratio(BezierSpace.simplex(1, degree=2))]
     [0.4142, 0.5858]
     """
-    roots = [math.sqrt(a) for a in skeleton_risk_coefficients(space)]
+    _choice(allocation, "allocation", ("dimension", "cell"))
+    if allocation == "cell":
+        coefficients = skeleton_risk_coefficients(space, evaluation_weights=evaluation_weights, allocation="cell")
+        if any(c <= 0 for c in coefficients.values()):
+            raise ValueError(
+                "zero-risk active cells have only an infimum under positive allocation; pass cell_weights explicitly."
+            )
+        roots_by_cell = {cid: math.sqrt(c) for cid, c in coefficients.items()}
+        total = math.fsum(roots_by_cell.values())
+        return {cid: r / total for cid, r in roots_by_cell.items()}
+    coefficients_by_dimension = skeleton_risk_coefficients(space, evaluation_weights=evaluation_weights)
+    if not _single_skeleton(space):
+        active = {sum(space.cells[cid].dimensions) for cid, _ in _skeleton_stages(space)}
+        if any(coefficients_by_dimension[m] <= 0 for m in active):
+            raise ValueError("zero-risk active groups have only an infimum under positive allocation; pass ratio explicitly.")
+    roots = [math.sqrt(a) for a in coefficients_by_dimension]
     return tuple(r / sum(roots) for r in roots)
 
 
@@ -514,11 +817,16 @@ def _real_entries(ratio: object) -> bool:
     return isinstance(ratio, Sequence) and not isinstance(ratio, str) and all(real(entry) for entry in ratio)
 
 
-def _skeleton_fractions(ratio: Sequence[float] | torch.Tensor | None, space: BezierSpace, levels: int) -> list[float]:
+def _skeleton_fractions(
+    ratio: Sequence[float] | torch.Tensor | None,
+    space: BezierSpace,
+    levels: int,
+    evaluation_weights: _CellWeights | None = None,
+) -> list[float]:
     """Validated fractions of the ``levels`` skeletons summing to one, the optimal ones by default."""
     if ratio is None:
         try:
-            return list(optimal_skeleton_ratio(space))
+            return list(optimal_skeleton_ratio(space, evaluation_weights=evaluation_weights))
         except ValueError as error:
             raise ValueError(f"{error} Pass ratio explicitly.") from error
     message = f"ratio must have {levels} finite nonnegative real entries with a positive sum."
@@ -592,8 +900,10 @@ def sample_skeleton(
     ratio: Sequence[float] | torch.Tensor | None = None,
     method: Literal["random", "sobol"] = "random",
     seed: int | None = None,
+    evaluation_weights: _CellWeights | None = None,
+    cell_weights: _CellWeights | None = None,
 ) -> Points:
-    """Stratified sample of the skeletons of a simplex or simploid for inductive skeleton fitting.
+    """Stratified sample of a simploidal space for inductive skeleton fitting.
 
     The ``n`` rows are split among the 0-skeleton (vertices), 1-skeleton
     (edges), ... in proportion to ``ratio`` by largest-remainder rounding.
@@ -606,13 +916,16 @@ def sample_skeleton(
     in shape: the edges of a prism are triangle edges at an end of the interval
     and intervals at a vertex of the triangle. A skeleton's rows then go only to
     its faces with interior controls (no factor has more vertices than its
-    degree), unless none has any. On a simplex, either every face of a
-    skeleton has interior controls or none has.
+    degree). For the original single-cell constructors, an explicit ratio may
+    also sample a dimension with no interior controls, using all its faces;
+    fitting ignores those rows. Assembled spaces sample active cells only and
+    reject positive shares on dimensions without any active cells. On a single
+    simplex, either every face of a skeleton has interior controls or none has.
 
     Parameters
     ----------
     space
-        A single simplex or simploid of positive dimension and degree in every factor.
+        A simplex, simploid or assembled set with positive degrees in positive-dimensional factors.
     n
         Number of rows.
     ratio
@@ -628,18 +941,32 @@ def sample_skeleton(
     seed
         Seed of the local generator; global random state is not used.
 
+    evaluation_weights
+        Evaluation measure used for the automatic dimension ratio. Validated
+        independently of explicit sampling shares; see :func:`skeleton_risk_coefficients`.
+    cell_weights
+        Explicit active-cell shares by cell ID or builder handle, normalized to
+        probabilities. Mutually exclusive with ``ratio``. Requires addressable
+        faces (``BezierSpace.on_set`` or a zero-dimensional space). Pass the
+        dictionary from ``optimal_skeleton_ratio(..., allocation="cell")`` here.
+
     Returns
     -------
     Points
-        Barycentric rows of the single cell.
+        Exactly ``n`` CPU float64 rows. Assembled rows carry active nondegenerate
+        cell IDs and zero padding. Largest-remainder rounding preserves the
+        budget, even for ``n=0`` or budgets below the active-cell count; it does
+        not guarantee sufficient rows or rank for fitting. Dimension shares are
+        split equally within each dimension, with randomized remainder ties.
+        On assembled spaces, positive shares on empty dimensions or inactive cells are rejected.
+        Explicit shares bypass risk conditioning and dense-computation limits.
 
     Raises
     ------
     TypeError
         If ``space`` is not a :class:`~torch_bsf.BezierSpace`.
     ValueError
-        If ``space`` is not a single simplex or simploid of positive dimension
-        and degree in every factor, ``n`` is not a nonnegative integer,
+        If a positive-dimensional factor has degree zero, ``n`` is not a nonnegative integer,
         ``method`` is unknown, or ``ratio`` is malformed. With the default
         ``ratio``, also if :func:`skeleton_risk_coefficients` rejects the space
         (too high a degree, or too many factors on a simploid); pass ``ratio``
@@ -653,10 +980,15 @@ def sample_skeleton(
     >>> (points.parameters > 0).sum(1).bincount().tolist()
     [0, 26, 74]
     """
-    cell = _skeleton_cell(space)
+    single = _single_skeleton(space)
     _integer(n, "n")
     _choice(method, "method", ("random", "sobol"), message="method must be 'random' or 'sobol'.")
-    counts = _skeleton_counts(n, _skeleton_fractions(ratio, space, sum(cell.dimensions) + 1))
+    if evaluation_weights is not None:
+        _evaluation_probabilities(space, evaluation_weights)
+    if not single or cell_weights is not None:
+        return _sample_assembled_skeleton(space, n, ratio, method, seed, evaluation_weights, cell_weights)
+    cell = _skeleton_cell(space)
+    counts = _skeleton_counts(n, _skeleton_fractions(ratio, space, sum(cell.dimensions) + 1, evaluation_weights))
     generator = _generator(seed)
     # Each factor's coordinates on a face are normalized to sum to one; ends[j] bounds factor j's coordinates.
     ends = torch.tensor([block.stop for block in _blocks(cell.dimensions)])
@@ -676,3 +1008,64 @@ def sample_skeleton(
                 chunk[:, face] = exponentials / sums[:, factor]
             chunks.append(chunk)
     return Points(torch.cat(chunks))
+
+
+def _assembled_counts(
+    space: BezierSpace,
+    stages: list[tuple[int, tuple[int, ...]]],
+    n: int,
+    ratio: Sequence[float] | torch.Tensor | None,
+    evaluation_weights: _CellWeights | None,
+    cell_weights: _CellWeights | None,
+    generator: torch.Generator,
+) -> list[int]:
+    """Round either explicit cell shares or dimension shares followed by equal within-dimension shares."""
+    if cell_weights is not None:
+        if ratio is not None:
+            raise ValueError("ratio and cell_weights are mutually exclusive.")
+        probabilities = _evaluation_probabilities(space, cell_weights, "cell_weights")
+        active = {cid for cid, _ in stages}
+        if any(w > 0 and cid not in active for cid, w in enumerate(probabilities)):
+            raise ValueError("cell_weights may assign positive mass only to cells with proper controls.")
+        return _skeleton_counts(n, [probabilities[cid].item() for cid, _ in stages])
+    levels = max(sum(c.dimensions) for c in space.cells) + 1
+    fractions = _skeleton_fractions(ratio, space, levels, evaluation_weights)
+    groups = [[k for k, (cid, _) in enumerate(stages) if sum(space.cells[cid].dimensions) == m] for m in range(levels)]
+    if any(f > 0 and not group for f, group in zip(fractions, groups, strict=True)):
+        raise ValueError("ratio assigns mass to a dimension without active cells.")
+    counts = [0] * len(stages)
+    for group, count in zip(groups, _skeleton_counts(n, fractions), strict=True):
+        if not group or not count:
+            continue
+        extra = set(torch.randperm(len(group), generator=generator)[: count % len(group)].tolist())
+        for j, k in enumerate(group):
+            counts[k] = count // len(group) + int(j in extra)
+    return counts
+
+
+def _sample_assembled_skeleton(
+    space: BezierSpace,
+    n: int,
+    ratio: Sequence[float] | torch.Tensor | None,
+    method: str,
+    seed: int | None,
+    evaluation_weights: _CellWeights | None,
+    cell_weights: _CellWeights | None,
+) -> Points:
+    """Draw exactly n rows, tagged with their active nondegenerate cells and padded to the space width."""
+    stages = _skeleton_stages(space)
+    generator = _generator(seed)
+    counts = _assembled_counts(space, stages, n, ratio, evaluation_weights, cell_weights, generator)
+    parameters = torch.zeros(n, space.width, dtype=torch.float64)
+    ids = torch.empty(n, dtype=torch.long)
+    offset = 0
+    for (cid, _), count in zip(stages, counts, strict=True):
+        cell = space.cells[cid]
+        if count and cell.width:
+            exponentials = _exponentials(generator, count, cell.width, method)
+            for block in _blocks(cell.dimensions):
+                t = exponentials[:, block]
+                parameters[offset : offset + count, block] = t / t.sum(1, keepdim=True)
+        ids[offset : offset + count] = cid
+        offset += count
+    return Points(parameters, ids)
