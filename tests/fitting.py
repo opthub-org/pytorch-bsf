@@ -8,7 +8,10 @@ from unittest.mock import patch
 
 import pytest
 import torch
+from hypothesis import example, given
+from hypothesis import strategies as st
 
+from tests.strategies import simplex_points
 from torch_bsf import BezierModel, BezierSpace, FixedControls, Points, QuadraticPenalty, Samples, SimploidalSet, fit
 from torch_bsf._kernels.combinatorics import _indices, _simplex_indices
 from torch_bsf._problem import LeastSquaresProblem
@@ -981,3 +984,46 @@ def test_assembled_skeleton_ignores_inactive_cells():
     result = fit_skeleton_regression(space, Samples(points, [[1], [100], [3]])).require_success()
     assert "Ignored 1 rows" in result.message and len(result.faces) == 2
     assert result.model.coefficients[:, 0].tolist() == [1.0, 3.0]
+
+
+@pytest.mark.parametrize("kind", ["segment", "chain", "sphere"])
+@pytest.mark.parametrize("scale", [1 - 5e-7, 1 + 5e-7])
+def test_assembled_skeleton_preserves_accepted_original_design(kind, scale):
+    from tests.simploidal_risk import _fit_error, _space
+    from torch_bsf.sampling import grid
+
+    space = _space(kind, 3)
+    base = grid(space, resolution=5)
+    points = Points(base.parameters * scale, base.cell_ids)
+    space.validate(points)  # Near-unit barycentric masses are part of the existing membership contract.
+    truth = BezierModel(space, torch.arange(1, space.n_controls + 1, dtype=torch.float64)[:, None])
+    result = fit_skeleton_regression(space, Samples(points, truth(points).detach())).require_success()
+    error = _fit_error(result, truth.coefficients.abs().max().item())
+    assert torch.allclose(result.model.coefficients, truth.coefficients, rtol=0, atol=error)
+    assert torch.allclose(result.model(points), truth(points), rtol=0, atol=2 * error)
+
+
+@example(t=torch.tensor([[1e-13, 1 - 1e-13], [0.0, 1.0], [1.0, 0.0]], dtype=torch.float64), loop=False)
+@example(t=torch.tensor([[torch.finfo(torch.float64).tiny, 1.0], [0.0, 1.0], [1.0, 0.0]], dtype=torch.float64), loop=True)
+@given(t=simplex_points(2, 8), loop=st.booleans())
+def test_assembled_observation_assignment_uses_exact_zeros(t, loop):
+    from torch_bsf._skeleton import _skeleton_observations
+
+    domain = SimploidalSet()
+    segment = domain.add_simplex(1)
+    if loop:
+        domain.identify(segment.face(0, 0), segment.face(0, 1))
+    space = BezierSpace.on_set(domain, degree=2)
+    points = Points.from_cells(space, [(segment, t)])
+    canonical, groups = _skeleton_observations(space, points)
+    # This reference uses the builder's endpoint identities, not compiled face-map traversal.
+    expected = [
+        space.cell_id(segment.face(0, 0))
+        if row[0] == 0
+        else space.cell_id(segment.face(0, 1))
+        if row[1] == 0
+        else space.cell_id(segment)
+        for row in t
+    ]
+    assert canonical.cell_ids.tolist() == expected
+    assert sorted(row for rows in groups.values() for row in rows.tolist()) == list(range(len(t)))

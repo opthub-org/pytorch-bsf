@@ -317,21 +317,36 @@ def _n_skeleton_faces(dimensions: Sequence[int], degree: Sequence[int], m: int) 
     return sum(_n_faces(dimensions, sizes) for sizes in _sampled_shapes(dimensions, degree, m))
 
 
+def _float_weight(weight: float, name: str) -> float:
+    """Convert real weights before tensor accumulation, retaining the distinction between zero and underflow."""
+    message = f"{name} must contain finite nonnegative real weights representable in float64."
+    if isinstance(weight, bool) or not isinstance(weight, numbers.Real):
+        raise ValueError(message)
+    try:
+        converted = float(weight)
+    except OverflowError as error:
+        raise ValueError(message) from error
+    if not math.isfinite(converted) or converted < 0:
+        raise ValueError(message)
+    if weight > 0 and converted == 0:
+        raise ValueError(f"{name} underflow: a positive weight is not representable in float64.")
+    return converted
+
+
 def _evaluation_probabilities(
     space: BezierSpace, weights: _CellWeights | None, name: str = "evaluation_weights"
 ) -> torch.Tensor:
     """Normalize chart evaluation weights, combining ID/handle aliases and rejecting invalid entries."""
-    if weights is not None and (
-        not isinstance(weights, Mapping)
-        or any(
-            isinstance(w, bool) or not isinstance(w, numbers.Real) or not math.isfinite(w) or w < 0 for w in weights.values()
-        )
-    ):
+    if weights is not None and not isinstance(weights, Mapping):
         raise ValueError(f"{name} must be a mapping of finite nonnegative real weights.")
+    converted = None if weights is None else {cell: _float_weight(w, name) for cell, w in weights.items()}
     try:
-        return _probabilities(space, weights)
+        probability = _probabilities(space, converted)
     except ValueError as error:
         raise ValueError(str(error).replace("cell_weights", name)) from error
+    if converted is not None and any(w > 0 and probability[space.cell_id(cell)] == 0 for cell, w in converted.items()):
+        raise ValueError(f"{name} underflow: normalized positive weights are not representable in float64.")
+    return probability
 
 
 _ASSEMBLED_RISK_CONTROLS = 512
@@ -368,6 +383,10 @@ def _assembled_risk_system(
         condition = max(_gram_condition(cell.dimensions, cell.degree) for cell in space.cells)
     except OverflowError:
         condition = math.inf
+    # A moment entry has relative error <= (2*width+2)*U; backward-stable local
+    # solves/reductions add O(p*U), amplified by the local Gram condition number.
+    # Dependencies span at most `levels` dimensions. The factor eight budgets
+    # both moment/whitening paths, solve and trace rounding, and higher orders.
     scale = 8 * levels * (2 * width + p + 2) * _UNIT_ROUNDOFF
     if not scale * condition <= _RISK_RELATIVE_ERROR:
         raise ValueError("assembled risk is unreliable in float64: local Gram condition number is too large.")
@@ -386,6 +405,9 @@ def _assembled_risk_system(
     inverse = torch.linalg.solve_triangular(ordered, torch.eye(p, dtype=torch.float64), upper=False, unitriangular=True)
     propagation = torch.empty_like(inverse)
     propagation[order[:, None], order[None, :]] = inverse
+    # One propagation condition factor covers the unit triangular solve; a second
+    # covers conversion of its normwise perturbation to the quadratic trace energy.
+    # This is a conservative first-order reliability screen, not an all-degree certificate.
     bound = scale * condition * max(1.0, torch.linalg.cond(propagation).item()) ** 2
     if not math.isfinite(bound) or bound > _RISK_RELATIVE_ERROR:
         raise ValueError("assembled risk is unreliable in float64: propagated roundoff exceeds 1e-6.")
@@ -394,6 +416,8 @@ def _assembled_risk_system(
 
 def _assembled_coefficients(space: BezierSpace, weights: torch.Tensor) -> dict[int, float]:
     """Evaluate the propagated cell traces as nonnegative squared norms under the chosen chart measure."""
+    if ((weights > 0) & (weights < sys.float_info.min)).any():
+        raise ValueError("assembled risk underflow: evaluation weights have insufficient float64 relative precision.")
     try:
         stages, propagation, blocks, _ = _assembled_risk_system(space)
         traces = torch.zeros(len(stages), dtype=torch.float64)
@@ -411,7 +435,11 @@ def _assembled_coefficients(space: BezierSpace, weights: torch.Tensor) -> dict[i
             for k, ((_, proper), block) in enumerate(zip(stages, blocks, strict=True)):
                 evaluated = root @ propagation[list(cell.controls)][:, list(proper)]
                 whitened = torch.linalg.solve_triangular(block, evaluated.T, upper=False)
-                traces[k] += weight * whitened.square().sum()
+                unweighted = whitened.square().sum()
+                contribution = weight * unweighted
+                if unweighted > 0 and contribution < sys.float_info.min:
+                    raise ValueError("assembled risk underflow: a positive trace has insufficient float64 relative precision.")
+                traces[k] += contribution
         if not torch.isfinite(traces).all():
             raise ValueError("assembled risk is not finite in float64.")
         return {cid: value for (cid, _), value in zip(stages, traces.tolist(), strict=True)}
@@ -546,7 +574,9 @@ def skeleton_risk_coefficients(
     specified, with independent homoscedastic noise, uniform within-cell designs
     and unregularized least squares. Dense assembled computation is limited to
     512 global controls and 4,000,000 local Gram entries in total; it checks local
-    and propagated conditioning before returning coefficients. Zero coefficients
+    and propagated conditioning before returning coefficients. Unrepresentable
+    positive weights and subnormal weighted risk contributions raise a numerical
+    reliability error instead of being classified as mathematical zeros. Zero coefficients
     do not remove active cells from the estimator. See :ref:`skeleton-risk-assembled`.
 
     On a face of a single simploid, the Gram matrices and the propagated errors are
@@ -886,8 +916,11 @@ def sample_skeleton(
     in shape: the edges of a prism are triangle edges at an end of the interval
     and intervals at a vertex of the triangle. A skeleton's rows then go only to
     its faces with interior controls (no factor has more vertices than its
-    degree), unless none has any. On a simplex, either every face of a
-    skeleton has interior controls or none has.
+    degree). For the original single-cell constructors, an explicit ratio may
+    also sample a dimension with no interior controls, using all its faces;
+    fitting ignores those rows. Assembled spaces sample active cells only and
+    reject positive shares on dimensions without any active cells. On a single
+    simplex, either every face of a skeleton has interior controls or none has.
 
     Parameters
     ----------
@@ -925,7 +958,7 @@ def sample_skeleton(
         budget, even for ``n=0`` or budgets below the active-cell count; it does
         not guarantee sufficient rows or rank for fitting. Dimension shares are
         split equally within each dimension, with randomized remainder ties.
-        Positive shares on empty dimensions or inactive cells are rejected.
+        On assembled spaces, positive shares on empty dimensions or inactive cells are rejected.
         Explicit shares bypass risk conditioning and dense-computation limits.
 
     Raises

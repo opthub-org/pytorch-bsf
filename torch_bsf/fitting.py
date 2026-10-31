@@ -422,7 +422,7 @@ def _fit_assembled_skeleton(space: BezierSpace, samples: Samples, solver: LeastS
     stages = _skeleton_stages(space)
     if not isinstance(samples, Samples):
         raise TypeError("samples must be Samples.")
-    canonical, groups = _skeleton_observations(space, samples.points)
+    _, groups = _skeleton_observations(space, samples.points)
     empty = torch.empty(0, dtype=torch.long)
     missing = [cid for cid, _ in stages if not (samples.weights[groups.get(cid, empty)] > 0).any()]
     if missing:
@@ -433,7 +433,9 @@ def _fit_assembled_skeleton(space: BezierSpace, samples: Samples, solver: LeastS
     results: dict[tuple[int, ...] | int, FitResult] = {}
     for cid, proper in stages:
         rows = groups[cid]
-        selected = Samples(canonical.take(rows), samples.values[rows.to(samples.values.device)], weights=samples.weights[rows])
+        # Canonicalization determines ownership. Preserve the validated original design:
+        # dropping a nearly unit collapsed factor would otherwise change its basis values.
+        selected = samples.take(rows)
         fixed = FixedControls({k: coefficients[k] for k in range(space.n_controls) if k not in proper})
         result = fit(space, selected, solver=solver, fixed=fixed)
         results[cid] = result

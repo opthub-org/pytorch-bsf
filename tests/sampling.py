@@ -2345,3 +2345,88 @@ def test_assembled_risk_rejects_nonfinite_trace():
         pytest.raises(ValueError, match="not finite"),
     ):
         skeleton_risk_coefficients(_two_glued_segments())
+
+
+@pytest.mark.parametrize("weight", [Fraction(1, 2), np.float64(0.5)])
+def test_assembled_sampling_and_evaluation_accept_real_weights(weight):
+    space = _two_glued_segments()
+    weights = {cid: weight for cid in space.main_cells}
+    assert skeleton_risk_coefficients(space, evaluation_weights=weights) == skeleton_risk_coefficients(space)
+    points = sample_skeleton(space, 8, cell_weights=weights, seed=0)
+    assert len(points) == 8 and set(points.cell_ids.tolist()) == set(space.main_cells)
+
+
+@pytest.mark.parametrize("weight", [10**1000, Fraction(1, 10**1000)])
+def test_assembled_weight_conversion_fails_with_value_error(weight):
+    space = _two_glued_segments()
+    with pytest.raises(ValueError, match="evaluation_weights"):
+        skeleton_risk_coefficients(space, evaluation_weights={space.main_cells[0]: weight})
+    with pytest.raises(ValueError, match="cell_weights"):
+        sample_skeleton(space, 1, cell_weights={space.main_cells[0]: weight})
+
+
+@pytest.mark.parametrize("weights", [(1.0, 5e-324), (1.0, 2.3e-308), (1e308, 1e-308)])
+def test_assembled_positive_risk_underflow_is_not_a_structural_zero(weights):
+    from tests.simploidal_risk import _space
+
+    space = _space("disconnected", 2)
+    evaluation = dict(zip(space.main_cells, weights, strict=True))
+    with pytest.raises(ValueError, match="underflow"):
+        skeleton_risk_coefficients(space, evaluation_weights=evaluation, allocation="cell")
+    with pytest.raises(ValueError, match="underflow"):
+        optimal_skeleton_ratio(space, evaluation_weights=evaluation, allocation="cell")
+
+
+def test_assembled_small_normal_risks_retain_relative_precision():
+    from tests.simploidal_risk import _space
+
+    space = _space("disconnected", 2)
+    left, right = space.main_cells
+    coefficients = skeleton_risk_coefficients(space, evaluation_weights={left: 1.0, right: 1e-300}, allocation="cell")
+    assert coefficients[right] == pytest.approx(1e-300, rel=1e-6, abs=0)
+    for _, _, vertex, _ in space._topology[right]:
+        assert coefficients[vertex] == pytest.approx(1.25e-301, rel=1e-6, abs=0)
+    # A subnormal raw weight is harmless when its normalized measure is exactly representable.
+    assert skeleton_risk_coefficients(BezierSpace.simplex(0, degree=0), evaluation_weights={0: 5e-324}) == (1.0,)
+
+
+@given(
+    kind=st.sampled_from(["chain", "loop", "triangles", "mixed", "sphere", "torus", "vertices", "isolated"]),
+    degree=st.integers(1, 3),
+    n=st.integers(0, 60),
+    seed=seeds(),
+    method=st.sampled_from(["random", "sobol"]),
+    data=st.data(),
+)
+def test_assembled_skeleton_allocation_property(kind, degree, n, seed, method, data):
+    from tests.simploidal_risk import _space
+
+    space = _space(kind, degree)
+    levels = max(sum(c.dimensions) for c in space.cells) + 1
+    # Proper-control cardinalities are the independent combinatorial formula in the theorem.
+    active = [
+        cid
+        for cid, c in enumerate(space.cells)
+        if math.prod(comb(d - 1, a) for a, d in zip(c.dimensions, c.degree, strict=True))
+    ]
+    groups = [[cid for cid in active if sum(space.cells[cid].dimensions) == m] for m in range(levels)]
+    scores = data.draw(st.lists(st.integers(1, 10), min_size=levels, max_size=levels))
+    ratio = [score if group else 0 for score, group in zip(scores, groups, strict=True)]
+    state = torch.random.get_rng_state().clone()
+    points = sample_skeleton(space, n, ratio=ratio, method=method, seed=seed)
+    assert torch.equal(torch.random.get_rng_state(), state)
+    assert len(points) == n and set(points.cell_ids.tolist()).issubset(active)
+    repeat = sample_skeleton(space, n, ratio=ratio, method=method, seed=seed)
+    assert torch.equal(points.parameters, repeat.parameters) and torch.equal(points.cell_ids, repeat.cell_ids)
+    for m, group in enumerate(groups):
+        counts = [int((points.cell_ids == cid).sum()) for cid in group]
+        quota = n * ratio[m] / sum(ratio)
+        assert math.floor(quota) <= sum(counts) <= math.ceil(quota)
+        if counts:
+            assert max(counts) - min(counts) <= 1
+    for cid in active:
+        local = points.parameters[points.cell_ids == cid]
+        for block in _blocks(space.cells[cid].dimensions):
+            # Positive sum followed by division: the sum has at most block.width roundings.
+            tolerance = 8 * len(block) * 2**-53
+            assert torch.allclose(local[:, block].sum(1), torch.ones(len(local), dtype=torch.float64), rtol=0, atol=tolerance)

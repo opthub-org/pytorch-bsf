@@ -79,7 +79,9 @@ Zero-dimensional spaces support both modes.
 ``evaluation_weights`` and ``cell_weights`` accept integer IDs or the original
 builder handles. An ID and its handle are aliases whose weights add. Missing
 keys have weight zero. Weights must be real, finite, nonnegative, with a finite
-positive total, and are normalized to sum to one. Unknown cells, booleans and
+positive total, and are normalized to sum to one. Real values are converted to
+float64 before accumulation; values outside its range and normalization that
+underflows a positive cell weight raise ``ValueError``. Unknown cells, booleans and
 invalid weights raise ``ValueError``. ``cell_weights`` may give positive mass
 only to active cells and is mutually exclusive with ``ratio``. Evaluation
 weights may include any compiled cell. They never change an explicit sampling
@@ -101,7 +103,9 @@ For fitting, a directly tagged lower-cell row and a boundary row expressed in
 an upper chart both reach their nondegenerate cell. Boundary coordinates must
 be exactly zero. Face restriction and degeneracy maps sum coordinates of
 repeated vertices and discard collapsed factors. Each input row is assigned
-once, and every shared cell is estimated once. Cells without proper controls
+once, and every shared cell is estimated once. The constrained solves retain
+the original chart coordinates, so membership-validation tolerances do not
+change the observed design when a nearly unit factor is collapsed. Cells without proper controls
 are ignored and counted in the result message. Result ``faces`` keys are
 integer cell IDs and each value has the ordinary fit diagnostics. The original
 single-cell coordinate-tuple keys are preserved. Missing positive-weight
@@ -125,7 +129,16 @@ not promise that fitting all controls will succeed.
 The assembled risk implementation uses float64 local moment/Cholesky solves
 and a unit triangular propagation solve. It retains repeated-control cross
 terms. It checks local Gram and propagation condition numbers, rejecting a
-first-order roundoff budget above ``1e-6``. Its conservative work limits are
+first-order roundoff budget above ``1e-6``. Positive subnormal evaluation
+weights or weighted trace contributions are rejected as numerically unreliable;
+they are never reported as structural zeros or as a mathematical infimum.
+The first-order screen budgets moment/reduction errors of order
+:math:`(2w+p+2)u` across :math:`d+1` propagation levels, multiplied by the
+largest local Gram condition and the squared propagation condition, with a
+safety factor of eight for whitening, trace rounding and higher orders. Here
+:math:`w` is the maximum chart width, :math:`p` the global control count and
+:math:`u=2^{-53}`. This conservative screen is not an all-degree certificate.
+Its conservative work limits are
 512 global controls and a total of 4,000,000 local Gram entries. Dense
 propagation costs quadratic global memory and cubic global time, with extra
 local moment and trace contractions. Explicit ``ratio`` or ``cell_weights``

@@ -350,11 +350,11 @@ eigenvalues :cite:p:`kirby2017fast`. On a simploid, the condition number of
 the Gram matrix on the whole simploid is the product of those of its factors'
 Gram matrices, so products of many factors are rejected even at low degree
 (for example, 12 segments of degree 1). In that case, pass ``ratio`` to
-:func:`~torch_bsf.sampling.sample_skeleton` explicitly. A single
-simplex or simploid is supported by these functions. The general
-assembled-space risk and optimal allocation are proved in
-:doc:`simploidal_risk`; its estimator requires a separate cell-by-cell
-design and constrained fits. The product
+:func:`~torch_bsf.sampling.sample_skeleton` explicitly. Assembled spaces use
+the same public sampling and inductive fitting functions, with cell-specific
+allocation and separate evaluation weights. Their risk formula, executable
+examples, conditioning checks and dense resource limits are described in
+:doc:`simploidal_risk`. The single-cell product
 formulas and proofs in :ref:`skeleton-risk-products` reduce a simploid's
 coefficients to its simplex factors. Thus products of curves and triangles
 inherit their closed forms; other factors can use the general scalar sum.
