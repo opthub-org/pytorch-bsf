@@ -225,29 +225,65 @@ def _face_trace_sums(dimensions: Sequence[int], degree: Sequence[int]) -> tuple[
     estimate of the controls :math:`T` to the errors of all controls. With :math:`n_I` observations on :math:`I`, that
     noise has the covariance :math:`\sigma^2 G^I_{TT}{}^{-1} / n_I`, so the face adds :math:`\sigma^2 L / n_I` times
     its trace to the risk of :func:`skeleton_risk_coefficients`; the sums leave out :math:`1 / n_I`. The condition
-    number is the largest one of the blocks :math:`G^I_{TT}`. Time grows with the cube and memory with the square of
-    the number of controls.
+    number is the largest one of the blocks :math:`G^I_{TT}`. On a simplex, vertex symmetry reduces the noise
+    columns to one representative face per dimension; all control rows are retained.
     """
     alpha = torch.tensor([sum(index, ()) for index in _indices(dimensions, degree)], dtype=torch.long)
     control_faces = _control_faces(dimensions, degree)
-    # Built first, so that its temporaries are freed before the error matrix of the same size is allocated.
+    faces = _faces_with_interior_controls(dimensions, degree)
+    # Vertex permutations preserve a simplex's uniform Gram matrices and traces. Keep one face's noise per
+    # dimension, but propagate it to ALL controls, including controls outside that representative face.
+    representatives = {len(face): face for face in reversed(faces)} if len(dimensions) == 1 else {}
+    noises = [i for i, face in enumerate(control_faces) if not representatives or face == representatives[len(face)]]
+    positions = torch.full((len(alpha),), -1, dtype=torch.long)
+    positions[noises] = torch.arange(len(noises))
+    # Built first, so that its temporaries are freed before the error matrix is allocated.
     full = _face_gram(alpha, alpha, range(alpha.shape[1]), dimensions, degree)
-    # Control errors as linear maps of the independent face noises: on face I,
-    # e_T = eta_I - G_TT^{-1} G_TB e_B, where T are the controls interior to I and B those on its boundary.
-    errors = torch.zeros(len(alpha), len(alpha), dtype=torch.float64)
-    face_grams: list[tuple[int, torch.Tensor, torch.Tensor]] = []
-    for face in _faces_with_interior_controls(dimensions, degree):
+    errors = torch.zeros(len(alpha), len(noises), dtype=torch.float64)
+    face_grams: list[tuple[int, torch.Tensor, torch.Tensor, int]] = []
+    condition = 1.0
+    for face in faces:
         interior, boundary = (torch.tensor(k, dtype=torch.long) for k in _interior_and_boundary(control_faces, face))
-        gram = _face_gram(alpha[interior], alpha[torch.cat([interior, boundary])], face, dimensions, degree)
+        closure = torch.cat([interior, boundary])
+        gram = _face_gram(alpha[interior], alpha[closure], face, dimensions, degree)
         g_tt, g_tb = gram[:, : len(interior)], gram[:, len(interior) :]
-        errors[interior] = -torch.linalg.solve(g_tt, g_tb @ errors[boundary])
-        errors[interior[:, None], interior] = torch.eye(len(interior), dtype=torch.float64)
-        face_grams.append((len(face) - len(dimensions), interior, g_tt))
-    sums = [0.0] * (sum(dimensions) + 1)
-    for m, interior, g_tt in face_grams:
-        propagated = errors[:, interior]
-        sums[m] += torch.linalg.solve(g_tt, propagated.T @ full @ propagated).trace().item()
-    return sums, max(torch.linalg.cond(g_tt).item() for _, _, g_tt in face_grams)
+        # Boundary errors depend only on noises in the closure of this face; other columns stay zero.
+        columns = positions[closure]
+        columns = columns[columns >= 0]
+        if len(columns):
+            errors[interior[:, None], columns] = -torch.linalg.solve(g_tt, g_tb @ errors[boundary[:, None], columns])
+        own = positions[interior]
+        active = own >= 0
+        errors[interior[active], own[active]] = 1.0
+        # Check every original block, even when symmetry removes its noise columns.
+        condition = max(condition, torch.linalg.cond(g_tt).item())
+        if not representatives or face == representatives[len(face)]:
+            multiplicity = math.comb(dimensions[0] + 1, len(face)) if representatives else 1
+            face_grams.append((len(face) - len(dimensions), own, g_tt, multiplicity))
+    return _batched_face_traces(full, errors, face_grams, sum(dimensions) + 1), condition
+
+
+def _batched_face_traces(
+    full: torch.Tensor,
+    errors: torch.Tensor,
+    face_grams: list[tuple[int, torch.Tensor, torch.Tensor, int]],
+    levels: int,
+) -> list[float]:
+    """Contract the propagated errors with the full Gram matrix once per face dimension."""
+    sums = [0.0] * levels
+    for m in range(levels):
+        blocks = [(columns, gram, count) for level, columns, gram, count in face_grams if level == m]
+        if not blocks:
+            continue
+        propagated = errors[:, torch.cat([columns for columns, _, _ in blocks])]
+        weighted = full @ propagated
+        offset = 0
+        for columns, gram, count in blocks:
+            stop = offset + len(columns)
+            trace = torch.linalg.solve(gram, propagated[:, offset:stop].T @ weighted[:, offset:stop]).trace().item()
+            sums[m] += count * trace
+            offset = stop
+    return sums
 
 
 def _shapes(dimensions: Sequence[int], m: int) -> list[tuple[int, ...]]:
@@ -338,19 +374,22 @@ def skeleton_risk_coefficients(space: BezierSpace) -> tuple[float, ...]:
     :math:`a_m = K_m\, [x^m] \prod_j p_j(x)`, where :math:`K_m` is the number of
     faces of dimension :math:`m` with interior controls and the coefficient of
     :math:`x^s` in :math:`p_j` sums the traces of the :math:`s`-faces of factor
-    :math:`j` on that simplex. Time and memory grow with the cube and the
-    square of the number of controls of the largest factor,
-    :math:`\binom{D + k}{D}` for a :math:`k`-simplex of degree :math:`D`, not
-    with the number of controls of the product.
+    :math:`j` on that simplex. Vertex permutation symmetry permits one
+    representative noise source per face dimension, propagated to all controls.
+    Matrix products are batched by dimension and propagation uses only noises
+    in each face closure. The dense Gram matrix still needs quadratic memory
+    in a factor's :math:`\binom{D + k}{D}` controls. At fixed degree, its
+    construction and the trace contractions take quadratic rather than cubic
+    time in that count, apart from the coordinate and face bookkeeping.
+    The number of controls of the product does not enter these matrices.
 
-    A simplex is its own only factor, so time grows with the cube and memory
-    with the square of its number of controls. The condition number of a
+    A simplex is its own only factor. The condition number of a
     factor's Gram matrix is :math:`\binom{2D + k}{D}` in closed form, so a
     space that the conditioning check rejects is rejected before anything of
     the size of a factor is allocated. Accepted wide simplices remain costly:
     the widest ones, such as :math:`M = 22` vertices (:math:`k = 21`) at
-    degree 4 with 12650 controls, need several dense float64 matrices of
-    1.3 GB each. If an allocation fails, PyTorch raises ``RuntimeError``; on
+    degree 4 with 12650 controls, still need a dense float64 Gram matrix of
+    1.3 GB and similarly sized temporaries during its construction. If an allocation fails, PyTorch raises ``RuntimeError``; on
     systems that overcommit memory, such as Linux by default, the process may
     be terminated instead.
 
