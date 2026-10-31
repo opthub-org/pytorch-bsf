@@ -83,15 +83,19 @@ cells, are checked separately. Weighted covariance traces are compared
 against direct integration of the public basis in every evaluation chart.
 
 The cell and dimension allocation optima and their ordering are checked
-over all ten domains. The grouped formula is also checked against the
+over the reference domains. The grouped formula is also checked against the
 original cell objective under equal within-group shares, both at the group
 optimum and at a nonoptimal allocation. These finite checks validate the
-formulas and their assembly, rather than prove the expectation limit or extend the public
-skeleton API to assembled domains. Those functions still reject assembled
-spaces. The all-at-once count uses global proper controls, not a sum of
+formulas and their assembly, rather than prove the expectation limit. The same
+independent Fraction and chart-integral references also check the public
+coefficients, propagation and both allocation modes, with nonuniform
+evaluation weights and sampling shares. Public sampling, inductive fitting
+and chart predictions recover known global coefficients for these domains,
+including isolated vertices and vertex-only sets. Boundary-row tests verify
+single assignment through shared and degenerate faces. The all-at-once count uses global proper controls, not a sum of
 local control counts. Quadrature and the public joint solver also check
 :prf:ref:`cor-skeleton-assembled-aao` with matching design/evaluation
-weights and with different weights, over all ten domains.
+weights and with different weights, over the reference domains.
 
 Products of simplices
 ---------------------

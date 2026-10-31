@@ -139,8 +139,9 @@ the skeletons. This chapter gives the asymptotic risk for every dimension and
 degree, the split that minimizes it, and the functions that compute, sample and
 fit with it. The same functions accept simploids; see
 <a class="reference internal" href="#skeleton-sampling-simploids"><span class="std std-ref">Products of simplices</span></a>.
-For the theoretical extension to assembled domains, with shared or
-degenerate faces and a chosen evaluation measure, see <a class="reference internal" href="simploidal_risk.html"><span class="doc">Risk on an assembled simploidal set</span></a>.</p>
+The same APIs also accept assembled domains, with shared or degenerate faces,
+isolated vertices and a chosen evaluation measure. See <a class="reference internal" href="simploidal_risk.html"><span class="doc">Risk on an assembled simploidal set</span></a>
+for executable examples, cell-specific allocation and the assembled theory.</p>
 <section id="sample-fit-and-compare">
 <h2>Sample, fit and compare<a class="headerlink" href="#sample-fit-and-compare" title="Link to this heading"></a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
@@ -455,11 +456,11 @@ eigenvalues <span class="bibtex-citation" id="id3">[<a class="reference internal
 the Gram matrix on the whole simploid is the product of those of its factors’
 Gram matrices, so products of many factors are rejected even at low degree
 (for example, 12 segments of degree 1). In that case, pass <code class="docutils literal notranslate"><span class="pre">ratio</span></code> to
-<a class="reference internal" href="../api.html#torch_bsf.sampling.sample_skeleton" title="torch_bsf.sampling.sample_skeleton"><code class="xref py py-func docutils literal notranslate"><span class="pre">sample_skeleton()</span></code></a> explicitly. A single
-simplex or simploid is supported by these functions. The general
-assembled-space risk and optimal allocation are proved in
-<a class="reference internal" href="simploidal_risk.html"><span class="doc">Risk on an assembled simploidal set</span></a>; its estimator requires a separate cell-by-cell
-design and constrained fits. The product
+<a class="reference internal" href="../api.html#torch_bsf.sampling.sample_skeleton" title="torch_bsf.sampling.sample_skeleton"><code class="xref py py-func docutils literal notranslate"><span class="pre">sample_skeleton()</span></code></a> explicitly. Assembled spaces use
+the same public sampling and inductive fitting functions, with cell-specific
+allocation and separate evaluation weights. Their risk formula, executable
+examples, conditioning checks and dense resource limits are described in
+<a class="reference internal" href="simploidal_risk.html"><span class="doc">Risk on an assembled simploidal set</span></a>. The single-cell product
 formulas and proofs in <a class="reference internal" href="skeleton_risk_theory.html#skeleton-risk-products"><span class="std std-ref">Products of simplices</span></a> reduce a simploid’s
 coefficients to its simplex factors. Thus products of curves and triangles
 inherit their closed forms; other factors can use the general scalar sum.</p>
