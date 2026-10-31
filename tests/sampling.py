@@ -22,7 +22,8 @@ from torch_bsf.sampling import (
     _RISK_RELATIVE_ERROR,
     _exponentials,
     _face_gram,
-    _factor_grams,
+    _face_trace_sums,
+    _gram_condition,
     _n_skeleton_faces,
     _skeleton_counts,
     _skeleton_fractions,
@@ -1318,27 +1319,43 @@ def test_skeleton_risk_coefficients_keep_the_documented_simplex_limits(dimension
     # n_controls x n_controls error matrix) starts.
     assert len(skeleton_risk_coefficients(BezierSpace.simplex(dimension, degree=degree))) == dimension + 1
     with (
-        patch("torch_bsf.sampling._control_faces", side_effect=AssertionError("the computation started")),
+        patch("torch_bsf.sampling._face_trace_sums", side_effect=AssertionError("the computation started")),
         pytest.raises(ValueError, match=rf"\(condition number {condition}\)"),
     ):
         skeleton_risk_coefficients(BezierSpace.simplex(dimension, degree=degree + 1))
 
 
-@given(dimensions=simploid_types(min_factors=2), data=st.data())
-def test_full_gram_condition_is_the_product_of_factor_conditions(dimensions, data):
-    # Under the uniform distribution on a simploid, the Gram matrix on the whole simploid is, up to the order of the
-    # controls, the Kronecker product of the factors' Gram matrices, so its condition number is the product of theirs.
-    degree = data.draw(degrees(dimensions, min_degree=1))
+def _assert_gram_condition(dimensions, degree):
     alpha = torch.tensor([sum(index, ()) for index in _indices(dimensions, degree)])
     width, n_controls = sum(a + 1 for a in dimensions), len(alpha)
-    full = torch.linalg.cond(_face_gram(alpha, alpha, range(width), dimensions, degree)).item()
-    product = math.prod(torch.linalg.cond(g).item() for g in _factor_grams(dimensions, degree))
+    eigenvalues = torch.linalg.eigvalsh(_face_gram(alpha, alpha, range(width), dimensions, degree))
+    computed = (eigenvalues[-1] / eigenvalues[0]).item()
+    exact = _gram_condition(dimensions, degree)
     # The Gram entries are nonnegative with relative errors of at most (2 * width + 2) * U, so they move every
-    # eigenvalue by at most that fraction of the largest one; the backward-stable SVD adds about n_controls * U of
-    # it. Each computed condition number then has a relative error of at most (kappa + 1) (2 * width + 2 +
-    # n_controls) * U to first order, and the product adds a rounding per factor; a factor of 2 covers higher orders.
-    bound = 2 * (len(dimensions) + 1) * (max(full, product) + 1) * (2 * width + 2 + n_controls) * U
-    assert abs(full - product) <= bound * product
+    # eigenvalue by at most that fraction of the largest one; the backward-stable symmetric eigensolver adds about
+    # n_controls * U of it. The computed condition number then has a relative error of at most (kappa + 1) (2 * width + 2 +
+    # n_controls) * U to first order, and the closed form one rounding; a factor of 2 covers higher orders.
+    bound = 2 * (exact + 1) * (2 * width + 2 + n_controls) * U
+    assert abs(computed - exact) <= bound * exact
+
+
+@given(dimensions=simploid_types(), data=st.data())
+def test_gram_condition_is_the_product_of_closed_forms(dimensions, data):
+    # Under the uniform distribution on a simploid, the Gram matrix on the whole simploid is, up to the order of the
+    # controls, the Kronecker product of the factors' Gram matrices, so its condition number is the product of theirs,
+    # C(2 d + a, d) for a factor of dimension a and degree d.
+    _assert_gram_condition(dimensions, data.draw(degrees(dimensions, min_degree=1)))
+
+
+@pytest.mark.parametrize(
+    ("dimension", "degree"),
+    [(1, 14), (2, 12), (3, 11), (4, 9), (5, 8), (6, 8), (7, 7), (12, 3), (15, 2), (49, 1)],
+)
+def test_gram_condition_of_simplices_has_a_closed_form(dimension, degree):
+    # Up to the largest accepted degrees documented for 2 to 8 vertices, where the condition number reaches 7.8e7,
+    # and on wider simplices of low degree, whose acceptance the closed form decides without building their Gram
+    # matrices.
+    _assert_gram_condition((dimension,), (degree,))
 
 
 @pytest.mark.parametrize(
@@ -1354,19 +1371,91 @@ def test_full_gram_condition_is_the_product_of_factor_conditions(dimensions, dat
     ],
 )
 def test_skeleton_risk_coefficients_reject_many_factors_before_allocation(dimensions, degree, condition):
-    # The condition number of the Gram matrix on the whole simploid grows with the number of factors. It is checked
-    # from the factors' Gram matrices alone: no index list or Gram matrix spans two factors, and the face-by-face
-    # computation of size n_controls never starts.
+    # The condition number of the Gram matrix on the whole simploid grows with the number of factors. It has a closed
+    # form, so it is checked before any Gram matrix of a factor is built: only the small edge block is, and the
+    # factor-by-factor computation never starts.
     space = BezierSpace.simploid(dimensions, degree=degree)
     with (
-        patch("torch_bsf.sampling._indices", wraps=_indices) as indices,
         patch("torch_bsf.sampling._face_gram", wraps=_face_gram) as face_gram,
-        patch("torch_bsf.sampling._control_faces", side_effect=AssertionError("the computation started")),
+        patch("torch_bsf.sampling._face_trace_sums", side_effect=AssertionError("the computation started")),
         pytest.raises(ValueError, match=rf"\(condition number {condition}\)\. Pass ratio explicitly"),
     ):
         sample_skeleton(space, 10, seed=0)
-    assert all(len(call.args[0]) == 1 for call in indices.call_args_list)
-    assert face_gram.call_args_list and all(len(call.args[3]) == 1 for call in face_gram.call_args_list)
+    assert [len(call.args[0]) for call in face_gram.call_args_list] == ([max(degree) - 1] if max(degree) >= 2 else [])
+
+
+def test_skeleton_risk_coefficients_reject_wide_simplices_before_allocation():
+    # A simplex is its own only factor, so the Gram matrix of its factor has n_controls rows: 20349 here, 3.3 GB in
+    # float64. The 4 x 4 edge block passes, and the closed-form condition number C(26, 5) = 65780 of the Gram matrix
+    # rejects the space before that matrix is built. BezierSpace.simplex(30, degree=5), with 324632 controls, is
+    # rejected in the same way, but constructing that space alone takes about a minute.
+    space = BezierSpace.simplex(16, degree=5)
+    with (
+        patch("torch_bsf.sampling._face_gram", wraps=_face_gram) as face_gram,
+        patch("torch_bsf.sampling._face_trace_sums", side_effect=AssertionError("the computation started")),
+        pytest.raises(ValueError, match=r"\(condition number 6\.6e\+04\)"),
+    ):
+        skeleton_risk_coefficients(space)
+    assert [len(call.args[0]) for call in face_gram.call_args_list] == [4]
+
+
+def test_skeleton_risk_coefficients_accept_simplices_up_to_22_vertices_at_degree_4():
+    # The widest accepted simplex documented, with 12650 controls, passes every check made before the computation,
+    # which is not run here because it needs several matrices of 1.3 GB. One vertex more is rejected by the closed
+    # form C(30, 4) = 27405.
+    started = AssertionError("the computation started")
+    with (
+        patch("torch_bsf.sampling._face_trace_sums", side_effect=started),
+        pytest.raises(AssertionError, match="the computation started"),
+    ):
+        skeleton_risk_coefficients(BezierSpace.simplex(21, degree=4))
+    with (
+        patch("torch_bsf.sampling._face_trace_sums", side_effect=started),
+        pytest.raises(ValueError, match=r"\(condition number 2\.7e\+04\)"),
+    ):
+        skeleton_risk_coefficients(BezierSpace.simplex(22, degree=4))
+
+
+def test_skeleton_risk_coefficients_check_the_product_of_the_factors_block_conditions():
+    # The blocks G_TT of a product face are Kronecker products of the factors' blocks, so their condition numbers
+    # multiply. Each factor's 1e5 passes the check alone on this space, but their product 1e10 must not.
+    def ill_conditioned(dimensions, degree):
+        return _face_trace_sums(dimensions, degree)[0], 1e5
+
+    with (
+        patch("torch_bsf.sampling._face_trace_sums", side_effect=ill_conditioned),
+        pytest.raises(ValueError, match=r"\(condition number 1\.0e\+10\)"),
+    ):
+        skeleton_risk_coefficients(BezierSpace.simploid((1, 2), degree=(2, 1)))
+
+
+def test_skeleton_risk_coefficients_of_eight_triangles_are_computed_factor_by_factor():
+    # 6561 controls, accepted with the condition number 4 ** 8 = 65536 (bound 8.2e-7); the computation on all
+    # controls of the product took two minutes. Degree one has only vertex controls, so, as on each triangle,
+    # a_0 = prod_j 2 M_j / (M_j + 1) = (3 / 2) ** 8, and no Gram matrix has more rows than a factor has controls.
+    # On each triangle, the three vertex traces 1 / 6 are each rounded once and summed with two roundings (3 U); the
+    # seven products of the factors' sums and the factor 3 ** 8 add one rounding each: 32 U to first order, doubled
+    # for higher orders.
+    space = BezierSpace.simploid((2,) * 8, degree=(1,) * 8)
+    with patch("torch_bsf.sampling._face_gram", wraps=_face_gram) as face_gram:
+        a = skeleton_risk_coefficients(space)
+    assert a == pytest.approx((1.5**8,) + (0.0,) * 16, rel=64 * U, abs=0)
+    assert max(len(call.args[0]) for call in face_gram.call_args_list) == 3
+
+
+@given(dimensions=simploid_types(min_factors=2), data=st.data())
+def test_skeleton_risk_coefficients_match_the_computation_on_all_controls(dimensions, data):
+    # The factor-by-factor coefficients against the computation on all controls of the product, with the errors of
+    # the product propagated face by face. Both satisfy the first-order relative error bound of the conditioning
+    # check, so they differ by at most twice that bound; another factor of 2 covers higher orders.
+    degree = data.draw(degrees(dimensions, min_degree=1))
+    space = BezierSpace.simploid(dimensions, degree=degree)
+    width, n_controls, levels = sum(a + 1 for a in dimensions), space.n_controls, sum(dimensions) + 1
+    bound = (levels * (2 * width + 2 + n_controls) * _gram_condition(dimensions, degree) + n_controls) * U
+    on_all_controls = [
+        _n_skeleton_faces(dimensions, degree, m) * s for m, s in enumerate(_face_trace_sums(dimensions, degree)[0])
+    ]
+    assert skeleton_risk_coefficients(space) == pytest.approx(on_all_controls, rel=4 * bound, abs=0)
 
 
 def _two_glued_segments() -> BezierSpace:
@@ -1630,8 +1719,9 @@ def test_simploid_faces_are_products_of_factor_faces(dimensions, degree):
 
 def test_square_risk_coefficients_have_closed_forms():
     # Degree 1: the four vertex controls are vertex means, each with N / 4 rows, and the squared bilinear basis
-    # functions integrate to 1 / 9 each, so a_0 = 4 * 4 / 9. The Gram entry 1 / 9 is rounded once, and the trace,
-    # the factor 4 and the sum over four vertices add six roundings: 8 U bounds the relative error.
+    # functions integrate to 1 / 9 each, so a_0 = 4 * 4 / 9. It is computed factor by factor: each segment's vertex
+    # traces 1 / 3 are rounded once and add exactly, the product of the two segments' sums adds one rounding, and the
+    # factor 4 is exact: 3 U to first order, so 8 U bounds the relative error.
     a = skeleton_risk_coefficients(BezierSpace.simploid((1, 1), degree=1))
     assert a == pytest.approx((16 / 9, 0, 0), rel=8 * U, abs=0)
 
