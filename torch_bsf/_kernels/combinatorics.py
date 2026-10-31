@@ -152,9 +152,7 @@ def bernstein_basis(simploid_type: Sequence[int], degree: int | Sequence[int], t
 
     Examples
     --------
-    >>> import numpy as np
-    import numpy.typing as npt
-    import torch
+    >>> import torch
     >>> from torch_bsf._kernels import bernstein_basis
     >>> bernstein_basis((1, 1), 1, torch.tensor([[0.5, 0.5, 1.0, 0.0]]))
     tensor([[0.5000, 0.0000, 0.5000, 0.0000]])
