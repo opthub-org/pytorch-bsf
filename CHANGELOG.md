@@ -1,5 +1,39 @@
 # Changelog
 
+## [0.25.0](https://github.com/opthub-org/pytorch-bsf/compare/v0.24.0...v0.25.0) (2026-10-31)
+
+
+### ⚠ BREAKING CHANGES
+
+* **deps:** Require Python 3.11 or later and NumPy 1.23.2 or later. Recreate Python 3.10 environments before upgrading.
+
+### Features
+
+* **sampling:** generalize skeleton fitting to simploids ([#591](https://github.com/opthub-org/pytorch-bsf/issues/591)) ([0e79909](https://github.com/opthub-org/pytorch-bsf/commit/0e79909394ffb01024513a35a4efedf56f835fc8))
+* **security:** automate alert repairs and reviewed merges ([#592](https://github.com/opthub-org/pytorch-bsf/issues/592)) ([7404818](https://github.com/opthub-org/pytorch-bsf/commit/74048185d33b9322d86b41c5b84273b7ef5d3c9a))
+
+
+### Bug Fixes
+
+* **deps:** remove vulnerable legacy release fixture dependencies ([#590](https://github.com/opthub-org/pytorch-bsf/issues/590)) ([4aa9825](https://github.com/opthub-org/pytorch-bsf/commit/4aa9825bee2e21408bb1ce2baf4eaf22da194cf1))
+* **deps:** secure dependencies and support Python 3.11-3.15 ([#571](https://github.com/opthub-org/pytorch-bsf/issues/571)) ([a9aa35b](https://github.com/opthub-org/pytorch-bsf/commit/a9aa35b8537d39ec332b70f68ab1afca22a60872))
+* **sampling:** check simploid conditioning before allocating ([#596](https://github.com/opthub-org/pytorch-bsf/issues/596)) ([7e481c4](https://github.com/opthub-org/pytorch-bsf/commit/7e481c45a60599dbbd450b7557af31270b345342))
+
+
+### Performance Improvements
+
+* **core:** vectorize control adjacency construction ([#604](https://github.com/opthub-org/pytorch-bsf/issues/604)) ([0849e60](https://github.com/opthub-org/pytorch-bsf/commit/0849e60004ed5f73f964c9d40c577510d073191e))
+* **sampling:** compute simploid skeleton risk factor by factor ([#597](https://github.com/opthub-org/pytorch-bsf/issues/597)) ([87ad6d7](https://github.com/opthub-org/pytorch-bsf/commit/87ad6d785713c494b33d02dae1806749badd5f9c))
+* **sampling:** reduce simplex risk propagation and contractions ([#603](https://github.com/opthub-org/pytorch-bsf/issues/603)) ([a2066cd](https://github.com/opthub-org/pytorch-bsf/commit/a2066cd3e3db395d546576e834628065dc230cca))
+
+
+### Documentation
+
+* **interpolation:** clarify Hermite continuity and PCHIP slopes ([#556](https://github.com/opthub-org/pytorch-bsf/issues/556)) ([9e39ad0](https://github.com/opthub-org/pytorch-bsf/commit/9e39ad0dfd510bbcf09d272ccdb23571b9a2bf5c))
+* **sampling:** extend asymptotic risk to simploidal sets ([#599](https://github.com/opthub-org/pytorch-bsf/issues/599)) ([60781a5](https://github.com/opthub-org/pytorch-bsf/commit/60781a5ef1a126d4b3fffa602470401ef255c47a))
+* **sampling:** preserve product risk proofs and closed forms ([#605](https://github.com/opthub-org/pytorch-bsf/issues/605)) ([50faa4d](https://github.com/opthub-org/pytorch-bsf/commit/50faa4d0634735e4827046bcd22a4053ec3e7cd7))
+* **sampling:** prove simploid skeleton risk formulas ([#598](https://github.com/opthub-org/pytorch-bsf/issues/598)) ([39e8e2e](https://github.com/opthub-org/pytorch-bsf/commit/39e8e2eb502b4b6fba43cda233ba5a8ea8bf58a7))
+
 ## [0.24.0](https://github.com/opthub-org/pytorch-bsf/compare/v0.23.0...v0.24.0) (2026-10-29)
 
 
