@@ -5,6 +5,8 @@ This chapter develops the asymptotic risk of inductive skeleton fitting
 on simplices and their products, from its assumptions to the general scalar
 formula, then derives the closed forms and comparisons used in
 :doc:`skeleton_sampling`.
+The extension to general finite simploidal sets, including shared and
+degenerate faces, is proved in :doc:`simploidal_risk`.
 The results are organized by mathematical dependence; finite verification
 and reference tables are collected in :doc:`skeleton_risk_verification`.
 
@@ -39,6 +41,9 @@ explicit evaluations. The conditions in each row are part of the result.
    * - A single product of simplices, with any positive factor degrees
      - :prf:ref:`thm-skeleton-product-risk`: coefficients from the simplex factors;
        :prf:ref:`cor-skeleton-product-shape-ratio`: optimal allocation by face shape.
+   * - Any finite simploidal set, with compatible positive factor degrees
+     - :prf:ref:`thm-skeleton-assembled-risk`: global propagation and weighted risk;
+       :prf:ref:`cor-skeleton-assembled-allocation`: cell and grouped optima.
 
 The proofs are self-contained apart from the cited small-ball inequality.
 Statements certified by a finite computation are labeled computer-assisted.
@@ -524,9 +529,9 @@ all-at-once fitting. For a prism of degrees :math:`(2,1)`, the triangle
 and segment coefficients :math:`(3/8,3,0)` and :math:`(4/3,0)` give
 :math:`(A_0,A_1,A_2,A_3)=(1/2,4,0,0)`.
 
-These results concern a single product cell. In an assembled simploidal
-set, identified faces share controls, so the independent product
-propagation argument does not by itself give the global risk.
+These product factorizations concern a single product cell. In an assembled
+simploidal set, identified faces share controls; :doc:`simploidal_risk`
+incorporates their multiplicities and propagation into the global risk.
 
 How errors propagate
 --------------------

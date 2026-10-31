@@ -7,6 +7,7 @@ risk comparison. Finite checks validate implementations and printed
 values; the all-degree claims rely on the proofs in the theory chapter.
 
 The exact helpers in ``tests/sampling.py`` use :class:`fractions.Fraction`.
+The assembled-domain helpers are in ``tests/simploidal_risk.py``.
 They do not add a computer-algebra dependency to the normal test suite.
 ``tests/fitting.py`` separately checks the statistical risks by simulation.
 
@@ -55,6 +56,42 @@ polynomials took about 0.09, 0.75 and 6.6 seconds at :math:`D=6,7,8`.
 These checks remain in normal CI; timings are observations, not performance
 guarantees. The unreduced :math:`D=6,m=0` computation took 31.6 seconds,
 versus 0.04 seconds with propagation reduction.
+
+Assembled simploidal sets
+-------------------------
+
+``tests/simploidal_risk.py`` checks :prf:ref:`thm-skeleton-assembled-risk`
+in two independent ways. Exact Dirichlet moments are scattered into global
+proper-control coordinates, retaining repeated local IDs. Rational
+elimination solves the global block triangular equations. Separately,
+Gauss quadrature after stick breaking integrates each chart, and successive
+calls to the public :func:`~torch_bsf.fit` with
+:class:`~torch_bsf.FixedControls` propagate a full matrix of deterministic
+innovations. The resulting influence matrices and weighted covariance
+traces agree with the rational expressions.
+
+The cases are a vertex, a cubic segment, loops of degrees one and three,
+two joined or disconnected quadratic segments, two cubic triangles with a
+shared edge, a triangle-square pair with compatible anisotropic degrees,
+a quadratic torus and a quadratic sphere with collapsed edges. Additional
+exact checks cover the quadratic chain and loop printed in
+:doc:`simploidal_risk`, reduction to the existing simplex coefficients at
+degrees one through four and mixed-degree product coefficients, and a
+singular evaluation metric that sees only one endpoint. Nonuniform sampling
+fractions and nonuniform evaluation weights, including weights on lower
+cells, are checked separately. Weighted covariance traces are compared
+against direct integration of the public basis in every evaluation chart.
+
+The cell and dimension allocation optima and their ordering are checked
+over all ten domains. The grouped formula is also checked against the
+original cell objective under equal within-group shares, both at the group
+optimum and at a nonoptimal allocation. These finite checks validate the
+formulas and their assembly, rather than prove the expectation limit or extend the public
+skeleton API to assembled domains. Those functions still reject assembled
+spaces. The all-at-once count uses global proper controls, not a sum of
+local control counts. Quadrature and the public joint solver also check
+:prf:ref:`cor-skeleton-assembled-aao` with matching design/evaluation
+weights and with different weights, over all ten domains.
 
 Products of simplices
 ---------------------
