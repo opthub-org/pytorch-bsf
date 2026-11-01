@@ -1,0 +1,29 @@
+{
+  "all_at_once_lower_bound": {
+    "denominator": "10577732774609",
+    "numerator": "91041109983731611209099746244127780508385547333464341170425809862168620188522873941217888574587186856545159560512114654183424000000000000000000000000"
+  },
+  "coefficient_bound_from_vertices": "124",
+  "decision": "inductive_wins",
+  "degree": 31,
+  "from_vertices": "301320",
+  "proof": "docs/advanced/skeleton_risk_uniform_dimension_tail.rst",
+  "proof_status": "specialization_of_proved_all_degree_all_vertex_tail",
+  "risk_upper_bound": {
+    "denominator": "111888430651037413595102881",
+    "numerator": "8979397362047542284038327946608926562569962708942730676099546392515956768177154645446379361039687330275656882026938685473490276040784917454843750000000000"
+  },
+  "schema": "skeleton-risk-uniform-dimension-tail-v1",
+  "source_sha256": {
+    "exact.py": "3376e31af2fad5b77d0e84ead5047a5820e833b773c4630d7b2d9c799fb1bb5b",
+    "uniform_dimension_tail.py": "d4e411a7f82fb25a7e16ebba7a1732485e761601e59f3a2f8568ecd75aee007e"
+  },
+  "strict_margin_below_ratio_bound": {
+    "denominator": "111888430651037413595102881",
+    "numerator": "770406817349963043301587879248020512903155040779413984565117637730327811234888953448046506298174818220203363716282664832224160987898428932015082545156250000000000"
+  },
+  "strict_ratio_upper_bound": {
+    "denominator": "5",
+    "numerator": "4"
+  }
+}
