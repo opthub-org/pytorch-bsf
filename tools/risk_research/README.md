@@ -452,3 +452,26 @@ python -m tools.risk_research.vertex_five_recurrence \
 `vertex_five_recurrence.recurrence_coefficients(maximum)` evaluates the
 sequence with exact standard-library arithmetic. Optional native Sage tests
 rederive every coefficient and exercise altered data and both CLI actions.
+
+## A sufficient linear vertex threshold at every degree
+
+For every integer `D>=1` and `M>=9720*D`, optimal inductive asymptotic
+risk is strictly below four fifths of all-at-once risk. This conservative
+region follows from positive-kernel and factorial bounds, without generating
+a separate dimension polynomial at each degree. It is not an exact crossover.
+See [the proof](../../docs/advanced/skeleton_risk_uniform_dimension_tail.rst).
+
+```sh
+python -m tools.risk_research.uniform_dimension_tail --degree 31 \
+  --output .research/skeleton-risk/uniform-tail31.json
+python -m tools.risk_research.uniform_dimension_tail \
+  --verify .research/skeleton-risk/uniform-tail31.json
+```
+
+The standard-library tool records exact specialized arithmetic, the domain
+and source fingerprints. Its `source_hash_policy` is `sha256-crlf-to-lf-v1`:
+each CRLF pair becomes LF before hashing, with every other byte retained.
+The raw-byte before/after guard still rejects any source edit during
+certification, including a line-ending change. A finite set of its
+certificates checks the implementation; the documented inequalities prove
+the all-degree theorem.

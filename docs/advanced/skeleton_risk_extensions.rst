@@ -44,6 +44,11 @@ nonfinite assembled-risk propagation before its condition estimate.
      - A vertex norm identity reduces the largest outside-kernel power by two;
        it is not a completed tetrahedron vertex closed form.
 
+:prf:ref:`thm-risk-uniform-dimension-tail` additionally proves a sufficient
+linear vertex threshold at every positive degree: if :math:`M\geq9720D`,
+optimal inductive risk is less than four fifths of all-at-once risk. This
+conservative sufficient region does not determine an exact crossover.
+
 Fixed-dimension degree recurrences exist
 ----------------------------------------
 
