@@ -19,6 +19,10 @@ nonfinite assembled-risk propagation before its condition estimate.
        this existence statement does not supply a small operator uniformly in ``M``.
    * - :prf:ref:`lem-risk-two-coordinate-kernel`
      - The entire two-coordinate kernel is evaluated with harmonic numbers.
+   * - :prf:ref:`thm-risk-nonvertex-boundary-transfer`
+     - Every nonvertex source has a trace-correct boundary-transfer inequality.
+       In particular the five-vertex edge has an all-degree rational upper bound;
+       this does not provide an exact codimension-three formula.
    * - :prf:ref:`thm-risk-codimension-two-modes`
      - Every codimension-two coefficient reduces to one angular sum.
    * - :prf:ref:`thm-risk-tetrahedron-edge-representation`
