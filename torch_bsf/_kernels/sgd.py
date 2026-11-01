@@ -499,6 +499,8 @@ def fit_sgd(
     ValueError
         If an option is out of range, ``freeze`` has an invalid index, the inputs are empty or have
         different lengths, or ``loss`` does not return one value per sample.
+    ArithmeticError
+        If the loss (with the smoothness penalty), its gradient or the updated parameters are not finite.
 
     Examples
     --------
@@ -559,9 +561,15 @@ def fit_sgd(
         objective = batch_loss = losses.mean()
         if adjacency is not None:
             objective = objective + smoothness_weight * _smoothness_penalty(parameter, adjacency)
+        if not torch.isfinite(objective):
+            raise ArithmeticError(f"fit_sgd produced a non-finite loss at iteration {k}.")
         (grad,) = torch.autograd.grad(objective, parameter)
+        if not torch.isfinite(grad).all():
+            raise ArithmeticError(f"fit_sgd produced a non-finite gradient at iteration {k}.")
         alpha = step_size if step_decay == "constant" else step_size / (k + 1) ** 0.5
         update(parameter, grad, alpha)
+        if not torch.isfinite(parameter).all():
+            raise ArithmeticError(f"fit_sgd produced non-finite parameters at iteration {k}; reduce step_size.")
         if callback is not None and callback(k, model, batch_loss.item()):
             break
     return model

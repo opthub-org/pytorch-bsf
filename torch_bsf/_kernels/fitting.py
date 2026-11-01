@@ -21,7 +21,13 @@ Laplacian is :math:`L = D^\top D`, the ``"lstsq"`` solver minimizes :math:`nm` t
 
    (A^\top A + nm\,w\,L + \mathrm{ridge}\,I)\,P = A^\top Y
 
-for the free rows, as the stacked least-squares problem with matrix :math:`[A; \sqrt{nm\,w}\,D]`.
+for the free rows.  Since the condition number of these normal equations is the square of that of
+:math:`A`, it solves instead the stacked least-squares problem with matrix
+:math:`[A; \sqrt{nm\,w}\,D; \sqrt{\mathrm{ridge}}\,I]` (without the blocks whose weight is zero) by
+the SVD-based LAPACK driver ``gelsd`` in double precision, which gives the minimum-norm solution if the
+problem is under-determined.  The only exception is a ridge at least the squared Frobenius norm of the
+other blocks: the normal matrix then has condition number at most 2, so the normal equations are solved
+directly.  Non-finite ``params`` or ``values`` raise :class:`ValueError`.
 """
 
 import copy
@@ -45,13 +51,26 @@ Solver = Literal["lstsq", "trainer"]
 
 
 def _solve_least_squares(a: torch.Tensor, y: torch.Tensor, ridge: float) -> torch.Tensor:
-    r"""Minimizes :math:`\|A X - Y\|^2 + \mathrm{ridge} \|X\|^2` in double precision (minimum-norm if singular)."""
+    r"""Minimizes :math:`\|A X - Y\|^2 + \mathrm{ridge} \|X\|^2` in double precision (minimum-norm if singular).
+
+    With ``ridge > 0``, this solves the stacked problem with matrix :math:`[A; \sqrt{\mathrm{ridge}}\,I]` and
+    targets :math:`[Y; 0]` by the SVD-based driver ``gelsd``, rather than the normal equations
+    :math:`(A^\top A + \mathrm{ridge}\,I) X = A^\top Y`, whose condition number is the square of that of the
+    stacked matrix.  The exception is ``ridge`` :math:`\ge \|A\|_F^2`: the normal matrix then has condition
+    number at most 2 and is solved directly, whereas the factorization of the stacked matrix would round
+    :math:`A` away against :math:`\sqrt{\mathrm{ridge}}\,I` once :math:`\sqrt{\mathrm{ridge}}` exceeds
+    :math:`\|A\|` by the inverse machine epsilon.
+    """
     if ridge < 0:
         raise ValueError(f"ridge must be non-negative, but {ridge} is given.")
     a64, y64 = a.detach().cpu().double(), y.detach().cpu().double()
     if ridge > 0:
-        lhs = a64.T @ a64 + ridge * torch.eye(a64.shape[1], dtype=torch.float64)
-        return cast(torch.Tensor, torch.linalg.solve(lhs, a64.T @ y64))
+        n_cols = a64.shape[1]
+        if ridge >= torch.linalg.matrix_norm(a64).item() ** 2:
+            lhs = a64.T @ a64 + ridge * torch.eye(n_cols, dtype=torch.float64)
+            return cast(torch.Tensor, torch.linalg.solve(lhs, a64.T @ y64))
+        a64 = torch.cat([a64, ridge**0.5 * torch.eye(n_cols, dtype=torch.float64)])
+        y64 = torch.cat([y64, y64.new_zeros(n_cols, y64.shape[1])])
     return cast(torch.Tensor, torch.linalg.lstsq(a64, y64, driver="gelsd").solution)
 
 
@@ -200,6 +219,10 @@ def _check_values(params: torch.Tensor, values: torch.Tensor, n_params: int) -> 
         raise ValueError(f"params must have shape (n, {n_params}), but {tuple(params.shape)} is given.")
     if values.dim() != 2 or values.shape[0] != params.shape[0]:
         raise ValueError(f"values must have shape ({params.shape[0]}, n_values), but {tuple(values.shape)} is given.")
+    # The scalers reject non-finite values too, but normalize="none" would silently return NaN control points.
+    for name, tensor in (("params", params), ("values", values)):
+        if not torch.isfinite(tensor).all():
+            raise ValueError(f"{name} must be finite, but contains NaN or infinity.")
 
 
 def _resolve_shape(
@@ -312,8 +335,9 @@ def fit(
     Raises
     ------
     ValueError
-        If the shapes do not match, there are no samples, ``degree`` is missing, ``freeze`` is given
-        without ``init``, or an option is not supported by ``solver``.
+        If the shapes do not match, ``params`` or ``values`` contain NaN or infinity (whatever ``normalize``),
+        there are no samples, ``degree`` is missing, ``freeze`` is given without ``init``, or an option is not
+        supported by ``solver``.
     ImportError
         If ``solver="trainer"`` is given and Lightning is not installed.
 
@@ -615,6 +639,12 @@ def fit_simploidal_set(
     Returns
     -------
     The fitted simploidal Bézier space.
+
+    Raises
+    ------
+    ValueError
+        If ``data`` is empty, the shapes do not match, some ``params`` or ``values`` contain NaN or
+        infinity, or an option is not supported by ``solver``.
 
     Examples
     --------

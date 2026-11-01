@@ -244,6 +244,28 @@ def test_fit_sgd_loss_shape_error() -> None:
         fit_sgd(init, lambda values, t: values, n_samples=5)
 
 
+@pytest.mark.parametrize("bad", [float("nan"), float("inf")])
+def test_fit_sgd_non_finite_loss_error(bad: float) -> None:
+    init = BezierSimploid.zeros((1,), 1, n_values=1)
+    with pytest.raises(ArithmeticError, match="non-finite loss"):
+        fit_sgd(init, lambda values, t: values.sum(dim=1) + bad, n_samples=5)
+
+
+def test_fit_sgd_non_finite_gradient_error() -> None:
+    # sqrt(|x|) is finite at x = 0, but its gradient is not.
+    init = BezierSimploid.zeros((1,), 1, n_values=1)
+    with pytest.raises(ArithmeticError, match="non-finite gradient"):
+        fit_sgd(init, lambda values, t: values.abs().sqrt().sum(dim=1), n_samples=5)
+
+
+def test_fit_sgd_diverging_step_error() -> None:
+    # A huge step overflows the parameters; the next loss is then non-finite instead of silently returned.
+    init = BezierSimploid.zeros((1,), 1, n_values=1)
+    loss = linear_scalarization(lambda x: torch.cat([x**2, (x - 1) ** 2], dim=1))
+    with pytest.raises(ArithmeticError, match="non-finite"):
+        fit_sgd(init, loss, n_samples=5, step_size=1e30, max_iter=20)
+
+
 def _reference_sgd(
     init: BezierSimploid, loss: Any, t: torch.Tensor, batch_size: int, max_iter: int, step_size: float, seed: int
 ) -> tuple[list[tuple[torch.Tensor, float]], torch.Tensor]:
