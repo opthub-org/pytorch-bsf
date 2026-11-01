@@ -1,0 +1,965 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Proof Index &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="_static/favicon.ico"/>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=a9084e48"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+ 
+
+    <script>
+      DOCUMENTATION_OPTIONS.COLLAPSE_INDEX = true;
+    </script>
+
+
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="cli.html">Command-line reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="advanced.html">Advanced Topics</a></li>
+<li class="toctree-l1"><a class="reference internal" href="applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Proof Index</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+
+   <h1>Proof Index</h1>
+
+   <div class="modindex-jumpbox">
+   <a href="#cap-cor-morphisms"><strong>cor-morphisms</strong></a> | 
+   <a href="#cap-cor-risk-codimension-two-asymptotic"><strong>cor-risk-codimension-two-asymptotic</strong></a> | 
+   <a href="#cap-cor-risk-five-vertex-asymptotic"><strong>cor-risk-five-vertex-asymptotic</strong></a> | 
+   <a href="#cap-cor-risk-five-vertex-triangle-recurrence"><strong>cor-risk-five-vertex-triangle-recurrence</strong></a> | 
+   <a href="#cap-cor-risk-tetrahedron-edge-scalar-recurrences"><strong>cor-risk-tetrahedron-edge-scalar-recurrences</strong></a> | 
+   <a href="#cap-cor-risk-tetrahedron-vertex-asymptotic"><strong>cor-risk-tetrahedron-vertex-asymptotic</strong></a> | 
+   <a href="#cap-cor-skeleton-aao-risk"><strong>cor-skeleton-aao-risk</strong></a> | 
+   <a href="#cap-cor-skeleton-assembled-aao"><strong>cor-skeleton-assembled-aao</strong></a> | 
+   <a href="#cap-cor-skeleton-assembled-allocation"><strong>cor-skeleton-assembled-allocation</strong></a> | 
+   <a href="#cap-cor-skeleton-curves-win"><strong>cor-skeleton-curves-win</strong></a> | 
+   <a href="#cap-cor-skeleton-facet-large-degree"><strong>cor-skeleton-facet-large-degree</strong></a> | 
+   <a href="#cap-cor-skeleton-graph-dimension"><strong>cor-skeleton-graph-dimension</strong></a> | 
+   <a href="#cap-cor-skeleton-large-dimension"><strong>cor-skeleton-large-dimension</strong></a> | 
+   <a href="#cap-cor-skeleton-loop-comparison"><strong>cor-skeleton-loop-comparison</strong></a> | 
+   <a href="#cap-cor-skeleton-product-aao-risk"><strong>cor-skeleton-product-aao-risk</strong></a> | 
+   <a href="#cap-cor-skeleton-product-closed-forms"><strong>cor-skeleton-product-closed-forms</strong></a> | 
+   <a href="#cap-cor-skeleton-product-shape-ratio"><strong>cor-skeleton-product-shape-ratio</strong></a> | 
+   <a href="#cap-cor-skeleton-pure-incidence"><strong>cor-skeleton-pure-incidence</strong></a> | 
+   <a href="#cap-cor-skeleton-triangle-edge-risk"><strong>cor-skeleton-triangle-edge-risk</strong></a> | 
+   <a href="#cap-cor-skeleton-vertex"><strong>cor-skeleton-vertex</strong></a> | 
+   <a href="#cap-def-generators"><strong>def-generators</strong></a> | 
+   <a href="#cap-def-simploid-category"><strong>def-simploid-category</strong></a> | 
+   <a href="#cap-def-simploidal-set"><strong>def-simploidal-set</strong></a> | 
+   <a href="#cap-definition-1"><strong>definition-1</strong></a> | 
+   <a href="#cap-definition-2"><strong>definition-2</strong></a> | 
+   <a href="#cap-definition-3"><strong>definition-3</strong></a> | 
+   <a href="#cap-definition-4"><strong>definition-4</strong></a> | 
+   <a href="#cap-definition-7"><strong>definition-7</strong></a> | 
+   <a href="#cap-lem-generation"><strong>lem-generation</strong></a> | 
+   <a href="#cap-lem-risk-two-coordinate-kernel"><strong>lem-risk-two-coordinate-kernel</strong></a> | 
+   <a href="#cap-lem-skeleton-inverse-moments"><strong>lem-skeleton-inverse-moments</strong></a> | 
+   <a href="#cap-lem-skeleton-kernel"><strong>lem-skeleton-kernel</strong></a> | 
+   <a href="#cap-lem-skeleton-product-propagation"><strong>lem-skeleton-product-propagation</strong></a> | 
+   <a href="#cap-lem-skeleton-propagation-characterization"><strong>lem-skeleton-propagation-characterization</strong></a> | 
+   <a href="#cap-lem-skeleton-small-ball"><strong>lem-skeleton-small-ball</strong></a> | 
+   <a href="#cap-lem-small-category"><strong>lem-small-category</strong></a> | 
+   <a href="#cap-prop-risk-positive-transformed-kernel"><strong>prop-risk-positive-transformed-kernel</strong></a> | 
+   <a href="#cap-prop-skeleton-degree-faces"><strong>prop-skeleton-degree-faces</strong></a> | 
+   <a href="#cap-prop-skeleton-second-faces"><strong>prop-skeleton-second-faces</strong></a> | 
+   <a href="#cap-prop-skeleton-top"><strong>prop-skeleton-top</strong></a> | 
+   <a href="#cap-prop-skeleton-triangle-jacobi"><strong>prop-skeleton-triangle-jacobi</strong></a> | 
+   <a href="#cap-prop-skeleton-wins"><strong>prop-skeleton-wins</strong></a> | 
+   <a href="#cap-rem-skeleton-product-polynomials"><strong>rem-skeleton-product-polynomials</strong></a> | 
+   <a href="#cap-remark-6"><strong>remark-6</strong></a> | 
+   <a href="#cap-theorem-0"><strong>theorem-0</strong></a> | 
+   <a href="#cap-theorem-10"><strong>theorem-10</strong></a> | 
+   <a href="#cap-theorem-5"><strong>theorem-5</strong></a> | 
+   <a href="#cap-theorem-6"><strong>theorem-6</strong></a> | 
+   <a href="#cap-theorem-8"><strong>theorem-8</strong></a> | 
+   <a href="#cap-theorem-9"><strong>theorem-9</strong></a> | 
+   <a href="#cap-thm-risk-binomial-gram-diagonal"><strong>thm-risk-binomial-gram-diagonal</strong></a> | 
+   <a href="#cap-thm-risk-codimension-two-modes"><strong>thm-risk-codimension-two-modes</strong></a> | 
+   <a href="#cap-thm-risk-comparisons-nine-twenty"><strong>thm-risk-comparisons-nine-twenty</strong></a> | 
+   <a href="#cap-thm-risk-comparisons-twentyone-thirty"><strong>thm-risk-comparisons-twentyone-thirty</strong></a> | 
+   <a href="#cap-thm-risk-five-vertex-explicit-error"><strong>thm-risk-five-vertex-explicit-error</strong></a> | 
+   <a href="#cap-thm-risk-five-vertex-recurrence"><strong>thm-risk-five-vertex-recurrence</strong></a> | 
+   <a href="#cap-thm-risk-five-vertex-single"><strong>thm-risk-five-vertex-single</strong></a> | 
+   <a href="#cap-thm-risk-five-vertex-triangle-state"><strong>thm-risk-five-vertex-triangle-state</strong></a> | 
+   <a href="#cap-thm-risk-fixed-dimension-holonomic"><strong>thm-risk-fixed-dimension-holonomic</strong></a> | 
+   <a href="#cap-thm-risk-general-vertex-asymptotic"><strong>thm-risk-general-vertex-asymptotic</strong></a> | 
+   <a href="#cap-thm-risk-general-vertex-construction"><strong>thm-risk-general-vertex-construction</strong></a> | 
+   <a href="#cap-thm-risk-six-vertex-tetrahedral-state"><strong>thm-risk-six-vertex-tetrahedral-state</strong></a> | 
+   <a href="#cap-thm-risk-tetrahedron-comparison"><strong>thm-risk-tetrahedron-comparison</strong></a> | 
+   <a href="#cap-thm-risk-tetrahedron-edge-representation"><strong>thm-risk-tetrahedron-edge-representation</strong></a> | 
+   <a href="#cap-thm-risk-tetrahedron-vertex-recurrence"><strong>thm-risk-tetrahedron-vertex-recurrence</strong></a> | 
+   <a href="#cap-thm-risk-tetrahedron-vertex-single"><strong>thm-risk-tetrahedron-vertex-single</strong></a> | 
+   <a href="#cap-thm-risk-uniform-codimension-two-state"><strong>thm-risk-uniform-codimension-two-state</strong></a> | 
+   <a href="#cap-thm-risk-vertex-boundary-pair"><strong>thm-risk-vertex-boundary-pair</strong></a> | 
+   <a href="#cap-thm-risk-vertex-two-term-error"><strong>thm-risk-vertex-two-term-error</strong></a> | 
+   <a href="#cap-thm-skeleton-assembled-risk"><strong>thm-skeleton-assembled-risk</strong></a> | 
+   <a href="#cap-thm-skeleton-codimension-one"><strong>thm-skeleton-codimension-one</strong></a> | 
+   <a href="#cap-thm-skeleton-curves"><strong>thm-skeleton-curves</strong></a> | 
+   <a href="#cap-thm-skeleton-facet-harmonics"><strong>thm-skeleton-facet-harmonics</strong></a> | 
+   <a href="#cap-thm-skeleton-graph-risk"><strong>thm-skeleton-graph-risk</strong></a> | 
+   <a href="#cap-thm-skeleton-linear-assembled"><strong>thm-skeleton-linear-assembled</strong></a> | 
+   <a href="#cap-thm-skeleton-product-risk"><strong>thm-skeleton-product-risk</strong></a> | 
+   <a href="#cap-thm-skeleton-propagation-reduction"><strong>thm-skeleton-propagation-reduction</strong></a> | 
+   <a href="#cap-thm-skeleton-ratio"><strong>thm-skeleton-ratio</strong></a> | 
+   <a href="#cap-thm-skeleton-rational"><strong>thm-skeleton-rational</strong></a> | 
+   <a href="#cap-thm-skeleton-regular-incidence"><strong>thm-skeleton-regular-incidence</strong></a> | 
+   <a href="#cap-thm-skeleton-risk"><strong>thm-skeleton-risk</strong></a> | 
+   <a href="#cap-thm-skeleton-scalar-sum"><strong>thm-skeleton-scalar-sum</strong></a> | 
+   <a href="#cap-thm-skeleton-third-faces"><strong>thm-skeleton-third-faces</strong></a> | 
+   <a href="#cap-thm-skeleton-triangle-vertex-risk"><strong>thm-skeleton-triangle-vertex-risk</strong></a> | 
+   <a href="#cap-thm-skeleton-vertex-sum"><strong>thm-skeleton-vertex-sum</strong></a> | 
+   <a href="#cap-thm-topos"><strong>thm-topos</strong></a>
+   </div>
+
+   <table class="indextable modindextable">
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-cor-morphisms"><td></td><td>
+       <strong>cor-morphisms</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/simploidal_category.html#cor-morphisms"><code class="xref">cor-morphisms</code></a> <em>(advanced/simploidal_category)</em></td><td>
+       <em>corollary</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-cor-risk-codimension-two-asymptotic"><td></td><td>
+       <strong>cor-risk-codimension-two-asymptotic</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_extensions.html#cor-risk-codimension-two-asymptotic"><code class="xref">cor-risk-codimension-two-asymptotic</code></a> <em>(advanced/skeleton_risk_extensions)</em></td><td>
+       <em>corollary</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-cor-risk-five-vertex-asymptotic"><td></td><td>
+       <strong>cor-risk-five-vertex-asymptotic</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_five_vertex.html#cor-risk-five-vertex-asymptotic"><code class="xref">cor-risk-five-vertex-asymptotic</code></a> <em>(advanced/skeleton_risk_five_vertex)</em></td><td>
+       <em>corollary</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-cor-risk-five-vertex-triangle-recurrence"><td></td><td>
+       <strong>cor-risk-five-vertex-triangle-recurrence</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_extensions.html#cor-risk-five-vertex-triangle-recurrence"><code class="xref">cor-risk-five-vertex-triangle-recurrence</code></a> <em>(advanced/skeleton_risk_extensions)</em></td><td>
+       <em>corollary</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-cor-risk-tetrahedron-edge-scalar-recurrences"><td></td><td>
+       <strong>cor-risk-tetrahedron-edge-scalar-recurrences</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_extensions.html#cor-risk-tetrahedron-edge-scalar-recurrences"><code class="xref">cor-risk-tetrahedron-edge-scalar-recurrences</code></a> <em>(advanced/skeleton_risk_extensions)</em></td><td>
+       <em>corollary</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-cor-risk-tetrahedron-vertex-asymptotic"><td></td><td>
+       <strong>cor-risk-tetrahedron-vertex-asymptotic</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_vertex.html#cor-risk-tetrahedron-vertex-asymptotic"><code class="xref">cor-risk-tetrahedron-vertex-asymptotic</code></a> <em>(advanced/skeleton_risk_vertex)</em></td><td>
+       <em>corollary</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-cor-skeleton-aao-risk"><td></td><td>
+       <strong>cor-skeleton-aao-risk</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#cor-skeleton-aao-risk"><code class="xref">cor-skeleton-aao-risk</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>corollary</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-cor-skeleton-assembled-aao"><td></td><td>
+       <strong>cor-skeleton-assembled-aao</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/simploidal_risk.html#cor-skeleton-assembled-aao"><code class="xref">cor-skeleton-assembled-aao</code></a> <em>(advanced/simploidal_risk)</em></td><td>
+       <em>corollary</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-cor-skeleton-assembled-allocation"><td></td><td>
+       <strong>cor-skeleton-assembled-allocation</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/simploidal_risk.html#cor-skeleton-assembled-allocation"><code class="xref">cor-skeleton-assembled-allocation</code></a> <em>(advanced/simploidal_risk)</em></td><td>
+       <em>corollary</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-cor-skeleton-curves-win"><td></td><td>
+       <strong>cor-skeleton-curves-win</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#cor-skeleton-curves-win"><code class="xref">cor-skeleton-curves-win</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>corollary</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-cor-skeleton-facet-large-degree"><td></td><td>
+       <strong>cor-skeleton-facet-large-degree</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#cor-skeleton-facet-large-degree"><code class="xref">cor-skeleton-facet-large-degree</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>corollary</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-cor-skeleton-graph-dimension"><td></td><td>
+       <strong>cor-skeleton-graph-dimension</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/simploidal_risk.html#cor-skeleton-graph-dimension"><code class="xref">cor-skeleton-graph-dimension</code></a> <em>(advanced/simploidal_risk)</em></td><td>
+       <em>corollary</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-cor-skeleton-large-dimension"><td></td><td>
+       <strong>cor-skeleton-large-dimension</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#cor-skeleton-large-dimension"><code class="xref">cor-skeleton-large-dimension</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>corollary</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-cor-skeleton-loop-comparison"><td></td><td>
+       <strong>cor-skeleton-loop-comparison</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/simploidal_risk.html#cor-skeleton-loop-comparison"><code class="xref">cor-skeleton-loop-comparison</code></a> <em>(advanced/simploidal_risk)</em></td><td>
+       <em>corollary</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-cor-skeleton-product-aao-risk"><td></td><td>
+       <strong>cor-skeleton-product-aao-risk</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#cor-skeleton-product-aao-risk"><code class="xref">cor-skeleton-product-aao-risk</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>corollary</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-cor-skeleton-product-closed-forms"><td></td><td>
+       <strong>cor-skeleton-product-closed-forms</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#cor-skeleton-product-closed-forms"><code class="xref">cor-skeleton-product-closed-forms</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>corollary</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-cor-skeleton-product-shape-ratio"><td></td><td>
+       <strong>cor-skeleton-product-shape-ratio</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#cor-skeleton-product-shape-ratio"><code class="xref">cor-skeleton-product-shape-ratio</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>corollary</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-cor-skeleton-pure-incidence"><td></td><td>
+       <strong>cor-skeleton-pure-incidence</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/simploidal_risk.html#cor-skeleton-pure-incidence"><code class="xref">cor-skeleton-pure-incidence</code></a> <em>(advanced/simploidal_risk)</em></td><td>
+       <em>corollary</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-cor-skeleton-triangle-edge-risk"><td></td><td>
+       <strong>cor-skeleton-triangle-edge-risk</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#cor-skeleton-triangle-edge-risk"><code class="xref">cor-skeleton-triangle-edge-risk</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>corollary</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-cor-skeleton-vertex"><td></td><td>
+       <strong>cor-skeleton-vertex</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#cor-skeleton-vertex"><code class="xref">cor-skeleton-vertex</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>corollary</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-def-generators"><td></td><td>
+       <strong>def-generators</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/simploidal_category.html#def-generators"><code class="xref">def-generators</code></a> <em>(advanced/simploidal_category)</em></td><td>
+       <em>definition</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-def-simploid-category"><td></td><td>
+       <strong>def-simploid-category</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/simploidal_category.html#def-simploid-category"><code class="xref">def-simploid-category</code></a> <em>(advanced/simploidal_category)</em></td><td>
+       <em>definition</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-def-simploidal-set"><td></td><td>
+       <strong>def-simploidal-set</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/simploidal_category.html#def-simploidal-set"><code class="xref">def-simploidal-set</code></a> <em>(advanced/simploidal_category)</em></td><td>
+       <em>definition</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-definition-1"><td></td><td>
+       <strong>definition-1</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="whatis.html#definition-1"><code class="xref">definition-1</code></a> <em>(whatis)</em></td><td>
+       <em>definition</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-definition-2"><td></td><td>
+       <strong>definition-2</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="whatis.html#definition-2"><code class="xref">definition-2</code></a> <em>(whatis)</em></td><td>
+       <em>definition</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-definition-3"><td></td><td>
+       <strong>definition-3</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="whatis.html#definition-3"><code class="xref">definition-3</code></a> <em>(whatis)</em></td><td>
+       <em>definition</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-definition-4"><td></td><td>
+       <strong>definition-4</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="whatis.html#definition-4"><code class="xref">definition-4</code></a> <em>(whatis)</em></td><td>
+       <em>definition</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-definition-7"><td></td><td>
+       <strong>definition-7</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="whatis.html#definition-7"><code class="xref">definition-7</code></a> <em>(whatis)</em></td><td>
+       <em>definition</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-lem-generation"><td></td><td>
+       <strong>lem-generation</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/simploidal_category.html#lem-generation"><code class="xref">lem-generation</code></a> <em>(advanced/simploidal_category)</em></td><td>
+       <em>lemma</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-lem-risk-two-coordinate-kernel"><td></td><td>
+       <strong>lem-risk-two-coordinate-kernel</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_extensions.html#lem-risk-two-coordinate-kernel"><code class="xref">lem-risk-two-coordinate-kernel</code></a> <em>(advanced/skeleton_risk_extensions)</em></td><td>
+       <em>lemma</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-lem-skeleton-inverse-moments"><td></td><td>
+       <strong>lem-skeleton-inverse-moments</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#lem-skeleton-inverse-moments"><code class="xref">lem-skeleton-inverse-moments</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>lemma</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-lem-skeleton-kernel"><td></td><td>
+       <strong>lem-skeleton-kernel</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#lem-skeleton-kernel"><code class="xref">lem-skeleton-kernel</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>lemma</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-lem-skeleton-product-propagation"><td></td><td>
+       <strong>lem-skeleton-product-propagation</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#lem-skeleton-product-propagation"><code class="xref">lem-skeleton-product-propagation</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>lemma</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-lem-skeleton-propagation-characterization"><td></td><td>
+       <strong>lem-skeleton-propagation-characterization</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#lem-skeleton-propagation-characterization"><code class="xref">lem-skeleton-propagation-characterization</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>lemma</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-lem-skeleton-small-ball"><td></td><td>
+       <strong>lem-skeleton-small-ball</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#lem-skeleton-small-ball"><code class="xref">lem-skeleton-small-ball</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>lemma</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-lem-small-category"><td></td><td>
+       <strong>lem-small-category</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/simploidal_category.html#lem-small-category"><code class="xref">lem-small-category</code></a> <em>(advanced/simploidal_category)</em></td><td>
+       <em>lemma</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-prop-risk-positive-transformed-kernel"><td></td><td>
+       <strong>prop-risk-positive-transformed-kernel</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_five_vertex.html#prop-risk-positive-transformed-kernel"><code class="xref">prop-risk-positive-transformed-kernel</code></a> <em>(advanced/skeleton_risk_five_vertex)</em></td><td>
+       <em>proposition</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-prop-skeleton-degree-faces"><td></td><td>
+       <strong>prop-skeleton-degree-faces</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#prop-skeleton-degree-faces"><code class="xref">prop-skeleton-degree-faces</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>proposition</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-prop-skeleton-second-faces"><td></td><td>
+       <strong>prop-skeleton-second-faces</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#prop-skeleton-second-faces"><code class="xref">prop-skeleton-second-faces</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>proposition</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-prop-skeleton-top"><td></td><td>
+       <strong>prop-skeleton-top</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#prop-skeleton-top"><code class="xref">prop-skeleton-top</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>proposition</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-prop-skeleton-triangle-jacobi"><td></td><td>
+       <strong>prop-skeleton-triangle-jacobi</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#prop-skeleton-triangle-jacobi"><code class="xref">prop-skeleton-triangle-jacobi</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>proposition</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-prop-skeleton-wins"><td></td><td>
+       <strong>prop-skeleton-wins</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#prop-skeleton-wins"><code class="xref">prop-skeleton-wins</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>proposition</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-rem-skeleton-product-polynomials"><td></td><td>
+       <strong>rem-skeleton-product-polynomials</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#rem-skeleton-product-polynomials"><code class="xref">rem-skeleton-product-polynomials</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>remark</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-remark-6"><td></td><td>
+       <strong>remark-6</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/simploidal_category.html#remark-6"><code class="xref">remark-6</code></a> <em>(advanced/simploidal_category)</em></td><td>
+       <em>remark</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-theorem-0"><td></td><td>
+       <strong>theorem-0</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="whatis.html#theorem-0"><code class="xref">theorem-0</code></a> <em>(whatis)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-theorem-10"><td></td><td>
+       <strong>theorem-10</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="whatis.html#theorem-10"><code class="xref">theorem-10</code></a> <em>(whatis)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-theorem-5"><td></td><td>
+       <strong>theorem-5</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="whatis.html#theorem-5"><code class="xref">theorem-5</code></a> <em>(whatis)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-theorem-6"><td></td><td>
+       <strong>theorem-6</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="whatis.html#theorem-6"><code class="xref">theorem-6</code></a> <em>(whatis)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-theorem-8"><td></td><td>
+       <strong>theorem-8</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="whatis.html#theorem-8"><code class="xref">theorem-8</code></a> <em>(whatis)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-theorem-9"><td></td><td>
+       <strong>theorem-9</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="whatis.html#theorem-9"><code class="xref">theorem-9</code></a> <em>(whatis)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-risk-binomial-gram-diagonal"><td></td><td>
+       <strong>thm-risk-binomial-gram-diagonal</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_vertex.html#thm-risk-binomial-gram-diagonal"><code class="xref">thm-risk-binomial-gram-diagonal</code></a> <em>(advanced/skeleton_risk_vertex)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-risk-codimension-two-modes"><td></td><td>
+       <strong>thm-risk-codimension-two-modes</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_extensions.html#thm-risk-codimension-two-modes"><code class="xref">thm-risk-codimension-two-modes</code></a> <em>(advanced/skeleton_risk_extensions)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-risk-comparisons-nine-twenty"><td></td><td>
+       <strong>thm-risk-comparisons-nine-twenty</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_comparisons.html#thm-risk-comparisons-nine-twenty"><code class="xref">thm-risk-comparisons-nine-twenty</code></a> <em>(advanced/skeleton_risk_comparisons)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-risk-comparisons-twentyone-thirty"><td></td><td>
+       <strong>thm-risk-comparisons-twentyone-thirty</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_comparisons.html#thm-risk-comparisons-twentyone-thirty"><code class="xref">thm-risk-comparisons-twentyone-thirty</code></a> <em>(advanced/skeleton_risk_comparisons)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-risk-five-vertex-explicit-error"><td></td><td>
+       <strong>thm-risk-five-vertex-explicit-error</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_five_vertex_asymptotics.html#thm-risk-five-vertex-explicit-error"><code class="xref">thm-risk-five-vertex-explicit-error</code></a> <em>(advanced/skeleton_risk_five_vertex_asymptotics)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-risk-five-vertex-recurrence"><td></td><td>
+       <strong>thm-risk-five-vertex-recurrence</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_five_vertex_recurrence.html#thm-risk-five-vertex-recurrence"><code class="xref">thm-risk-five-vertex-recurrence</code></a> <em>(advanced/skeleton_risk_five_vertex_recurrence)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-risk-five-vertex-single"><td></td><td>
+       <strong>thm-risk-five-vertex-single</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_five_vertex.html#thm-risk-five-vertex-single"><code class="xref">thm-risk-five-vertex-single</code></a> <em>(advanced/skeleton_risk_five_vertex)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-risk-five-vertex-triangle-state"><td></td><td>
+       <strong>thm-risk-five-vertex-triangle-state</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_extensions.html#thm-risk-five-vertex-triangle-state"><code class="xref">thm-risk-five-vertex-triangle-state</code></a> <em>(advanced/skeleton_risk_extensions)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-risk-fixed-dimension-holonomic"><td></td><td>
+       <strong>thm-risk-fixed-dimension-holonomic</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_extensions.html#thm-risk-fixed-dimension-holonomic"><code class="xref">thm-risk-fixed-dimension-holonomic</code></a> <em>(advanced/skeleton_risk_extensions)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-risk-general-vertex-asymptotic"><td></td><td>
+       <strong>thm-risk-general-vertex-asymptotic</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_vertex_general.html#thm-risk-general-vertex-asymptotic"><code class="xref">thm-risk-general-vertex-asymptotic</code></a> <em>(advanced/skeleton_risk_vertex_general)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-risk-general-vertex-construction"><td></td><td>
+       <strong>thm-risk-general-vertex-construction</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_vertex_general.html#thm-risk-general-vertex-construction"><code class="xref">thm-risk-general-vertex-construction</code></a> <em>(advanced/skeleton_risk_vertex_general)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-risk-six-vertex-tetrahedral-state"><td></td><td>
+       <strong>thm-risk-six-vertex-tetrahedral-state</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/codimension_two_states.html#thm-risk-six-vertex-tetrahedral-state"><code class="xref">thm-risk-six-vertex-tetrahedral-state</code></a> <em>(advanced/codimension_two_states)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-risk-tetrahedron-comparison"><td></td><td>
+       <strong>thm-risk-tetrahedron-comparison</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_tetrahedron_comparison.html#thm-risk-tetrahedron-comparison"><code class="xref">thm-risk-tetrahedron-comparison</code></a> <em>(advanced/skeleton_risk_tetrahedron_comparison)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-risk-tetrahedron-edge-representation"><td></td><td>
+       <strong>thm-risk-tetrahedron-edge-representation</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_extensions.html#thm-risk-tetrahedron-edge-representation"><code class="xref">thm-risk-tetrahedron-edge-representation</code></a> <em>(advanced/skeleton_risk_extensions)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-risk-tetrahedron-vertex-recurrence"><td></td><td>
+       <strong>thm-risk-tetrahedron-vertex-recurrence</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_vertex_recurrence.html#thm-risk-tetrahedron-vertex-recurrence"><code class="xref">thm-risk-tetrahedron-vertex-recurrence</code></a> <em>(advanced/skeleton_risk_vertex_recurrence)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-risk-tetrahedron-vertex-single"><td></td><td>
+       <strong>thm-risk-tetrahedron-vertex-single</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_vertex.html#thm-risk-tetrahedron-vertex-single"><code class="xref">thm-risk-tetrahedron-vertex-single</code></a> <em>(advanced/skeleton_risk_vertex)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-risk-uniform-codimension-two-state"><td></td><td>
+       <strong>thm-risk-uniform-codimension-two-state</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/codimension_two_family.html#thm-risk-uniform-codimension-two-state"><code class="xref">thm-risk-uniform-codimension-two-state</code></a> <em>(advanced/codimension_two_family)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-risk-vertex-boundary-pair"><td></td><td>
+       <strong>thm-risk-vertex-boundary-pair</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_extensions.html#thm-risk-vertex-boundary-pair"><code class="xref">thm-risk-vertex-boundary-pair</code></a> <em>(advanced/skeleton_risk_extensions)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-risk-vertex-two-term-error"><td></td><td>
+       <strong>thm-risk-vertex-two-term-error</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_vertex_asymptotics.html#thm-risk-vertex-two-term-error"><code class="xref">thm-risk-vertex-two-term-error</code></a> <em>(advanced/skeleton_risk_vertex_asymptotics)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-skeleton-assembled-risk"><td></td><td>
+       <strong>thm-skeleton-assembled-risk</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/simploidal_risk.html#thm-skeleton-assembled-risk"><code class="xref">thm-skeleton-assembled-risk</code></a> <em>(advanced/simploidal_risk)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-skeleton-codimension-one"><td></td><td>
+       <strong>thm-skeleton-codimension-one</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#thm-skeleton-codimension-one"><code class="xref">thm-skeleton-codimension-one</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-skeleton-curves"><td></td><td>
+       <strong>thm-skeleton-curves</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#thm-skeleton-curves"><code class="xref">thm-skeleton-curves</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-skeleton-facet-harmonics"><td></td><td>
+       <strong>thm-skeleton-facet-harmonics</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#thm-skeleton-facet-harmonics"><code class="xref">thm-skeleton-facet-harmonics</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-skeleton-graph-risk"><td></td><td>
+       <strong>thm-skeleton-graph-risk</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/simploidal_risk.html#thm-skeleton-graph-risk"><code class="xref">thm-skeleton-graph-risk</code></a> <em>(advanced/simploidal_risk)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-skeleton-linear-assembled"><td></td><td>
+       <strong>thm-skeleton-linear-assembled</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/simploidal_risk.html#thm-skeleton-linear-assembled"><code class="xref">thm-skeleton-linear-assembled</code></a> <em>(advanced/simploidal_risk)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-skeleton-product-risk"><td></td><td>
+       <strong>thm-skeleton-product-risk</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#thm-skeleton-product-risk"><code class="xref">thm-skeleton-product-risk</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-skeleton-propagation-reduction"><td></td><td>
+       <strong>thm-skeleton-propagation-reduction</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#thm-skeleton-propagation-reduction"><code class="xref">thm-skeleton-propagation-reduction</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-skeleton-ratio"><td></td><td>
+       <strong>thm-skeleton-ratio</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#thm-skeleton-ratio"><code class="xref">thm-skeleton-ratio</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-skeleton-rational"><td></td><td>
+       <strong>thm-skeleton-rational</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#thm-skeleton-rational"><code class="xref">thm-skeleton-rational</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-skeleton-regular-incidence"><td></td><td>
+       <strong>thm-skeleton-regular-incidence</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/simploidal_risk.html#thm-skeleton-regular-incidence"><code class="xref">thm-skeleton-regular-incidence</code></a> <em>(advanced/simploidal_risk)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-skeleton-risk"><td></td><td>
+       <strong>thm-skeleton-risk</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#thm-skeleton-risk"><code class="xref">thm-skeleton-risk</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-skeleton-scalar-sum"><td></td><td>
+       <strong>thm-skeleton-scalar-sum</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#thm-skeleton-scalar-sum"><code class="xref">thm-skeleton-scalar-sum</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-skeleton-third-faces"><td></td><td>
+       <strong>thm-skeleton-third-faces</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#thm-skeleton-third-faces"><code class="xref">thm-skeleton-third-faces</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-skeleton-triangle-vertex-risk"><td></td><td>
+       <strong>thm-skeleton-triangle-vertex-risk</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#thm-skeleton-triangle-vertex-risk"><code class="xref">thm-skeleton-triangle-vertex-risk</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-skeleton-vertex-sum"><td></td><td>
+       <strong>thm-skeleton-vertex-sum</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/skeleton_risk_theory.html#thm-skeleton-vertex-sum"><code class="xref">thm-skeleton-vertex-sum</code></a> <em>(advanced/skeleton_risk_theory)</em></td><td>
+       <em>theorem</em></td></tr>
+     <tr class="pcap"><td></td><td>&#160;</td><td></td></tr>
+     <tr class="cap" id="cap-thm-topos"><td></td><td>
+       <strong>thm-topos</strong></td><td></td></tr>
+     <tr>
+       <td></td>
+       <td>
+       <a href="advanced/simploidal_category.html#thm-topos"><code class="xref">thm-topos</code></a> <em>(advanced/simploidal_category)</em></td><td>
+       <em>theorem</em></td></tr>
+   </table>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: feat/five-vertex-degree-recurrence
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../v0.24.0/index.html">v0.24.0</a></dd>
+            <dd><a href="../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="prf-prf.html">feat/five-vertex-degree-recurrence</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
