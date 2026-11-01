@@ -24,6 +24,9 @@ nonfinite assembled-risk propagation before its condition estimate.
    * - :prf:ref:`thm-risk-tetrahedron-edge-representation`
      - Every tetrahedron edge coefficient is evaluated using harmonic numbers
        and two explicitly specified auxiliary recurrences.
+   * - :prf:ref:`thm-risk-five-vertex-triangle-state`
+     - Every triangular-face coefficient on a five-vertex simplex has an
+       eight-state rational representation and a certified order-eight recurrence.
    * - :prf:ref:`cor-risk-codimension-two-asymptotic`
      - The leading large-degree constant for every fixed codimension-two face
        with at least two vertices.
@@ -442,6 +445,190 @@ Explicit scalar degree recurrences
    and verifies the operators and initial values from their coefficient
    files; its reports include file hashes and the eight zero identities.
 
+Triangular faces on a five-vertex simplex
+-----------------------------------------
+
+The angular multiplicity for :math:`s=3` is :math:`d_3(k)=k+1`.
+One additional auxiliary sequence evaluates this weighted angular sum.
+Use the same :math:`F_n,G_n,Q_N,V_N,g_N(j)` as in the tetrahedron-edge
+representation; their displayed definitions make sense for even
+:math:`N` as well as odd :math:`N`.
+
+Define :math:`J_1=3/4` and, for :math:`n\geq1`,
+
+.. math::
+   :label: risk-triangle-auxiliary-state
+
+   J_{n+1}=J_n+\frac1{(n+1)^2}
+    -\frac{(3n+2)^2}{2n^2(2n+1)(2n+2)\binom{2n}{n}}.
+
+.. prf:theorem:: Eight-state triangular-face representation
+   :label: thm-risk-five-vertex-triangle-state
+
+   For every integer :math:`D\geq1`, put :math:`n=D+2`, :math:`N=2n`,
+   :math:`w_n=\binom{2n}{n}^{-1}` and
+
+   .. math::
+
+      A_n={}&\frac{n+1}{2n(n+2)}
+       -\frac{H_n+H_{n+2}-H_N}{2n(n+1)},\\
+      E_n={}&A_n+\frac{J_n}{2n}
+       -\frac{(3n+1)w_n}{4n^3(n+1)}
+       -\frac{2n^4+2n^3-3n^2+1}{4n^3(n+1)^2}.
+
+   Then
+
+   .. math::
+      :label: risk-five-vertex-triangle-state
+
+      a_2(5,D)=2400\left[
+       -3\left(Q_N-\frac{V_N}2-\frac{g_N(n)}2\right)
+       +E_n+g_N(n-2)+2g_N(n-1)\right].
+
+   Every denominator is nonzero on this domain. In particular the same
+   formula gives the inactive values :math:`a_2(5,1)=a_2(5,2)=0` and
+
+   .. math::
+
+      (a_2(5,3),a_2(5,4),a_2(5,5))
+        =\left(\frac{40}3,\frac{255}{11},\frac{2675}{91}\right).
+
+   The expression is a rational row on the eight-state vector
+
+   .. math::
+
+      v_n=\left(H_N^2-H_N^{(2)},H_N,H_n,
+        F_N-H_N^{(2)},G_N,J_n,w_n,1\right)^{\mathsf T}.
+
+   It therefore evaluates each new degree with a fixed number of rational
+   operations on its state. This concerns arithmetic operation counts;
+   integer bit lengths still grow with the degree.
+
+.. prf:proof::
+
+   Reindex :eq:`risk-codimension-two-coefficient` by :math:`j=L+1`.
+   Its normalized summand is :math:`(n-3-j)g_N(j)`, so
+
+   .. math::
+
+      \frac{a_2(5,D)}{2400}
+       =-3\sum_{j=1}^{n-1}g_N(j)
+        +\sum_{j=1}^{n-1}(n-j)g_N(j)
+        +g_N(n-2)+2g_N(n-1).
+
+   This also gives zero for :math:`D=1,2` by cancellation. Symmetry gives
+   :math:`\sum_{j=1}^{n-1}g_N(j)=Q_N-V_N/2-g_N(n)/2`.
+   It remains to evaluate the weighted half range as :math:`E_n`.
+
+   Write :math:`B_j=H_{j+1}+H_{N-j+1}-H_N` and
+   :math:`\Delta_j=j(j+1)(N-j)(N-j+1)`. For
+   :math:`r_j=1/(j(N-j+1))`, :math:`t_j=1/(j(N-j+2))`, direct
+   rational identities give
+
+   .. math::
+
+      \frac{n-j}{\Delta_j}=\frac{r_j-r_{j+1}}2,
+      \qquad r_j(B_j-B_{j-1})=t_j-t_{j+1}.
+
+   Summation by parts, including both endpoints, yields
+   :math:`\sum_{j=1}^{n-1}(n-j)B_j/\Delta_j=A_n`.
+   The rational partial fractions used in the edge proof similarly give
+
+   .. math::
+
+      \sum_{j=1}^{n-1}\frac{(n-j)c_j}{\Delta_j}
+       =\frac{H_N^{(2)}-2H_n^{(2)}}{4n}
+        +\frac{(2n+1)(4n^3+3n^2-6n+3)}{16n^3(n+1)^2}.
+
+   For the reciprocal term put :math:`b_j=\binom Nj^{-1}` and
+   :math:`R_j=1/(2j^2(N-j+1))`. Exact multiplication verifies
+
+   .. math::
+
+      (n-j)v_N(j)=b_{j+1}R_{j+1}-b_jR_j
+       +\frac{b_j}{2N}\left(\frac1{j^2}-\frac1{(N-j)^2}\right).
+
+   Define :math:`T_n=\sum_{j=1}^{n-1}b_j/j^2`. The boundary is
+   :math:`b_nR_n-b_1R_1=w_n/(2n^2(n+1))-1/(2N^2)` and symmetry gives
+
+   .. math::
+
+      \sum_{j=1}^{n-1}b_j\left(\frac1{j^2}-\frac1{(N-j)^2}\right)
+        =2T_n-F_N+\frac{w_n}{n^2}+\frac1{N^2}.
+
+   The partial first and zeroth moments are
+
+   .. math::
+
+      \sum_{j=1}^{n-1}\frac{b_j}{j}=\frac{G_N}2-\frac{w_n}{n},
+      \qquad
+      \sum_{j=1}^{n-1}b_j=\frac{N+1}{4}G_N-\frac12-\frac{w_n}2.
+
+   The first follows by telescoping
+   :math:`b_j(1/j-1/(N-j))`; the second follows from symmetry and the
+   full reciprocal sum in the edge proof. The ratio
+   :math:`\binom{N+2}{j}^{-1}/b_j=(N+2-j)(N+1-j)/((N+1)(N+2))`
+   and the added endpoint :math:`j=n` now give
+
+   .. math::
+
+      T_{n+1}-T_n=-\frac{(6n+5)G_N}{4(N+1)(N+2)}
+        -\frac1{2(N+1)(N+2)}
+        +\frac{(3n+2)^2w_n}{2n^2(N+1)(N+2)}.
+
+   Consequently :math:`J_n=H_n^{(2)}-T_n+(F_N-H_N^{(2)})/2`
+   has initial value :math:`3/4` and satisfies
+   :eq:`risk-triangle-auxiliary-state`. Combining the three weighted
+   ranges gives exactly :math:`E_n`.
+
+   Finally :math:`w_{n+1}=(n+1)w_n/(2(2n+1))`. The other state
+   transitions follow from harmonic increments and the displayed
+   :math:`F,G` recurrences. In :math:`Q_N-V_N/2`, the coefficients of
+   :math:`H_N^2,H_N^{(2)},F_N` sum to zero, so the two differences in
+   :math:`v_n` suffice. Each central term uses
+   :math:`H_{n+r}=H_n+\sum_{i=1}^r1/(n+i)` and
+   :math:`\binom{N}{n-r}^{-1}=w_n\prod_{i=1}^r(n+i)/(n-i+1)`
+   for :math:`r=0,1,2`; only a fixed number of shifts occurs.
+   Thus all output coefficients and all state transitions are rational
+   in :math:`n`, proving the asserted fixed-state representation.
+
+.. prf:corollary:: Certified triangular-face degree recurrence
+   :label: cor-risk-five-vertex-triangle-recurrence
+
+   The sequence :math:`a_2(5,D)` satisfies
+
+   .. math::
+
+      \sum_{j=0}^8 p_j(D)a_2(5,D+j)=0,\qquad D\geq1,
+
+   where the complete integer coefficient lists are stored in
+   ``tools/risk_research/examples/five_vertex_triangle_recurrence_order8.json``.
+   The order is eight and the maximum polynomial degree is 76. The leading
+   coefficient is strictly positive for every real :math:`D\geq1`, so
+   there are no positive-integer exceptional indices. Its initial values are
+
+   .. math::
+
+      (a_2(5,1),\ldots,a_2(5,8))=
+        \left(0,0,\frac{40}3,\frac{255}{11},\frac{2675}{91},
+          \frac{96345}{2912},\frac{2934923}{83538},
+          \frac{84006889}{2325600}\right).
+
+.. prf:proof::
+
+   This is an exact rational-state certificate, with the same construction
+   as :prf:ref:`cor-risk-tetrahedron-edge-scalar-recurrences`.
+   ``tools/risk_research/triangle_recurrence.py`` reconstructs the eight
+   state transitions and rational output row of
+   :prf:ref:`thm-risk-five-vertex-triangle-state` over :math:`\mathbb Q(D)`.
+   Exact elimination supplies the displayed operator; multiplication of
+   its coefficient row by the shifted state-output rows gives eight zero
+   rational functions. After :math:`n=D+2`, every output and transition
+   denominator is a nonzero polynomial with nonnegative coefficients,
+   proving validity for :math:`D\geq1`. Every coefficient of
+   :math:`p_8(1+z)` is strictly positive, proving the leading-coefficient
+   claim. The fixed-state representation supplies the eight initial values.
+
 Large-degree constants
 ------------------------
 
@@ -584,13 +771,24 @@ propagation and direct reciprocal-binomial sums, including degree one.
 ``vertex_boundary.py`` checks the reduced vertex formula with exact
 coefficient arithmetic. Finite checks detect errors; the all-degree
 claims rely on the proofs above.
+``triangle_faces.py`` evaluates :eq:`risk-five-vertex-triangle-state`
+using a fixed state and checks independent scalar and Gram references.
+``triangle_recurrence.py`` verifies its complete scalar operator by eight
+exact rational identities, including the initial values and denominator
+conditions, independently of finite sequence residual checks.
 
 The tetrahedron vertex coefficient still lacks an explicit useful
 all-degree recurrence or a bounded classical-special-function expression.
-The boundary-pair identity reduces its irreducible part to
-:math:`\mathcal L_D(Ff(x)f(y))`. Bounded polynomial/harmonic ansatz spaces
+The boundary-pair identity reduces its mixed part to
+:math:`\mathcal L_D(Ff(x)f(y))`; :doc:`skeleton_risk_vertex` further
+evaluates the complete vertex coefficient by one positive harmonic sum
+and proves its leading large-degree constant. Bounded polynomial/harmonic ansatz spaces
 can be excluded by exact modular rank, but such exclusions say nothing
 about formulas outside the recorded spaces. A general elementary or
 classical-special-function evaluation of the remaining codimension-two
-angular sums is also still open. The full risk comparison and nonlinear
+angular sums is also still open beyond the fixed-state evaluations above.
+:doc:`skeleton_risk_comparisons` settles the complete comparison at every
+fixed degree through twenty. A general crossover law and the nonlinear
 self-identification questions of :doc:`skeleton_risk_theory` remain.
+The fixed-tetrahedron comparison is completely classified over all degrees
+in :doc:`skeleton_risk_tetrahedron_comparison`.

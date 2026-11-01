@@ -208,6 +208,20 @@ The tests include independent oracle agreement, cache invalidation and
 retry, source edits during a computation, false recurrences, missing initial
 values, certificate/boundary mutations, and download corruption repair.
 Sage smoke checks are separate from the normal development test suite.
+The triangular-face symbolic verifier has native-Sage regression tests.
+Run them from the project Python while selecting the separate Sage interpreter:
+
+```sh
+BSF_SAGE_PYTHON="$PWD/.research/skeleton-risk/sage-env/bin/python" \
+DOT_SAGE="$PWD/.research/skeleton-risk/sage-state" \
+  .venv/bin/python -m pytest tests/tools/risk_research/test_triangle_recurrence.py \
+  -q -o addopts=''
+```
+
+These tests verify the valid operator, reject altered coefficients and initial
+values, and reproduce all operator coefficients by symbolic state elimination.
+Without `BSF_SAGE_PYTHON`, only these optional symbolic tests are skipped;
+ordinary exact, parser and finite-residual tests still run without Sage.
 
 ## Proved risk extensions
 
@@ -216,7 +230,11 @@ The derivations and their limits are in
 They include a codimension-two mode reduction, the all-degree tetrahedron
 edge representation, its certified scalar recurrences, a general vertex
 boundary-pair reduction, and fixed-dimension P-recursiveness. The
-tetrahedron vertex's final evaluation remains open.
+five-vertex triangular-face coefficient now also has an eight-state
+representation and an order-eight, degree-76 scalar recurrence.
+[Tetrahedron vertex risk](../../docs/advanced/skeleton_risk_vertex.rst)
+gives a positive harmonic-binomial single sum and the leading constant
+`48*pi^2/D^5`; its explicit useful degree recurrence remains open.
 
 Generate tetrahedron edge coefficients from the proved auxiliary recurrences:
 
@@ -242,6 +260,43 @@ Both are proved for every positive integer degree, with explicit initial
 values and no positive-integer leading-coefficient exceptions. The verifier
 reconstructs the eight-dimensional rational state, checks all eight
 symbolic residuals, and records the operator and source hashes.
+
+The five-vertex triangular-face operator is verified in the same environment:
+
+```sh
+DOT_SAGE="$PWD/.research/skeleton-risk/sage-state" \
+  conda run --no-capture-output -p .research/skeleton-risk/sage-env \
+  python -m tools.risk_research.triangle_recurrence \
+  --verify tools/risk_research/examples/five_vertex_triangle_recurrence_order8.json \
+  --report .research/skeleton-risk/results/triangle-order8-certificate.json
+```
+
+`triangle_faces.triangle_face_coefficients(max_degree)` evaluates the
+fixed-state sequence, and `vertex_single.tetrahedron_vertex_coefficient(D)`
+evaluates the tetrahedron vertex single sum, both using standard Python
+exact fractions.
+
+Generate complete fixed-degree comparison certificates, including the exact
+dimension polynomials, finite radical enclosures and an infinite-tail bound:
+
+```sh
+.venv/bin/python -m tools.risk_research.comparison --degrees 9:20 \
+  --output .research/skeleton-risk/results/comparisons-9-20.json
+```
+
+Every vertex count is classified for those degrees; there are no ties.
+See [the proof and complete table](../../docs/advanced/skeleton_risk_comparisons.rst).
+The independent fixed-tetrahedron comparison over every positive degree is
+reproduced with:
+
+```sh
+.venv/bin/python -m tools.risk_research.tetrahedron_comparison \
+  --output .research/skeleton-risk/results/tetrahedron-comparison.json
+```
+
+The finite part checks degrees 1 through 624; an analytic inequality proves
+the rest. Inductive fitting wins at degrees 1, 2 and every degree at least 8;
+all-at-once fitting wins at degrees 3 through 7.
 
 For larger exact exploratory datasets, `research_exact.py` clears kernel
 denominators and multiplies integer polynomials using the optional FLINT

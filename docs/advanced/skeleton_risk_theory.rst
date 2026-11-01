@@ -9,6 +9,11 @@ The extension to general finite simploidal sets, including shared and
 degenerate faces, is proved in :doc:`simploidal_risk`.
 Further degree recurrences, codimension-two evaluations and vertex
 reductions are proved in :doc:`skeleton_risk_extensions`.
+The tetrahedron vertex single sum and its large-degree constant are proved
+in :doc:`skeleton_risk_vertex`; complete fixed-degree comparisons through
+degree twenty are in :doc:`skeleton_risk_comparisons`.
+:doc:`skeleton_risk_tetrahedron_comparison` classifies the tetrahedron
+comparison at every degree.
 The results are organized by mathematical dependence; finite verification
 and reference tables are collected in :doc:`skeleton_risk_verification`.
 
@@ -43,9 +48,16 @@ explicit evaluations. The conditions in each row are part of the result.
      - :prf:ref:`thm-risk-fixed-dimension-holonomic`: a polynomial-coefficient
        recurrence exists; explicit tetrahedron edge operators and a
        codimension-two harmonic reduction are in :doc:`skeleton_risk_extensions`.
+   * - :math:`M=4,m=0`, every degree
+     - :prf:ref:`thm-risk-tetrahedron-vertex-single`: one positive harmonic sum;
+       :prf:ref:`cor-risk-tetrahedron-vertex-asymptotic`: the leading constant.
    * - Risk comparison
      - Curves win at every degree; :prf:ref:`prop-skeleton-wins` classifies
-       all vertex counts for :math:`D\leq8`; every fixed degree wins for sufficiently large :math:`M`.
+       all vertex counts for :math:`D\leq8`, and
+       :prf:ref:`thm-risk-comparisons-nine-twenty` extends this through
+       :math:`D=20`; :prf:ref:`thm-risk-tetrahedron-comparison` classifies
+       every degree at :math:`M=4`. Every fixed degree wins for sufficiently
+       large :math:`M`.
    * - A single product of simplices, with any positive factor degrees
      - :prf:ref:`thm-skeleton-product-risk`: coefficients from the simplex factors;
        :prf:ref:`cor-skeleton-product-shape-ratio`: optimal allocation by face shape.
@@ -1773,6 +1785,9 @@ active positive-dimensional faces, so the dimension and shape optima agree.
   :prf:ref:`cor-risk-tetrahedron-edge-scalar-recurrences` supplies explicit
   scalar degree recurrences. A representation using only classical
   harmonic or hypergeometric functions is a separate remaining question.
+  For triangular faces on five-vertex simplices,
+  :prf:ref:`thm-risk-five-vertex-triangle-state` also supplies a fixed-state
+  representation with one additional auxiliary sequence.
 - **Finite-dimensional vertex coefficients beyond triangles.**
   For :math:`M\geq4` and :math:`D\geq4`, simplify
   :prf:ref:`thm-skeleton-vertex-sum` uniformly in the degree, or give an
@@ -1783,16 +1798,23 @@ active positive-dimensional faces, so the dimension and shape optima agree.
   evaluation. :prf:ref:`thm-risk-fixed-dimension-holonomic` proves that
   a degree recurrence exists at every fixed dimension, while
   :prf:ref:`thm-risk-vertex-boundary-pair` reduces its remaining kernel
-  complexity. Neither supplies an explicit tetrahedron vertex recurrence.
-- **The full comparison at degrees above eight.**
+  complexity. :prf:ref:`thm-risk-tetrahedron-vertex-single` now evaluates
+  the tetrahedron vertex by one positive harmonic-binomial sum, with its
+  leading large-degree constant. Its length still grows with :math:`D`;
+  an explicit useful tetrahedron vertex degree recurrence remains open.
+- **The full comparison beyond the classified degrees.**
   :prf:ref:`prop-skeleton-wins` classifies every :math:`M` at
-  :math:`D\leq8`. For :math:`D\geq9`, determine the exact set of
+  :math:`D\leq8`, and :prf:ref:`thm-risk-comparisons-nine-twenty`
+  classifies every :math:`M` at :math:`9\leq D\leq20`.
+  For :math:`D\geq21`, determine the exact set of
   winning vertex counts, including any small-dimensional exceptions,
   and the growth of the eventual crossover as :math:`D\to\infty`.
   :prf:ref:`cor-skeleton-large-dimension` proves eventual winning for
   each fixed degree; it gives no exact crossover law. Closed formulas
   for a fixed dimension also require a separate inequality analysis
   before they yield a classification over all degrees.
+  At :math:`M=4`, :prf:ref:`thm-risk-tetrahedron-comparison` now supplies
+  this separate analysis and completes the comparison at every degree.
 - **Higher-degree self-identifications in higher dimensions.**
   :prf:ref:`thm-skeleton-regular-incidence` removes assembled matrices on
   regular complexes, and :prf:ref:`thm-skeleton-linear-assembled` and
