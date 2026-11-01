@@ -798,6 +798,11 @@ and the common fifteen-state construction for every nonvertex codimension-two
 face in :doc:`codimension_two_family`. That construction has a state bound
 independent of face size; it does not assert a bounded classical-special-function
 expression or a minimal scalar order.
+:doc:`skeleton_risk_vertex_general_asymptotics` supplies an explicit
+finite-degree remainder for every fixed vertex count at least four, with
+a computable constant and the common degree domain :math:`D\geq256`.
+It distinguishes the analytic error from truncating the leading constant
+and from arithmetic rounding.
 :doc:`skeleton_risk_comparisons` settles the complete comparison at every
 fixed degree through thirty. A general crossover law and the nonlinear
 self-identification questions of :doc:`skeleton_risk_theory` remain.
