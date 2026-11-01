@@ -146,22 +146,6 @@ def test_overwrite_preserves_existing_mode(tmp_path):
     assert list(tmp_path.iterdir()) == [path]
 
 
-@pytest.mark.skipif(os.name != "posix", reason="POSIX permission bits")
-def test_umask_fallback_without_proc(tmp_path):
-    from unittest.mock import patch
-
-    from torch_bsf.io import _umask
-
-    previous = os.umask(0o027)
-    try:
-        expected = _umask()
-        with patch("builtins.open", side_effect=OSError("no /proc")):
-            assert _umask() == expected == 0o027
-        assert os.umask(0o027) == 0o027  # the fallback restored the umask
-    finally:
-        os.umask(previous)
-
-
 def test_save_fsyncs_before_replace(tmp_path):
     from unittest.mock import patch
 
@@ -180,3 +164,17 @@ def test_save_fsyncs_before_replace(tmp_path):
     with patch("torch_bsf.io.os.fsync", side_effect=fsync), patch("torch_bsf.io.os.replace", side_effect=replace):
         save_model(tmp_path / "model.bsf", model)
     assert events[:2] == ["fsync", "replace"]
+
+
+def test_fsync_directory_is_best_effort(tmp_path, monkeypatch):
+    from unittest.mock import patch
+
+    from torch_bsf.io import _fsync_directory
+
+    _fsync_directory(tmp_path / "missing")  # an unopenable directory is ignored
+    with patch("torch_bsf.io.os.fsync", side_effect=OSError("unsupported")):
+        _fsync_directory(tmp_path)  # a directory that cannot be synced is ignored
+    monkeypatch.setattr(os, "name", "nt")
+    with patch("torch_bsf.io.os.open") as opened:
+        _fsync_directory(tmp_path)
+    opened.assert_not_called()

@@ -4,11 +4,11 @@ import csv
 import io
 import json
 import os
+import secrets
 import stat
-import tempfile
 import zipfile
 from pathlib import Path
-from typing import Any
+from typing import Any, BinaryIO
 
 import numpy as np
 import torch
@@ -53,44 +53,31 @@ def save_model(path: str | Path, model: BezierModel) -> None:
     array = io.BytesIO()
     np.save(array, model.coefficients.detach().cpu().numpy(), allow_pickle=False)
     try:
-        mode = stat.S_IMODE(os.stat(path).st_mode)
+        existing_mode: int | None = stat.S_IMODE(os.stat(path).st_mode)
     except FileNotFoundError:
-        mode = 0o666 & ~_umask()
-    # The temporary file starts private (0o600) and receives its final mode only once fully written.
-    with tempfile.NamedTemporaryFile(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp", delete=False) as file:
-        temporary = Path(file.name)
-        try:
+        existing_mode = None
+    temporary = path.parent / f".{path.name}.{secrets.token_hex(8)}.tmp"
+    if existing_mode is None:
+        # A plain exclusive open lets the OS apply 0o666 & ~umask, exactly as for a normally written file.
+        file: BinaryIO = open(temporary, "xb")  # noqa: SIM115 - closed by the with block below
+    else:
+        # When replacing a file, start private and widen to the replaced file's mode only once written.
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0)
+        file = os.fdopen(os.open(temporary, flags, 0o600), "wb")
+    try:
+        with file:
             with zipfile.ZipFile(file, "w", compression=zipfile.ZIP_DEFLATED) as archive:
                 archive.writestr("model.json", json.dumps(document, ensure_ascii=False))
                 archive.writestr("coefficients.npy", array.getvalue())
             file.flush()
             os.fsync(file.fileno())
-        except BaseException:
-            file.close()
-            temporary.unlink(missing_ok=True)
-            raise
-    try:
-        os.chmod(temporary, mode)
+        if existing_mode is not None:
+            os.chmod(temporary, existing_mode)
         os.replace(temporary, path)
     except BaseException:
         temporary.unlink(missing_ok=True)
         raise
     _fsync_directory(path.parent)
-
-
-def _umask() -> int:
-    """The process umask, read without modifying it where the platform allows."""
-    try:
-        with open("/proc/self/status", encoding="ascii") as status:
-            for line in status:
-                if line.startswith("Umask:"):
-                    return int(line.split()[1], 8)
-    except (OSError, ValueError):
-        pass
-    # Fallback (non-Linux): os.umask can only be read by setting it, so restore it immediately.
-    mask = os.umask(0o077)
-    os.umask(mask)
-    return mask
 
 
 def _fsync_directory(directory: Path) -> None:
