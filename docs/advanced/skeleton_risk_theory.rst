@@ -17,7 +17,7 @@ in :doc:`skeleton_risk_vertex`. Its next asymptotic term and explicit error
 bound are in :doc:`skeleton_risk_vertex_asymptotics`; the five-vertex vertex
 single sum and its constant are in :doc:`skeleton_risk_five_vertex`.
 Complete fixed-degree comparisons through
-degree twenty are in :doc:`skeleton_risk_comparisons`.
+degree thirty are in :doc:`skeleton_risk_comparisons`.
 :doc:`skeleton_risk_tetrahedron_comparison` classifies the tetrahedron
 comparison at every degree.
 The results are organized by mathematical dependence; finite verification
@@ -68,7 +68,8 @@ explicit evaluations. The conditions in each row are part of the result.
      - Curves win at every degree; :prf:ref:`prop-skeleton-wins` classifies
        all vertex counts for :math:`D\leq8`, and
        :prf:ref:`thm-risk-comparisons-nine-twenty` extends this through
-       :math:`D=20`; :prf:ref:`thm-risk-tetrahedron-comparison` classifies
+       :math:`D=20`. :prf:ref:`thm-risk-comparisons-twentyone-thirty` covers
+       degrees 21 through 30; :prf:ref:`thm-risk-tetrahedron-comparison` classifies
        every degree at :math:`M=4`. Every fixed degree wins for sufficiently
        large :math:`M`.
    * - A single product of simplices, with any positive factor degrees
@@ -1827,7 +1828,8 @@ active positive-dimensional faces, so the dimension and shape optima agree.
   :prf:ref:`prop-skeleton-wins` classifies every :math:`M` at
   :math:`D\leq8`, and :prf:ref:`thm-risk-comparisons-nine-twenty`
   classifies every :math:`M` at :math:`9\leq D\leq20`.
-  For :math:`D\geq21`, determine the exact set of
+  :prf:ref:`thm-risk-comparisons-twentyone-thirty` extends this through degree thirty.
+  For :math:`D\geq31`, determine the exact set of
   winning vertex counts, including any small-dimensional exceptions,
   and the growth of the eventual crossover as :math:`D\to\infty`.
   :prf:ref:`cor-skeleton-large-dimension` proves eventual winning for

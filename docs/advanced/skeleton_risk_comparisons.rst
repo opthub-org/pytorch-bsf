@@ -104,6 +104,84 @@ Complete comparisons through degree twenty
    polynomial rows; the twelve degrees contain 174 rows and 2,666
    rational coefficients. No shape for the losing set is assumed.
 
+Complete comparisons at degrees twenty-one through thirty
+----------------------------------------------------------
+
+.. prf:theorem:: Fixed-degree comparison for degrees twenty-one through thirty
+   :label: thm-risk-comparisons-twentyone-thirty
+
+   For every row below, inductive fitting wins exactly in the two displayed
+   ranges. All-at-once fitting wins strictly at every remaining integer
+   vertex count. There are no ties.
+
+   .. list-table:: Complete classifications for every integer vertex count
+      :header-rows: 1
+
+      * - Degree :math:`D`
+        - First winning range
+        - Second winning range
+        - Certified infinite tail starts at
+      * - 21
+        - :math:`2\leq M\leq6`
+        - :math:`M\geq205`
+        - 304
+      * - 22
+        - :math:`2\leq M\leq6`
+        - :math:`M\geq217`
+        - 319
+      * - 23
+        - :math:`2\leq M\leq7`
+        - :math:`M\geq228`
+        - 335
+      * - 24
+        - :math:`2\leq M\leq7`
+        - :math:`M\geq240`
+        - 351
+      * - 25
+        - :math:`2\leq M\leq7`
+        - :math:`M\geq252`
+        - 367
+      * - 26
+        - :math:`2\leq M\leq7`
+        - :math:`M\geq263`
+        - 382
+      * - 27
+        - :math:`2\leq M\leq7`
+        - :math:`M\geq275`
+        - 398
+      * - 28
+        - :math:`2\leq M\leq7`
+        - :math:`M\geq286`
+        - 414
+      * - 29
+        - :math:`2\leq M\leq8`
+        - :math:`M\geq298`
+        - 430
+      * - 30
+        - :math:`2\leq M\leq8`
+        - :math:`M\geq310`
+        - 446
+
+.. prf:proof::
+
+   Apply the exact construction, finite radical enclosures and infinite-tail
+   argument below. These ten degrees give 255 polynomial rows with 6,585
+   rational coefficients. All 3,726 finite comparisons separate at a 32-bit
+   fractional grid using exact integers; the ten rational tail inequalities
+   cover every remaining vertex count. No shape for the losing set is assumed.
+
+   A separate Newton interpolation of the original scalar angular-mode
+   reference, using the proved degree bounds, reproduced every polynomial.
+   Additional vertex counts beyond those used in the interpolation agree
+   exactly. Independent rational radical enclosures and tail bounds reproduce
+   all ten classifications. Finite checks verify these computations; the
+   infinite tail is covered by the displayed rational inequality.
+
+The last column is a sufficient proof threshold, rather than the exact
+crossover. Reproduce this extension with ``--degrees 21:30`` in the command
+below. The earlier degree-nine-through-twenty certificates remain unchanged.
+
+
 Exact construction of the dimension polynomials
 -----------------------------------------------
 
@@ -262,7 +340,14 @@ reference, using the proved degree bounds and additional check points,
 also reproduced all 174 polynomial rows and all comparison certificates
 for degrees nine through twenty.
 
-These results give complete fixed-degree comparisons through twenty.
+The extension to degrees twenty-one through thirty independently reproduces
+another 255 polynomial rows, 6,585 rational coefficients, 3,726 finite
+comparisons and ten infinite tails by Newton interpolation of the original
+scalar reference. The degree-thirty regression also checks the previously
+proved triangle, tetrahedron-vertex, five-vertex-vertex and five-vertex-face
+formulas, together with every independently derived large-dimension limit.
+
+These results give complete fixed-degree comparisons through thirty.
 They do not assert a uniform formula for the two winning ranges as
 functions of :math:`D`, or settle the remaining all-degree vertex
 evaluations.
