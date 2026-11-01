@@ -1,5 +1,5 @@
 Quantitative five-vertex vertex asymptotics
-==========================================
+===========================================
 
 Under the uniform-simplex assumptions of :doc:`skeleton_risk_theory`,
 :doc:`skeleton_risk_five_vertex` gives a positive single sum and the leading
@@ -187,7 +187,7 @@ on the mathematical coefficient, in addition to any numerical rounding.
    which proves :eq:`risk-five-vertex-leading-error`.
 
 Reproducible enclosures
-----------------------
+-----------------------
 
 ``tools/risk_research/vertex_five_asymptotic.py`` returns the exact rational
 majorant :math:`3000000(1+\lceil\log_2D\rceil)/D^7`. The integer bit count

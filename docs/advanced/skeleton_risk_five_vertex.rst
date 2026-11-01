@@ -11,6 +11,9 @@ All statements use the uniform-simplex assumptions of
 :doc:`skeleton_risk_theory`. The sum has :math:`D` terms. It is not a
 bounded-length classical-special-function expression, and this page does
 not assert an explicit recurrence in :math:`D`.
+The broader construction and fixed-dimension leading constants are in
+:doc:`skeleton_risk_vertex_general`. The five-vertex leading term has an
+explicit remainder bound in :doc:`skeleton_risk_five_vertex_asymptotics`.
 
 An exact harmonic weight
 ------------------------
