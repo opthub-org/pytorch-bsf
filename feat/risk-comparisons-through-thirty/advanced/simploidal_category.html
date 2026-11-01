@@ -1,0 +1,562 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Category of Simploidal Sets &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Explicit initial models" href="initial_models.html" />
+    <link rel="prev" title="Exact local subdivision" href="splitting.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">The Category of Simploidal Sets</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#the-simploid-category">The simploid category</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#simploidal-sets-as-presheaves">Simploidal sets as presheaves</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#the-topos-theorem">The topos theorem</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#remarks">Remarks</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">The Category of Simploidal Sets</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/simploidal_category.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="the-category-of-simploidal-sets">
+<h1>The Category of Simploidal Sets<a class="headerlink" href="#the-category-of-simploidal-sets" title="Link to this heading"></a></h1>
+<p>Simplicial sets are presheaves on the simplex category <span class="math notranslate nohighlight">\(\Delta\)</span>, and a
+morphism of simplicial sets is a family of maps that commutes with all face
+and degeneracy operators.  This page sets up the same framework for the
+simploidal sets of <a class="reference internal" href="simploidal.html"><span class="doc">Single and assembled domains</span></a> <span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id45" title="Samuel Peltier, Laurent Fuchs, and Pascal Lienhardt. Simploidal sets: definitions, operations and comparison with simplicial sets. Discrete Applied Mathematics, 157(3):542–557, 2009.">PFL09</a>, <a class="reference internal" href="../references.html#id44" title="Samuel Peltier and Pascal Lienhardt. Simploidal sets: a data structure for handling simploidal bézier spaces. Computer Aided Geometric Design, 62:44–62, 2018. URL: https://doi.org/10.1016/j.cagd.2018.03.010.">PL18</a>]</span>
+and proves that <strong>the category of simploidal sets is a topos</strong>.  The argument
+is standard topos theory <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id46" title="Saunders Mac Lane and Ieke Moerdijk. Sheaves in Geometry and Logic: A First Introduction to Topos Theory. Universitext. Springer, 1992.">MLM92</a>]</span>; the only part specific
+to simploids is the description of the indexing category.</p>
+<p>Throughout, <span class="math notranslate nohighlight">\([k] = \{0, 1, \ldots, k\}\)</span>, and <span class="math notranslate nohighlight">\(\Delta\)</span> is the
+category of the ordered sets <span class="math notranslate nohighlight">\([k]\)</span> (<span class="math notranslate nohighlight">\(k \ge 0\)</span>) and monotone maps.</p>
+<p>For the geometric intuition, first read the
+<a class="reference internal" href="../whatis.html#simploidal-space-overview"><span class="std std-ref">square, prism and glued-patch figure</span></a>.
+This page describes the bookkeeping behind those pictures: a type names a
+product cell, face maps select its boundaries, and degeneracies describe
+collapsed directions. A presheaf records cells of every type together with
+consistent face and degeneracy operations. The topos statement concerns
+that category of combinatorial objects; it does not assert smoothness,
+injectivity or a regression accuracy guarantee for a fitted Bézier model.</p>
+<section id="the-simploid-category">
+<h2>The simploid category<a class="headerlink" href="#the-simploid-category" title="Link to this heading"></a></h2>
+<p>A type <span class="math notranslate nohighlight">\(\mathbf a = (a_1, \ldots, a_n)\)</span> with every <span class="math notranslate nohighlight">\(a_i \ge 1\)</span>
+(and <span class="math notranslate nohighlight">\(n \ge 0\)</span>; the empty type <span class="math notranslate nohighlight">\(()\)</span> is a vertex) stands for the
+simploid <span class="math notranslate nohighlight">\(\Delta^{\mathbf a} = \Delta^{a_1} \times \cdots \times \Delta^{a_n}\)</span>,
+whose vertex set is</p>
+<div class="math notranslate nohighlight">
+\[V(\mathbf a) = [a_1] \times \cdots \times [a_n].\]</div>
+<div class="proof definition admonition" id="def-simploid-category">
+<p class="admonition-title"><span class="caption-number">Definition 6 </span> (Simploid category)</p>
+<section class="definition-content" id="proof-content">
+<p>Let <span class="math notranslate nohighlight">\(\mathbf a = (a_1, \ldots, a_n)\)</span> and
+<span class="math notranslate nohighlight">\(\mathbf b = (b_1, \ldots, b_m)\)</span> be types.  A <em>simploidal map</em>
+<span class="math notranslate nohighlight">\(f: \mathbf a \to \mathbf b\)</span> is a map <span class="math notranslate nohighlight">\(f: V(\mathbf a) \to V(\mathbf b)\)</span>
+of the form</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}f(x)_l =
+\begin{cases}
+   g_l(x_{k_l}) &amp; (l \in L), \\
+   v_l &amp; (l \notin L),
+\end{cases}\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(L \subseteq \{1, \ldots, m\}\)</span>, the map
+<span class="math notranslate nohighlight">\(L \to \{1, \ldots, n\}\)</span>, <span class="math notranslate nohighlight">\(l \mapsto k_l\)</span> is strictly
+increasing, every <span class="math notranslate nohighlight">\(g_l: [a_{k_l}] \to [b_l]\)</span> is a <strong>non-constant</strong>
+monotone map, and every <span class="math notranslate nohighlight">\(v_l \in [b_l]\)</span> is a vertex.</p>
+<p>The <em>simploid category</em> <span class="math notranslate nohighlight">\(\mathbb S\)</span> has the types as objects and the
+simploidal maps as morphisms, composed as maps of sets.</p>
+</section>
+</div><p>In words: every factor of the target either follows exactly one factor of the
+source through a monotone map, or is constant; different target factors
+follow different source factors, and the order of the factors is kept.  A
+source factor that no target factor follows is projected away.</p>
+<p>Geometrically, <span class="math notranslate nohighlight">\(f\)</span> extends affinely to the map
+<span class="math notranslate nohighlight">\(\Delta^{\mathbf a} \to \Delta^{\mathbf b}\)</span> that sends
+<span class="math notranslate nohighlight">\((\mathbf u^1, \ldots, \mathbf u^n)\)</span> to the point whose <span class="math notranslate nohighlight">\(l\)</span>-th
+factor is <span class="math notranslate nohighlight">\(\sum_x u^{k_l}_x \mathbf e_{g_l(x)}\)</span> for <span class="math notranslate nohighlight">\(l \in L\)</span> and the
+vertex <span class="math notranslate nohighlight">\(\mathbf e_{v_l}\)</span> otherwise.  These are exactly the maps between
+simploids that faces and degeneracies generate (<a class="reference internal" href="#lem-generation">Lemma 8</a>).</p>
+<div class="proof lemma admonition" id="lem-small-category">
+<p class="admonition-title"><span class="caption-number">Lemma 7 </span></p>
+<section class="lemma-content" id="proof-content">
+<p><span class="math notranslate nohighlight">\(\mathbb S\)</span> is a small category.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. The identity of <span class="math notranslate nohighlight">\(V(\mathbf a)\)</span> is simploidal (<span class="math notranslate nohighlight">\(L\)</span> is everything,
+<span class="math notranslate nohighlight">\(k_l = l\)</span>, <span class="math notranslate nohighlight">\(g_l = \mathrm{id}\)</span>; <span class="math notranslate nohighlight">\(\mathrm{id}_{[a_l]}\)</span> is
+non-constant because <span class="math notranslate nohighlight">\(a_l \ge 1\)</span>).  Let
+<span class="math notranslate nohighlight">\(f: \mathbf a \to \mathbf b\)</span> and <span class="math notranslate nohighlight">\(h: \mathbf b \to \mathbf c\)</span> be
+simploidal, with data <span class="math notranslate nohighlight">\((L, k, g, v)\)</span> and <span class="math notranslate nohighlight">\((L', k', g', v')\)</span>.
+For a factor <span class="math notranslate nohighlight">\(p\)</span> of <span class="math notranslate nohighlight">\(\mathbf c\)</span>,</p>
+<ul class="simple">
+<li><p>if <span class="math notranslate nohighlight">\(p \notin L'\)</span>, then <span class="math notranslate nohighlight">\((h \circ f)(x)_p = v'_p\)</span> is constant;</p></li>
+<li><p>if <span class="math notranslate nohighlight">\(p \in L'\)</span> and <span class="math notranslate nohighlight">\(l = k'_p \notin L\)</span>, then
+<span class="math notranslate nohighlight">\((h \circ f)(x)_p = g'_p(v_l)\)</span> is constant;</p></li>
+<li><p>if <span class="math notranslate nohighlight">\(p \in L'\)</span> and <span class="math notranslate nohighlight">\(l = k'_p \in L\)</span>, then
+<span class="math notranslate nohighlight">\((h \circ f)(x)_p = (g'_p \circ g_l)(x_{k_l})\)</span>, where
+<span class="math notranslate nohighlight">\(g'_p \circ g_l\)</span> is monotone; it is either constant or
+non-constant.</p></li>
+</ul>
+<p>So <span class="math notranslate nohighlight">\(h \circ f\)</span> is simploidal, with <span class="math notranslate nohighlight">\(L''\)</span> the set of <span class="math notranslate nohighlight">\(p\)</span> of
+the last case with <span class="math notranslate nohighlight">\(g'_p \circ g_l\)</span> non-constant and
+<span class="math notranslate nohighlight">\(p \mapsto k_{k'_p}\)</span>, a composite of strictly increasing maps, as its
+index map.  Composition of maps of sets is associative and unital, and
+there are countably many types, each <span class="math notranslate nohighlight">\(V(\mathbf a)\)</span> being finite.</p>
+</div>
+<p>The faces and degeneracies of simploids are morphisms of <span class="math notranslate nohighlight">\(\mathbb S\)</span>.
+Write <span class="math notranslate nohighlight">\(\delta_j: [k - 1] \to [k]\)</span> for the monotone injection that skips
+<span class="math notranslate nohighlight">\(j\)</span>, and <span class="math notranslate nohighlight">\(\sigma_j: [k + 1] \to [k]\)</span> for the monotone surjection
+that hits <span class="math notranslate nohighlight">\(j\)</span> twice.</p>
+<div class="proof definition admonition" id="def-generators">
+<p class="admonition-title"><span class="caption-number">Definition 7 </span> (Coface and codegeneracy maps)</p>
+<section class="definition-content" id="proof-content">
+<p>Let <span class="math notranslate nohighlight">\(\mathbf a = (a_1, \ldots, a_n)\)</span>.</p>
+<ul class="simple">
+<li><p>For <span class="math notranslate nohighlight">\(1 \le i \le n\)</span> and <span class="math notranslate nohighlight">\(j \in [a_i]\)</span>, the <em>coface</em>
+<span class="math notranslate nohighlight">\(\delta^i_j\)</span> is the simploidal map into <span class="math notranslate nohighlight">\(\mathbf a\)</span> from the
+type <span class="math notranslate nohighlight">\(\partial^i \mathbf a\)</span> obtained by decreasing <span class="math notranslate nohighlight">\(a_i\)</span> by one
+and deleting it if it becomes zero.  It applies <span class="math notranslate nohighlight">\(\delta_j\)</span> to the
+<span class="math notranslate nohighlight">\(i\)</span>-th coordinate when <span class="math notranslate nohighlight">\(a_i \ge 2\)</span>, and inserts the constant
+coordinate <span class="math notranslate nohighlight">\(1 - j\)</span> as the <span class="math notranslate nohighlight">\(i\)</span>-th one when <span class="math notranslate nohighlight">\(a_i = 1\)</span>.</p></li>
+<li><p>For <span class="math notranslate nohighlight">\(1 \le i \le n\)</span> and <span class="math notranslate nohighlight">\(j \in [a_i]\)</span>, the <em>codegeneracy</em>
+<span class="math notranslate nohighlight">\(\sigma^i_j: (a_1, \ldots, a_i + 1, \ldots, a_n) \to \mathbf a\)</span>
+applies <span class="math notranslate nohighlight">\(\sigma_j\)</span> to the <span class="math notranslate nohighlight">\(i\)</span>-th coordinate.</p></li>
+<li><p>For <span class="math notranslate nohighlight">\(0 \le i \le n\)</span>, the <em>codegeneracy</em>
+<span class="math notranslate nohighlight">\(\sigma^i_{-1}: (a_1, \ldots, a_i, 1, a_{i+1}, \ldots, a_n) \to \mathbf a\)</span>
+forgets the inserted coordinate.</p></li>
+</ul>
+<p>All other coordinates are kept.  For a presheaf <span class="math notranslate nohighlight">\(X\)</span> on
+<span class="math notranslate nohighlight">\(\mathbb S\)</span> (see below), <span class="math notranslate nohighlight">\(d^i_j = X(\delta^i_j)\)</span> and
+<span class="math notranslate nohighlight">\(s^i_j = X(\sigma^i_j)\)</span> are the face and degeneracy operators of
+<a class="reference internal" href="simploidal.html"><span class="doc">Single and assembled domains</span></a>.</p>
+</section>
+</div><p>Indeed, <span class="math notranslate nohighlight">\(d^i_j\)</span> removes vertex <span class="math notranslate nohighlight">\(j\)</span> of the <span class="math notranslate nohighlight">\(i\)</span>-th factor (an
+edge factor disappears, leaving its other vertex <span class="math notranslate nohighlight">\(1 - j\)</span>), <span class="math notranslate nohighlight">\(s^i_j\)</span>
+repeats vertex <span class="math notranslate nohighlight">\(j\)</span> of the <span class="math notranslate nohighlight">\(i\)</span>-th factor, and <span class="math notranslate nohighlight">\(s^i_{-1}\)</span>
+inserts a degenerate edge after the <span class="math notranslate nohighlight">\(i\)</span>-th factor.  In <code class="docutils literal notranslate"><span class="pre">torch_bsf</span></code>,
+<code class="docutils literal notranslate"><span class="pre">face(i,</span> <span class="pre">j)</span></code> is <span class="math notranslate nohighlight">\(d^{i+1}_j\)</span>, <code class="docutils literal notranslate"><span class="pre">degeneracy(i,</span> <span class="pre">j)</span></code> is
+<span class="math notranslate nohighlight">\(s^{i+1}_j\)</span> for <span class="math notranslate nohighlight">\(j \ge 0\)</span>, and <code class="docutils literal notranslate"><span class="pre">degeneracy(i,</span> <span class="pre">-1)</span></code> is
+<span class="math notranslate nohighlight">\(s^i_{-1}\)</span>.  The <code class="docutils literal notranslate"><span class="pre">degeneracy_map</span></code> of a degenerate simploid records
+the composite codegeneracy from its type to the type of its base: for each
+factor, the factor of the base it follows and the monotone surjection, or
+<code class="docutils literal notranslate"><span class="pre">-1</span></code> when the factor is forgotten.</p>
+<div class="proof lemma admonition" id="lem-generation">
+<p class="admonition-title"><span class="caption-number">Lemma 8 </span> (Generation)</p>
+<section class="lemma-content" id="proof-content">
+<p>Every morphism of <span class="math notranslate nohighlight">\(\mathbb S\)</span> is a composite of cofaces and
+codegeneracies.  More precisely, every <span class="math notranslate nohighlight">\(f: \mathbf a \to \mathbf b\)</span>
+factors as <span class="math notranslate nohighlight">\(f = \mu \circ \varepsilon\)</span>, where <span class="math notranslate nohighlight">\(\varepsilon\)</span> is a
+composite of codegeneracies and <span class="math notranslate nohighlight">\(\mu\)</span> a composite of cofaces.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Let <span class="math notranslate nohighlight">\((L, k, g, v)\)</span> be the data of <span class="math notranslate nohighlight">\(f\)</span>, and
+<span class="math notranslate nohighlight">\(L = \{l_1 &lt; \cdots &lt; l_r\}\)</span>.  In <span class="math notranslate nohighlight">\(\Delta\)</span>, factor each
+<span class="math notranslate nohighlight">\(g_{l_t}\)</span> as a surjection <span class="math notranslate nohighlight">\(\pi_t: [a_{k_{l_t}}] \to [c_t]\)</span>
+followed by an injection <span class="math notranslate nohighlight">\(\iota_t: [c_t] \to [b_{l_t}]\)</span>; then
+<span class="math notranslate nohighlight">\(c_t \ge 1\)</span> because <span class="math notranslate nohighlight">\(g_{l_t}\)</span> is not constant.  With
+<span class="math notranslate nohighlight">\(\mathbf c = (c_1, \ldots, c_r)\)</span>, let</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\varepsilon: \mathbf a \to \mathbf c\)</span> be the simploidal map with
+<span class="math notranslate nohighlight">\(\varepsilon(x)_t = \pi_t(x_{k_{l_t}})\)</span>, and</p></li>
+<li><p><span class="math notranslate nohighlight">\(\mu: \mathbf c \to \mathbf b\)</span> the simploidal map with
+<span class="math notranslate nohighlight">\(\mu(y)_{l_t} = \iota_t(y_t)\)</span> and <span class="math notranslate nohighlight">\(\mu(y)_l = v_l\)</span> for
+<span class="math notranslate nohighlight">\(l \notin L\)</span>.</p></li>
+</ul>
+<p>Then <span class="math notranslate nohighlight">\(f = \mu \circ \varepsilon\)</span>.  Both maps act factor by factor, so
+it suffices to realize each factor with generators that only touch that
+factor.  Recall that in <span class="math notranslate nohighlight">\(\Delta\)</span> every surjection is a composite of
+maps <span class="math notranslate nohighlight">\(\sigma_j\)</span> and every injection one of maps <span class="math notranslate nohighlight">\(\delta_j\)</span>
+<span class="bibtex-citation" id="id3">[<a class="reference internal" href="../references.html#id47" title="Saunders Mac Lane. Categories for the Working Mathematician. Volume 5 of Graduate Texts in Mathematics. Springer, 2 edition, 1998.">ML98</a>]</span>.</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\varepsilon\)</span>: on a kept factor <span class="math notranslate nohighlight">\(k_{l_t}\)</span>, write
+<span class="math notranslate nohighlight">\(\pi_t\)</span> as a composite of maps <span class="math notranslate nohighlight">\(\sigma_j\)</span>, i.e. of
+codegeneracies <span class="math notranslate nohighlight">\(\sigma^{k_{l_t}}_j\)</span>.  A factor <span class="math notranslate nohighlight">\(k\)</span> that is
+not kept is first collapsed to <span class="math notranslate nohighlight">\([1]\)</span> by a surjection
+<span class="math notranslate nohighlight">\([a_k] \to [1]\)</span> (codegeneracies <span class="math notranslate nohighlight">\(\sigma^k_j\)</span>) and then
+forgotten by a codegeneracy <span class="math notranslate nohighlight">\(\sigma^{k-1}_{-1}\)</span>.</p></li>
+<li><p><span class="math notranslate nohighlight">\(\mu\)</span>: on a factor <span class="math notranslate nohighlight">\(l_t\)</span>, write <span class="math notranslate nohighlight">\(\iota_t\)</span> as a
+composite of maps <span class="math notranslate nohighlight">\(\delta_j\)</span>, i.e. of cofaces <span class="math notranslate nohighlight">\(\delta^l_j\)</span>
+with <span class="math notranslate nohighlight">\(a_l \ge 2\)</span>.  A constant factor <span class="math notranslate nohighlight">\(l \notin L\)</span> is inserted
+by a coface <span class="math notranslate nohighlight">\(\delta^l_{1 - w}\)</span> (into an edge factor, at vertex
+<span class="math notranslate nohighlight">\(w \in [1]\)</span>), followed by cofaces along an injection
+<span class="math notranslate nohighlight">\([1] \to [b_l]\)</span> sending <span class="math notranslate nohighlight">\(w\)</span> to <span class="math notranslate nohighlight">\(v_l\)</span>, which exists
+because <span class="math notranslate nohighlight">\(b_l \ge 1\)</span>.</p></li>
+</ul>
+</div>
+</section>
+<section id="simploidal-sets-as-presheaves">
+<h2>Simploidal sets as presheaves<a class="headerlink" href="#simploidal-sets-as-presheaves" title="Link to this heading"></a></h2>
+<div class="proof definition admonition" id="def-simploidal-set">
+<p class="admonition-title"><span class="caption-number">Definition 8 </span> (Simploidal sets)</p>
+<section class="definition-content" id="proof-content">
+<p>A <em>simploidal set</em> is a presheaf on <span class="math notranslate nohighlight">\(\mathbb S\)</span>, i.e. a functor
+<span class="math notranslate nohighlight">\(X: \mathbb S^{\mathrm{op}} \to \mathbf{Set}\)</span>; <span class="math notranslate nohighlight">\(X_{\mathbf a}\)</span>
+is its set of simploids of type <span class="math notranslate nohighlight">\(\mathbf a\)</span>.  A <em>morphism of
+simploidal sets</em> is a natural transformation.  They form the category
+<span class="math notranslate nohighlight">\(\mathbf{sSpd} = \mathbf{Set}^{\mathbb S^{\mathrm{op}}}\)</span>.</p>
+</section>
+</div><p>The <em>standard simploid</em> of type <span class="math notranslate nohighlight">\(\mathbf a\)</span> is the representable
+presheaf <span class="math notranslate nohighlight">\(\Delta^{\mathbf a} = \mathbb S(-, \mathbf a)\)</span>, the
+analogue of the standard simplex <span class="math notranslate nohighlight">\(\Delta^n = \Delta(-, [n])\)</span>.  By the
+Yoneda lemma, the simploids of type <span class="math notranslate nohighlight">\(\mathbf a\)</span> of <span class="math notranslate nohighlight">\(X\)</span> are the
+morphisms <span class="math notranslate nohighlight">\(\Delta^{\mathbf a} \to X\)</span>.</p>
+<div class="proof corollary admonition" id="cor-morphisms">
+<p class="admonition-title"><span class="caption-number">Corollary 20 </span></p>
+<section class="corollary-content" id="proof-content">
+<p>A family of maps <span class="math notranslate nohighlight">\(\phi_{\mathbf a}: X_{\mathbf a} \to Y_{\mathbf a}\)</span>
+between simploidal sets is a morphism if and only if it commutes with all
+face operators <span class="math notranslate nohighlight">\(d^i_j\)</span> and all degeneracy operators <span class="math notranslate nohighlight">\(s^i_j\)</span>.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Naturality with respect to every generator implies naturality with respect
+to their composites, which are all morphisms by <a class="reference internal" href="#lem-generation">Lemma 8</a>.</p>
+</div>
+<p>So <span class="math notranslate nohighlight">\(\mathbf{sSpd}\)</span> is the analogue of the category of simplicial sets
+that the corollary describes: graded sets with face and degeneracy operators,
+and the maps that commute with them.</p>
+<div class="proof remark admonition" id="remark-6">
+<p class="admonition-title"><span class="caption-number">Remark 2 </span> (The axiomatic definition)</p>
+<section class="remark-content" id="proof-content">
+<p><span class="bibtex-citation" id="id4">Peltier and Lienhardt [<a class="reference internal" href="../references.html#id44" title="Samuel Peltier and Pascal Lienhardt. Simploidal sets: a data structure for handling simploidal bézier spaces. Computer Aided Geometric Design, 62:44–62, 2018. URL: https://doi.org/10.1016/j.cagd.2018.03.010.">PL18</a>]</span> (Definition 1) define a simploidal set
+axiomatically, as graded sets with operators <span class="math notranslate nohighlight">\(d^i_j\)</span> and
+<span class="math notranslate nohighlight">\(s^i_j\)</span> that satisfy a list of equations.  Such data are exactly
+the presheaves on the category <span class="math notranslate nohighlight">\(\mathbb P\)</span> <em>presented</em> by the cofaces
+and codegeneracies as generators and those equations as relations: a
+functor out of a presented category is the same as an assignment of the
+generators that satisfies the relations.  <span class="math notranslate nohighlight">\(\mathbb P\)</span> is small, so
+the theorem below applies to it as well; therefore the category of
+simploidal sets is a topos with either definition.</p>
+<p>The equations hold in <span class="math notranslate nohighlight">\(\mathbb S\)</span>, since they are relations among
+the faces and degeneracies of standard simploids, so there is a functor
+<span class="math notranslate nohighlight">\(\mathbb P \to \mathbb S\)</span> that is the identity on objects.  It is
+full by <a class="reference internal" href="#lem-generation">Lemma 8</a>.  It is faithful precisely when the
+equations are a complete presentation of <span class="math notranslate nohighlight">\(\mathbb S\)</span>, the analogue
+of the simplicial identities presenting <span class="math notranslate nohighlight">\(\Delta\)</span>; the topos
+property does not depend on this.</p>
+</section>
+</div></section>
+<section id="the-topos-theorem">
+<h2>The topos theorem<a class="headerlink" href="#the-topos-theorem" title="Link to this heading"></a></h2>
+<div class="proof theorem admonition" id="thm-topos">
+<p class="admonition-title"><span class="caption-number">Theorem 37 </span></p>
+<section class="theorem-content" id="proof-content">
+<p>For every small category <span class="math notranslate nohighlight">\(\mathcal C\)</span>, the presheaf category
+<span class="math notranslate nohighlight">\(\widehat{\mathcal C} = \mathbf{Set}^{\mathcal C^{\mathrm{op}}}\)</span>
+is an elementary topos.  In particular, the category <span class="math notranslate nohighlight">\(\mathbf{sSpd}\)</span>
+of simploidal sets is a topos (indeed a Grothendieck topos).</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. We write <span class="math notranslate nohighlight">\(y c = \mathcal C(-, c)\)</span> for the Yoneda embedding and use the
+Yoneda lemma: elements <span class="math notranslate nohighlight">\(x \in X(c)\)</span> correspond to morphisms
+<span class="math notranslate nohighlight">\(\hat x: y c \to X\)</span>, with <span class="math notranslate nohighlight">\(\hat x_{c'}(f) = X(f)(x)\)</span>.</p>
+<p><em>Finite limits.</em>  Limits of presheaves exist and are computed objectwise,
+<span class="math notranslate nohighlight">\((\lim X_i)(c) = \lim X_i(c)\)</span>, because limits in <span class="math notranslate nohighlight">\(\mathbf{Set}\)</span>
+commute with the restriction maps.</p>
+<p><em>Exponentials.</em>  For presheaves <span class="math notranslate nohighlight">\(X, Y\)</span>, put
+<span class="math notranslate nohighlight">\(Y^X(c) = \widehat{\mathcal C}(y c \times X, Y)\)</span>, with
+<span class="math notranslate nohighlight">\(Y^X(f)(\theta) = \theta \circ (y f \times X)\)</span> for
+<span class="math notranslate nohighlight">\(f: c' \to c\)</span>.  For every presheaf <span class="math notranslate nohighlight">\(Z\)</span> there is a bijection,
+natural in <span class="math notranslate nohighlight">\(Z\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[\widehat{\mathcal C}(Z \times X, Y) \cong \widehat{\mathcal C}(Z, Y^X).\]</div>
+<p>It sends <span class="math notranslate nohighlight">\(\phi\)</span> to <span class="math notranslate nohighlight">\(\psi\)</span> with
+<span class="math notranslate nohighlight">\(\psi_c(z) = \phi \circ (\hat z \times X)\)</span>; conversely <span class="math notranslate nohighlight">\(\psi\)</span>
+goes to <span class="math notranslate nohighlight">\(\phi_c(z, x) = \psi_c(z)_c(\mathrm{id}_c, x)\)</span>.  Starting from
+<span class="math notranslate nohighlight">\(\phi\)</span>, we get back
+<span class="math notranslate nohighlight">\(\phi \circ (\hat z \times X)\)</span> evaluated at
+<span class="math notranslate nohighlight">\((\mathrm{id}_c, x)\)</span>, which is <span class="math notranslate nohighlight">\(\phi_c(z, x)\)</span> since
+<span class="math notranslate nohighlight">\(\hat z_c(\mathrm{id}_c) = z\)</span>.  Starting from <span class="math notranslate nohighlight">\(\psi\)</span>, the
+naturality of <span class="math notranslate nohighlight">\(\psi\)</span> gives, for <span class="math notranslate nohighlight">\(f: c' \to c\)</span> and
+<span class="math notranslate nohighlight">\(x \in X(c')\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[\psi_c(z)_{c'}(f, x)
+= \bigl(Y^X(f)\,\psi_c(z)\bigr)_{c'}(\mathrm{id}_{c'}, x)
+= \psi_{c'}(Z(f) z)_{c'}(\mathrm{id}_{c'}, x)
+= \phi_{c'}(Z(f) z, x)
+= \bigl(\phi \circ (\hat z \times X)\bigr)_{c'}(f, x),\]</div>
+<p>so the two assignments are mutually inverse.  Hence
+<span class="math notranslate nohighlight">\(\widehat{\mathcal C}\)</span> is cartesian closed.</p>
+<p><em>Subobject classifier.</em>  A <em>sieve</em> on <span class="math notranslate nohighlight">\(c\)</span> is a set <span class="math notranslate nohighlight">\(S\)</span> of
+morphisms with codomain <span class="math notranslate nohighlight">\(c\)</span> such that <span class="math notranslate nohighlight">\(g \in S\)</span> implies
+<span class="math notranslate nohighlight">\(g \circ h \in S\)</span> for every composable <span class="math notranslate nohighlight">\(h\)</span>.  Let
+<span class="math notranslate nohighlight">\(\Omega(c)\)</span> be the set of sieves on <span class="math notranslate nohighlight">\(c\)</span>, with
+<span class="math notranslate nohighlight">\(\Omega(f)(S) = f^* S = \{h \mid f \circ h \in S\}\)</span>, and let
+<span class="math notranslate nohighlight">\(\top: 1 \to \Omega\)</span> pick the maximal sieve <span class="math notranslate nohighlight">\(t_c\)</span> of all
+morphisms into <span class="math notranslate nohighlight">\(c\)</span>.  Note that <span class="math notranslate nohighlight">\(f \in S\)</span> if and only if
+<span class="math notranslate nohighlight">\(f^* S = t_{c'}\)</span>, because a sieve containing an identity is maximal.</p>
+<p>Let <span class="math notranslate nohighlight">\(A \subseteq X\)</span> be a subpresheaf (every monomorphism of presheaves
+is objectwise injective, hence isomorphic to one).  Define</p>
+<div class="math notranslate nohighlight">
+\[\chi_c(x) = \{f: c' \to c \mid X(f)(x) \in A(c')\}.\]</div>
+<p>This is a sieve because <span class="math notranslate nohighlight">\(A\)</span> is closed under restriction, and
+<span class="math notranslate nohighlight">\(\chi\)</span> is natural:
+<span class="math notranslate nohighlight">\(f^* \chi_c(x) = \{h \mid X(h) X(f) x \in A\} = \chi_{c'}(X(f) x)\)</span>.
+Moreover <span class="math notranslate nohighlight">\(\chi_c(x) = t_c\)</span> if and only if
+<span class="math notranslate nohighlight">\(\mathrm{id}_c \in \chi_c(x)\)</span>, i.e. <span class="math notranslate nohighlight">\(x \in A(c)\)</span>, so
+<span class="math notranslate nohighlight">\(A\)</span> is the pullback of <span class="math notranslate nohighlight">\(\top\)</span> along <span class="math notranslate nohighlight">\(\chi\)</span>.
+Conversely, if <span class="math notranslate nohighlight">\(\chi'\)</span> is any morphism along which <span class="math notranslate nohighlight">\(A\)</span> is the
+pullback of <span class="math notranslate nohighlight">\(\top\)</span>, then for <span class="math notranslate nohighlight">\(f: c' \to c\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[f \in \chi'_c(x)
+\iff f^* \chi'_c(x) = t_{c'}
+\iff \chi'_{c'}(X(f) x) = t_{c'}
+\iff X(f) x \in A(c')
+\iff f \in \chi_c(x),\]</div>
+<p>so <span class="math notranslate nohighlight">\(\chi' = \chi\)</span>.  Thus <span class="math notranslate nohighlight">\(\Omega\)</span> is a subobject classifier.</p>
+<p>A category with finite limits, exponentials and a subobject classifier is
+an elementary topos.  <span class="math notranslate nohighlight">\(\mathbb S\)</span> is small by
+<a class="reference internal" href="#lem-small-category">Lemma 7</a>, so <span class="math notranslate nohighlight">\(\mathbf{sSpd}\)</span> is a topos.
+Presheaf categories are also the Grothendieck toposes of sheaves for the
+trivial topology <span class="bibtex-citation" id="id5">[<a class="reference internal" href="../references.html#id46" title="Saunders Mac Lane and Ieke Moerdijk. Sheaves in Geometry and Logic: A First Introduction to Topos Theory. Universitext. Springer, 1992.">MLM92</a>]</span>.</p>
+</div>
+<p>For simploidal sets, <span class="math notranslate nohighlight">\(\Omega_{\mathbf a}\)</span> is the set of sieves on the
+type <span class="math notranslate nohighlight">\(\mathbf a\)</span>.  For example, every type <span class="math notranslate nohighlight">\(\mathbf b\)</span> has a
+morphism to every other type (a constant one), so a sieve on the vertex type
+<span class="math notranslate nohighlight">\(()\)</span> is empty or maximal: a vertex has just the two truth values
+“false” and “true”.  Higher simploids have many more truth values, such as
+“true on this face only”.</p>
+</section>
+<section id="remarks">
+<h2>Remarks<a class="headerlink" href="#remarks" title="Link to this heading"></a></h2>
+<p><strong>Simplicial and cubical sets.</strong>  The full subcategory of <span class="math notranslate nohighlight">\(\mathbb S\)</span>
+on the types of length at most one is isomorphic to <span class="math notranslate nohighlight">\(\Delta\)</span>
+(<span class="math notranslate nohighlight">\(()\)</span> is <span class="math notranslate nohighlight">\([0]\)</span> and <span class="math notranslate nohighlight">\((a)\)</span> is <span class="math notranslate nohighlight">\([a]\)</span>): a simploidal map
+<span class="math notranslate nohighlight">\((a) \to (b)\)</span> is either constant or a non-constant monotone map, i.e.
+any monotone map.  Likewise, the full subcategory on the types
+<span class="math notranslate nohighlight">\((1, \ldots, 1)\)</span> is the cube category with faces and degeneracies only
+(no connections, symmetries or reversals) <span class="bibtex-citation" id="id6">[<a class="reference internal" href="../references.html#id48" title="Marco Grandis and Luca Mauri. Cubical sets and their site. Theory and Applications of Categories, 11(8):185–211, 2003.">GM03</a>]</span>,
+because the only non-constant monotone map <span class="math notranslate nohighlight">\([1] \to [1]\)</span> is the
+identity.  Restricting a simploidal set to these subcategories gives its
+underlying simplicial and cubical sets; as restrictions along functors
+between small categories, these functors have both a left and a right
+adjoint (left and right Kan extension), so they are the inverse image parts
+of essential geometric morphisms.</p>
+<p><strong>Two different products.</strong>  The product of the topos is computed type by
+type, <span class="math notranslate nohighlight">\((X \times Y)_{\mathbf a} = X_{\mathbf a} \times Y_{\mathbf a}\)</span>,
+and it is <strong>not</strong> the cartesian product of simploids.  For instance,
+<span class="math notranslate nohighlight">\(\Delta^{(1)} \times \Delta^{(1)} \ne \Delta^{(1, 1)}\)</span>: the former has
+the “diagonal” edge <span class="math notranslate nohighlight">\((\mathrm{id}, \mathrm{id})\)</span> of type <span class="math notranslate nohighlight">\((1)\)</span>,
+nine edges in total including degenerate ones, whereas a simploidal map
+<span class="math notranslate nohighlight">\((1) \to (1, 1)\)</span> follows the single source factor with at most one
+target factor, so the square <span class="math notranslate nohighlight">\(\Delta^{(1, 1)}\)</span> has only eight.  The
+product of simploids is instead the concatenation of types,
+<span class="math notranslate nohighlight">\(\mathbf a \cdot \mathbf b\)</span>, which is a functor
+<span class="math notranslate nohighlight">\(\mathbb S \times \mathbb S \to \mathbb S\)</span> (apply two simploidal maps
+side by side) and makes <span class="math notranslate nohighlight">\(\mathbb S\)</span> strict monoidal with unit
+<span class="math notranslate nohighlight">\(()\)</span>.  By Day convolution <span class="bibtex-citation" id="id7">[<a class="reference internal" href="../references.html#id49" title="Brian Day. On closed categories of functors. In Reports of the Midwest Category Seminar IV, volume 137 of Lecture Notes in Mathematics, 1–38. Springer, 1970.">Day70</a>]</span> it extends to a
+monoidal structure <span class="math notranslate nohighlight">\(\otimes\)</span> on <span class="math notranslate nohighlight">\(\mathbf{sSpd}\)</span> with
+<span class="math notranslate nohighlight">\(\Delta^{\mathbf a} \otimes \Delta^{\mathbf b} = \Delta^{\mathbf a \cdot \mathbf b}\)</span>;
+this is the product that Bézier simploids model.</p>
+<p><strong>Conditions that break the topos structure.</strong>  Data structures often
+restrict to simploidal sets with extra properties, e.g. that the faces of a
+simploid are pairwise distinct.  Such full subcategories are typically not
+closed under the colimits of <span class="math notranslate nohighlight">\(\mathbf{sSpd}\)</span> (gluing two faces of one
+simploid is a colimit that violates the condition), so the theorem does not
+apply to them; it concerns the category of all simploidal sets.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="splitting.html" class="btn btn-neutral float-left" title="Exact local subdivision" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="initial_models.html" class="btn btn-neutral float-right" title="Explicit initial models" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: feat/risk-comparisons-through-thirty
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/advanced/simploidal_category.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/advanced/simploidal_category.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/advanced/simploidal_category.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/advanced/simploidal_category.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/advanced/simploidal_category.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/advanced/simploidal_category.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="simploidal_category.html">feat/risk-comparisons-through-thirty</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

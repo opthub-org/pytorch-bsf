@@ -1,0 +1,902 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Objective minimization &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Scikit-learn integration" href="sklearn.html" />
+    <link rel="prev" title="Explicit initial models" href="initial_models.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Objective minimization</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#the-algorithm">The algorithm</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#historical-benchmark-figures">Historical benchmark figures</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#benchmarks-sgd-vs-psgd">Benchmarks: SGD vs. PSGD</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#non-convex-objectives-transforming-the-skew-mmd">Non-convex objectives: transforming the skew-MMD</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#a-practical-optimization-workflow">A practical optimization workflow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#adjust-settings-in-a-controlled-order">Adjust settings in a controlled order</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#fixed-samples-and-the-continuous-domain-goal">Fixed samples and the continuous-domain goal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#preconditioning-penalties-and-exact-controls">Preconditioning, penalties and exact controls</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#read-histories-and-termination-honestly">Read histories and termination honestly</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#a-checklist-for-a-new-objective">A checklist for a new objective</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#preconditioner-storage-and-repeated-solves">Preconditioner storage and repeated solves</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Objective minimization</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/objective_minimization.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="objective-minimization">
+<h1>Objective minimization<a class="headerlink" href="#objective-minimization" title="Link to this heading"></a></h1>
+<p>Regression and differentiable objective minimization are separate problems:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">BezierModel</span><span class="p">,</span> <span class="n">minimize</span><span class="p">,</span> <span class="n">PreconditionedSGD</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">linear_scalarization</span>
+
+<span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">initial</span> <span class="o">=</span> <span class="n">BezierModel</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">space</span><span class="o">.</span><span class="n">n_controls</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">objectives</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([(</span><span class="n">x</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="p">(</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span><span class="n">initial</span><span class="p">,</span> <span class="n">linear_scalarization</span><span class="p">(</span><span class="n">objectives</span><span class="p">),</span> <span class="n">seed</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+                  <span class="n">method</span><span class="o">=</span><span class="n">PreconditionedSGD</span><span class="p">(</span><span class="n">max_iter</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">gradient_tolerance</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">))</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">loss(predicted_values,</span> <span class="pre">points)</span></code> returns one differentiable scalar per row.
+<code class="docutils literal notranslate"><span class="pre">minimize</span></code> copies the initial model. Exact domain Gram preconditioning,
+minibatches, quadratic penalties and explicit fixed controls are available.
+The method does not require Lightning. Float16/bfloat16 initial models are copied
+and promoted to float32 on the same device for basis evaluation, gradients
+and metric solves. The returned model then has float32 coefficients.</p>
+<p>History records pre-update losses and gradient norms. Iteration-budget
+exhaustion and callback stops do not establish convergence. Only a checked
+full-sample gradient tolerance or all-fixed problem yields <code class="docutils literal notranslate"><span class="pre">success=True</span></code>.
+The final objective is evaluated on the complete fixed sample set.</p>
+<section id="the-algorithm">
+<h2>The algorithm<a class="headerlink" href="#the-algorithm" title="Link to this heading"></a></h2>
+<p>Let <span class="math notranslate nohighlight">\(f = (f_1, \ldots, f_M): \mathbb R^L \to \mathbb R^M\)</span> be the
+objectives and <span class="math notranslate nohighlight">\(b(\mathbf t \mid P) = P^\top \mathbf z(\mathbf t)\)</span> a
+Bézier simplex of degree <span class="math notranslate nohighlight">\(D\)</span> on <span class="math notranslate nohighlight">\(\Delta^{M-1}\)</span>, where
+<span class="math notranslate nohighlight">\(\mathbf z(\mathbf t)\)</span> is the vector of the Bernstein basis
+polynomials.  The paper minimizes the linear scalarization weighted by the
+parameter itself, averaged over the simplex:</p>
+<div class="math notranslate nohighlight">
+\[\mathcal L(P) = \mathbb E_{\mathbf t \sim U(\Delta^{M-1})}\bigl[\mathbf t^\top f(b(\mathbf t \mid P))\bigr].\]</div>
+<p>For strongly convex objectives, the minimizer of
+<span class="math notranslate nohighlight">\(\mathbf t^\top f(\mathbf x)\)</span> traces the whole Pareto set as
+<span class="math notranslate nohighlight">\(\mathbf t\)</span> moves on the simplex, so the minimizer of
+<span class="math notranslate nohighlight">\(\mathcal L\)</span> approximates the Pareto set, parametrized by the weight.</p>
+<p>The expectation is replaced by the mean over <span class="math notranslate nohighlight">\(n\)</span> fixed samples
+<span class="math notranslate nohighlight">\(\mathbf t_1, \ldots, \mathbf t_n\)</span>, and the control points are updated on
+minibatches <span class="math notranslate nohighlight">\(B\)</span> of them:</p>
+<div class="math notranslate nohighlight">
+\[P^{(k+1)} = P^{(k)} - \alpha_k \Sigma^{-1} \nabla \mathcal L_B(P^{(k)}),
+\qquad
+\Sigma = \mathbb E_{\mathbf t \sim U(\Delta^{M-1})}\bigl[\mathbf z(\mathbf t)\,\mathbf z(\mathbf t)^\top\bigr].\]</div>
+<p>The preconditioner <span class="math notranslate nohighlight">\(\Sigma^{-1}\)</span> turns the step into the one that
+minimizes the linearized loss plus
+<span class="math notranslate nohighlight">\(\frac{1}{2\alpha_k}\mathbb E_{\mathbf t}\|b(\mathbf t \mid P) - b(\mathbf t \mid P^{(k)})\|^2\)</span>:
+it measures how far the <em>surface</em> moves rather than how far its control
+points move.  The paper proves that this converges faster than plain SGD
+(<span class="math notranslate nohighlight">\(\Sigma = I\)</span>), whose steps are distorted by the ill-conditioning of the
+Bernstein basis.  <a class="reference internal" href="../api.html#torch_bsf.optimization.gram_matrix" title="torch_bsf.optimization.gram_matrix"><code class="xref py py-func docutils literal notranslate"><span class="pre">gram_matrix()</span></code></a> computes
+<span class="math notranslate nohighlight">\(\Sigma\)</span> exactly, for the configured cell distribution.</p>
+</section>
+<section id="historical-benchmark-figures">
+<h2>Historical benchmark figures<a class="headerlink" href="#historical-benchmark-figures" title="Link to this heading"></a></h2>
+<p>The figures below were generated before the unified API migration. They
+illustrate the research problems and are not performance measurements of this
+release. The migrated script can generate fresh figures and metrics.</p>
+</section>
+<section id="benchmarks-sgd-vs-psgd">
+<h2>Benchmarks: SGD vs. PSGD<a class="headerlink" href="#benchmarks-sgd-vs-psgd" title="Link to this heading"></a></h2>
+<p>The script <code class="docutils literal notranslate"><span class="pre">examples/sgd_benchmarks.py</span></code> reproduces the experiments of
+Section 5 of <span class="bibtex-citation" id="id1">Hikima <em>et al.</em> [<a class="reference internal" href="../references.html#id15" title="Yasunari Hikima, Ken Kobayashi, Akinori Tanaka, Akiyoshi Sannai, and Naoki Hamada. Stochastic gradient descent for bézier simplex representation of pareto set in multi-objective optimization. In Proceedings of The 28th International Conference on Artificial Intelligence and Statistics, volume 258 of Proceedings of Machine Learning Research. 2025. URL: https://proceedings.mlr.press/v258/hikima25a.html.">HKT+25</a>]</span> with <code class="xref py py-func docutils literal notranslate"><span class="pre">minimize()</span></code>,
+comparing plain SGD (<code class="docutils literal notranslate"><span class="pre">preconditioner=&quot;none&quot;</span></code>) with the preconditioned SGD
+of the paper (PSGD, <code class="docutils literal notranslate"><span class="pre">preconditioner=&quot;gram&quot;</span></code>).  The problems are implemented
+from their definitions in the paper:</p>
+<ul class="simple">
+<li><p><strong>Bergou2020</strong> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id35" title="El Houcine Bergou, Youssef Diouane, and Vyacheslav Kungurtsev. Complexity iteration analysis for strongly convex multi-objective optimization using a newton path-following procedure. Optimization Letters, 15:1215–1227, 2021. doi:10.1007/s11590-020-01623-x.">BDK21</a>]</span> (<span class="math notranslate nohighlight">\(M = 2\)</span>, <span class="math notranslate nohighlight">\(L = 2\)</span>):
+<span class="math notranslate nohighlight">\(f_1(\mathbf x) = (x_1 - 1)^2 + (x_1 - x_2)^2\)</span> and
+<span class="math notranslate nohighlight">\(f_2(\mathbf x) = (x_2 - 3)^2 + (x_1 - x_2)^2\)</span>.</p></li>
+<li><p><strong>Scaled-MED</strong> (<span class="math notranslate nohighlight">\(M = 3\)</span>, <span class="math notranslate nohighlight">\(L = 3\)</span>):
+<span class="math notranslate nohighlight">\(f_1(\mathbf x) = x_1^2 + 3(x_2 - 1)^2 + 2(x_3 - 1)^2\)</span>,
+<span class="math notranslate nohighlight">\(f_2(\mathbf x) = 2(x_1 - 1)^2 + x_2^2 + 3(x_3 - 1)^2\)</span> and
+<span class="math notranslate nohighlight">\(f_3(\mathbf x) = 3(x_1 - 1)^2 + 2(x_2 - 1)^2 + (x_3 + 1)^2\)</span>.</p></li>
+<li><p><strong>Skew-MMD</strong> (<span class="math notranslate nohighlight">\(M = 3\)</span>, <span class="math notranslate nohighlight">\(L = 3\)</span>):
+<span class="math notranslate nohighlight">\(f_i(\mathbf x) = \|A_i(\mathbf x - \mathbf e_i)\|_2^{p_i}\)</span> with
+<span class="math notranslate nohighlight">\(A_1 = \operatorname{diag}(3/5, 4/5, 4/5)\)</span>,
+<span class="math notranslate nohighlight">\(A_2 = \operatorname{diag}(4/5, 3/5, 4/5)\)</span>,
+<span class="math notranslate nohighlight">\(A_3 = \operatorname{diag}(4/5, 4/5, 3/5)\)</span> and
+<span class="math notranslate nohighlight">\(p_i = \exp(2(i - 1)/(M - 1) - 1)\)</span>.</p></li>
+<li><p><strong>Skew-MMD, transformed</strong> (<span class="math notranslate nohighlight">\(M = 3\)</span>, <span class="math notranslate nohighlight">\(L = 3\)</span>, not in the paper):
+<span class="math notranslate nohighlight">\(g_i(\mathbf x) = f_i(\mathbf x)^{2/p_i} = \|A_i(\mathbf x - \mathbf e_i)\|_2^2\)</span>
+with the <span class="math notranslate nohighlight">\(f_i\)</span> of the skew-MMD, which has the same Pareto set (see
+<a class="reference internal" href="#non-convex-objectives-transforming-the-skew-mmd">Non-convex objectives: transforming the skew-MMD</a>).</p></li>
+<li><p><strong>Location problem</strong> (<span class="math notranslate nohighlight">\(M = 3\)</span>, <span class="math notranslate nohighlight">\(L = 4\)</span>):
+<span class="math notranslate nohighlight">\(f_i(\mathbf x) = \|\mathbf x - \mathbf e_i\|_2^2\)</span>, whose Pareto set is
+the triangle spanned by <span class="math notranslate nohighlight">\(\mathbf e_1, \mathbf e_2, \mathbf e_3\)</span>.</p></li>
+</ul>
+<p>The settings are those of the paper: <span class="math notranslate nohighlight">\(P_0 = O\)</span>, <span class="math notranslate nohighlight">\(n = 100\)</span> samples,
+minibatches of <span class="math notranslate nohighlight">\(m = 20\)</span>, <span class="math notranslate nohighlight">\(K = 100\)</span> iterations with the constant
+step size <span class="math notranslate nohighlight">\(\alpha = 0.05\)</span>, the degrees <span class="math notranslate nohighlight">\(D \in \{2, 3, 4\}\)</span>, and 5
+trials with different samples, SGD and PSGD sharing the samples of a trial.
+The losses are recorded with <code class="docutils literal notranslate"><span class="pre">callback</span></code> as in
+the explicit optimizer callback: the empirical loss on the
+<span class="math notranslate nohighlight">\(n\)</span> samples and the generalization loss on 10,000 other samples.  The
+script plots with matplotlib and SciPy, which the <code class="docutils literal notranslate"><span class="pre">plot</span></code> extra installs.  In
+a clone of the repository, run</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[plot]"</span>
+python<span class="w"> </span>examples/sgd_benchmarks.py
+</pre></div>
+</div>
+<p>to write the figures below to <code class="docutils literal notranslate"><span class="pre">docs/_static/</span></code>; it takes less than a minute
+on a CPU.</p>
+<p>For all the problems but the skew-MMD, the objectives are quadratic, so <span class="math notranslate nohighlight">\(\mathcal L(P)\)</span> is a quadratic function of the control
+points, and the script computes its minimizer <span class="math notranslate nohighlight">\(P^*\)</span> over the Bézier
+simplices of degree <span class="math notranslate nohighlight">\(D\)</span> exactly (by Newton’s method, on the <span class="math notranslate nohighlight">\(n\)</span>
+samples for the empirical loss and on the 10,000 samples for the
+generalization loss).  The figures show the optimality gap
+<span class="math notranslate nohighlight">\(\mathcal L(P^{(k)}) - \mathcal L(P^*)\)</span>, the mean over the trials as a
+line and the range as a band:</p>
+<figure class="align-default" id="id4">
+<a class="reference internal image-reference" href="../_images/sgd_benchmark_bergou2020_loss.png"><img alt="../_images/sgd_benchmark_bergou2020_loss.png" src="../_images/sgd_benchmark_bergou2020_loss.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 18 </span><span class="caption-text">Bergou2020: the optimality gap of the empirical (top) and generalization
+(bottom) losses.</span><a class="headerlink" href="#id4" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id5">
+<a class="reference internal image-reference" href="../_images/sgd_benchmark_scaled_med_loss.png"><img alt="../_images/sgd_benchmark_scaled_med_loss.png" src="../_images/sgd_benchmark_scaled_med_loss.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 19 </span><span class="caption-text">Scaled-MED: the optimality gap of the empirical (top) and generalization
+(bottom) losses.</span><a class="headerlink" href="#id5" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id6">
+<a class="reference internal image-reference" href="../_images/sgd_benchmark_facility_location_loss.png"><img alt="../_images/sgd_benchmark_facility_location_loss.png" src="../_images/sgd_benchmark_facility_location_loss.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 20 </span><span class="caption-text">Location problem: the optimality gap of the empirical (top) and
+generalization (bottom) losses.</span><a class="headerlink" href="#id6" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id7">
+<a class="reference internal image-reference" href="../_images/sgd_benchmark_skew_mmd_transformed_loss.png"><img alt="../_images/sgd_benchmark_skew_mmd_transformed_loss.png" src="../_images/sgd_benchmark_skew_mmd_transformed_loss.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 21 </span><span class="caption-text">Skew-MMD, transformed: the optimality gap of the empirical (top) and
+generalization (bottom) losses.</span><a class="headerlink" href="#id7" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>The loss of the skew-MMD is not convex and its minimizer has no closed form,
+so its figure shows the loss <span class="math notranslate nohighlight">\(\mathcal L(P^{(k)})\)</span> itself:</p>
+<figure class="align-default" id="id8">
+<a class="reference internal image-reference" href="../_images/sgd_benchmark_skew_mmd_loss.png"><img alt="../_images/sgd_benchmark_skew_mmd_loss.png" src="../_images/sgd_benchmark_skew_mmd_loss.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 22 </span><span class="caption-text">Skew-MMD: the empirical (top) and generalization (bottom) losses.</span><a class="headerlink" href="#id8" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>PSGD decreases both losses much faster than SGD on every problem, with one
+exception discussed below.  After 100 iterations, its optimality gap is two to
+five orders of magnitude smaller
+(e.g., <span class="math notranslate nohighlight">\(6 \times 10^{-4}\)</span> against <span class="math notranslate nohighlight">\(2 \times 10^{-1}\)</span> for
+Bergou2020 with <span class="math notranslate nohighlight">\(D = 2\)</span>), and the generalization loss follows the
+empirical one.  The higher the degree, the slower SGD gets, because the
+Bernstein basis gets more ill-conditioned: the condition number of
+<span class="math notranslate nohighlight">\(\Sigma\)</span> of a Bézier triangle is 15, 56 and 210 for <span class="math notranslate nohighlight">\(D = 2, 3, 4\)</span>.
+PSGD removes this dependence in its first iterations, which decrease the loss
+at almost the same rate for every degree, as the paper reports.</p>
+<p>The exception is Scaled-MED with <span class="math notranslate nohighlight">\(D = 4\)</span>: the gap of PSGD jumps up
+during the iterations in two of the five trials, so that its mean ends above
+that of SGD, although PSGD is ahead in the first 20 iterations and in the
+other three trials.  The paper proves the convergence of minibatch PSGD for
+step sizes up to a bound proportional to
+<span class="math notranslate nohighlight">\(1 / \lambda_{\max}(\Sigma^{-1})\)</span>, which shrinks as the degree grows
+(<span class="math notranslate nohighlight">\(\lambda_{\max}(\Sigma^{-1})\)</span> of a Bézier triangle is 90, 560 and 3150
+for <span class="math notranslate nohighlight">\(D = 2, 3, 4\)</span>), and <span class="math notranslate nohighlight">\(\alpha = 0.05\)</span> is apparently beyond it
+here: a minibatch whose samples miss part of the triangle gets its gradient
+amplified along the directions where <span class="math notranslate nohighlight">\(\Sigma\)</span> is small.  With <span class="math notranslate nohighlight">\(\alpha = 0.03\)</span>, all
+five trials converge.  If the loss of PSGD jumps up, decrease <code class="docutils literal notranslate"><span class="pre">step_size</span></code>,
+use <code class="docutils literal notranslate"><span class="pre">step_decay=&quot;sqrt&quot;</span></code>, or enlarge <code class="docutils literal notranslate"><span class="pre">batch_size</span></code>.</p>
+<p>The other figures show the Pareto set and front approximated by PSGD after
+100 iterations, in the trial of the median final empirical optimality gap
+(empirical loss for the skew-MMD), with the control points (red) and the
+boundary of the true Pareto set and front (dotted).  For the location problem, the Pareto set lies in
+<span class="math notranslate nohighlight">\(x_4 = 0\)</span> and is drawn in <span class="math notranslate nohighlight">\((x_1, x_2, x_3)\)</span>.</p>
+<figure class="align-default" id="id9">
+<a class="reference internal image-reference" href="../_images/sgd_benchmark_bergou2020_pareto.png"><img alt="../_images/sgd_benchmark_bergou2020_pareto.png" src="../_images/sgd_benchmark_bergou2020_pareto.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 23 </span><span class="caption-text">Bergou2020: the approximated Pareto set (top) and front (bottom).  The
+true ones are given by
+<span class="math notranslate nohighlight">\(x_1^*(\mathbf t) = (t_1^2 + t_1 - 3) / (t_1^2 - t_1 - 1)\)</span> and
+<span class="math notranslate nohighlight">\(x_2^*(\mathbf t) = (3t_1^2 - t_1 - 3) / (t_1^2 - t_1 - 1)\)</span>.</span><a class="headerlink" href="#id9" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id10">
+<a class="reference internal image-reference" href="../_images/sgd_benchmark_scaled_med_pareto.png"><img alt="../_images/sgd_benchmark_scaled_med_pareto.png" src="../_images/sgd_benchmark_scaled_med_pareto.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 24 </span><span class="caption-text">Scaled-MED: the approximated Pareto set (top) and front (bottom).</span><a class="headerlink" href="#id10" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id11">
+<a class="reference internal image-reference" href="../_images/sgd_benchmark_facility_location_pareto.png"><img alt="../_images/sgd_benchmark_facility_location_pareto.png" src="../_images/sgd_benchmark_facility_location_pareto.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 25 </span><span class="caption-text">Location problem: the approximated Pareto set (top) and front (bottom).</span><a class="headerlink" href="#id11" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id12">
+<a class="reference internal image-reference" href="../_images/sgd_benchmark_skew_mmd_pareto.png"><img alt="../_images/sgd_benchmark_skew_mmd_pareto.png" src="../_images/sgd_benchmark_skew_mmd_pareto.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 26 </span><span class="caption-text">Skew-MMD: the approximated Pareto set (top) and front (bottom).</span><a class="headerlink" href="#id12" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id13">
+<a class="reference internal image-reference" href="../_images/sgd_benchmark_skew_mmd_transformed_pareto.png"><img alt="../_images/sgd_benchmark_skew_mmd_transformed_pareto.png" src="../_images/sgd_benchmark_skew_mmd_transformed_pareto.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 27 </span><span class="caption-text">Skew-MMD, transformed: the approximated Pareto set (top) and front of
+<span class="math notranslate nohighlight">\(g\)</span> (bottom).</span><a class="headerlink" href="#id13" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>On Bergou2020, the end points of the curve, which correspond to the
+vertices of the simplex that uniform samples of <span class="math notranslate nohighlight">\(\mathbf t\)</span> rarely
+approach, converge the slowest.  On the skew-MMD, the fitted surface leaves
+the true Pareto set, whereas on its transform it follows it; see
+<a class="reference internal" href="#non-convex-objectives-transforming-the-skew-mmd">Non-convex objectives: transforming the skew-MMD</a>.</p>
+<p>The last figures correspond to Figure 4 of <span class="bibtex-citation" id="id3">Hikima <em>et al.</em> [<a class="reference internal" href="../references.html#id15" title="Yasunari Hikima, Ken Kobayashi, Akinori Tanaka, Akiyoshi Sannai, and Naoki Hamada. Stochastic gradient descent for bézier simplex representation of pareto set in multi-objective optimization. In Proceedings of The 28th International Conference on Artificial Intelligence and Statistics, volume 258 of Proceedings of Machine Learning Research. 2025. URL: https://proceedings.mlr.press/v258/hikima25a.html.">HKT+25</a>]</span>:
+they compare how close the approximated Pareto set gets to the true one, by
+the mean squared error of Section 5.3 of the paper,</p>
+<div class="math notranslate nohighlight">
+\[\mathrm{MSE}(P) = \frac{1}{N} \sum_{i=1}^N
+\bigl\| b(\mathbf t_i \mid P) - \mathbf x^*(\mathbf t_i) \bigr\|_2^2,\]</div>
+<p>where <span class="math notranslate nohighlight">\(\mathbf x^*(\mathbf t)\)</span> is the minimizer of
+<span class="math notranslate nohighlight">\(\mathbf t^\top f(\mathbf x)\)</span> given in closed form above and
+<span class="math notranslate nohighlight">\(\mathbf t_1, \dots, \mathbf t_N\)</span> are the <span class="math notranslate nohighlight">\(N = 10{,}000\)</span> samples of
+the generalization loss.  It is recorded at
+<span class="math notranslate nohighlight">\(P^{(0)}, \dots, P^{(K)}\)</span> in the same <code class="docutils literal notranslate"><span class="pre">callback</span></code> under
+<code class="docutils literal notranslate"><span class="pre">torch.no_grad()</span></code>; at <span class="math notranslate nohighlight">\(P^{(0)} = O\)</span>, it is the mean of
+<span class="math notranslate nohighlight">\(\|\mathbf x^*(\mathbf t_i)\|_2^2\)</span>.  The script draws the MSE of the
+location problem and Scaled-MED, as the paper does, and of Bergou2020 and the
+transformed skew-MMD, whose Pareto sets are also known.  As in the other figures, the band is the range over
+the 5 trials, whereas the paper shows a 95% confidence interval.</p>
+<figure class="align-default" id="id14">
+<a class="reference internal image-reference" href="../_images/sgd_benchmark_facility_location_mse.png"><img alt="../_images/sgd_benchmark_facility_location_mse.png" src="../_images/sgd_benchmark_facility_location_mse.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 28 </span><span class="caption-text">Location problem: the MSE to the true Pareto set.</span><a class="headerlink" href="#id14" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id15">
+<a class="reference internal image-reference" href="../_images/sgd_benchmark_scaled_med_mse.png"><img alt="../_images/sgd_benchmark_scaled_med_mse.png" src="../_images/sgd_benchmark_scaled_med_mse.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 29 </span><span class="caption-text">Scaled-MED: the MSE to the true Pareto set.</span><a class="headerlink" href="#id15" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id16">
+<a class="reference internal image-reference" href="../_images/sgd_benchmark_bergou2020_mse.png"><img alt="../_images/sgd_benchmark_bergou2020_mse.png" src="../_images/sgd_benchmark_bergou2020_mse.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 30 </span><span class="caption-text">Bergou2020: the MSE to the true Pareto set.</span><a class="headerlink" href="#id16" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id17">
+<a class="reference internal image-reference" href="../_images/sgd_benchmark_skew_mmd_transformed_mse.png"><img alt="../_images/sgd_benchmark_skew_mmd_transformed_mse.png" src="../_images/sgd_benchmark_skew_mmd_transformed_mse.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 31 </span><span class="caption-text">Skew-MMD, transformed: the MSE to the true Pareto set.</span><a class="headerlink" href="#id17" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>The MSE follows the optimality gap.  For the location problem,
+<span class="math notranslate nohighlight">\(\mathbf t^\top f(\mathbf x) = \|\mathbf x - \mathbf x^*(\mathbf t)\|_2^2
++ 1 - \|\mathbf x^*(\mathbf t)\|_2^2\)</span> on the simplex, so the MSE equals the
+generalization optimality gap; <span class="math notranslate nohighlight">\(\mathbf x^*\)</span> is linear in
+<span class="math notranslate nohighlight">\(\mathbf t\)</span> and the MSE of PSGD keeps decreasing towards zero (to
+<span class="math notranslate nohighlight">\(2 \times 10^{-6}\)</span> after 100 iterations with <span class="math notranslate nohighlight">\(D = 2\)</span>, against
+<span class="math notranslate nohighlight">\(6 \times 10^{-2}\)</span> for SGD).  For Scaled-MED and Bergou2020,
+<span class="math notranslate nohighlight">\(\mathbf x^*\)</span> is a rational function that a Bézier simplex of degree
+<span class="math notranslate nohighlight">\(D\)</span> cannot represent exactly, so even the minimizer <span class="math notranslate nohighlight">\(P^*\)</span> of the
+generalization loss has a positive MSE, which decreases with the degree
+(<span class="math notranslate nohighlight">\(6 \times 10^{-4}\)</span>, <span class="math notranslate nohighlight">\(3 \times 10^{-5}\)</span> and
+<span class="math notranslate nohighlight">\(2 \times 10^{-6}\)</span> for Scaled-MED with <span class="math notranslate nohighlight">\(D = 2, 3, 4\)</span>).  The MSE of
+PSGD for Scaled-MED with <span class="math notranslate nohighlight">\(D = 2\)</span> levels off near this floor after about
+30 iterations, while SGD is still two orders of magnitude above it.  The
+divergence of PSGD in two trials of Scaled-MED with <span class="math notranslate nohighlight">\(D = 4\)</span> discussed
+above shows up in the MSE as well: the mean MSE of PSGD ends at 2.6, above
+the 0.15 of SGD, because one trial ends at 13 and another rises from
+<span class="math notranslate nohighlight">\(3 \times 10^{-4}\)</span> to <span class="math notranslate nohighlight">\(2 \times 10^{-3}\)</span>, whereas the other three
+trials end below <span class="math notranslate nohighlight">\(10^{-3}\)</span>.</p>
+</section>
+<section id="non-convex-objectives-transforming-the-skew-mmd">
+<h2>Non-convex objectives: transforming the skew-MMD<a class="headerlink" href="#non-convex-objectives-transforming-the-skew-mmd" title="Link to this heading"></a></h2>
+<p>On the skew-MMD, <span class="math notranslate nohighlight">\(f_1\)</span> is not convex (<span class="math notranslate nohighlight">\(p_1 = e^{-1} &lt; 1\)</span>), and
+the linear scalarization does not trace its Pareto set: the paper uses this
+problem only for the convergence comparison.  Its Pareto set is known all the
+same.  An increasing transform <span class="math notranslate nohighlight">\(h_i\)</span> of each objective does not change
+which points dominate which, so the objectives <span class="math notranslate nohighlight">\(h_i(f_i)\)</span> have the same
+Pareto set as <span class="math notranslate nohighlight">\(f_i\)</span>.  The objectives of the skew-MMD are
+<span class="math notranslate nohighlight">\(f_i = g_i^{p_i / 2}\)</span> with the strongly convex quadratics
+<span class="math notranslate nohighlight">\(g_i(\mathbf x) = \|A_i(\mathbf x - \mathbf e_i)\|_2^2\)</span>, so
+<span class="math notranslate nohighlight">\(h_i(y) = y^{2/p_i}\)</span> turns them into <span class="math notranslate nohighlight">\(g_i\)</span>, whose linear
+scalarization has the minimizer</p>
+<div class="math notranslate nohighlight">
+\[x_l^*(\mathbf t) = \frac{t_l a_{l,l}^2}{\sum_{i=1}^M t_i a_{i,l}^2},
+\qquad l = 1, \ldots, L,\]</div>
+<p>where <span class="math notranslate nohighlight">\(a_{i,l}\)</span> are the diagonal entries of <span class="math notranslate nohighlight">\(A_i\)</span>.  As
+<span class="math notranslate nohighlight">\(\mathbf t\)</span> moves on the simplex, <span class="math notranslate nohighlight">\(\mathbf x^*(\mathbf t)\)</span> traces
+the Pareto set of both <span class="math notranslate nohighlight">\(f\)</span> and <span class="math notranslate nohighlight">\(g\)</span>, and the script draws it as the
+true Pareto set of both problems.  On the original objectives, the global
+minimizer of <span class="math notranslate nohighlight">\(\mathbf t^\top f(\mathbf x)\)</span> collapses to the vertex
+<span class="math notranslate nohighlight">\(\mathbf e_1\)</span> for 28% of the uniform weights and to <span class="math notranslate nohighlight">\(\mathbf e_2\)</span>
+for 16%, so the linear scalarization reaches only part of the Pareto set and
+jumps between its parts.  With <span class="math notranslate nohighlight">\(g\)</span>, the loss is quadratic in the control
+points, as for the other problems: the convergence analysis of the paper
+applies, and the optimality gap and the MSE can be computed.</p>
+<p>The two parametrizations differ, so the script compares them by the mean
+squared distance from the fitted surface to the Pareto set,
+<span class="math notranslate nohighlight">\(\frac{1}{N}\sum_{i=1}^N \min_{\mathbf x \in X^*} \|b(\mathbf t_i \mid P) - \mathbf x\|_2^2\)</span>,
+on the first <span class="math notranslate nohighlight">\(N = 1{,}000\)</span> samples of the generalization loss, where
+<span class="math notranslate nohighlight">\(X^*\)</span> is the image of a fine grid of the simplex under
+<span class="math notranslate nohighlight">\(\mathbf x^*\)</span>.  It prints the mean over the 5 trials after 100 iterations:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Degree</p></th>
+<th class="head"><p>Skew-MMD, PSGD</p></th>
+<th class="head"><p>Skew-MMD, transformed, PSGD</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(D = 2\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(2.3 \times 10^{-3}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(9.3 \times 10^{-5}\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(D = 3\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(2.0 \times 10^{-3}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(2.3 \times 10^{-4}\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(D = 4\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(2.7 \times 10^{-3}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(8.1 \times 10^{-4}\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<p>The transform brings the surface 3 to 25 times closer to the Pareto set; the
+higher degrees have not converged in 100 iterations yet (see the optimality
+gap above).  To fit a model to the Pareto set of objectives that are increasing
+functions of convex ones, pass the transformed objectives to
+<a class="reference internal" href="../api.html#torch_bsf.optimization.linear_scalarization" title="torch_bsf.optimization.linear_scalarization"><code class="xref py py-func docutils literal notranslate"><span class="pre">linear_scalarization()</span></code></a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">3.0</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># the powers p_i of the skew-MMD</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">transformed</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">skew_mmd</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">2</span> <span class="o">/</span> <span class="n">p</span><span class="p">)</span>  <span class="c1"># h_i(f_i) = f_i^(2 / p_i)</span>
+
+<span class="n">loss</span> <span class="o">=</span> <span class="n">linear_scalarization</span><span class="p">(</span><span class="n">transformed</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The model is then parametrized by the weights of <span class="math notranslate nohighlight">\(h(f)\)</span> instead of those
+of <span class="math notranslate nohighlight">\(f\)</span>.  Where <span class="math notranslate nohighlight">\(f_i\)</span> vanishes, as at <span class="math notranslate nohighlight">\(\mathbf x = \mathbf e_i\)</span>
+here, the gradient of the composition may be undefined; write <span class="math notranslate nohighlight">\(g_i\)</span>
+directly instead, as the script does.  A Chebyshev scalarization
+<span class="math notranslate nohighlight">\(\max_i t_i f_i(\mathbf x)\)</span> also reaches every Pareto point of a
+non-convex problem, but its minimizer stays on the boundary of the Pareto set
+for a whole band of weights near the boundary of the simplex, a kink that a
+Bézier simplex of low degree fits poorly.</p>
+</section>
+<section id="a-practical-optimization-workflow">
+<h2>A practical optimization workflow<a class="headerlink" href="#a-practical-optimization-workflow" title="Link to this heading"></a></h2>
+<p>Use objective minimization when the desired response is defined by a
+differentiable cost rather than paired input/output observations. For example,
+a model may map preference weights to decision vectors, and the cost is the
+weighted sum of several decision objectives. If you already have target output
+values and want ordinary quadratic regression, use <code class="docutils literal notranslate"><span class="pre">fit</span></code> instead. Direct
+least squares avoids learning-rate tuning for that linear problem.</p>
+<p>Before running a long optimization, evaluate the loss at a small point batch
+and verify its output shape. <code class="docutils literal notranslate"><span class="pre">loss(values,</span> <span class="pre">points)</span></code> must return one finite
+scalar per point, not a mean over the whole batch or one loss per output.
+Retaining row losses allows the optimizer to sample minibatches consistently.
+Use PyTorch operations throughout; converting predicted values to NumPy or
+calling <code class="docutils literal notranslate"><span class="pre">.item()</span></code> inside the loss detaches the gradient path.</p>
+<p>The following scalarized problem has an analytic solution. Its decision
+variable is one-dimensional and its two objectives are squared distances to
+one and minus one. At barycentric preference <code class="docutils literal notranslate"><span class="pre">[t0,</span> <span class="pre">t1]</span></code>, the minimizing
+decision is <code class="docutils literal notranslate"><span class="pre">t0-t1</span></code>. This provides a useful diagnostic before introducing
+an expensive application-specific objective.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">BezierModel</span><span class="p">,</span> <span class="n">PreconditionedSGD</span><span class="p">,</span> <span class="n">minimize</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.optimization</span><span class="w"> </span><span class="kn">import</span> <span class="n">linear_scalarization</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.sampling</span><span class="w"> </span><span class="kn">import</span> <span class="n">grid</span>
+
+<span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">initial</span> <span class="o">=</span> <span class="n">BezierModel</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">space</span><span class="o">.</span><span class="n">n_controls</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">))</span>
+<span class="n">points</span> <span class="o">=</span> <span class="n">grid</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">objectives</span><span class="p">(</span><span class="n">decisions</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([(</span><span class="n">decisions</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">square</span><span class="p">(),</span> <span class="p">(</span><span class="n">decisions</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">square</span><span class="p">()],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">optimized</span> <span class="o">=</span> <span class="n">minimize</span><span class="p">(</span>
+    <span class="n">initial</span><span class="p">,</span> <span class="n">linear_scalarization</span><span class="p">(</span><span class="n">objectives</span><span class="p">),</span> <span class="n">points</span><span class="o">=</span><span class="n">points</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
+    <span class="n">method</span><span class="o">=</span><span class="n">PreconditionedSGD</span><span class="p">(</span><span class="n">max_iter</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="mf">.1</span><span class="p">,</span>
+                             <span class="n">gradient_tolerance</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">),</span>
+<span class="p">)</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="n">exact</span> <span class="o">=</span> <span class="n">points</span><span class="o">.</span><span class="n">parameters</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">points</span><span class="o">.</span><span class="n">parameters</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+<span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">optimized</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">points</span><span class="p">),</span> <span class="n">exact</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">initial</span><span class="o">.</span><span class="n">coefficients</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">initial</span><span class="o">.</span><span class="n">coefficients</span><span class="p">))</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">linear_scalarization</span></code> requires one simplex weight per objective. Its
+objective tensor must match the point parameter tensor’s shape, and the
+weights must sum to one. A concatenated product-domain row generally sums
+to more than one and is not automatically a valid scalarization. On product
+or mixed-cell domains, define an explicit loss that selects and interprets
+the appropriate parameter blocks.</p>
+</section>
+<section id="adjust-settings-in-a-controlled-order">
+<h2>Adjust settings in a controlled order<a class="headerlink" href="#adjust-settings-in-a-controlled-order" title="Link to this heading"></a></h2>
+<p>Start with a small model, full batches and recorded points. Confirm that
+objective values decrease and that analytic or physical invariants hold.
+Then change one numerical setting at a time. This separates a broken loss
+or coordinate map from an aggressive learning rate or noisy minibatch history.</p>
+<table class="docutils align-default" id="id18">
+<caption><span class="caption-number">Table 23 </span><span class="caption-text">Optimizer controls and their effects</span><a class="headerlink" href="#id18" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 23.0%" />
+<col style="width: 42.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Setting</p></th>
+<th class="head"><p>Increasing or changing it does this</p></th>
+<th class="head"><p>What to inspect</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">step_size</span></code></p></td>
+<td><p>Moves farther per update; can accelerate progress or cause oscillation.</p></td>
+<td><p>Full-sample objective and finite gradients.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">max_iter</span></code></p></td>
+<td><p>Allows more parameter updates.</p></td>
+<td><p>Whether the stopping criterion is reached rather than just the budget.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">batch_size</span></code></p></td>
+<td><p>Uses more fixed sample rows per update, reducing gradient variability.</p></td>
+<td><p>Work per update and sensitivity to minibatch order.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">n_samples</span></code></p></td>
+<td><p>Uses a larger fixed empirical domain sample when <code class="docutils literal notranslate"><span class="pre">points</span></code> is omitted.</p></td>
+<td><p>Independent evaluation error, not just training objective.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gradient_tolerance</span></code></p></td>
+<td><p>A larger value permits earlier convergence with a larger gradient.</p></td>
+<td><p>Application accuracy and the units of the gradient.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">preconditioner</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">gram</span></code> measures functional movement; <code class="docutils literal notranslate"><span class="pre">none</span></code> uses coefficient geometry.</p></td>
+<td><p>Loss decrease under comparable sample sets and budgets.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">step_decay</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sqrt</span></code> reduces the step over time; <code class="docutils literal notranslate"><span class="pre">constant</span></code> keeps it fixed.</p></td>
+<td><p>Initial progress versus late-stage fluctuations.</p></td>
+</tr>
+</tbody>
+</table>
+<p>A reasonable learning-rate experiment compares several orders of magnitude
+on the same initial model and points. If the loss becomes non-finite, examine
+loss domain restrictions and coefficient magnitude as well as reducing the
+step. If progress is slow and gradients remain large, a larger step may help,
+but strong curvature can limit how far it can be raised. There is no universal
+step size independent of objective units and model degree.</p>
+<p><code class="docutils literal notranslate"><span class="pre">step_decay=&quot;sqrt&quot;</span></code> uses <code class="docutils literal notranslate"><span class="pre">step_size/sqrt(k+1)</span></code> at iteration <code class="docutils literal notranslate"><span class="pre">k</span></code>. It can
+reduce late minibatch fluctuations but also slow movement toward the optimum.
+Increasing <code class="docutils literal notranslate"><span class="pre">max_iter</span></code> with a decaying schedule adds progressively smaller
+steps; doubling the iteration budget does not mean doubling effective movement.
+Record the schedule with the initial step size when comparing histories.</p>
+<p><code class="docutils literal notranslate"><span class="pre">batch_size=None</span></code> uses all fixed points in every update. A finite batch size
+uses a uniformly shuffled subset, with no repeated row inside that update.
+A requested size larger than the point count still selects at most the full
+set. Smaller batches can reduce update cost and introduce stochastic variation,
+but a jagged minibatch curve does not necessarily imply that the full objective
+is increasing. For final comparisons, evaluate all fixed points and a separate
+independent point set.</p>
+</section>
+<section id="fixed-samples-and-the-continuous-domain-goal">
+<h2>Fixed samples and the continuous-domain goal<a class="headerlink" href="#fixed-samples-and-the-continuous-domain-goal" title="Link to this heading"></a></h2>
+<p>If <code class="docutils literal notranslate"><span class="pre">points</span></code> is omitted, <code class="docutils literal notranslate"><span class="pre">minimize</span></code> draws <code class="docutils literal notranslate"><span class="pre">n_samples</span></code> once using its local
+seed and cell probabilities. Those samples stay fixed through every update.
+It does not redraw new integration points each iteration. Raising <code class="docutils literal notranslate"><span class="pre">max_iter</span></code>
+can solve that empirical objective more accurately without improving how well
+it represents the continuous domain. Increase sample count or change the
+sampling design to assess discretization error.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">points</span></code> is provided, it defines the actual empirical loss locations.
+<code class="docutils literal notranslate"><span class="pre">n_samples</span></code> no longer chooses their count. <code class="docutils literal notranslate"><span class="pre">seed</span></code> still controls minibatch
+selection. Record both sampling and optimizer seeds if the points were drawn
+separately. For fair SGD versus preconditioned-SGD comparisons, pass the same
+point object rather than relying on superficially similar independent draws.</p>
+<p><code class="docutils literal notranslate"><span class="pre">cell_weights</span></code> specifies the domain distribution used by the exact Gram
+metric and by automatic sampling. With explicit points, ensure their intended
+cell frequencies agree with the metric interpretation. The empirical loss is
+an ordinary mean of supplied point losses; arbitrary physical quadrature
+weights are not inferred from a grid or from cell volumes. Incorporate custom
+row weighting into the loss explicitly if that is the intended objective.</p>
+<p>Every coefficient must be covered by the configured Gram distribution.
+Assigning zero probability to an isolated cell while retaining its controls
+can make the metric invalid. Either give that cell positive probability or
+construct an appropriate smaller space. More samples cannot fix a metric
+whose declared distribution omits entire coefficient directions.</p>
+</section>
+<section id="preconditioning-penalties-and-exact-controls">
+<h2>Preconditioning, penalties and exact controls<a class="headerlink" href="#preconditioning-penalties-and-exact-controls" title="Link to this heading"></a></h2>
+<p>The Gram metric reflects how coefficient changes alter the model in parameter
+space. High-degree Bernstein coefficients can be poorly conditioned in the
+ordinary Euclidean metric; the exact Gram preconditioner compensates for that
+representation. It is not a new statistical prior or a different polynomial
+space. A successful comparison should hold geometry, loss, points and initial
+coefficients fixed while changing only the preconditioner.</p>
+<p><code class="docutils literal notranslate"><span class="pre">QuadraticPenalty</span></code> adds ridge and adjacent-control smoothness to the loss.
+Ridge favors the chosen output origin; smoothness discourages neighboring
+coefficient differences. They can also improve numerical behavior, but they
+change the optimization problem. Do not compare a penalized run’s total
+objective directly with an unpenalized run and interpret their difference as
+algorithmic speed. Evaluate a common application metric alongside each run’s
+own complete objective.</p>
+<p><code class="docutils literal notranslate"><span class="pre">FixedControls</span></code> sets exact coefficient rows in the optimized copy and
+excludes them from updates. This is appropriate for a known endpoint or
+boundary polynomial, not an uncertain initialization. Penalty terms retain
+the contributions involving fixed rows. If every row is fixed, no update is
+needed and the result reports <code class="docutils literal notranslate"><span class="pre">all_fixed</span></code> with the evaluated objective.
+The original initial model remains unchanged in every case.</p>
+<p>Memory and device behavior also matter. Gram preconditioning currently forms
+a global control-by-control matrix and solves the free metric system during
+updates. A sparse observation structure does not make that optimizer metric
+sparse automatically. For a large assembled space, estimate control count and
+memory before assuming the scaling measured for sparse regression also applies
+to differentiable minimization.</p>
+</section>
+<section id="read-histories-and-termination-honestly">
+<h2>Read histories and termination honestly<a class="headerlink" href="#read-histories-and-termination-honestly" title="Link to this heading"></a></h2>
+<p>Each history entry records a zero-based iteration, the pre-update minibatch
+loss including penalties, and the norm of the free coefficient gradient. A
+callback sees that record and the current model before the update. Returning
+<code class="docutils literal notranslate"><span class="pre">True</span></code> stops with <code class="docutils literal notranslate"><span class="pre">status=&quot;callback_stop&quot;</span></code> and does not claim convergence.
+Do not label callback iteration <code class="docutils literal notranslate"><span class="pre">k</span></code> as the model after update <code class="docutils literal notranslate"><span class="pre">k</span></code> when
+building an animation or convergence figure.</p>
+<p>A configured <code class="docutils literal notranslate"><span class="pre">gradient_tolerance</span></code> triggers a full-sample gradient check
+before an update. Reaching it yields success. The norm is the ordinary free
+coefficient gradient norm, not a normalized relative error or a guarantee
+about test performance. Its magnitude depends on objective units and degree;
+choose it according to required accuracy rather than copying a number between
+unrelated applications.</p>
+<p>Budget exhaustion produces <code class="docutils literal notranslate"><span class="pre">status=&quot;iteration_limit&quot;</span></code> and a convergence
+warning. A useful approximate model is still returned for inspection, but
+<code class="docutils literal notranslate"><span class="pre">require_success</span></code> raises because no convergence criterion was established.
+With no gradient tolerance configured, exhausting even a long budget does
+not become success simply because the history looks flat. A smaller tolerance
+may need more iterations; a larger one trades accuracy for earlier stopping.</p>
+<p>The final <code class="docutils literal notranslate"><span class="pre">objective</span></code> is evaluated on the complete fixed sample set after
+the stopping event. It need not equal the last minibatch history loss, both
+because the latter is pre-update and because its rows may differ. Use the
+final full objective for final-state reporting and history for optimization
+dynamics. Compute held-out losses separately; they are not automatically
+included in <code class="docutils literal notranslate"><span class="pre">OptimizationResult</span></code>.</p>
+<p>Numerical failures raise <code class="docutils literal notranslate"><span class="pre">ArithmeticError</span></code> when the combined objective,
+gradient or coefficient update is non-finite, or a step-scaled metric matrix
+cannot be represented in float64. This includes all-fixed and callback
+stops. A loss returning non-finite individual values raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>.
+Zero-weight penalties are skipped; active penalties accumulate in float64 and
+apply weights before the final product so representable penalties avoid intermediate
+overflow. Coefficient gradients retain the model dtype. Metric solves and update arithmetic
+use float64 and cast the updated coefficients back to the model dtype. On MPS,
+float64 penalty accumulation and metric updates run on CPU through differentiable
+transfers; the returned coefficients stay on MPS with their original dtype.
+Finite loss means share the stable reduction used by ensembles: ordinary groups
+use a device reduction, while values near sum overflow use an exact CPU rational
+mean with the ordinary mean gradient. Step-scaled penalty matrices apply their
+weights on a cached unweighted topology to avoid premature diagonal overflow.
+The topology and device transfer are prepared once. Constant-step matrices are
+assembled once; varying steps reuse the topology on the solve device.
+When safe, scale the gradient by the step before solving to avoid underflowing
+a direction that a large step would restore. Rare overflowing product/subtraction
+updates use an exact CPU rational fallback to retain finite cancellation results.
+Rescale the model, loss or step size when a result remains unrepresentable.</p>
+<figure class="align-default" id="id19">
+<a class="reference internal image-reference" href="../_images/initialization.png"><img alt="Initial constant curves, optimized quadratic curves and their full-batch loss histories." src="../_images/initialization.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 32 </span><span class="caption-text">A current-API before/after experiment with the same convex scalar response
+loss and two initial constants. Both reach the checked full-sample gradient
+tolerance. Unlike the historical research figures above, this figure is
+regenerated by the guide script and records its own termination evidence.</span><a class="headerlink" href="#id19" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>Run <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">examples/generate_guide_figures.py</span></code> to reproduce this comparison.
+The generated JSON includes final objectives, iteration counts and statuses.
+The example uses a supervised-looking custom scalar loss only to provide an
+analytic reference for the optimizer; direct <code class="docutils literal notranslate"><span class="pre">fit</span></code> is the simpler operation
+for that particular quadratic regression task.</p>
+<p>For a nonconvex application, repeat under several initial models and seeds,
+inspect feasibility across the domain, and compare independent evaluation
+objectives. No optimizer status certifies that a local stationary point is a
+global optimum or that linear scalarization covers unsupported nonconvex
+Pareto regions. Preserve the loss definition and units with the model archive
+so that later users can reproduce what was actually minimized.</p>
+</section>
+<section id="a-checklist-for-a-new-objective">
+<h2>A checklist for a new objective<a class="headerlink" href="#a-checklist-for-a-new-objective" title="Link to this heading"></a></h2>
+<p>First establish a baseline that can be evaluated without optimization. Predict
+from the initial model over a small independent grid, compute the row losses,
+and check that all decision vectors are feasible for the objective. If there
+is an analytic solution for a simplified case, test that case before increasing
+degree or adding a complicated simulator-derived cost. A complicated loss can
+produce plausible-looking curves even when objective columns or preference
+weights have been swapped.</p>
+<p>Next check differentiation at an ordinary interior parameter point. The loss
+should depend on predicted values through finite PyTorch operations. A
+piecewise formula can be differentiable almost everywhere while having
+unhelpful gradients at a chosen constant start. Move the start or reformulate
+the smooth approximation deliberately, and record the choice. Increasing an
+iteration budget will not repair a detached graph or a gradient that is
+identically zero for an unintended reason.</p>
+<p>Then separate algorithmic error from representation error. A converged
+low-degree model may still approximate the desired decision map poorly.
+Increase degree only after checking the same objective and independent
+points. Conversely, a flexible model with a large gradient may simply need a
+better numerical configuration before more controls are justified. Compare
+both final loss and convergence status rather than using either in isolation.</p>
+<p>Finally retain enough evidence to reproduce the result: initial coefficients,
+space geometry, fixed controls, loss definition, penalties, point coordinates,
+seeds and complete method settings. The saved numerical model predicts outputs,
+but it does not serialize the Python callable defining the optimization task.
+A later user needs that callable and its objective units to interpret the
+reported final objective or continue an experiment reliably.</p>
+</section>
+<section id="preconditioner-storage-and-repeated-solves">
+<h2>Preconditioner storage and repeated solves<a class="headerlink" href="#preconditioner-storage-and-repeated-solves" title="Link to this heading"></a></h2>
+<p>With <code class="docutils literal notranslate"><span class="pre">preconditioner=&quot;none&quot;</span></code> and no smoothness penalty, updates use elementwise
+arithmetic. No control-by-control matrix is constructed, including ridge-only
+runs, where the denominator is <code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">+</span> <span class="pre">2</span> <span class="pre">*</span> <span class="pre">alpha</span> <span class="pre">*</span> <span class="pre">ridge</span></code> with <code class="docutils literal notranslate"><span class="pre">alpha</span></code> the current
+decayed step size. Gram metrics and
+smoothness still require dense control matrices. Their LU factorization is
+reused when the matrix is constant: constant learning rates, or either decay
+schedule without penalties. A square-root learning-rate schedule with active
+regularization changes the matrix and recomputes its factorization each update.
+Fixed controls select the same free-control submatrix as the reference solve.</p>
+<p>Run the public optimizer benchmark from a checkout with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PYTHONPATH</span><span class="o">=.</span> <span class="n">python</span> <span class="n">examples</span><span class="o">/</span><span class="n">benchmark_minimize</span><span class="o">.</span><span class="n">py</span> \
+    <span class="o">--</span><span class="n">controls</span> <span class="mi">16</span> <span class="mi">64</span> <span class="mi">256</span> <span class="o">--</span><span class="n">iterations</span> <span class="mi">5</span> <span class="mi">20</span> <span class="o">--</span><span class="n">repeats</span> <span class="mi">3</span> \
+    <span class="o">--</span><span class="n">output</span> <span class="n">minimize</span><span class="o">-</span><span class="n">benchmark</span><span class="o">.</span><span class="n">json</span>
+</pre></div>
+</div>
+<p>Each size, budget and preconditioner runs in a fresh CPU process. JSON records
+Python/PyTorch/platform versions, float64 precision, threads, two output columns,
+elapsed optimizer time, pre-optimizer high-water RSS and total peak RSS. Imports
+and input construction are outside the timer but contribute to RSS; use multiple
+trials on the same machine to assess variation. Unit tests count allocations and
+factorizations and compare mathematical updates rather than asserting seconds.
+The legacy <code class="docutils literal notranslate"><span class="pre">tests/benchmark.py</span></code> suite also includes public <code class="docutils literal notranslate"><span class="pre">minimize</span></code> cases.</p>
+<p>One macOS arm64/Python 3.13.12/PyTorch 2.10.0 CPU run with one thread compared the
+previous solves with these updates. At 16 controls and 20 updates, plain SGD took
+0.033 s before and 0.036 s after, with peak RSS 222.0/223.1 MiB. At 64 controls it
+took 0.092/0.092 s and 223.4/222.9 MiB; Gram updates took 0.092/0.092 s and
+226.7/223.8 MiB. These single trials illustrate the benchmark format; they do not
+establish a reliable speedup or a reduction in whole-process peak memory. The
+allocation and factorization counts establish the computational savings.</p>
+<p>The benchmark separately profiles basis construction, outside its time/RSS
+measurement: fixed full batches currently construct local bases once per update
+plus the final evaluation. Reusing those blocks would require preserving the
+parameter-coordinate autograd graph across updates and handling minibatch row
+selection. That change is deferred; this optimization does not introduce a global
+dense basis or change differentiation through sample coordinates.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="initial_models.html" class="btn btn-neutral float-left" title="Explicit initial models" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sklearn.html" class="btn btn-neutral float-right" title="Scikit-learn integration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: feat/risk-comparisons-through-thirty
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/advanced/objective_minimization.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="objective_minimization.html">feat/risk-comparisons-through-thirty</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
