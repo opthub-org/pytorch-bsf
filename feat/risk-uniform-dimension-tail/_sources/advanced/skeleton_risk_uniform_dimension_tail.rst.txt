@@ -168,9 +168,14 @@ risk coefficient. For example:
 
 The JSON record includes the exact strict margin below four fifths of
 the all-at-once lower bound at :math:`M=9720D`, both applicable vertex
-domains, and source hashes. The verifier rejects changed bounds,
-domains, fingerprints and unrecognized fields. Output replacement is
-atomic and happens only after arithmetic and source-consistency checks.
+domains, and source hashes. The ``source_hash_policy`` field is
+``sha256-crlf-to-lf-v1``: replace each CRLF pair by LF before hashing,
+and retain every other byte. This makes fingerprints portable between
+LF and CRLF checkouts. The verifier rejects changed bounds, domains,
+hash policies, content fingerprints and unrecognized fields.
+The before/after source guard compares the original raw bytes, so even
+a line-ending-only edit during certification fails. Output replacement
+is atomic and happens only after arithmetic and source-consistency checks.
 Large exact numerators are serialized in local decimal chunks, without
 changing Python's process-wide integer-string conversion limit.
 
