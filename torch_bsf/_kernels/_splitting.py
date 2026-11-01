@@ -475,9 +475,10 @@ def max_error_criterion(params: torch.Tensor, values: torch.Tensor, grid_size: i
     It is the within-piece sum of squares of the residuals, as in a
     regression tree: the candidate minimising ``E`` best separates the
     regions of large error from those of small error, so that the pieces
-    can be refined or refitted separately.  Each point counts once per
-    piece, so a piece holding few points cannot lower the score by
-    averaging.
+    can be refined or refitted separately.  Each point counts once (a point
+    on the cut is scored in piece :math:`A`), so a piece holding few points
+    cannot lower the score by averaging.  The score is accumulated in
+    double precision.
 
     A candidate is rejected unless each piece contains a data point that the
     other does not (points with :math:`t_i = t_j = 0` lie in both pieces).
@@ -534,7 +535,8 @@ def max_error_criterion(params: torch.Tensor, values: torch.Tensor, grid_size: i
         if not len(p):
             return longest_edge_criterion(model)
         with torch.no_grad():
-            residuals = (model(p) - v).square().sum(dim=1)
+            # float64: the score squares these squared errors again, which overflows low-precision dtypes.
+            residuals = (model(p) - v).double().square().sum(dim=1)
 
         best: tuple[int, int, int, float] | None = None
         best_key = (float("inf"), 0)
@@ -585,7 +587,8 @@ def _split_score(
     _, in_b = reparametrize(params, i, j, s, "B", simploid_type=simploid_type, factor=k)
     if not ((in_a & ~in_b).any() and (in_b & ~in_a).any()):
         return None
-    ra, rb = residuals[in_a], residuals[in_b]
+    # A point on the cut lies in both pieces; it counts once, in piece A, so every residual is scored once.
+    ra, rb = residuals[in_a], residuals[in_b & ~in_a]
     score = float((ra - ra.mean()).square().sum() + (rb - rb.mean()).square().sum())
     return score, abs(len(ra) - len(rb))
 

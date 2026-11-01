@@ -1191,3 +1191,25 @@ def test_subdivide_space_keeps_the_function_at_any_fraction(data):
         _split_tolerance(cell.dimensions, (2,) * len(cell.dimensions), 0, magnitude) for cell in space.cells if cell.dimensions
     )
     torch.testing.assert_close(result.model(result.transfer(points)), model(points), rtol=0, atol=tolerance)
+
+
+def test_max_error_criterion_scores_low_precision_models_in_double():
+    # Squaring the squared errors (~9e4) again overflows float16; the score must not fall back to the longest edge.
+    bs = BezierSimploid((1,), 1, {(1, 0): [0.0], (0, 1): [1.0]}).half()
+    t = torch.linspace(0.05, 0.95, 10)
+    params = torch.stack([1 - t, t], dim=1)
+    values = (t + 300 * (t > 0.6).float())[:, None]
+    k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
+    assert (k, i, j) == (0, 0, 1)
+    assert abs(s - 0.6) < 1e-3
+
+
+def test_split_score_counts_a_point_on_the_cut_once():
+    from torch_bsf._kernels._splitting import _split_score
+
+    t = torch.tensor([0.1, 0.5, 0.9], dtype=torch.float64)
+    params = torch.stack([1 - t, t], dim=1)
+    residuals = torch.tensor([0.0, 1.0, 2.0], dtype=torch.float64)
+    key = _split_score(residuals, params, (1,), 0, 0, 1, 0.5)
+    assert key is not None
+    assert key[1] == 1  # three points split 2 + 1, not 2 + 2
