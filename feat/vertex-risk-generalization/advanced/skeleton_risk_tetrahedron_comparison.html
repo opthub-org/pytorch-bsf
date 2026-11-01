@@ -1,0 +1,357 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tetrahedron risk comparison at every degree &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Five-vertex vertex risk" href="skeleton_risk_five_vertex.html" />
+    <link rel="prev" title="Fixed-degree risk comparisons in every dimension" href="skeleton_risk_comparisons.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Tetrahedron risk comparison at every degree</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#reproducing-the-finite-certificate">Reproducing the finite certificate</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Tetrahedron risk comparison at every degree</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/skeleton_risk_tetrahedron_comparison.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="tetrahedron-risk-comparison-at-every-degree">
+<h1>Tetrahedron risk comparison at every degree<a class="headerlink" href="#tetrahedron-risk-comparison-at-every-degree" title="Link to this heading"></a></h1>
+<p>Under the uniform-simplex design, evaluation and noise assumptions of
+<a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a>, the new positive vertex sum closes the
+comparison on a tetrahedron at every degree. Here <span class="math notranslate nohighlight">\(M=4\)</span> is the
+number of vertices. The common positive noise and output factors cancel,
+so the two normalized asymptotic risks are</p>
+<div class="math notranslate nohighlight">
+\[R_{\mathrm{ind}}(D)=\left(\sum_{m=0}^3\sqrt{a_m(4,D)}\right)^2,
+\qquad R_{\mathrm{all}}(D)=\binom{D+3}3.\]</div>
+<p>Inactive coefficients are zero. This fixed-vertex-count result is distinct
+from <a class="reference internal" href="skeleton_risk_comparisons.html"><span class="doc">Fixed-degree risk comparisons in every dimension</span></a>, which fixes the degree and ranges
+over every vertex count.</p>
+<div class="proof theorem admonition" id="thm-risk-tetrahedron-comparison">
+<p class="admonition-title"><span class="caption-number">Theorem 33 </span> (Complete tetrahedron comparison)</p>
+<section class="theorem-content" id="proof-content">
+<p>For every integer <span class="math notranslate nohighlight">\(D\geq1\)</span>, optimal inductive skeleton fitting on
+a tetrahedron has strictly smaller asymptotic risk than all-at-once
+fitting exactly when</p>
+<div class="math notranslate nohighlight">
+\[D\in\{1,2\}\quad\text{or}\quad D\geq8.\]</div>
+<p>All-at-once fitting has strictly smaller risk for
+<span class="math notranslate nohighlight">\(D\in\{3,4,5,6,7\}\)</span>. Equality never occurs.
+The finite prefix in this theorem is computer-assisted.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. We prove the comparison for <span class="math notranslate nohighlight">\(D\geq625\)</span> by inequalities and
+certify every remaining degree with exact rational square-root
+enclosures. No monotonicity of the risk difference is assumed.</p>
+<p><strong>Vertex bound.</strong> In
+<a class="reference internal" href="skeleton_risk_vertex.html#thm-risk-tetrahedron-vertex-single">Theorem 26</a>,
+<span class="math notranslate nohighlight">\(G_0=1/6\)</span>. For <span class="math notranslate nohighlight">\(j\geq1\)</span>, use
+<span class="math notranslate nohighlight">\(H_j\leq j\)</span>, <span class="math notranslate nohighlight">\(H_j^{(2)}\leq j\)</span> and drop the negative
+term to obtain</p>
+<div class="math notranslate nohighlight">
+\[0&lt;G_j\leq\frac2{j+3}+\frac16&lt;1.\]</div>
+<p>Vandermonde’s identity gives
+<span class="math notranslate nohighlight">\(Z_D=\sum_j\binom{D-1}j\binom{D+1}j=\binom{2D}{D-1}\)</span>.
+Since <span class="math notranslate nohighlight">\((D-1)!(D+1)!Z_D=(2D)!\)</span>, the vertex formula implies</p>
+<div class="math notranslate nohighlight">
+\[a_0(4,D)\leq
+\frac{576}{(2D+1)(2D+2)(2D+3)}
+\leq\frac{72}{D^3}.\]</div>
+<p><strong>Edge bound.</strong> Fix one source-edge angular mode. Let <span class="math notranslate nohighlight">\(p\)</span> be
+its tetrahedron propagation and <span class="math notranslate nohighlight">\(g\)</span> its triangle propagation
+with the outside coordinate replaced by the sum of the two outside
+coordinates, as in the proof of
+<a class="reference internal" href="skeleton_risk_extensions.html#thm-risk-codimension-two-modes">Theorem 20</a>.
+Their traces agree on every facet, so <span class="math notranslate nohighlight">\(p-g\)</span> is a
+full-simplex bubble and propagation orthogonality gives
+<span class="math notranslate nohighlight">\(\langle p,p-g\rangle=0\)</span>. Hence
+<span class="math notranslate nohighlight">\(\lVert p\rVert^2=\langle p,g\rangle\leq
+\lVert p\rVert\lVert g\rVert\)</span>, and
+<span class="math notranslate nohighlight">\(\lVert p\rVert\leq\lVert g\rVert\)</span>.</p>
+<p>If <span class="math notranslate nohighlight">\(r\)</span> is the sum of the two source-edge coordinates, its
+density is <span class="math notranslate nohighlight">\(6r(1-r)\)</span> on the tetrahedron and <span class="math notranslate nohighlight">\(2r\)</span> on the
+triangle. The conditional source-edge angular law is the same, and
+<span class="math notranslate nohighlight">\(g\)</span> depends on the outside coordinates only through their sum.
+Therefore <span class="math notranslate nohighlight">\(\lVert g\rVert^2\)</span> on the tetrahedron is at most
+three times its triangle norm. Dividing by the same source-edge
+norm and summing the modes, with the allocation factors
+<span class="math notranslate nohighlight">\(\binom42^2=36\)</span> and <span class="math notranslate nohighlight">\(\binom32^2=9\)</span>, gives</p>
+<div class="math notranslate nohighlight">
+\[a_1(4,D)\leq12a_1(3,D).\]</div>
+<p>For <span class="math notranslate nohighlight">\(D\geq2\)</span>, the triangle edge formula gives</p>
+<div class="math notranslate nohighlight">
+\[a_1(3,D)=\frac{18}{2D+3}
+ \left(H_{D-1}+H_{2D+2}-H_{D+3}\right)&lt;9.\]</div>
+<p>Indeed <span class="math notranslate nohighlight">\(H_{D-1}\leq D-1\)</span>, while the difference of the other
+two harmonic numbers is the sum of <span class="math notranslate nohighlight">\(D-1\)</span> terms, each at most
+<span class="math notranslate nohighlight">\(1/(D+4)\)</span>, and is smaller than one. Thus
+<span class="math notranslate nohighlight">\(a_1(4,D)&lt;108\)</span>.</p>
+<p><strong>Facet bound.</strong> Reindexing the codimension-one norm sum with
+<span class="math notranslate nohighlight">\(j=D-2-k\)</span> gives, for <span class="math notranslate nohighlight">\(D\geq3\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[a_2(4,D)=48\sum_{j=1}^{D-2}
+ \frac{D-1-j}{j(2D+4-j)}
+ \leq24H_{D-2}\leq24(1+\log D)\leq48\sqrt D.\]</div>
+<p>Here <span class="math notranslate nohighlight">\((D-1-j)/(2D+4-j)\leq1/2\)</span> and
+<span class="math notranslate nohighlight">\(\log D\leq\sqrt D\)</span> for <span class="math notranslate nohighlight">\(D\geq1\)</span>.</p>
+<p><strong>Infinite tail.</strong> Put <span class="math notranslate nohighlight">\(z=D^{1/4}\)</span> and
+<span class="math notranslate nohighlight">\(X=\sqrt{a_0}+\sqrt{a_1}+\sqrt{a_2}\)</span>. If
+<span class="math notranslate nohighlight">\(D\geq625\)</span>, then <span class="math notranslate nohighlight">\(z\geq5\)</span> and the three bounds imply</p>
+<div class="math notranslate nohighlight">
+\[X&lt;7z+11+\frac9{z^6}\leq\frac{19}2z.\]</div>
+<p>For the last inequality,
+<span class="math notranslate nohighlight">\(11+9/z^6\leq11+9/5^6&lt;25/2\leq(5/2)z\)</span>.
+The top coefficient is <span class="math notranslate nohighlight">\(b=a_3(4,D)=\binom{D-1}3\)</span>, so
+<span class="math notranslate nohighlight">\(\sqrt b\leq D^{3/2}/2\)</span> and</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\frac{R_{\mathrm{ind}}-b}{D^2}
+ &amp;=\frac{2\sqrt b\,X+X^2}{D^2}\\
+ &amp;&lt;\frac{19}{2z}+\frac{361}{4z^6}
+  \leq\frac{19}{10}+\frac{361}{62500}&lt;2.\end{split}\]</div>
+<p>In contrast,</p>
+<div class="math notranslate nohighlight">
+\[R_{\mathrm{all}}-b
+ =\binom{D+3}3-\binom{D-1}3=2D^2+2.\]</div>
+<p>Therefore inductive fitting strictly wins for every
+<span class="math notranslate nohighlight">\(D\geq625\)</span>.</p>
+<p><strong>Finite prefix.</strong> For each <span class="math notranslate nohighlight">\(1\leq D\leq624\)</span>, evaluate the
+vertex single sum, the proved tetrahedron edge recurrence
+representation, the harmonic facet formula, and the top coefficient
+over the rationals. Inactive coefficients are set to zero. For any
+nonnegative coefficient <span class="math notranslate nohighlight">\(a=u/v\)</span>, let</p>
+<div class="math notranslate nohighlight">
+\[\ell=\operatorname{isqrt}
+    \left(\left\lfloor\frac{u2^{2p}}v\right\rfloor\right).\]</div>
+<p>Then <span class="math notranslate nohighlight">\(\ell/2^p\leq\sqrt a\leq(\ell+1)/2^p\)</span>, with equal
+endpoints when <span class="math notranslate nohighlight">\(\ell^2v=u2^{2p}\)</span>. Sum the lower and upper
+endpoints separately and square them. Comparing these rational
+endpoints to the integer <span class="math notranslate nohighlight">\(\binom{D+3}3\)</span> certifies a strict
+sign; an overlapping interval is never accepted as a result.
+All 624 comparisons are separated already at <span class="math notranslate nohighlight">\(p=32\)</span>.
+The loss set is exactly <span class="math notranslate nohighlight">\(\{3,4,5,6,7\}\)</span>, completing the proof.</p>
+</div>
+<section id="reproducing-the-finite-certificate">
+<h2>Reproducing the finite certificate<a class="headerlink" href="#reproducing-the-finite-certificate" title="Link to this heading"></a></h2>
+<p>The optional standard-library implementation emits every exact coefficient,
+square-root enclosure and strict sign, together with the analytic tail
+bound. From the repository root, run</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m tools.risk_research.tetrahedron_comparison \</span>
+<span class="go">  --output .research/skeleton-risk/tetrahedron-comparison.json</span>
+</pre></div>
+</div>
+<p>The finite prefix uses <code class="docutils literal notranslate"><span class="pre">Fraction</span></code> and integer square roots. It does not
+depend on floating-point sign decisions, a numerical large-degree fit, or
+an unproved crossover pattern. The theorem concerns the normalized
+asymptotic risks under the stated design assumptions; it makes no
+finite-sample risk-ordering claim.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="skeleton_risk_comparisons.html" class="btn btn-neutral float-left" title="Fixed-degree risk comparisons in every dimension" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="skeleton_risk_five_vertex.html" class="btn btn-neutral float-right" title="Five-vertex vertex risk" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: feat/vertex-risk-generalization
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/index.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="skeleton_risk_tetrahedron_comparison.html">feat/vertex-risk-generalization</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
