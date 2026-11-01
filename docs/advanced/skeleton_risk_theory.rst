@@ -31,7 +31,9 @@ explicit evaluations. The conditions in each row are part of the result.
      - :prf:ref:`thm-skeleton-curves`, :prf:ref:`cor-skeleton-triangle-edge-risk`
        and :prf:ref:`thm-skeleton-triangle-vertex-risk`: all coefficients in closed form.
    * - :math:`m=M-2` and :math:`D\geq M-1`
-     - :prf:ref:`thm-skeleton-codimension-one`: one rational sum.
+     - :prf:ref:`thm-skeleton-codimension-one`: one rational sum;
+       :prf:ref:`thm-skeleton-facet-harmonics`: harmonic numbers with
+       :math:`M-3` correction terms for :math:`M\geq3`, independent of the degree.
    * - Fixed :math:`D`, growing :math:`M`
      - :prf:ref:`thm-skeleton-rational`: dimension polynomials;
        :prf:ref:`cor-skeleton-large-dimension`: the limit of every coefficient.
@@ -44,6 +46,15 @@ explicit evaluations. The conditions in each row are part of the result.
    * - Any finite simploidal set, with compatible positive factor degrees
      - :prf:ref:`thm-skeleton-assembled-risk`: global propagation and weighted risk;
        :prf:ref:`cor-skeleton-assembled-allocation`: cell and grouped optima.
+   * - Regular glued complexes, with any compatible positive factor degrees
+     - :prf:ref:`thm-skeleton-regular-incidence`: scalar weighted face incidences;
+       :prf:ref:`cor-skeleton-pure-incidence`: pure simplicial face-vector formula.
+   * - Any finite simploidal set, with all factor degrees one
+     - :prf:ref:`thm-skeleton-linear-assembled`: explicit corner-collision formula
+       and comparison with matching all-at-once fitting.
+   * - Every one-dimensional set, with any positive edge degrees
+     - :prf:ref:`thm-skeleton-graph-risk`: closed coefficients including loops;
+       :prf:ref:`cor-skeleton-loop-comparison`: complete single-loop comparison.
 
 The proofs are self-contained apart from the cited small-ball inequality.
 Statements certified by a finite computation are labeled computer-assisted.
@@ -1111,6 +1122,120 @@ Faces of codimension one
    Sum the mode ratios with their multiplicities and multiply by
    :math:`\binom{s+1}s^2=(s+1)^2`.
 
+.. prf:theorem:: Codimension-one risk in harmonic numbers
+   :label: thm-skeleton-facet-harmonics
+
+   For :math:`s\geq2`, :math:`M=s+1` and :math:`D\geq s`, put
+   :math:`n=D-s`, :math:`r=s-2` and :math:`B=n+3s`. Define
+
+   .. math::
+
+      U&=\binom{D-1}{r}\bigl(H_{D-1}-H_r\bigr),\\
+      V&=(-1)^r\binom{B-1}{r}
+       \left(H_{B+n}-H_{B-1}
+         +\sum_{j=1}^r\frac{(-1)^j\binom{n+j}{j}}
+                              {j\binom{B-1}{j}}\right).
+
+   Then the codimension-one coefficient is
+
+   .. math::
+      :label: skeleton-facet-harmonics
+
+      a_{s-1}(s+1,D)=\frac{s(s+1)^2}{2D+s+1}(U+V).
+
+   Here :math:`H_j=\sum_{i=1}^j1/i`, with :math:`H_0=0`; the correction
+   sum is empty when :math:`s=2`. Its length is :math:`s-2=M-3`, so for
+   each fixed dimension the number of terms does not grow with the degree.
+   All binomial coefficients in denominators are positive in the stated
+   range, including :math:`D=s`.
+
+   In particular, the triangular-facet coefficient on a tetrahedron is
+
+   .. math::
+      :label: skeleton-tetrahedron-facet-risk
+
+      a_2(4,D)=\frac{24}{D+2}
+       \left((D-1)H_{D-1}-1
+             -(D+5)\bigl(H_{2D+3}-H_{D+5}\bigr)\right),
+       \qquad D\geq3.
+
+   For example, this coefficient is :math:`16/3,612/55,2364/143` at
+   :math:`D=3,4,5`. At :math:`s=2`, :eq:`skeleton-facet-harmonics`
+   gives the triangle edge formula :eq:`skeleton-triangle-edge-risk`.
+   At :math:`s=1` the multiplicity is supported only at :math:`k=0`, and
+   :prf:ref:`thm-skeleton-codimension-one` already gives the curve vertex
+   coefficient :math:`4/(D(D+2))`.
+
+.. prf:proof::
+
+   The partial fraction identity
+
+   .. math::
+
+      \frac{1}{(n+1-k)(B+k)}
+       =\frac{1}{2D+s+1}
+          \left(\frac{1}{n+1-k}+\frac{1}{B+k}\right)
+
+   splits :prf:ref:`thm-skeleton-codimension-one` into two sums with
+   numerator :math:`\binom{k+r}{r}`. The first is
+
+   .. math::
+
+      \sum_{k=0}^n\frac{\binom{k+r}{r}}{n+1-k}
+        =[z^{n+1}]\frac{-\log(1-z)}{(1-z)^{r+1}}
+        =\binom{n+r+1}{r}\bigl(H_{n+r+1}-H_r\bigr)=U.
+
+   The coefficient identity follows by differentiating the binomial
+   series :math:`(1-z)^{-a}` in :math:`a` at :math:`a=r+1`.
+   For the second sum write
+   :math:`T_r=\sum_{k=0}^n\binom{k+r}{r}/(B+k)`. Since
+   :math:`\binom{k+r}{r}=(k+r)\binom{k+r-1}{r-1}/r`,
+
+   .. math::
+
+      T_r=\frac{1}{r}\binom{n+r}{r}+\frac{r-B}{r}T_{r-1},
+        \qquad r\geq1,\qquad
+      T_0=H_{B+n}-H_{B-1}.
+
+   Iteration gives
+
+   .. math::
+
+      T_r=(-1)^r\binom{B-1}{r}T_0+
+       \sum_{j=1}^r
+        \frac{(-1)^{r-j}\binom{B-1}{r}}{j\binom{B-1}{j}}
+           \binom{n+j}{j}=V.
+
+   This proves :eq:`skeleton-facet-harmonics`. Substituting
+   :math:`s=3`, :math:`r=1`, :math:`B=D+6` and simplifying gives
+   :eq:`skeleton-tetrahedron-facet-risk`.
+
+.. prf:corollary:: Codimension-one risk at large degree
+   :label: cor-skeleton-facet-large-degree
+
+   For every fixed :math:`s\geq2`, as :math:`D\to\infty`,
+
+   .. math::
+
+      a_{s-1}(s+1,D)
+       =\frac{s(s+1)^2}{2(s-2)!}\,D^{s-3}
+           \bigl(\log D+O_s(1)\bigr).
+
+   In particular, triangle edge risk decays as
+   :math:`a_1(3,D)\sim9\log D/D`, whereas the tetrahedron facet
+   coefficient grows as :math:`a_2(4,D)\sim24\log D`.
+
+.. prf:proof::
+
+   Fix :math:`r=s-2` in :prf:ref:`thm-skeleton-facet-harmonics`.
+   Its first term is
+   :math:`U=D^r\bigl(\log D+O_s(1)\bigr)/r!`.
+   For its second term, :math:`H_{B+n}-H_{B-1}=O_s(1)` and
+   :math:`\binom{n+j}{j}/\binom{B-1}{j}=O_s(1)` for each of the
+   fixed number of correction terms. Hence :math:`V=O_s(D^r)`.
+   Finally the prefactor is
+   :math:`s(s+1)^2(1+O_s(D^{-1}))/(2D)`.
+
 Curves
 ------
 
@@ -1613,8 +1738,9 @@ Open questions
 The asymptotic risk, optimal allocation and a finite scalar expression for
 every coefficient are proved above. The questions below concern further
 evaluation of those expressions and the comparison with all-at-once
-fitting. The curves, all triangle coefficients, the top face, and the
-families :math:`m=D-1,D-2,D-3` are already resolved in closed form.
+fitting. The curves, all triangle coefficients, the top face, the
+codimension-one faces at every fixed dimension, and the families
+:math:`m=D-1,D-2,D-3` are already resolved in closed form.
 
 The product formula :eq:`skeleton-product-coefficients` reduces coefficient
 evaluation to the simplex factors. Winning against all-at-once fitting
@@ -1628,11 +1754,12 @@ active positive-dimensional faces, so the dimension and shape optima agree.
 
 - **Shorter evaluations of the remaining nonvertex coefficients.**
   The remaining range is :math:`M\geq4`, :math:`D\geq5` and
-  :math:`1\leq m\leq\min(D-4,M-2)`.
+  :math:`1\leq m\leq\min(D-4,M-3)`.
   :prf:ref:`thm-skeleton-scalar-sum` evaluates every such coefficient by
-  a finite sum. When :math:`m=M-2`,
-  :prf:ref:`thm-skeleton-codimension-one` already reduces it to a single
-  rational sum. A uniform evaluation without sums whose lengths grow
+  a finite sum. The excluded codimension-one case :math:`m=M-2` has
+  the harmonic evaluation :prf:ref:`thm-skeleton-facet-harmonics`, whose
+  correction sum has length :math:`M-3`. A uniform evaluation in the
+  remaining range without sums whose lengths grow
   with :math:`D`, for example in rational functions, harmonic numbers or
   standard hypergeometric functions, remains to be obtained in this range.
 - **Finite-dimensional vertex coefficients beyond triangles.**
@@ -1652,3 +1779,12 @@ active positive-dimensional faces, so the dimension and shape optima agree.
   each fixed degree; it gives no exact crossover law. Closed formulas
   for a fixed dimension also require a separate inequality analysis
   before they yield a classification over all degrees.
+- **Higher-degree self-identifications in higher dimensions.**
+  :prf:ref:`thm-skeleton-regular-incidence` removes assembled matrices on
+  regular complexes, and :prf:ref:`thm-skeleton-linear-assembled` and
+  :prf:ref:`thm-skeleton-graph-risk` handle arbitrary identifications at
+  linear factor degrees and in dimension one, respectively. Outside
+  those ranges, the general finite formula
+  :prf:ref:`thm-skeleton-assembled-risk` remains available. Further
+  evaluation must retain the cross terms between distinct occurrences
+  of an identified face and the pullbacks from collapsed faces.

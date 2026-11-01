@@ -920,6 +920,57 @@ def test_codimension_one_norm_sum_matches_general_scalar_sum(size, degree):
     assert _codimension_one_risk(size, degree) == _scalar_risk_sum(size + 1, degree, size)
 
 
+def _codimension_one_harmonics(size: int, degree: int) -> Fraction:
+    """The fixed-dimension harmonic formula, with size - 2 correction terms."""
+    n = degree - size
+    r = size - 2
+    b = n + 3 * size
+    first = comb(degree - 1, r) * (_harmonic(degree - 1) - _harmonic(r))
+    second = (
+        (-1 if r % 2 else 1)
+        * comb(b - 1, r)
+        * (
+            _harmonic(b + n)
+            - _harmonic(b - 1)
+            + sum(
+                ((-1 if j % 2 else 1) * Fraction(comb(n + j, j), j * comb(b - 1, j)) for j in range(1, r + 1)),
+                Fraction(0),
+            )
+        )
+    )
+    return Fraction(size * (size + 1) ** 2, 2 * degree + size + 1) * (first + second)
+
+
+@pytest.mark.parametrize(("size", "offset"), [(s, n) for s in range(2, 11) for n in (0, 1, 2, 5, 20)])
+def test_codimension_one_harmonics_match_independent_mode_norm_sum(size, offset):
+    # Compare the bounded correction sum to the original degree-length sum of positive mode norms.
+    # In particular, n=0 exercises the boundary where the entire sum has only one angular mode.
+    degree = size + offset
+    assert _codimension_one_harmonics(size, degree) == _codimension_one_risk(size, degree)
+
+
+@pytest.mark.parametrize(("size", "degree"), [(s, d) for s in (2, 3, 4, 10) for d in (100, 250)])
+def test_codimension_one_harmonics_at_high_degrees(size, degree):
+    assert _codimension_one_harmonics(size, degree) == _codimension_one_risk(size, degree)
+
+
+def _tetrahedron_facet_harmonics(degree: int) -> Fraction:
+    return Fraction(24, degree + 2) * (
+        (degree - 1) * _harmonic(degree - 1) - 1 - (degree + 5) * (_harmonic(2 * degree + 3) - _harmonic(degree + 5))
+    )
+
+
+@pytest.mark.parametrize("degree", [3, 4, 5, 8, 20, 100, 250])
+def test_tetrahedron_facet_explicit_formula_matches_mode_norm_sum(degree):
+    assert _tetrahedron_facet_harmonics(degree) == _codimension_one_risk(3, degree)
+
+
+@pytest.mark.parametrize(("degree", "expected"), [(3, Fraction(16, 3)), (4, Fraction(612, 55)), (5, Fraction(2364, 143))])
+def test_tetrahedron_facet_harmonics_match_independent_gram_propagation(degree, expected):
+    exact, _, _ = _exact_coefficients(4, degree)
+    assert _tetrahedron_facet_harmonics(degree) == exact[2] == expected
+
+
 @pytest.mark.parametrize("degree", [2, 3, 8, 9, 10, 20, 50, 100])
 def test_triangle_edge_harmonics_match_the_single_rational_sum(degree):
     assert _triangle_edge_risk(degree) == _codimension_one_risk(2, degree)
