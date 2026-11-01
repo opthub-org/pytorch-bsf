@@ -2518,9 +2518,11 @@ def test_auto_allocation_prefers_cells_and_reuses_a_stable_plan():
     cell_risk = sum(value / plan.cell_weights[cid] for cid, value in c.items())
     dimension_risk = sum(value / dimension.cell_weights[cid] for cid, value in c.items())
     assert cell_risk < dimension_risk
-    assert plan.ratio == tuple(
+    # A group has at most three terms; Python 3.11 sum can differ from fsum by one ulp.
+    expected_ratio = tuple(
         sum(q for cid, q in plan.cell_weights.items() if sum(space.cells[cid].dimensions) == m) for m in range(2)
     )
+    assert plan.ratio == pytest.approx(expected_ratio, rel=3 * torch.finfo(torch.float64).eps, abs=0)
     with pytest.raises(TypeError):
         plan.cell_weights[0] = 0  # type: ignore[index]
     for selected in [plan, dimension]:
