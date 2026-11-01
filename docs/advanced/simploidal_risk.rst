@@ -19,6 +19,13 @@ This chapter proves the formula and optimal allocations implemented by
 :meth:`~torch_bsf.BezierSpace.on_set`. The single-cell constructors retain
 their factorized risk calculation and original sampling behavior.
 
+The later analytic results eliminate assembled matrices for regular glued
+complexes, for arbitrary sets at linear factor degrees, and for every
+one-dimensional set at every positive degree. The regular case reduces to
+weighted face incidences; the other two cases explicitly retain the cross
+terms from identified corners. These are mathematical simplifications;
+the public assembled risk implementation still uses matrix propagation.
+
 Using the assembled APIs
 -------------------------
 
@@ -417,6 +424,375 @@ their controls, even when the evaluation measure cannot see them.
 The deterministic chart counts matter for this statement. Randomly selecting
 chart labels can leave a whole connected component unobserved with positive
 probability at finite :math:`N`; invertibility then needs a separate argument.
+
+Incidence formulas on regular complexes
+---------------------------------------
+
+The assembled propagation matrices can be eliminated on ordinary glued
+meshes. Here *regular* means that every local face of every chart maps
+isomorphically to a non-degenerate global cell, and distinct local faces
+of one chart map to distinct global cells. Different charts may share
+faces, with any number of incident charts; no manifold assumption is
+needed. Identifications within the closure of a single chart and collapsed
+faces are excluded from this particular result.
+
+.. prf:theorem:: Risk from weighted face incidences
+   :label: thm-skeleton-regular-incidence
+
+   Suppose the simploidal set is regular. For an active cell :math:`s`
+   which is a face of a chart :math:`x`, write its unique local face as
+   :math:`F_{s,x}=\prod_i I_i`, and put
+   :math:`M_i=d_{x,i}+1`, :math:`r_i=|I_i|-1`. Define
+
+   .. math::
+      :label: assembled-risk-incidence
+
+      \lambda_{s,x}
+       =\prod_i\frac{a_{r_i}(M_i,D_{x,i})}
+                         {\binom{M_i}{r_i+1}^2},\qquad
+      c_s(\mu)=\sum_{x:\,s\preceq x}w_x\lambda_{s,x}.
+
+   The empty product for a vertex chart is one. The simplex coefficients
+   :math:`a_r(M,D)` are those of :prf:ref:`thm-skeleton-scalar-sum`.
+   Consequently this formula uses finite scalar sums and face incidences,
+   with no assembled matrix or Gram inverse. It allows different cell
+   dimensions and types, compatible factor degrees, and evaluation weights
+   on lower-dimensional charts as well as maximal ones.
+
+.. prf:proof::
+
+   Fix a source innovation in :math:`T_s`, setting all other innovations
+   to zero. Its error is zero on every cell that does not contain
+   :math:`s`: induction over dimension in the error equations proves this
+   support statement. On a chart :math:`x` containing :math:`s`, all its
+   faces occur exactly once and are non-degenerate. Restricting the global
+   recursion to these faces therefore gives exactly the normal equations
+   of the unglued product chart, with source face :math:`F_{s,x}`.
+   Positive definite proper-control blocks give the same unique extension.
+   A reordering of source controls induced by a face identification also
+   reorders :math:`H_s`, leaving the covariance trace unchanged.
+
+   The product face trace is :math:`\lambda_{s,x}` by
+   :eq:`skeleton-product-face-trace`. Finally, the evaluation metric is a
+   weighted sum of chart metrics, and the trace is linear in that metric.
+   Summing the local contributions proves :eq:`assembled-risk-incidence`.
+
+This is stronger than adding independently fitted cell risks: a shared
+source is sampled and fitted once, and its single coefficient adds all
+incident evaluation weights before the allocation is optimized.
+
+.. prf:corollary:: The face vector of a pure simplicial complex
+   :label: cor-skeleton-pure-incidence
+
+   Suppose a regular simplicial complex is pure of dimension :math:`M-1`,
+   every simplex has the same degree :math:`D`, and evaluation is supported
+   on its maximal simplices. Their weights may be arbitrary, summing to
+   one. Let :math:`K_m` be the number of global :math:`m`-faces and
+   :math:`f_m=\binom M{m+1}`. For active dimensions,
+
+   .. math::
+      :label: assembled-risk-face-vector
+
+      d_w(s)&=\sum_{x:\,s\preceq x}w_x,\qquad
+      c_s=\frac{a_m(M,D)}{f_m^2}d_w(s)\quad(\dim s=m),\\
+      A_m&=\frac{K_m}{f_m}a_m(M,D).
+
+   Thus the dimension-grouped risk and its optimum depend only on the
+   face counts and the single-simplex coefficients, and are independent of
+   the distribution of evaluation weights among maximal simplices.
+   Individual-cell optimal allocations still depend on :math:`d_w(s)`.
+
+.. prf:proof::
+
+   Every maximal chart has :math:`f_m` local :math:`m`-faces. Double
+   counting gives :math:`\sum_{\dim s=m}d_w(s)=f_m\sum_xw_x=f_m`.
+   Substitution into :math:`A_m=K_m\sum_{\dim s=m}c_s` proves the result.
+
+For example, an arbitrary pure regular triangular complex of degree two,
+with :math:`V` vertices and :math:`E` edges, has
+
+.. math::
+   :label: assembled-risk-triangle-mesh
+
+   c_v=d_w(v)/24,\qquad c_e=d_w(e)/3,\qquad
+   (A_0,A_1,A_2)=(V/8,E,0).
+
+The triangle coefficients are :math:`a_0=3/8`, :math:`a_1=3`.
+There are :math:`p=V+E` global controls. If the evaluation Gram matrix is
+positive definite, dimension-grouped skeleton fitting therefore beats
+matching all-at-once fitting precisely when
+
+.. math::
+
+   \left(\sqrt{V/8}+\sqrt E\right)^2<V+E
+      \quad\Longleftrightarrow\quad E/V<49/32.
+
+At :math:`E/V=49/32` the two risks agree. This comparison concerns the
+dimension-grouped design; allowing separate cell allocations can improve
+its skeleton risk further.
+
+Linear degrees on arbitrary identified sets
+-------------------------------------------
+
+When every factor degree is one, all proper controls belong to vertices.
+There is then an explicit formula even with repeated faces and
+degeneracies. For a chart :math:`x` put :math:`M_i=d_{x,i}+1` and label
+its local corners by :math:`a\in\prod_i[M_i]`. Let :math:`\pi_x(a)` be
+the global vertex of that corner, with repetitions retained, and write
+:math:`\mathcal F_{x,v}=\{a:\pi_x(a)=v\}`.
+
+.. prf:theorem:: Corner collisions at linear factor degrees
+   :label: thm-skeleton-linear-assembled
+
+   On any finite simploidal set with all factor degrees one, the vertex
+   coefficient is
+
+   .. math::
+      :label: assembled-risk-linear-corners
+
+      c_v(\mu)=\sum_x
+        \frac{w_x}{\prod_iM_i(M_i+1)}
+        \sum_{a,b\in\mathcal F_{x,v}}
+                 2^{|\{i:a_i=b_i\}|}.
+
+   Empty products and the single corner of a vertex chart have their
+   usual values. With :math:`V` global vertices, only dimension zero is
+   active, so :math:`A_0=V\sum_vc_v`. The individually optimal normalized
+   risk satisfies
+
+   .. math::
+      :label: assembled-risk-linear-bound
+
+      C_{\rm cell}^*=
+        \left(\sum_v\sqrt{c_v}\right)^2
+           \leq A_0\leq V=p.
+
+   The first expression is interpreted as an infimum if some coefficients
+   vanish. If :math:`G_\mu` is positive definite, :math:`p` is the matching
+   all-at-once risk. Both skeleton designs have strictly smaller risk than
+   :math:`p` if some positive-weight chart has at least two distinct global
+   corner vertices.
+
+.. prf:proof::
+
+   For a positive-dimensional cell at least one factor has
+   :math:`\binom{1-1}{d_i}=0`, so it has no proper controls. Thus
+   :math:`C=0`, :math:`H_v=1`, and the propagated vertex polynomial is just
+   its assembled basis function
+   :math:`\phi_{x,v}=\sum_{a\in\mathcal F_{x,v}}\prod_i t_{i,a_i}`.
+   Uniform simplex moments give
+
+   .. math::
+
+      E\,[t_{i,a_i}t_{i,b_i}]
+         =\frac{1+\mathbf1_{a_i=b_i}}{M_i(M_i+1)}.
+
+   Squaring the assembled basis function and using independence of the
+   factors proves :eq:`assembled-risk-linear-corners`, including every
+   cross term between identified corners. Cauchy--Schwarz gives the first
+   inequality in :eq:`assembled-risk-linear-bound`. The nonnegative
+   assembled functions form a partition of unity on each chart; hence
+   :math:`\sum_v\phi_{x,v}^2\leq1`, proving the second inequality after
+   integration. If a positive-weight chart has two distinct corner
+   vertices, both assembled functions are positive in its interior, so
+   this last inequality is strict on a set of positive measure.
+
+For a single unglued product, every corner fiber is a singleton and this
+recovers :math:`A_0=\prod_i2M_i/(M_i+1)`. At the other extreme, if all
+corners of every chart are the same single global vertex, the entire
+model is constant and :math:`c_v=A_0=C_{\rm cell}^*=1`.
+
+Closed forms on arbitrary graphs
+--------------------------------
+
+Every one-dimensional simploidal set is a finite multigraph, allowing
+loops, parallel edges and isolated vertices. Here edges mean the
+non-degenerate one-cells; a collapsed edge contributes through its base
+vertex. Assign each edge :math:`e` a positive degree :math:`D_e`. Let
+:math:`w_v` and :math:`w_e` be the evaluation weights on vertices and edges,
+respectively, with their sum equal to one.
+
+.. prf:theorem:: Graph risk coefficients
+   :label: thm-skeleton-graph-risk
+
+   Define
+
+   .. math::
+
+      h_D=\frac{1}{D(D+2)},\qquad
+      j_D=\frac{(-1)^{D-1}}{D(D+1)(D+2)},\qquad
+      \ell_D=2(h_D+j_D)
+         =\frac{2}{(D+1)(D+1+(-1)^D)}.
+
+   The assembled coefficients have the closed forms
+
+   .. math::
+      :label: assembled-risk-graph-coefficients
+
+      c_v=w_v+
+         \sum_{\substack{e\ni v\\e\text{ is not a loop}}}w_eh_{D_e}
+         +\sum_{\substack{e\text{ is a loop}\\\text{at }v}}w_e\ell_{D_e},
+      \qquad
+      c_e=w_e(D_e-1)\quad(D_e\geq2).
+
+   Each ordinary incident edge occurs once in the first sum. Each loop
+   occurs once in the second sum. Edges of degree one have no proper
+   controls and no fitting stage, although their evaluation weights still
+   contribute to the vertex coefficients.
+
+   Thus, under the assumptions of
+   :prf:ref:`thm-skeleton-assembled-risk`,
+
+   .. math::
+
+      \lim_{N\to\infty}\frac{NR_N}{\sigma^2L}
+      =\sum_v\frac{c_v}{q_v}
+       +\sum_{e:D_e\geq2}\frac{w_e(D_e-1)}{q_e}.
+
+   Whenever all active coefficients are positive, the individual-cell
+   optimum is the square of the sum of their square roots. The general
+   qualifications for zero coefficients remain those in
+   :prf:ref:`cor-skeleton-assembled-allocation`.
+
+.. prf:proof::
+
+   On an edge of degree :math:`D`, write the endpoint propagation
+   polynomials as :math:`\varphi_1(x)=\varphi(x)` and
+   :math:`\varphi_0(x)=\varphi(1-x)`, where :math:`\varphi` is given in
+   :prf:ref:`thm-skeleton-curves`. Set
+
+   .. math::
+
+      A=\frac{\widetilde P_D'}{D(D+1)},\qquad
+      B=\frac{\widetilde P_{D+1}'}{(D+1)(D+2)}.
+
+   Then :math:`\varphi_1=(A+B)/2` and
+   :math:`\varphi_0=(-1)^{D-1}(A-B)/2`. The opposite parities make
+   :math:`A` and :math:`B` orthogonal. Their squared norms are
+   :math:`2/[D(D+1)]` and :math:`2/[(D+1)(D+2)]`, respectively.
+   Consequently,
+
+   .. math::
+
+      \lVert\varphi_0\rVert^2=\lVert\varphi_1\rVert^2=h_D,\qquad
+      \langle\varphi_0,\varphi_1\rangle=j_D.
+
+   An ordinary edge carries independent innovations at its two distinct
+   vertices. A loop carries the same innovation at both endpoint
+   occurrences, giving squared norm
+   :math:`\lVert\varphi_0+\varphi_1\rVert^2=\ell_D`.
+   The edge-interior innovation has trace :math:`D-1`, and there are no
+   higher-dimensional cells to receive it. Weighting these contributions
+   by the evaluation measure proves the formulas.
+
+The loop coefficient has an exact parity pattern:
+
+.. math::
+
+   \ell_1=1,\qquad
+   \ell_{2k}=\ell_{2k+1}
+      =\frac{1}{(k+1)(2k+1)}\quad(k\geq1).
+
+For positive degrees the reciprocal sequence is
+:math:`1,6,6,15,15,28,28,\ldots`. Its distinct values are the hexagonal
+numbers, identified in `OEIS A000384 <https://oeis.org/A000384>`_.
+The identity above proves the pattern independently of the sequence
+identification.
+
+.. prf:corollary:: Graph allocations by dimension
+   :label: cor-skeleton-graph-dimension
+
+   Suppose the graph is loop-free, has :math:`V` vertices and :math:`E`
+   edges, has no isolated vertices, and every edge has the same degree
+   :math:`D\geq2`. Evaluate only on edges, with positive weights summing
+   to one. Equal sampling shares within each dimension give
+
+   .. math::
+
+      a_0=\frac{2V}{D(D+2)},\qquad
+      a_1=E(D-1),\qquad
+      C_{\rm dimension}^*
+         =\left(\sqrt{\frac{2V}{D(D+2)}}+
+                     \sqrt{E(D-1)}\right)^2.
+
+   These grouped coefficients do not depend on the edge weights or
+   connectivity. With :math:`K=D(D+2)`, this optimum is smaller than the
+   matching all-at-once risk :math:`p=V+E(D-1)` exactly when
+
+   .. math::
+
+      \frac EV<\frac{(K-2)^2}{8K(D-1)}.
+
+.. prf:proof::
+
+   Every edge contributes twice to the sum of vertex coefficients, so
+   :math:`\sum_v c_v=2/K`, while
+   :math:`\sum_e c_e=D-1`. Apply the grouped allocation formula.
+   Since :math:`p-a_0-a_1=V(1-2/K)>0`, squaring the equivalent inequality
+   :math:`2\sqrt{a_0a_1}<p-a_0-a_1` gives the stated threshold.
+
+For the individual optimum, the incidence pattern still matters. Writing
+:math:`\delta_v=\sum_{e\ni v}w_e`, the same loop-free setting gives
+
+.. math::
+
+   C_{\rm cell}^*
+      =\left(
+         \frac{\sum_v\sqrt{\delta_v}}{\sqrt{D(D+2)}}+
+         \sqrt{D-1}\sum_e\sqrt{w_e}
+        \right)^2.
+
+For example, two quadratic segments meeting at one endpoint, evaluated
+equally, have
+
+.. math::
+
+   C_{\rm cell}^*=\frac{27}{8}+\frac{5}{2\sqrt2}>5,\qquad
+   C_{\rm dimension}^*=\frac{11}{4}+\sqrt6>5.
+
+Thus even the individual optimum loses to the matching all-at-once risk
+:math:`p=5` on this graph, although a single quadratic segment wins.
+
+.. prf:corollary:: Complete comparison for a single loop
+   :label: cor-skeleton-loop-comparison
+
+   For a single degree-:math:`D` loop, evaluated uniformly on its edge,
+
+   .. math::
+
+      C_{\rm loop}^*=(\sqrt{\ell_D}+\sqrt{D-1})^2,\qquad p=D.
+
+   The two risks are equal at :math:`D=1`. Inductive fitting loses at
+   :math:`D=3,5`, and wins at :math:`D=2,4` and every :math:`D\geq6`.
+
+.. prf:proof::
+
+   For :math:`D>1`, put :math:`T=1/\ell_D>1`.
+   The sign of :math:`p-C_{\rm loop}^*` is the sign of
+
+   .. math::
+
+      \Delta=(T-1)^2-4(D-1)T.
+
+   For :math:`D=2k`, :math:`k\geq1`,
+
+   .. math::
+
+      T=(k+1)(2k+1),\qquad
+      \Delta=(2k^2-k-2)^2>0.
+
+   The quadratic inside the square has discriminant 17, so it has no
+   integer root. For :math:`D=2k+1`, :math:`k\geq1`,
+
+   .. math::
+
+      \Delta=k(4k^3-4k^2-15k-8).
+
+   This is negative for :math:`k=1,2`. For :math:`k=u+3`,
+   :math:`u\geq0`, the cubic factor becomes
+   :math:`4u^3+32u^2+69u+19>0`.
+   At degree one the loop has only one constant global control, and both
+   normalized risks equal one.
 
 Two small examples
 -------------------

@@ -27,6 +27,11 @@ Independent checks
        top-face boundaries through :math:`D=30`.
    * - Codimension-one sum
      - General scalar sum at face sizes :math:`1,\ldots,4` and four degrees per size.
+   * - Codimension-one harmonic evaluation
+     - Independent positive mode-norm sum at face sizes :math:`2,\ldots,10`,
+       including the top-face boundary, and degrees 100 and 250;
+       tetrahedral facets also checked by full Gram propagation at
+       :math:`D=3,4,5`.
    * - Triangle edge coefficient
      - Every Jacobi mode, its propagation controls and the Gram trace at
        :math:`D=2,\ldots,10`; harmonic simplification also checked through :math:`D=100`.
@@ -96,6 +101,28 @@ single assignment through shared and degenerate faces. The all-at-once count use
 local control counts. Quadrature and the public joint solver also check
 :prf:ref:`cor-skeleton-assembled-aao` with matching design/evaluation
 weights and with different weights, over the reference domains.
+
+``tests/simploidal_incidence.py`` independently checks
+:prf:ref:`thm-skeleton-regular-incidence` against exact assembled population
+solves on shared triangles, a triangle-square pair, shared tetrahedra,
+nonpure complexes and nonmanifold gluing, as well as graphs and disconnected
+sets. Unequal evaluation weights on all charts and on maximal charts check
+both the incidence formula and the pure-complex face-vector reduction.
+The same file checks the explicit corner-collision formula
+:prf:ref:`thm-skeleton-linear-assembled`, including repeated vertices of a
+loop and torus and the collapsed edges of a sphere, and its strict risk
+bound when a positive-weight chart sees distinct vertices.
+
+``tests/simploidal_graph_risk.py`` checks
+:prf:ref:`thm-skeleton-graph-risk` on mixed-degree graphs with parallel
+edges, loops and isolated vertices. Vertex and edge evaluation weights
+are varied independently. Endpoint self and cross norms are checked by
+exact Bernstein Gram elimination at :math:`D=1,\ldots,12`, then by exact
+power-polynomial integration at :math:`D=32,33`. Exact assembled solves
+check the dimension-allocation threshold, the quadratic chain's loss to
+all-at-once fitting, and the single-loop comparison at
+:math:`D=1,\ldots,14`. The all-degree graph and loop claims rely on their
+proofs, rather than these finite checks or the OEIS sequence match.
 
 Products of simplices
 ---------------------

@@ -258,7 +258,9 @@ def _simplex_pair_keys(dimension: int, degree: int) -> _EdgeKeys:
     n = comb(degree + dimension, dimension)
     if not degree:
         return np.empty(0, dtype=np.int64)
-    dtype = np.int32 if max(n, comb(degree + dimension, dimension - 1)) <= np.iinfo(np.int32).max else np.int64
+    dtype: np.dtype[np.int32 | np.int64] = np.dtype(
+        np.int32 if max(n, comb(degree + dimension, dimension - 1)) <= np.iinfo(np.int32).max else np.int64
+    )
     alpha = np.asarray([index[0] for index in _indices((dimension,), (degree,))], dtype=dtype)
     # rank(alpha) = sum_k C(sum(alpha[k + 1:]) + dimension - k - 1, dimension - k).
     # Moving a unit from i to j > i increments the suffix sums k = i, ..., j - 1. Pascal's identity gives
