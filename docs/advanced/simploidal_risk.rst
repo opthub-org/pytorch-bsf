@@ -23,8 +23,9 @@ The later analytic results eliminate assembled matrices for regular glued
 complexes, for arbitrary sets at linear factor degrees, and for every
 one-dimensional set at every positive degree. The regular case reduces to
 weighted face incidences; the other two cases explicitly retain the cross
-terms from identified corners. These are mathematical simplifications;
-the public assembled risk implementation still uses matrix propagation.
+terms from identified corners. The public assembled risk implementation uses
+these closed forms directly and retains checked matrix propagation for the
+remaining nonlinear identified sets.
 
 Using the assembled APIs
 -------------------------
@@ -103,10 +104,12 @@ weights may include any compiled cell. They never change an explicit sampling
 allocation. Pass the same evaluation weights when requesting coefficients and
 an automatic ratio.
 
-Sampling first rounds dimension budgets by largest remainder (dimension order
-breaks ties), then splits each budget equally among its active cells, randomly
-breaking remainder ties with a local generator. Explicit cell shares use one
-largest-remainder rounding in fitting order. Both paths return exactly ``n``
+Dimension plans and explicit ``ratio`` first round dimension budgets by largest
+remainder (dimension order breaks ties), then split each budget equally among
+its active cells, randomly breaking remainder ties with a local generator.
+Cell plans, including the usual automatic selection, and explicit
+``cell_weights`` use one largest-remainder rounding in fitting order.
+Both paths return exactly ``n``
 rows, including for ``n=0`` or budgets smaller than the active-cell count.
 Positive shares on empty dimensions are rejected. Small budgets and rounded
 zero counts do not guarantee that fitting has enough observations or full
@@ -133,29 +136,33 @@ A zero evaluation weight need not make a cell coefficient zero: boundary
 errors can propagate into evaluated cells. If a coefficient is zero, that cell
 still owns controls and needs positive sampling share for the theorem's
 estimator. With a zero-coefficient active cell, the cell formula describes
-only an infimum over strictly positive allocations, so automatic cell
-allocation raises ``ValueError``. Dimension allocation remains feasible when
-such a cell shares a dimension with a positive coefficient; the equal split
-still samples it. It raises when an entire active dimension has zero
-coefficient. Supply strictly positive explicit shares to estimate all active
+only an infimum over strictly positive allocations, so strict
+``allocation="cell"`` raises ``ValueError``. Dimension allocation remains
+feasible when such a cell shares a dimension with a positive coefficient;
+the equal split still samples it. ``allocation="auto"`` selects this rescue
+when every active dimension has a positive coefficient, reporting
+``fallback_reason="zero_cell_coefficients"``. Both automatic and dimension
+allocation raise when an entire active dimension has zero coefficient.
+Supply strictly positive explicit shares to estimate all active
 controls in either case. Explicit zero shares are allowed for sampling but do
 not promise that fitting all controls will succeed.
 
-The assembled risk implementation uses float64 local moment/Cholesky solves
-and a unit triangular propagation solve. It retains repeated-control cross
-terms. It checks local Gram and propagation condition numbers, rejecting a
-first-order roundoff budget above ``1e-6``. Positive subnormal evaluation
+The remaining nonlinear identified sets use float64 local moment/Cholesky
+solves and a unit triangular propagation solve. This dense path retains
+repeated-control cross terms and checks local Gram and propagation condition
+numbers, rejecting a first-order roundoff budget above ``1e-6``.
+Across all implementation paths, positive subnormal evaluation
 weights or weighted trace contributions are rejected as numerically unreliable;
 they are never reported as structural zeros or as a mathematical infimum.
-The first-order screen budgets moment/reduction errors of order
+For the dense path, the first-order screen budgets moment/reduction errors of order
 :math:`(2w+p+2)u` across :math:`d+1` propagation levels, multiplied by the
 largest local Gram condition and the squared propagation condition, with a
 safety factor of eight for whitening, trace rounding and higher orders. Here
 :math:`w` is the maximum chart width, :math:`p` the global control count and
 :math:`u=2^{-53}`. This conservative screen is not an all-degree certificate.
-Its conservative work limits are
-512 global controls and a total of 4,000,000 local Gram entries. Nonlinear identified sets use this dense path, whose
-propagation costs quadratic global memory and cubic global time, with extra
+The dense path's conservative work limits are 512 global controls and a total
+of 4,000,000 local Gram entries. Its propagation costs quadratic global memory
+and cubic global time, with extra
 local moment and trace contractions. Explicit ``ratio`` or ``cell_weights``
 lets sampling proceed without this risk calculation; fitting uses the usual
 solver and its diagnostics. Positive-dimensional degree-zero factors remain

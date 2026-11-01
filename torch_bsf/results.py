@@ -177,6 +177,19 @@ class SkeletonAllocation:
     shares rescue zero-risk cells, and otherwise ``None``. The frozen space
     snapshot prevents accidental reuse on an incompatible domain or degree.
 
+    Attributes
+    ----------
+    space : BezierSpace
+        Compiled space snapshot for checking sampling compatibility.
+    strategy : {"cell", "dimension"}
+        Allocation method actually selected.
+    ratio : tuple of float
+        Total sampling fractions indexed by dimension.
+    cell_weights : Mapping of int to float
+        Read-only active-cell fractions, empty for bare positive-dimensional spaces.
+    fallback_reason : {"single_cell_fast_path", "zero_cell_coefficients"} or None
+        Reason automatic selection used dimension allocation, or None otherwise.
+
     Examples
     --------
     >>> from torch_bsf import BezierSpace, SkeletonAllocation
