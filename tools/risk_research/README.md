@@ -233,6 +233,18 @@ rational upper bound using only the standard library. This is an inequality,
 not an exact codimension-three evaluation. The CLI emits source-bound bound data. The optional symbolic checker verifies
 the finite rational and harmonic identities used in the proof.
 
+The [positive nonvertex diagonal theorem](../../docs/advanced/skeleton_risk_codimension_three_exact.rst)
+now evaluates every source size and outside-coordinate count by universal
+univariate diagonals. In codimension three it is a positive harmonic double
+sum, including `a_1(5,D)` and `a_2(6,D)`. At fixed `s>=2,q>=2` it also gives
+the leading large-degree term; for example
+`a_1(5,D)~3600*(zeta(2)-zeta(3))/D^3`. The sum lengths grow with degree.
+
+```sh
+python -m tools.risk_research.codimension_three_exact --face-size 2 --degree 40 \
+  --output .research/skeleton-risk/q3-edge-exact.json
+```
+
 The derivations and their limits are in
 [Further evaluations of the skeleton risk](../../docs/advanced/skeleton_risk_extensions.rst).
 They include a codimension-two mode reduction, the all-degree tetrahedron

@@ -773,6 +773,15 @@ Then :math:`a_0(M,D)=M^2\mathcal L_D(F^q)/(M)_{2D}` by
    sum and put :math:`a=q-r`, :math:`b=r-j`. The resulting signs and
    binomial factors are exactly :eq:`risk-vertex-boundary-pair`.
 
+Positive diagonals at every nonvertex source face
+--------------------------------------------------
+
+:doc:`skeleton_risk_codimension_three_exact` extends binomial Gram
+diagonalization to every angular mode. It gives an exact positive
+harmonic double sum for every nonvertex codimension-three coefficient,
+and a leading asymptotic for every fixed nonvertex source size and
+codimension at least two. The remaining sums grow with the degree.
+
 Verification and remaining questions
 --------------------------------------
 

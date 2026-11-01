@@ -1836,7 +1836,16 @@ active positive-dimensional faces, so the dimension and shape optima agree.
   coefficients using smaller simplices, with a trace-correct lift on every
   facet. Its five-vertex edge consequence
   :prf:ref:`thm-risk-five-vertex-edge-upper` is an all-degree upper bound,
-  rather than an exact evaluation of the remaining codimension-three sums.
+  rather than an exact evaluation. The subsequent
+  :prf:ref:`thm-risk-nonvertex-positive-diagonals` now reduces every
+  nonvertex coefficient to universal positive univariate diagonals.
+  :prf:ref:`cor-risk-nonvertex-codimension-three-exact` gives an exact
+  positive harmonic double sum at every source size in codimension three.
+  :prf:ref:`thm-risk-nonvertex-fixed-codimension-asymptotic` also determines
+  the leading term for every fixed source size and codimension at least two.
+  The remaining shortening question concerns sums with degree-independent
+  length or smaller certified states, rather than the existence of an
+  exact codimension-three evaluation or its fixed-codimension leading term.
 - **Finite-dimensional vertex coefficients beyond triangles.**
   For :math:`M\geq4` and :math:`D\geq4`, simplify
   :prf:ref:`thm-skeleton-vertex-sum` uniformly in the degree, or give an
