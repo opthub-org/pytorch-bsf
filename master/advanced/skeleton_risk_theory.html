@@ -24,7 +24,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Risk on an assembled simploidal set" href="simploidal_risk.html" />
+    <link rel="next" title="Further evaluations of the skeleton risk" href="skeleton_risk_extensions.html" />
     <link rel="prev" title="Optimal skeleton sampling" href="skeleton_sampling.html" /> 
 </head>
 
@@ -78,6 +78,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#open-questions">Open questions</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
@@ -142,9 +143,11 @@ formula, then derives the closed forms and comparisons used in
 <a class="reference internal" href="skeleton_sampling.html"><span class="doc">Optimal skeleton sampling</span></a>.
 The extension to general finite simploidal sets, including shared and
 degenerate faces, is proved in <a class="reference internal" href="simploidal_risk.html"><span class="doc">Risk on an assembled simploidal set</span></a>.
+Further degree recurrences, codimension-two evaluations and vertex
+reductions are proved in <a class="reference internal" href="skeleton_risk_extensions.html"><span class="doc">Further evaluations of the skeleton risk</span></a>.
 The results are organized by mathematical dependence; finite verification
 and reference tables are collected in <a class="reference internal" href="skeleton_risk_verification.html"><span class="doc">Exact verification of the skeleton risk</span></a>.</p>
-<p><span class="bibtex-citation" id="id1">Tanaka <em>et al.</em> [<a class="reference internal" href="../references.html#id15" title="Aiko Tanaka, Akiyoshi Sannai, Ken Kobayashi, and Naoki Hamada. Asymptotic risk of bézier simplex fitting. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 34, 2416–2424. 2020. URL: https://doi.org/10.1609/aaai.v34i03.5622.">TSKH20</a>]</span> derived a Gram recursion and evaluated degrees
+<p><span class="bibtex-citation" id="id1">Tanaka <em>et al.</em> [<a class="reference internal" href="../references.html#id16" title="Aiko Tanaka, Akiyoshi Sannai, Ken Kobayashi, and Naoki Hamada. Asymptotic risk of bézier simplex fitting. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 34, 2416–2424. 2020. URL: https://doi.org/10.1609/aaai.v34i03.5622.">TSKH20</a>]</span> derived a Gram recursion and evaluated degrees
 two and three. The results here give the asymptotic risk and optimal
 allocation for every dimension and degree, as well as the following
 explicit evaluations. The conditions in each row are part of the result.</p>
@@ -179,29 +182,34 @@ and <a class="reference internal" href="#thm-skeleton-triangle-vertex-risk">Theo
 <td><p><a class="reference internal" href="#thm-skeleton-rational">Theorem 18</a>: dimension polynomials;
 <a class="reference internal" href="#cor-skeleton-large-dimension">Corollary 9</a>: the limit of every coefficient.</p></td>
 </tr>
-<tr class="row-even"><td><p>Risk comparison</p></td>
+<tr class="row-even"><td><p>Fixed <span class="math notranslate nohighlight">\(M,m\)</span>, growing <span class="math notranslate nohighlight">\(D\)</span></p></td>
+<td><p><a class="reference internal" href="skeleton_risk_extensions.html#thm-risk-fixed-dimension-holonomic">Theorem 19</a>: a polynomial-coefficient
+recurrence exists; explicit tetrahedron edge operators and a
+codimension-two harmonic reduction are in <a class="reference internal" href="skeleton_risk_extensions.html"><span class="doc">Further evaluations of the skeleton risk</span></a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Risk comparison</p></td>
 <td><p>Curves win at every degree; <a class="reference internal" href="#prop-skeleton-wins">Proposition 5</a> classifies
 all vertex counts for <span class="math notranslate nohighlight">\(D\leq8\)</span>; every fixed degree wins for sufficiently large <span class="math notranslate nohighlight">\(M\)</span>.</p></td>
 </tr>
-<tr class="row-odd"><td><p>A single product of simplices, with any positive factor degrees</p></td>
+<tr class="row-even"><td><p>A single product of simplices, with any positive factor degrees</p></td>
 <td><p><a class="reference internal" href="#thm-skeleton-product-risk">Theorem 9</a>: coefficients from the simplex factors;
 <a class="reference internal" href="#cor-skeleton-product-shape-ratio">Corollary 2</a>: optimal allocation by face shape.</p></td>
 </tr>
-<tr class="row-even"><td><p>Any finite simploidal set, with compatible positive factor degrees</p></td>
-<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-assembled-risk">Theorem 19</a>: global propagation and weighted risk;
-<a class="reference internal" href="simploidal_risk.html#cor-skeleton-assembled-allocation">Corollary 10</a>: cell and grouped optima.</p></td>
+<tr class="row-odd"><td><p>Any finite simploidal set, with compatible positive factor degrees</p></td>
+<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-assembled-risk">Theorem 23</a>: global propagation and weighted risk;
+<a class="reference internal" href="simploidal_risk.html#cor-skeleton-assembled-allocation">Corollary 12</a>: cell and grouped optima.</p></td>
 </tr>
-<tr class="row-odd"><td><p>Regular glued complexes, with any compatible positive factor degrees</p></td>
-<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-regular-incidence">Theorem 20</a>: scalar weighted face incidences;
-<a class="reference internal" href="simploidal_risk.html#cor-skeleton-pure-incidence">Corollary 12</a>: pure simplicial face-vector formula.</p></td>
+<tr class="row-even"><td><p>Regular glued complexes, with any compatible positive factor degrees</p></td>
+<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-regular-incidence">Theorem 24</a>: scalar weighted face incidences;
+<a class="reference internal" href="simploidal_risk.html#cor-skeleton-pure-incidence">Corollary 14</a>: pure simplicial face-vector formula.</p></td>
 </tr>
-<tr class="row-even"><td><p>Any finite simploidal set, with all factor degrees one</p></td>
-<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-linear-assembled">Theorem 21</a>: explicit corner-collision formula
+<tr class="row-odd"><td><p>Any finite simploidal set, with all factor degrees one</p></td>
+<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-linear-assembled">Theorem 25</a>: explicit corner-collision formula
 and comparison with matching all-at-once fitting.</p></td>
 </tr>
-<tr class="row-odd"><td><p>Every one-dimensional set, with any positive edge degrees</p></td>
-<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-graph-risk">Theorem 22</a>: closed coefficients including loops;
-<a class="reference internal" href="simploidal_risk.html#cor-skeleton-loop-comparison">Corollary 14</a>: complete single-loop comparison.</p></td>
+<tr class="row-even"><td><p>Every one-dimensional set, with any positive edge degrees</p></td>
+<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-graph-risk">Theorem 26</a>: closed coefficients including loops;
+<a class="reference internal" href="simploidal_risk.html#cor-skeleton-loop-comparison">Corollary 16</a>: complete single-loop comparison.</p></td>
 </tr>
 </tbody>
 </table>
@@ -330,7 +338,7 @@ so it suffices to bound <span class="math notranslate nohighlight">\(E \lambda^{
 <p><em>Bound for one direction.</em> For a unit vector <span class="math notranslate nohighlight">\(u\)</span>,
 <span class="math notranslate nohighlight">\(f = u^\top \psi\)</span> is a polynomial of degree at most <span class="math notranslate nohighlight">\(D\)</span> with
 <span class="math notranslate nohighlight">\(\int f^2 \, dU_F = 1\)</span>. The uniform distribution on a convex set is
-log-concave, so the inequality of <span class="bibtex-citation" id="id2">Carbery and Wright [<a class="reference internal" href="../references.html#id56" title="Anthony Carbery and James Wright. Distributional and $L^q$ norm inequalities for polynomials over convex bodies in $\mathbb R^n$. Mathematical Research Letters, 8(3):233–248, 2001. URL: https://doi.org/10.4310/MRL.2001.v8.n3.a1.">CW01</a>]</span> gives
+log-concave, so the inequality of <span class="bibtex-citation" id="id2">Carbery and Wright [<a class="reference internal" href="../references.html#id57" title="Anthony Carbery and James Wright. Distributional and $L^q$ norm inequalities for polynomials over convex bodies in $\mathbb R^n$. Mathematical Research Letters, 8(3):233–248, 2001. URL: https://doi.org/10.4310/MRL.2001.v8.n3.a1.">CW01</a>]</span> gives
 <span class="math notranslate nohighlight">\(P(|f(t)| \leq s) \leq C D s^{1/D}\)</span>, with an absolute constant
 <span class="math notranslate nohighlight">\(C\)</span>. Hence <span class="math notranslate nohighlight">\(X = f(t)^2\)</span> satisfies <a class="reference internal" href="#lem-skeleton-small-ball">Lemma 1</a> with
 <span class="math notranslate nohighlight">\(a = 1/(2D)\)</span> and <span class="math notranslate nohighlight">\(A = (CD)^{2D}\)</span>, and</p>
@@ -1541,7 +1549,7 @@ Converting each exact coefficient to float, taking square roots, summing,
 and squaring has relative error at most <span class="math notranslate nohighlight">\(4(D+1)u\)</span>, where
 <span class="math notranslate nohighlight">\(u = 2^{-53}\)</span>. Every comparison lies beyond this error bound.</p>
 </div>
-<p>These results sharpen the observation of <span class="bibtex-citation" id="id3">Tanaka <em>et al.</em> [<a class="reference internal" href="../references.html#id15" title="Aiko Tanaka, Akiyoshi Sannai, Ken Kobayashi, and Naoki Hamada. Asymptotic risk of bézier simplex fitting. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 34, 2416–2424. 2020. URL: https://doi.org/10.1609/aaai.v34i03.5622.">TSKH20</a>]</span> that
+<p>These results sharpen the observation of <span class="bibtex-citation" id="id3">Tanaka <em>et al.</em> [<a class="reference internal" href="../references.html#id16" title="Aiko Tanaka, Akiyoshi Sannai, Ken Kobayashi, and Naoki Hamada. Asymptotic risk of bézier simplex fitting. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 34, 2416–2424. 2020. URL: https://doi.org/10.1609/aaai.v34i03.5622.">TSKH20</a>]</span> that
 inductive skeleton fitting wins for degrees below three. That observation is
 a theorem for every <span class="math notranslate nohighlight">\(M\)</span>, and the comparison at higher degrees turns
 around once the dimension is large enough.</p>
@@ -1573,7 +1581,12 @@ the harmonic evaluation <a class="reference internal" href="#thm-skeleton-facet-
 correction sum has length <span class="math notranslate nohighlight">\(M-3\)</span>. A uniform evaluation in the
 remaining range without sums whose lengths grow
 with <span class="math notranslate nohighlight">\(D\)</span>, for example in rational functions, harmonic numbers or
-standard hypergeometric functions, remains to be obtained in this range.</p></li>
+standard hypergeometric functions, remains to be obtained in this range.
+For tetrahedron edges, <a class="reference internal" href="skeleton_risk_extensions.html#thm-risk-tetrahedron-edge-representation">Theorem 21</a>
+gives a bounded expression with two auxiliary recurrences, and
+<a class="reference internal" href="skeleton_risk_extensions.html#cor-risk-tetrahedron-edge-scalar-recurrences">Corollary 10</a> supplies explicit
+scalar degree recurrences. A representation using only classical
+harmonic or hypergeometric functions is a separate remaining question.</p></li>
 <li><p><strong>Finite-dimensional vertex coefficients beyond triangles.</strong>
 For <span class="math notranslate nohighlight">\(M\geq4\)</span> and <span class="math notranslate nohighlight">\(D\geq4\)</span>, simplify
 <a class="reference internal" href="#thm-skeleton-vertex-sum">Theorem 16</a> uniformly in the degree, or give an
@@ -1581,7 +1594,10 @@ explicit fixed-order recurrence in <span class="math notranslate nohighlight">\(
 coefficients, initial values and exceptional indices. The triangle
 formula in <a class="reference internal" href="#thm-skeleton-triangle-vertex-risk">Theorem 17</a> and the
 fixed-degree dimension polynomials do not supply that general
-evaluation.</p></li>
+evaluation. <a class="reference internal" href="skeleton_risk_extensions.html#thm-risk-fixed-dimension-holonomic">Theorem 19</a> proves that
+a degree recurrence exists at every fixed dimension, while
+<a class="reference internal" href="skeleton_risk_extensions.html#thm-risk-vertex-boundary-pair">Theorem 22</a> reduces its remaining kernel
+complexity. Neither supplies an explicit tetrahedron vertex recurrence.</p></li>
 <li><p><strong>The full comparison at degrees above eight.</strong>
 <a class="reference internal" href="#prop-skeleton-wins">Proposition 5</a> classifies every <span class="math notranslate nohighlight">\(M\)</span> at
 <span class="math notranslate nohighlight">\(D\leq8\)</span>. For <span class="math notranslate nohighlight">\(D\geq9\)</span>, determine the exact set of
@@ -1592,12 +1608,12 @@ each fixed degree; it gives no exact crossover law. Closed formulas
 for a fixed dimension also require a separate inequality analysis
 before they yield a classification over all degrees.</p></li>
 <li><p><strong>Higher-degree self-identifications in higher dimensions.</strong>
-<a class="reference internal" href="simploidal_risk.html#thm-skeleton-regular-incidence">Theorem 20</a> removes assembled matrices on
-regular complexes, and <a class="reference internal" href="simploidal_risk.html#thm-skeleton-linear-assembled">Theorem 21</a> and
-<a class="reference internal" href="simploidal_risk.html#thm-skeleton-graph-risk">Theorem 22</a> handle arbitrary identifications at
+<a class="reference internal" href="simploidal_risk.html#thm-skeleton-regular-incidence">Theorem 24</a> removes assembled matrices on
+regular complexes, and <a class="reference internal" href="simploidal_risk.html#thm-skeleton-linear-assembled">Theorem 25</a> and
+<a class="reference internal" href="simploidal_risk.html#thm-skeleton-graph-risk">Theorem 26</a> handle arbitrary identifications at
 linear factor degrees and in dimension one, respectively. Outside
 those ranges, the general finite formula
-<a class="reference internal" href="simploidal_risk.html#thm-skeleton-assembled-risk">Theorem 19</a> remains available. Further
+<a class="reference internal" href="simploidal_risk.html#thm-skeleton-assembled-risk">Theorem 23</a> remains available. Further
 evaluation must retain the cross terms between distinct occurrences
 of an identified face and the pullbacks from collapsed faces.</p></li>
 </ul>
@@ -1609,7 +1625,7 @@ of an identified face and the pullbacks from collapsed faces.</p></li>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="skeleton_sampling.html" class="btn btn-neutral float-left" title="Optimal skeleton sampling" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="simploidal_risk.html" class="btn btn-neutral float-right" title="Risk on an assembled simploidal set" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="skeleton_risk_extensions.html" class="btn btn-neutral float-right" title="Further evaluations of the skeleton risk" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -63,6 +63,7 @@
 <li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Fitting from values alone</a><ul>
@@ -131,7 +132,7 @@
 surface and its domain coordinate is unknown. The existing <code class="docutils literal notranslate"><span class="pre">fit</span></code> solves
 a different problem: regression from known parameter/value pairs.</p>
 <p>The value-only methods implement Algorithms 2 and 3 of
-<span class="bibtex-citation" id="id1">Kobayashi <em>et al.</em> [<a class="reference internal" href="../references.html#id13" title="Ken Kobayashi, Naoki Hamada, Akiyoshi Sannai, Aiko Tanaka, Kenichi Bannai, and Masashi Sugiyama. Bézier simplex fitting: describing pareto fronts of simplicial problems with small samples in multi-objective optimization. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 33, 2304–2313. 2019. URL: https://doi.org/10.1609/aaai.v33i01.33012304.">KHS+19</a>]</span>. Both support a single simplex or simploid,
+<span class="bibtex-citation" id="id1">Kobayashi <em>et al.</em> [<a class="reference internal" href="../references.html#id14" title="Ken Kobayashi, Naoki Hamada, Akiyoshi Sannai, Aiko Tanaka, Kenichi Bannai, and Masashi Sugiyama. Bézier simplex fitting: describing pareto fronts of simplicial problems with small samples in multi-objective optimization. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 33, 2304–2313. 2019. URL: https://doi.org/10.1609/aaai.v33i01.33012304.">KHS+19</a>]</span>. Both support a single simplex or simploid,
 but not assembled spaces; see <a class="reference internal" href="#point-cloud-simploids"><span class="std std-ref">Products of simplices</span></a>.
 <code class="docutils literal notranslate"><span class="pre">fit_point_cloud</span></code> returns a <code class="docutils literal notranslate"><span class="pre">PointCloudFitResult</span></code>; <code class="docutils literal notranslate"><span class="pre">fit_skeleton</span></code>
 returns a <code class="docutils literal notranslate"><span class="pre">SkeletonFitResult</span></code>. Each result holds an ordinary <code class="docutils literal notranslate"><span class="pre">BezierModel</span></code>

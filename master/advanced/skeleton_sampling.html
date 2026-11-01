@@ -73,6 +73,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
@@ -134,7 +135,7 @@
 <p>When responses can be measured at chosen parameters, a simplex, or a product
 of simplices, can be fitted face by face: vertices first, then edges, then larger faces, each time
 estimating only the controls interior to the face from observations on that
-face. This is the inductive skeleton fitting of <span class="bibtex-citation" id="id1">Tanaka <em>et al.</em> [<a class="reference internal" href="../references.html#id15" title="Aiko Tanaka, Akiyoshi Sannai, Ken Kobayashi, and Naoki Hamada. Asymptotic risk of bézier simplex fitting. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 34, 2416–2424. 2020. URL: https://doi.org/10.1609/aaai.v34i03.5622.">TSKH20</a>]</span>.
+face. This is the inductive skeleton fitting of <span class="bibtex-citation" id="id1">Tanaka <em>et al.</em> [<a class="reference internal" href="../references.html#id16" title="Aiko Tanaka, Akiyoshi Sannai, Ken Kobayashi, and Naoki Hamada. Asymptotic risk of bézier simplex fitting. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 34, 2416–2424. 2020. URL: https://doi.org/10.1609/aaai.v34i03.5622.">TSKH20</a>]</span>.
 Its accuracy depends on how a budget of <span class="math notranslate nohighlight">\(N\)</span> observations is split among
 the skeletons. This chapter gives the asymptotic risk for every dimension and
 degree, the split that minimizes it, and the functions that compute, sample and
@@ -362,7 +363,7 @@ value; the smaller one is in bold.</p>
 </tbody>
 </table>
 <p>The degree-two and degree-three rows agree with Tables 1 and 2 of
-<span class="bibtex-citation" id="id2">Tanaka <em>et al.</em> [<a class="reference internal" href="../references.html#id15" title="Aiko Tanaka, Akiyoshi Sannai, Ken Kobayashi, and Naoki Hamada. Asymptotic risk of bézier simplex fitting. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 34, 2416–2424. 2020. URL: https://doi.org/10.1609/aaai.v34i03.5622.">TSKH20</a>]</span>, which give these coefficients numerically for
+<span class="bibtex-citation" id="id2">Tanaka <em>et al.</em> [<a class="reference internal" href="../references.html#id16" title="Aiko Tanaka, Akiyoshi Sannai, Ken Kobayashi, and Naoki Hamada. Asymptotic risk of bézier simplex fitting. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 34, 2416–2424. 2020. URL: https://doi.org/10.1609/aaai.v34i03.5622.">TSKH20</a>]</span>, which give these coefficients numerically for
 <span class="math notranslate nohighlight">\(D \in \{2, 3\}\)</span> and <span class="math notranslate nohighlight">\(2 \leq M \leq 8\)</span>. The other rows are new.
 They show that the paper’s observation that the inductive skeleton fitting wins
 for <span class="math notranslate nohighlight">\(D &lt; 3\)</span> does not extend to a rule in the degree: it wins for every
@@ -484,7 +485,7 @@ once the float64 result can no longer be guaranteed to six significant digits
 <span class="math notranslate nohighlight">\(M = 4\)</span>, 9 for <span class="math notranslate nohighlight">\(M = 5\)</span> and 8 for <span class="math notranslate nohighlight">\(M = 6\)</span>). The Gram
 matrix of degree <span class="math notranslate nohighlight">\(D\)</span> on a simplex with <span class="math notranslate nohighlight">\(M\)</span> vertices has the
 condition number <span class="math notranslate nohighlight">\(\binom{2D + M - 1}{D}\)</span>, which follows from its
-eigenvalues <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../references.html#id57" title="Robert C. Kirby. Fast inversion of the simplicial Bernstein mass matrix. Numerische Mathematik, 135(1):73–95, 2017. URL: https://doi.org/10.1007/s00211-016-0795-0.">Kir17</a>]</span>. On a simploid, the condition number of
+eigenvalues <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../references.html#id58" title="Robert C. Kirby. Fast inversion of the simplicial Bernstein mass matrix. Numerische Mathematik, 135(1):73–95, 2017. URL: https://doi.org/10.1007/s00211-016-0795-0.">Kir17</a>]</span>. On a simploid, the condition number of
 the Gram matrix on the whole simploid is the product of those of its factors’
 Gram matrices, so products of many factors are rejected even at low degree
 (for example, 12 segments of degree 1). In that case, pass <code class="docutils literal notranslate"><span class="pre">ratio</span></code> to
