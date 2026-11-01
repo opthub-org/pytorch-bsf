@@ -69,10 +69,10 @@ def save_model(path: str | Path, model: BezierModel) -> None:
             with zipfile.ZipFile(file, "w", compression=zipfile.ZIP_DEFLATED) as archive:
                 archive.writestr("model.json", json.dumps(document, ensure_ascii=False))
                 archive.writestr("coefficients.npy", array.getvalue())
+            if existing_mode is not None:
+                os.chmod(temporary, existing_mode)  # before the fsync, so the mode is persisted with the data
             file.flush()
             os.fsync(file.fileno())
-        if existing_mode is not None:
-            os.chmod(temporary, existing_mode)
         os.replace(temporary, path)
     except BaseException:
         temporary.unlink(missing_ok=True)
