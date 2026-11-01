@@ -364,7 +364,9 @@ def minimize(
         same device for basis evaluation and gradients. Metric solves and update
         arithmetic use float64 before casting back to the model dtype. On MPS,
         float64 penalties and solves run on CPU with differentiable transfers.
-        The returned model then has float32 coefficients.
+        The returned model then has float32 coefficients. A gradient tolerance
+        is checked on the full sample before each update and after the last
+        one; a minibatch covering every sample reuses that checked evaluation.
     points
         Fixed samples. Otherwise draw ``n_samples`` with the stated cell weights.
     n_samples, seed, cell_weights
@@ -413,26 +415,41 @@ def minimize(
     generator = _generator(None if seed is None else seed + 1)
     history: list[Iteration] = []
     success, status, message = False, "iteration_limit", "Iteration budget exhausted; convergence was not established."
-    for k in range(method.max_iter):
-        if method.gradient_tolerance is not None:
-            full = _objective(fitted, loss, batch, penalty)
+    tolerance = method.gradient_tolerance
+    # A minibatch covering every sample only permutes the batch. With a gradient
+    # tolerance, the checked full-sample objective and gradient are reused for
+    # the update instead of re-evaluating a permuted copy.
+    reuse_full = tolerance is not None and (method.batch_size is None or method.batch_size >= len(batch))
+    # Full-sample objective already evaluated at the current coefficients, if any.
+    checked: torch.Tensor | None = None
+    # With a tolerance, one extra pass checks the state reached by the last update.
+    for k in range(method.max_iter + (tolerance is not None)):
+        if tolerance is not None:
+            full = checked = _objective(fitted, loss, batch, penalty)
             full_grad = _gradient(full, p)
-            if full_grad[free].norm().item() <= method.gradient_tolerance:
+            if full_grad[free].norm().item() <= tolerance:
                 success, status, message = True, "gradient_tolerance", "Full-sample gradient tolerance reached."
                 break
-        rows = torch.randperm(len(batch), generator=generator)[: method.batch_size or len(batch)]
-        current = batch.take(rows)
-        value = _objective(fitted, loss, current, penalty)
-        gradient = _gradient(value, p)
+            if k == method.max_iter:
+                break
+        if reuse_full:
+            value, gradient = full, full_grad
+        else:
+            rows = torch.randperm(len(batch), generator=generator)[: method.batch_size or len(batch)]
+            current = batch.take(rows)
+            value = _objective(fitted, loss, current, penalty)
+            gradient = _gradient(value, p)
         record = Iteration(k, value.item(), gradient[free].norm().item())
         history.append(record)
+        # The callback or the update may change the coefficients.
+        checked = None
         if callback is not None and callback(record, fitted):
             status, message = "callback_stop", "Stopped by callback; convergence was not established."
             break
         alpha = method.step_size / math.sqrt(k + 1) if method.step_decay == "sqrt" else method.step_size
         direction, update_alpha = step_for(gradient[free], alpha)
         _update(p, free, update_alpha, direction)
-    final = _objective(fitted, loss, batch, penalty).item()
+    final = (_objective(fitted, loss, batch, penalty) if checked is None else checked).item()
     result = OptimizationResult(fitted, tuple(history), success, status, message, final, len(history), seed)
     if not success and status == "iteration_limit":
         warnings.warn(message, ConvergenceWarning, stacklevel=2)
