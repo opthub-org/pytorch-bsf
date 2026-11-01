@@ -1,9 +1,11 @@
 """Independent scalar, Gram, polynomial and saved-record checks."""
 
 import hashlib
+import importlib.util
 import itertools
 import json
 import math
+import os
 import subprocess
 import sys
 from fractions import Fraction
@@ -15,6 +17,7 @@ from tests.sampling import _exact_coefficients, _scalar_risk_sum
 from tools.risk_research import codimension_three_exact as diagonal
 from tools.risk_research.edge_closed import codimension_two_coefficient
 from tools.risk_research.research_exact import integer_kernel
+from tools.risk_research.vertex_general import leading_constant_enclosure as vertex_constant_enclosure
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -154,6 +157,60 @@ def test_frozen_larger_cases_match_independent_original_integer_kernel():
         assert diagonal.nonvertex_coefficient(row["face_size"] + row["outside"], row["degree"], row["face_size"]) == expected
 
 
+@pytest.mark.parametrize(("size", "outside", "ratio"), [(2, 2, Fraction(3, 8)), (2, 3, Fraction(1, 2)), (3, 3, Fraction(5))])
+def test_known_constant_relations_recover_existing_codimension_two_and_q3_normalizations(size, outside, ratio):
+    for terms in [8, 128]:
+        lower, upper = vertex_constant_enclosure(outside + 2, terms)
+        assert diagonal.nonvertex_leading_constant_enclosure(size, outside, terms) == (ratio * lower, ratio * upper)
+
+
+def test_exact_inverse_factorial_moment_used_for_summable_domination():
+    for length in range(7):
+        for beta in range(9):
+            other = length + beta
+            normalizer = math.comb(length + other, length)
+            actual = (
+                sum(
+                    (Fraction(math.comb(length, j) * math.comb(other, j), (j + 1) * (j + 2)) for j in range(length + 1)),
+                    Fraction(0),
+                )
+                / normalizer
+            )
+            assert actual == Fraction(
+                (length + other + 1) * (length + other + 2), (length + 1) * (length + 2) * (other + 1) * (other + 2)
+            )
+            inverse_square = (
+                sum(
+                    (Fraction(math.comb(length, j) * math.comb(other, j), (j + 1) ** 2) for j in range(length + 1)),
+                    Fraction(0),
+                )
+                / normalizer
+            )
+            assert inverse_square <= Fraction(8, (length + 1) * (length + 2))
+
+
+def test_nonvertex_leading_intervals_contain_independent_known_zeta_constants():
+    executable = os.environ.get("BSF_FLINT_PYTHON") or os.environ.get("BSF_SAGE_PYTHON")
+    if executable is None:
+        if importlib.util.find_spec("flint") is None:
+            pytest.skip("set BSF_FLINT_PYTHON for native known-zeta interval checks")
+        executable = sys.executable
+    script = """
+from flint import arb,ctx,fmpq
+from tools.risk_research.codimension_three_exact import nonvertex_leading_constant_enclosure
+with ctx.workprec(192):
+    cases=[(2,2,18*arb.pi()**2),(2,3,3600*(arb.pi()**2/6-arb(3).zeta())),
+           (3,3,36000*(arb.pi()**2/6-arb(3).zeta()))]
+    for s,q,known in cases:
+        for terms in (16,128):
+            lower,upper=nonvertex_leading_constant_enclosure(s,q,terms)
+            assert known>arb(fmpq(lower.numerator,lower.denominator))
+            assert known<arb(fmpq(upper.numerator,upper.denominator))
+"""
+    result = subprocess.run([executable, "-c", script], cwd=ROOT, capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
 @pytest.mark.parametrize(
     ("function", "arguments"),
     [
@@ -172,6 +229,10 @@ def test_frozen_larger_cases_match_independent_original_integer_kernel():
         (diagonal.angular_mode_ratio, (2, 3, 1, 0)),
         (diagonal.angular_mode_ratio, (2, 3, 3, 2)),
         (diagonal.angular_mode_ratio, (2, 3, 3, False)),
+        (diagonal.nonvertex_leading_constant_enclosure, (1, 3, 8)),
+        (diagonal.nonvertex_leading_constant_enclosure, (2, 1, 8)),
+        (diagonal.nonvertex_leading_constant_enclosure, (2, 3, 0)),
+        (diagonal.nonvertex_leading_constant_enclosure, (2, 3, True)),
     ],
 )
 def test_integer_domains_reject_coercion_and_invalid_angular_indices(function, arguments):

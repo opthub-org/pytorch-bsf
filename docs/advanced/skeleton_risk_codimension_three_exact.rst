@@ -194,6 +194,115 @@ At :math:`j=0` this is one.  At positive :math:`j`,
    The formula has exactly :math:`(D-s+1)(D-s+2)/2` inner terms;
    harmonic tables and binomial weights have nonsingular updates.
 
+Fixed-codimension large-degree behavior
+----------------------------------------
+
+The same positive formula determines the true leading order at every
+fixed nonvertex source size and codimension at least two.
+
+.. prf:theorem:: Nonvertex asymptotic at every fixed codimension
+   :label: thm-risk-nonvertex-fixed-codimension-asymptotic
+
+   For each fixed pair of integers :math:`s\geq2,q\geq2`,
+
+   .. math::
+      :label: risk-nonvertex-fixed-codimension-asymptotic
+
+      a_{s-1}(s+q,D)\sim A_{s,q}D^{s-q-2},\qquad
+      A_{s,q}=\binom{s+q}s^2
+        \frac{(s)_q}{2^q(s-2)!}\frac{c_{q+1}}{q+1}>0.
+
+   Here :math:`c_{q+1}` is the positive constant of
+   :prf:ref:`thm-risk-general-vertex-asymptotic`.  In particular,
+
+   .. math::
+      :label: risk-nonvertex-codimension-three-asymptotic
+
+      a_{s-1}(s+3,D)\sim
+       \frac{s(s+1)^3(s+2)^3(s+3)^2}{24(s-2)!}
+          (\zeta(2)-\zeta(3))D^{s-5}.
+
+   Thus :math:`a_1(5,D)\sim3600(\zeta(2)-\zeta(3))D^{-3}` and
+   :math:`a_2(6,D)\sim36000(\zeta(2)-\zeta(3))D^{-2}`.
+   No finite-degree error bound or simultaneous growth of :math:`s,q,D`
+   is asserted by this theorem.
+
+.. prf:proof::
+
+   First the univariate construction in
+   :doc:`skeleton_risk_vertex_general` gives, for :math:`q\geq2`,
+
+   .. math::
+
+      \sum_{j\geq0}\delta_q(j)
+       =\sum_{j\geq0}e_q(j)=\frac{c_{q+1}}{q+1}.
+
+   Indeed all sequences in that construction are absolutely summable.
+   The sum of :math:`\phi_q` is zero, by its generating function
+   :math:`g(t)^q/(1-t)` at :math:`t=1`.  For :math:`k\geq1`,
+   :math:`\sum_jb_k(j)=0`, so the sum of every convolution
+   :math:`b_k*e_{q-k}` is zero.  Only the :math:`k=0` term remains.
+   This also proves that the displayed sum is finite and positive.
+
+   For summable domination we use the following exact inverse-factorial
+   moment of the binomial weights.  Write :math:`B=L+\beta\geq L`.
+   Vandermonde's identity gives
+
+   .. math::
+
+      \mathbb E\!\left[\frac1{(J+1)(J+2)}\right]
+       &=\frac{(L+B+1)(L+B+2)}
+              {(L+1)(L+2)(B+1)(B+2)},\\
+      \mathbb E[(J+1)^{-2}]
+       &\leq\frac8{(L+1)(L+2)}.
+
+   For the first identity, replace
+   :math:`\binom Bj/((j+1)(j+2))` by
+   :math:`\binom{B+2}{j+2}/((B+1)(B+2))` and sum.
+   For the inequality use
+   :math:`(j+1)^{-2}\leq2/((j+1)(j+2))` and
+   :math:`(L+B+i)/(B+i)\leq2` for :math:`i=1,2`.
+
+   For each fixed :math:`q\geq2`, constants :math:`K,p` exist with
+
+   .. math::
+
+      0<\delta_q(j)\leq
+           K\frac{(1+\log(j+1))^p}{(j+1)^2}\quad(j\geq0).
+
+   At :math:`q=2`, this follows directly from
+   :math:`\delta_2=-\phi_2+2\phi_1^2`, with :math:`p=1`.
+   At :math:`q\geq3`, it follows from the explicit diagonal error
+   :eq:`risk-general-diagonal-explicit-error`, with :math:`p=q-1`.
+   Since :math:`0\leq J\leq L`, the inverse-square bound therefore gives
+
+   .. math::
+
+      \mathbb E[\delta_q(J)]\leq
+          \frac{8K(1+\log(L+1))^p}{(L+1)(L+2)},
+
+   a summable sequence in :math:`L`, independent of :math:`D`.
+
+   Reindex the angular sum by :math:`L=D-s-k`.  For each fixed
+   :math:`L`, :math:`B=2D+s-L-1` tends to infinity, and
+   :math:`\mathbb P(J=L)=\binom BL/\binom{B+L}L\to1`.
+   Thus its average tends to :math:`\delta_q(L)`.
+   Also
+
+   .. math::
+
+      \frac{\binom{k+s-2}{s-2}}{D^{s-2}}
+           \longrightarrow\frac1{(s-2)!},\qquad
+      0\leq\frac{\binom{k+s-2}{s-2}}{D^{s-2}}
+           \leq\frac1{(s-2)!}.
+
+   Set terms outside :math:`0\leq L\leq D-s` to zero.  Dominated
+   convergence and :math:`D^q(s)_q/(2D+s)_q\to(s)_q/2^q`
+   prove :eq:`risk-nonvertex-fixed-codimension-asymptotic`.
+   At :math:`q=3`, use
+   :math:`c_4=48(\zeta(2)-\zeta(3))` and simplify.  At :math:`q=2`
+   the theorem recovers the existing codimension-two asymptotic.
+
 Evaluation and independent verification
 ----------------------------------------
 
@@ -218,6 +327,18 @@ bytes and therefore still rejects line-ending edits during calculation.
 Invalid inputs, changed records and calculation failures preserve the
 previous destination through atomic output.  Recomputing a record checks
 its exact value and provenance; the all-degree proof is the theorem above.
+
+``nonvertex_leading_constant_enclosure(s,q,terms)`` scales the existing
+vertex-constant interval by the exact positive rational factor
+
+.. math::
+
+   \frac{A_{s,q}}{C_{q+2}}=
+     \frac{\binom{s+q}s^2(s)_q}
+       {2(s-2)!(q+1)(q+2)^2(q+1)!}.
+
+It encloses the leading constant for fixed :math:`s,q\geq2`; it does
+not enclose the finite-degree coefficient by itself.
 
 Tests compare every mode with independent polynomial moments at genuine
 full-bubble degrees, recover existing q0/q1/q2 formulas, and compare small

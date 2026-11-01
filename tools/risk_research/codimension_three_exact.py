@@ -11,10 +11,11 @@ import argparse
 import hashlib
 import json
 from fractions import Fraction
-from math import comb, prod
+from math import comb, factorial, prod
 from pathlib import Path
 
 from .exact import atomic_json, fraction_record
+from .vertex_general import leading_constant_enclosure as vertex_leading_constant_enclosure
 from .vertex_general import transformed_diagonals
 
 HASH_POLICY = "sha256-crlf-to-lf-v1"
@@ -116,6 +117,22 @@ def codimension_three_coefficient(face_size: int, degree: int) -> Fraction:
     """Return a_(face_size-1)(face_size+3,degree) by its harmonic double sum."""
     _integer(face_size, 2, "face_size")
     return nonvertex_coefficient(face_size + 3, degree, face_size)
+
+
+def nonvertex_leading_constant_enclosure(face_size: int, outside: int, terms: int = 128) -> tuple[Fraction, Fraction]:
+    """Enclose A_(s,q) in a_(s-1)(s+q,D)~A_(s,q)*D**(s-q-2).
+
+    The theorem fixes integers s>=2 and q>=2 as D tends to infinity.
+    This interval encloses the leading constant, not the finite-D risk.
+    """
+    _integer(face_size, 2, "face_size")
+    _integer(outside, 2, "outside")
+    lower, upper = vertex_leading_constant_enclosure(outside + 2, terms)
+    scale = Fraction(
+        comb(face_size + outside, face_size) ** 2 * prod(range(face_size, face_size + outside)),
+        2 * factorial(face_size - 2) * (outside + 1) * (outside + 2) ** 2 * factorial(outside + 1),
+    )
+    return scale * lower, scale * upper
 
 
 def _sources() -> dict[str, bytes]:
