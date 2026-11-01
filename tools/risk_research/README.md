@@ -448,5 +448,9 @@ python -m tools.risk_research.uniform_dimension_tail \
 ```
 
 The standard-library tool records exact specialized arithmetic, the domain
-and source fingerprints. A finite set of its certificates checks the
-implementation; the documented inequalities prove the all-degree theorem.
+and source fingerprints. Its `source_hash_policy` is `sha256-crlf-to-lf-v1`:
+each CRLF pair becomes LF before hashing, with every other byte retained.
+The raw-byte before/after guard still rejects any source edit during
+certification, including a line-ending change. A finite set of its
+certificates checks the implementation; the documented inequalities prove
+the all-degree theorem.

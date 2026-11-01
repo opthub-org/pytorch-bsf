@@ -14,9 +14,10 @@
     "numerator": "8979397362047542284038327946608926562569962708942730676099546392515956768177154645446379361039687330275656882026938685473490276040784917454843750000000000"
   },
   "schema": "skeleton-risk-uniform-dimension-tail-v1",
+  "source_hash_policy": "sha256-crlf-to-lf-v1",
   "source_sha256": {
     "exact.py": "3376e31af2fad5b77d0e84ead5047a5820e833b773c4630d7b2d9c799fb1bb5b",
-    "uniform_dimension_tail.py": "d4e411a7f82fb25a7e16ebba7a1732485e761601e59f3a2f8568ecd75aee007e"
+    "uniform_dimension_tail.py": "e54b097f010a9b3e7327da225e4c0314a3ee2cdb7e05b086833556684bb8bb64"
   },
   "strict_margin_below_ratio_bound": {
     "denominator": "111888430651037413595102881",

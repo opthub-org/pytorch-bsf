@@ -18,6 +18,7 @@ from .exact import atomic_json
 THRESHOLD_MULTIPLIER = 9720
 RATIO_BOUND = Fraction(4, 5)
 SCHEMA = "skeleton-risk-uniform-dimension-tail-v1"
+SOURCE_HASH_POLICY = "sha256-crlf-to-lf-v1"
 
 
 def _positive_integer(value: int, name: str) -> None:
@@ -66,6 +67,11 @@ def _sources() -> dict[str, bytes]:
     return {name: Path(__file__).with_name(name).read_bytes() for name in ["uniform_dimension_tail.py", "exact.py"]}
 
 
+def _source_hashes(sources: dict[str, bytes]) -> dict[str, str]:
+    """Hash canonical LF bytes while retaining every non-CRLF byte."""
+    return {name: hashlib.sha256(source.replace(b"\r\n", b"\n")).hexdigest() for name, source in sources.items()}
+
+
 def _decimal(value: int) -> str:
     """Serialize exact integers locally without changing Python's digit limit."""
     if value == 0:
@@ -109,7 +115,8 @@ def certify_degree(degree: int) -> dict[str, object]:
         "all_at_once_lower_bound": _fraction_record(target_lower),
         "strict_ratio_upper_bound": _fraction_record(RATIO_BOUND),
         "strict_margin_below_ratio_bound": _fraction_record(ratio_margin),
-        "source_sha256": {name: hashlib.sha256(source).hexdigest() for name, source in _sources().items()},
+        "source_hash_policy": SOURCE_HASH_POLICY,
+        "source_sha256": _source_hashes(_sources()),
     }
 
 
