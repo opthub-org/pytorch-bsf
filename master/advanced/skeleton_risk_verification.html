@@ -65,7 +65,9 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
@@ -207,7 +209,7 @@ versus 0.04 seconds with propagation reduction.</p>
 </section>
 <section id="assembled-simploidal-sets">
 <h2>Assembled simploidal sets<a class="headerlink" href="#assembled-simploidal-sets" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">tests/simploidal_risk.py</span></code> checks <a class="reference internal" href="simploidal_risk.html#thm-skeleton-assembled-risk">Theorem 30</a>
+<p><code class="docutils literal notranslate"><span class="pre">tests/simploidal_risk.py</span></code> checks <a class="reference internal" href="simploidal_risk.html#thm-skeleton-assembled-risk">Theorem 32</a>
 in two independent ways. Exact Dirichlet moments are scattered into global
 proper-control coordinates, retaining repeated local IDs. Rational
 elimination solves the global block triangular equations. Separately,
@@ -242,17 +244,17 @@ local control counts. Quadrature and the public joint solver also check
 <a class="reference internal" href="simploidal_risk.html#cor-skeleton-assembled-aao">Corollary 16</a> with matching design/evaluation
 weights and with different weights, over the reference domains.</p>
 <p><code class="docutils literal notranslate"><span class="pre">tests/simploidal_incidence.py</span></code> independently checks
-<a class="reference internal" href="simploidal_risk.html#thm-skeleton-regular-incidence">Theorem 31</a> against exact assembled population
+<a class="reference internal" href="simploidal_risk.html#thm-skeleton-regular-incidence">Theorem 33</a> against exact assembled population
 solves on shared triangles, a triangle-square pair, shared tetrahedra,
 nonpure complexes and nonmanifold gluing, as well as graphs and disconnected
 sets. Unequal evaluation weights on all charts and on maximal charts check
 both the incidence formula and the pure-complex face-vector reduction.
 The same file checks the explicit corner-collision formula
-<a class="reference internal" href="simploidal_risk.html#thm-skeleton-linear-assembled">Theorem 32</a>, including repeated vertices of a
+<a class="reference internal" href="simploidal_risk.html#thm-skeleton-linear-assembled">Theorem 34</a>, including repeated vertices of a
 loop and torus and the collapsed edges of a sphere, and its strict risk
 bound when a positive-weight chart sees distinct vertices.</p>
 <p><code class="docutils literal notranslate"><span class="pre">tests/simploidal_graph_risk.py</span></code> checks
-<a class="reference internal" href="simploidal_risk.html#thm-skeleton-graph-risk">Theorem 33</a> on mixed-degree graphs with parallel
+<a class="reference internal" href="simploidal_risk.html#thm-skeleton-graph-risk">Theorem 35</a> on mixed-degree graphs with parallel
 edges, loops and isolated vertices. Vertex and edge evaluation weights
 are varied independently. Endpoint self and cross norms are checked by
 exact Bernstein Gram elimination at <span class="math notranslate nohighlight">\(D=1,\ldots,12\)</span>, then by exact

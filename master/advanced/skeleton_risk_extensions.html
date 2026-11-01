@@ -24,7 +24,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Tetrahedron vertex risk" href="skeleton_risk_vertex.html" />
+    <link rel="next" title="Quadratic codimension-two multiplicities" href="codimension_two_states.html" />
     <link rel="prev" title="Theory of the skeleton risk" href="skeleton_risk_theory.html" /> 
 </head>
 
@@ -76,7 +76,9 @@
 <li class="toctree-l4"><a class="reference internal" href="#verification-and-remaining-questions">Verification and remaining questions</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
@@ -171,6 +173,14 @@ and two explicitly specified auxiliary recurrences.</p></td>
 <tr class="row-even"><td><p><a class="reference internal" href="#thm-risk-five-vertex-triangle-state">Theorem 22</a></p></td>
 <td><p>Every triangular-face coefficient on a five-vertex simplex has an
 eight-state rational representation and a certified order-eight recurrence.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="codimension_two_states.html#thm-risk-six-vertex-tetrahedral-state">Theorem 24</a></p></td>
+<td><p>Every tetrahedral-face coefficient on a six-vertex simplex also has
+an eight-state formula and a certified order-eight recurrence.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="skeleton_risk_vertex_recurrence.html#thm-risk-tetrahedron-vertex-recurrence">Theorem 27</a></p></td>
+<td><p>The tetrahedron vertex has an explicit order-ten degree recurrence
+certified by four rational telescoping identities.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#cor-risk-codimension-two-asymptotic">Corollary 12</a></p></td>
 <td><p>The leading large-degree constant for every fixed codimension-two face
@@ -746,8 +756,9 @@ using a fixed state and checks independent scalar and Gram references.
 <code class="docutils literal notranslate"><span class="pre">triangle_recurrence.py</span></code> verifies its complete scalar operator by eight
 exact rational identities, including the initial values and denominator
 conditions, independently of finite sequence residual checks.</p>
-<p>The tetrahedron vertex coefficient still lacks an explicit useful
-all-degree recurrence or a bounded classical-special-function expression.
+<p><a class="reference internal" href="skeleton_risk_vertex_recurrence.html"><span class="doc">Tetrahedron vertex degree recurrence</span></a> supplies a certified order-ten
+tetrahedron vertex recurrence at every positive integer degree. A bounded
+classical-special-function expression remains open.
 The boundary-pair identity reduces its mixed part to
 <span class="math notranslate nohighlight">\(\mathcal L_D(Ff(x)f(y))\)</span>; <a class="reference internal" href="skeleton_risk_vertex.html"><span class="doc">Tetrahedron vertex risk</span></a> further
 evaluates the complete vertex coefficient by one positive harmonic sum
@@ -755,7 +766,8 @@ and proves its leading large-degree constant. Bounded polynomial/harmonic ansatz
 can be excluded by exact modular rank, but such exclusions say nothing
 about formulas outside the recorded spaces. A general elementary or
 classical-special-function evaluation of the remaining codimension-two
-angular sums is also still open beyond the fixed-state evaluations above.
+angular sums is also still open beyond the fixed-state evaluations above
+and the six-vertex tetrahedral-face formula in <a class="reference internal" href="codimension_two_states.html"><span class="doc">Quadratic codimension-two multiplicities</span></a>.
 <a class="reference internal" href="skeleton_risk_comparisons.html"><span class="doc">Fixed-degree risk comparisons in every dimension</span></a> settles the complete comparison at every
 fixed degree through twenty. A general crossover law and the nonlinear
 self-identification questions of <a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a> remain.
@@ -769,7 +781,7 @@ in <a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="skeleton_risk_theory.html" class="btn btn-neutral float-left" title="Theory of the skeleton risk" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="skeleton_risk_vertex.html" class="btn btn-neutral float-right" title="Tetrahedron vertex risk" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="codimension_two_states.html" class="btn btn-neutral float-right" title="Quadratic codimension-two multiplicities" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
