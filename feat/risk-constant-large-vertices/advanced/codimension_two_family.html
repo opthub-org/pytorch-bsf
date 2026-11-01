@@ -1,0 +1,512 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Uniform construction for codimension two &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Boundary transfer and a codimension-three edge bound" href="skeleton_risk_codimension_three.html" />
+    <link rel="prev" title="Quadratic codimension-two multiplicities" href="codimension_two_states.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Uniform construction for codimension two</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#the-common-state">The common state</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#from-arbitrary-face-size-to-polynomial-moments">From arbitrary face size to polynomial moments</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#reduction-of-the-harmonic-part">Reduction of the harmonic part</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#rational-and-inverse-binomial-parts">Rational and inverse-binomial parts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#completion-of-the-construction-and-its-scope">Completion of the construction and its scope</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#reproduction-and-independent-verification">Reproduction and independent verification</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three.html">Boundary transfer and a codimension-three edge bound</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension.html">The vertex leading constant at large vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html">An all-degree sufficient region for large vertex counts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html">Five-vertex vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_comparison.html">Five-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Uniform construction for codimension two</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/codimension_two_family.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="uniform-construction-for-codimension-two">
+<h1>Uniform construction for codimension two<a class="headerlink" href="#uniform-construction-for-codimension-two" title="Link to this heading"></a></h1>
+<p>The previously evaluated edges, triangular faces and tetrahedral faces have
+source-face sizes two, three and four. This chapter gives one construction
+for every fixed source-face size. It uses the uniform-simplex assumptions of
+<a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a> and the mode formula in
+<a class="reference internal" href="skeleton_risk_extensions.html"><span class="doc">Further evaluations of the skeleton risk</span></a>.</p>
+<div class="proof theorem admonition" id="thm-risk-uniform-codimension-two-state">
+<p class="admonition-title"><span class="caption-number">Theorem 25 </span> (A uniform fifteen-state codimension-two construction)</p>
+<section class="theorem-content" id="proof-content">
+<p>For every integer <span class="math notranslate nohighlight">\(s\geq2\)</span>, the coefficient
+<span class="math notranslate nohighlight">\(a_{s-1}(s+2,D)\)</span> has the following constructive evaluation for every
+integer <span class="math notranslate nohighlight">\(D\geq1\)</span>. It is zero if <span class="math notranslate nohighlight">\(D&lt;s\)</span>. On the active domain,
+set</p>
+<div class="math notranslate nohighlight">
+\[h=D+\lfloor s/2\rfloor,\qquad
+\epsilon=1+(s\bmod2),\qquad N=2h+\epsilon=2D+s+1.\]</div>
+<p>A fifteen-component state, independent of <span class="math notranslate nohighlight">\(s\)</span>, has a rational
+transition from <span class="math notranslate nohighlight">\(h\)</span> to <span class="math notranslate nohighlight">\(h+1\)</span>. A finite algorithm depending on
+<span class="math notranslate nohighlight">\(s\)</span> constructs a rational output row whose product with this state
+is <span class="math notranslate nohighlight">\(a_{s-1}(s+2,D)\)</span>. The algorithm uses polynomial arithmetic,
+partial fractions with poles of order at most two, and at most
+<span class="math notranslate nohighlight">\(\lfloor s/2\rfloor+1\)</span> explicit endpoint corrections. Its operation
+count for constructing the output row at fixed <span class="math notranslate nohighlight">\(s\)</span> is independent
+of <span class="math notranslate nohighlight">\(D\)</span>.</p>
+<p>State initialization uses only the fixed values <span class="math notranslate nohighlight">\(h=1,N=3\)</span> or
+<span class="math notranslate nohighlight">\(h=1,N=4\)</span>. State transitions are nonsingular for <span class="math notranslate nohighlight">\(h\geq1\)</span>;
+output construction is nonsingular throughout <span class="math notranslate nohighlight">\(D\geq s\)</span>.</p>
+</section>
+</div><p>This is an upper bound on state dimension, not a claim of minimality. The
+eight-state formulas at <span class="math notranslate nohighlight">\(s=3,4\)</span> remain useful smaller representations.
+At <span class="math notranslate nohighlight">\(s=1\)</span> the coefficient is the already evaluated triangle vertex;
+the polynomial angular multiplicity used below applies to <span class="math notranslate nohighlight">\(s\geq2\)</span>.
+No production sampling API changes are involved.</p>
+<section id="the-common-state">
+<h2>The common state<a class="headerlink" href="#the-common-state" title="Link to this heading"></a></h2>
+<p>Let <span class="math notranslate nohighlight">\(b_j=\binom Nj^{-1}\)</span>, and let <span class="math notranslate nohighlight">\(H_r,H_r^{(2)}\)</span> have their
+usual values, including zero at <span class="math notranslate nohighlight">\(r=0\)</span>. Define</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}F_N&amp;=\sum_{j=1}^N\frac{b_j}{j^2},&amp;
+G_N&amp;=\sum_{j=1}^N\frac{b_j}{j},&amp;
+P_N&amp;=\sum_{j=0}^N\frac{b_j}{j+1},\\
+T_1&amp;=\sum_{j=1}^h\frac{b_j}{j},&amp;
+T_2&amp;=\sum_{j=1}^h\frac{b_j}{j^2},&amp;
+U&amp;=\sum_{j=1}^h\frac{b_j}{j+1},\qquad w=b_h.\end{split}\]</div>
+<p>The state is</p>
+<div class="math notranslate nohighlight" id="equation-risk-uniform-codimension-two-state">
+<span class="eqno">(38)<a class="headerlink" href="#equation-risk-uniform-codimension-two-state" title="Link to this equation"></a></span>\[\bigl(H_N^2,H_NH_h,H_h^2,H_N,H_h,H_N^{(2)},H_h^{(2)},
+      F_N,G_N,P_N,T_1,T_2,U,w,1\bigr)^{\mathsf T}.\]</div>
+<p>The defining sums establish the identities below; evaluation advances the
+fixed state and does not recompute them at each degree.</p>
+<p>Write <span class="math notranslate nohighlight">\(q=(N+1)(N+2)\)</span> and</p>
+<div class="math notranslate nohighlight">
+\[W=\frac{(h+1)(N-h+1)}q\,w,\qquad
+S=\frac{N+1}{4}G_N-\frac12
+    -\mathbf1_{\epsilon=2}\frac{h+1}{2(h+2)}w,\qquad
+J=\frac N2 S+\frac{(h+1)w-1}{2}.\]</div>
+<p>Here <span class="math notranslate nohighlight">\(S=\sum_{j=1}^h b_j\)</span> and
+<span class="math notranslate nohighlight">\(J=\sum_{j=1}^h j b_j\)</span>. The half-range updates are</p>
+<div class="math notranslate nohighlight" id="equation-risk-uniform-half-transitions">
+<span class="eqno">(39)<a class="headerlink" href="#equation-risk-uniform-half-transitions" title="Link to this equation"></a></span>\[\begin{split}T_1'&amp;=T_1-\frac{2N+3}{q}S+\frac Jq+\frac W{h+1},\\
+T_2'&amp;=T_2-\frac{2N+3}{q}T_1+\frac Sq+\frac W{(h+1)^2},\\
+U'&amp;=\frac{N+3}{N+1}U-\frac{2S}{N+1}+\frac Jq+\frac W{h+2},
+\qquad w'=W.\end{split}\]</div>
+<p>Primes denote <span class="math notranslate nohighlight">\(N'=N+2,h'=h+1\)</span>. The full inverse-binomial updates
+can be performed twice using</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}G_{N+1}&amp;=G_N/2+1/(N+1),\\
+F_{N+1}&amp;=F_N-G_N/(N+1)+1/(N+1)^2,\\
+P_{N+1}&amp;=\frac{N+2}{N+1}P_N-\frac{G_N}{2}
+                           -\frac1{N+1}+\frac1{N+2}.\end{split}\]</div>
+<p>Finally, <span class="math notranslate nohighlight">\(H_N\)</span> increases by
+<span class="math notranslate nohighlight">\(a=1/(N+1)+1/(N+2)\)</span>, and <span class="math notranslate nohighlight">\(H_h\)</span> by <span class="math notranslate nohighlight">\(c=1/(h+1)\)</span>.
+Their squares and product therefore have affine updates in the listed
+quadratic basis. The second-order harmonic numbers increase by
+<span class="math notranslate nohighlight">\(1/(N+1)^2+1/(N+2)^2\)</span> and <span class="math notranslate nohighlight">\(1/(h+1)^2\)</span>, respectively.
+Every displayed denominator is strictly positive on the stated state domain.</p>
+<div class="proof admonition" id="proof">
+<p>Proof. The first two full inverse-binomial updates are already proved in
+<a class="reference internal" href="skeleton_risk_extensions.html"><span class="doc">Further evaluations of the skeleton risk</span></a>. The ratios</p>
+<div class="math notranslate nohighlight">
+\[\frac{b_{N+1,j}}{b_{N,j}}=\frac{N+1-j}{N+1},\qquad
+\frac{b_{N+2,j}}{b_{N,j}}
+    =\frac{(N+1-j)(N+2-j)}q\]</div>
+<p>give the <span class="math notranslate nohighlight">\(P_N\)</span> update and the three half-range updates by polynomial
+division by <span class="math notranslate nohighlight">\(j,j^2,j+1\)</span>; the new endpoint is exactly <span class="math notranslate nohighlight">\(W\)</span>.
+To express the zero-th and first half moments, observe</p>
+<div class="math notranslate nohighlight">
+\[\frac{N+1}{j}b_j=b_j+b_{j-1},\qquad
+(2j-N)b_j=(N-j)b_{j+1}-(N-j+1)b_j.\]</div>
+<p>Summing the first identity over <span class="math notranslate nohighlight">\(1\leq j\leq N\)</span> gives
+<span class="math notranslate nohighlight">\(\sum_{j=0}^N b_j=(N+1)G_N/2+1\)</span>. Symmetry and, when
+<span class="math notranslate nohighlight">\(\epsilon=2\)</span>, subtraction of the middle term give <span class="math notranslate nohighlight">\(S\)</span>.
+The second identity telescopes to the displayed expression for <span class="math notranslate nohighlight">\(J\)</span>.
+This proves all the transitions and their initialization by the fixed
+defining sums at <span class="math notranslate nohighlight">\(h=1\)</span>.</p>
+</div>
+</section>
+<section id="from-arbitrary-face-size-to-polynomial-moments">
+<h2>From arbitrary face size to polynomial moments<a class="headerlink" href="#from-arbitrary-face-size-to-polynomial-moments" title="Link to this heading"></a></h2>
+<p>Set</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}x&amp;=j(N-j),\qquad \Delta=x(x+N+1),\\
+B_j&amp;=H_{j+1}+H_{N-j+1}-H_N,\\
+g_N(j)&amp;=\frac{B_j}{\Delta}
+    -\frac{(N+1)(x-1)}{\Delta^2}
+    -\frac{b_j}{x\Delta}.\end{split}\]</div>
+<p>Reindexing <a class="reference internal" href="skeleton_risk_extensions.html#equation-risk-codimension-two-coefficient">(27)</a> by <span class="math notranslate nohighlight">\(j=L+1\)</span>
+and using <span class="math notranslate nohighlight">\(d_s(k)=\binom{k+s-2}{s-2}\)</span> gives</p>
+<div class="math notranslate nohighlight" id="equation-risk-uniform-polynomial-angular-weight">
+<span class="eqno">(40)<a class="headerlink" href="#equation-risk-uniform-polynomial-angular-weight" title="Link to this equation"></a></span>\[a_{s-1}(s+2,D)
+   =K_s\sum_{j=1}^{D-s+1}p(j)g_N(j),\quad
+K_s=\binom{s+2}s^2\,2s(s+1),\quad
+p(j)=\binom{D-j-1}{s-2}.\]</div>
+<p>In the reduction, <span class="math notranslate nohighlight">\(p\)</span> is the polynomial binomial product, including
+its values at negative upper arguments. Extending the sum to <span class="math notranslate nohighlight">\(h\)</span>
+adds zero-weight terms at <span class="math notranslate nohighlight">\(D-s+2,\ldots,D-1\)</span> and the explicit terms
+at <span class="math notranslate nohighlight">\(j=D+t\)</span>, <span class="math notranslate nohighlight">\(0\leq t\leq\lfloor s/2\rfloor\)</span>, with weights</p>
+<div class="math notranslate nohighlight">
+\[p(D+t)=(-1)^{s-2}\binom{t+s-2}{s-2}.\]</div>
+<p>For such an endpoint, write <span class="math notranslate nohighlight">\(j=h-r\)</span>. Its two harmonics differ from
+<span class="math notranslate nohighlight">\(H_h\)</span> by a fixed number of increments, while</p>
+<div class="math notranslate nohighlight">
+\[b_{h-r}=w\prod_{i=1}^r\frac{N-h+i}{h-i+1}.\]</div>
+<p>Consequently every correction is a rational row in the same state. On the
+active domain <span class="math notranslate nohighlight">\(h\geq s+\lfloor s/2\rfloor\)</span>, none of these denominators
+can vanish.</p>
+</section>
+<section id="reduction-of-the-harmonic-part">
+<h2>Reduction of the harmonic part<a class="headerlink" href="#reduction-of-the-harmonic-part" title="Link to this heading"></a></h2>
+<p>The rational function <span class="math notranslate nohighlight">\(p(j)/\Delta\)</span> has a polynomial part and only
+simple poles at <span class="math notranslate nohighlight">\(0,-1,N,N+1\)</span>. The pole part is a linear combination of</p>
+<div class="math notranslate nohighlight">
+\[\left(\frac1j\mathbin\pm\frac1{N-j}\right)B_j,
+\qquad
+\left(\frac1{j+1}\mathbin\pm\frac1{N-j+1}\right)B_j.\]</div>
+<p>For the symmetric parts, full-range summation and symmetry give the
+half-range sums. The necessary full sums are</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\sum_{j=1}^{N-1}\frac{B_j}{j}
+   &amp;=\frac{H_N^2-H_N^{(2)}}2+1-\frac1N
+       +\frac{2H_N-1-1/N}{N+1},\\
+\sum_{j=1}^{N-1}\frac{B_j}{j+1}
+   &amp;=\frac{H_N^2-H_N^{(2)}}2
+     +2\left(\frac1{N+1}+\frac1{N+2}\right)H_N
+     +\frac2{(N+1)(N+2)}-\frac2{N+1}-1.\end{split}\]</div>
+<p>These follow from
+<span class="math notranslate nohighlight">\(\sum_{k=1}^r H_k/k=(H_r^2+H_r^{(2)})/2\)</span> and
+<span class="math notranslate nohighlight">\(\sum_{k=1}^{r-1}H_{r-k}/k=H_r^2-H_r^{(2)}\)</span>.
+When <span class="math notranslate nohighlight">\(N\)</span> is even, subtract the central summand before halving
+the full symmetric sum. The central harmonic is
+<span class="math notranslate nohighlight">\(2H_{h+2}-H_N\)</span>, so this uses the listed state.</p>
+<p>For an arbitrary constant <span class="math notranslate nohighlight">\(H\)</span>, define</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}A(C,L;H)={}&amp;\frac12\left(H_L^2+H_L^{(2)}
+   -H_{C-1}^2-H_{C-1}^{(2)}
+   +H_{C-L-1}^2+H_{C-L-1}^{(2)}\right)\\
+   &amp;+H_LH_{C-L-1}-H(H_L-H_{C-1}+H_{C-L-1}).\end{split}\]</div>
+<p>The following prefix identity handles both antisymmetric parts:</p>
+<div class="math notranslate nohighlight" id="equation-risk-uniform-antisymmetric-prefix">
+<span class="eqno">(41)<a class="headerlink" href="#equation-risk-uniform-antisymmetric-prefix" title="Link to this equation"></a></span>\[A(C,L;H)=\sum_{j=1}^L
+     \left(\frac1j-\frac1{C-j}\right)(H_j+H_{C-j}-H).\]</div>
+<p>Indeed both sides vanish at <span class="math notranslate nohighlight">\(L=0\)</span>, and their differences at successive
+<span class="math notranslate nohighlight">\(L\)</span> agree by <span class="math notranslate nohighlight">\(H_L-H_{L-1}=1/L\)</span>. In particular, the cross terms
+telescope using</p>
+<div class="math notranslate nohighlight">
+\[\sum_{j=1}^L\left(\frac{H_{C-j}}j-\frac{H_j}{C-j}\right)
+     =H_LH_{C-L-1}.\]</div>
+<p>For poles at <span class="math notranslate nohighlight">\(j+1,N-j+1\)</span>, take <span class="math notranslate nohighlight">\(C=N+2\)</span>,
+<span class="math notranslate nohighlight">\(L=h+1\)</span>, <span class="math notranslate nohighlight">\(H=H_N\)</span>, and remove the <span class="math notranslate nohighlight">\(j=1\)</span> term.
+For poles at <span class="math notranslate nohighlight">\(j,N-j\)</span>, take <span class="math notranslate nohighlight">\(C=N,L=h,H=H_N\)</span>, and add the
+rational correction</p>
+<div class="math notranslate nohighlight">
+\[\sum_{j=1}^h\frac{(N+2)(N-2j)}\Delta.\]</div>
+<p>This correction changes <span class="math notranslate nohighlight">\(H_j+H_{N-j}\)</span> into
+<span class="math notranslate nohighlight">\(H_{j+1}+H_{N-j+1}\)</span>. At the half-range endpoints, every harmonic index
+in these formulas is <span class="math notranslate nohighlight">\(N\)</span> or <span class="math notranslate nohighlight">\(h\)</span> plus a fixed integer. Hence
+the formulas use only the quadratic harmonic components of the state.</p>
+<p>It remains to sum <span class="math notranslate nohighlight">\(Q(j)B_j\)</span> for a polynomial <span class="math notranslate nohighlight">\(Q\)</span>. Construct a
+polynomial <span class="math notranslate nohighlight">\(R\)</span> with <span class="math notranslate nohighlight">\(R(0)=0\)</span> and
+<span class="math notranslate nohighlight">\(R(j)-R(j-1)=Q(j)\)</span>. Its coefficients follow by triangular elimination,
+dividing only by positive integers. Summation by parts gives</p>
+<div class="math notranslate nohighlight">
+\[\sum_{j=1}^h Q(j)B_j=R(h)B_h
+   -\sum_{j=1}^{h-1}R(j)
+       \left(\frac1{j+2}-\frac1{N-j+1}\right).\]</div>
+<p>The remaining sums are rational, with fixed simple poles. Their partial
+fractions evaluate using harmonic numbers and polynomial antidifferences.
+This completes the harmonic reduction for every polynomial weight.</p>
+</section>
+<section id="rational-and-inverse-binomial-parts">
+<h2>Rational and inverse-binomial parts<a class="headerlink" href="#rational-and-inverse-binomial-parts" title="Link to this heading"></a></h2>
+<p>The rational part <span class="math notranslate nohighlight">\(p(j)(N+1)(x-1)/\Delta^2\)</span> has only the same four
+poles, of order at most two. Its sum therefore uses only polynomials,
+first-order harmonics and second-order harmonics.</p>
+<p>The inverse-binomial part has denominator
+<span class="math notranslate nohighlight">\(j^2(j+1)(N-j)^2(N-j+1)\)</span>. After partial fractions, its proper part
+uses <span class="math notranslate nohighlight">\(T_1,T_2,U\)</span> and the reflected half sums. Reflection expresses
+these through <span class="math notranslate nohighlight">\(G_N,F_N,P_N\)</span>, the same half sums and, for even
+<span class="math notranslate nohighlight">\(N\)</span>, the central term. For example,</p>
+<div class="math notranslate nohighlight">
+\[\sum_{j=1}^h\frac{b_j}{N-j}
+  =G_N-\frac1N-T_1
+     -\mathbf1_{\epsilon=2}\frac{w}{h+2}.\]</div>
+<p>For a polynomial part <span class="math notranslate nohighlight">\(Q\)</span>, introduce the operator</p>
+<div class="math notranslate nohighlight">
+\[(\mathcal LR)(j)=(j+1)R(j+1)-(N-j+1)R(j).\]</div>
+<p>If <span class="math notranslate nohighlight">\(R(j)=j^k\)</span>, its leading term is <span class="math notranslate nohighlight">\(2j^{k+1}\)</span>. Triangular
+elimination thus gives, for every polynomial <span class="math notranslate nohighlight">\(Q\)</span>, a polynomial
+<span class="math notranslate nohighlight">\(R\)</span> and a constant <span class="math notranslate nohighlight">\(c\)</span> with
+<span class="math notranslate nohighlight">\(Q=\mathcal LR+c\)</span>. The ratio <span class="math notranslate nohighlight">\(b_{j+1}/b_j=(j+1)/(N-j)\)</span> yields</p>
+<div class="math notranslate nohighlight">
+\[\sum_{j=1}^h Q(j)b_j
+   =cS+(h+1)wR(h+1)-R(1).\]</div>
+<p>Thus even arbitrarily high polynomial moments introduce no new state.
+Polynomial degrees grow with <span class="math notranslate nohighlight">\(s\)</span>; the number of residual sequences
+does not.</p>
+</section>
+<section id="completion-of-the-construction-and-its-scope">
+<h2>Completion of the construction and its scope<a class="headerlink" href="#completion-of-the-construction-and-its-scope" title="Link to this heading"></a></h2>
+<div class="proof admonition" id="proof">
+<p>Proof. Apply the three reductions above to the polynomial in
+<a class="reference internal" href="#equation-risk-uniform-polynomial-angular-weight">(40)</a>, subtract its finite endpoint
+corrections, and multiply by <span class="math notranslate nohighlight">\(K_s\)</span>. Every step is finite polynomial
+arithmetic or an explicit partial-fraction identity. Harmonic products
+are at most quadratic in <span class="math notranslate nohighlight">\(H_N,H_h\)</span>; all inverse-binomial residuals
+are in the listed state. This constructs the rational output row.</p>
+<p>Partial fractions divide only by differences of the four pole locations,
+hence by nonzero powers of <span class="math notranslate nohighlight">\(N,N+1,N+2\)</span> and constants. Polynomial
+antidifferences divide by positive integers; inverse-binomial polynomial
+reduction divides by two. The endpoint increments divide by positive
+shifts of <span class="math notranslate nohighlight">\(h\)</span> on the active domain. All formulas are therefore
+nonsingular. The inactive prefix is explicitly zero. Together with the
+established rational transitions this proves the theorem for every
+<span class="math notranslate nohighlight">\(s\geq2\)</span>, rather than only the finitely many tested face sizes.</p>
+</div>
+<p>The construction is implemented by
+<code class="docutils literal notranslate"><span class="pre">tools.risk_research.codimension_two_family</span></code> using only standard-library
+exact fractions. <code class="docutils literal notranslate"><span class="pre">family_coefficients(s,</span> <span class="pre">maximum)</span></code> returns a complete
+degree prefix, while <code class="docutils literal notranslate"><span class="pre">family_coefficient(s,</span> <span class="pre">D)</span></code> advances the state and
+constructs only the requested output row. The number of rational operations
+per degree at fixed <span class="math notranslate nohighlight">\(s\)</span> is bounded; numerator and denominator bit
+lengths still increase with <span class="math notranslate nohighlight">\(D\)</span>.</p>
+<p>The fifteen rational output rows obtained by advancing the state, together
+with one further row, are linearly dependent over <span class="math notranslate nohighlight">\(\mathbb Q(D)\)</span>.
+They therefore also give a constructive scalar recurrence of order at most
+fifteen. This chapter supplies the common state construction, not a claim
+that the scalar order is minimal or that an eliminated leading coefficient
+has no exceptional indices. An explicit scalar operator must check those
+indices separately.</p>
+</section>
+<section id="reproduction-and-independent-verification">
+<h2>Reproduction and independent verification<a class="headerlink" href="#reproduction-and-independent-verification" title="Link to this heading"></a></h2>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>tools.risk_research.codimension_two_family<span class="w"> </span>--face-size<span class="w"> </span><span class="m">5</span><span class="w"> </span>--max-degree<span class="w"> </span><span class="m">50</span><span class="w"> </span>--output<span class="w"> </span>.research/skeleton-risk/family-m7.json
+</pre></div>
+</div>
+<p>The optional native-Sage construction verifier checks the emitted rational
+identities over <span class="math notranslate nohighlight">\(\mathbb Q(h)(j)\)</span>, polynomial antidifferences, boundary
+weights and positivity of all output and transition denominators. It also
+uses a separate dense linear solve for polynomial inverse-binomial reduction.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>python<span class="w"> </span>-m<span class="w"> </span>tools.risk_research.codimension_two_family_certificate<span class="w"> </span>--face-size<span class="w"> </span><span class="m">6</span><span class="w"> </span>--output<span class="w"> </span>.research/skeleton-risk/family-m8-proof.json
+</pre></div>
+</div>
+<p>Run that command in the prepared Sage environment. The report records the
+output row, both source hashes and the exact residuals. Native regressions
+are selected by <code class="docutils literal notranslate"><span class="pre">BSF_SAGE_PYTHON</span></code> as for the earlier recurrence verifiers.</p>
+<p>Independent tests compare all fifteen transitions to the defining sums in
+both parities, polynomial kernel moments through degree eight, original
+scalar coefficients and low-degree Gram propagation, and the original
+angular formula at larger degrees and new face sizes. The committed fresh
+holdout artifact includes faces larger than the first construction examples.
+These finite tests check the implementation; the reductions above establish
+the all-size, all-degree theorem.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="codimension_two_states.html" class="btn btn-neutral float-left" title="Quadratic codimension-two multiplicities" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="skeleton_risk_codimension_three.html" class="btn btn-neutral float-right" title="Boundary transfer and a codimension-three edge bound" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: feat/risk-constant-large-vertices
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/index.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="codimension_two_family.html">feat/risk-constant-large-vertices</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
