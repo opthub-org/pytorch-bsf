@@ -48,7 +48,7 @@ jobs:
         fi
     - name: Test with pytest
       run: |
-        conda install pytest pytest-cov hypothesis
+        conda install pytest pytest-randomly hypothesis
         pytest
     - name: E2E test with conda
       run: |

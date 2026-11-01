@@ -168,10 +168,11 @@ pytest tests/
 
 All tests should pass.
 
-pytest also writes `coverage.xml`. To see which changed lines the tests miss, as the `codecov/patch`
-check on a PR does, compare it with `master`:
+To see which changed lines the tests miss, as the `codecov/patch` check on a PR does, write a
+coverage report and compare it with `master`:
 
 ```bash
+pytest tests/ --cov=torch_bsf --cov-report=xml
 git fetch origin master
 diff-cover coverage.xml --compare-branch=origin/master
 ```
@@ -646,12 +647,25 @@ Tests live in the `tests/` directory.
 # Run all tests
 pytest tests/
 
-# Run with coverage report
-pytest tests/ --cov=torch_bsf --cov-report=html
-
 # Run a specific file
 pytest tests/simploidal.py
+
+# Run with coverage reports (coverage.xml for diff-cover, htmlcov/ for a browser)
+pytest tests/ --cov=torch_bsf --cov-report=xml --cov-report=html
+
+# What the `build` job of .github/workflows/python-package.yml runs
+pytest --verbose --durations=0 --junit-xml=pytest.xml --cov=torch_bsf --cov-report=term-missing --cov-report=xml
 ```
+
+`addopts` in `[tool.pytest.ini_options]` of `pyproject.toml` holds only `--assert=plain` and
+`--doctest-modules`, so a plain `pytest` run writes no report files (`coverage.xml`, `htmlcov/`,
+`pytest.xml`); pass the options above when you need them.
+
+The tests run in random order with `pytest-randomly`, in CI as well as locally: it is in the
+`develop` extra, and every CI job that runs the test suite installs it. A test that depends on the
+side effects of another test therefore fails in both places. pytest prints the seed in its header
+(`Using --randomly-seed=<seed>`); rerun with `pytest --randomly-seed=<seed>` to repeat
+an order, or with `-p no:randomly` to run the files in their written order.
 
 ### Naming conventions
 
