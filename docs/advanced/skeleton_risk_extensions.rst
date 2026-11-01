@@ -794,7 +794,10 @@ can be excluded by exact modular rank, but such exclusions say nothing
 about formulas outside the recorded spaces. A general elementary or
 classical-special-function evaluation of the remaining codimension-two
 angular sums is also still open beyond the fixed-state evaluations above
-and the six-vertex tetrahedral-face formula in :doc:`codimension_two_states`.
+and the common fifteen-state construction for every nonvertex codimension-two
+face in :doc:`codimension_two_family`. That construction has a state bound
+independent of face size; it does not assert a bounded classical-special-function
+expression or a minimal scalar order.
 :doc:`skeleton_risk_comparisons` settles the complete comparison at every
 fixed degree through thirty. A general crossover law and the nonlinear
 self-identification questions of :doc:`skeleton_risk_theory` remain.
