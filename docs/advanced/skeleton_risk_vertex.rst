@@ -4,9 +4,9 @@ Tetrahedron vertex risk
 Under the uniform-simplex assumptions of :doc:`skeleton_risk_theory`, the
 tetrahedron vertex coefficient has a positive single sum involving only
 binomial coefficients and harmonic numbers. This eliminates the bivariate
-kernel convolution. The sum still has :math:`D` terms; an explicit useful
-fixed-order recurrence in :math:`D` and a bounded classical-special-function
-expression remain separate open questions.
+kernel convolution. The sum still has :math:`D` terms. An explicit certified
+degree recurrence is proved in :doc:`skeleton_risk_vertex_recurrence`;
+a bounded classical-special-function expression remains open.
 The next asymptotic term and a fully explicit error bound are proved in
 :doc:`skeleton_risk_vertex_asymptotics`.
 
@@ -291,7 +291,9 @@ is retained as an independent regression value. Finite checks verify the
 implementation; the all-degree claims use the proofs above.
 
 The formula and its positivity avoid the severe alternating cancellation of
-the original scalar sum. This chapter does not supply a scalar recurrence in
-:math:`D`, classify all optimal-risk comparisons, or resolve nonlinear
-self-identification. The generic P-recursiveness theorem in
+the original scalar sum. :doc:`skeleton_risk_vertex_recurrence` supplies the
+explicit scalar degree recurrence, while
+:doc:`skeleton_risk_tetrahedron_comparison` classifies the optimal tetrahedron
+comparison at every degree. The nonlinear self-identification question
+remains separate, and the generic P-recursiveness theorem in
 :doc:`skeleton_risk_extensions` continues to apply independently.

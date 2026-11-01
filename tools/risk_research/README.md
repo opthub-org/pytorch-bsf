@@ -234,7 +234,8 @@ five-vertex triangular-face coefficient now also has an eight-state
 representation and an order-eight, degree-76 scalar recurrence.
 [Tetrahedron vertex risk](../../docs/advanced/skeleton_risk_vertex.rst)
 gives a positive harmonic-binomial single sum and the leading constant
-`48*pi^2/D^5`; its explicit useful degree recurrence remains open.
+`48*pi^2/D^5`; its explicit order-ten, degree-69 recurrence is proved in
+[Tetrahedron vertex degree recurrence](../../docs/advanced/skeleton_risk_vertex_recurrence.rst).
 
 Generate tetrahedron edge coefficients from the proved auxiliary recurrences:
 
@@ -342,3 +343,28 @@ The native tests compare the returned ball to the existing exact single sum
 through D4096 and check that precision settings are restored. If python-flint
 is installed in the project Python it is used directly; otherwise those
 native tests are skipped unless an explicit native interpreter is selected.
+
+## Further certified degree recurrences
+
+The tetrahedron vertex operator has order ten and polynomial degree 69.
+Its proof reduces to four rational telescoping identities with finite
+endpoints and no poles on the integer domain. The next codimension-two
+coefficient, `a_3(6,D)`, has eight rational states and an order-eight,
+degree-83 operator. Both cover every positive integer degree, with explicit
+initial values and no exceptional integer indices.
+
+Use the prepared Sage interpreter to verify either supplied artifact:
+
+```sh
+python -m tools.risk_research.vertex_degree_recurrence \
+  --verify tools/risk_research/examples/tetrahedron_vertex_recurrence_order10.json
+python -m tools.risk_research.codimension_two_states \
+  --verify tools/risk_research/examples/six_vertex_tetrahedral_face_recurrence_order8.json
+```
+
+The first module also supplies `recurrence_coefficients(maximum)` for
+standard-library exact evaluation. The second supplies
+`tetrahedral_face_coefficients(maximum)` using its fixed state, avoiding
+the original degree-dependent angular sum. Their native Sage regressions
+are selected by `BSF_SAGE_PYTHON` as for the triangular-face verifier above.
+The proofs and domain checks are in the new recurrence chapters.
