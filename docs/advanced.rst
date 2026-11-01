@@ -112,6 +112,7 @@ choose them when your domain, objective or execution environment requires it.
    advanced/skeleton_risk_five_vertex_recurrence
    advanced/skeleton_risk_five_vertex_asymptotics
    advanced/skeleton_risk_five_vertex_comparison
+   advanced/skeleton_risk_six_vertex_comparison
    advanced/simploidal_risk
    advanced/skeleton_risk_verification
    advanced/point_cloud
