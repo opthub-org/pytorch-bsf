@@ -16,6 +16,8 @@ positive integer indices.
 The broader construction and fixed-dimension leading constants are in
 :doc:`skeleton_risk_vertex_general`. The five-vertex leading term has an
 explicit remainder bound in :doc:`skeleton_risk_five_vertex_asymptotics`.
+Together with the nonvertex edge upper bound, this also completes the
+all-degree risk comparison in :doc:`skeleton_risk_five_vertex_comparison`.
 
 An exact harmonic weight
 ------------------------

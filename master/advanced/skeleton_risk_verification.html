@@ -79,6 +79,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html">Five-vertex vertex degree recurrence</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_comparison.html">Five-vertex risk comparison at every degree</a></li>
 <li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Exact verification of the skeleton risk</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#independent-checks">Independent checks</a></li>
@@ -216,7 +217,7 @@ versus 0.04 seconds with propagation reduction.</p>
 </section>
 <section id="assembled-simploidal-sets">
 <h2>Assembled simploidal sets<a class="headerlink" href="#assembled-simploidal-sets" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">tests/simploidal_risk.py</span></code> checks <a class="reference internal" href="simploidal_risk.html#thm-skeleton-assembled-risk">Theorem 42</a>
+<p><code class="docutils literal notranslate"><span class="pre">tests/simploidal_risk.py</span></code> checks <a class="reference internal" href="simploidal_risk.html#thm-skeleton-assembled-risk">Theorem 43</a>
 in two independent ways. Exact Dirichlet moments are scattered into global
 proper-control coordinates, retaining repeated local IDs. Rational
 elimination solves the global block triangular equations. Separately,
@@ -251,17 +252,17 @@ local control counts. Quadrature and the public joint solver also check
 <a class="reference internal" href="simploidal_risk.html#cor-skeleton-assembled-aao">Corollary 16</a> with matching design/evaluation
 weights and with different weights, over the reference domains.</p>
 <p><code class="docutils literal notranslate"><span class="pre">tests/simploidal_incidence.py</span></code> independently checks
-<a class="reference internal" href="simploidal_risk.html#thm-skeleton-regular-incidence">Theorem 43</a> against exact assembled population
+<a class="reference internal" href="simploidal_risk.html#thm-skeleton-regular-incidence">Theorem 44</a> against exact assembled population
 solves on shared triangles, a triangle-square pair, shared tetrahedra,
 nonpure complexes and nonmanifold gluing, as well as graphs and disconnected
 sets. Unequal evaluation weights on all charts and on maximal charts check
 both the incidence formula and the pure-complex face-vector reduction.
 The same file checks the explicit corner-collision formula
-<a class="reference internal" href="simploidal_risk.html#thm-skeleton-linear-assembled">Theorem 44</a>, including repeated vertices of a
+<a class="reference internal" href="simploidal_risk.html#thm-skeleton-linear-assembled">Theorem 45</a>, including repeated vertices of a
 loop and torus and the collapsed edges of a sphere, and its strict risk
 bound when a positive-weight chart sees distinct vertices.</p>
 <p><code class="docutils literal notranslate"><span class="pre">tests/simploidal_graph_risk.py</span></code> checks
-<a class="reference internal" href="simploidal_risk.html#thm-skeleton-graph-risk">Theorem 45</a> on mixed-degree graphs with parallel
+<a class="reference internal" href="simploidal_risk.html#thm-skeleton-graph-risk">Theorem 46</a> on mixed-degree graphs with parallel
 edges, loops and isolated vertices. Vertex and edge evaluation weights
 are varied independently. Endpoint self and cross norms are checked by
 exact Bernstein Gram elimination at <span class="math notranslate nohighlight">\(D=1,\ldots,12\)</span>, then by exact

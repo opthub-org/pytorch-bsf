@@ -93,6 +93,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html">Five-vertex vertex degree recurrence</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_comparison.html">Five-vertex risk comparison at every degree</a></li>
 <li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
@@ -262,19 +263,19 @@ large <span class="math notranslate nohighlight">\(M\)</span>.</p></td>
 <a class="reference internal" href="#cor-skeleton-product-shape-ratio">Corollary 2</a>: optimal allocation by face shape.</p></td>
 </tr>
 <tr class="row-even"><td><p>Any finite simploidal set, with compatible positive factor degrees</p></td>
-<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-assembled-risk">Theorem 42</a>: global propagation and weighted risk;
+<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-assembled-risk">Theorem 43</a>: global propagation and weighted risk;
 <a class="reference internal" href="simploidal_risk.html#cor-skeleton-assembled-allocation">Corollary 15</a>: cell and grouped optima.</p></td>
 </tr>
 <tr class="row-odd"><td><p>Regular glued complexes, with any compatible positive factor degrees</p></td>
-<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-regular-incidence">Theorem 43</a>: scalar weighted face incidences;
+<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-regular-incidence">Theorem 44</a>: scalar weighted face incidences;
 <a class="reference internal" href="simploidal_risk.html#cor-skeleton-pure-incidence">Corollary 17</a>: pure simplicial face-vector formula.</p></td>
 </tr>
 <tr class="row-even"><td><p>Any finite simploidal set, with all factor degrees one</p></td>
-<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-linear-assembled">Theorem 44</a>: explicit corner-collision formula
+<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-linear-assembled">Theorem 45</a>: explicit corner-collision formula
 and comparison with matching all-at-once fitting.</p></td>
 </tr>
 <tr class="row-odd"><td><p>Every one-dimensional set, with any positive edge degrees</p></td>
-<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-graph-risk">Theorem 45</a>: closed coefficients including loops;
+<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-graph-risk">Theorem 46</a>: closed coefficients including loops;
 <a class="reference internal" href="simploidal_risk.html#cor-skeleton-loop-comparison">Corollary 19</a>: complete single-loop comparison.</p></td>
 </tr>
 </tbody>
@@ -1720,14 +1721,17 @@ is conservative and is not an exact crossover. Closed formulas
 for a fixed dimension also require a separate inequality analysis
 before they yield a classification over all degrees.
 At <span class="math notranslate nohighlight">\(M=4\)</span>, <a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html#thm-risk-tetrahedron-comparison">Theorem 38</a> now supplies
-this separate analysis and completes the comparison at every degree.</p></li>
+this separate analysis and completes the comparison at every degree.
+At <span class="math notranslate nohighlight">\(M=5\)</span>, <a class="reference internal" href="skeleton_risk_five_vertex_comparison.html#thm-risk-five-vertex-comparison">Theorem 42</a> also completes
+every degree: inductive fitting wins at <span class="math notranslate nohighlight">\(D=1,2\)</span> and <span class="math notranslate nohighlight">\(D\geq12\)</span>,
+while all-at-once fitting wins exactly at <span class="math notranslate nohighlight">\(3\leq D\leq11\)</span>.</p></li>
 <li><p><strong>Higher-degree self-identifications in higher dimensions.</strong>
-<a class="reference internal" href="simploidal_risk.html#thm-skeleton-regular-incidence">Theorem 43</a> removes assembled matrices on
-regular complexes, and <a class="reference internal" href="simploidal_risk.html#thm-skeleton-linear-assembled">Theorem 44</a> and
-<a class="reference internal" href="simploidal_risk.html#thm-skeleton-graph-risk">Theorem 45</a> handle arbitrary identifications at
+<a class="reference internal" href="simploidal_risk.html#thm-skeleton-regular-incidence">Theorem 44</a> removes assembled matrices on
+regular complexes, and <a class="reference internal" href="simploidal_risk.html#thm-skeleton-linear-assembled">Theorem 45</a> and
+<a class="reference internal" href="simploidal_risk.html#thm-skeleton-graph-risk">Theorem 46</a> handle arbitrary identifications at
 linear factor degrees and in dimension one, respectively. Outside
 those ranges, the general finite formula
-<a class="reference internal" href="simploidal_risk.html#thm-skeleton-assembled-risk">Theorem 42</a> remains available. Further
+<a class="reference internal" href="simploidal_risk.html#thm-skeleton-assembled-risk">Theorem 43</a> remains available. Further
 evaluation must retain the cross terms between distinct occurrences
 of an identified face and the pullbacks from collapsed faces.</p></li>
 </ul>
