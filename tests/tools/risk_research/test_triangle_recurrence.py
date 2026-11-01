@@ -170,7 +170,15 @@ def test_native_sage_verifies_all_eight_symbolic_state_identities(sage_python):
     result = _native_sage_check(
         sage_python,
         OPERATOR,
-        "print(json.dumps(triangle_recurrence.verify_operator(operator)))",
+        """
+proof = triangle_recurrence.verify_operator(operator)
+expected_basis = triangle_recurrence.STATE.copy()
+proof['state_basis'].append('caller annotation')
+assert triangle_recurrence.STATE == expected_basis
+triangle_recurrence._read_operator(operator.read_bytes())
+proof['state_basis'].pop()
+print(json.dumps(proof))
+""",
     )
     proof = json.loads(result.stdout)
     assert proof["status"] == "certified_by_state_identity"
@@ -212,5 +220,8 @@ derived = triangle_recurrence.derive_operator()
 for key in ('order', 'polynomial_degree', 'coefficients', 'domain_start',
             'exceptional_indices', 'initial_values', 'state_basis'):
     assert derived[key] == recorded[key], key
+derived['state_basis'].append('caller annotation')
+assert triangle_recurrence.STATE == recorded['state_basis']
+triangle_recurrence._read_operator(operator.read_bytes())
 """,
     )
