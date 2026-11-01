@@ -1890,6 +1890,9 @@ active positive-dimensional faces, so the dimension and shape optima agree.
   before they yield a classification over all degrees.
   At :math:`M=4`, :prf:ref:`thm-risk-tetrahedron-comparison` now supplies
   this separate analysis and completes the comparison at every degree.
+  At :math:`M=5`, :prf:ref:`thm-risk-five-vertex-comparison` also completes
+  every degree: inductive fitting wins at :math:`D=1,2` and :math:`D\geq12`,
+  while all-at-once fitting wins exactly at :math:`3\leq D\leq11`.
 - **Higher-degree self-identifications in higher dimensions.**
   :prf:ref:`thm-skeleton-regular-incidence` removes assembled matrices on
   regular complexes, and :prf:ref:`thm-skeleton-linear-assembled` and
