@@ -29,7 +29,7 @@ from torch_bsf._kernels import (
 )
 from torch_bsf._kernels.api import fit
 from torch_bsf._kernels.combinatorics import _adjacent_pairs, _positions, _small_adjacent_pairs
-from torch_bsf._kernels.fitting import _check_solver
+from torch_bsf._kernels.fitting import _check_solver, _solve_least_squares
 from torch_bsf.preprocessing import NormalizeType
 
 TYPES = [(), (1,), (2,), (3,), (1, 1), (2, 1), (1, 2), (1, 1, 1), (2, 2)]
@@ -1074,6 +1074,82 @@ def test_fit_simploid_ridge_and_errors():
         fit(t, x, 3, simploid_type=(1,))
     with pytest.raises(ValueError):
         fit(t, x, 3, simploid_type=(2,), ridge=-1.0)
+
+
+def test_solve_least_squares_ridge_is_accurate_on_ill_conditioned_matrix():
+    # A has singular values from 1 to 1e-7, so the normal equations square its condition number to 1e14.
+    g = torch.Generator().manual_seed(0)
+    u, _ = torch.linalg.qr(torch.randn(40, 8, generator=g, dtype=torch.float64))
+    v, _ = torch.linalg.qr(torch.randn(8, 8, generator=g, dtype=torch.float64))
+    a = u * torch.logspace(0, -7, 8, dtype=torch.float64) @ v.T
+    y = torch.randn(40, 2, generator=g, dtype=torch.float64)
+    ridge = 1e-14
+    left, s, right = torch.linalg.svd(a, full_matrices=False)
+    expected = right.T @ ((s / (s**2 + ridge))[:, None] * (left.T @ y))
+    normal_equations = torch.linalg.solve(a.T @ a + ridge * torch.eye(8, dtype=torch.float64), a.T @ y)
+    solution = _solve_least_squares(a, y, ridge)
+
+    def error(x: torch.Tensor) -> float:
+        return float((x - expected).norm() / expected.norm())
+
+    assert error(solution) < 1e-8
+    assert error(solution) < 1e-3 * error(normal_equations)
+
+
+def test_solve_least_squares_ridge_keeps_directions_below_the_default_cutoff():
+    # The singular value 1e-18 is below lstsq's default rank cutoff, but the stacked matrix has full rank:
+    # the ridge solution keeps that direction, s / (s**2 + ridge) * (u^T y).
+    a = torch.diag(torch.tensor([1.0, 1e-18], dtype=torch.float64))
+    y = torch.ones(2, 1, dtype=torch.float64)
+    ridge = 1e-40
+    expected = torch.tensor([[1 / (1 + ridge)], [1e-18 / (1e-36 + ridge)]], dtype=torch.float64)
+    assert torch.allclose(_solve_least_squares(a, y, ridge), expected, rtol=1e-12)
+
+
+@pytest.mark.parametrize("ridge", [1e-300, 0.5, "below", "at", 1e100, 1e200, 1e300])
+def test_solve_least_squares_ridge_matches_closed_form(ridge):
+    # Ridges from ||A||_F^2 on take the (then well-conditioned) normal equations, where the stacked
+    # factorization would round A away; check both sides of the switch.
+    g = torch.Generator().manual_seed(1)
+    a = torch.randn(6, 9, generator=g, dtype=torch.float64)  # under-determined
+    y = torch.randn(6, 2, generator=g, dtype=torch.float64)
+    frobenius2 = torch.linalg.matrix_norm(a).item() ** 2
+    if ridge == "below":
+        ridge = frobenius2 * (1 - 1e-12)
+    elif ridge == "at":
+        ridge = frobenius2
+    left, s, right = torch.linalg.svd(a, full_matrices=False)
+    expected = right.T @ ((s / (s**2 + ridge))[:, None] * (left.T @ y))
+    solution = _solve_least_squares(a, y, ridge)
+    assert solution.dtype == torch.float64
+    assert torch.allclose(solution, expected, rtol=1e-10, atol=1e-300)
+
+
+@pytest.mark.parametrize("solver", ["lstsq", "trainer"])
+@pytest.mark.parametrize("normalize", ["none", "max", "std", "quantile"])
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), -float("inf")])
+@pytest.mark.parametrize("where", ["params", "values"])
+def test_fit_rejects_non_finite_data(solver, normalize, bad, where):
+    t = torch.tensor([[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]])
+    x = torch.tensor([[0.0], [0.5], [1.0]])
+    if where == "params":
+        t[1, 0] = bad
+    else:
+        x[1, 0] = bad
+    with pytest.raises(ValueError, match=f"{where} must be finite"):
+        fit(t, x, degree=1, normalize=normalize, solver=solver)
+
+
+@pytest.mark.parametrize("where", [1, 2])
+def test_fit_simploidal_set_rejects_non_finite_data(where):
+    S = SimploidalSet()
+    tri = S.add_simplex(2)
+    t = sample_simploid((2,), 10, seed=0)
+    x = t[:, :1].clone()
+    t = t.clone()
+    (t if where == 1 else x)[3, 0] = float("nan")
+    with pytest.raises(ValueError, match="must be finite"):
+        fit_simploidal_set(S, [(tri, t, x)], degree=1)
 
 
 @requires_lightning
