@@ -812,3 +812,6 @@ fixed degree through thirty. A general crossover law and the nonlinear
 self-identification questions of :doc:`skeleton_risk_theory` remain.
 The fixed-tetrahedron comparison is completely classified over all degrees
 in :doc:`skeleton_risk_tetrahedron_comparison`.
+The five-vertex comparison is also completely classified over all positive
+degrees in :doc:`skeleton_risk_five_vertex_comparison`, using the nonvertex
+boundary-transfer inequality and an independently certified finite prefix.

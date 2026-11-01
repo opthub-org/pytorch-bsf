@@ -312,6 +312,21 @@ The finite part checks degrees 1 through 624; an analytic inequality proves
 the rest. Inductive fitting wins at degrees 1, 2 and every degree at least 8;
 all-at-once fitting wins at degrees 3 through 7.
 
+The [five-vertex all-degree comparison](../../docs/advanced/skeleton_risk_five_vertex_comparison.rst)
+is also complete. Inductive fitting wins at degrees1,2 and every degree>=12;
+all-at-once wins exactly at degrees3..11, with no ties. All63 finite
+comparisons below64 use exact coefficients and rational radical bounds;
+a separate analytic inequality proves the entire infinite tail.
+
+```sh
+python -m tools.risk_research.five_vertex_comparison \
+  --output .research/skeleton-risk/five-vertex-comparison.json
+```
+
+The default uses the standard library; `--backend flint` optionally speeds
+up kernel multiplication. Unresolved signs or changing sources preserve
+any existing certificate and cause an error.
+
 For larger exact exploratory datasets, `research_exact.py` clears kernel
 denominators and multiplies integer polynomials using the optional FLINT
 backend. `research_scan.py` screens specified recurrence spaces modulo a
