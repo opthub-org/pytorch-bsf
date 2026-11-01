@@ -21,6 +21,9 @@ from tests.sampling import (
 from tools.risk_research import comparison
 from tools.risk_research.comparison import certify_degree, coefficient_values, dimension_polynomials, radical_comparison
 from tools.risk_research.exact import record_fraction
+from tools.risk_research.triangle_faces import triangle_face_coefficients
+from tools.risk_research.vertex_five import five_vertex_coefficient
+from tools.risk_research.vertex_single import tetrahedron_vertex_coefficient
 
 ROOT = Path(__file__).resolve().parents[3]
 LOSS_INTERVALS = {
@@ -36,6 +39,16 @@ LOSS_INTERVALS = {
     18: (7, 170, 256),
     19: (7, 181, 272),
     20: (7, 193, 288),
+    21: (7, 204, 304),
+    22: (7, 216, 319),
+    23: (8, 227, 335),
+    24: (8, 239, 351),
+    25: (8, 251, 367),
+    26: (8, 262, 382),
+    27: (8, 274, 398),
+    28: (8, 285, 414),
+    29: (9, 297, 430),
+    30: (9, 309, 446),
 }
 
 
@@ -63,6 +76,24 @@ def test_degree_twenty_cancellations_match_all_triangle_closed_forms():
     values = coefficient_values(dimension_polynomials(degree), 3)
     assert values[:3] == (_triangle_vertex_risk(degree), _triangle_edge_risk(degree), Fraction(math.comb(degree - 1, 2)))
     assert values[3:] == (Fraction(0),) * (degree - 3)
+
+
+def test_degree_thirty_matches_independent_fixed_dimension_formulas_and_limits():
+    degree = 30
+    polynomials = dimension_polynomials(degree)
+    triangle = coefficient_values(polynomials, 3)
+    assert triangle[:3] == (
+        _triangle_vertex_risk(degree),
+        _triangle_edge_risk(degree),
+        Fraction(math.comb(degree - 1, 2)),
+    )
+    assert triangle[3:] == (Fraction(0),) * (degree - 3)
+    assert coefficient_values(polynomials, 4)[0] == tetrahedron_vertex_coefficient(degree)
+    five_vertex = coefficient_values(polynomials, 5)
+    assert five_vertex[0] == five_vertex_coefficient(degree)
+    assert five_vertex[2] == triangle_face_coefficients(degree)[degree]
+    for skeleton, row in enumerate(polynomials):
+        assert row[-1] / math.factorial(skeleton + 1) ** 2 == _large_dimension_limit(degree, skeleton)
 
 
 @pytest.mark.parametrize("degree", [9, 12, 20])

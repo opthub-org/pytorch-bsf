@@ -287,6 +287,11 @@ dimension polynomials, finite radical enclosures and an infinite-tail bound:
 
 Every vertex count is classified for those degrees; there are no ties.
 See [the proof and complete table](../../docs/advanced/skeleton_risk_comparisons.rst).
+The same proved construction now gives the complete classifications for degrees
+21 through 30. Use `--degrees 21:30` to reproduce that extension, including its
+finite radical certificates and infinite tails. Separate Newton interpolation
+of the original scalar reference reproduces all 255 new polynomial rows and
+all ten classifications; no uniform crossover law in the degree is inferred.
 The independent fixed-tetrahedron comparison over every positive degree is
 reproduced with:
 
