@@ -1,0 +1,384 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>An explicit winning degree tail at every fixed vertex count &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Tetrahedron risk comparison at every degree" href="skeleton_risk_tetrahedron_comparison.html" />
+    <link rel="prev" title="An all-degree sufficient region for large vertex counts" href="skeleton_risk_uniform_dimension_tail.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_family.html">Uniform construction for codimension two</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three.html">Boundary transfer and a codimension-three edge bound</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html">An all-degree sufficient region for large vertex counts</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">An explicit winning degree tail at every fixed vertex count</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#coefficient-bounds">Coefficient bounds</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#threshold-and-proof-of-the-theorem">Threshold and proof of the theorem</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#reproduction-and-limits">Reproduction and limits</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html">Five-vertex vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_comparison.html">Five-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">An explicit winning degree tail at every fixed vertex count</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/skeleton_risk_fixed_vertex_tail.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="an-explicit-winning-degree-tail-at-every-fixed-vertex-count">
+<h1>An explicit winning degree tail at every fixed vertex count<a class="headerlink" href="#an-explicit-winning-degree-tail-at-every-fixed-vertex-count" title="Link to this heading"></a></h1>
+<p>Keep the uniform-simplex design, evaluation and noise assumptions of
+<a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a>. Write</p>
+<div class="math notranslate nohighlight">
+\[R_{\rm ind}(M,D)=\left(\sum_{s=1}^M\sqrt{a_{s-1}(M,D)}\right)^2,
+\qquad R_{\rm all}(M,D)=\binom{D+M-1}{M-1}.\]</div>
+<p>Inactive coefficients are zero. The common positive noise and output
+factors cancel. The result concerns asymptotic statistical risk.</p>
+<div class="proof theorem admonition" id="thm-risk-fixed-vertex-degree-tail">
+<p class="admonition-title"><span class="caption-number">Theorem 38 </span> (Constructive eventual victory at every fixed vertex count)</p>
+<section class="theorem-content" id="proof-content">
+<p>For every integer <span class="math notranslate nohighlight">\(M\geq4\)</span>, the construction below returns an
+explicit integer <span class="math notranslate nohighlight">\(H(M)\geq M\)</span> such that, for every integer
+<span class="math notranslate nohighlight">\(D\geq H(M)\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[R_{\rm ind}(M,D)&lt;R_{\rm all}(M,D).\]</div>
+<p>The construction uses only rational arithmetic and integer roots.
+Its constants are deliberately conservative; it does not classify
+the finite prefix below <span class="math notranslate nohighlight">\(H(M)\)</span> or locate an exact crossover.</p>
+</section>
+</div><p>The complementary sufficient region <span class="math notranslate nohighlight">\(M\geq9720D\)</span> is proved in
+<a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html"><span class="doc">An all-degree sufficient region for large vertex counts</span></a>. The two conditions describe
+different directions; they do not classify their intervening region.</p>
+<section id="coefficient-bounds">
+<h2>Coefficient bounds<a class="headerlink" href="#coefficient-bounds" title="Link to this heading"></a></h2>
+<p><strong>Vertices.</strong> The coefficients of
+<span class="math notranslate nohighlight">\(g(t)=-(1-t)\log(1-t)/t\)</span> are
+<span class="math notranslate nohighlight">\(g_0=1\)</span>, <span class="math notranslate nohighlight">\(g_j=-1/(j(j+1))\)</span> for <span class="math notranslate nohighlight">\(j\geq1\)</span>.
+In the absolutely summable bivariate series</p>
+<div class="math notranslate nohighlight">
+\[G(x,y)=g(x)+g(y)-g(xy),\]</div>
+<p>the constant coefficient is one and the three nonconstant axis/diagonal
+supports are disjoint. Thus <span class="math notranslate nohighlight">\(\lVert G\rVert_1=4\)</span> and
+<span class="math notranslate nohighlight">\(\lVert G^q\rVert_1\leq4^q\)</span>.
+The positive transformed diagonal <span class="math notranslate nohighlight">\(\delta_q(j)\)</span> from
+<a class="reference internal" href="skeleton_risk_vertex_general.html"><span class="doc">Vertex coefficients at every fixed vertex count</span></a> is a rectangular partial sum of
+these coefficients, so <span class="math notranslate nohighlight">\(0&lt;\delta_q(j)\leq4^q\)</span>.
+The positive binomial weights in that chapter sum to <span class="math notranslate nohighlight">\(Z_D\)</span>.
+Consequently, at <span class="math notranslate nohighlight">\(q=M-1\)</span>, for every <span class="math notranslate nohighlight">\(D\geq1\)</span>,</p>
+<div class="math notranslate nohighlight" id="equation-risk-fixed-vertex-coarse-vertex">
+<span class="eqno">(74)<a class="headerlink" href="#equation-risk-fixed-vertex-coarse-vertex" title="Link to this equation"></a></span>\[a_0(M,D)\leq V_M D^{-(M-1)},\qquad
+V_M=M^2(M-1)!2^{M-1}.\]</div>
+<p>This coarse estimate is used only to prove a winning region; the sharper
+vertex asymptotic and its explicit error remain available separately.</p>
+<p><strong>Nonvertex faces with at least two outside coordinates.</strong> For
+<span class="math notranslate nohighlight">\(s\geq2\)</span>, define rational constants</p>
+<div class="math notranslate nohighlight" id="equation-risk-fixed-vertex-transfer-constants">
+<span class="eqno">(75)<a class="headerlink" href="#equation-risk-fixed-vertex-transfer-constants" title="Link to this equation"></a></span>\[\begin{split}A_{s,0}&amp;=\frac1{(s-1)!},\\
+A_{s,q}&amp;=(2^q-1)\sum_{r=0}^{q-1}\binom qr
+    \frac{(s+q-1)!}{2^{q-r}(s+r-1)!}A_{s,r},\\
+C_{s,q}&amp;=\binom{s+q}s^2A_{s,q}.\end{split}\]</div>
+<p>For every <span class="math notranslate nohighlight">\(q\geq0,D\geq s\)</span>,</p>
+<div class="math notranslate nohighlight" id="equation-risk-fixed-vertex-nonvertex-bound">
+<span class="eqno">(76)<a class="headerlink" href="#equation-risk-fixed-vertex-nonvertex-bound" title="Link to this equation"></a></span>\[a_{s-1}(s+q,D)\leq C_{s,q}D^{s-q-1}.\]</div>
+<p>At <span class="math notranslate nohighlight">\(q=0\)</span> this is
+<span class="math notranslate nohighlight">\(\binom{D-1}{s-1}\leq D^{s-1}/(s-1)!\)</span>.
+For the induction step, apply the boundary-transfer inequality in
+<a class="reference internal" href="skeleton_risk_codimension_three.html"><span class="doc">Boundary transfer and a codimension-three edge bound</span></a> before grouping the proper
+outside subsets. Cauchy–Schwarz over their <span class="math notranslate nohighlight">\(2^q-1\)</span> terms gives</p>
+<div class="math notranslate nohighlight">
+\[\frac{a_{s-1}(s+q,D)}{\binom{s+q}s^2}
+\leq(2^q-1)\sum_{r=0}^{q-1}\binom qr
+   \frac{(s+r)_{2D}}{(s+q)_{2D}}
+   \frac{a_{s-1}(s+r,D)}{\binom{s+r}s^2}.\]</div>
+<p>The embedding ratio satisfies</p>
+<div class="math notranslate nohighlight">
+\[\frac{(s+r)_{2D}}{(s+q)_{2D}}
+   =\frac{(s+q-1)!}{(s+r-1)!}
+      \prod_{j=s+r}^{s+q-1}\frac1{2D+j}
+   \leq\frac{(s+q-1)!}{2^{q-r}(s+r-1)!}D^{r-q}.\]</div>
+<p>Insertion of the induction hypothesis proves the recursion and bound.
+All quantities are zero on the inactive prefix <span class="math notranslate nohighlight">\(D&lt;s\)</span>.</p>
+<p><strong>Facets.</strong> Put <span class="math notranslate nohighlight">\(s=M-1\geq3\)</span>, <span class="math notranslate nohighlight">\(L(D)=1+\log D\)</span> and
+<span class="math notranslate nohighlight">\(F_M=sM^2/(2(s-2)!)\)</span>. The exact codimension-one formula, with
+<span class="math notranslate nohighlight">\(j=D-s-k+1\)</span>, gives</p>
+<div class="math notranslate nohighlight">
+\[a_{s-1}(M,D)
+  =sM^2\sum_{j=1}^{D-s+1}
+     \frac{\binom{D-j-1}{s-2}}{j(2D+s+1-j)}
+  \leq F_M D^{M-4}L(D).\]</div>
+<p>Indeed, the numerator is at most
+<span class="math notranslate nohighlight">\((D-j)^{s-2}/(s-2)!\)</span>, and
+<span class="math notranslate nohighlight">\(2D+s+1-j\geq2(D-j)&gt;0\)</span> on the summation range.
+Since <span class="math notranslate nohighlight">\(s-3\geq0\)</span>, bound the remaining power by
+<span class="math notranslate nohighlight">\(D^{s-3}\)</span> and use <span class="math notranslate nohighlight">\(H_{D-s+1}\leq L(D)\)</span>.
+This is zero when <span class="math notranslate nohighlight">\(D&lt;s\)</span>.</p>
+</section>
+<section id="threshold-and-proof-of-the-theorem">
+<h2>Threshold and proof of the theorem<a class="headerlink" href="#threshold-and-proof-of-the-theorem" title="Link to this heading"></a></h2>
+<p>Let <span class="math notranslate nohighlight">\(\lceil\sqrt{x}\rceil\)</span> mean the least integer whose square
+is at least the positive rational <span class="math notranslate nohighlight">\(x\)</span>. Set</p>
+<div class="math notranslate nohighlight">
+\[B_M=\lceil\sqrt{V_M}\rceil+\lceil\sqrt{F_M}\rceil
+          +\sum_{s=2}^{M-2}\lceil\sqrt{C_{s,M-s}}\rceil,
+\qquad c_M=\frac{M}{(M-2)!}.\]</div>
+<p>The exponents of all the nonfacet bounds are at most <span class="math notranslate nohighlight">\(M-5\)</span>;
+the vertex exponent is also at most <span class="math notranslate nohighlight">\(M-4\)</span> for <span class="math notranslate nohighlight">\(M\geq4\)</span>.
+Therefore, for <span class="math notranslate nohighlight">\(D\geq M\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[X:=\sum_{s=1}^{M-1}\sqrt{a_{s-1}(M,D)}
+   \leq B_M D^{(M-4)/2}\sqrt{L(D)}.\]</div>
+<p>The elementary inequality <span class="math notranslate nohighlight">\(L(D)\leq2\sqrt D\)</span> follows from
+<span class="math notranslate nohighlight">\(\log u\leq u-1\)</span> at <span class="math notranslate nohighlight">\(u=\sqrt D\)</span>.
+For <span class="math notranslate nohighlight">\(b=\binom{D-1}{M-1}\)</span> one has
+<span class="math notranslate nohighlight">\(\sqrt b\leq D^{(M-1)/2}/\sqrt{(M-1)!}\)</span>. Hence</p>
+<div class="math notranslate nohighlight">
+\[\frac{R_{\rm ind}-b}{D^{M-2}}
+   =\frac{2\sqrt bX+X^2}{D^{M-2}}
+   &lt;3B_M D^{-1/4}+2B_M^2 D^{-3/2}.\]</div>
+<p>Here <span class="math notranslate nohighlight">\(2\sqrt2/\sqrt{(M-1)!}&lt;3\)</span>.
+Choose the integer</p>
+<div class="math notranslate nohighlight">
+\[t_M=\max\left(1,
+     \left\lceil\frac{12B_M}{c_M}\right\rceil,
+     \left\lceil(8B_M^2/c_M)^{1/6}\right\rceil\right),
+\qquad H(M)=\max(M,t_M^4).\]</div>
+<p>At every <span class="math notranslate nohighlight">\(D\geq H(M)\)</span>, the upper bound is at most</p>
+<div class="math notranslate nohighlight">
+\[\frac{3B_M}{t_M}+\frac{2B_M^2}{t_M^6}
+   \leq\frac{c_M}4+\frac{c_M}4=\frac{c_M}2&lt;c_M.\]</div>
+<p>Finally, put <span class="math notranslate nohighlight">\(n=M-1\)</span> and expand</p>
+<div class="math notranslate nohighlight">
+\[R_{\rm all}-b
+  =\frac{\prod_{j=1}^n(D+j)-\prod_{j=1}^n(D-j)}{n!}.\]</div>
+<p>All the surviving elementary-symmetric terms have positive coefficients.
+The first is <span class="math notranslate nohighlight">\(2(1+\cdots+n)D^{n-1}/n!=c_MD^{M-2}\)</span>.
+Thus <span class="math notranslate nohighlight">\(R_{\rm all}-b\geq c_MD^{M-2}\)</span>,
+which proves strict victory throughout the claimed tail.</p>
+</section>
+<section id="reproduction-and-limits">
+<h2>Reproduction and limits<a class="headerlink" href="#reproduction-and-limits" title="Link to this heading"></a></h2>
+<p>The optional standard-library checkout tool specializes this general
+proof without calculating any risk coefficients:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>python<span class="w"> </span>-m<span class="w"> </span>tools.risk_research.fixed_vertex_tail<span class="w"> </span>--vertices<span class="w"> </span><span class="m">6</span><span class="w"> </span>--output<span class="w"> </span>.research/skeleton-risk/fixed6-tail.json
+<span class="gp">$ </span>python<span class="w"> </span>-m<span class="w"> </span>tools.risk_research.fixed_vertex_tail<span class="w"> </span>--verify<span class="w"> </span>.research/skeleton-risk/fixed6-tail.json
+</pre></div>
+</div>
+<p>The certificate records every majorant, integer-root bound, threshold,
+strict rational margin, and source/proof fingerprint. Verification
+recomputes the full specialization and rejects altered fields. Hashes
+canonicalize CRLF pairs to LF; the concurrent-edit guard compares the
+original raw bytes. A failed computation preserves an existing output.</p>
+<p>The proof establishes eventual victory for each fixed <span class="math notranslate nohighlight">\(M\)</span>, with
+an explicit but large threshold. Sharper special-case comparisons can
+give substantially smaller thresholds. It gives neither the exact
+finite loss set at a general vertex count nor a joint asymptotic formula
+when <span class="math notranslate nohighlight">\(M,D\)</span> both grow.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="skeleton_risk_uniform_dimension_tail.html" class="btn btn-neutral float-left" title="An all-degree sufficient region for large vertex counts" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="skeleton_risk_tetrahedron_comparison.html" class="btn btn-neutral float-right" title="Tetrahedron risk comparison at every degree" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: feat/risk-fixed-vertex-tail
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/index.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="skeleton_risk_fixed_vertex_tail.html">feat/risk-fixed-vertex-tail</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
