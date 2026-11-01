@@ -1,0 +1,390 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tetrahedron vertex degree recurrence &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Quantitative tetrahedron vertex asymptotics" href="skeleton_risk_vertex_asymptotics.html" />
+    <link rel="prev" title="Explicit vertex errors at every fixed vertex count" href="skeleton_risk_vertex_general_asymptotics.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_family.html">Uniform construction for codimension two</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three.html">Boundary transfer and a codimension-three edge bound</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Tetrahedron vertex degree recurrence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#four-polynomial-difference-equations">Four polynomial difference equations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#the-rational-telescope-and-its-boundaries">The rational telescope and its boundaries</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#integer-domain-and-reproduction">Integer domain and reproduction</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html">Five-vertex vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_comparison.html">Five-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Tetrahedron vertex degree recurrence</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/skeleton_risk_vertex_recurrence.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="tetrahedron-vertex-degree-recurrence">
+<h1>Tetrahedron vertex degree recurrence<a class="headerlink" href="#tetrahedron-vertex-degree-recurrence" title="Link to this heading"></a></h1>
+<p>The positive harmonic sum in <a class="reference internal" href="skeleton_risk_vertex.html"><span class="doc">Tetrahedron vertex risk</span></a> admits an explicit
+order-ten recurrence in the degree. Its polynomial coefficients have degree
+at most 69. The recurrence holds at every integer <span class="math notranslate nohighlight">\(D\geq1\)</span>, has no
+exceptional integer indices, and determines the coefficient from its first
+ten values. This supplies a fixed-order recurrence; it does not evaluate
+the coefficient by a bounded number of classical special functions.</p>
+<div class="proof theorem admonition" id="thm-risk-tetrahedron-vertex-recurrence">
+<p class="admonition-title"><span class="caption-number">Theorem 33 </span> (A certified degree recurrence)</p>
+<section class="theorem-content" id="proof-content">
+<p>Under the uniform-simplex assumptions of <a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a>,
+write <span class="math notranslate nohighlight">\(a_D=a_0(4,D)\)</span>. The eleven integer polynomials recorded in
+<code class="file docutils literal notranslate"><span class="pre">tools/risk_research/examples/tetrahedron_vertex_recurrence_order10.json</span></code>
+satisfy</p>
+<div class="math notranslate nohighlight">
+\[\sum_{i=0}^{10}p_i(D)a_{D+i}=0\qquad(D\geq1).\]</div>
+<p>The JSON rows give coefficients in ascending powers of <span class="math notranslate nohighlight">\(D\)</span>.
+Their maximum degree is 69, and <span class="math notranslate nohighlight">\(p_{10}(D)\ne0\)</span> at every
+positive integer. The same artifact records the ten exact initial
+values, starting with <span class="math notranslate nohighlight">\(a_1=8/5\)</span> and <span class="math notranslate nohighlight">\(a_2=16/35\)</span>.</p>
+</section>
+</div><p>The proof below constructs a rational telescoping certificate from these
+polynomials. The executable verifier rebuilds this certificate and checks
+four rational identities exactly. Finite sequence agreement is an
+additional regression check, rather than the proof of the recurrence.</p>
+<section id="four-polynomial-difference-equations">
+<h2>Four polynomial difference equations<a class="headerlink" href="#four-polynomial-difference-equations" title="Link to this heading"></a></h2>
+<p>Recall the proved single sum</p>
+<div class="math notranslate nohighlight">
+\[a_D=\frac{576}{d_D}\sum_{j=0}^{D-1}
+   \binom{D-1}j\binom{D+1}j G_j,
+\qquad d_D=\frac{(2D+3)!}{(D-1)!(D+1)!},\]</div>
+<p>where</p>
+<div class="math notranslate nohighlight">
+\[G_j=\frac{H_j^2}{(j+1)(j+2)(j+3)}
+   +\frac{H_j^{(2)}}{(j+1)(j+3)}
+   -\frac{jH_j}{(j+1)(j+2)^2(j+3)}
+   +\frac{2}{(j+1)^2(j+2)^2(j+3)}.\]</div>
+<p>For a candidate order <span class="math notranslate nohighlight">\(r\)</span>, put <span class="math notranslate nohighlight">\(N=D+r-1\)</span> and
+<span class="math notranslate nohighlight">\(w_{N,j}=\binom Nj\binom{N+2}j\)</span>. With
+<span class="math notranslate nohighlight">\(x^{\underline m}=x(x-1)\cdots(x-m+1)\)</span>, define</p>
+<div class="math notranslate nohighlight">
+\[U_m(j)=(N-j)^{\underline m}(N+2-j)^{\underline m},\qquad
+B_m=N^{\underline m}(N+2)^{\underline m}.\]</div>
+<p>The elementary shift identity is</p>
+<div class="math notranslate nohighlight">
+\[w_{N,j}U_m(j)=B_m
+     \binom{N-m}j\binom{N+2-m}j.\]</div>
+<p>It holds on <span class="math notranslate nohighlight">\(0\leq j\leq N\)</span>, including the zero terms outside
+the shorter support. For <span class="math notranslate nohighlight">\(P(j)=\sum_{m=0}^r\lambda_m U_m(j)\)</span>,
+we seek a telescope for <span class="math notranslate nohighlight">\(w_{N,j}P(j)G_j\)</span>.</p>
+<p>Set <span class="math notranslate nohighlight">\(A(j)=(N-j)(N+2-j)\)</span> and introduce two polynomial operators
+over <span class="math notranslate nohighlight">\(\mathbb Q(N)\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}L_2 q&amp;=A(j)(j+1)q(j+1)-j^2(j+3)q(j),\\
+L_3 q&amp;=A(j)(j+1)^2q(j+1)-j^2(j+2)(j+3)q(j).\end{split}\]</div>
+<p>Four certificate polynomials <span class="math notranslate nohighlight">\(q_1,q_2,q_3,q_4\)</span> must satisfy</p>
+<div class="math notranslate nohighlight" id="equation-risk-vertex-polynomial-certificate">
+<span class="eqno">(66)<a class="headerlink" href="#equation-risk-vertex-polynomial-certificate" title="Link to this equation"></a></span>\[\begin{split}L_2q_1&amp;=P,\\
+L_2q_2&amp;=(j+2)P,\\
+L_3q_3&amp;=-j(j+1)P
+   -2A(j)(j+1)(j+2)q_1(j+1),\\
+L_3q_4&amp;=2P-A(j)(j+2)\bigl(q_1(j+1)+q_2(j+1)\bigr)
+   -A(j)(j+1)q_3(j+1).\end{split}\]</div>
+<p>These equations can be solved by polynomial reduction. The leading terms
+of <span class="math notranslate nohighlight">\(L_2(j^m)\)</span> and <span class="math notranslate nohighlight">\(L_3(j^m)\)</span> are respectively</p>
+<div class="math notranslate nohighlight">
+\[(m-2N-4)j^{m+2},\qquad (m-2N-5)j^{m+3}.\]</div>
+<p>Successively eliminating the highest powers therefore leaves remainders
+of degrees below <span class="math notranslate nohighlight">\(2,2,3,3\)</span>. Their ten coefficients depend linearly
+on the <span class="math notranslate nohighlight">\(r+1\)</span> unknowns <span class="math notranslate nohighlight">\(\lambda_m\)</span>. At <span class="math notranslate nohighlight">\(r=10\)</span> the
+resulting <span class="math notranslate nohighlight">\(10\times11\)</span> matrix has an exact nonzero kernel. The
+implementation computes that kernel over <span class="math notranslate nohighlight">\(\mathbb Q(N)\)</span> without
+using sequence values. This establishes an order bound for this
+certificate construction; it does not claim that order ten is minimal
+among all recurrences for <span class="math notranslate nohighlight">\(a_D\)</span>.</p>
+</section>
+<section id="the-rational-telescope-and-its-boundaries">
+<h2>The rational telescope and its boundaries<a class="headerlink" href="#the-rational-telescope-and-its-boundaries" title="Link to this heading"></a></h2>
+<p>Let <span class="math notranslate nohighlight">\(h_j=(H_j^2,H_j^{(2)},H_j,1)^T\)</span> and let <span class="math notranslate nohighlight">\(b(j)\)</span> be the
+four rational coefficients of <span class="math notranslate nohighlight">\(G_j=b(j)h_j\)</span> above. Define the row</p>
+<div class="math notranslate nohighlight">
+\[c(j)=j^2\left(
+   \frac{q_1(j)}{(j+1)(j+2)},
+   \frac{q_2(j)}{(j+1)(j+2)},
+   \frac{q_3(j)}{(j+1)^2(j+2)},
+   \frac{q_4(j)}{(j+1)^2(j+2)}\right).\]</div>
+<p>The harmonic transition <span class="math notranslate nohighlight">\(h_{j+1}=T(j)h_j\)</span> is</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}T(j)=\begin{pmatrix}
+   1&amp;0&amp;2/(j+1)&amp;1/(j+1)^2\\
+   0&amp;1&amp;0&amp;1/(j+1)^2\\
+   0&amp;0&amp;1&amp;1/(j+1)\\
+   0&amp;0&amp;0&amp;1
+\end{pmatrix}.\end{split}\]</div>
+<p>Substitution of <a class="reference internal" href="#equation-risk-vertex-polynomial-certificate">(66)</a> gives the four
+rational identities</p>
+<div class="math notranslate nohighlight">
+\[\frac{A(j)}{(j+1)^2}c(j+1)T(j)-c(j)=P(j)b(j).\]</div>
+<p>Multiplication by <span class="math notranslate nohighlight">\(w_{N,j}h_j\)</span> telescopes the desired summand.
+The lower boundary vanishes because <span class="math notranslate nohighlight">\(c(0)=0\)</span>. At the upper
+boundary <span class="math notranslate nohighlight">\(w_{N,N+1}=0\)</span>, and <span class="math notranslate nohighlight">\(c(N+1)\)</span> is finite, so the
+sum is zero.</p>
+<p>There are no hidden poles on the summation domain. Polynomial reduction
+uses indices <span class="math notranslate nohighlight">\(m\leq2r-1\)</span> and <span class="math notranslate nohighlight">\(N=D+r-1\geq r\)</span>, hence
+<span class="math notranslate nohighlight">\(m-2N-4&lt;0\)</span> and <span class="math notranslate nohighlight">\(m-2N-5&lt;0\)</span>. The factors <span class="math notranslate nohighlight">\(B_m\)</span>
+are positive. The normalizing ratio</p>
+<div class="math notranslate nohighlight">
+\[\frac{d_{D+i}}{d_D}
+  =\frac{(2D+4)_{2i}}{(D)_i(D+2)_i}\]</div>
+<p>has positive factors as well. The certificate denominators in
+<span class="math notranslate nohighlight">\(j\)</span> involve only <span class="math notranslate nohighlight">\(j+1,j+2\)</span>.
+The verifier additionally expands every certificate parameter denominator
+after <span class="math notranslate nohighlight">\(N=D+r-1\)</span> and checks that its coefficients are nonnegative
+and not all zero. This independently certifies positivity for
+<span class="math notranslate nohighlight">\(D\geq1\)</span>.</p>
+<p>Finally set</p>
+<div class="math notranslate nohighlight">
+\[p_i(D)=\lambda_{r-i}(D+r-1)B_{r-i}(D+r-1)
+      \frac{d_{D+i}}{d_D}.\]</div>
+<p>Clearing the common denominator and integer content gives the recorded
+polynomials and proves the theorem. Conversely, the verifier starts
+with supplied <span class="math notranslate nohighlight">\(p_i\)</span>, recovers <span class="math notranslate nohighlight">\(\lambda_m\)</span> through this
+formula, and checks the telescope directly. It therefore detects an
+incorrect coefficient array independently of its provenance metadata.</p>
+</section>
+<section id="integer-domain-and-reproduction">
+<h2>Integer domain and reproduction<a class="headerlink" href="#integer-domain-and-reproduction" title="Link to this heading"></a></h2>
+<p>The leading polynomial has one sign variation in its nonzero
+coefficients. Its exact evaluations satisfy
+<span class="math notranslate nohighlight">\(p_{10}(4)&lt;0&lt;p_{10}(5)\)</span>. Descartes’ rule and the intermediate
+value theorem place its only positive real root strictly inside
+<span class="math notranslate nohighlight">\((4,5)\)</span>. Thus it has no positive integer zero; recurrence
+evaluation needs no additional initial values beyond degrees one
+through ten.</p>
+<p>With the optional Sage environment, reproduce both the derivation and
+the symbolic certificate using</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m tools.risk_research.vertex_degree_recurrence \</span>
+<span class="go">  --output /tmp/tetrahedron-vertex.json --report /tmp/vertex-proof.json</span>
+<span class="go">python -m tools.risk_research.vertex_degree_recurrence \</span>
+<span class="go">  --verify tools/risk_research/examples/tetrahedron_vertex_recurrence_order10.json</span>
+</pre></div>
+</div>
+<p>Ordinary Python can evaluate the certified recurrence without Sage:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">fractions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Fraction</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tools.risk_research.vertex_degree_recurrence</span><span class="w"> </span><span class="kn">import</span> <span class="n">recurrence_coefficients</span>
+
+<span class="n">values</span> <span class="o">=</span> <span class="n">recurrence_coefficients</span><span class="p">(</span><span class="mi">300</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">Fraction</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Regression checks compare recurrence values with the previously proved
+positive sum at degrees one through 48 and at 121, 241, 260, 271, 277,
+290 and 300. The degrees above 260 were checked after the operator was
+frozen. These checks do not replace the symbolic certificate.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="skeleton_risk_vertex_general_asymptotics.html" class="btn btn-neutral float-left" title="Explicit vertex errors at every fixed vertex count" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="skeleton_risk_vertex_asymptotics.html" class="btn btn-neutral float-right" title="Quantitative tetrahedron vertex asymptotics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: feat/five-vertex-all-degree-comparison
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/index.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="skeleton_risk_vertex_recurrence.html">feat/five-vertex-all-degree-comparison</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
