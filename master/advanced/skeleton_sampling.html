@@ -63,6 +63,7 @@
 <li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
 <li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Optimal skeleton sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#automatic-selection-and-manual-strategies">Automatic selection and manual strategies</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#sample-fit-and-compare">Sample, fit and compare</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#the-risk-and-its-coefficients">The risk and its coefficients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#the-optimal-ratio">The optimal ratio</a></li>
@@ -142,6 +143,36 @@ fit with it. The same functions accept simploids; see
 The same APIs also accept assembled domains, with shared or degenerate faces,
 isolated vertices and a chosen evaluation measure. See <a class="reference internal" href="simploidal_risk.html"><span class="doc">Risk on an assembled simploidal set</span></a>
 for executable examples, cell-specific allocation and the assembled theory.</p>
+<section id="automatic-selection-and-manual-strategies">
+<span id="skeleton-auto-allocation"></span><h2>Automatic selection and manual strategies<a class="headerlink" href="#automatic-selection-and-manual-strategies" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">optimal_skeleton_ratio</span></code> always returns <code class="xref py py-class docutils literal notranslate"><span class="pre">SkeletonAllocation</span></code>.
+The default <code class="docutils literal notranslate"><span class="pre">allocation=&quot;auto&quot;</span></code> prefers cell-optimal sampling on assembled
+spaces. When zero-coefficient active cells prevent an attained cell minimum,
+it falls back to equal-within-dimension allocation only if every active
+dimension has positive coefficient. Other input, precision and computation
+errors propagate; a numerical failure is never reclassified as a structural
+zero. Specify <code class="docutils literal notranslate"><span class="pre">&quot;cell&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;dimension&quot;</span></code> to select a strict method directly.
+Bare simplex/simploid constructors retain their original factorized dimension
+path without first attempting an unsupported cell calculation.</p>
+<p>Inspect <code class="docutils literal notranslate"><span class="pre">plan.strategy</span></code> and <code class="docutils literal notranslate"><span class="pre">plan.fallback_reason</span></code> to see the actual
+choice. <code class="docutils literal notranslate"><span class="pre">plan.ratio</span></code> is the tuple of total shares by dimension, and
+<code class="docutils literal notranslate"><span class="pre">plan.cell_weights</span></code> contains per-cell shares on addressable spaces. The
+latter is empty for a bare positive-dimensional simplex/simploid, whose faces
+have no cell IDs. Pass the whole result to
+<code class="docutils literal notranslate"><span class="pre">sample_skeleton(space,</span> <span class="pre">n,</span> <span class="pre">allocation=plan)</span></code> to preserve both cell shares and
+strategy-specific rounding. The plan is immutable and may be reused only on
+compatible spaces. Explicit <code class="docutils literal notranslate"><span class="pre">ratio</span></code> and <code class="docutils literal notranslate"><span class="pre">cell_weights</span></code> remain available
+and bypass optimization.</p>
+<p>The coefficient function keeps its explicit mathematical meanings:
+<code class="docutils literal notranslate"><span class="pre">skeleton_risk_coefficients(...,</span> <span class="pre">allocation=&quot;dimension&quot;)</span></code> returns the
+<span class="math notranslate nohighlight">\(a_m\)</span> tuple, while <code class="docutils literal notranslate"><span class="pre">allocation=&quot;cell&quot;</span></code> returns the <span class="math notranslate nohighlight">\(c_s\)</span>
+dictionary. It does not silently change between these quantities.</p>
+<p>Assembled default draws can change for the same seed because cells of the
+same dimension need not have equal risk coefficients. Select
+<code class="docutils literal notranslate"><span class="pre">allocation=&quot;dimension&quot;</span></code> to retain the old sampling strategy. Bare
+single-cell default draws retain their original values and order. See
+<a class="reference internal" href="../migration.html"><span class="doc">Migrating to the unified v0 API</span></a> for return-type migration examples.</p>
+</section>
 <section id="sample-fit-and-compare">
 <h2>Sample, fit and compare<a class="headerlink" href="#sample-fit-and-compare" title="Link to this heading"></a></h2>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
@@ -150,7 +181,7 @@ for executable examples, cell-specific allocation and the assembled theory.</p>
 
 <span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">([</span><span class="nb">round</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">skeleton_risk_coefficients</span><span class="p">(</span><span class="n">space</span><span class="p">)])</span>
-<span class="nb">print</span><span class="p">([</span><span class="nb">round</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">optimal_skeleton_ratio</span><span class="p">(</span><span class="n">space</span><span class="p">)])</span>
+<span class="nb">print</span><span class="p">([</span><span class="nb">round</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">optimal_skeleton_ratio</span><span class="p">(</span><span class="n">space</span><span class="p">)</span><span class="o">.</span><span class="n">ratio</span><span class="p">])</span>
 
 <span class="n">truth</span> <span class="o">=</span> <span class="n">BezierModel</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">space</span><span class="o">.</span><span class="n">n_controls</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">])</span>
 <span class="n">points</span> <span class="o">=</span> <span class="n">sample_skeleton</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
@@ -267,7 +298,8 @@ gives, by the Cauchy-Schwarz inequality,</p>
 <div class="math notranslate nohighlight">
 \[\frac{N^{(m)}}{N} = \frac{\sqrt{a_m}}{\sum_k \sqrt{a_k}}, \qquad
 R^\ast = \frac{\sigma^2 L}{N} \Bigl(\sum_m \sqrt{a_m}\Bigr)^2.\]</div>
-<p><a class="reference internal" href="../api.html#torch_bsf.sampling.optimal_skeleton_ratio" title="torch_bsf.sampling.optimal_skeleton_ratio"><code class="xref py py-func docutils literal notranslate"><span class="pre">optimal_skeleton_ratio()</span></code></a> returns these fractions.
+<p><a class="reference internal" href="../api.html#torch_bsf.sampling.optimal_skeleton_ratio" title="torch_bsf.sampling.optimal_skeleton_ratio"><code class="xref py py-func docutils literal notranslate"><span class="pre">optimal_skeleton_ratio()</span></code></a> returns these fractions in
+the <code class="docutils literal notranslate"><span class="pre">ratio</span></code> field of a <code class="xref py py-class docutils literal notranslate"><span class="pre">SkeletonAllocation</span></code>.
 For comparison, ordinary least squares on <span class="math notranslate nohighlight">\(N\)</span> uniform rows on the whole
 simplex (all-at-once fitting) has risk
 <span class="math notranslate nohighlight">\(\sigma^2 L \binom{D+M-1}{D} / N\)</span>, the number of controls over
@@ -358,7 +390,7 @@ coordinates 0 to 2 belong to the triangle and 3 to 4 to the interval, so
 <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">3)</span></code> is a corner and <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">1,</span> <span class="pre">3)</span></code> a triangle edge at one end.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">prism</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simploid</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">degree</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
 <span class="nb">print</span><span class="p">([</span><span class="nb">round</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">skeleton_risk_coefficients</span><span class="p">(</span><span class="n">prism</span><span class="p">)])</span>
-<span class="nb">print</span><span class="p">([</span><span class="nb">round</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">optimal_skeleton_ratio</span><span class="p">(</span><span class="n">prism</span><span class="p">)])</span>
+<span class="nb">print</span><span class="p">([</span><span class="nb">round</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">optimal_skeleton_ratio</span><span class="p">(</span><span class="n">prism</span><span class="p">)</span><span class="o">.</span><span class="n">ratio</span><span class="p">])</span>
 
 <span class="n">truth</span> <span class="o">=</span> <span class="n">BezierModel</span><span class="p">(</span><span class="n">prism</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">prism</span><span class="o">.</span><span class="n">n_controls</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">])</span>
 <span class="n">points</span> <span class="o">=</span> <span class="n">sample_skeleton</span><span class="p">(</span><span class="n">prism</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>

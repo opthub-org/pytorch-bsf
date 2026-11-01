@@ -64,6 +64,7 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="api.html">Python API reference</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Migrating to the unified v0 API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#skeleton-allocation-plans-unreleased">Skeleton allocation plans (unreleased)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#python-3-11-minimum-unreleased">Python 3.11 minimum (unreleased)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#separate-geometry-observations-and-fitted-state">Separate geometry, observations and fitted state</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#translate-penalties-and-constraints-deliberately">Translate penalties and constraints deliberately</a></li>
@@ -156,6 +157,40 @@ sample-count-dependent sum. <code class="docutils literal notranslate"><span cla
 Existing numerical penalty values may therefore need retuning.</p>
 <p>The internal <code class="docutils literal notranslate"><span class="pre">_kernels</span></code> package retains tested geometry algorithms. It is
 private and is not a compatibility API.</p>
+<section id="skeleton-allocation-plans-unreleased">
+<h2>Skeleton allocation plans (unreleased)<a class="headerlink" href="#skeleton-allocation-plans-unreleased" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">optimal_skeleton_ratio</span></code> now returns <code class="xref py py-class docutils literal notranslate"><span class="pre">SkeletonAllocation</span></code>
+for every strategy. It no longer returns a tuple in dimension mode or a
+dictionary in cell mode. Select <code class="docutils literal notranslate"><span class="pre">allocation=&quot;auto&quot;</span></code> (the new default),
+<code class="docutils literal notranslate"><span class="pre">&quot;cell&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;dimension&quot;</span></code> explicitly; manual modes never fall back.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">SimploidalSet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.sampling</span><span class="w"> </span><span class="kn">import</span> <span class="n">optimal_skeleton_ratio</span><span class="p">,</span> <span class="n">sample_skeleton</span>
+
+<span class="n">domain</span> <span class="o">=</span> <span class="n">SimploidalSet</span><span class="p">()</span>
+<span class="n">_</span> <span class="o">=</span> <span class="n">domain</span><span class="o">.</span><span class="n">add_simplex</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">on_set</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">plan</span> <span class="o">=</span> <span class="n">optimal_skeleton_ratio</span><span class="p">(</span><span class="n">space</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">plan</span><span class="o">.</span><span class="n">strategy</span> <span class="o">==</span> <span class="s2">"cell"</span>
+<span class="n">points</span> <span class="o">=</span> <span class="n">sample_skeleton</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="n">allocation</span><span class="o">=</span><span class="n">plan</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">old_dimension_ratio</span> <span class="o">=</span> <span class="n">optimal_skeleton_ratio</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">allocation</span><span class="o">=</span><span class="s2">"dimension"</span><span class="p">)</span><span class="o">.</span><span class="n">ratio</span>
+<span class="n">explicit_cell_weights</span> <span class="o">=</span> <span class="n">optimal_skeleton_ratio</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">allocation</span><span class="o">=</span><span class="s2">"cell"</span><span class="p">)</span><span class="o">.</span><span class="n">cell_weights</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">points</span><span class="p">)</span> <span class="o">==</span> <span class="mi">20</span>
+<span class="k">assert</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">old_dimension_ratio</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-14</span>
+<span class="k">assert</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">explicit_cell_weights</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-14</span>
+</pre></div>
+</div>
+<p>Use the entire plan when sampling: passing only <code class="docutils literal notranslate"><span class="pre">plan.ratio</span></code> from a cell
+plan discards unequal within-dimension shares. Explicit <code class="docutils literal notranslate"><span class="pre">ratio</span></code> and
+<code class="docutils literal notranslate"><span class="pre">cell_weights</span></code> still work. The sampler’s default now optimizes per cell on
+assembled spaces, so seeded rows may change; <code class="docutils literal notranslate"><span class="pre">allocation=&quot;dimension&quot;</span></code>
+retains the previous design. Bare simplex/simploid constructors directly
+retain the old fast path and default draws, and report
+<code class="docutils literal notranslate"><span class="pre">fallback_reason=&quot;single_cell_fast_path&quot;</span></code>. In the zero-coefficient rescue
+case, the reason is <code class="docutils literal notranslate"><span class="pre">&quot;zero_cell_coefficients&quot;</span></code>. Invalid input, numerical
+precision and work-limit failures remain errors.</p>
+<p>The coefficient API keeps its tuple/dictionary meanings and default dimension
+mode; its return type does not follow the automatic sampling strategy.</p>
+</section>
 <section id="python-3-11-minimum-unreleased">
 <h2>Python 3.11 minimum (unreleased)<a class="headerlink" href="#python-3-11-minimum-unreleased" title="Link to this heading"></a></h2>
 <p>The next release supports Python 3.11 through 3.15. Recreate Python 3.10

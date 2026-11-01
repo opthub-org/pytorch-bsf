@@ -66,6 +66,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Risk on an assembled simploidal set</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#using-the-assembled-apis">Using the assembled APIs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#closed-form-implementation-paths">Closed-form implementation paths</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#global-controls-and-moments">Global controls and moments</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#estimator-and-finite-propagation-formula">Estimator and finite propagation formula</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#optimal-allocation-and-all-at-once-comparison">Optimal allocation and all-at-once comparison</a></li>
@@ -150,8 +151,9 @@ their factorized risk calculation and original sampling behavior.</p>
 complexes, for arbitrary sets at linear factor degrees, and for every
 one-dimensional set at every positive degree. The regular case reduces to
 weighted face incidences; the other two cases explicitly retain the cross
-terms from identified corners. These are mathematical simplifications;
-the public assembled risk implementation still uses matrix propagation.</p>
+terms from identified corners. The public assembled risk implementation uses
+these closed forms directly and retains checked matrix propagation for the
+remaining nonlinear identified sets.</p>
 <section id="using-the-assembled-apis">
 <h2>Using the assembled APIs<a class="headerlink" href="#using-the-assembled-apis" title="Link to this heading"></a></h2>
 <p>Two quadratic intervals with one shared endpoint illustrate the whole path:</p>
@@ -167,8 +169,9 @@ the public assembled risk implementation still uses matrix propagation.</p>
 <span class="n">domain</span><span class="o">.</span><span class="n">identify</span><span class="p">(</span><span class="n">left</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">right</span><span class="o">.</span><span class="n">face</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
 <span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">on_set</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">skeleton_risk_coefficients</span><span class="p">(</span><span class="n">space</span><span class="p">)))</span>
-<span class="n">ratio</span> <span class="o">=</span> <span class="n">optimal_skeleton_ratio</span><span class="p">(</span><span class="n">space</span><span class="p">)</span>
-<span class="n">points</span> <span class="o">=</span> <span class="n">sample_skeleton</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="n">ratio</span><span class="o">=</span><span class="n">ratio</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">plan</span> <span class="o">=</span> <span class="n">optimal_skeleton_ratio</span><span class="p">(</span><span class="n">space</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">plan</span><span class="o">.</span><span class="n">strategy</span> <span class="o">==</span> <span class="s2">"cell"</span> <span class="ow">and</span> <span class="n">plan</span><span class="o">.</span><span class="n">fallback_reason</span> <span class="ow">is</span> <span class="kc">None</span>
+<span class="n">points</span> <span class="o">=</span> <span class="n">sample_skeleton</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="n">allocation</span><span class="o">=</span><span class="n">plan</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 <span class="n">truth</span> <span class="o">=</span> <span class="n">BezierModel</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">space</span><span class="o">.</span><span class="n">n_controls</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">])</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">fit_skeleton_regression</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">Samples</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">truth</span><span class="p">(</span><span class="n">points</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()))</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
 <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">coefficients</span><span class="p">,</span> <span class="n">truth</span><span class="o">.</span><span class="n">coefficients</span><span class="p">)</span>
@@ -186,22 +189,28 @@ another measure, including a mixture with lower-dimensional cells:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">evaluation</span> <span class="o">=</span> <span class="p">{</span><span class="n">left</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">,</span> <span class="n">right</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">}</span>
 <span class="n">c</span> <span class="o">=</span> <span class="n">skeleton_risk_coefficients</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">evaluation_weights</span><span class="o">=</span><span class="n">evaluation</span><span class="p">,</span> <span class="n">allocation</span><span class="o">=</span><span class="s2">"cell"</span><span class="p">)</span>
 <span class="n">q</span> <span class="o">=</span> <span class="n">optimal_skeleton_ratio</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">evaluation_weights</span><span class="o">=</span><span class="n">evaluation</span><span class="p">,</span> <span class="n">allocation</span><span class="o">=</span><span class="s2">"cell"</span><span class="p">)</span>
-<span class="n">points</span> <span class="o">=</span> <span class="n">sample_skeleton</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="n">cell_weights</span><span class="o">=</span><span class="n">q</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-<span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">faces</span><span class="p">)</span>
-<span class="k">assert</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-14</span>
-<span class="n">risk_factor</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="n">cid</span><span class="p">]</span> <span class="o">/</span> <span class="n">q</span><span class="p">[</span><span class="n">cid</span><span class="p">]</span> <span class="k">for</span> <span class="n">cid</span> <span class="ow">in</span> <span class="n">c</span><span class="p">)</span>
+<span class="n">points</span> <span class="o">=</span> <span class="n">sample_skeleton</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="n">allocation</span><span class="o">=</span><span class="n">q</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">cell_weights</span><span class="p">)</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">faces</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">abs</span><span class="p">(</span><span class="nb">sum</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">cell_weights</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-14</span>
+<span class="n">risk_factor</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="n">cid</span><span class="p">]</span> <span class="o">/</span> <span class="n">q</span><span class="o">.</span><span class="n">cell_weights</span><span class="p">[</span><span class="n">cid</span><span class="p">]</span> <span class="k">for</span> <span class="n">cid</span> <span class="ow">in</span> <span class="n">c</span><span class="p">)</span>
 <span class="k">assert</span> <span class="nb">abs</span><span class="p">(</span><span class="n">risk_factor</span> <span class="o">-</span> <span class="nb">sum</span><span class="p">(</span><span class="n">value</span><span class="o">**</span><span class="mf">0.5</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">c</span><span class="o">.</span><span class="n">values</span><span class="p">())</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-12</span>
 </pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">allocation=&quot;dimension&quot;</span></code> (the default) returns a tuple indexed by dimension,
-including zero entries for dimensions without active cells. It uses
-<span class="math notranslate nohighlight">\(a_m=K_m\sum_{\dim s=m}c_s\)</span> and assigns equal shares to the
-<span class="math notranslate nohighlight">\(K_m\)</span> active cells of each dimension. <code class="docutils literal notranslate"><span class="pre">allocation=&quot;cell&quot;</span></code> returns an
-increasing-dimension, then increasing-cell-ID dictionary and optimizes the
-original cell objective. Cell mode needs addressable faces: use <code class="docutils literal notranslate"><span class="pre">on_set</span></code>
-for positive-dimensional spaces; a bare <code class="docutils literal notranslate"><span class="pre">BezierSpace.simplex</span></code> or
-<code class="docutils literal notranslate"><span class="pre">simploid</span></code> has only one chart ID and cannot name its faces this way.
-Zero-dimensional spaces support both modes.</p>
+<p><code class="docutils literal notranslate"><span class="pre">optimal_skeleton_ratio</span></code> and <code class="docutils literal notranslate"><span class="pre">sample_skeleton</span></code> default to
+<code class="docutils literal notranslate"><span class="pre">allocation=&quot;auto&quot;</span></code>: prefer individual cells, falling back to dimension
+shares only for zero-cell coefficients with positive active-group coefficients.
+Manual <code class="docutils literal notranslate"><span class="pre">&quot;cell&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;dimension&quot;</span></code> modes remain strict. Every optimized
+allocation has the same <code class="xref py py-class docutils literal notranslate"><span class="pre">SkeletonAllocation</span></code> result type;
+inspect <code class="docutils literal notranslate"><span class="pre">strategy</span></code> and <code class="docutils literal notranslate"><span class="pre">fallback_reason</span></code> and pass the whole plan when
+sampling. See <a class="reference internal" href="skeleton_sampling.html#skeleton-auto-allocation"><span class="std std-ref">Automatic selection and manual strategies</span></a>.</p>
+<p>The coefficient function keeps <code class="docutils literal notranslate"><span class="pre">allocation=&quot;dimension&quot;</span></code> as its default,
+returning a tuple indexed by dimension, including zero entries for empty
+active dimensions. It uses <span class="math notranslate nohighlight">\(a_m=K_m\sum_{\dim s=m}c_s\)</span> for equal shares
+within each dimension. <code class="docutils literal notranslate"><span class="pre">allocation=&quot;cell&quot;</span></code> returns an increasing-dimension,
+then increasing-cell-ID dictionary and describes the individual-cell objective.
+Cell mode needs addressable faces: use <code class="docutils literal notranslate"><span class="pre">on_set</span></code> for positive-dimensional
+spaces; bare <code class="docutils literal notranslate"><span class="pre">BezierSpace.simplex</span></code>/<code class="docutils literal notranslate"><span class="pre">simploid</span></code> retain their fast dimension
+path. Zero-dimensional spaces support both modes.</p>
 <p><code class="docutils literal notranslate"><span class="pre">evaluation_weights</span></code> and <code class="docutils literal notranslate"><span class="pre">cell_weights</span></code> accept integer IDs or the original
 builder handles. An ID and its handle are aliases whose weights add. Missing
 keys have weight zero. Weights must be real, finite, nonnegative, with a finite
@@ -213,10 +222,12 @@ only to active cells and is mutually exclusive with <code class="docutils litera
 weights may include any compiled cell. They never change an explicit sampling
 allocation. Pass the same evaluation weights when requesting coefficients and
 an automatic ratio.</p>
-<p>Sampling first rounds dimension budgets by largest remainder (dimension order
-breaks ties), then splits each budget equally among its active cells, randomly
-breaking remainder ties with a local generator. Explicit cell shares use one
-largest-remainder rounding in fitting order. Both paths return exactly <code class="docutils literal notranslate"><span class="pre">n</span></code>
+<p>Dimension plans and explicit <code class="docutils literal notranslate"><span class="pre">ratio</span></code> first round dimension budgets by largest
+remainder (dimension order breaks ties), then split each budget equally among
+its active cells, randomly breaking remainder ties with a local generator.
+Cell plans, including the usual automatic selection, and explicit
+<code class="docutils literal notranslate"><span class="pre">cell_weights</span></code> use one largest-remainder rounding in fitting order.
+Both paths return exactly <code class="docutils literal notranslate"><span class="pre">n</span></code>
 rows, including for <code class="docutils literal notranslate"><span class="pre">n=0</span></code> or budgets smaller than the active-cell count.
 Positive shares on empty dimensions are rejected. Small budgets and rounded
 zero counts do not guarantee that fitting has enough observations or full
@@ -241,28 +252,32 @@ their proper controls zero.</p>
 errors can propagate into evaluated cells. If a coefficient is zero, that cell
 still owns controls and needs positive sampling share for the theorem’s
 estimator. With a zero-coefficient active cell, the cell formula describes
-only an infimum over strictly positive allocations, so automatic cell
-allocation raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. Dimension allocation remains feasible when
-such a cell shares a dimension with a positive coefficient; the equal split
-still samples it. It raises when an entire active dimension has zero
-coefficient. Supply strictly positive explicit shares to estimate all active
+only an infimum over strictly positive allocations, so strict
+<code class="docutils literal notranslate"><span class="pre">allocation=&quot;cell&quot;</span></code> raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. Dimension allocation remains
+feasible when such a cell shares a dimension with a positive coefficient;
+the equal split still samples it. <code class="docutils literal notranslate"><span class="pre">allocation=&quot;auto&quot;</span></code> selects this rescue
+when every active dimension has a positive coefficient, reporting
+<code class="docutils literal notranslate"><span class="pre">fallback_reason=&quot;zero_cell_coefficients&quot;</span></code>. Both automatic and dimension
+allocation raise when an entire active dimension has zero coefficient.
+Supply strictly positive explicit shares to estimate all active
 controls in either case. Explicit zero shares are allowed for sampling but do
 not promise that fitting all controls will succeed.</p>
-<p>The assembled risk implementation uses float64 local moment/Cholesky solves
-and a unit triangular propagation solve. It retains repeated-control cross
-terms. It checks local Gram and propagation condition numbers, rejecting a
-first-order roundoff budget above <code class="docutils literal notranslate"><span class="pre">1e-6</span></code>. Positive subnormal evaluation
+<p>The remaining nonlinear identified sets use float64 local moment/Cholesky
+solves and a unit triangular propagation solve. This dense path retains
+repeated-control cross terms and checks local Gram and propagation condition
+numbers, rejecting a first-order roundoff budget above <code class="docutils literal notranslate"><span class="pre">1e-6</span></code>.
+Across all implementation paths, positive subnormal evaluation
 weights or weighted trace contributions are rejected as numerically unreliable;
 they are never reported as structural zeros or as a mathematical infimum.
-The first-order screen budgets moment/reduction errors of order
+For the dense path, the first-order screen budgets moment/reduction errors of order
 <span class="math notranslate nohighlight">\((2w+p+2)u\)</span> across <span class="math notranslate nohighlight">\(d+1\)</span> propagation levels, multiplied by the
 largest local Gram condition and the squared propagation condition, with a
 safety factor of eight for whitening, trace rounding and higher orders. Here
 <span class="math notranslate nohighlight">\(w\)</span> is the maximum chart width, <span class="math notranslate nohighlight">\(p\)</span> the global control count and
 <span class="math notranslate nohighlight">\(u=2^{-53}\)</span>. This conservative screen is not an all-degree certificate.
-Its conservative work limits are
-512 global controls and a total of 4,000,000 local Gram entries. Dense
-propagation costs quadratic global memory and cubic global time, with extra
+The dense path’s conservative work limits are 512 global controls and a total
+of 4,000,000 local Gram entries. Its propagation costs quadratic global memory
+and cubic global time, with extra
 local moment and trace contractions. Explicit <code class="docutils literal notranslate"><span class="pre">ratio</span></code> or <code class="docutils literal notranslate"><span class="pre">cell_weights</span></code>
 lets sampling proceed without this risk calculation; fitting uses the usual
 solver and its diagnostics. Positive-dimensional degree-zero factors remain
@@ -270,6 +285,32 @@ unsupported. These risk formulas assume the correctly specified model,
 independent homoscedastic noise, independent product-uniform observations and
 unregularized least squares; Sobol sampling is a design option rather than a
 claim that the independent-design risk theorem applies to its dependence.</p>
+</section>
+<section id="closed-form-implementation-paths">
+<h2>Closed-form implementation paths<a class="headerlink" href="#closed-form-implementation-paths" title="Link to this heading"></a></h2>
+<p>The public risk and allocation APIs use the updated theory directly:</p>
+<ul class="simple">
+<li><p>Arbitrary graphs, including loops, parallel edges and isolated vertices,
+use <a class="reference internal" href="#thm-skeleton-graph-risk">Theorem 22</a>. Endpoint/loop norms and interior
+ranks need only scalar arithmetic and incidence accumulation. Large graphs
+and high-degree graph edges avoid the global dense limit.</p></li>
+<li><p>At linear factor degrees, <a class="reference internal" href="#thm-skeleton-linear-assembled">Theorem 21</a> sums
+corner collisions, retaining cross terms from identified or collapsed
+corners. There is no global matrix. Local corner-pair work is limited to
+4,000,000 pairs per chart; a chart with a single global corner is exactly
+constant and needs no pair expansion.</p></li>
+<li><p>Regular chart closures use <a class="reference internal" href="#thm-skeleton-regular-incidence">Theorem 20</a> and
+conditioned single-simplex factor traces. Thus large regular meshes avoid
+global Gram/propagation matrices while retaining the existing factor-level
+numerical safeguards. Each factor is limited to 512 controls; compounded
+factor/accumulation error must fit the <code class="docutils literal notranslate"><span class="pre">1e-6</span></code> first-order screen.</p></li>
+<li><p>Other nonlinear identified sets retain checked dense propagation and its
+global work limits above.</p></li>
+</ul>
+<p>Closed formulas can evaluate theoretical coefficients when a numerical fit
+at the same degree is poorly conditioned. They do not certify that a finite
+sample or floating-point regression identifies all controls; inspect the
+ordinary fit rank/condition and solver diagnostics separately.</p>
 </section>
 <section id="global-controls-and-moments">
 <h2>Global controls and moments<a class="headerlink" href="#global-controls-and-moments" title="Link to this heading"></a></h2>
