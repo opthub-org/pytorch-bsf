@@ -1863,6 +1863,10 @@ active positive-dimensional faces, so the dimension and shape optima agree.
   grow with the degree; these results do not give a bounded-length
   classical-special-function expression or a limit uniform in growing
   :math:`M`.
+  :prf:ref:`thm-risk-general-vertex-explicit-error` adds a computable
+  bound :math:`R_M(1+\log D)^{M-2}/D^{M+2}` for every
+  :math:`M\geq4,D\geq256`. Its relative error tends to zero at
+  each fixed :math:`M`; this still does not give a uniform growing-M limit.
 - **The full comparison beyond the classified degrees.**
   :prf:ref:`prop-skeleton-wins` classifies every :math:`M` at
   :math:`D\leq8`, and :prf:ref:`thm-risk-comparisons-nine-twenty`

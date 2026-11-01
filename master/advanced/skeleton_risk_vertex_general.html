@@ -24,7 +24,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Tetrahedron vertex degree recurrence" href="skeleton_risk_vertex_recurrence.html" />
+    <link rel="next" title="Explicit vertex errors at every fixed vertex count" href="skeleton_risk_vertex_general_asymptotics.html" />
     <link rel="prev" title="Tetrahedron vertex risk" href="skeleton_risk_vertex.html" /> 
 </head>
 
@@ -74,6 +74,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#certified-constant-enclosures">Certified constant enclosures</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
@@ -357,9 +358,11 @@ true constant for each fixed <span class="math notranslate nohighlight">\(M\)</s
 <p><code class="docutils literal notranslate"><span class="pre">vertex_general.vertex_coefficient</span></code> implements the all-degree formula;
 <code class="docutils literal notranslate"><span class="pre">leading_constant_enclosure</span></code> returns two exact fractions. These are
 checkout-only research tools, with no additional runtime dependency or
-public sampling API. The asymptotic theorem supplies no explicit error
-for the finite-degree coefficient; only the constant’s truncation error
-is certified here. Five-vertex finite-degree errors are a separate result.</p>
+public sampling API. This chapter certifies the constant’s truncation error.
+<a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html"><span class="doc">Explicit vertex errors at every fixed vertex count</span></a> separately proves an explicit
+finite-degree error for every fixed <span class="math notranslate nohighlight">\(M\geq4\)</span> and <span class="math notranslate nohighlight">\(D\geq256\)</span>,
+combining the constant interval with an analytic remainder. The sharper
+five-vertex finite-degree error remains a separate result.</p>
 <p>Independent implementation checks compare the elementary rows with
 logarithmic-series expansion, the convolutions with the original bivariate
 kernel and signed transform, and the coefficient with the original scalar
@@ -377,7 +380,7 @@ implementation; the general claims use the proofs above.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="skeleton_risk_vertex.html" class="btn btn-neutral float-left" title="Tetrahedron vertex risk" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="skeleton_risk_vertex_recurrence.html" class="btn btn-neutral float-right" title="Tetrahedron vertex degree recurrence" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="skeleton_risk_vertex_general_asymptotics.html" class="btn btn-neutral float-right" title="Explicit vertex errors at every fixed vertex count" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -292,9 +292,11 @@ From a source checkout, for example:
 ``vertex_general.vertex_coefficient`` implements the all-degree formula;
 ``leading_constant_enclosure`` returns two exact fractions. These are
 checkout-only research tools, with no additional runtime dependency or
-public sampling API. The asymptotic theorem supplies no explicit error
-for the finite-degree coefficient; only the constant's truncation error
-is certified here. Five-vertex finite-degree errors are a separate result.
+public sampling API. This chapter certifies the constant's truncation error.
+:doc:`skeleton_risk_vertex_general_asymptotics` separately proves an explicit
+finite-degree error for every fixed :math:`M\geq4` and :math:`D\geq256`,
+combining the constant interval with an analytic remainder. The sharper
+five-vertex finite-degree error remains a separate result.
 
 Independent implementation checks compare the elementary rows with
 logarithmic-series expansion, the convolutions with the original bivariate
