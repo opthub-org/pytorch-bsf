@@ -341,4 +341,4 @@ BSF_FLINT_PYTHON="$PWD/.research/skeleton-risk/sage-env/bin/python" \
 The native tests compare the returned ball to the existing exact single sum
 through D4096 and check that precision settings are restored. If python-flint
 is installed in the project Python it is used directly; otherwise those
-three tests are skipped unless an explicit native interpreter is selected.
+native tests are skipped unless an explicit native interpreter is selected.

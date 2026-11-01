@@ -180,3 +180,45 @@ assert ctx.prec == before
 """
     result = subprocess.run([flint_python, "-c", source, str(degree)], cwd=ROOT, capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+@pytest.mark.parametrize("bits", [32, 256])
+def test_native_cli_serialized_enclosure_contains_exact_coefficient(flint_python, tmp_path, bits):
+    output = tmp_path / "enclosure.json"
+    output.write_text("previous output", encoding="utf-8")
+    source = """
+import hashlib
+import io
+import json
+import sys
+from contextlib import redirect_stdout
+from importlib.metadata import version
+from pathlib import Path
+from flint import arb, ctx, fmpq
+from tools.risk_research import vertex_asymptotic
+from tools.risk_research.vertex_single import tetrahedron_vertex_coefficient
+output = Path(sys.argv[1])
+bits = int(sys.argv[2])
+with ctx.workprec(79):
+    stream = io.StringIO()
+    with redirect_stdout(stream):
+        assert vertex_asymptotic.main([
+            '--degree', '4096', '--bits', str(bits), '--output', str(output)
+        ]) == 0
+    assert ctx.prec == 79
+    record = json.loads(output.read_bytes())
+    assert record == json.loads(stream.getvalue())
+    assert record['bits'] == bits
+    assert record['python_flint'] == version('python-flint')
+    assert record['source_sha256'] == hashlib.sha256(Path(vertex_asymptotic.__file__).read_bytes()).hexdigest()
+    exact = tetrahedron_vertex_coefficient(4096)
+    with ctx.workprec(bits + 64):
+        serialized = arb(record['coefficient_enclosure'])
+        assert serialized.is_finite()
+        assert serialized.contains(fmpq(exact.numerator, exact.denominator))
+    assert ctx.prec == 79
+"""
+    result = subprocess.run(
+        [flint_python, "-c", source, str(output), str(bits)], cwd=ROOT, capture_output=True, text=True, timeout=60
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
