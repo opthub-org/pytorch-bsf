@@ -106,6 +106,7 @@ choose them when your domain, objective or execution environment requires it.
    advanced/skeleton_risk_vertex_asymptotics
    advanced/skeleton_risk_comparisons
    advanced/skeleton_risk_uniform_dimension_tail
+   advanced/skeleton_risk_fixed_vertex_tail
    advanced/skeleton_risk_tetrahedron_comparison
    advanced/skeleton_risk_five_vertex
    advanced/skeleton_risk_five_vertex_recurrence

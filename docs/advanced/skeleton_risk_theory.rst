@@ -1891,7 +1891,11 @@ active positive-dimensional faces, so the dimension and shape optima agree.
   :prf:ref:`thm-risk-uniform-dimension-tail` now gives a sufficient linear
   region valid simultaneously for all positive degrees: :math:`M\geq9720D`
   implies :math:`R_{\mathrm{ind}}<(4/5)R_{\mathrm{all}}`. The constant
-  is conservative and is not an exact crossover. Closed formulas
+  is conservative and is not an exact crossover.
+  :prf:ref:`thm-risk-fixed-vertex-degree-tail` supplies the other direction:
+  for every fixed :math:`M\geq4` it constructs an explicit :math:`H(M)`
+  and proves strict victory for every :math:`D\geq H(M)`. Its conservative
+  threshold does not classify the remaining finite prefix. Closed formulas
   for a fixed dimension also require a separate inequality analysis
   before they yield a classification over all degrees.
   At :math:`M=4`, :prf:ref:`thm-risk-tetrahedron-comparison` now supplies
