@@ -353,3 +353,7 @@ These results give complete fixed-degree comparisons through thirty.
 They do not assert a uniform formula for the two winning ranges as
 functions of :math:`D`, or settle the remaining all-degree vertex
 evaluations.
+
+:doc:`skeleton_risk_uniform_dimension_tail` proves the separate all-degree
+sufficient condition :math:`M\geq9720D`, without constructing these
+degree-specific polynomials. It does not locate the exact winning boundary.
