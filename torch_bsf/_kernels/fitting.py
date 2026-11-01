@@ -678,8 +678,10 @@ def fit_simploidal_set(
     """
     if not data:
         raise ValueError("data must not be empty.")
-    n_values = int(torch.as_tensor(data[0][2]).shape[1])
-    space = SimploidalBezierSpace(simploidal_set, degree, n_values, default_degree=default_degree)
+    first = torch.as_tensor(data[0][2])
+    if first.dim() != 2:
+        raise ValueError(f"values must have shape (n, n_values), but {tuple(first.shape)} is given.")
+    space = SimploidalBezierSpace(simploidal_set, degree, int(first.shape[1]), default_degree=default_degree)
     samples = _normalize_data(space, data)
     dtype = _floating_dtype([v for _, _, v in samples])
     # Convert the space before copying ``init`` into it, so that the initial (and frozen) points are not rounded.

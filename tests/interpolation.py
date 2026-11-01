@@ -755,6 +755,18 @@ def test_locate_tolerance_and_outside_points():
     assert len(small) == 7
 
 
+@pytest.mark.parametrize("tol", [math.nan, math.inf, -math.inf, -1e-8, torch.tensor(-1.0)])
+def test_locate_rejects_invalid_tolerance(tol):
+    mesh = lattice_mesh(2, 1)
+    with pytest.raises(ValueError, match="tol"):
+        mesh.locate(torch.tensor([[0.5, 0.25]]), tol=tol)
+    interpolant = macro_interpolant(mesh, mesh.vertices[:, 0])
+    with pytest.raises(ValueError, match="tol"):
+        interpolant.locate(torch.tensor([[0.5, 0.25]]), tol=tol)
+    with pytest.raises(ValueError, match="tol"):
+        interpolant(torch.tensor([[0.5, 0.25]]), tol=tol)
+
+
 # ---------------------------------------------------------------------------
 # Compatibility with the rest of the API
 # ---------------------------------------------------------------------------

@@ -859,8 +859,10 @@ class SimplicialMesh:
         Raises
         ------
         ValueError
-            If a point lies outside the mesh by more than ``tol``.
+            If ``tol`` is negative or not finite, or a point lies outside the mesh by more than ``tol``.
         """
+        if not math.isfinite(float(tol)) or tol < 0:
+            raise ValueError(f"tol must be finite and nonnegative, but {tol} is given.")
         p = self._check_points(x)
         ids, coordinates = [], []
         for chunk in torch.split(p, max(1, batch_size)):
@@ -2000,7 +2002,7 @@ class MacroInterpolant:
         Raises
         ------
         ValueError
-            If a point is invalid or outside the mesh (see :meth:`SimplicialMesh.locate`).
+            If ``tol`` or a point is invalid, or a point is outside the mesh (see :meth:`SimplicialMesh.locate`).
         """
         return self.transfer(self.mesh.locate(x, tol=tol, batch_size=batch_size))
 

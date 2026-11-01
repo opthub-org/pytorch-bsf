@@ -28,11 +28,25 @@ from torch_bsf.sampling import (
     _n_skeleton_faces,
     _skeleton_counts,
     _skeleton_fractions,
+    grid,
     optimal_skeleton_ratio,
     sample,
     sample_skeleton,
     skeleton_risk_coefficients,
 )
+
+# ---------------------------------------------------------------------------
+# grid
+# ---------------------------------------------------------------------------
+
+
+def test_grid_of_no_cells_is_empty_cpu_float64():
+    space = BezierSpace.simplex(2, degree=2)
+    points = grid(space, cells=[])
+    assert points.parameters.dtype == grid(space).parameters.dtype == torch.float64
+    assert points.parameters.shape == (0, space.width)
+    assert points.cell_ids.dtype == torch.long and len(points.cell_ids) == 0
+
 
 # ---------------------------------------------------------------------------
 # simplex_grid

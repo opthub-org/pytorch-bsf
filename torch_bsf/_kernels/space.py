@@ -429,16 +429,30 @@ class SimploidalBezierSpace(nn.Module):
         Returns
         -------
         Values of shape ``(batch, n_values)``.
+
+        Raises
+        ------
+        ValueError
+            If ``simploid_ids`` is not a vector of indices in ``range(len(simploids))``.
         """
         p = self.proper_control_points
         t = torch.as_tensor(t, dtype=p.dtype, device=p.device)
-        ids = torch.as_tensor(simploid_ids, dtype=torch.long, device=p.device)
+        ids = self._check_simploid_ids(simploid_ids)
         out = torch.zeros(ids.shape[0], self.n_values, dtype=p.dtype, device=p.device)
         for sid in torch.unique(ids).tolist():
             s = self.simploids[sid]
             (rows,) = torch.nonzero(ids == sid, as_tuple=True)
             out = out.index_put((rows,), self.evaluate(s, t[rows, : simploid_n_params(s.simploid_type)]))
         return out
+
+    def _check_simploid_ids(self, simploid_ids: torch.Tensor) -> torch.Tensor:
+        """``simploid_ids`` as a long vector on the device of the control points, checked against :attr:`simploids`."""
+        ids = torch.as_tensor(simploid_ids, dtype=torch.long, device=self.proper_control_points.device)
+        if ids.dim() != 1:
+            raise ValueError(f"simploid_ids must have shape (batch,), but {tuple(ids.shape)} is given.")
+        if len(ids) and (int(ids.min()) < 0 or int(ids.max()) >= len(self.simploids)):
+            raise ValueError(f"simploid_ids must be in range({len(self.simploids)}).")
+        return ids
 
     def design_matrix(self, t: torch.Tensor, simploid_ids: torch.Tensor) -> torch.Tensor:
         r"""The linear map from the proper control points to the values of a batch mixing several simploids.
@@ -454,6 +468,11 @@ class SimploidalBezierSpace(nn.Module):
         -------
         A matrix of shape ``(batch, n_proper_control_points)`` on the device of
         :attr:`proper_control_points`, in the dtype of ``t`` (the default dtype if ``t`` is not floating).
+
+        Raises
+        ------
+        ValueError
+            As in :meth:`forward`.
 
         Examples
         --------
@@ -471,7 +490,7 @@ class SimploidalBezierSpace(nn.Module):
         t = torch.as_tensor(t, device=p.device)
         if not t.is_floating_point():
             t = t.to(torch.get_default_dtype())
-        ids = torch.as_tensor(simploid_ids, dtype=torch.long, device=p.device)
+        ids = self._check_simploid_ids(simploid_ids)
         out = torch.zeros(ids.shape[0], self.n_proper_control_points, dtype=t.dtype, device=p.device)
         for sid in torch.unique(ids).tolist():
             s = self.simploids[sid]
