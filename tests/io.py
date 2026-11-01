@@ -1,6 +1,8 @@
 """Geometry, dtype, topology and prediction survive persistence."""
 
 import json
+import os
+import stat
 import zipfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -112,3 +114,49 @@ def test_atomic_failure_preserves_destination_and_csv_export(tmp_path):
     exported = tmp_path / "controls.csv"
     export_control_points(exported, model)
     assert exported.read_text().splitlines() == ["control_index,value_0", "0,1.0", "1,2.0"]
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX permission bits")
+def test_new_file_mode_follows_umask(tmp_path):
+    model = BezierModel(BezierSpace.simplex(2, degree=2), torch.randn(6, 1))
+    previous = os.umask(0o022)
+    try:
+        save_model(tmp_path / "model.bsf", model)
+        os.umask(0o077)
+        save_model(tmp_path / "private.bsf", model)
+    finally:
+        os.umask(previous)
+    assert stat.S_IMODE(os.stat(tmp_path / "model.bsf").st_mode) == 0o644
+    assert stat.S_IMODE(os.stat(tmp_path / "private.bsf").st_mode) == 0o600
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX permission bits")
+def test_overwrite_preserves_existing_mode(tmp_path):
+    model = BezierModel(BezierSpace.simplex(1, degree=1), [[1.0], [2.0]])
+    path = tmp_path / "model.bsf"
+    save_model(path, model)
+    os.chmod(path, 0o640)
+    save_model(path, BezierModel(BezierSpace.simplex(1, degree=1), [[3.0], [4.0]]))
+    assert stat.S_IMODE(os.stat(path).st_mode) == 0o640
+    assert load_model(path).coefficients.tolist() == [[3.0], [4.0]]
+    assert list(tmp_path.iterdir()) == [path]
+
+
+def test_save_fsyncs_before_replace(tmp_path):
+    from unittest.mock import patch
+
+    events: list[str] = []
+    real_fsync, real_replace = os.fsync, os.replace
+
+    def fsync(fd):
+        events.append("fsync")
+        real_fsync(fd)
+
+    def replace(source, destination):
+        events.append("replace")
+        real_replace(source, destination)
+
+    model = BezierModel(BezierSpace.simplex(1, degree=1), [[1.0], [2.0]])
+    with patch("torch_bsf.io.os.fsync", side_effect=fsync), patch("torch_bsf.io.os.replace", side_effect=replace):
+        save_model(tmp_path / "model.bsf", model)
+    assert events[:2] == ["fsync", "replace"]

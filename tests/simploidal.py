@@ -1471,6 +1471,64 @@ def test_load_pt_requires_a_dictionary(tmp_path):
         torch_bsf._kernels.load(tmp_path / "module.pt")
 
 
+@pytest.mark.parametrize(
+    "suffix, content",
+    [
+        (".json", '{"(1, 0)": "12", "(0, 1)": "34"}'),
+        (".json", '{"(1, 0)": 1.0, "(0, 1)": 2.0}'),
+        (".yml", "'(1, 0)': '12'\n'(0, 1)': '34'\n"),
+        (".yml", "'(1, 0)': 1.0\n'(0, 1)': 2.0\n"),
+        (".json", '{"(1, 0)": {"a": 1.0}, "(0, 1)": [2.0]}'),
+    ],
+)
+def test_load_rejects_values_that_are_not_lists(tmp_path, suffix, content):
+    """A string is not split into characters and a scalar raises ValueError instead of TypeError."""
+    path = tmp_path / f"model{suffix}"
+    path.write_text(content)
+    with pytest.raises(ValueError, match="must be a list of numbers"):
+        torch_bsf._kernels.load(path)
+
+
+def test_load_rejects_non_numeric_list_items(tmp_path):
+    path = tmp_path / "model.json"
+    path.write_text('{"(1, 0)": [null], "(0, 1)": [2.0]}')
+    with pytest.raises(ValueError, match="must be a list of numbers"):
+        torch_bsf._kernels.load(path)
+
+
+@pytest.mark.parametrize("content", [b"", b"PK\x03\x04 truncated", b"not a torch file at all"])
+def test_load_pt_corrupted_file_raises_value_error(tmp_path, content):
+    """Empty or corrupted .pt files raise ValueError, not RuntimeError or EOFError."""
+    path = tmp_path / "model.pt"
+    path.write_bytes(content)
+    with pytest.raises(ValueError, match="must contain a dictionary"):
+        torch_bsf._kernels.load(path)
+
+
+def test_load_pt_truncated_archive_raises_value_error(tmp_path):
+    path = _saved(tmp_path, BezierSimploid.randn((1,), 1, n_values=1), ".pt")
+    path.write_bytes(path.read_bytes()[:-40])
+    with pytest.raises(ValueError, match="must contain a dictionary"):
+        torch_bsf._kernels.load(path)
+
+
+def test_load_pt_maps_cuda_tensors_to_cpu(tmp_path):
+    """A file whose tensors were saved on CUDA loads on a CPU-only machine (map_location="cpu")."""
+    from unittest.mock import patch
+
+    bs = BezierSimploid.randn((2,), 1, n_values=2)
+    path = tmp_path / "cuda.pt"
+    # Record the storages as if they lived on a CUDA device, as torch.save does for CUDA tensors.
+    with patch("torch.serialization.location_tag", return_value="cuda:0"):
+        torch_bsf._kernels.save(path, bs)
+    with patch("torch.cuda.is_available", return_value=False):
+        with pytest.raises(RuntimeError):
+            torch.load(path, weights_only=True)
+        loaded = torch_bsf._kernels.load(path)
+    assert loaded.control_points.device.type == "cpu"
+    assert torch.equal(loaded.control_points, bs.control_points.detach())
+
+
 def test_save_unknown_file_type(tmp_path):
     with pytest.raises(ValueError, match="Unknown file type"):
         torch_bsf._kernels.save(tmp_path / "model.txt", BezierSimploid.zeros((1,), 1, 1))

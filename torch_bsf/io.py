@@ -4,10 +4,11 @@ import csv
 import io
 import json
 import os
-import tempfile
+import secrets
+import stat
 import zipfile
 from pathlib import Path
-from typing import Any
+from typing import Any, BinaryIO
 
 import numpy as np
 import torch
@@ -22,6 +23,9 @@ def save_model(path: str | Path, model: BezierModel) -> None:
 
     The format is a ZIP containing ``model.json`` and ``coefficients.npy``,
     independent of the filename extension and Python class import paths.
+    The archive is written to a temporary sibling file, flushed to disk with
+    :func:`os.fsync` and then renamed over ``path``. A new file gets the usual
+    permissions ``0o666 & ~umask``; replacing an existing file keeps its mode.
 
     Parameters
     ----------
@@ -48,18 +52,59 @@ def save_model(path: str | Path, model: BezierModel) -> None:
     }
     array = io.BytesIO()
     np.save(array, model.coefficients.detach().cpu().numpy(), allow_pickle=False)
-    temporary: str | None = None
     try:
-        with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as file:
-            temporary = file.name
+        existing_mode: int | None = stat.S_IMODE(os.stat(path).st_mode)
+    except FileNotFoundError:
+        existing_mode = None
+    file, temporary = _create_temporary(path)
+    try:
+        with file:
             with zipfile.ZipFile(file, "w", compression=zipfile.ZIP_DEFLATED) as archive:
                 archive.writestr("model.json", json.dumps(document, ensure_ascii=False))
                 archive.writestr("coefficients.npy", array.getvalue())
+            if existing_mode is not None:
+                os.chmod(temporary, existing_mode)
+            file.flush()
+            os.fsync(file.fileno())
         os.replace(temporary, path)
-        temporary = None
+    except BaseException:
+        temporary.unlink(missing_ok=True)
+        raise
+    _fsync_directory(path.parent)
+
+
+def _create_temporary(path: Path) -> tuple[BinaryIO, Path]:
+    """Exclusively create a sibling temporary file whose mode is ``0o666 & ~umask``.
+
+    Unlike :func:`tempfile.mkstemp`, which always creates ``0o600`` files, the
+    permissions match those of a file opened normally, so an atomic replacement
+    does not silently make a new model private.
+    """
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0) | getattr(os, "O_CLOEXEC", 0)
+    for _ in range(100):
+        temporary = path.parent / f".{path.name}.{secrets.token_hex(8)}.tmp"
+        try:
+            descriptor = os.open(temporary, flags, 0o666)
+        except FileExistsError:
+            continue
+        return os.fdopen(descriptor, "wb"), temporary
+    raise FileExistsError(f"could not create a temporary file next to '{path}'.")
+
+
+def _fsync_directory(directory: Path) -> None:
+    """Persist a rename on POSIX; directories cannot be opened for syncing elsewhere."""
+    if os.name != "posix":
+        return
+    try:
+        descriptor = os.open(directory, os.O_RDONLY)
+    except OSError:
+        return
+    try:
+        os.fsync(descriptor)
+    except OSError:
+        pass
     finally:
-        if temporary is not None:
-            Path(temporary).unlink(missing_ok=True)
+        os.close(descriptor)
 
 
 def _tuples(value: Any) -> Any:
