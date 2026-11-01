@@ -97,16 +97,11 @@ license-files = ["LICENSE"]
 include = ["torch_bsf", "torch_bsf.*"]
 
 [tool.pytest.ini_options]
+# Only the options every run needs. Reports (coverage, JUnit XML, durations) are opt-in on the command line:
+# the `build` job of .github/workflows/python-package.yml passes them, and CONTRIBUTING.md shows the local command.
 addopts = """
-  --verbose
   --assert=plain
-  --durations=0
-  --cov=torch_bsf
-  --cov-report=term-missing
-  --cov-report=html
-  --cov-report=xml
   --doctest-modules
-  --junit-xml=pytest.xml
 """
 testpaths = ["tests"]
 python_files = ["*.py"]

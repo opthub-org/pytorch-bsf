@@ -70,7 +70,7 @@ Run all of these and fix every failure:
 SKIP=typos "$PY" -m pre_commit run --all-files    # the CI lint job: Ruff and numpydoc-validation
 "$PY" -m pre_commit run typos --files <changed files>  # local only; report false positives in the PR
 "$PY" -m mypy torch_bsf tests
-"$PY" -m pytest
+"$PY" -m pytest --cov=torch_bsf --cov-report=xml  # the reports are not in addopts; diff_cover reads coverage.xml
 git fetch origin master && "$PY" -m diff_cover.diff_cover_tool coverage.xml --compare-branch=origin/master
 "$PY" -m sphinx -b doctest docs docs/_build/doctest
 ```
