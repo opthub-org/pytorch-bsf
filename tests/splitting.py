@@ -1020,6 +1020,17 @@ def test_transfer_keeps_points_on_their_device():
     torch.testing.assert_close(result.model(cpu.to()), model(original.to()), rtol=0, atol=1e-6)
 
 
+@pytest.mark.skipif(not _ACCELERATORS, reason="no accelerator available")
+def test_max_error_criterion_scores_accelerator_models_on_the_cpu():
+    # Scoring is in float64, which MPS lacks; it must run on the CPU and match a CPU model.
+    bs = BezierSimploid((1,), 1, {(1, 0): [0.0], (0, 1): [1.0]})
+    t = torch.linspace(0.05, 0.95, 10)
+    params = torch.stack([1 - t, t], dim=1)
+    values = (t + (t > 0.6).float())[:, None]
+    criterion = max_error_criterion(params, values, grid_size=9)
+    assert criterion(bs.to(_ACCELERATORS[0])) == criterion(bs)
+
+
 # ---------------------------------------------------------------------------
 # Properties (Hypothesis)
 # ---------------------------------------------------------------------------

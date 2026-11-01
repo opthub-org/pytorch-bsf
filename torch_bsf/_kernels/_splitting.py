@@ -535,8 +535,10 @@ def max_error_criterion(params: torch.Tensor, values: torch.Tensor, grid_size: i
         if not len(p):
             return longest_edge_criterion(model)
         with torch.no_grad():
-            # float64: the score squares these squared errors again, which overflows low-precision dtypes.
-            residuals = (model(p) - v).double().square().sum(dim=1)
+            # The score squares these squared errors again, which overflows low-precision dtypes, so it is
+            # computed in float64 on the CPU (some accelerators, such as MPS, have no float64).
+            residuals = (model(p) - v).cpu().double().square().sum(dim=1)
+        p = p.cpu()
 
         best: tuple[int, int, int, float] | None = None
         best_key = (float("inf"), 0)
