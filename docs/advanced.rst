@@ -98,6 +98,7 @@ choose them when your domain, objective or execution environment requires it.
    advanced/skeleton_risk_codimension_three
    advanced/skeleton_risk_vertex
    advanced/skeleton_risk_vertex_general
+   advanced/skeleton_risk_vertex_large_dimension
    advanced/skeleton_risk_vertex_general_asymptotics
    advanced/skeleton_risk_vertex_recurrence
    advanced/skeleton_risk_vertex_asymptotics
