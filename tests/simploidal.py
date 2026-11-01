@@ -1514,6 +1514,7 @@ def test_load_pt_truncated_archive_raises_value_error(tmp_path):
 
 def test_load_pt_maps_cuda_tensors_to_cpu(tmp_path):
     """A file whose tensors were saved on CUDA loads on a CPU-only machine (map_location="cpu")."""
+    import pickle
     from unittest.mock import patch
 
     bs = BezierSimploid.randn((2,), 1, n_values=2)
@@ -1522,7 +1523,8 @@ def test_load_pt_maps_cuda_tensors_to_cpu(tmp_path):
     with patch("torch.serialization.location_tag", return_value="cuda:0"):
         torch_bsf._kernels.save(path, bs)
     with patch("torch.cuda.is_available", return_value=False):
-        with pytest.raises(RuntimeError):
+        # Older PyTorch (e.g. 2.3) wraps the device error in an UnpicklingError under weights_only=True.
+        with pytest.raises((RuntimeError, pickle.UnpicklingError)):
             torch.load(path, weights_only=True)
         loaded = torch_bsf._kernels.load(path)
     assert loaded.control_points.device.type == "cpu"
