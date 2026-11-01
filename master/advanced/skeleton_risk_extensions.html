@@ -24,7 +24,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Risk on an assembled simploidal set" href="simploidal_risk.html" />
+    <link rel="next" title="Tetrahedron vertex risk" href="skeleton_risk_vertex.html" />
     <link rel="prev" title="Theory of the skeleton risk" href="skeleton_risk_theory.html" /> 
 </head>
 
@@ -70,11 +70,15 @@
 <li class="toctree-l4"><a class="reference internal" href="#a-codimension-two-face">A codimension-two face</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#tetrahedron-edges-at-every-degree">Tetrahedron edges at every degree</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#explicit-scalar-degree-recurrences">Explicit scalar degree recurrences</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#triangular-faces-on-a-five-vertex-simplex">Triangular faces on a five-vertex simplex</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#large-degree-constants">Large-degree constants</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#vertex-boundary-pair-reduction">Vertex boundary-pair reduction</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#verification-and-remaining-questions">Verification and remaining questions</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
 <li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
@@ -162,11 +166,15 @@ this existence statement does not supply a small operator uniformly in <code cla
 <td><p>Every tetrahedron edge coefficient is evaluated using harmonic numbers
 and two explicitly specified auxiliary recurrences.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#cor-risk-codimension-two-asymptotic">Corollary 11</a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#thm-risk-five-vertex-triangle-state">Theorem 22</a></p></td>
+<td><p>Every triangular-face coefficient on a five-vertex simplex has an
+eight-state rational representation and a certified order-eight recurrence.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#cor-risk-codimension-two-asymptotic">Corollary 12</a></p></td>
 <td><p>The leading large-degree constant for every fixed codimension-two face
 with at least two vertices.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#thm-risk-vertex-boundary-pair">Theorem 22</a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#thm-risk-vertex-boundary-pair">Theorem 23</a></p></td>
 <td><p>A vertex norm identity reduces the largest outside-kernel power by two;
 it is not a completed tetrahedron vertex closed form.</p></td>
 </tr>
@@ -487,14 +495,150 @@ and verifies the operators and initial values from their coefficient
 files; its reports include file hashes and the eight zero identities.</p>
 </div>
 </section>
+<section id="triangular-faces-on-a-five-vertex-simplex">
+<h2>Triangular faces on a five-vertex simplex<a class="headerlink" href="#triangular-faces-on-a-five-vertex-simplex" title="Link to this heading"></a></h2>
+<p>The angular multiplicity for <span class="math notranslate nohighlight">\(s=3\)</span> is <span class="math notranslate nohighlight">\(d_3(k)=k+1\)</span>.
+One additional auxiliary sequence evaluates this weighted angular sum.
+Use the same <span class="math notranslate nohighlight">\(F_n,G_n,Q_N,V_N,g_N(j)\)</span> as in the tetrahedron-edge
+representation; their displayed definitions make sense for even
+<span class="math notranslate nohighlight">\(N\)</span> as well as odd <span class="math notranslate nohighlight">\(N\)</span>.</p>
+<p>Define <span class="math notranslate nohighlight">\(J_1=3/4\)</span> and, for <span class="math notranslate nohighlight">\(n\geq1\)</span>,</p>
+<div class="math notranslate nohighlight" id="equation-risk-triangle-auxiliary-state">
+<span class="eqno">(30)<a class="headerlink" href="#equation-risk-triangle-auxiliary-state" title="Link to this equation"></a></span>\[J_{n+1}=J_n+\frac1{(n+1)^2}
+ -\frac{(3n+2)^2}{2n^2(2n+1)(2n+2)\binom{2n}{n}}.\]</div>
+<div class="proof theorem admonition" id="thm-risk-five-vertex-triangle-state">
+<p class="admonition-title"><span class="caption-number">Theorem 22 </span> (Eight-state triangular-face representation)</p>
+<section class="theorem-content" id="proof-content">
+<p>For every integer <span class="math notranslate nohighlight">\(D\geq1\)</span>, put <span class="math notranslate nohighlight">\(n=D+2\)</span>, <span class="math notranslate nohighlight">\(N=2n\)</span>,
+<span class="math notranslate nohighlight">\(w_n=\binom{2n}{n}^{-1}\)</span> and</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}A_n={}&amp;\frac{n+1}{2n(n+2)}
+ -\frac{H_n+H_{n+2}-H_N}{2n(n+1)},\\
+E_n={}&amp;A_n+\frac{J_n}{2n}
+ -\frac{(3n+1)w_n}{4n^3(n+1)}
+ -\frac{2n^4+2n^3-3n^2+1}{4n^3(n+1)^2}.\end{split}\]</div>
+<p>Then</p>
+<div class="math notranslate nohighlight" id="equation-risk-five-vertex-triangle-state">
+<span class="eqno">(31)<a class="headerlink" href="#equation-risk-five-vertex-triangle-state" title="Link to this equation"></a></span>\[a_2(5,D)=2400\left[
+ -3\left(Q_N-\frac{V_N}2-\frac{g_N(n)}2\right)
+ +E_n+g_N(n-2)+2g_N(n-1)\right].\]</div>
+<p>Every denominator is nonzero on this domain. In particular the same
+formula gives the inactive values <span class="math notranslate nohighlight">\(a_2(5,1)=a_2(5,2)=0\)</span> and</p>
+<div class="math notranslate nohighlight">
+\[(a_2(5,3),a_2(5,4),a_2(5,5))
+  =\left(\frac{40}3,\frac{255}{11},\frac{2675}{91}\right).\]</div>
+<p>The expression is a rational row on the eight-state vector</p>
+<div class="math notranslate nohighlight">
+\[v_n=\left(H_N^2-H_N^{(2)},H_N,H_n,
+  F_N-H_N^{(2)},G_N,J_n,w_n,1\right)^{\mathsf T}.\]</div>
+<p>It therefore evaluates each new degree with a fixed number of rational
+operations on its state. This concerns arithmetic operation counts;
+integer bit lengths still grow with the degree.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Reindex <a class="reference internal" href="#equation-risk-codimension-two-coefficient">(27)</a> by <span class="math notranslate nohighlight">\(j=L+1\)</span>.
+Its normalized summand is <span class="math notranslate nohighlight">\((n-3-j)g_N(j)\)</span>, so</p>
+<div class="math notranslate nohighlight">
+\[\frac{a_2(5,D)}{2400}
+ =-3\sum_{j=1}^{n-1}g_N(j)
+  +\sum_{j=1}^{n-1}(n-j)g_N(j)
+  +g_N(n-2)+2g_N(n-1).\]</div>
+<p>This also gives zero for <span class="math notranslate nohighlight">\(D=1,2\)</span> by cancellation. Symmetry gives
+<span class="math notranslate nohighlight">\(\sum_{j=1}^{n-1}g_N(j)=Q_N-V_N/2-g_N(n)/2\)</span>.
+It remains to evaluate the weighted half range as <span class="math notranslate nohighlight">\(E_n\)</span>.</p>
+<p>Write <span class="math notranslate nohighlight">\(B_j=H_{j+1}+H_{N-j+1}-H_N\)</span> and
+<span class="math notranslate nohighlight">\(\Delta_j=j(j+1)(N-j)(N-j+1)\)</span>. For
+<span class="math notranslate nohighlight">\(r_j=1/(j(N-j+1))\)</span>, <span class="math notranslate nohighlight">\(t_j=1/(j(N-j+2))\)</span>, direct
+rational identities give</p>
+<div class="math notranslate nohighlight">
+\[\frac{n-j}{\Delta_j}=\frac{r_j-r_{j+1}}2,
+\qquad r_j(B_j-B_{j-1})=t_j-t_{j+1}.\]</div>
+<p>Summation by parts, including both endpoints, yields
+<span class="math notranslate nohighlight">\(\sum_{j=1}^{n-1}(n-j)B_j/\Delta_j=A_n\)</span>.
+The rational partial fractions used in the edge proof similarly give</p>
+<div class="math notranslate nohighlight">
+\[\sum_{j=1}^{n-1}\frac{(n-j)c_j}{\Delta_j}
+ =\frac{H_N^{(2)}-2H_n^{(2)}}{4n}
+  +\frac{(2n+1)(4n^3+3n^2-6n+3)}{16n^3(n+1)^2}.\]</div>
+<p>For the reciprocal term put <span class="math notranslate nohighlight">\(b_j=\binom Nj^{-1}\)</span> and
+<span class="math notranslate nohighlight">\(R_j=1/(2j^2(N-j+1))\)</span>. Exact multiplication verifies</p>
+<div class="math notranslate nohighlight">
+\[(n-j)v_N(j)=b_{j+1}R_{j+1}-b_jR_j
+ +\frac{b_j}{2N}\left(\frac1{j^2}-\frac1{(N-j)^2}\right).\]</div>
+<p>Define <span class="math notranslate nohighlight">\(T_n=\sum_{j=1}^{n-1}b_j/j^2\)</span>. The boundary is
+<span class="math notranslate nohighlight">\(b_nR_n-b_1R_1=w_n/(2n^2(n+1))-1/(2N^2)\)</span> and symmetry gives</p>
+<div class="math notranslate nohighlight">
+\[\sum_{j=1}^{n-1}b_j\left(\frac1{j^2}-\frac1{(N-j)^2}\right)
+  =2T_n-F_N+\frac{w_n}{n^2}+\frac1{N^2}.\]</div>
+<p>The partial first and zeroth moments are</p>
+<div class="math notranslate nohighlight">
+\[\sum_{j=1}^{n-1}\frac{b_j}{j}=\frac{G_N}2-\frac{w_n}{n},
+\qquad
+\sum_{j=1}^{n-1}b_j=\frac{N+1}{4}G_N-\frac12-\frac{w_n}2.\]</div>
+<p>The first follows by telescoping
+<span class="math notranslate nohighlight">\(b_j(1/j-1/(N-j))\)</span>; the second follows from symmetry and the
+full reciprocal sum in the edge proof. The ratio
+<span class="math notranslate nohighlight">\(\binom{N+2}{j}^{-1}/b_j=(N+2-j)(N+1-j)/((N+1)(N+2))\)</span>
+and the added endpoint <span class="math notranslate nohighlight">\(j=n\)</span> now give</p>
+<div class="math notranslate nohighlight">
+\[T_{n+1}-T_n=-\frac{(6n+5)G_N}{4(N+1)(N+2)}
+  -\frac1{2(N+1)(N+2)}
+  +\frac{(3n+2)^2w_n}{2n^2(N+1)(N+2)}.\]</div>
+<p>Consequently <span class="math notranslate nohighlight">\(J_n=H_n^{(2)}-T_n+(F_N-H_N^{(2)})/2\)</span>
+has initial value <span class="math notranslate nohighlight">\(3/4\)</span> and satisfies
+<a class="reference internal" href="#equation-risk-triangle-auxiliary-state">(30)</a>. Combining the three weighted
+ranges gives exactly <span class="math notranslate nohighlight">\(E_n\)</span>.</p>
+<p>Finally <span class="math notranslate nohighlight">\(w_{n+1}=(n+1)w_n/(2(2n+1))\)</span>. The other state
+transitions follow from harmonic increments and the displayed
+<span class="math notranslate nohighlight">\(F,G\)</span> recurrences. In <span class="math notranslate nohighlight">\(Q_N-V_N/2\)</span>, the coefficients of
+<span class="math notranslate nohighlight">\(H_N^2,H_N^{(2)},F_N\)</span> sum to zero, so the two differences in
+<span class="math notranslate nohighlight">\(v_n\)</span> suffice. Each central term uses
+<span class="math notranslate nohighlight">\(H_{n+r}=H_n+\sum_{i=1}^r1/(n+i)\)</span> and
+<span class="math notranslate nohighlight">\(\binom{N}{n-r}^{-1}=w_n\prod_{i=1}^r(n+i)/(n-i+1)\)</span>
+for <span class="math notranslate nohighlight">\(r=0,1,2\)</span>; only a fixed number of shifts occurs.
+Thus all output coefficients and all state transitions are rational
+in <span class="math notranslate nohighlight">\(n\)</span>, proving the asserted fixed-state representation.</p>
+</div>
+<div class="proof corollary admonition" id="cor-risk-five-vertex-triangle-recurrence">
+<p class="admonition-title"><span class="caption-number">Corollary 11 </span> (Certified triangular-face degree recurrence)</p>
+<section class="corollary-content" id="proof-content">
+<p>The sequence <span class="math notranslate nohighlight">\(a_2(5,D)\)</span> satisfies</p>
+<div class="math notranslate nohighlight">
+\[\sum_{j=0}^8 p_j(D)a_2(5,D+j)=0,\qquad D\geq1,\]</div>
+<p>where the complete integer coefficient lists are stored in
+<code class="docutils literal notranslate"><span class="pre">tools/risk_research/examples/five_vertex_triangle_recurrence_order8.json</span></code>.
+The order is eight and the maximum polynomial degree is 76. The leading
+coefficient is strictly positive for every real <span class="math notranslate nohighlight">\(D\geq1\)</span>, so
+there are no positive-integer exceptional indices. Its initial values are</p>
+<div class="math notranslate nohighlight">
+\[(a_2(5,1),\ldots,a_2(5,8))=
+  \left(0,0,\frac{40}3,\frac{255}{11},\frac{2675}{91},
+    \frac{96345}{2912},\frac{2934923}{83538},
+    \frac{84006889}{2325600}\right).\]</div>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. This is an exact rational-state certificate, with the same construction
+as <a class="reference internal" href="#cor-risk-tetrahedron-edge-scalar-recurrences">Corollary 10</a>.
+<code class="docutils literal notranslate"><span class="pre">tools/risk_research/triangle_recurrence.py</span></code> reconstructs the eight
+state transitions and rational output row of
+<a class="reference internal" href="#thm-risk-five-vertex-triangle-state">Theorem 22</a> over <span class="math notranslate nohighlight">\(\mathbb Q(D)\)</span>.
+Exact elimination supplies the displayed operator; multiplication of
+its coefficient row by the shifted state-output rows gives eight zero
+rational functions. After <span class="math notranslate nohighlight">\(n=D+2\)</span>, every output and transition
+denominator is a nonzero polynomial with nonnegative coefficients,
+proving validity for <span class="math notranslate nohighlight">\(D\geq1\)</span>. Every coefficient of
+<span class="math notranslate nohighlight">\(p_8(1+z)\)</span> is strictly positive, proving the leading-coefficient
+claim. The fixed-state representation supplies the eight initial values.</p>
+</div>
+</section>
 <section id="large-degree-constants">
 <h2>Large-degree constants<a class="headerlink" href="#large-degree-constants" title="Link to this heading"></a></h2>
 <div class="proof corollary admonition" id="cor-risk-codimension-two-asymptotic">
-<p class="admonition-title"><span class="caption-number">Corollary 11 </span> (Codimension-two large-degree risk)</p>
+<p class="admonition-title"><span class="caption-number">Corollary 12 </span> (Codimension-two large-degree risk)</p>
 <section class="corollary-content" id="proof-content">
 <p>For every fixed integer <span class="math notranslate nohighlight">\(s\geq2\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-risk-codimension-two-asymptotic">
-<span class="eqno">(30)<a class="headerlink" href="#equation-risk-codimension-two-asymptotic" title="Link to this equation"></a></span>\[a_{s-1}(s+2,D)\sim
+<span class="eqno">(32)<a class="headerlink" href="#equation-risk-codimension-two-asymptotic" title="Link to this equation"></a></span>\[a_{s-1}(s+2,D)\sim
  \frac{s(s+1)^3(s+2)^2\pi^2}{48(s-2)!}\,D^{s-4}.\]</div>
 <p>In particular,</p>
 <div class="math notranslate nohighlight">
@@ -537,11 +681,11 @@ Substitute <span class="math notranslate nohighlight">\(N=2D+3\)</span> in the f
 <p>Then <span class="math notranslate nohighlight">\(a_0(M,D)=M^2\mathcal L_D(F^q)/(M)_{2D}\)</span> by
 <a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-scalar-sum">Theorem 11</a>.</p>
 <div class="proof theorem admonition" id="thm-risk-vertex-boundary-pair">
-<p class="admonition-title"><span class="caption-number">Theorem 22 </span> (Two fewer outside-kernel factors for vertex risk)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 23 </span> (Two fewer outside-kernel factors for vertex risk)</p>
 <section class="theorem-content" id="proof-content">
 <p>For all <span class="math notranslate nohighlight">\(M\geq2,D\geq1\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-risk-vertex-boundary-pair">
-<span class="eqno">(31)<a class="headerlink" href="#equation-risk-vertex-boundary-pair" title="Link to this equation"></a></span>\[\begin{split}\mathcal L_D(F^q)=(-1)^{q+1}\mathcal L_D(f(x)^q)
+<span class="eqno">(33)<a class="headerlink" href="#equation-risk-vertex-boundary-pair" title="Link to this equation"></a></span>\[\begin{split}\mathcal L_D(F^q)=(-1)^{q+1}\mathcal L_D(f(x)^q)
  +\sum_{\substack{a,b\geq1\\a+b\leq q}}
   (-1)^{a+b}\frac{q!}{a!b!(q-a-b)!}
   \mathcal L_D(F^{q-a-b}f(x)^af(y)^b).\end{split}\]</div>
@@ -580,7 +724,7 @@ axis in each coordinate kernel therefore gives</p>
 <p>If <span class="math notranslate nohighlight">\(D&lt;r+1\)</span>, the same statement holds because the relevant
 monomials do not exist. Expand this identity in the preceding subset
 sum and put <span class="math notranslate nohighlight">\(a=q-r\)</span>, <span class="math notranslate nohighlight">\(b=r-j\)</span>. The resulting signs and
-binomial factors are exactly <a class="reference internal" href="#equation-risk-vertex-boundary-pair">(31)</a>.</p>
+binomial factors are exactly <a class="reference internal" href="#equation-risk-vertex-boundary-pair">(33)</a>.</p>
 </div>
 </section>
 <section id="verification-and-remaining-questions">
@@ -594,16 +738,27 @@ mode formula. Tests compare the pre-existing scalar sum, independent Gram
 propagation and direct reciprocal-binomial sums, including degree one.
 <code class="docutils literal notranslate"><span class="pre">vertex_boundary.py</span></code> checks the reduced vertex formula with exact
 coefficient arithmetic. Finite checks detect errors; the all-degree
-claims rely on the proofs above.</p>
+claims rely on the proofs above.
+<code class="docutils literal notranslate"><span class="pre">triangle_faces.py</span></code> evaluates <a class="reference internal" href="#equation-risk-five-vertex-triangle-state">(31)</a>
+using a fixed state and checks independent scalar and Gram references.
+<code class="docutils literal notranslate"><span class="pre">triangle_recurrence.py</span></code> verifies its complete scalar operator by eight
+exact rational identities, including the initial values and denominator
+conditions, independently of finite sequence residual checks.</p>
 <p>The tetrahedron vertex coefficient still lacks an explicit useful
 all-degree recurrence or a bounded classical-special-function expression.
-The boundary-pair identity reduces its irreducible part to
-<span class="math notranslate nohighlight">\(\mathcal L_D(Ff(x)f(y))\)</span>. Bounded polynomial/harmonic ansatz spaces
+The boundary-pair identity reduces its mixed part to
+<span class="math notranslate nohighlight">\(\mathcal L_D(Ff(x)f(y))\)</span>; <a class="reference internal" href="skeleton_risk_vertex.html"><span class="doc">Tetrahedron vertex risk</span></a> further
+evaluates the complete vertex coefficient by one positive harmonic sum
+and proves its leading large-degree constant. Bounded polynomial/harmonic ansatz spaces
 can be excluded by exact modular rank, but such exclusions say nothing
 about formulas outside the recorded spaces. A general elementary or
 classical-special-function evaluation of the remaining codimension-two
-angular sums is also still open. The full risk comparison and nonlinear
-self-identification questions of <a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a> remain.</p>
+angular sums is also still open beyond the fixed-state evaluations above.
+<a class="reference internal" href="skeleton_risk_comparisons.html"><span class="doc">Fixed-degree risk comparisons in every dimension</span></a> settles the complete comparison at every
+fixed degree through twenty. A general crossover law and the nonlinear
+self-identification questions of <a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a> remain.
+The fixed-tetrahedron comparison is completely classified over all degrees
+in <a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html"><span class="doc">Tetrahedron risk comparison at every degree</span></a>.</p>
 </section>
 </section>
 
@@ -612,7 +767,7 @@ self-identification questions of <a class="reference internal" href="skeleton_ri
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="skeleton_risk_theory.html" class="btn btn-neutral float-left" title="Theory of the skeleton risk" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="simploidal_risk.html" class="btn btn-neutral float-right" title="Risk on an assembled simploidal set" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="skeleton_risk_vertex.html" class="btn btn-neutral float-right" title="Tetrahedron vertex risk" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
