@@ -134,7 +134,7 @@ claim about the exact crossover or the shape of the intervening loss set.
    Indeed the binomial expansion bounds :math:`(1+1/D)^D` by
    :math:`\sum_{j=0}^D1/j!<3`; the tail from :math:`j=2` is bounded
    by the geometric series :math:`\sum_{j=2}^{\infty}2^{1-j}=1`.
-   The initial ratio at :math:`D=1` is :math:`1/3<1`.
+   The initial term at :math:`D=1` is :math:`1/3<1`.
    For the second, check :math:`D=1,2,3,4` directly. Starting at
    :math:`D=4`, the ratio of successive cubes is at most
    :math:`(5/4)^3<2`, which proves the rest by induction.
