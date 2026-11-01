@@ -1,0 +1,435 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Boundary transfer and a codimension-three edge bound &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Tetrahedron vertex risk" href="skeleton_risk_vertex.html" />
+    <link rel="prev" title="Uniform construction for codimension two" href="codimension_two_family.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_family.html">Uniform construction for codimension two</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Boundary transfer and a codimension-three edge bound</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#a-boundary-lift-for-every-nonvertex-source-face">A boundary lift for every nonvertex source face</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#an-elementary-tetrahedron-edge-bound">An elementary tetrahedron edge bound</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#the-five-vertex-edge">The five-vertex edge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#evaluation-and-verification">Evaluation and verification</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html">Five-vertex vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Boundary transfer and a codimension-three edge bound</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/skeleton_risk_codimension_three.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="boundary-transfer-and-a-codimension-three-edge-bound">
+<h1>Boundary transfer and a codimension-three edge bound<a class="headerlink" href="#boundary-transfer-and-a-codimension-three-edge-bound" title="Link to this heading"></a></h1>
+<p>Under the uniform-simplex design, evaluation and noise assumptions of
+<a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a>, a trace-correct inclusion-exclusion lift
+bounds every nonvertex coefficient by coefficients on smaller simplices.
+For an edge on five vertices this yields a rational upper bound requiring
+no degree-dependent angular sum. This is an inequality, not an exact
+formula or an asymptotic equivalent for that coefficient.</p>
+<section id="a-boundary-lift-for-every-nonvertex-source-face">
+<h2>A boundary lift for every nonvertex source face<a class="headerlink" href="#a-boundary-lift-for-every-nonvertex-source-face" title="Link to this heading"></a></h2>
+<p>Let the source face have <span class="math notranslate nohighlight">\(s\geq2\)</span> vertices and let
+<span class="math notranslate nohighlight">\(q\geq1\)</span> be the number of outside coordinates. Write
+<span class="math notranslate nohighlight">\(M=s+q\)</span> and <span class="math notranslate nohighlight">\((b)_n=b(b+1)\cdots(b+n-1)\)</span>.
+At zero outside coordinates the top coefficient is</p>
+<div class="math notranslate nohighlight">
+\[a_{s-1}(s,D)=\binom{D-1}{s-1},\]</div>
+<p>with value zero when <span class="math notranslate nohighlight">\(D&lt;s\)</span>.</p>
+<div class="proof theorem admonition" id="thm-risk-nonvertex-boundary-transfer">
+<p class="admonition-title"><span class="caption-number">Theorem 26 </span> (Nonvertex boundary-transfer inequality)</p>
+<section class="theorem-content" id="proof-content">
+<p>For every integer <span class="math notranslate nohighlight">\(D\geq1\)</span>,</p>
+<div class="math notranslate nohighlight" id="equation-risk-nonvertex-boundary-transfer">
+<span class="eqno">(42)<a class="headerlink" href="#equation-risk-nonvertex-boundary-transfer" title="Link to this equation"></a></span>\[\sqrt{a_{s-1}(M,D)}
+\leq\binom Ms\sum_{r=0}^{q-1}
+  \frac{\binom qr}{\binom{s+r}s}
+  \sqrt{\frac{(s+r)_{2D}}{(M)_{2D}}
+             a_{s-1}(s+r,D)}.\]</div>
+<p>The source face is the same on both sides; only the number of outside
+coordinates changes. All coefficients in the inequality are zero on
+the inactive prefix <span class="math notranslate nohighlight">\(D&lt;s\)</span>. The statement here concerns
+nonvertex source faces; vertex boundary reductions are treated in
+<a class="reference internal" href="skeleton_risk_extensions.html"><span class="doc">Further evaluations of the skeleton risk</span></a>.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Assume <span class="math notranslate nohighlight">\(D\geq s\)</span>, put <span class="math notranslate nohighlight">\(n=D-s\)</span>, and fix one source-face
+angular mode <span class="math notranslate nohighlight">\(Q_{k,\nu}\)</span> from
+<a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-scalar-sum">Theorem 11</a>. Put <span class="math notranslate nohighlight">\(L=n-k\)</span> and let
+<span class="math notranslate nohighlight">\(r_I\)</span> denote the sum of the source coordinates. The common
+homogeneous angular factor is</p>
+<div class="math notranslate nohighlight">
+\[B_{k,\nu}(x_I)=\prod_{i\in I}x_i\,
+            r_I^k Q_{k,\nu}(x_I/r_I).\]</div>
+<p>It is a polynomial and is divisible by each source coordinate. For
+an outside-coordinate subset <span class="math notranslate nohighlight">\(S\subseteq[q]\)</span>, define</p>
+<div class="math notranslate nohighlight">
+\[p_S=B_{k,\nu}(x_I)\sum_{h=0}^L
+ (-1)^h\binom Lh\binom{n+k+3s-1}h
+ r_I^{L-h}T_h(x_S),
+\qquad
+T_h(x_S)=\sum_{|b|=h}\frac{h!}{b!}
+                 \prod_{j\in S}\frac{x_j^{b_j}}{b_j+1}.\]</div>
+<p>The empty-set convention is <span class="math notranslate nohighlight">\(T_0=1,T_h=0\)</span> for <span class="math notranslate nohighlight">\(h&gt;0\)</span>.
+The scalar-mode construction proves that <span class="math notranslate nohighlight">\(p_S\)</span> is the degree
+<span class="math notranslate nohighlight">\(D\)</span> homogeneous propagation on the face <span class="math notranslate nohighlight">\(I\cup S\)</span>.
+In particular, the coefficients do not depend on the number of
+coordinates omitted from that face. Its ambient lift is obtained by
+evaluating this same polynomial on the selected coordinates, without
+replacing any outside coordinate by a sum.</p>
+<p>Set <span class="math notranslate nohighlight">\(p=p_{[q]}\)</span> and</p>
+<div class="math notranslate nohighlight" id="equation-risk-nonvertex-inclusion-exclusion">
+<span class="eqno">(43)<a class="headerlink" href="#equation-risk-nonvertex-inclusion-exclusion" title="Link to this equation"></a></span>\[b=\sum_{S\subsetneq[q]}(-1)^{q-|S|+1}p_S.\]</div>
+<p>On an outside facet <span class="math notranslate nohighlight">\(x_j=0\)</span>, the polynomial <span class="math notranslate nohighlight">\(p_S\)</span>
+restricts to <span class="math notranslate nohighlight">\(p_{S\setminus\{j\}}\)</span>. Every proper subset of
+<span class="math notranslate nohighlight">\([q]\setminus\{j\}\)</span> receives two opposite coefficients in
+<span class="math notranslate nohighlight">\(b\)</span>. The full remaining subset receives coefficient one, since
+<span class="math notranslate nohighlight">\(S=[q]\)</span> was excluded. Thus <span class="math notranslate nohighlight">\(b\)</span> and <span class="math notranslate nohighlight">\(p\)</span> have the
+same trace on that facet. On every source facet both are zero because
+of <span class="math notranslate nohighlight">\(B_{k,\nu}\)</span>. Their traces therefore agree on <strong>every</strong> facet.</p>
+<p>Consequently <span class="math notranslate nohighlight">\(p-b\)</span> is a full-simplex bubble of degree at most
+<span class="math notranslate nohighlight">\(D\)</span>. Propagation orthogonality yields
+<span class="math notranslate nohighlight">\(\langle p,p-b\rangle=0\)</span>, and hence
+<span class="math notranslate nohighlight">\(\lVert p\rVert\leq\lVert b\rVert\)</span>. This includes degrees
+smaller than <span class="math notranslate nohighlight">\(M\)</span>, where no nonzero full bubble exists.</p>
+<p>Normalize the source-face bubble modes to have norm one on their
+source face. Regard the propagated polynomials for all these modes
+as one vector in the direct sum of their ambient <span class="math notranslate nohighlight">\(L^2\)</span> spaces.
+The triangle inequality in this Hilbert space gives</p>
+<div class="math notranslate nohighlight">
+\[\left(\sum_\nu\lVert p_{[q],\nu}\rVert_M^2\right)^{1/2}
+\leq\sum_{S\subsetneq[q]}
+  \left(\sum_\nu\lVert p_{S,\nu}\rVert_M^2\right)^{1/2}.\]</div>
+<p>If <span class="math notranslate nohighlight">\(|S|=r\)</span>, the total mass of the coordinates in <span class="math notranslate nohighlight">\(I\cup S\)</span>
+has the beta law with parameters <span class="math notranslate nohighlight">\(s+r,M-s-r\)</span>. Its normalized
+angular coordinates are independent and uniform on that face.
+Homogeneity therefore gives the exact embedding identity</p>
+<div class="math notranslate nohighlight" id="equation-risk-nonvertex-embedding-norm">
+<span class="eqno">(44)<a class="headerlink" href="#equation-risk-nonvertex-embedding-norm" title="Link to this equation"></a></span>\[\lVert p_{S,\nu}\rVert_M^2
+  =\frac{(s+r)_{2D}}{(M)_{2D}}
+              \lVert p_{S,\nu}\rVert_{s+r}^2.\]</div>
+<p>Finally,</p>
+<div class="math notranslate nohighlight">
+\[a_{s-1}(s+r,D)=\binom{s+r}s^2
+    \sum_\nu\lVert p_{S,\nu}\rVert_{s+r}^2.\]</div>
+<p>Grouping the <span class="math notranslate nohighlight">\(\binom qr\)</span> subsets of each size proves the
+inequality. The inactive prefix is zero directly from the absence
+of source-face bubbles.</p>
+</div>
+</section>
+<section id="an-elementary-tetrahedron-edge-bound">
+<h2>An elementary tetrahedron edge bound<a class="headerlink" href="#an-elementary-tetrahedron-edge-bound" title="Link to this heading"></a></h2>
+<p>The following explicit bound strengthens the coarse constant bound used
+in <a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html"><span class="doc">Tetrahedron risk comparison at every degree</span></a>.</p>
+<div class="proof lemma admonition" id="lem-risk-tetrahedron-edge-reciprocal-square">
+<p class="admonition-title"><span class="caption-number">Lemma 7 </span> (An all-degree reciprocal-square edge bound)</p>
+<section class="lemma-content" id="proof-content">
+<p>For every integer <span class="math notranslate nohighlight">\(D\geq2\)</span>,</p>
+<div class="math notranslate nohighlight" id="equation-risk-tetrahedron-edge-reciprocal-square">
+<span class="eqno">(45)<a class="headerlink" href="#equation-risk-tetrahedron-edge-reciprocal-square" title="Link to this equation"></a></span>\[0&lt;a_1(4,D)&lt;\frac{864}{(D+4)(D+5)}&lt;\frac{864}{D^2}.\]</div>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. In <a class="reference internal" href="skeleton_risk_extensions.html#thm-risk-codimension-two-modes">Theorem 20</a>, put <span class="math notranslate nohighlight">\(s=2\)</span>,
+<span class="math notranslate nohighlight">\(j=L+1\)</span> and <span class="math notranslate nohighlight">\(N=2D+3\)</span>. Then <span class="math notranslate nohighlight">\(1\leq j\leq D-1\)</span>.
+The nonnegative mode bracket is at most <span class="math notranslate nohighlight">\(H_{j+1}\)</span>: its other
+harmonic difference is nonpositive and the remaining corrections
+are nonnegative. Its denominator is
+<span class="math notranslate nohighlight">\(j(j+1)(N-j)(N-j+1)\)</span>, with
+<span class="math notranslate nohighlight">\(N-j\geq D+4\)</span> and <span class="math notranslate nohighlight">\(N-j+1\geq D+5\)</span>.
+There is one angular mode at each <span class="math notranslate nohighlight">\(k\)</span>. Including the allocation
+factor <span class="math notranslate nohighlight">\(\binom42^2=36\)</span> gives</p>
+<div class="math notranslate nohighlight">
+\[a_1(4,D)\leq
+ \frac{432}{(D+4)(D+5)}
+    \sum_{j=1}^{D-1}\frac{H_{j+1}}{j(j+1)}.\]</div>
+<p>The finite sum has the exact telescoping evaluation</p>
+<div class="math notranslate nohighlight" id="equation-risk-edge-harmonic-telescope">
+<span class="eqno">(46)<a class="headerlink" href="#equation-risk-edge-harmonic-telescope" title="Link to this equation"></a></span>\[\sum_{j=1}^n\frac{H_{j+1}}{j(j+1)}
+   =2-\frac{H_{n+1}+1}{n+1}&lt;2.\]</div>
+<p>This proves the bound without an unquantified asymptotic remainder.</p>
+</div>
+</section>
+<section id="the-five-vertex-edge">
+<h2>The five-vertex edge<a class="headerlink" href="#the-five-vertex-edge" title="Link to this heading"></a></h2>
+<div class="proof theorem admonition" id="thm-risk-five-vertex-edge-upper">
+<p class="admonition-title"><span class="caption-number">Theorem 27 </span> (Five-vertex edge upper bound at every degree)</p>
+<section class="theorem-content" id="proof-content">
+<p>The edge coefficient is zero at <span class="math notranslate nohighlight">\(D=1\)</span>. For every integer
+<span class="math notranslate nohighlight">\(D\geq2\)</span>, it satisfies both bounds</p>
+<div class="math notranslate nohighlight" id="equation-risk-five-vertex-edge-upper">
+<span class="eqno">(47)<a class="headerlink" href="#equation-risk-five-vertex-edge-upper" title="Link to this equation"></a></span>\[\begin{split}0&lt;a_1(5,D)&amp;&lt;\frac{30000}{D^2},\\
+a_1(5,D)&amp;&lt;300\left(
+  \frac{24(D-1)}{(2D+2)(2D+3)(2D+4)}
+  +\frac{108}{(2D+3)(2D+4)}
+  +\frac{864}{(D+4)(D+5)(2D+4)}\right).\end{split}\]</div>
+<p>Both are explicit all-degree bounds. Neither asserts the true decay
+exponent or leading asymptotic constant.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Apply <a class="reference internal" href="#equation-risk-nonvertex-boundary-transfer">(42)</a> at <span class="math notranslate nohighlight">\(s=2,q=3\)</span>.
+The three embedding ratios are</p>
+<div class="math notranslate nohighlight">
+\[r_0=\frac{24}{(2D+2)(2D+3)(2D+4)},\quad
+r_1=\frac{12}{(2D+3)(2D+4)},\quad
+r_2=\frac4{2D+4}.\]</div>
+<p>The top coefficient at zero outside coordinates is <span class="math notranslate nohighlight">\(D-1\)</span>,
+so the allocation factors simplify the transfer inequality to</p>
+<div class="math notranslate nohighlight" id="equation-risk-five-vertex-edge-root-upper">
+<span class="eqno">(48)<a class="headerlink" href="#equation-risk-five-vertex-edge-root-upper" title="Link to this equation"></a></span>\[\sqrt{a_1(5,D)}\leq10\left(
+   \sqrt{r_0(D-1)}+\sqrt{r_1a_1(3,D)}
+          +\tfrac12\sqrt{r_2a_1(4,D)}\right).\]</div>
+<p>The triangle edge formula gives <span class="math notranslate nohighlight">\(a_1(3,D)&lt;9\)</span> for
+<span class="math notranslate nohighlight">\(D\geq2\)</span>, as proved in the tetrahedron comparison chapter.
+The three terms inside parentheses are, respectively, at most
+<span class="math notranslate nohighlight">\(\sqrt3/D\)</span>, strictly smaller than <span class="math notranslate nohighlight">\(3\sqrt3/D\)</span>, and
+strictly smaller than <span class="math notranslate nohighlight">\(6\sqrt3/D\)</span>. For the last bound use
+<a class="reference internal" href="#equation-risk-tetrahedron-edge-reciprocal-square">(45)</a> and
+<span class="math notranslate nohighlight">\(2D+4\geq8\)</span>. Their sum is smaller than
+<span class="math notranslate nohighlight">\(10\sqrt3/D\)</span>, proving the first bound.</p>
+<p>Alternatively, square the three-term sum using
+<span class="math notranslate nohighlight">\((x+y+z)^2\leq3(x^2+y^2+z^2)\)</span> and retain the sharper
+denominator <span class="math notranslate nohighlight">\((D+4)(D+5)\)</span> in the tetrahedron bound. This gives
+the second, entirely rational bound. All displayed denominators are
+strictly positive on the active domain, and the strict triangle or
+tetrahedron inequalities ensure a strict final bound.</p>
+</div>
+</section>
+<section id="evaluation-and-verification">
+<h2>Evaluation and verification<a class="headerlink" href="#evaluation-and-verification" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">tools.risk_research.codimension_three</span></code> returns the smaller of the two
+rational bounds and emits exact numerator/denominator JSON. Its operation
+count per requested degree is bounded, although integer bit lengths grow.
+<code class="docutils literal notranslate"><span class="pre">transfer_squared_weights(s,q,D)</span></code> emits the exact rational weights under
+square roots in the general transfer inequality; it does not evaluate the
+risk coefficient. These tools add no production API or mandatory dependency.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>tools.risk_research.codimension_three<span class="w"> </span>--max-degree<span class="w"> </span><span class="m">100</span><span class="w"> </span>--output<span class="w"> </span>.research/skeleton-risk/q3-upper.json
+</pre></div>
+</div>
+<p>The optional SymPy lemma checker verifies the three outside-facet
+inclusion-exclusion cancellations, the finite harmonic telescoping identity,
+the rational inequality polynomials and the explicit constant. Its report
+binds both source files by SHA256. The universal mode construction,
+orthogonality and Hilbert-space argument are the proof above; the finite
+polynomial/oracle tests are independent implementation checks.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>tools.risk_research.codimension_three_certificate<span class="w"> </span>--output<span class="w"> </span>.research/skeleton-risk/q3-lemmas.json
+<span class="gp">$ </span>.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>tools.risk_research.codimension_three_certificate<span class="w"> </span>--verify<span class="w"> </span>.research/skeleton-risk/q3-lemmas.json<span class="w"> </span>--output<span class="w"> </span>.research/skeleton-risk/q3-rechecked.json
+</pre></div>
+</div>
+<p>The tests independently integrate low-degree homogeneous propagated modes,
+check all facet traces and the exact beta embedding factor, and compare
+with scalar and Gram references. An altered constant, domain polynomial,
+boundary cancellation or source-bound report is rejected. A fixed-state
+exact q3 evaluation, its minimal order, and a uniform state bound over all
+source sizes remain separate research questions.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="codimension_two_family.html" class="btn btn-neutral float-left" title="Uniform construction for codimension two" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="skeleton_risk_vertex.html" class="btn btn-neutral float-right" title="Tetrahedron vertex risk" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: feat/risk-codimension-three
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/index.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="skeleton_risk_codimension_three.html">feat/risk-codimension-three</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
