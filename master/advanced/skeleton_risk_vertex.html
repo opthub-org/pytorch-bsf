@@ -25,7 +25,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Vertex coefficients at every fixed vertex count" href="skeleton_risk_vertex_general.html" />
-    <link rel="prev" title="Uniform construction for codimension two" href="codimension_two_family.html" /> 
+    <link rel="prev" title="Boundary transfer and a codimension-three edge bound" href="skeleton_risk_codimension_three.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -67,6 +67,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="codimension_two_family.html">Uniform construction for codimension two</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three.html">Boundary transfer and a codimension-three edge bound</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Tetrahedron vertex risk</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#a-binomial-transform-diagonalization">A binomial-transform diagonalization</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#the-positive-single-sum">The positive single sum</a></li>
@@ -159,7 +160,7 @@ The next asymptotic term and a fully explicit error bound are proved in
 \[\mathcal L_D(G)=\sum_{h,l=0}^{D-1}
  A_hA_lh!l!(2D-h-l)!\,[x^hy^l]G.\]</div>
 <div class="proof theorem admonition" id="thm-risk-binomial-gram-diagonal">
-<p class="admonition-title"><span class="caption-number">Theorem 26 </span> (Diagonalization by signed binomial transforms)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 28 </span> (Diagonalization by signed binomial transforms)</p>
 <section class="theorem-content" id="proof-content">
 <p>For every integer <span class="math notranslate nohighlight">\(D\geq1\)</span> and arrays <span class="math notranslate nohighlight">\(u,v\)</span> of length
 <span class="math notranslate nohighlight">\(D\)</span>, set</p>
@@ -169,7 +170,7 @@ The next asymptotic term and a fully explicit error bound are proved in
 \widehat v_j=\sum_{l=0}^j(-1)^l\binom jl v_l.\]</div>
 <p>Then</p>
 <div class="math notranslate nohighlight" id="equation-risk-binomial-gram-diagonal">
-<span class="eqno">(42)<a class="headerlink" href="#equation-risk-binomial-gram-diagonal" title="Link to this equation"></a></span>\[\sum_{h,l=0}^{D-1}A_hA_lh!l!(2D-h-l)!u_hv_l
+<span class="eqno">(49)<a class="headerlink" href="#equation-risk-binomial-gram-diagonal" title="Link to this equation"></a></span>\[\sum_{h,l=0}^{D-1}A_hA_lh!l!(2D-h-l)!u_hv_l
  =C_D\sum_{j=0}^{D-1}W_{D,j}\widehat u_j\widehat v_j.\]</div>
 <p>Consequently, if</p>
 <div class="math notranslate nohighlight">
@@ -177,7 +178,7 @@ The next asymptotic term and a fully explicit error bound are proved in
  \frac{G(-x/(1-x),-y/(1-y))}{(1-x)(1-y)},\]</div>
 <p>then</p>
 <div class="math notranslate nohighlight" id="equation-risk-transformed-vertex-functional">
-<span class="eqno">(43)<a class="headerlink" href="#equation-risk-transformed-vertex-functional" title="Link to this equation"></a></span>\[\mathcal L_D(G)=C_D\sum_{j=0}^{D-1}
+<span class="eqno">(50)<a class="headerlink" href="#equation-risk-transformed-vertex-functional" title="Link to this equation"></a></span>\[\mathcal L_D(G)=C_D\sum_{j=0}^{D-1}
   W_{D,j}[x^jy^j]\mathscr T(G).\]</div>
 </section>
 </div><div class="proof admonition" id="proof">
@@ -201,7 +202,7 @@ are <span class="math notranslate nohighlight">\((2D-h-l)!\)</span>, while Lague
 <div class="math notranslate nohighlight">
 \[n!^2\binom{n+2}j^2\frac{(n+2-j)!}{(n-j)!}
  =C_DW_{D,j},\]</div>
-<p>proving <a class="reference internal" href="#equation-risk-binomial-gram-diagonal">(42)</a>. Apply the identity linearly
+<p>proving <a class="reference internal" href="#equation-risk-binomial-gram-diagonal">(49)</a>. Apply the identity linearly
 to each coefficient of <span class="math notranslate nohighlight">\(G\)</span>; the generating-function identity for
 signed binomial transforms is precisely <span class="math notranslate nohighlight">\(\mathscr T\)</span>.
 All relevant arrays and polynomials are finite.</p>
@@ -210,12 +211,12 @@ All relevant arrays and polynomials are finite.</p>
 substitution. With <span class="math notranslate nohighlight">\(f(t)=-\log(1-t)/t\)</span> and
 <span class="math notranslate nohighlight">\(g(t)=(1-t)f(t)\)</span>, direct collection of logarithms gives</p>
 <div class="math notranslate nohighlight" id="equation-risk-transformed-outside-kernel">
-<span class="eqno">(44)<a class="headerlink" href="#equation-risk-transformed-outside-kernel" title="Link to this equation"></a></span>\[F\!\left(-\frac{x}{1-x},-\frac{y}{1-y}\right)
+<span class="eqno">(51)<a class="headerlink" href="#equation-risk-transformed-outside-kernel" title="Link to this equation"></a></span>\[F\!\left(-\frac{x}{1-x},-\frac{y}{1-y}\right)
   =g(x)+g(y)-g(xy).\]</div>
 <p>Indeed, if <span class="math notranslate nohighlight">\(X=-x/(1-x)\)</span>, <span class="math notranslate nohighlight">\(Y=-y/(1-y)\)</span>, then
 <span class="math notranslate nohighlight">\(1-X-Y=(1-xy)/((1-x)(1-y))\)</span>. Substitution into the numerator
 <span class="math notranslate nohighlight">\((1-X-Y)\log(1-X-Y)-(1-X)\log(1-X)-(1-Y)\log(1-Y)\)</span>
-of <span class="math notranslate nohighlight">\(F(X,Y)\)</span> proves <a class="reference internal" href="#equation-risk-transformed-outside-kernel">(44)</a>.
+of <span class="math notranslate nohighlight">\(F(X,Y)\)</span> proves <a class="reference internal" href="#equation-risk-transformed-outside-kernel">(51)</a>.
 For every fixed vertex count, this transforms
 <span class="math notranslate nohighlight">\(\mathcal L_D(F^{M-1})\)</span> into a weighted diagonal of the corresponding
 power of an additive kernel. No evaluation of all those diagonals is claimed.</p>
@@ -225,15 +226,15 @@ power of an additive kernel. No evaluation of all those diagonals is claimed.</p
 <p>Write <span class="math notranslate nohighlight">\(H_j=\sum_{r=1}^j1/r\)</span>,
 <span class="math notranslate nohighlight">\(H_j^{(2)}=\sum_{r=1}^j1/r^2\)</span>, with both values zero at <span class="math notranslate nohighlight">\(j=0\)</span>.</p>
 <div class="proof theorem admonition" id="thm-risk-tetrahedron-vertex-single">
-<p class="admonition-title"><span class="caption-number">Theorem 27 </span> (Tetrahedron vertex coefficient at every degree)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 29 </span> (Tetrahedron vertex coefficient at every degree)</p>
 <section class="theorem-content" id="proof-content">
 <p>For every integer <span class="math notranslate nohighlight">\(D\geq1\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-risk-tetrahedron-vertex-single">
-<span class="eqno">(45)<a class="headerlink" href="#equation-risk-tetrahedron-vertex-single" title="Link to this equation"></a></span>\[a_0(4,D)=\frac{96(D-1)!(D+1)!}{(4)_{2D}}
+<span class="eqno">(52)<a class="headerlink" href="#equation-risk-tetrahedron-vertex-single" title="Link to this equation"></a></span>\[a_0(4,D)=\frac{96(D-1)!(D+1)!}{(4)_{2D}}
  \sum_{j=0}^{D-1}\binom{D-1}j\binom{D+1}j G_j,\]</div>
 <p>where</p>
 <div class="math notranslate nohighlight" id="equation-risk-tetrahedron-vertex-weight">
-<span class="eqno">(46)<a class="headerlink" href="#equation-risk-tetrahedron-vertex-weight" title="Link to this equation"></a></span>\[\begin{split}G_j={}&amp;\frac{H_j^2}{(j+1)(j+2)(j+3)}
+<span class="eqno">(53)<a class="headerlink" href="#equation-risk-tetrahedron-vertex-weight" title="Link to this equation"></a></span>\[\begin{split}G_j={}&amp;\frac{H_j^2}{(j+1)(j+2)(j+3)}
   +\frac{H_j^{(2)}}{(j+1)(j+3)}\\
   &amp;-\frac{jH_j}{(j+1)(j+2)^2(j+3)}
   +\frac{2}{(j+1)^2(j+2)^2(j+3)}.\end{split}\]</div>
@@ -276,7 +277,7 @@ symmetric counterparts, cancel by ordinary convolution. Thus</p>
 <p>The last equality follows by partial fractions and includes the empty
 sum <span class="math notranslate nohighlight">\(B_0=0\)</span>. Substituting the three <span class="math notranslate nohighlight">\(\phi_r\)</span> formulas and
 simplifying gives <span class="math notranslate nohighlight">\([x^jy^j]\mathscr T(F^3)=6G_j\)</span>. Apply
-<a class="reference internal" href="#equation-risk-transformed-vertex-functional">(43)</a> and the scalar risk identity
+<a class="reference internal" href="#equation-risk-transformed-vertex-functional">(50)</a> and the scalar risk identity
 <span class="math notranslate nohighlight">\(a_0(4,D)=16\mathcal L_D(F^3)/(4)_{2D}\)</span>.</p>
 <p>For positivity, group the first and third terms of <span class="math notranslate nohighlight">\(G_j\)</span> as</p>
 <div class="math notranslate nohighlight">
@@ -292,7 +293,7 @@ rational term is positive. The second and last terms are nonnegative.</p>
 <section class="corollary-content" id="proof-content">
 <p>As <span class="math notranslate nohighlight">\(D\to\infty\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-risk-tetrahedron-vertex-asymptotic">
-<span class="eqno">(47)<a class="headerlink" href="#equation-risk-tetrahedron-vertex-asymptotic" title="Link to this equation"></a></span>\[a_0(4,D)=\frac{48\pi^2}{D^5}
+<span class="eqno">(54)<a class="headerlink" href="#equation-risk-tetrahedron-vertex-asymptotic" title="Link to this equation"></a></span>\[a_0(4,D)=\frac{48\pi^2}{D^5}
   +O\!\left(\frac{\log^2D}{D^6}\right).\]</div>
 </section>
 </div><div class="proof admonition" id="proof">
@@ -319,7 +320,7 @@ Consequently</p>
  \leq\sum_{j=0}^a2^{j-b}\frac{W_{D,b}}{Z_D}
  \leq2^{a+1-b}\leq4\,2^{-D/12}.\]</div>
 <p>On <span class="math notranslate nohighlight">\(j&gt;a\)</span>, harmonic-number bounds in
-<a class="reference internal" href="#equation-risk-tetrahedron-vertex-weight">(46)</a> give uniformly</p>
+<a class="reference internal" href="#equation-risk-tetrahedron-vertex-weight">(53)</a> give uniformly</p>
 <div class="math notranslate nohighlight">
 \[G_j=\frac{\zeta(2)}{(j+1)(j+3)}
   +O(\log^2D/D^3).\]</div>
@@ -339,7 +340,7 @@ The outer prefactor is <span class="math notranslate nohighlight">\(72/D^3+O(D^{
 <section id="verification-and-scope">
 <h2>Verification and scope<a class="headerlink" href="#verification-and-scope" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">tools/risk_research/vertex_single.py</span></code> evaluates
-<a class="reference internal" href="#equation-risk-tetrahedron-vertex-single">(45)</a> with exact rational arithmetic and
+<a class="reference internal" href="#equation-risk-tetrahedron-vertex-single">(52)</a> with exact rational arithmetic and
 incremental binomial weights. Tests compare the pre-existing scalar sum
 through degree 20 and independent full Gram propagation through degree 6.
 After fixing the formula, the original integer-kernel implementation generated
@@ -361,7 +362,7 @@ remains separate, and the generic P-recursiveness theorem in
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="codimension_two_family.html" class="btn btn-neutral float-left" title="Uniform construction for codimension two" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="skeleton_risk_codimension_three.html" class="btn btn-neutral float-left" title="Boundary transfer and a codimension-three edge bound" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="skeleton_risk_vertex_general.html" class="btn btn-neutral float-right" title="Vertex coefficients at every fixed vertex count" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

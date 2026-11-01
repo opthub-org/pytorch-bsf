@@ -67,6 +67,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="codimension_two_family.html">Uniform construction for codimension two</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three.html">Boundary transfer and a codimension-three edge bound</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Explicit vertex errors at every fixed vertex count</a><ul>
@@ -164,7 +165,7 @@ V_{k,r}&amp;=G_k\left(2^{r+2}F_r+5\,2^kA_r\right)
               \quad(k\geq2).\end{split}\]</div>
 <p>Set <span class="math notranslate nohighlight">\(q=M-1\)</span>, and define the following positive, explicit constants:</p>
 <div class="math notranslate nohighlight" id="equation-risk-general-error-constants">
-<span class="eqno">(54)<a class="headerlink" href="#equation-risk-general-error-constants" title="Link to this equation"></a></span>\[\begin{split}J_q&amp;=2qA_{q-1},\\
+<span class="eqno">(61)<a class="headerlink" href="#equation-risk-general-error-constants" title="Link to this equation"></a></span>\[\begin{split}J_q&amp;=2qA_{q-1},\\
 K_q&amp;=B_q+A_q+qU_{q-1}
    +\sum_{k=2}^{q-2}\binom qk V_{k,q-k}
    +8(1+q^2+J_q),\\
@@ -172,11 +173,11 @@ R_M&amp;=\frac{M^2q!}{2^q}
        \left(96K_q+(273+q(q+1))J_q\right).\end{split}\]</div>
 <p>An empty sum is zero. In particular these formulas apply at <span class="math notranslate nohighlight">\(M=4\)</span>.</p>
 <div class="proof theorem admonition" id="thm-risk-general-vertex-explicit-error">
-<p class="admonition-title"><span class="caption-number">Theorem 30 </span> (Explicit vertex error for every fixed M at least four)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 32 </span> (Explicit vertex error for every fixed M at least four)</p>
 <section class="theorem-content" id="proof-content">
 <p>For all integers <span class="math notranslate nohighlight">\(M\geq4\)</span> and <span class="math notranslate nohighlight">\(D\geq256\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-risk-general-vertex-explicit-error">
-<span class="eqno">(55)<a class="headerlink" href="#equation-risk-general-vertex-explicit-error" title="Link to this equation"></a></span>\[\left|a_0(M,D)-\frac{C_M}{D^{M+1}}\right|
+<span class="eqno">(62)<a class="headerlink" href="#equation-risk-general-vertex-explicit-error" title="Link to this equation"></a></span>\[\left|a_0(M,D)-\frac{C_M}{D^{M+1}}\right|
   \leq R_M\frac{(1+\log D)^{M-2}}{D^{M+2}}.\]</div>
 <p>Thus the relative error tends to zero for each fixed <span class="math notranslate nohighlight">\(M\)</span>.
 There is no claim that this convergence is uniform when <span class="math notranslate nohighlight">\(M\)</span>
@@ -207,7 +208,7 @@ The series is absolutely summable and its sum is <span class="math notranslate n
 Using <span class="math notranslate nohighlight">\(\phi_r(j+1)-\phi_r(j)=b_r(j+1)\)</span> and the product difference
 identity gives, for every <span class="math notranslate nohighlight">\(j\geq0\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-risk-general-cross-difference-bounds">
-<span class="eqno">(56)<a class="headerlink" href="#equation-risk-general-cross-difference-bounds" title="Link to this equation"></a></span>\[\begin{split}|e_r(j)|&amp;\leq A_r L(j+1)^{r-2}(j+1)^{-r},\\
+<span class="eqno">(63)<a class="headerlink" href="#equation-risk-general-cross-difference-bounds" title="Link to this equation"></a></span>\[\begin{split}|e_r(j)|&amp;\leq A_r L(j+1)^{r-2}(j+1)^{-r},\\
 |e_r(j+1)-e_r(j)|
     &amp;\leq F_r L(j+1)^{r-2}(j+1)^{-r-1}.\end{split}\]</div>
 <p>Here <span class="math notranslate nohighlight">\(L(j+2)\leq2L(j+1)\)</span> accounts for the factor <span class="math notranslate nohighlight">\(2^{r-2}\)</span>
@@ -215,7 +216,7 @@ in <span class="math notranslate nohighlight">\(F_r\)</span>.</p>
 <p>We use a simple integral majorant repeatedly. For integers
 <span class="math notranslate nohighlight">\(p\geq0,\alpha&gt;p+1,T\geq1\)</span>, monotonicity and differentiation give</p>
 <div class="math notranslate nohighlight" id="equation-risk-general-log-tail">
-<span class="eqno">(57)<a class="headerlink" href="#equation-risk-general-log-tail" title="Link to this equation"></a></span>\[\sum_{m=T}^{\infty}\frac{L(m+1)^p}{(m+1)^\alpha}
+<span class="eqno">(64)<a class="headerlink" href="#equation-risk-general-log-tail" title="Link to this equation"></a></span>\[\sum_{m=T}^{\infty}\frac{L(m+1)^p}{(m+1)^\alpha}
    \leq\int_T^\infty\frac{L(x)^p}{x^\alpha}\,dx
    \leq\frac{L(T)^p}{(\alpha-1-p)T^{\alpha-1}}.\]</div>
 <p>Indeed the negative derivative of
@@ -250,7 +251,7 @@ For the last term, subtract
 For this last bound, take <span class="math notranslate nohighlight">\(L(m+1)^{r-2}\leq L^{r-2}\)</span> outside
 the sum and use <span class="math notranslate nohighlight">\(\sum_{m=0}^n(m+1)^{1-r}\leq H_N\leq L\)</span>.
 The missing tail starts at <span class="math notranslate nohighlight">\(n-H\geq N/3\)</span>, and
-<a class="reference internal" href="#equation-risk-general-log-tail">(57)</a> bounds it by
+<a class="reference internal" href="#equation-risk-general-log-tail">(64)</a> bounds it by
 <span class="math notranslate nohighlight">\(3^{r-1}A_rL^{r-2}/N^{r-1}\)</span>. Combining these bounds gives</p>
 <div class="math notranslate nohighlight">
 \[\left|(b_1*e_r)(n)+N^{-2}\sum_{m\geq0}e_r(m)\right|
@@ -264,13 +265,13 @@ The absolute tail in the second term is at most
 <div class="math notranslate nohighlight">
 \[|(b_k*e_r)(n)|\leq V_{k,r}L^{k+r-3}/N^3.\]</div>
 <p>Substitute these two bounds into
-<a class="reference internal" href="skeleton_risk_vertex_general.html#equation-risk-general-transformed-diagonal">(48)</a>. The <span class="math notranslate nohighlight">\(\phi_q\)</span> and
+<a class="reference internal" href="skeleton_risk_vertex_general.html#equation-risk-general-transformed-diagonal">(55)</a>. The <span class="math notranslate nohighlight">\(\phi_q\)</span> and
 <span class="math notranslate nohighlight">\(e_q\)</span> terms are bounded by <span class="math notranslate nohighlight">\((B_q+A_q)L^{q-1}/N^3\)</span>.
 The added term <span class="math notranslate nohighlight">\(8(1+q^2+J_q)\)</span> in <span class="math notranslate nohighlight">\(K_q\)</span> also covers
 <span class="math notranslate nohighlight">\(n=0,1\)</span>: here <span class="math notranslate nohighlight">\(\delta_q(0)=1\)</span> and
 <span class="math notranslate nohighlight">\(\delta_q(1)=(q^2-3q+4)/4\)</span>. Therefore, for every <span class="math notranslate nohighlight">\(n\geq0\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-risk-general-diagonal-explicit-error">
-<span class="eqno">(58)<a class="headerlink" href="#equation-risk-general-diagonal-explicit-error" title="Link to this equation"></a></span>\[\left|\delta_q(n)-\frac{c_q}{(n+1)^2}\right|
+<span class="eqno">(65)<a class="headerlink" href="#equation-risk-general-diagonal-explicit-error" title="Link to this equation"></a></span>\[\left|\delta_q(n)-\frac{c_q}{(n+1)^2}\right|
    \leq K_q\frac{L(n+1)^{q-1}}{(n+1)^3}.\]</div>
 </section>
 <section id="averaging-and-normalization">
@@ -293,7 +294,7 @@ the omitted true value is bounded by one. Consequently</p>
 <div class="math notranslate nohighlight">
 \[\left|\mathbb E r(J)-4/D^2\right|\leq209/D^3+2\epsilon_D.\]</div>
 <p>On the central event, <span class="math notranslate nohighlight">\(J+1&gt;D/4\)</span>; on its complement use
-<span class="math notranslate nohighlight">\(L(J+1)\leq L(D)\)</span> in <a class="reference internal" href="#equation-risk-general-diagonal-explicit-error">(58)</a>.
+<span class="math notranslate nohighlight">\(L(J+1)\leq L(D)\)</span> in <a class="reference internal" href="#equation-risk-general-diagonal-explicit-error">(65)</a>.
 Together with <span class="math notranslate nohighlight">\(c_q\leq J_q\)</span>, this yields</p>
 <div class="math notranslate nohighlight">
 \[\left|\mathbb E\delta_q(J)-4c_q/D^2\right|
@@ -309,7 +310,7 @@ Q_D&amp;=\prod_{h=1}^q(1+h/(2D))^{-1},\qquad
 <p>The normalization error adds at most
 <span class="math notranslate nohighlight">\(q(q+1)J_q L(D)^{q-1}/D^3\)</span> inside the parentheses.
 Since <span class="math notranslate nohighlight">\(C_M=4M^2q!c_q/2^q\)</span>, the resulting constant is exactly
-<span class="math notranslate nohighlight">\(R_M\)</span> in <a class="reference internal" href="#equation-risk-general-error-constants">(54)</a>. This proves the theorem.</p>
+<span class="math notranslate nohighlight">\(R_M\)</span> in <a class="reference internal" href="#equation-risk-general-error-constants">(61)</a>. This proves the theorem.</p>
 </section>
 <section id="certified-computation-and-finite-checks">
 <h2>Certified computation and finite checks<a class="headerlink" href="#certified-computation-and-finite-checks" title="Link to this heading"></a></h2>
