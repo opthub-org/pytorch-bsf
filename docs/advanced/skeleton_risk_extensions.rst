@@ -27,6 +27,12 @@ nonfinite assembled-risk propagation before its condition estimate.
    * - :prf:ref:`thm-risk-five-vertex-triangle-state`
      - Every triangular-face coefficient on a five-vertex simplex has an
        eight-state rational representation and a certified order-eight recurrence.
+   * - :prf:ref:`thm-risk-six-vertex-tetrahedral-state`
+     - Every tetrahedral-face coefficient on a six-vertex simplex also has
+       an eight-state formula and a certified order-eight recurrence.
+   * - :prf:ref:`thm-risk-tetrahedron-vertex-recurrence`
+     - The tetrahedron vertex has an explicit order-ten degree recurrence
+       certified by four rational telescoping identities.
    * - :prf:ref:`cor-risk-codimension-two-asymptotic`
      - The leading large-degree constant for every fixed codimension-two face
        with at least two vertices.
@@ -777,8 +783,9 @@ using a fixed state and checks independent scalar and Gram references.
 exact rational identities, including the initial values and denominator
 conditions, independently of finite sequence residual checks.
 
-The tetrahedron vertex coefficient still lacks an explicit useful
-all-degree recurrence or a bounded classical-special-function expression.
+:doc:`skeleton_risk_vertex_recurrence` supplies a certified order-ten
+tetrahedron vertex recurrence at every positive integer degree. A bounded
+classical-special-function expression remains open.
 The boundary-pair identity reduces its mixed part to
 :math:`\mathcal L_D(Ff(x)f(y))`; :doc:`skeleton_risk_vertex` further
 evaluates the complete vertex coefficient by one positive harmonic sum
@@ -786,7 +793,8 @@ and proves its leading large-degree constant. Bounded polynomial/harmonic ansatz
 can be excluded by exact modular rank, but such exclusions say nothing
 about formulas outside the recorded spaces. A general elementary or
 classical-special-function evaluation of the remaining codimension-two
-angular sums is also still open beyond the fixed-state evaluations above.
+angular sums is also still open beyond the fixed-state evaluations above
+and the six-vertex tetrahedral-face formula in :doc:`codimension_two_states`.
 :doc:`skeleton_risk_comparisons` settles the complete comparison at every
 fixed degree through twenty. A general crossover law and the nonlinear
 self-identification questions of :doc:`skeleton_risk_theory` remain.

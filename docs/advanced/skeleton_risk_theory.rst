@@ -9,6 +9,9 @@ The extension to general finite simploidal sets, including shared and
 degenerate faces, is proved in :doc:`simploidal_risk`.
 Further degree recurrences, codimension-two evaluations and vertex
 reductions are proved in :doc:`skeleton_risk_extensions`.
+Explicit tetrahedron vertex and six-vertex tetrahedral-face recurrences
+are proved in :doc:`skeleton_risk_vertex_recurrence` and
+:doc:`codimension_two_states`.
 The tetrahedron vertex single sum and its large-degree constant are proved
 in :doc:`skeleton_risk_vertex`. Its next asymptotic term and explicit error
 bound are in :doc:`skeleton_risk_vertex_asymptotics`; the five-vertex vertex
@@ -51,6 +54,9 @@ explicit evaluations. The conditions in each row are part of the result.
      - :prf:ref:`thm-risk-fixed-dimension-holonomic`: a polynomial-coefficient
        recurrence exists; explicit tetrahedron edge operators and a
        codimension-two harmonic reduction are in :doc:`skeleton_risk_extensions`.
+       :prf:ref:`thm-risk-tetrahedron-vertex-recurrence` gives an order-ten
+       vertex operator, and :doc:`codimension_two_states` gives an order-eight
+       six-vertex tetrahedral-face operator.
    * - :math:`M=4` or :math:`M=5`, :math:`m=0`, every degree
      - :prf:ref:`thm-risk-tetrahedron-vertex-single` and
        :prf:ref:`thm-risk-five-vertex-single`: one positive harmonic sum;
@@ -1795,6 +1801,8 @@ active positive-dimensional faces, so the dimension and shape optima agree.
   For triangular faces on five-vertex simplices,
   :prf:ref:`thm-risk-five-vertex-triangle-state` also supplies a fixed-state
   representation with one additional auxiliary sequence.
+  :prf:ref:`thm-risk-six-vertex-tetrahedral-state` extends the fixed-state
+  evaluation and certified scalar recurrence to tetrahedral faces on six vertices.
 - **Finite-dimensional vertex coefficients beyond triangles.**
   For :math:`M\geq4` and :math:`D\geq4`, simplify
   :prf:ref:`thm-skeleton-vertex-sum` uniformly in the degree, or give an
@@ -1808,7 +1816,8 @@ active positive-dimensional faces, so the dimension and shape optima agree.
   complexity. :prf:ref:`thm-risk-tetrahedron-vertex-single` now evaluates
   the tetrahedron vertex by one positive harmonic-binomial sum, with its
   leading large-degree constant. Its length still grows with :math:`D`;
-  an explicit useful tetrahedron vertex degree recurrence remains open.
+  :prf:ref:`thm-risk-tetrahedron-vertex-recurrence` now supplies an explicit
+  order-ten degree recurrence with initial values and no exceptional integers.
   :prf:ref:`thm-risk-five-vertex-single` similarly evaluates the
   five-vertex vertex coefficient with four harmonic states and one sum
   of length :math:`D`, and :prf:ref:`cor-risk-five-vertex-asymptotic`
