@@ -37,6 +37,34 @@ def test_invalid_indices_are_rejected(tmp_path, degree):
         read_experiment(path)
 
 
+@pytest.mark.parametrize(
+    ("numerator", "denominator"),
+    [(1.9, 2.9), (True, "2"), (1, 2), ("01", "2"), ("1", "+2"), ("1", "0"), ("1", "-2"), (None, "2")],
+)
+def test_malformed_exact_values_are_rejected(tmp_path, numerator, denominator):
+    path = _manifest(tmp_path / "sequence.json", [{"degree": 1, "numerator": numerator, "denominator": denominator}])
+    with pytest.raises(ValueError, match="malformed exact-data record"):
+        read_experiment(path)
+
+
+@pytest.mark.parametrize(
+    "document",
+    [None, [], {}, {"schema": "skeleton-risk-integer-experiment-v1", "records": {}}],
+)
+def test_malformed_manifest_is_rejected(tmp_path, document):
+    path = tmp_path / "sequence.json"
+    path.write_text(json.dumps(document), encoding="utf-8")
+    with pytest.raises(ValueError, match="manifest"):
+        read_experiment(path)
+
+
+@pytest.mark.parametrize("record", [None, [], {}, {"degree": 1}, {"degree": 1, "numerator": "1"}])
+def test_malformed_record_is_rejected(tmp_path, record):
+    path = _manifest(tmp_path / "sequence.json", [record])
+    with pytest.raises(ValueError, match="record"):
+        read_experiment(path)
+
+
 def test_modular_screen_detects_recurrence_and_excludes_smaller_space():
     pytest.importorskip("flint")
     sequence = {index: Fraction(index) for index in range(1, 15)}

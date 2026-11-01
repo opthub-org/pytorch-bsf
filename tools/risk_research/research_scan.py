@@ -20,20 +20,31 @@ from importlib import import_module
 from pathlib import Path
 from typing import Any
 
+from .exact import record_fraction
+
 
 def read_experiment(path: Path, *, rising: int = 0, central_binomial: bool = False) -> dict[int, Fraction]:
     """Load exact records, rejecting conflicting values and invalid indices."""
     if type(rising) is not int or rising < 0:
         raise ValueError("rising normalization must be a nonnegative integer")
     document = json.loads(path.read_text(encoding="utf-8"))
-    if document.get("schema") != "skeleton-risk-integer-experiment-v1":
-        raise ValueError("expected an integer experiment manifest")
+    if (
+        not isinstance(document, dict)
+        or document.get("schema") != "skeleton-risk-integer-experiment-v1"
+        or not isinstance(document.get("records"), list)
+    ):
+        raise ValueError("expected an integer experiment manifest with a records list")
     sequence: dict[int, Fraction] = {}
     for record in document["records"]:
+        if not isinstance(record, dict) or "degree" not in record:
+            raise ValueError("each exact record must contain a degree")
         index = record["degree"]
         if type(index) is not int or index < 1:
             raise ValueError("degree indices must be positive integers")
-        value = Fraction(int(record["numerator"]), int(record["denominator"]))
+        try:
+            value = record_fraction(record)
+        except (KeyError, TypeError, ValueError) as error:
+            raise ValueError(f"malformed exact-data record: {error}") from error
         value *= math.prod(range(index, index + rising))
         if central_binomial:
             value *= math.comb(2 * index, index)
