@@ -549,13 +549,74 @@ def test_max_error_criterion_wrong_values_shape():
 
 def test_max_error_criterion_piece_without_data():
     # All data lie at vertex 0, so one of the two pieces holds no data for every s.
-    # That piece contributes nothing to the error; the error is 0.25 for every s,
-    # so the first candidate s = 0.25 wins (an empty piece yielding NaN would keep the default s = 0.5).
+    # Every candidate is rejected, and the criterion falls back to the midpoint of the longest edge.
     bs = _identity_curve()
     params = torch.tensor([[1.0, 0.0]])
     values = torch.tensor([[0.5]])
     criterion = max_error_criterion(params, values, grid_size=3)
-    assert criterion(bs) == (0, 0, 1, 0.25)
+    assert criterion(bs) == (0, 0, 1, 0.5)
+
+
+def test_max_error_criterion_without_data_falls_back_to_longest_edge():
+    bs = _rand(3, 2, 2)
+    criterion = max_error_criterion(torch.zeros(0, 3), torch.zeros(0, 2), grid_size=3)
+    assert criterion(bs) == longest_edge_criterion(bs)
+
+
+def test_max_error_criterion_rejects_splits_with_an_empty_piece():
+    # Data near vertex 1 only: the cuts s = 0.25 and s = 0.5 would leave piece B, resp. A, empty;
+    # only s = 0.75 separates the data, even though the residuals of the two points are very different.
+    bs = _identity_curve()
+    params = torch.tensor([[0.1, 0.9], [0.4, 0.6]])
+    values = torch.tensor([[0.0], [0.6]])
+    criterion = max_error_criterion(params, values, grid_size=3)
+    assert criterion(bs) == (0, 0, 1, 0.75)
+
+
+def test_max_error_criterion_separates_high_and_low_residuals():
+    # The model is exact for t_1 < 0.6 and off by one beyond, so the best cut groups the residuals at 0.6.
+    bs = _identity_curve()
+    t = torch.linspace(0.01, 0.99, 50, dtype=torch.float64)
+    params = torch.stack([1 - t, t], dim=1)
+    values = (t + (t > 0.6).double())[:, None]
+    criterion = max_error_criterion(params, values, grid_size=9)
+    k, i, j, s = criterion(bs.to(torch.float64))
+    assert (k, i, j) == (0, 0, 1)
+    assert s == pytest.approx(0.6)
+
+
+def test_max_error_criterion_does_not_favor_one_sided_splits():
+    # Regression test for #621: the old score MSE_A + MSE_B was smaller for cuts leaving few points
+    # on one side (s = 0.05: 1.82, s = 0.5: 1.83, s = 0.95: 0.91), so a cut next to the end was chosen
+    # although the residuals are unchanged by an exact split.
+    torch.manual_seed(0)
+    t = torch.rand(200)
+    params = torch.stack([t, 1 - t], 1)
+    values = torch.sin(6 * t)[:, None]
+    bs = BezierSimploid.rand((1,), 2, n_values=1)
+    k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
+    assert (k, i, j) == (0, 0, 1)
+    assert 0.2 < s < 0.8
+    in_a = params[:, 1] <= s
+    assert 0.25 < float(in_a.double().mean()) < 0.75
+
+
+def test_residual_split_does_not_favor_one_sided_splits():
+    # The public policy goes through the same criterion (#621).
+    from torch_bsf.core import Samples
+    from torch_bsf.splitting import ResidualSplit
+
+    torch.manual_seed(0)
+    t = torch.rand(200, dtype=torch.float64)
+    params = torch.stack([t, 1 - t], 1)
+    model = BezierModel(BezierSpace.simplex(1, degree=2), torch.randn(3, 1, dtype=torch.float64))
+    samples = Samples(params, torch.sin(6 * t)[:, None])
+    chosen = subdivide(model, policy=ResidualSplit(samples, resolution=9)).maps[0].split
+    info = model.space.cells[0]
+    local = BezierSimploid(info.dimensions, info.degree, model.coefficients[list(info.controls)])
+    assert (chosen.factor, chosen.i, chosen.j, chosen.fraction) == max_error_criterion(params, samples.values, 9)(local)
+    assert 0.2 < chosen.fraction < 0.8
+    assert subdivide_space(model, policy=ResidualSplit(samples, resolution=9)).split == chosen
 
 
 # ---------------------------------------------------------------------------

@@ -34,7 +34,6 @@ from math import frexp, hypot, ldexp
 from typing import Literal
 
 import torch
-import torch.nn.functional as F
 
 from torch_bsf._kernels.bezier import BezierSimploid
 from torch_bsf._kernels.combinatorics import SimploidType, _check_type, _indices, _positions
@@ -453,19 +452,40 @@ def longest_edge_criterion(model: BezierSimploid, s: float = 0.5) -> tuple[int, 
 
 
 def max_error_criterion(params: torch.Tensor, values: torch.Tensor, grid_size: int = 10) -> SplitCriterion:
-    r"""Build a criterion that minimises the combined approximation error.
+    r"""Build a criterion that groups the current residuals into two homogeneous pieces.
 
-    For each candidate edge ``(i, j)`` of each factor and split parameter
-    ``s`` drawn from a uniform grid over ``(0, 1)``, the combined
-    mean-squared error
+    A split computed by :func:`split` is exact: both pieces represent the
+    original function, so the residual of each data point,
 
     .. math::
 
-        E(i, j, s) = \mathrm{MSE}_A + \mathrm{MSE}_B
+        r_n = \lVert B(t_n) - v_n \rVert^2,
 
-    is computed, where :math:`\mathrm{MSE}_A` and :math:`\mathrm{MSE}_B`
-    are evaluated on the portions of the data that fall within each
-    piece.  The candidate minimising ``E`` is returned.
+    does not depend on the split.  The residuals are therefore computed once,
+    with the unsplit model, and a candidate split only assigns them to the
+    pieces.  For each candidate edge ``(i, j)`` of each factor and split
+    parameter ``s`` drawn from a uniform grid over ``(0, 1)``, the score
+
+    .. math::
+
+        E(i, j, s) = \sum_{n \in A} (r_n - \bar r_A)^2 + \sum_{n \in B} (r_n - \bar r_B)^2
+
+    is computed, where :math:`A` and :math:`B` are the data points in each
+    piece and :math:`\bar r_A`, :math:`\bar r_B` the mean residuals there.
+    It is the within-piece sum of squares of the residuals, as in a
+    regression tree: the candidate minimising ``E`` best separates the
+    regions of large error from those of small error, so that the pieces
+    can be refined or refitted separately.  Each point counts once per
+    piece, so a piece holding few points cannot lower the score by
+    averaging.
+
+    A candidate is rejected unless each piece contains a data point that the
+    other does not (points with :math:`t_i = t_j = 0` lie in both pieces).
+    Equal scores are broken in favour of the more balanced point counts,
+    then of the first candidate in factor/edge/grid order.  If every
+    candidate is rejected (for example, with no data or with all data on one
+    side of every cut), the midpoint of the longest edge is returned, as by
+    :func:`longest_edge_criterion`.
 
     Parameters
     ----------
@@ -484,15 +504,19 @@ def max_error_criterion(params: torch.Tensor, values: torch.Tensor, grid_size: i
 
     Examples
     --------
+    The model ``B(t) = t_1`` is exact for :math:`t_1 < 0.6` and off by one
+    beyond, so the residuals are grouped by the cut at ``0.6``:
+
     >>> import torch
     >>> from torch_bsf._kernels.api import BezierSimploid
     >>> from torch_bsf._kernels._splitting import max_error_criterion
-    >>> params = torch.tensor([[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]])
-    >>> values = torch.tensor([[0.0], [0.5], [1.0]])
-    >>> bs = BezierSimploid.rand((1,), 1, n_values=1)
-    >>> criterion = max_error_criterion(params, values)
-    >>> criterion(bs)[:3]
-    (0, 0, 1)
+    >>> bs = BezierSimploid((1,), 1, {(1, 0): [0.0], (0, 1): [1.0]})
+    >>> t = torch.linspace(0.05, 0.95, 10)
+    >>> params = torch.stack([1 - t, t], dim=1)
+    >>> values = (t + (t > 0.6).float())[:, None]
+    >>> k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
+    >>> (k, i, j), round(s, 6)
+    ((0, 0, 1), 0.6)
     """
     if grid_size < 1:
         raise ValueError("grid_size must be >= 1")
@@ -502,22 +526,29 @@ def max_error_criterion(params: torch.Tensor, values: torch.Tensor, grid_size: i
     def criterion(model: BezierSimploid) -> tuple[int, int, int, float]:
         _check_splittable(model)
         _check_split_data(params_t, values_t, model)
-        # Move data to the same device and dtype as the model so that forward
-        # passes and mse_loss calls don't raise device/dtype mismatch errors.
+        # Move data to the same device and dtype as the model so that the
+        # forward pass doesn't raise device/dtype mismatch errors.
         cp = model.control_points
         p = params_t.to(device=cp.device, dtype=cp.dtype)
         v = values_t.to(device=cp.device, dtype=cp.dtype)
+        if not len(p):
+            return longest_edge_criterion(model)
+        with torch.no_grad():
+            residuals = (model(p) - v).square().sum(dim=1)
 
-        best, best_error = (0, 0, 1, 0.5), float("inf")
+        best: tuple[int, int, int, float] | None = None
+        best_key = (float("inf"), 0)
         # linspace(0, 1, grid_size+2)[1:-1] gives `grid_size` evenly-spaced
         # values strictly inside (0, 1), with the midpoint 0.5 included when
         # grid_size is odd (e.g. grid_size=1 → [0.5], grid_size=3 → [0.25, 0.5, 0.75]).
         s_candidates = torch.linspace(0.0, 1.0, grid_size + 2)[1:-1].tolist()
         for k, i, j in _edges(model.simploid_type):
             for s in s_candidates:
-                error = _split_error(model, p, v, k, i, j, s)
-                if error < best_error:
-                    best, best_error = (k, i, j, s), error
+                key = _split_score(residuals, p, model.simploid_type, k, i, j, s)
+                if key is not None and key < best_key:
+                    best, best_key = (k, i, j, s), key
+        if best is None:
+            return longest_edge_criterion(model)
         return best
 
     return criterion
@@ -543,20 +574,20 @@ def _check_split_data(params: torch.Tensor, values: torch.Tensor, model: BezierS
         )
 
 
-def _split_error(model: BezierSimploid, params: torch.Tensor, values: torch.Tensor, k: int, i: int, j: int, s: float) -> float:
-    """The sum of the mean-squared errors of the two pieces of ``split(model, i, j, s, factor=k)`` on their data.
+def _split_score(
+    residuals: torch.Tensor, params: torch.Tensor, simploid_type: SimploidType, k: int, i: int, j: int, s: float
+) -> tuple[float, int] | None:
+    """The score of :func:`max_error_criterion` for the split ``(k, i, j, s)`` and the imbalance of its point counts.
 
-    A piece that contains none of the data contributes nothing.
+    ``None`` if a piece contains no data point that the other piece does not.
     """
-    bs_a, bs_b = _split_core(model, k, i, j, s)
-    error = 0.0
-    with torch.no_grad():
-        pieces: tuple[tuple[BezierSimploid, Literal["A", "B"]], ...] = ((bs_a, "A"), (bs_b, "B"))
-        for piece, part in pieces:
-            u, mask = reparametrize(params, i, j, s, part, simploid_type=model.simploid_type, factor=k)
-            if mask.any():
-                error += float(F.mse_loss(piece(u[mask]), values[mask]).item())
-    return error
+    _, in_a = reparametrize(params, i, j, s, "A", simploid_type=simploid_type, factor=k)
+    _, in_b = reparametrize(params, i, j, s, "B", simploid_type=simploid_type, factor=k)
+    if not ((in_a & ~in_b).any() and (in_b & ~in_a).any()):
+        return None
+    ra, rb = residuals[in_a], residuals[in_b]
+    score = float((ra - ra.mean()).square().sum() + (rb - rb.mean()).square().sum())
+    return score, abs(len(ra) - len(rb))
 
 
 def split_by_criterion(model: BezierSimploid, criterion: SplitCriterion) -> tuple[BezierSimploid, BezierSimploid]:
