@@ -1,0 +1,488 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Explicit ensembles and active learning &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Single and assembled domains" href="simploidal.html" />
+    <link rel="prev" title="Fixed controls" href="fixed_controls.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_family.html">Uniform construction for codimension two</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three.html">Boundary transfer and a codimension-three edge bound</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html">An all-degree sufficient region for large vertex counts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html">Five-vertex vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_comparison.html">Five-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Explicit ensembles and active learning</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#when-observations-are-expensive">When observations are expensive</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#build-a-committee">Build a committee</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#what-each-query-measures">What each query measures</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bound-acquisition-memory">Bound acquisition memory</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#tune-the-observation-budget-and-candidate-pool">Tune the observation budget and candidate pool</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#observe-append-and-refit">Observe, append and refit</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Explicit ensembles and active learning</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/active_learning.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="explicit-ensembles-and-active-learning">
+<h1>Explicit ensembles and active learning<a class="headerlink" href="#explicit-ensembles-and-active-learning" title="Link to this heading"></a></h1>
+<section id="when-observations-are-expensive">
+<h2>When observations are expensive<a class="headerlink" href="#when-observations-are-expensive" title="Link to this heading"></a></h2>
+<p>Use active learning when evaluating the true response costs much more than
+fitting a surrogate: a laboratory experiment, a simulation, or a multiobjective
+optimization run may take minutes or hours per parameter. Instead of collecting
+another large uniform batch, fit several models, identify uncertain regions,
+and spend a small additional budget there. The objective is better predictions
+for a fixed observation budget, rather than simply a smaller training residual.</p>
+<p>A committee is a collection of models fitted to different subsets of the same
+observations. Where their predictions differ, the data may not determine the
+response reliably. <code class="docutils literal notranslate"><span class="pre">query_by_committee</span></code> ranks a supplied candidate pool by
+that disagreement. <code class="docutils literal notranslate"><span class="pre">farthest_points</span></code> offers a complementary strategy: it
+covers gaps in parameter coordinates without needing any fitted models.
+Use coverage when observations are initially sparse or committee members agree
+because they all share the same restrictive degree.</p>
+<p>Neither acquisition function evaluates your simulator or modifies a fit.
+They return <code class="docutils literal notranslate"><span class="pre">Points</span></code> with their cell IDs, so the application controls costs,
+measurement failures, data storage, and the next refit. A query is a request
+for a future observation; a prediction at that point is not a substitute for
+observing its actual response.</p>
+</section>
+<section id="build-a-committee">
+<h2>Build a committee<a class="headerlink" href="#build-a-committee" title="Link to this heading"></a></h2>
+<p>The complete example uses a scalar response on a line segment. Each row is
+<code class="docutils literal notranslate"><span class="pre">[1-x,</span> <span class="pre">x]</span></code>; <code class="docutils literal notranslate"><span class="pre">x</span></code> is an experiment setting between zero and one. The eight
+initial observations deliberately leave uneven gaps. In a real experiment,
+replace <code class="docutils literal notranslate"><span class="pre">response</span></code> with the expensive measurement function.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">BezierSpace</span><span class="p">,</span> <span class="n">Ensemble</span><span class="p">,</span> <span class="n">Points</span><span class="p">,</span> <span class="n">Samples</span><span class="p">,</span> <span class="n">fit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.model_selection</span><span class="w"> </span><span class="kn">import</span> <span class="n">KFold</span><span class="p">,</span> <span class="n">cross_validate</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf.active_learning</span><span class="w"> </span><span class="kn">import</span> <span class="n">query_by_committee</span><span class="p">,</span> <span class="n">farthest_points</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">coordinates</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x</span><span class="p">,</span> <span class="n">x</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">response</span><span class="p">(</span><span class="n">points</span><span class="p">):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">points</span><span class="o">.</span><span class="n">parameters</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="mf">.2</span> <span class="o">*</span> <span class="n">x</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span>
+
+<span class="n">space</span> <span class="o">=</span> <span class="n">BezierSpace</span><span class="o">.</span><span class="n">simplex</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">.1</span><span class="p">,</span> <span class="mf">.2</span><span class="p">,</span> <span class="mf">.35</span><span class="p">,</span> <span class="mf">.5</span><span class="p">,</span> <span class="mf">.65</span><span class="p">,</span> <span class="mf">.8</span><span class="p">,</span> <span class="mf">1.</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="n">observed</span> <span class="o">=</span> <span class="n">Points</span><span class="p">(</span><span class="n">coordinates</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+<span class="n">samples</span> <span class="o">=</span> <span class="n">Samples</span><span class="p">(</span><span class="n">observed</span><span class="p">,</span> <span class="n">response</span><span class="p">(</span><span class="n">observed</span><span class="p">))</span>
+<span class="n">validation</span> <span class="o">=</span> <span class="n">cross_validate</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">cv</span><span class="o">=</span><span class="n">KFold</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">7</span><span class="p">))</span>
+<span class="k">assert</span> <span class="n">validation</span><span class="o">.</span><span class="n">success</span>
+<span class="n">committee</span> <span class="o">=</span> <span class="n">Ensemble</span><span class="p">(</span><span class="n">validation</span><span class="o">.</span><span class="n">models</span><span class="p">)</span>
+<span class="n">q</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">.001</span><span class="p">,</span> <span class="mf">.999</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="n">candidates</span> <span class="o">=</span> <span class="n">Points</span><span class="p">(</span><span class="n">coordinates</span><span class="p">(</span><span class="n">q</span><span class="p">))</span>
+<span class="n">proposed</span> <span class="o">=</span> <span class="n">query_by_committee</span><span class="p">(</span><span class="n">committee</span><span class="p">,</span> <span class="n">candidates</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">coverage</span> <span class="o">=</span> <span class="n">farthest_points</span><span class="p">(</span><span class="n">candidates</span><span class="p">,</span> <span class="n">samples</span><span class="o">.</span><span class="n">points</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">proposed</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">coverage</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">validation.models</span></code> contains one model per fold, trained without that fold’s
+held-out observations. Constructing <code class="docutils literal notranslate"><span class="pre">Ensemble</span></code> is explicit: cross-validation
+itself returns validation evidence, not a production predictor. All committee
+members must use compatible spaces and the same output dimension. If members
+have different degrees, refit them into one common space before constructing
+this ensemble; matching input widths alone does not imply compatibility.</p>
+<p><code class="docutils literal notranslate"><span class="pre">committee(points)</span></code> computes the mean prediction. <code class="docutils literal notranslate"><span class="pre">committee.members(points)</span></code>
+retains the individual predictions, with shape <code class="docutils literal notranslate"><span class="pre">(members,</span> <span class="pre">points,</span> <span class="pre">outputs)</span></code>.
+Use the latter to inspect disagreement rather than only plotting the mean.
+One member has zero variance everywhere and cannot provide a useful committee.
+Two members provide a fragile estimate; several different training subsets
+usually provide a more informative comparison, at a greater fitting cost.</p>
+</section>
+<section id="what-each-query-measures">
+<h2>What each query measures<a class="headerlink" href="#what-each-query-measures" title="Link to this heading"></a></h2>
+<p>For candidate <span class="math notranslate nohighlight">\(t\)</span>, member predictions <span class="math notranslate nohighlight">\(b_k(t)\)</span> and output count
+<span class="math notranslate nohighlight">\(m\)</span>, the disagreement score is</p>
+<div class="math notranslate nohighlight">
+\[a(t)=\frac{1}{m}\sum_{j=1}^{m}
+\frac{1}{K}\sum_{k=1}^{K}(b_{k,j}(t)-\bar b_j(t))^2.\]</div>
+<p>The implementation uses population variance (<code class="docutils literal notranslate"><span class="pre">unbiased=False</span></code>), averages
+across outputs, and returns the <code class="docutils literal notranslate"><span class="pre">n</span></code> largest scores. Ties follow candidate
+order. This score is a heuristic for model disagreement, not a calibrated
+posterior variance or confidence interval. Members can all be wrong together.
+A straight-line committee may agree on a curved response; increasing the
+candidate pool cannot repair a model class that cannot express the feature.</p>
+<p>Because scores average squared deviations in output units, a numerically large
+output can dominate acquisition. If outputs use different units, explicitly
+choose and apply output transforms before building the committee. Transform
+new observations consistently and assess final errors after inversion. See
+<a class="reference internal" href="normalization.html"><span class="doc">Output scaling</span></a> for leakage-free scaling. A common scalar multiplication
+of every output leaves rankings unchanged; changing relative output scales
+can change which experiments are requested.</p>
+<p>Acquisition transfers finite predictions to CPU float64 and compares variance
+mantissas and exponents, rather than materializing squared scores that could
+overflow or underflow. Internal power-of-two scaling is restored when
+combining outputs, preserving their relative units. Exactly agreeing members
+have zero disagreement even at extreme magnitudes. Nearly tied nonzero scores
+are compared using exact rational arithmetic on the supplied predictions.
+This retains small output contributions that float64 summation could otherwise
+erase; its additional CPU cost grows with the number of nearly tied candidates,
+committee members, outputs, and prediction exponent range. Separated scores and
+zero-disagreement groups use the vectorized float64 comparison.
+Nonfinite member predictions
+raise <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. Scaling cannot recover differences already lost to
+rounding or overflow during model prediction itself.</p>
+<p><code class="docutils literal notranslate"><span class="pre">farthest_points</span></code> starts from each candidate’s distance to the closest
+observed point in the same cell. It repeatedly selects the farthest point and
+updates remaining distances to include that selection. Thus a batch spreads
+out. An unobserved cell initially has infinite distance and receives priority.
+Coordinates in different cells are not treated as points in one Euclidean
+chart, even when two cells share a geometric face.</p>
+</section>
+<section id="bound-acquisition-memory">
+<h2>Bound acquisition memory<a class="headerlink" href="#bound-acquisition-memory" title="Link to this heading"></a></h2>
+<p>For a large candidate pool, set <code class="docutils literal notranslate"><span class="pre">farthest_points(...,</span> <span class="pre">chunk_size=512)</span></code>.
+The default is 1024. Both candidate and observation axes of each distance
+matrix are bounded by this size, so a float64 matrix uses at most
+<code class="docutils literal notranslate"><span class="pre">8</span> <span class="pre">*</span> <span class="pre">chunk_size**2</span></code> bytes (8 MiB at the default). Distance-kernel workspaces
+and coordinate blocks require additional memory. Per-candidate minimum
+distances are retained, rather than the full candidate-by-observation matrix.
+Selected-point updates are also split into chunks. Equal scores choose the
+earliest remaining candidate, including duplicate coordinates. Returned
+parameters preserve their autograd connection to the input candidates;
+discrete selection does not retain an acquisition-distance computation graph.</p>
+<p>For one cell with C candidates, O observations, coordinate width D and n
+queries, arithmetic work remains <code class="docutils literal notranslate"><span class="pre">O(C</span> <span class="pre">*</span> <span class="pre">O</span> <span class="pre">*</span> <span class="pre">D</span> <span class="pre">+</span> <span class="pre">n</span> <span class="pre">*</span> <span class="pre">C</span> <span class="pre">*</span> <span class="pre">D)</span></code>. Auxiliary
+memory is <code class="docutils literal notranslate"><span class="pre">O(C</span> <span class="pre">+</span> <span class="pre">O</span> <span class="pre">+</span> <span class="pre">chunk_size**2</span> <span class="pre">+</span> <span class="pre">chunk_size</span> <span class="pre">*</span> <span class="pre">D)</span></code> in addition to input
+coordinates and CPU float64 conversion. Smaller chunks trade lower peak
+memory for more Python and kernel calls. The dense and chunked algorithms
+use direct coordinate differences rather than expanding squared norms into
+matrix products. This retains tiny separations between nearby points even
+when a cell has more than 25 candidates or observations, where PyTorch would
+otherwise switch distance algorithms. Direct differences may be slower than
+matrix multiplication for large blocks; the distance-matrix memory bound
+and arithmetic complexity above are unchanged.</p>
+<p>Measure this tradeoff on your machine from the repository root:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PYTHONPATH</span><span class="o">=.</span> <span class="n">python</span> <span class="n">examples</span><span class="o">/</span><span class="n">benchmark_farthest_points</span><span class="o">.</span><span class="n">py</span> \
+    <span class="o">--</span><span class="n">candidates</span> <span class="mi">10000</span> <span class="o">--</span><span class="n">observed</span> <span class="mi">2000</span> <span class="o">--</span><span class="n">dimensions</span> <span class="mi">4</span> \
+    <span class="o">--</span><span class="n">select</span> <span class="mi">8</span> <span class="o">--</span><span class="n">chunks</span> <span class="mi">256</span> <span class="mi">1024</span> <span class="o">--</span><span class="n">repeats</span> <span class="mi">3</span> <span class="o">--</span><span class="n">output</span> <span class="n">acquisition</span><span class="o">.</span><span class="n">json</span>
+</pre></div>
+</div>
+<p>Each dense/chunked measurement runs in a fresh CPU process with one PyTorch
+thread and the same seed. JSON records input sizes, chunk setting, selection,
+elapsed acquisition time, pre-acquisition and process peak RSS, Python,
+PyTorch and platform. RSS includes interpreter/import/input costs; it is not
+the size of the distance matrix alone. This benchmark measures exact greedy
+selection, without promising a speedup or using a fixed timing threshold.</p>
+</section>
+<section id="tune-the-observation-budget-and-candidate-pool">
+<h2>Tune the observation budget and candidate pool<a class="headerlink" href="#tune-the-observation-budget-and-candidate-pool" title="Link to this heading"></a></h2>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-number">Table 20 </span><span class="caption-text">Acquisition choices and their effects</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 24.0%" />
+<col style="width: 39.0%" />
+<col style="width: 37.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Setting</p></th>
+<th class="head"><p>Increasing it does this</p></th>
+<th class="head"><p>Practical starting point</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">n</span></code></p></td>
+<td><p>Requests more observations per round. Committee queries may cluster.</p></td>
+<td><p>Start with a small batch that fits the measurement budget.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Candidate count</p></td>
+<td><p>Resolves narrower regions, while increasing prediction and distance work.</p></td>
+<td><p>Use a few hundred points for a curve, then check pool sensitivity.</p></td>
+</tr>
+<tr class="row-even"><td><p>Fold count</p></td>
+<td><p>Builds more committee members with larger training subsets per member.</p></td>
+<td><p>Use three to five folds if each training fold remains identifiable.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Polynomial degree</p></td>
+<td><p>Adds flexibility, potentially increasing disagreement in sparse regions.</p></td>
+<td><p>Choose by validation rather than maximizing acquisition variance.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">seed</span></code> for folds or sampling</p></td>
+<td><p>Changes the actual subsets or candidates; it is not a variance knob.</p></td>
+<td><p>Fix it for comparisons; repeat with other seeds to assess stability.</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">n</span></code> must be positive and cannot exceed the pool size. It counts candidate
+rows, so duplicate coordinates in the pool can result in duplicate physical
+experiments. Remove previously observed rows and exact duplicate candidates
+before acquiring. For a finite catalogue, also remove infeasible or unavailable
+experiments before scoring; neither function understands external constraints.</p>
+<p>For a multi-cell space, draw candidates with <code class="docutils literal notranslate"><span class="pre">sample(space,</span> <span class="pre">...,</span> <span class="pre">seed=...)</span></code>
+or assemble them with <code class="docutils literal notranslate"><span class="pre">Points.from_cells</span></code>. Default random sampling gives
+equal probability to maximal cells, which may differ from physical volume.
+Choose <code class="docutils literal notranslate"><span class="pre">cell_weights</span></code> deliberately if some cells deserve more measurement
+budget. This changes where candidates exist, and hence where either acquisition
+rule can choose. Points on explicitly supplied lower-dimensional faces keep
+their face IDs throughout selection.</p>
+<p>Committee selection uses a top-score batch, without a diversity penalty.
+Increasing <code class="docutils literal notranslate"><span class="pre">n</span></code> can therefore put every query near one uncertain endpoint.
+If experiments should span the domain, compare with <code class="docutils literal notranslate"><span class="pre">farthest_points</span></code>, or
+alternate separate coverage and disagreement rounds. Record which policy was
+used, and keep a fixed independent evaluation set so that changes in training
+coverage do not hide a regression elsewhere.</p>
+</section>
+<section id="observe-append-and-refit">
+<h2>Observe, append and refit<a class="headerlink" href="#observe-append-and-refit" title="Link to this heading"></a></h2>
+<p>Continue the earlier example by querying the exact synthetic response. The
+new model uses every original and newly acquired observation:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">new_values</span> <span class="o">=</span> <span class="n">response</span><span class="p">(</span><span class="n">proposed</span><span class="p">)</span>
+<span class="n">updated</span> <span class="o">=</span> <span class="n">Samples</span><span class="p">(</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">samples</span><span class="o">.</span><span class="n">points</span><span class="o">.</span><span class="n">parameters</span><span class="p">,</span> <span class="n">proposed</span><span class="o">.</span><span class="n">parameters</span><span class="p">]),</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">samples</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">new_values</span><span class="p">]),</span>
+    <span class="n">cell_ids</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">samples</span><span class="o">.</span><span class="n">points</span><span class="o">.</span><span class="n">cell_ids</span><span class="p">,</span> <span class="n">proposed</span><span class="o">.</span><span class="n">cell_ids</span><span class="p">]),</span>
+<span class="p">)</span>
+<span class="n">before</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">samples</span><span class="p">)</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="n">after</span> <span class="o">=</span> <span class="n">fit</span><span class="p">(</span><span class="n">space</span><span class="p">,</span> <span class="n">updated</span><span class="p">)</span><span class="o">.</span><span class="n">require_success</span><span class="p">()</span>
+<span class="n">test_points</span> <span class="o">=</span> <span class="n">Points</span><span class="p">(</span><span class="n">coordinates</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">401</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float64</span><span class="p">)))</span>
+<span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+    <span class="n">before_mse</span> <span class="o">=</span> <span class="p">(</span><span class="n">before</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">test_points</span><span class="p">)</span> <span class="o">-</span> <span class="n">response</span><span class="p">(</span><span class="n">test_points</span><span class="p">))</span><span class="o">.</span><span class="n">square</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">after_mse</span> <span class="o">=</span> <span class="p">(</span><span class="n">after</span><span class="o">.</span><span class="n">model</span><span class="p">(</span><span class="n">test_points</span><span class="p">)</span> <span class="o">-</span> <span class="n">response</span><span class="p">(</span><span class="n">test_points</span><span class="p">))</span><span class="o">.</span><span class="n">square</span><span class="p">()</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+<span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">before_mse</span><span class="p">)</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">after_mse</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For weighted observations, concatenate the original weights and the new
+measurement weights as well. Omitting weights, as above, intentionally treats
+each measurement equally. Do not silently discard a failed measurement and
+insert a surrogate prediction in its place. Retry it, exclude it with a record
+of the failure, or revise the feasible candidate domain.</p>
+<figure class="align-default" id="id2">
+<a class="reference internal image-reference" href="../_images/acquisition.png"><img alt="Fold-model predictions and selected experiments, followed by prediction errors before and after acquisition." src="../_images/acquisition.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 14 </span><span class="caption-text">Left: four fold models, eight observations, three committee queries and
+three coverage queries. Right: absolute error before and after observing
+the exact response at the committee queries and refitting the same cubic
+space. Error can improve in one region and worsen in another.</span><a class="headerlink" href="#id2" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>The figure is generated by <code class="docutils literal notranslate"><span class="pre">examples/generate_guide_figures.py</span></code>. Its JSON
+records the candidate count, fold seed, selected coordinates and dense-grid
+MSEs in <a class="reference download internal" download="" href="../_downloads/84af9d5d5260b756f659bd39d1ec8602/metrics.json"><code class="xref download docutils literal notranslate"><span class="pre">metrics.json</span></code></a>.
+In this particular round, dense-grid MSE rises from about 0.000510 to
+0.000547: the top-score queries cluster near the right endpoint. Compare a
+smaller query batch or a coverage round before spending more experiments
+in the same region. The response is noiseless in this experiment; acquisition under measurement
+noise can behave differently. No universal improvement per round is promised.</p>
+<p>Stop when independent error meets your requirement, the remaining measurement
+budget is exhausted, or several rounds cease to improve the relevant metric.
+Keep the original observations, the exact candidate pool and each round’s
+queries to make the result reproducible. Recompute the committee after each
+round: reusing old members ranks uncertainty under an outdated training set.
+For model selection before acquisition, see <a class="reference internal" href="model_selection.html"><span class="doc">Cross-validation and degree search</span></a>; for exploratory
+candidate generation and coverage, see <a class="reference internal" href="sampling.html"><span class="doc">Sampling and grids</span></a> and <a class="reference internal" href="grid_sampling.html"><span class="doc">Grid sampling</span></a>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="fixed_controls.html" class="btn btn-neutral float-left" title="Fixed controls" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="simploidal.html" class="btn btn-neutral float-right" title="Single and assembled domains" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: claude/cool-ritchie-gl21xl
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/advanced/active_learning.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/advanced/active_learning.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/advanced/active_learning.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/advanced/active_learning.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/advanced/active_learning.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/advanced/active_learning.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/advanced/active_learning.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/advanced/active_learning.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/advanced/active_learning.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/advanced/active_learning.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/advanced/active_learning.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/advanced/active_learning.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="active_learning.html">claude/cool-ritchie-gl21xl</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
