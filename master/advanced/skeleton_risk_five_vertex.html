@@ -24,7 +24,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Risk on an assembled simploidal set" href="simploidal_risk.html" />
+    <link rel="next" title="Quantitative five-vertex vertex asymptotics" href="skeleton_risk_five_vertex_asymptotics.html" />
     <link rel="prev" title="Tetrahedron risk comparison at every degree" href="skeleton_risk_tetrahedron_comparison.html" /> 
 </head>
 
@@ -67,6 +67,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
@@ -78,6 +79,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#reproduction-and-limits">Reproduction and limits</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
@@ -144,7 +146,10 @@ diagonals applies to every fixed vertex count.</p>
 <p>All statements use the uniform-simplex assumptions of
 <a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a>. The sum has <span class="math notranslate nohighlight">\(D\)</span> terms. It is not a
 bounded-length classical-special-function expression, and this page does
-not assert an explicit recurrence in <span class="math notranslate nohighlight">\(D\)</span>.</p>
+not assert an explicit recurrence in <span class="math notranslate nohighlight">\(D\)</span>.
+The broader construction and fixed-dimension leading constants are in
+<a class="reference internal" href="skeleton_risk_vertex_general.html"><span class="doc">Vertex coefficients at every fixed vertex count</span></a>. The five-vertex leading term has an
+explicit remainder bound in <a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html"><span class="doc">Quantitative five-vertex vertex asymptotics</span></a>.</p>
 <section id="an-exact-harmonic-weight">
 <h2>An exact harmonic weight<a class="headerlink" href="#an-exact-harmonic-weight" title="Link to this heading"></a></h2>
 <p>Write <span class="math notranslate nohighlight">\(H_j^{(r)}=\sum_{k=1}^j k^{-r}\)</span>, <span class="math notranslate nohighlight">\(H_j=H_j^{(1)}\)</span>,
@@ -158,7 +163,7 @@ evaluation. For <span class="math notranslate nohighlight">\(n=j+1\)</span>, abb
 <span class="math notranslate nohighlight">\(H=H_j\)</span>, <span class="math notranslate nohighlight">\(H_2=H_j^{(2)}\)</span>, <span class="math notranslate nohighlight">\(H_3=H_j^{(3)}\)</span>, and
 <span class="math notranslate nohighlight">\(A=A_j\)</span>. Define</p>
 <div class="math notranslate nohighlight" id="equation-risk-five-vertex-diagonal">
-<span class="eqno">(48)<a class="headerlink" href="#equation-risk-five-vertex-diagonal" title="Link to this equation"></a></span>\[\begin{split}\Psi_j={}&amp;\frac{24H^3}{n(n+1)(n+2)(n+3)}\\
+<span class="eqno">(54)<a class="headerlink" href="#equation-risk-five-vertex-diagonal" title="Link to this equation"></a></span>\[\begin{split}\Psi_j={}&amp;\frac{24H^3}{n(n+1)(n+2)(n+3)}\\
  &amp;-\frac{12(5n^3+7n^2-6n-12)H^2}
           {n^2(n+1)^2(n+2)^2(n+3)}\\
  &amp;+\frac{24(2n+3)HH_2}{n(n+1)(n+2)(n+3)}\\
@@ -170,13 +175,13 @@ evaluation. For <span class="math notranslate nohighlight">\(n=j+1\)</span>, abb
    -\frac{48A}{n(n+2)}
    +\frac{144}{n^2(n+1)^2(n+2)^2(n+3)}.\end{split}\]</div>
 <div class="proof theorem admonition" id="thm-risk-five-vertex-single">
-<p class="admonition-title"><span class="caption-number">Theorem 32 </span> (Five-vertex vertex coefficient at every degree)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 34 </span> (Five-vertex vertex coefficient at every degree)</p>
 <section class="theorem-content" id="proof-content">
 <p>For every integer <span class="math notranslate nohighlight">\(D\geq1\)</span>, let
 <span class="math notranslate nohighlight">\(W_{D,j}=\binom{D-1}j\binom{D+1}j\)</span> and
 <span class="math notranslate nohighlight">\(Z_D=\binom{2D}{D-1}\)</span>. Then</p>
 <div class="math notranslate nohighlight" id="equation-risk-five-vertex-single">
-<span class="eqno">(49)<a class="headerlink" href="#equation-risk-five-vertex-single" title="Link to this equation"></a></span>\[a_0(5,D)=\frac{600}
+<span class="eqno">(55)<a class="headerlink" href="#equation-risk-five-vertex-single" title="Link to this equation"></a></span>\[a_0(5,D)=\frac{600}
  {Z_D(2D+1)(2D+2)(2D+3)(2D+4)}
  \sum_{j=0}^{D-1}W_{D,j}\Psi_j.\]</div>
 <p>Every <span class="math notranslate nohighlight">\(\Psi_j\)</span> is strictly positive, with <span class="math notranslate nohighlight">\(\Psi_0=1\)</span>.
@@ -197,7 +202,7 @@ All denominators in the formula are nonzero on the stated domain.</p>
 Terms in which one of <span class="math notranslate nohighlight">\(g(x),g(y)\)</span> is absent combine by
 convolution. The result is</p>
 <div class="math notranslate nohighlight" id="equation-risk-five-vertex-quartic-convolutions">
-<span class="eqno">(50)<a class="headerlink" href="#equation-risk-five-vertex-quartic-convolutions" title="Link to this equation"></a></span>\[[x^jy^j]\frac{(g(x)+g(y)-g(xy))^4}{(1-x)(1-y)}
+<span class="eqno">(56)<a class="headerlink" href="#equation-risk-five-vertex-quartic-convolutions" title="Link to this equation"></a></span>\[[x^jy^j]\frac{(g(x)+g(y)-g(xy))^4}{(1-x)(1-y)}
  =-\phi_4(j)+8\phi_1(j)\phi_3(j)+6\phi_2(j)^2
   -24\bigl(g*(\phi_1\phi_2)\bigr)_j
   +12\bigl(g^2*\phi_1^2\bigr)_j.\]</div>
@@ -243,13 +248,13 @@ for example, the penultimate sum is
 <span class="math notranslate nohighlight">\(i+r=s\)</span> give <span class="math notranslate nohighlight">\(2A+\sum_{s\leq n-1}H_{s-1}^{(2)}/s\)</span>
 <span class="math notranslate nohighlight">\({}=A+HH_2-H_3\)</span>. The formulas also hold when <span class="math notranslate nohighlight">\(n=1\)</span>
 and the sums are empty. Substitution and collection give exactly
-<a class="reference internal" href="#equation-risk-five-vertex-diagonal">(48)</a>.</p>
+<a class="reference internal" href="#equation-risk-five-vertex-diagonal">(54)</a>.</p>
 <p>The binomial-transform diagonalization now gives</p>
 <div class="math notranslate nohighlight">
 \[a_0(5,D)=\frac{25(D-1)!(D+1)!}{(5)_{2D}}
  \sum_j W_{D,j}\Psi_j.\]</div>
 <p>Use <span class="math notranslate nohighlight">\((D-1)!(D+1)!Z_D=(2D)!\)</span> to obtain
-<a class="reference internal" href="#equation-risk-five-vertex-single">(49)</a>. Positivity follows from the general
+<a class="reference internal" href="#equation-risk-five-vertex-single">(55)</a>. Positivity follows from the general
 argument below.</p>
 </div>
 </section>
@@ -291,7 +296,7 @@ requiring each term of a collected harmonic expression to be positive.</p>
 <section class="corollary-content" id="proof-content">
 <p>As <span class="math notranslate nohighlight">\(D\to\infty\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-risk-five-vertex-asymptotic">
-<span class="eqno">(51)<a class="headerlink" href="#equation-risk-five-vertex-asymptotic" title="Link to this equation"></a></span>\[a_0(5,D)=\frac{7200(\zeta(2)-\zeta(3))}{D^6}
+<span class="eqno">(57)<a class="headerlink" href="#equation-risk-five-vertex-asymptotic" title="Link to this equation"></a></span>\[a_0(5,D)=\frac{7200(\zeta(2)-\zeta(3))}{D^6}
   +O\!\left(\frac{\log D}{D^7}\right).\]</div>
 </section>
 </div><div class="proof admonition" id="proof">
@@ -309,7 +314,7 @@ monotone convergence and the power series for the logarithm give</p>
 <p>The second inequality follows from
 <span class="math notranslate nohighlight">\(H_{k-1}\leq1+\log k\)</span> and comparison with the decreasing
 function <span class="math notranslate nohighlight">\((1+\log x)/x^2\)</span>. The coefficient of <span class="math notranslate nohighlight">\(H_2\)</span>
-in <a class="reference internal" href="#equation-risk-five-vertex-diagonal">(48)</a> differs from
+in <a class="reference internal" href="#equation-risk-five-vertex-diagonal">(54)</a> differs from
 <span class="math notranslate nohighlight">\(48/(n(n+2))\)</span> by</p>
 <div class="math notranslate nohighlight">
 \[-\frac{12(2n^3+3n^2-2n-12)}
@@ -338,7 +343,7 @@ second derivative <span class="math notranslate nohighlight">\(O(D^{-4})\)</span
 \[\mathbb E[\Psi_J]
  =\frac{192(\zeta(2)-\zeta(3))}{D^2}
    +O(\log D/D^3).\]</div>
-<p>Finally, <a class="reference internal" href="#equation-risk-five-vertex-single">(49)</a> is
+<p>Finally, <a class="reference internal" href="#equation-risk-five-vertex-single">(55)</a> is
 <span class="math notranslate nohighlight">\(600\mathbb E[\Psi_J]/\prod_{r=1}^4(2D+r)\)</span>.
 Expanding this rational factor proves the assertion.</p>
 </div>
@@ -346,7 +351,7 @@ Expanding this rational factor proves the assertion.</p>
 <section id="reproduction-and-limits">
 <h2>Reproduction and limits<a class="headerlink" href="#reproduction-and-limits" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">tools.risk_research.vertex_five.five_vertex_coefficient</span></code> evaluates
-<a class="reference internal" href="#equation-risk-five-vertex-single">(49)</a> using exact rational arithmetic, four harmonic
+<a class="reference internal" href="#equation-risk-five-vertex-single">(55)</a> using exact rational arithmetic, four harmonic
 states, a binomial weight and an accumulator. The number of rational states
 is fixed, while their bit lengths increase with <span class="math notranslate nohighlight">\(D\)</span>. Floating-point
 evaluation of the ungrouped weight can lose precision through cancellation;
@@ -367,7 +372,7 @@ identities.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="skeleton_risk_tetrahedron_comparison.html" class="btn btn-neutral float-left" title="Tetrahedron risk comparison at every degree" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="simploidal_risk.html" class="btn btn-neutral float-right" title="Risk on an assembled simploidal set" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="skeleton_risk_five_vertex_asymptotics.html" class="btn btn-neutral float-right" title="Quantitative five-vertex vertex asymptotics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

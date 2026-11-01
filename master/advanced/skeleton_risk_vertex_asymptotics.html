@@ -67,6 +67,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Quantitative tetrahedron vertex asymptotics</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#reproducible-enclosures">Reproducible enclosures</a></li>
@@ -75,6 +76,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
@@ -139,15 +141,15 @@ term and a completely explicit error bound. Write
 <span class="math notranslate nohighlight">\(\gamma=\lim_n(H_n-\log n)\)</span> for Euler’s constant and put
 <span class="math notranslate nohighlight">\(L_D=\log(D/2)+\gamma\)</span>.</p>
 <div class="proof theorem admonition" id="thm-risk-vertex-two-term-error">
-<p class="admonition-title"><span class="caption-number">Theorem 28 </span> (Two-term vertex expansion with an explicit remainder)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 30 </span> (Two-term vertex expansion with an explicit remainder)</p>
 <section class="theorem-content" id="proof-content">
 <p>Define</p>
 <div class="math notranslate nohighlight" id="equation-risk-vertex-two-term-expansion">
-<span class="eqno">(45)<a class="headerlink" href="#equation-risk-vertex-two-term-expansion" title="Link to this equation"></a></span>\[A_D=\frac{48\pi^2}{D^5}
+<span class="eqno">(51)<a class="headerlink" href="#equation-risk-vertex-two-term-expansion" title="Link to this equation"></a></span>\[A_D=\frac{48\pi^2}{D^5}
  +\frac{576(L_D^2-L_D-1)-456\pi^2}{D^6}.\]</div>
 <p>For every integer <span class="math notranslate nohighlight">\(D\geq256\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-risk-vertex-two-term-error">
-<span class="eqno">(46)<a class="headerlink" href="#equation-risk-vertex-two-term-error" title="Link to this equation"></a></span>\[\left|a_0(4,D)-A_D\right|
+<span class="eqno">(52)<a class="headerlink" href="#equation-risk-vertex-two-term-error" title="Link to this equation"></a></span>\[\left|a_0(4,D)-A_D\right|
   \leq\frac{10^7(1+\log D)^2}{D^7}.\]</div>
 <p>In particular the next-order coefficient contains a squared logarithm;
 the error is <span class="math notranslate nohighlight">\(O(\log^2D/D^7)\)</span>. This result concerns the
@@ -184,7 +186,7 @@ f(t)=\frac{\ell_t^2-\ell_t-4z-1}{t^3}.\]</div>
 <p>For integers <span class="math notranslate nohighlight">\(1\leq j&lt;D\)</span>, direct rational expansions of the
 four terms of <span class="math notranslate nohighlight">\(G_j\)</span> give</p>
 <div class="math notranslate nohighlight" id="equation-risk-vertex-pointwise-error">
-<span class="eqno">(47)<a class="headerlink" href="#equation-risk-vertex-pointwise-error" title="Link to this equation"></a></span>\[G_j=zu(j)+f(j)+R_j,
+<span class="eqno">(53)<a class="headerlink" href="#equation-risk-vertex-pointwise-error" title="Link to this equation"></a></span>\[G_j=zu(j)+f(j)+R_j,
 \qquad |R_j|\leq160B^2/j^4.\]</div>
 <p>Here are explicit bounds for that calculation. The errors in replacing
 the first denominator by <span class="math notranslate nohighlight">\(j^{-3}\)</span> and the third rational factor
@@ -255,7 +257,7 @@ On the tail the absolute linear Taylor polynomial is at most
 <span class="math notranslate nohighlight">\((88+272)B^2/D^3\)</span>.</p>
 <p>The positive single-sum weight also satisfies <span class="math notranslate nohighlight">\(0&lt;G_j\leq1\)</span>
 for every <span class="math notranslate nohighlight">\(j\geq0\)</span>, as shown in the tetrahedron comparison.
-Combine this tail bound with <a class="reference internal" href="#equation-risk-vertex-pointwise-error">(47)</a> and
+Combine this tail bound with <a class="reference internal" href="#equation-risk-vertex-pointwise-error">(53)</a> and
 <span class="math notranslate nohighlight">\(j^{-4}&lt;256/D^4\)</span> on <span class="math notranslate nohighlight">\(C\)</span>. Since
 <span class="math notranslate nohighlight">\(40960+2\cdot20511+17559=99541&lt;100000\)</span>,</p>
 <div class="math notranslate nohighlight">
@@ -285,13 +287,13 @@ The remaining tail, divided by <span class="math notranslate nohighlight">\(B^2/
 At <span class="math notranslate nohighlight">\(D=256\)</span>, replace <span class="math notranslate nohighlight">\(\epsilon_D\)</span> by <span class="math notranslate nohighlight">\(2^{-19}\)</span>;
 the resulting rational expression is less than <span class="math notranslate nohighlight">\(10^6\)</span>.
 Finally <span class="math notranslate nohighlight">\(7200000+25920+1000000&lt;10^7\)</span>, proving
-<a class="reference internal" href="#equation-risk-vertex-two-term-error">(46)</a>.</p>
+<a class="reference internal" href="#equation-risk-vertex-two-term-error">(52)</a>.</p>
 </div>
 <section id="reproducible-enclosures">
 <h2>Reproducible enclosures<a class="headerlink" href="#reproducible-enclosures" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">tools/risk_research/vertex_asymptotic.py</span></code> returns the rational upper
 bound <span class="math notranslate nohighlight">\(10^7(1+\lceil\log_2D\rceil)^2/D^7\)</span>, which dominates
-<a class="reference internal" href="#equation-risk-vertex-two-term-error">(46)</a> without evaluating a rounded logarithm.
+<a class="reference internal" href="#equation-risk-vertex-two-term-error">(52)</a> without evaluating a rounded logarithm.
 The optional real-ball evaluator uses python-flint/Arb for <span class="math notranslate nohighlight">\(\pi\)</span>,
 <span class="math notranslate nohighlight">\(\gamma\)</span> and the logarithm, and includes both arithmetic and analytic
 error in its returned coefficient enclosure. Its precision context is restored.</p>

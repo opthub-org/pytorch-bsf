@@ -16,6 +16,10 @@ The tetrahedron vertex single sum and its large-degree constant are proved
 in :doc:`skeleton_risk_vertex`. Its next asymptotic term and explicit error
 bound are in :doc:`skeleton_risk_vertex_asymptotics`; the five-vertex vertex
 single sum and its constant are in :doc:`skeleton_risk_five_vertex`.
+:doc:`skeleton_risk_vertex_general` constructs every vertex coefficient by
+rational univariate convolutions and gives a positive leading constant at
+every fixed vertex count at least four. Explicit five-vertex error bounds
+are in :doc:`skeleton_risk_five_vertex_asymptotics`.
 Complete fixed-degree comparisons through
 degree thirty are in :doc:`skeleton_risk_comparisons`.
 :doc:`skeleton_risk_tetrahedron_comparison` classifies the tetrahedron
@@ -64,6 +68,14 @@ explicit evaluations. The conditions in each row are part of the result.
        :prf:ref:`cor-risk-five-vertex-asymptotic`: the leading constants.
        :prf:ref:`thm-risk-vertex-two-term-error` also gives the tetrahedron
        next term and an explicit error bound for :math:`D\geq256`.
+       :prf:ref:`thm-risk-five-vertex-explicit-error` gives a five-vertex
+       leading-term error bound on the same domain.
+   * - Every :math:`M\geq2`, :math:`m=0`, every degree
+     - :prf:ref:`thm-risk-general-vertex-construction`: rational univariate
+       convolutions. For each fixed :math:`M\geq4`,
+       :prf:ref:`thm-risk-general-vertex-asymptotic` gives a positive
+       constant :math:`C_M` with :math:`a_0(M,D)\sim C_M/D^{M+1}`;
+       the constant has certified rational truncation bounds.
    * - Risk comparison
      - Curves win at every degree; :prf:ref:`prop-skeleton-wins` classifies
        all vertex counts for :math:`D\leq8`, and
@@ -1824,6 +1836,14 @@ active positive-dimensional faces, so the dimension and shape optima agree.
   of length :math:`D`, and :prf:ref:`cor-risk-five-vertex-asymptotic`
   gives its leading constant. A bounded-length classical-special-function
   evaluation is still open in these dimensions.
+  :prf:ref:`thm-risk-general-vertex-construction` now supplies rational
+  univariate convolutions for every vertex count, and
+  :prf:ref:`thm-risk-general-vertex-asymptotic` gives the leading constant
+  at each fixed :math:`M\geq4` by a positive integral and a convergent
+  series with certified truncation errors. The convolution lengths still
+  grow with the degree; these results do not give a bounded-length
+  classical-special-function expression or a limit uniform in growing
+  :math:`M`.
 - **The full comparison beyond the classified degrees.**
   :prf:ref:`prop-skeleton-wins` classifies every :math:`M` at
   :math:`D\leq8`, and :prf:ref:`thm-risk-comparisons-nine-twenty`
