@@ -169,7 +169,7 @@ def grid(space: BezierSpace, resolution: int = 10, *, cells: Sequence[int | Simp
         coordinates.append(F.pad(t, (0, space.width - info.width)))
         identifiers.append(torch.full((len(t),), cid, dtype=torch.long))
     if not coordinates:
-        return Points(torch.empty(0, space.width), torch.empty(0, dtype=torch.long))
+        return Points(torch.empty(0, space.width, dtype=torch.float64), torch.empty(0, dtype=torch.long))
     return Points(torch.cat(coordinates), torch.cat(identifiers))
 
 

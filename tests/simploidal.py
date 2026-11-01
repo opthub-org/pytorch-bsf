@@ -256,6 +256,35 @@ def test_space_design_matrix_matches_forward():
     assert torch.allclose(design @ space.proper_control_points, space(t, sid), atol=1e-6)
 
 
+@pytest.mark.parametrize("too_large", [False, True])
+def test_space_rejects_out_of_range_simploid_ids(too_large):
+    S = SimploidalSet()
+    S.add_simplex(2)
+    space = SimploidalBezierSpace(S, 2, n_values=1)
+    bad_id = len(space.simploids) if too_large else -1  # -1 used to evaluate the last simploid silently
+    t, ids = torch.full((2, 3), 1 / 3), torch.tensor([0, bad_id])
+    with pytest.raises(ValueError, match="simploid_ids"):
+        space(t, ids)
+    with pytest.raises(ValueError, match="simploid_ids"):
+        space.design_matrix(t, ids)
+
+
+def test_space_rejects_non_vector_simploid_ids():
+    S = SimploidalSet()
+    S.add_simplex(2)
+    space = SimploidalBezierSpace(S, 2, n_values=1)
+    with pytest.raises(ValueError, match="simploid_ids"):
+        space(torch.full((1, 3), 1 / 3), torch.zeros(1, 1, dtype=torch.long))
+
+
+def test_fit_simploidal_set_rejects_one_dimensional_values():
+    S = SimploidalSet()
+    tri = S.add_simplex(2)
+    t = sample_simploid((2,), 5, seed=0)
+    with pytest.raises(ValueError, match="values must have shape"):
+        fit_simploidal_set(S, [(tri, t, t[:, 0])], 2)
+
+
 def test_solvers_share_one_code_path(monkeypatch):
     """fit_simploid and fit_simploidal_set hand every model to the same solver function."""
     import torch_bsf._kernels.fitting as fitting
