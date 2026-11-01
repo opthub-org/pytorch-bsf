@@ -10,7 +10,10 @@ degenerate faces, is proved in :doc:`simploidal_risk`.
 Further degree recurrences, codimension-two evaluations and vertex
 reductions are proved in :doc:`skeleton_risk_extensions`.
 The tetrahedron vertex single sum and its large-degree constant are proved
-in :doc:`skeleton_risk_vertex`; complete fixed-degree comparisons through
+in :doc:`skeleton_risk_vertex`. Its next asymptotic term and explicit error
+bound are in :doc:`skeleton_risk_vertex_asymptotics`; the five-vertex vertex
+single sum and its constant are in :doc:`skeleton_risk_five_vertex`.
+Complete fixed-degree comparisons through
 degree twenty are in :doc:`skeleton_risk_comparisons`.
 :doc:`skeleton_risk_tetrahedron_comparison` classifies the tetrahedron
 comparison at every degree.
@@ -48,9 +51,13 @@ explicit evaluations. The conditions in each row are part of the result.
      - :prf:ref:`thm-risk-fixed-dimension-holonomic`: a polynomial-coefficient
        recurrence exists; explicit tetrahedron edge operators and a
        codimension-two harmonic reduction are in :doc:`skeleton_risk_extensions`.
-   * - :math:`M=4,m=0`, every degree
-     - :prf:ref:`thm-risk-tetrahedron-vertex-single`: one positive harmonic sum;
-       :prf:ref:`cor-risk-tetrahedron-vertex-asymptotic`: the leading constant.
+   * - :math:`M=4` or :math:`M=5`, :math:`m=0`, every degree
+     - :prf:ref:`thm-risk-tetrahedron-vertex-single` and
+       :prf:ref:`thm-risk-five-vertex-single`: one positive harmonic sum;
+       :prf:ref:`cor-risk-tetrahedron-vertex-asymptotic` and
+       :prf:ref:`cor-risk-five-vertex-asymptotic`: the leading constants.
+       :prf:ref:`thm-risk-vertex-two-term-error` also gives the tetrahedron
+       next term and an explicit error bound for :math:`D\geq256`.
    * - Risk comparison
      - Curves win at every degree; :prf:ref:`prop-skeleton-wins` classifies
        all vertex counts for :math:`D\leq8`, and
@@ -1802,6 +1809,11 @@ active positive-dimensional faces, so the dimension and shape optima agree.
   the tetrahedron vertex by one positive harmonic-binomial sum, with its
   leading large-degree constant. Its length still grows with :math:`D`;
   an explicit useful tetrahedron vertex degree recurrence remains open.
+  :prf:ref:`thm-risk-five-vertex-single` similarly evaluates the
+  five-vertex vertex coefficient with four harmonic states and one sum
+  of length :math:`D`, and :prf:ref:`cor-risk-five-vertex-asymptotic`
+  gives its leading constant. A bounded-length classical-special-function
+  evaluation is still open in these dimensions.
 - **The full comparison beyond the classified degrees.**
   :prf:ref:`prop-skeleton-wins` classifies every :math:`M` at
   :math:`D\leq8`, and :prf:ref:`thm-risk-comparisons-nine-twenty`

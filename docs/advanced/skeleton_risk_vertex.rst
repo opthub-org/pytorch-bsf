@@ -7,6 +7,8 @@ binomial coefficients and harmonic numbers. This eliminates the bivariate
 kernel convolution. The sum still has :math:`D` terms; an explicit useful
 fixed-order recurrence in :math:`D` and a bounded classical-special-function
 expression remain separate open questions.
+The next asymptotic term and a fully explicit error bound are proved in
+:doc:`skeleton_risk_vertex_asymptotics`.
 
 A binomial-transform diagonalization
 --------------------------------------
