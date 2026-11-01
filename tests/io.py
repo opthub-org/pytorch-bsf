@@ -134,12 +134,32 @@ def test_new_file_mode_follows_umask(tmp_path):
 def test_overwrite_preserves_existing_mode(tmp_path):
     model = BezierModel(BezierSpace.simplex(1, degree=1), [[1.0], [2.0]])
     path = tmp_path / "model.bsf"
-    save_model(path, model)
-    os.chmod(path, 0o640)
-    save_model(path, BezierModel(BezierSpace.simplex(1, degree=1), [[3.0], [4.0]]))
-    assert stat.S_IMODE(os.stat(path).st_mode) == 0o640
+    previous = os.umask(0o022)  # a new file would get 0o644
+    try:
+        save_model(path, model)
+        os.chmod(path, 0o600)
+        save_model(path, BezierModel(BezierSpace.simplex(1, degree=1), [[3.0], [4.0]]))
+    finally:
+        os.umask(previous)
+    assert stat.S_IMODE(os.stat(path).st_mode) == 0o600
     assert load_model(path).coefficients.tolist() == [[3.0], [4.0]]
     assert list(tmp_path.iterdir()) == [path]
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX permission bits")
+def test_umask_fallback_without_proc(tmp_path):
+    from unittest.mock import patch
+
+    from torch_bsf.io import _umask
+
+    previous = os.umask(0o027)
+    try:
+        expected = _umask()
+        with patch("builtins.open", side_effect=OSError("no /proc")):
+            assert _umask() == expected == 0o027
+        assert os.umask(0o027) == 0o027  # the fallback restored the umask
+    finally:
+        os.umask(previous)
 
 
 def test_save_fsyncs_before_replace(tmp_path):
