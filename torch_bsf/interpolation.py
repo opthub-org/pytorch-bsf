@@ -55,6 +55,12 @@ __all__ = [
     "refinement_indicator",
 ]
 
+# PyTorch 2.3 imports Dynamo on the first custom-autograd transform. Its nested-tensor
+# initialization uses random meta operations, which fail if that import occurs inside vmap.
+# Initialize it before transforms; PyTorch 2.4 replaced the random module-level dummy.
+if torch.__version__.startswith("2.3."):
+    import torch._dynamo
+
 _DEGREE = 3
 _ROUNDING = 1  # lengths differing by this many units of rounding (times d) are equal
 
