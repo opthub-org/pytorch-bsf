@@ -316,11 +316,34 @@ accounting is available, and JSON `null` otherwise (including Windows).
 
 ## Further vertex evaluations and explicit errors
 
+`vertex_general.vertex_coefficient(M,D)` constructs every vertex coefficient
+by exact univariate convolutions. For each fixed `M>=4`, the leading term is
+`C_M/D^(M+1)`, with a strictly positive integral formula for `C_M`.
+`vertex_general.leading_constant_enclosure(M,terms)` bounds that constant by
+two exact fractions using a proved series-tail majorant. Both functions use
+only the standard library; the limit is taken at fixed M. See
+[the general proof](../../docs/advanced/skeleton_risk_vertex_general.rst).
+
+```sh
+.venv/bin/python -m tools.risk_research.vertex_general --vertices 6 \
+  --constant-terms 128 --output .research/skeleton-risk/results/vertex6-constant.json
+```
+
 `vertex_five.five_vertex_coefficient(D)` evaluates the five-vertex vertex
 coefficient using four harmonic states and one sum of length D. The exact
 formula, a positivity proof for every transformed kernel power, and its
 `7200*(zeta(2)-zeta(3))/D^6` leading term are in
 [Five-vertex vertex risk](../../docs/advanced/skeleton_risk_five_vertex.rst).
+For every integer `D>=256`, its leading-term error is at most
+`3000000*(1+log(D))/D^7`, as proved in
+[the quantitative chapter](../../docs/advanced/skeleton_risk_five_vertex_asymptotics.rst).
+`vertex_five_asymptotic` supplies an exact rational error majorant and an
+optional Arb enclosure. Its bound-only CLI works without python-flint:
+
+```sh
+.venv/bin/python -m tools.risk_research.vertex_five_asymptotic --degree 100000 \
+  --bound-only --output .research/skeleton-risk/results/vertex5-error.json
+```
 
 The tetrahedron vertex now has a proved next asymptotic term and an explicit
 error bound for every D>=256. Its
