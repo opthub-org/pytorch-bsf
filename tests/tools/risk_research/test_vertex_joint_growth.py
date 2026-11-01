@@ -167,10 +167,15 @@ def test_raw_line_ending_change_during_build_is_rejected_despite_same_portable_h
         joint.build_certificate(6, 1024)
 
 
-def test_raw_line_ending_change_during_verification_is_rejected(monkeypatch):
+@pytest.mark.parametrize("initial_line_ending", ["lf", "crlf"])
+def test_raw_line_ending_change_during_verification_is_rejected(monkeypatch, initial_line_ending):
+    initial_sources = {name: data.replace(b"\r\n", b"\n") for name, data in joint._raw_sources().items()}
+    if initial_line_ending == "crlf":
+        initial_sources = {name: data.replace(b"\n", b"\r\n") for name, data in initial_sources.items()}
+    monkeypatch.setattr(joint, "_raw_sources", lambda: initial_sources)
     record = joint.build_certificate(6, 1024)
-    first = joint._raw_sources()
-    second = {name: data.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n") for name, data in first.items()}
+    first = {name: data.replace(b"\r\n", b"\n") for name, data in joint._raw_sources().items()}
+    second = {name: data.replace(b"\n", b"\r\n") for name, data in first.items()}
     sequence = iter([first, second])
     monkeypatch.setattr(joint, "_raw_sources", lambda: next(sequence))
     with pytest.raises(RuntimeError, match="changed"):
