@@ -65,7 +65,7 @@ explicit evaluations. The conditions in each row are part of the result.
        :prf:ref:`thm-risk-tetrahedron-vertex-recurrence` gives an order-ten
        vertex operator, and :doc:`codimension_two_states` gives an order-eight
        six-vertex tetrahedral-face operator.
-       :prf:ref:`thm-risk-five-vertex-degree-recurrence` supplies an order-seventeen
+       :prf:ref:`thm-risk-five-vertex-recurrence` supplies an order-seventeen
        five-vertex vertex operator, with initial values and no exceptional integers.
    * - :math:`M=4` or :math:`M=5`, :math:`m=0`, every degree
      - :prf:ref:`thm-risk-tetrahedron-vertex-single` and
@@ -1852,7 +1852,7 @@ active positive-dimensional faces, so the dimension and shape optima agree.
   of length :math:`D`, and :prf:ref:`cor-risk-five-vertex-asymptotic`
   gives its leading constant. A bounded-length classical-special-function
   evaluation is still open in these dimensions.
-  :prf:ref:`thm-risk-five-vertex-degree-recurrence` now supplies the
+  :prf:ref:`thm-risk-five-vertex-recurrence` now supplies the
   five-vertex order-seventeen operator as well, with all initial values
   and no positive integer exceptions.
   :prf:ref:`thm-risk-general-vertex-construction` now supplies rational
