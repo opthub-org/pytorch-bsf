@@ -307,3 +307,38 @@ until a separate certificate proves it. `vertex_boundary.py` is a bounded
 exact reference for the proved vertex reduction, not a completed closed form.
 The experiment and scan reports record `peak_rss_bytes` where OS resource
 accounting is available, and JSON `null` otherwise (including Windows).
+
+## Further vertex evaluations and explicit errors
+
+`vertex_five.five_vertex_coefficient(D)` evaluates the five-vertex vertex
+coefficient using four harmonic states and one sum of length D. The exact
+formula, a positivity proof for every transformed kernel power, and its
+`7200*(zeta(2)-zeta(3))/D^6` leading term are in
+[Five-vertex vertex risk](../../docs/advanced/skeleton_risk_five_vertex.rst).
+
+The tetrahedron vertex now has a proved next asymptotic term and an explicit
+error bound for every D>=256. Its
+[quantitative proof](../../docs/advanced/skeleton_risk_vertex_asymptotics.rst)
+supplies both the constant and the start of the valid domain. Generate a
+rational error majorant without any optional numerical dependency:
+
+```sh
+.venv/bin/python -m tools.risk_research.vertex_asymptotic --degree 10000 \
+  --bound-only --output .research/skeleton-risk/results/vertex-error.json
+```
+
+Without `--bound-only`, run this module in the prepared Sage environment,
+which includes python-flint. It evaluates pi, Euler's constant and the
+logarithm as real balls and returns an enclosure including the analytic error.
+Native regression tests can be run from the project Python with:
+
+```sh
+BSF_FLINT_PYTHON="$PWD/.research/skeleton-risk/sage-env/bin/python" \
+  .venv/bin/python -m pytest tests/tools/risk_research/test_vertex_asymptotic.py \
+  -q -o addopts=''
+```
+
+The native tests compare the returned ball to the existing exact single sum
+through D4096 and check that precision settings are restored. If python-flint
+is installed in the project Python it is used directly; otherwise those
+three tests are skipped unless an explicit native interpreter is selected.
