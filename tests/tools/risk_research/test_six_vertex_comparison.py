@@ -106,9 +106,15 @@ def test_insufficient_precision_preserves_existing_output(tmp_path):
     assert output.read_bytes() == original
 
 
-def test_portable_crlf_hashes_and_raw_concurrent_edit_guard(certificate, tmp_path, monkeypatch):
+@pytest.mark.parametrize("initial_line_ending", ["lf", "crlf"])
+def test_portable_crlf_hashes_and_raw_concurrent_edit_guard(certificate, tmp_path, monkeypatch, initial_line_ending):
+    initial_sources = {name: source.replace(b"\r\n", b"\n") for name, source in comparison._sources().items()}
+    if initial_line_ending == "crlf":
+        initial_sources = {name: source.replace(b"\n", b"\r\n") for name, source in initial_sources.items()}
+    monkeypatch.setattr(comparison, "_sources", lambda: initial_sources)
     sources = comparison._sources()
-    crlf = {name: source.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n") for name, source in sources.items()}
+    lf = {name: source.replace(b"\r\n", b"\n") for name, source in sources.items()}
+    crlf = {name: source.replace(b"\n", b"\r\n") for name, source in lf.items()}
     monkeypatch.setattr(comparison, "_sources", lambda: crlf)
     assert comparison.certify_six_vertex_comparison() == certificate
     calls = 0
@@ -116,7 +122,7 @@ def test_portable_crlf_hashes_and_raw_concurrent_edit_guard(certificate, tmp_pat
     def changing():
         nonlocal calls
         calls += 1
-        return sources if calls == 1 else crlf
+        return lf if calls == 1 else crlf
 
     monkeypatch.setattr(comparison, "_sources", changing)
     monkeypatch.setattr(comparison, "certify_six_vertex_comparison", lambda **kwargs: {})
