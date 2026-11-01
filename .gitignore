@@ -102,6 +102,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# Local symbolic-risk research environments, references and generated data
+.research/
+
 # Spyder project settings
 .spyderproject
 .spyproject

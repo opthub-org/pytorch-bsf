@@ -1,0 +1,252 @@
+# Skeleton-risk research tools
+
+This checkout contains optional tools for generating exact risk coefficients,
+searching for recurrences, and checking rational telescoping certificates.
+The existing mathematical references in `tests/sampling.py` remain the two
+independent scalar-sum and Gram-propagation oracles. These tools add no runtime
+dependencies. The accompanying sampling fix rejects nonfinite propagation
+matrices before estimating their condition number.
+
+Run commands from the repository root. Use the project's development Python
+environment for the exact runner, SymPy, and tests. Use the separate SageMath
+environment for Ore algebra. No Mathematica installation is needed.
+
+## Install the symbolic environment
+
+With Conda already installed:
+
+```sh
+.venv/bin/python -m tools.risk_research.setup_environment
+```
+
+Pass `--conda /path/to/conda` if it is not on `PATH`. The default installation
+root is `.research/skeleton-risk`; `--root PATH` selects another location.
+The installer uses conda-forge, pins SageMath 10.6, Python 3.12, and Cython
+3.0.12, and builds
+Ore algebra at commit `afbe4dad50bd63f5b2ce112193555d6f9740e0d3` from its
+[official repository](https://github.com/mkauers/ore_algebra). This combination
+retains the Arb Cython headers used by that Ore algebra revision. An initial
+trial with SageMath 10.9 failed because those headers had moved.
+The Ore revision also precedes an upstream multivariate-ring regression
+that prevented creative telescoping in the tested newer revision, and a
+FLINT 3.4-only change incompatible with SageMath 10.6's FLINT 3.2 headers.
+Cython matches the host version in the Sage binary's build recipe; newer
+Cython produced incompatible native-extension type signatures in testing.
+
+The installer writes `conda-explicit.txt` with the exact platform-specific
+package URLs, `ore-source.json` with the upstream revision, and
+`sage-smoke.json` with the actual versions and mathematical check results.
+It keeps the Conda cache and Sage state under the installation root.
+On the same operating system and architecture, restore the Conda packages
+with `conda create --prefix NEW_PREFIX --file conda-explicit.txt`, then
+install the recorded Ore algebra revision in that environment.
+
+The smoke checks cover exact arithmetic, recurrence guessing with unseen
+central-binomial values, creative telescoping of the binomial theorem,
+128-bit real-ball containment, all four compiled extension imports, and
+the enclosed solution of `y' = y, y(0) = 1` at one. They verify the tools, rather than establish
+a new risk theorem. Rerun them directly with:
+
+```sh
+DOT_SAGE="$PWD/.research/skeleton-risk/sage-state" \
+  conda run --no-capture-output -p .research/skeleton-risk/sage-env \
+  python tools/risk_research/sage_smoke.py \
+  --output .research/skeleton-risk/sage-smoke.json
+```
+
+## Acquire searchable references
+
+```sh
+.venv/bin/python -m tools.risk_research.fetch_resources
+```
+
+The catalogue in `resources.json` identifies the authors' or publishers'
+public URLs and distinguishes full books, preprints, and samples. The
+downloaded PDFs, extracted text, and acquisition manifest stay under
+`.research/skeleton-risk/resources`, outside version control. Each manifest
+entry records its URL, SHA256, size, and available page/text metadata.
+Downloads are atomic and resumed by checksum. Poppler's `pdfinfo` and
+`pdftotext`, when available, inspect the PDFs and produce searchable text.
+
+The acquisition obtained these fifteen searchable public PDFs:
+
+| Reference | Scope | Pages |
+| --- | --- | ---: |
+| Petkovsek, Wilf, Zeilberger, *A=B* | Complete author-hosted book | 217 |
+| *A=B* reprint errata, March 2006 | Author-hosted errata | 5 |
+| Koutschan, *Creative Telescoping for Holonomic Functions* | Author preprint | 24 |
+| Kauers, Jaroschek, Johansson, *Ore Polynomials in Sage* | Author preprint/tutorial | 16 |
+| Xu, *Orthogonal polynomials of several variables* | Survey; separate from the monograph | 60 |
+| Flajolet, Sedgewick, *Analytic Combinatorics* | Complete author-hosted book | 826 |
+| Dunkl, Xu, *Orthogonal Polynomials of Several Variables*, second edition | Publisher frontmatter and contents | 17 |
+| Kauers, *Algorithms for D-Finite Functions* (2015) | Prose course notes | 30 |
+| *Creative Telescoping* long course (2023): Tuesday, Sister Celine's Method | Lecture slides | 173 |
+| Same course: Wednesday, Creative Telescoping | Lecture slides | 143 |
+| Same course: Thursday, Advanced Closure Properties | Lecture slides | 191 |
+| Same course: Friday, Conclusion | Lecture slides | 79 |
+| Kauers, *Guessing with Little Data* (2022) | Talk slides | 111 |
+| Kauers, *Desingularization of Ore Operators* (2014) | Talk slides | 109 |
+| Kauers, *Inequalities* (2010) | Talk slides | 844 |
+
+The seven new slide PDFs include incremental Beamer overlays; their PDF
+page counts are not counts of distinct slides. The Friday file is Kauers's
+conclusion and extensions, rather than every lecture delivered on Friday.
+
+The *A=B* errata required Playwright with headed Google Chrome using the
+`browser_url` recorded in `resources.json`. Direct HTTP clients and headless
+browsers returned 403. The PDF was saved through the browser PDF viewer's
+download button. The downloader reuses its verified local checksum but does
+not launch a browser automatically if that file is missing.
+
+The JNCF lecture notes and selected additional materials are linked from
+[Kauers's talks page](http://www.kauers.de/talks.html). The working course-notes
+URL is `http://www.algebra.uni-linz.ac.at/people/mkauers/publications/kauers15n.pdf`.
+The older JNCF conference endpoint timed out. These author links use HTTP;
+the affected catalogue entries explicitly set `allow_http: true`. Other
+entries continue to require HTTPS, including redirects. The downloader
+exits nonzero if an entry remains unavailable; verified PDFs remain usable.
+
+For the current risk questions, start with the 2015 prose notes. The 2023
+Tuesday and Wednesday slides supply recurrence-elimination and telescoping
+methods for the remaining scalar sums; Thursday covers useful closure
+operations. *Guessing with Little Data* supports exploratory recurrence
+searches, while *Desingularization* addresses leading-coefficient zeros and
+exceptional indices. *Inequalities* is relevant to risk comparisons after
+the coefficient formulas are obtained. These methods are research tools;
+they do not resolve the open risk questions by themselves.
+
+The catalogue does not download the complete Kauers *D-Finite Functions*
+or Dunkl-Xu monograph. Publisher links and access status are recorded in
+`resources.json`; samples are not presented as full books. User-supplied
+copies stay separately in these local, ignored paths:
+
+- `.research/skeleton-risk/resources/user-supplied/kauers-d-finite-functions.pdf`
+- `.research/skeleton-risk/resources/user-supplied/dunkl-xu-orthogonal-polynomials-2nd-edition.pdf`
+
+Search the acquired material, for example:
+
+```sh
+rg -n 'telescop|Jacobi|simplex' .research/skeleton-risk/resources/*.txt
+```
+
+## Generate exact data and resume experiments
+
+```sh
+.venv/bin/python -m tools.risk_research generate \
+  --vertices 4 --degrees 1:12 --skeletons 0,1 --oracle scalar \
+  --timeout 90 --output .research/skeleton-risk/results/tetrahedron-scalar.json
+
+.venv/bin/python -m tools.risk_research generate \
+  --vertices 4 --degrees 1:4 --skeletons 0,1 --oracle gram \
+  --role validation --timeout 120 \
+  --output .research/skeleton-risk/results/tetrahedron-gram.json
+```
+
+Degree ranges are inclusive. Fractions are stored as decimal numerator and
+denominator strings. Every case runs in a subprocess with a wall-clock limit;
+`--memory-mib N` additionally requests the OS address-space limit. Some OSes
+do not support that limit or need considerable virtual memory for PyTorch;
+such a worker failure is recorded as an error, not as a computed value.
+
+Only successful exact results are cached. Source-content and environment
+fingerprints invalidate stale entries, including uncommitted source changes.
+Workers check the fingerprint before and after calculation, so an edit during
+a calculation makes that case retryable. Records include the Git revision,
+dirty state, fingerprint, oracle, runtime, and exploration/validation role.
+The output is saved after each case. Rerun the same command to resume.
+
+## Search for a recurrence
+
+For a small known-family demonstration, generate curve vertex coefficients
+and fit a first-order recurrence with quadratic polynomial coefficients:
+
+```sh
+.venv/bin/python -m tools.risk_research generate \
+  --vertices 2 --degrees 1:20 --skeletons 0 --oracle scalar \
+  --output .research/skeleton-risk/results/curve-scalar.json
+
+.venv/bin/python -m tools.risk_research guess \
+  .research/skeleton-risk/results/curve-scalar.json \
+  --skeleton 0 --order 1 --poly-degree 2 --train-through 12 \
+  --output .research/skeleton-risk/results/curve-recurrence.json
+```
+
+The result describes `sum_j p_j(D) a(D+j) = 0`, with polynomial coefficients
+in ascending powers of `D`. Training and held-out windows use disjoint
+degree sets. Singular indices, initial values, and missing restart values
+are explicit. A candidate with successful finite checks is still labeled
+`conjecture`; a failed held-out check is `rejected`. Neither label supplies
+an all-degree proof. The manifest's role field is descriptive; recurrence
+validation is determined by the explicitly disjoint index sets.
+
+## Check a symbolic certificate
+
+```sh
+.venv/bin/python -m tools.risk_research.certificates \
+  tools/risk_research/examples/triangle_vertex_certificate.json
+```
+
+This independently verifies the existing triangle-vertex telescoping step:
+the weight shift ratio, the normalized rational identity, denominator
+nonvanishing, and both boundary values, including degree one. It returns
+`certified_identity` only for those claims; it does not certify the entire
+risk theorem or an unrelated guessed recurrence.
+
+The JSON schema supports integer `d >= degree_min` and
+`lower <= h <= d-upper_offset`, rational expressions in `d,h`, and binomial
+weights. Expressions use a restricted arithmetic parser. The denominator
+sign criterion is sufficient, not complete: unsupported certificates are
+rejected even when a stronger proof could establish them.
+
+## Validate the harness
+
+```sh
+.venv/bin/python -m pytest tests/tools/risk_research -q -o addopts=''
+```
+
+The tests include independent oracle agreement, cache invalidation and
+retry, source edits during a computation, false recurrences, missing initial
+values, certificate/boundary mutations, and download corruption repair.
+Sage smoke checks are separate from the normal development test suite.
+
+## Proved risk extensions
+
+The derivations and their limits are in
+[Further evaluations of the skeleton risk](../../docs/advanced/skeleton_risk_extensions.rst).
+They include a codimension-two mode reduction, the all-degree tetrahedron
+edge representation, its certified scalar recurrences, a general vertex
+boundary-pair reduction, and fixed-dimension P-recursiveness. The
+tetrahedron vertex's final evaluation remains open.
+
+Generate tetrahedron edge coefficients from the proved auxiliary recurrences:
+
+```sh
+.venv/bin/python -m tools.risk_research.edge_closed --max-degree 600 \
+  --output .research/skeleton-risk/results/tetrahedron-edge-proved.json
+```
+
+Verify the complete polynomial operator over the exact rational function
+field, rather than testing finitely many sequence values:
+
+```sh
+DOT_SAGE="$PWD/.research/skeleton-risk/sage-state" \
+  conda run --no-capture-output -p .research/skeleton-risk/sage-env \
+  python -m tools.risk_research.edge_recurrence \
+  --verify tools/risk_research/examples/tetrahedron_edge_recurrence_order7.json \
+  --report .research/skeleton-risk/results/edge-order7-certificate.json
+```
+
+The order-seven operator has polynomial degree 67; the alternative
+`tetrahedron_edge_recurrence_order8.json` has order eight and degree 40.
+Both are proved for every positive integer degree, with explicit initial
+values and no positive-integer leading-coefficient exceptions. The verifier
+reconstructs the eight-dimensional rational state, checks all eight
+symbolic residuals, and records the operator and source hashes.
+
+For larger exact exploratory datasets, `research_exact.py` clears kernel
+denominators and multiplies integer polynomials using the optional FLINT
+backend. `research_scan.py` screens specified recurrence spaces modulo a
+prime before exact reconstruction. Full modular rank excludes only the
+recorded order/degree space; a successful finite fit remains a conjecture
+until a separate certificate proves it. `vertex_boundary.py` is a bounded
+exact reference for the proved vertex reduction, not a completed closed form.

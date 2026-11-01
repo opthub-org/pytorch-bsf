@@ -2369,14 +2369,34 @@ def test_assembled_risk_rejects_unreliable_computations(monkeypatch):
         pytest.raises(ValueError, match="factorization failed"),
     ):
         skeleton_risk_coefficients(space)
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf")])
+def test_assembled_risk_rejects_nonfinite_propagation_before_conditioning(value):
+    from tests.simploidal_risk import _space
+
+    space = _space("torus", 2)
     with (
         patch(
             "torch.linalg.solve_triangular",
-            return_value=torch.full((space.n_controls, space.n_controls), float("nan"), dtype=torch.float64),
+            return_value=torch.full((space.n_controls, space.n_controls), value, dtype=torch.float64),
         ),
-        pytest.raises(ValueError, match="unreliable"),
+        patch("torch.linalg.cond") as condition,
+        pytest.raises(ValueError, match="unreliable.*propagation is not finite"),
     ):
         skeleton_risk_coefficients(space)
+    condition.assert_not_called()
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), 1e308])
+def test_assembled_risk_rejects_invalid_propagation_condition(value):
+    from tests.simploidal_risk import _space
+
+    with (
+        patch("torch.linalg.cond", return_value=torch.tensor(value, dtype=torch.float64)),
+        pytest.raises(ValueError, match="unreliable"),
+    ):
+        skeleton_risk_coefficients(_space("torus", 2))
 
 
 @pytest.mark.parametrize("method", ["random", "sobol"])
