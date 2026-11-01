@@ -40,6 +40,7 @@ def test_public_api_exports():
         "fit",
         "fit_skeleton_regression",
         "SkeletonRegressionResult",
+        "SkeletonAllocation",
         "minimize",
         "FitResult",
         "SimploidalSet",

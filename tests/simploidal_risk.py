@@ -416,8 +416,8 @@ def test_public_risk_matches_exact_propagation_and_chart_integrals(kind, degree,
         sum(c / float(q) for c, q in zip(actual.values(), shares, strict=True)), rel=tolerance, abs=0
     )
     # Both optimizers must minimize the original cell objective under their respective constraints.
-    cell_q = optimal_skeleton_ratio(space, evaluation_weights=evaluation, allocation="cell")
-    dim_q = optimal_skeleton_ratio(space, evaluation_weights=evaluation)
+    cell_q = optimal_skeleton_ratio(space, evaluation_weights=evaluation, allocation="cell").cell_weights
+    dim_q = optimal_skeleton_ratio(space, evaluation_weights=evaluation, allocation="dimension").ratio
     assert sum(cell_q.values()) == pytest.approx(1) and sum(dim_q) == pytest.approx(1)
     cell_risk = sum(float(c) / cell_q[cid] for (cid, _), c in zip(stages, expected, strict=True))
     assert cell_risk == pytest.approx(sum(math.sqrt(float(c)) for c in expected) ** 2, rel=tolerance, abs=0)
@@ -435,11 +435,11 @@ def test_public_risk_matches_exact_propagation_and_chart_integrals(kind, degree,
 def test_public_assembled_sample_fit_predict(kind, degree, method, allocation):
     space = _space(kind, degree)
     _, stages = _assembled_grams(space)
-    cell_weights = optimal_skeleton_ratio(space, allocation="cell") if allocation == "cell" else None
+    cell_weights = optimal_skeleton_ratio(space, allocation="cell").cell_weights if allocation == "cell" else None
     state = torch.random.get_rng_state().clone()
-    points = sample_skeleton(space, 350, method=method, seed=13, cell_weights=cell_weights)
+    points = sample_skeleton(space, 350, method=method, seed=13, cell_weights=cell_weights, allocation=allocation)
     assert torch.equal(torch.random.get_rng_state(), state)
-    repeat = sample_skeleton(space, 350, method=method, seed=13, cell_weights=cell_weights)
+    repeat = sample_skeleton(space, 350, method=method, seed=13, cell_weights=cell_weights, allocation=allocation)
     assert torch.equal(points.parameters, repeat.parameters) and torch.equal(points.cell_ids, repeat.cell_ids)
     assert len(points) == 350
     assert set(points.cell_ids.tolist()) == {cid for cid, _ in stages}

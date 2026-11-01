@@ -45,8 +45,9 @@ Two quadratic intervals with one shared endpoint illustrate the whole path:
     domain.identify(left.face(0, 0), right.face(0, 1))
     space = BezierSpace.on_set(domain, degree=2)
     print(tuple(round(a, 6) for a in skeleton_risk_coefficients(space)))
-    ratio = optimal_skeleton_ratio(space)
-    points = sample_skeleton(space, 120, ratio=ratio, seed=0)
+    plan = optimal_skeleton_ratio(space)
+    assert plan.strategy == "cell" and plan.fallback_reason is None
+    points = sample_skeleton(space, 120, allocation=plan, seed=0)
     truth = BezierModel(space, torch.arange(space.n_controls, dtype=torch.float64)[:, None])
     result = fit_skeleton_regression(space, Samples(points, truth(points).detach())).require_success()
     assert torch.allclose(result.model.coefficients, truth.coefficients)
@@ -67,21 +68,28 @@ another measure, including a mixture with lower-dimensional cells:
     evaluation = {left: 3.0, right: 1.0}
     c = skeleton_risk_coefficients(space, evaluation_weights=evaluation, allocation="cell")
     q = optimal_skeleton_ratio(space, evaluation_weights=evaluation, allocation="cell")
-    points = sample_skeleton(space, 120, cell_weights=q, seed=0)
-    assert set(c) == set(q) == set(result.faces)
-    assert abs(sum(q.values()) - 1) < 1e-14
-    risk_factor = sum(c[cid] / q[cid] for cid in c)
+    points = sample_skeleton(space, 120, allocation=q, seed=0)
+    assert set(c) == set(q.cell_weights) == set(result.faces)
+    assert abs(sum(q.cell_weights.values()) - 1) < 1e-14
+    risk_factor = sum(c[cid] / q.cell_weights[cid] for cid in c)
     assert abs(risk_factor - sum(value**0.5 for value in c.values())**2) < 1e-12
 
-``allocation="dimension"`` (the default) returns a tuple indexed by dimension,
-including zero entries for dimensions without active cells. It uses
-:math:`a_m=K_m\sum_{\dim s=m}c_s` and assigns equal shares to the
-:math:`K_m` active cells of each dimension. ``allocation="cell"`` returns an
-increasing-dimension, then increasing-cell-ID dictionary and optimizes the
-original cell objective. Cell mode needs addressable faces: use ``on_set``
-for positive-dimensional spaces; a bare ``BezierSpace.simplex`` or
-``simploid`` has only one chart ID and cannot name its faces this way.
-Zero-dimensional spaces support both modes.
+``optimal_skeleton_ratio`` and ``sample_skeleton`` default to
+``allocation="auto"``: prefer individual cells, falling back to dimension
+shares only for zero-cell coefficients with positive active-group coefficients.
+Manual ``"cell"`` and ``"dimension"`` modes remain strict. Every optimized
+allocation has the same :class:`~torch_bsf.SkeletonAllocation` result type;
+inspect ``strategy`` and ``fallback_reason`` and pass the whole plan when
+sampling. See :ref:`skeleton-auto-allocation`.
+
+The coefficient function keeps ``allocation="dimension"`` as its default,
+returning a tuple indexed by dimension, including zero entries for empty
+active dimensions. It uses :math:`a_m=K_m\sum_{\dim s=m}c_s` for equal shares
+within each dimension. ``allocation="cell"`` returns an increasing-dimension,
+then increasing-cell-ID dictionary and describes the individual-cell objective.
+Cell mode needs addressable faces: use ``on_set`` for positive-dimensional
+spaces; bare ``BezierSpace.simplex``/``simploid`` retain their fast dimension
+path. Zero-dimensional spaces support both modes.
 
 ``evaluation_weights`` and ``cell_weights`` accept integer IDs or the original
 builder handles. An ID and its handle are aliases whose weights add. Missing
@@ -146,7 +154,7 @@ safety factor of eight for whitening, trace rounding and higher orders. Here
 :math:`w` is the maximum chart width, :math:`p` the global control count and
 :math:`u=2^{-53}`. This conservative screen is not an all-degree certificate.
 Its conservative work limits are
-512 global controls and a total of 4,000,000 local Gram entries. Dense
+512 global controls and a total of 4,000,000 local Gram entries. Nonlinear identified sets use this dense path, whose
 propagation costs quadratic global memory and cubic global time, with extra
 local moment and trace contractions. Explicit ``ratio`` or ``cell_weights``
 lets sampling proceed without this risk calculation; fitting uses the usual
@@ -155,6 +163,34 @@ unsupported. These risk formulas assume the correctly specified model,
 independent homoscedastic noise, independent product-uniform observations and
 unregularized least squares; Sobol sampling is a design option rather than a
 claim that the independent-design risk theorem applies to its dependence.
+
+
+Closed-form implementation paths
+--------------------------------
+
+The public risk and allocation APIs use the updated theory directly:
+
+- Arbitrary graphs, including loops, parallel edges and isolated vertices,
+  use :prf:ref:`thm-skeleton-graph-risk`. Endpoint/loop norms and interior
+  ranks need only scalar arithmetic and incidence accumulation. Large graphs
+  and high-degree graph edges avoid the global dense limit.
+- At linear factor degrees, :prf:ref:`thm-skeleton-linear-assembled` sums
+  corner collisions, retaining cross terms from identified or collapsed
+  corners. There is no global matrix. Local corner-pair work is limited to
+  4,000,000 pairs per chart; a chart with a single global corner is exactly
+  constant and needs no pair expansion.
+- Regular chart closures use :prf:ref:`thm-skeleton-regular-incidence` and
+  conditioned single-simplex factor traces. Thus large regular meshes avoid
+  global Gram/propagation matrices while retaining the existing factor-level
+  numerical safeguards. Each factor is limited to 512 controls; compounded
+  factor/accumulation error must fit the ``1e-6`` first-order screen.
+- Other nonlinear identified sets retain checked dense propagation and its
+  global work limits above.
+
+Closed formulas can evaluate theoretical coefficients when a numerical fit
+at the same degree is poorly conditioned. They do not certify that a finite
+sample or floating-point regression identifies all controls; inspect the
+ordinary fit rank/condition and solver diagnostics separately.
 
 Global controls and moments
 ---------------------------
