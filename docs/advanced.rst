@@ -93,6 +93,9 @@ choose them when your domain, objective or execution environment requires it.
    advanced/skeleton_sampling
    advanced/skeleton_risk_theory
    advanced/skeleton_risk_extensions
+   advanced/skeleton_risk_vertex
+   advanced/skeleton_risk_comparisons
+   advanced/skeleton_risk_tetrahedron_comparison
    advanced/simploidal_risk
    advanced/skeleton_risk_verification
    advanced/point_cloud
