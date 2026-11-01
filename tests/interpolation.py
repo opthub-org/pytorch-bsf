@@ -894,7 +894,7 @@ def _gradient_tolerance(mesh: SimplicialMesh, magnitude: float, max_rings: int =
     The design matrix, and so the relative error of the estimate, does not change when an axis of the mesh is scaled
     by :math:`c` and the gradient component by :math:`1 / c`. So a mesh whose coordinates overflow in differences can
     be replaced by a copy scaled to order one, with ``magnitude`` in the units of that copy. The neighbours are chosen
-    as in ``_gradient_at`` of ``torch_bsf/interpolation.py``; keep the two in step.
+    as in ``_neighbourhood`` of ``torch_bsf/interpolation.py``; keep the two in step.
     """
     d = mesh.dimension
     n_quadratic = d + d * (d + 1) // 2
@@ -1912,6 +1912,114 @@ def test_interpolant_where_differences_of_vertices_overflow():
     g = estimate_gradients(SimplicialMesh(line, [[k, k + 1] for k in range(4)]), 0.5 * line)
     tolerance = _gradient_tolerance(SimplicialMesh(line / 1e308, [[k, k + 1] for k in range(4)]), 0.5)
     torch.testing.assert_close(g[:, 0, 0], torch.full((5,), 0.5, dtype=torch.float64), rtol=0, atol=tolerance)
+
+
+def _reference_gradient_at(v: int, x: torch.Tensor, f: torch.Tensor, ring: list[list[int]], max_rings: int) -> torch.Tensor:
+    """The per-vertex gradient fit that :func:`estimate_gradients` solved one ``lstsq`` at a time before #630."""
+    from torch_bsf.interpolation import _split_difference, _times_power_of_two
+
+    d = x.shape[1]
+    iu = torch.triu_indices(d, d)
+    n_quadratic = d + iu.shape[1]
+    near = set(ring[v])
+    for _ in range(max_rings - 1):
+        near |= {w for u in near for w in ring[u]}
+        near.discard(v)
+        if len(near) >= n_quadratic + 2:
+            break
+    quadratic = len(near) >= n_quadratic + 2
+    rows = torch.tensor(sorted(near) if quadratic else ring[v], dtype=torch.long)
+    mantissa, exponent = _split_difference(x[rows], x[v])
+    exponent = torch.where(mantissa == 0, -(2**20), exponent)
+    extent_exponent = exponent.amax(dim=0)
+    extent_mantissa = torch.where(exponent == extent_exponent, mantissa.abs(), 0.0).amax(dim=0)
+    exponent = torch.where(mantissa == 0, -(2**20), exponent - extent_exponent)
+    row_exponent = exponent.amax(dim=1, keepdim=True)
+    p = torch.where(mantissa == 0, 0.0, _times_power_of_two(mantissa / extent_mantissa, exponent - row_exponent))
+    length = p.norm(dim=1, keepdim=True)
+    unit = p / length
+    if quadratic:
+        q = _times_power_of_two(p, row_exponent)
+        design = torch.cat([unit, unit[:, iu[0]] * q[:, iu[1]]], dim=1)
+    else:
+        design = unit
+    slope_mantissa, slope_exponent = _split_difference(f[rows], f[v])
+    slope_mantissa = slope_mantissa / length
+    slope_exponent = torch.where(slope_mantissa == 0, -(2**20), slope_exponent - row_exponent)
+    top = slope_exponent.amax(dim=0)
+    top = torch.where(top < -(2**19), 0, top)
+    rhs = _times_power_of_two(slope_mantissa, slope_exponent - top)
+    solution = torch.linalg.lstsq(design, rhs, driver="gelsd").solution
+    shift = top[None, :] - extent_exponent[:, None]
+    return _times_power_of_two(solution[:d] / extent_mantissa[:, None], shift)
+
+
+@given(kuhn_meshes(dimensions=(1, 2, 3), max_n=4), st.integers(2, 4), st.integers(0, 2**32 - 1))
+@example(_kuhn_mesh(2, 6, jitter=0.3), 4, 0)  # interior, edge and corner vertices fall in different batches
+def test_batched_gradient_estimates_equal_the_per_vertex_fits(mesh_data, max_rings, seed):
+    """The batched least-squares fits of #630 reproduce the per-vertex fits, including the linear fallback.
+
+    Each batched fit runs the same elementwise operations and the same LAPACK driver on the same matrix as the
+    per-vertex fit, so the results are expected to be identical; both are compared at zero tolerance.
+    """
+    x, simplices = mesh_data
+    mesh = SimplicialMesh(x, simplices)
+    f = torch.randn(mesh.n_vertices, 2, dtype=torch.float64, generator=torch.Generator().manual_seed(seed))
+    ring = mesh.neighbors()
+    expected = torch.stack([_reference_gradient_at(v, mesh.vertices, f, ring, max_rings) for v in range(mesh.n_vertices)])
+    torch.testing.assert_close(estimate_gradients(mesh, f, max_rings=max_rings), expected, rtol=0, atol=0)
+
+
+def test_batched_gradient_estimates_keep_unused_vertices_at_zero():
+    x = torch.tensor([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [5.0, 5.0]], dtype=torch.float64)
+    mesh = SimplicialMesh(x, [[0, 1, 2]])
+    f = (x @ torch.tensor([2.0, -3.0], dtype=torch.float64))[:, None]
+    g = estimate_gradients(mesh, f)
+    torch.testing.assert_close(g[3], torch.zeros(2, 1, dtype=torch.float64), rtol=0, atol=0)
+    ring = mesh.neighbors()
+    expected = torch.stack([_reference_gradient_at(v, mesh.vertices, f, ring, 4) for v in range(3)])
+    torch.testing.assert_close(g[:3], expected, rtol=0, atol=0)
+
+
+@pytest.mark.parametrize("dim", [1, 2, 3])
+def test_locate_default_batch_matches_explicit_batches(dim, monkeypatch):
+    """The default batch size of #630 is chosen from a memory budget; the result does not depend on the batches.
+
+    Every point is located independently of the others in its batch, so the comparison is exact.
+    """
+    import torch_bsf.interpolation as interpolation
+
+    mesh = lattice_mesh(dim, 4)
+    gen = torch.Generator().manual_seed(dim)
+    t = torch.rand(50, dim + 1, dtype=torch.float64, generator=gen)
+    x = (t / t.sum(dim=1, keepdim=True))[:, :dim]
+    default = mesh.locate(x)
+    for batch_size in (1, 7, 1024):
+        explicit = mesh.locate(x, batch_size=batch_size)
+        torch.testing.assert_close(explicit.parameters, default.parameters, rtol=0, atol=0)
+        assert torch.equal(explicit.cell_ids, default.cell_ids)
+    # A budget of a few points per batch splits the query into many batches.
+    monkeypatch.setattr(interpolation, "_LOCATE_ARRAY_BYTES", 3 * 8 * mesh.n_simplices * (dim + 1))
+    small = mesh.locate(x)
+    torch.testing.assert_close(small.parameters, default.parameters, rtol=0, atol=0)
+    assert torch.equal(small.cell_ids, default.cell_ids)
+
+
+def test_locate_default_batch_follows_the_memory_budget(monkeypatch):
+    mesh = lattice_mesh(2, 3)
+    sizes: list[int] = []
+    split = torch.split
+
+    def recording_split(tensor, size, *args, **kwargs):
+        sizes.append(size)
+        return split(tensor, size, *args, **kwargs)
+
+    monkeypatch.setattr(torch, "split", recording_split)
+    mesh.locate(torch.full((5, 2), 0.25, dtype=torch.float64))
+    # 2**24 bytes per float64 array of shape (batch, 9 simplices, 3 coordinates).
+    assert sizes == [2**24 // (8 * 9 * 3)]
+    mesh.locate(torch.full((5, 2), 0.25, dtype=torch.float64), batch_size=0)
+    assert sizes[-1] == 1  # explicit sizes are used as before, at least one point at a time
 
 
 def test_finite_components_of_an_overflowing_edge_are_kept():
