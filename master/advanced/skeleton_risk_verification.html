@@ -148,7 +148,7 @@ They do not add a computer-algebra dependency to the normal test suite.
 <section id="independent-checks">
 <h2>Independent checks<a class="headerlink" href="#independent-checks" title="Link to this heading"></a></h2>
 <table class="docutils align-default" id="id1">
-<caption><span class="caption-number">Table 14 </span><span class="caption-text">Checks and their roles</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<caption><span class="caption-number">Table 15 </span><span class="caption-text">Checks and their roles</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Result</p></th>
 <th class="head"><p>Independent reference and checked range</p></th>
@@ -209,7 +209,7 @@ versus 0.04 seconds with propagation reduction.</p>
 </section>
 <section id="assembled-simploidal-sets">
 <h2>Assembled simploidal sets<a class="headerlink" href="#assembled-simploidal-sets" title="Link to this heading"></a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">tests/simploidal_risk.py</span></code> checks <a class="reference internal" href="simploidal_risk.html#thm-skeleton-assembled-risk">Theorem 32</a>
+<p><code class="docutils literal notranslate"><span class="pre">tests/simploidal_risk.py</span></code> checks <a class="reference internal" href="simploidal_risk.html#thm-skeleton-assembled-risk">Theorem 33</a>
 in two independent ways. Exact Dirichlet moments are scattered into global
 proper-control coordinates, retaining repeated local IDs. Rational
 elimination solves the global block triangular equations. Separately,
@@ -244,17 +244,17 @@ local control counts. Quadrature and the public joint solver also check
 <a class="reference internal" href="simploidal_risk.html#cor-skeleton-assembled-aao">Corollary 16</a> with matching design/evaluation
 weights and with different weights, over the reference domains.</p>
 <p><code class="docutils literal notranslate"><span class="pre">tests/simploidal_incidence.py</span></code> independently checks
-<a class="reference internal" href="simploidal_risk.html#thm-skeleton-regular-incidence">Theorem 33</a> against exact assembled population
+<a class="reference internal" href="simploidal_risk.html#thm-skeleton-regular-incidence">Theorem 34</a> against exact assembled population
 solves on shared triangles, a triangle-square pair, shared tetrahedra,
 nonpure complexes and nonmanifold gluing, as well as graphs and disconnected
 sets. Unequal evaluation weights on all charts and on maximal charts check
 both the incidence formula and the pure-complex face-vector reduction.
 The same file checks the explicit corner-collision formula
-<a class="reference internal" href="simploidal_risk.html#thm-skeleton-linear-assembled">Theorem 34</a>, including repeated vertices of a
+<a class="reference internal" href="simploidal_risk.html#thm-skeleton-linear-assembled">Theorem 35</a>, including repeated vertices of a
 loop and torus and the collapsed edges of a sphere, and its strict risk
 bound when a positive-weight chart sees distinct vertices.</p>
 <p><code class="docutils literal notranslate"><span class="pre">tests/simploidal_graph_risk.py</span></code> checks
-<a class="reference internal" href="simploidal_risk.html#thm-skeleton-graph-risk">Theorem 35</a> on mixed-degree graphs with parallel
+<a class="reference internal" href="simploidal_risk.html#thm-skeleton-graph-risk">Theorem 36</a> on mixed-degree graphs with parallel
 edges, loops and isolated vertices. Vertex and edge evaluation weights
 are varied independently. Endpoint self and cross norms are checked by
 exact Bernstein Gram elimination at <span class="math notranslate nohighlight">\(D=1,\ldots,12\)</span>, then by exact
@@ -295,7 +295,7 @@ rounding. Its comparison with the dimension-based optimum allows the same
 rounding bound. These checks cover the following cases; the type lists
 factor dimensions, as in <a class="reference internal" href="simploidal.html"><span class="doc">Single and assembled domains</span></a>.</p>
 <table class="docutils align-default" id="id2">
-<caption><span class="caption-number">Table 15 </span><span class="caption-text">Exact product-risk checks</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<caption><span class="caption-number">Table 16 </span><span class="caption-text">Exact product-risk checks</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
 <thead>
 <tr class="row-odd"><th class="head"><p>Type</p></th>
 <th class="head"><p>Factor degrees</p></th>
@@ -389,7 +389,7 @@ This gives every polynomial coefficient over the rationals, without
 interpolation in the dimension or reliance on the closed forms.
 The <span class="math notranslate nohighlight">\(m=D-1,D-2,D-3\)</span> rows agree with the corresponding general formulas.</p>
 <table class="docutils align-default" id="id3">
-<caption><span class="caption-number">Table 16 </span><span class="caption-text"><span class="math notranslate nohighlight">\(P_{D,m}(M)\)</span> for <span class="math notranslate nohighlight">\(D \leq 8\)</span></span><a class="headerlink" href="#id3" title="Link to this table"></a></caption>
+<caption><span class="caption-number">Table 17 </span><span class="caption-text"><span class="math notranslate nohighlight">\(P_{D,m}(M)\)</span> for <span class="math notranslate nohighlight">\(D \leq 8\)</span></span><a class="headerlink" href="#id3" title="Link to this table"></a></caption>
 <thead>
 <tr class="row-odd"><th class="head stub"><p><span class="math notranslate nohighlight">\(D\)</span></p></th>
 <th class="head stub"><p><span class="math notranslate nohighlight">\(m\)</span></p></th>

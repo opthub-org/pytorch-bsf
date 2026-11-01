@@ -299,15 +299,15 @@ claim that the independent-design risk theorem applies to its dependence.</p>
 <p>The public risk and allocation APIs use the updated theory directly:</p>
 <ul class="simple">
 <li><p>Arbitrary graphs, including loops, parallel edges and isolated vertices,
-use <a class="reference internal" href="#thm-skeleton-graph-risk">Theorem 35</a>. Endpoint/loop norms and interior
+use <a class="reference internal" href="#thm-skeleton-graph-risk">Theorem 36</a>. Endpoint/loop norms and interior
 ranks need only scalar arithmetic and incidence accumulation. Large graphs
 and high-degree graph edges avoid the global dense limit.</p></li>
-<li><p>At linear factor degrees, <a class="reference internal" href="#thm-skeleton-linear-assembled">Theorem 34</a> sums
+<li><p>At linear factor degrees, <a class="reference internal" href="#thm-skeleton-linear-assembled">Theorem 35</a> sums
 corner collisions, retaining cross terms from identified or collapsed
 corners. There is no global matrix. Local corner-pair work is limited to
 4,000,000 pairs per chart; a chart with a single global corner is exactly
 constant and needs no pair expansion.</p></li>
-<li><p>Regular chart closures use <a class="reference internal" href="#thm-skeleton-regular-incidence">Theorem 33</a> and
+<li><p>Regular chart closures use <a class="reference internal" href="#thm-skeleton-regular-incidence">Theorem 34</a> and
 conditioned single-simplex factor traces. Thus large regular meshes avoid
 global Gram/propagation matrices while retaining the existing factor-level
 numerical safeguards. Each factor is limited to 512 controls; compounded
@@ -408,7 +408,7 @@ They require only local proper-block solves and a finite polynomial in
 In general the matrices do not factor globally over the simplex factors:
 the identifications and the evaluation measure are part of the answer.</p>
 <div class="proof theorem admonition" id="thm-skeleton-assembled-risk">
-<p class="admonition-title"><span class="caption-number">Theorem 32 </span> (Assembled asymptotic risk)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 33 </span> (Assembled asymptotic risk)</p>
 <section class="theorem-content" id="proof-content">
 <p>With the estimator and assumptions above, let
 <span class="math notranslate nohighlight">\(N=\sum_{s\in\mathcal A}n_s\)</span> and suppose
@@ -540,7 +540,7 @@ faces, with any number of incident charts; no manifold assumption is
 needed. Identifications within the closure of a single chart and collapsed
 faces are excluded from this particular result.</p>
 <div class="proof theorem admonition" id="thm-skeleton-regular-incidence">
-<p class="admonition-title"><span class="caption-number">Theorem 33 </span> (Risk from weighted face incidences)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 34 </span> (Risk from weighted face incidences)</p>
 <section class="theorem-content" id="proof-content">
 <p>Suppose the simploidal set is regular. For an active cell <span class="math notranslate nohighlight">\(s\)</span>
 which is a face of a chart <span class="math notranslate nohighlight">\(x\)</span>, write its unique local face as
@@ -624,7 +624,7 @@ its local corners by <span class="math notranslate nohighlight">\(a\in\prod_i[M_
 the global vertex of that corner, with repetitions retained, and write
 <span class="math notranslate nohighlight">\(\mathcal F_{x,v}=\{a:\pi_x(a)=v\}\)</span>.</p>
 <div class="proof theorem admonition" id="thm-skeleton-linear-assembled">
-<p class="admonition-title"><span class="caption-number">Theorem 34 </span> (Corner collisions at linear factor degrees)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 35 </span> (Corner collisions at linear factor degrees)</p>
 <section class="theorem-content" id="proof-content">
 <p>On any finite simploidal set with all factor degrees one, the vertex
 coefficient is</p>
@@ -681,7 +681,7 @@ vertex. Assign each edge <span class="math notranslate nohighlight">\(e\)</span>
 <span class="math notranslate nohighlight">\(w_v\)</span> and <span class="math notranslate nohighlight">\(w_e\)</span> be the evaluation weights on vertices and edges,
 respectively, with their sum equal to one.</p>
 <div class="proof theorem admonition" id="thm-skeleton-graph-risk">
-<p class="admonition-title"><span class="caption-number">Theorem 35 </span> (Graph risk coefficients)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 36 </span> (Graph risk coefficients)</p>
 <section class="theorem-content" id="proof-content">
 <p>Define</p>
 <div class="math notranslate nohighlight">
@@ -701,7 +701,7 @@ occurs once in the second sum. Edges of degree one have no proper
 controls and no fitting stage, although their evaluation weights still
 contribute to the vertex coefficients.</p>
 <p>Thus, under the assumptions of
-<a class="reference internal" href="#thm-skeleton-assembled-risk">Theorem 32</a>,</p>
+<a class="reference internal" href="#thm-skeleton-assembled-risk">Theorem 33</a>,</p>
 <div class="math notranslate nohighlight">
 \[\lim_{N\to\infty}\frac{NR_N}{\sigma^2L}
 =\sum_v\frac{c_v}{q_v}
