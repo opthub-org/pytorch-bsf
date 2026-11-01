@@ -190,12 +190,12 @@ release. The migrated script can generate fresh figures and metrics.</p>
 <section id="benchmarks-sgd-vs-psgd">
 <h2>Benchmarks: SGD vs. PSGD<a class="headerlink" href="#benchmarks-sgd-vs-psgd" title="Link to this heading"></a></h2>
 <p>The script <code class="docutils literal notranslate"><span class="pre">examples/sgd_benchmarks.py</span></code> reproduces the experiments of
-Section 5 of <span class="bibtex-citation" id="id1">Hikima <em>et al.</em> [<a class="reference internal" href="../references.html#id12" title="Yasunari Hikima, Ken Kobayashi, Akinori Tanaka, Akiyoshi Sannai, and Naoki Hamada. Stochastic gradient descent for bézier simplex representation of pareto set in multi-objective optimization. In Proceedings of The 28th International Conference on Artificial Intelligence and Statistics, volume 258 of Proceedings of Machine Learning Research. 2025. URL: https://proceedings.mlr.press/v258/hikima25a.html.">HKT+25</a>]</span> with <code class="xref py py-func docutils literal notranslate"><span class="pre">minimize()</span></code>,
+Section 5 of <span class="bibtex-citation" id="id1">Hikima <em>et al.</em> [<a class="reference internal" href="../references.html#id13" title="Yasunari Hikima, Ken Kobayashi, Akinori Tanaka, Akiyoshi Sannai, and Naoki Hamada. Stochastic gradient descent for bézier simplex representation of pareto set in multi-objective optimization. In Proceedings of The 28th International Conference on Artificial Intelligence and Statistics, volume 258 of Proceedings of Machine Learning Research. 2025. URL: https://proceedings.mlr.press/v258/hikima25a.html.">HKT+25</a>]</span> with <code class="xref py py-func docutils literal notranslate"><span class="pre">minimize()</span></code>,
 comparing plain SGD (<code class="docutils literal notranslate"><span class="pre">preconditioner=&quot;none&quot;</span></code>) with the preconditioned SGD
 of the paper (PSGD, <code class="docutils literal notranslate"><span class="pre">preconditioner=&quot;gram&quot;</span></code>).  The problems are implemented
 from their definitions in the paper:</p>
 <ul class="simple">
-<li><p><strong>Bergou2020</strong> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id32" title="El Houcine Bergou, Youssef Diouane, and Vyacheslav Kungurtsev. Complexity iteration analysis for strongly convex multi-objective optimization using a newton path-following procedure. Optimization Letters, 15:1215–1227, 2021. doi:10.1007/s11590-020-01623-x.">BDK21</a>]</span> (<span class="math notranslate nohighlight">\(M = 2\)</span>, <span class="math notranslate nohighlight">\(L = 2\)</span>):
+<li><p><strong>Bergou2020</strong> <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id33" title="El Houcine Bergou, Youssef Diouane, and Vyacheslav Kungurtsev. Complexity iteration analysis for strongly convex multi-objective optimization using a newton path-following procedure. Optimization Letters, 15:1215–1227, 2021. doi:10.1007/s11590-020-01623-x.">BDK21</a>]</span> (<span class="math notranslate nohighlight">\(M = 2\)</span>, <span class="math notranslate nohighlight">\(L = 2\)</span>):
 <span class="math notranslate nohighlight">\(f_1(\mathbf x) = (x_1 - 1)^2 + (x_1 - x_2)^2\)</span> and
 <span class="math notranslate nohighlight">\(f_2(\mathbf x) = (x_2 - 3)^2 + (x_1 - x_2)^2\)</span>.</p></li>
 <li><p><strong>Scaled-MED</strong> (<span class="math notranslate nohighlight">\(M = 3\)</span>, <span class="math notranslate nohighlight">\(L = 3\)</span>):
@@ -350,7 +350,7 @@ vertices of the simplex that uniform samples of <span class="math notranslate no
 approach, converge the slowest.  On the skew-MMD, the fitted surface leaves
 the true Pareto set, whereas on its transform it follows it; see
 <a class="reference internal" href="#non-convex-objectives-transforming-the-skew-mmd">Non-convex objectives: transforming the skew-MMD</a>.</p>
-<p>The last figures correspond to Figure 4 of <span class="bibtex-citation" id="id3">Hikima <em>et al.</em> [<a class="reference internal" href="../references.html#id12" title="Yasunari Hikima, Ken Kobayashi, Akinori Tanaka, Akiyoshi Sannai, and Naoki Hamada. Stochastic gradient descent for bézier simplex representation of pareto set in multi-objective optimization. In Proceedings of The 28th International Conference on Artificial Intelligence and Statistics, volume 258 of Proceedings of Machine Learning Research. 2025. URL: https://proceedings.mlr.press/v258/hikima25a.html.">HKT+25</a>]</span>:
+<p>The last figures correspond to Figure 4 of <span class="bibtex-citation" id="id3">Hikima <em>et al.</em> [<a class="reference internal" href="../references.html#id13" title="Yasunari Hikima, Ken Kobayashi, Akinori Tanaka, Akiyoshi Sannai, and Naoki Hamada. Stochastic gradient descent for bézier simplex representation of pareto set in multi-objective optimization. In Proceedings of The 28th International Conference on Artificial Intelligence and Statistics, volume 258 of Proceedings of Machine Learning Research. 2025. URL: https://proceedings.mlr.press/v258/hikima25a.html.">HKT+25</a>]</span>:
 they compare how close the approximated Pareto set gets to the true one, by
 the mean squared error of Section 5.3 of the paper,</p>
 <div class="math notranslate nohighlight">
@@ -874,7 +874,7 @@ dense basis or change differentiation through sample coordinates.</p>
         </dl>
         <dl>
             <dt>Branches</dt>
-            <dd><a href="../../master/index.html">master</a></dd>
+            <dd><a href="../../tools/skeleton-risk-research/index.html">tools/skeleton-risk-research</a></dd>
         </dl>
     </div>
 </div><script>

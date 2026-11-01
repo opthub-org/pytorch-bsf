@@ -138,7 +138,7 @@ piecewise cubic Bézier model that passes through every datum and, with the
 default <code class="docutils literal notranslate"><span class="pre">clamp=True</span></code>, never leaves the range of the data at the vertices of
 the simplex it is evaluated in. On a chain of intervals it is the familiar
 monotone piecewise cubic Hermite interpolation (PCHIP)
-<span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id47" title="Frederick N. Fritsch and Ralph E. Carlson. Monotone piecewise cubic interpolation. SIAM Journal on Numerical Analysis, 17(2):238–246, 1980.">FC80</a>]</span>; on triangles and tetrahedra it is its natural
+<span class="bibtex-citation" id="id1">[<a class="reference internal" href="../references.html#id48" title="Frederick N. Fritsch and Ralph E. Carlson. Monotone piecewise cubic interpolation. SIAM Journal on Numerical Analysis, 17(2):238–246, 1980.">FC80</a>]</span>; on triangles and tetrahedra it is its natural
 generalization, which we call simplicial PCHIP.</p>
 <p>Use it when evaluations are exact (or nearly so) and the design points are
 given, for example a grid or the points chosen by an adaptive loop. With
@@ -253,7 +253,7 @@ six edge controls of that face divided by four, minus
 </ul>
 <p>A cubic simplex has no other controls. The face formula is the degree
 elevation of the quadratic Bézier triangle whose edge midpoint controls
-match the cubic edge controls <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id50" title="Gerald Farin. Curves and Surfaces for CAGD: A Practical Guide. Morgan Kaufmann, 5 edition, 2002.">Far02</a>]</span>, so the interpolant
+match the cubic edge controls <span class="bibtex-citation" id="id2">[<a class="reference internal" href="../references.html#id51" title="Gerald Farin. Curves and Surfaces for CAGD: A Practical Guide. Morgan Kaufmann, 5 edition, 2002.">Far02</a>]</span>, so the interpolant
 reproduces every quadratic polynomial when the gradients are exact.</p>
 <p>Each control depends only on the data of the edge or face that carries it.
 <code class="docutils literal notranslate"><span class="pre">SimplicialMesh</span></code> glues simplices that share a face so that the face’s
@@ -412,7 +412,7 @@ simplices, which <code class="docutils literal notranslate"><span class="pre">Si
 leaves cells that split a flat polygon in different ways on its two sides:
 the mesh is not conforming. For the degree-<code class="docutils literal notranslate"><span class="pre">k</span></code> lattice of a simplex, use
 <a class="reference internal" href="../torch_bsf.html#torch_bsf.interpolation.lattice_mesh" title="torch_bsf.interpolation.lattice_mesh"><code class="xref py py-func docutils literal notranslate"><span class="pre">lattice_mesh()</span></code></a> instead. It returns the Kuhn
-(Freudenthal) triangulation <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../references.html#id51" title="Harold W. Kuhn. Some combinatorial lemmas in topology. IBM Journal of Research and Development, 4(5):518–524, 1960.">Kuh60</a>]</span>: <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">**</span> <span class="pre">d</span></code>
+(Freudenthal) triangulation <span class="bibtex-citation" id="id3">[<a class="reference internal" href="../references.html#id52" title="Harold W. Kuhn. Some combinatorial lemmas in topology. IBM Journal of Research and Development, 4(5):518–524, 1960.">Kuh60</a>]</span>: <code class="docutils literal notranslate"><span class="pre">k</span> <span class="pre">**</span> <span class="pre">d</span></code>
 simplices of equal volume (not congruent for <code class="docutils literal notranslate"><span class="pre">d</span> <span class="pre">&gt;=</span> <span class="pre">3</span></code>) whose vertices are
 the lattice points, in the order of
 <a class="reference internal" href="../torch_bsf.html#torch_bsf.sampling.grid" title="torch_bsf.sampling.grid"><code class="xref py py-func docutils literal notranslate"><span class="pre">grid()</span></code></a> with <code class="docutils literal notranslate"><span class="pre">resolution=k</span></code>, given by their first
@@ -428,7 +428,7 @@ the lattice points, in the order of
 conforming. It bisects an edge in every simplex containing it, and before
 that it refines each of those simplices whose longest edge is another one,
 recursively, which is the longest-edge bisection of Rivara
-<span class="bibtex-citation" id="id4">[<a class="reference internal" href="../references.html#id53" title="Maria-Cecilia Rivara. Algorithms for refining triangular grids suitable for adaptive and multigrid techniques. International Journal for Numerical Methods in Engineering, 20(4):745–756, 1984.">Riv84</a>]</span>. Refining one simplex can therefore add more
+<span class="bibtex-citation" id="id4">[<a class="reference internal" href="../references.html#id54" title="Maria-Cecilia Rivara. Algorithms for refining triangular grids suitable for adaptive and multigrid techniques. International Journal for Numerical Methods in Engineering, 20(4):745–756, 1984.">Riv84</a>]</span>. Refining one simplex can therefore add more
 than one vertex. Ties between edges of equal length, common on lattices, are
 broken by vertex numbers in the same way everywhere. Starting from a lattice
 mesh, every new vertex is a lattice point of a finer lattice (degree <code class="docutils literal notranslate"><span class="pre">2k</span></code>,
@@ -537,7 +537,7 @@ repair NaN controls. Rescale the vertex data or coordinates if this occurs.</p><
         </dl>
         <dl>
             <dt>Branches</dt>
-            <dd><a href="../../master/advanced/interpolation.html">master</a></dd>
+            <dd><a href="../../tools/skeleton-risk-research/advanced/interpolation.html">tools/skeleton-risk-research</a></dd>
         </dl>
     </div>
 </div><script>
