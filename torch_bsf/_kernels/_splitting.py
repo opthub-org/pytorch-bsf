@@ -537,7 +537,7 @@ def max_error_criterion(params: torch.Tensor, values: torch.Tensor, grid_size: i
         with torch.no_grad():
             # The score squares these squared errors again, which overflows low-precision dtypes, so it is
             # computed in float64 on the CPU (some accelerators, such as MPS, have no float64).
-            residuals = (model(p) - v).cpu().double().square().sum(dim=1)
+            residuals = (model(p).cpu().double() - v.cpu().double()).square().sum(dim=1)
         p = p.cpu()
 
         best: tuple[int, int, int, float] | None = None

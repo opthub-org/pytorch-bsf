@@ -1224,3 +1224,14 @@ def test_split_score_counts_a_point_on_the_cut_once():
     key = _split_score(residuals, params, (1,), 0, 0, 1, 0.5)
     assert key is not None
     assert key[1] == 1  # three points split 2 + 1, not 2 + 2
+
+
+def test_max_error_criterion_widens_before_subtracting():
+    # 6e4 - (-6e4) overflows float16; the errors must be formed in float64.
+    bs = BezierSimploid((1,), 1, {(1, 0): [6e4], (0, 1): [6e4]}).half()
+    t = torch.linspace(0.05, 0.95, 10)
+    params = torch.stack([1 - t, t], dim=1)
+    values = torch.where(t > 0.6, -6e4, 6e4)[:, None]
+    k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
+    assert (k, i, j) == (0, 0, 1)
+    assert abs(s - 0.6) < 1e-3
