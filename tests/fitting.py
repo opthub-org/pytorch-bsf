@@ -836,7 +836,7 @@ def test_skeleton_regression_reports_failed_faces():
     samples = Samples(t, [[1.0], [2.0], [3.0]])
     failed = fit(space, samples)
     failed = type(failed)(failed.model, failed.metrics, failed.diagnostics, False, "numerical_failure", "boom")
-    with patch("torch_bsf.fitting.fit", return_value=failed):
+    with patch("torch_bsf.fitting._fit_problem", return_value=failed):
         result = fit_skeleton_regression(space, samples)
     assert not result.success and result.status == "numerical_failure" and list(result.faces) == [(0,)]
     # The failed face's controls are kept; controls of later faces stay zero.
@@ -859,7 +859,7 @@ def test_skeleton_regression_ignores_rows_on_faces_without_interior_controls():
     assert set(result.faces) == {(0,), (1,), (2,)}
     failed = result.faces[(0,)]
     failed = type(failed)(failed.model, failed.metrics, failed.diagnostics, False, "numerical_failure", "boom")
-    with patch("torch_bsf.fitting.fit", return_value=failed):
+    with patch("torch_bsf.fitting._fit_problem", return_value=failed):
         message = fit_skeleton_regression(space, Samples(t, [[1.0], [2.0], [3.0], [100.0], [100.0]])).message
     assert message.startswith("Face (0,): boom") and "Ignored 2 rows" in message
 
@@ -966,7 +966,7 @@ def test_assembled_skeleton_missing_rows_weights_rank_and_failure():
     interior = deficient.faces[segment.main_cells[0]].diagnostics.data
     assert interior.rank == 1 and interior.shape == (1, 2)
     failed = replace(fit(space, Samples(points, values)), success=False, status="numerical_failure", message="boom")
-    with patch("torch_bsf.fitting.fit", return_value=failed):
+    with patch("torch_bsf.fitting._fit_problem", return_value=failed):
         result = fit_skeleton_regression(space, Samples(points, values))
     assert not result.success and list(result.faces) == [stages[0][0]]
     later = [i for _, controls in stages[1:] for i in controls]
@@ -1027,3 +1027,89 @@ def test_assembled_observation_assignment_uses_exact_zeros(t, loop):
     ]
     assert canonical.cell_ids.tolist() == expected
     assert sorted(row for rows in groups.values() for row in rows.tolist()) == list(range(len(t)))
+
+
+def _face_by_face_reference(space, samples, solver):
+    """The former skeleton regression: one public ``fit`` per face with every other control fixed."""
+    from torch_bsf._skeleton import _interior_and_boundary, _single_skeleton, _skeleton_observations, _skeleton_stages
+
+    coefficients = torch.zeros(space.n_controls, samples.values.shape[1], dtype=torch.float64)
+    results = {}
+    stages: list[tuple[object, list[int], torch.Tensor]]
+    if _single_skeleton(space):
+        cell = space.cells[0]
+        control_faces = _control_faces(cell.dimensions, cell.degree)
+        support = samples.points.parameters != 0
+        stages = []
+        for face in _faces_with_interior_controls(cell.dimensions, cell.degree):
+            on_face = torch.zeros(support.shape[1], dtype=torch.bool)
+            on_face[list(face)] = True
+            rows = torch.nonzero((support == on_face).all(1)).flatten()
+            stages.append((face, _interior_and_boundary(control_faces, face)[0], rows))
+    else:
+        _, groups = _skeleton_observations(space, samples.points)
+        stages = [(cid, list(proper), groups[cid]) for cid, proper in _skeleton_stages(space)]
+    for key, free, rows in stages:
+        fixed = FixedControls({k: coefficients[k] for k in range(space.n_controls) if k not in free})
+        result = fit(space, samples.take(rows), solver=solver, fixed=fixed)
+        results[key] = result
+        coefficients[free] = result.model.coefficients.detach()[free]
+    return coefficients, results
+
+
+def _identical(left, right):
+    """Exact equality through nested dataclasses, tuples and tensors."""
+    import dataclasses
+
+    if isinstance(left, torch.Tensor):
+        return isinstance(right, torch.Tensor) and torch.equal(left, right)
+    if dataclasses.is_dataclass(left) and not isinstance(left, type):
+        return type(left) is type(right) and all(
+            _identical(getattr(left, f.name), getattr(right, f.name)) for f in dataclasses.fields(left)
+        )
+    if isinstance(left, tuple):
+        return isinstance(right, tuple) and len(left) == len(right) and all(map(_identical, left, right))
+    return bool(left == right)
+
+
+def _skeleton_space(case):
+    from tests.simploidal_risk import _space
+
+    if case == "triangle":
+        return BezierSpace.simplex(2, degree=4)
+    if case == "tetrahedron":
+        return BezierSpace.simplex(3, degree=3)
+    if case == "prism":
+        return BezierSpace.simploid((2, 1), degree=(2, 2))
+    return _space(case, 3)
+
+
+@pytest.mark.parametrize("case", ["triangle", "tetrahedron", "prism", "chain", "mixed", "triangles"])
+@pytest.mark.parametrize("solver", [DenseLeastSquares(), SparseLeastSquares()], ids=["dense", "sparse"])
+def test_skeleton_regression_matches_face_by_face_fits(case, solver):
+    space = _skeleton_space(case)
+    points = sample_skeleton(space, 20 * space.n_controls, seed=0)
+    generator = torch.Generator().manual_seed(0)
+    t = points.parameters
+    values = torch.stack([t[:, 0] ** 2 + t[:, 1], torch.sin(3 * t[:, 1])], 1)
+    values = values + 0.01 * torch.randn(values.shape, generator=generator, dtype=torch.float64)
+    weights = 0.5 + torch.rand(len(t), generator=generator, dtype=torch.float64)
+    samples = Samples(points, values, weights=weights)
+    result = fit_skeleton_regression(space, samples, solver=solver).require_success()
+    coefficients, faces = _face_by_face_reference(space, samples, solver)
+    # The basis is evaluated once and sliced per face, and fixed values are passed as a mask:
+    # every face solve is the same computation, so the results agree bit for bit.
+    assert torch.equal(result.model.coefficients, coefficients)
+    assert list(result.faces) == list(faces)
+    for key, face in faces.items():
+        assert torch.equal(result.faces[key].model.coefficients, face.model.coefficients)
+        assert result.faces[key].metrics == face.metrics
+        assert _identical(result.faces[key].diagnostics, face.diagnostics)
+
+
+@pytest.mark.parametrize("case", ["triangle", "chain"])
+def test_skeleton_regression_still_rejects_an_untyped_solver(case):
+    space = _skeleton_space(case)
+    points = sample_skeleton(space, 10 * space.n_controls, seed=0)
+    with pytest.raises(TypeError, match="typed least-squares"):
+        fit_skeleton_regression(space, Samples(points, points.parameters[:, :1]), solver="dense")  # type: ignore[arg-type]

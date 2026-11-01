@@ -4,7 +4,7 @@ from typing import Any
 
 import torch
 
-from torch_bsf.core import BezierSpace, FixedControls, Points, QuadraticPenalty, Samples
+from torch_bsf.core import BasisOperator, BezierSpace, FixedControls, Points, QuadraticPenalty, Samples
 
 
 def scipy_sparse() -> Any:
@@ -38,19 +38,42 @@ def _scaled_differences(coefficients: torch.Tensor, edges: torch.Tensor, scale: 
 class LeastSquaresProblem:
     """Linear operator for normalized observations and the exact penalty rows."""
 
-    def __init__(self, space: BezierSpace, samples: Samples, penalty: QuadraticPenalty, fixed: FixedControls | None):
+    def __init__(
+        self,
+        space: BezierSpace,
+        samples: Samples,
+        penalty: QuadraticPenalty,
+        fixed: FixedControls | tuple[torch.Tensor, torch.Tensor] | None,
+        *,
+        basis: BasisOperator | None = None,
+    ):
+        """Assemble the problem.
+
+        Internal callers may pass ``fixed`` as a ``(free, values)`` pair of a boolean row mask and a
+        CPU float64 coefficient matrix whose rows outside ``free`` are the fixed values, and ``basis``
+        as an already validated CPU float64 operator for ``samples.points``.
+        """
         self.space, self.samples, self.penalty = space, samples, penalty
-        self.basis = space.basis(Points(samples.points.parameters.detach(), samples.points.cell_ids).to())
+        self.basis = (
+            space.basis(Points(samples.points.parameters.detach(), samples.points.cell_ids).to()) if basis is None else basis
+        )
         self.values = samples.values.detach().cpu().double()
         weights = samples.weights.detach()
         self.scale = weights.sqrt() / weights.sum().sqrt()
-        self.fixed = torch.zeros(space.n_controls, self.values.shape[1], dtype=torch.float64)
-        self.free = torch.ones(space.n_controls, dtype=torch.bool)
-        for row, value in (fixed.values if fixed is not None else {}).items():
-            if row >= space.n_controls or value.shape != (self.values.shape[1],):
+        if isinstance(fixed, tuple):
+            free, current = fixed
+            if free.shape != (space.n_controls,) or current.shape != (space.n_controls, self.values.shape[1]):
                 raise ValueError("fixed control index or output dimension does not match the problem.")
-            self.fixed[row] = value.detach()
-            self.free[row] = False
+            self.free = free.clone()
+            self.fixed = torch.where(free[:, None], 0.0, current.detach())
+        else:
+            self.fixed = torch.zeros(space.n_controls, self.values.shape[1], dtype=torch.float64)
+            self.free = torch.ones(space.n_controls, dtype=torch.bool)
+            for row, value in (fixed.values if fixed is not None else {}).items():
+                if row >= space.n_controls or value.shape != (self.values.shape[1],):
+                    raise ValueError("fixed control index or output dimension does not match the problem.")
+                self.fixed[row] = value.detach()
+                self.free[row] = False
         self.n_free = int(self.free.sum())
         self.edges = space.adjacency()
         # Penalties are stored as COO entries, not dense incidence/identity matrices.

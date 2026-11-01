@@ -649,3 +649,24 @@ def test_preconditioner_rejects_non_string_choice(wrap):
 def test_preconditioner_accepts_string_choice(string_type, option):
     value = string_type(option)
     _check_sgd_options(1, 0.1, None, "constant", value, 0)
+
+
+@pytest.mark.parametrize("simploid_type,degree", [((1,), 3), ((2,), 4), ((1, 1), 2), ((3,), 3)])
+@pytest.mark.parametrize("frozen", [[], [0, 2]])
+def test_update_laplacian_matches_incidence_product(simploid_type: tuple[int, ...], degree: int, frozen: list[int]) -> None:
+    """The directly assembled Laplacian equals the former dense ``D^T D`` and its scaled step matrix."""
+    from torch_bsf._kernels.fitting import _incidence, _laplacian
+    from torch_bsf._kernels.sgd import _Update
+
+    model = BezierSimploid.zeros(simploid_type, degree, n_values=2).double()
+    n = len(model.control_points)
+    d = _incidence(model.adjacency(), n)
+    # Integer entries: both assemblies are exact.
+    assert torch.equal(_laplacian(model.adjacency(), n), d.T @ d)
+    w = 0.7
+    update = _Update(model, model.control_points, frozen, "none", None, w)
+    free = [r for r in range(n) if r not in frozen]
+    expected = (2 * w * d.T @ d)[free][:, free]
+    assert update.laplacian is not None
+    # Scaling the integer Laplacian rounds once; the dense product sums the scaled entries, within one ulp.
+    torch.testing.assert_close(update.laplacian, expected, rtol=2**-52, atol=0)

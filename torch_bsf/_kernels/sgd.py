@@ -55,7 +55,7 @@ from torch_bsf._kernels.combinatorics import (
     sample_simploid,
     simploid_n_params,
 )
-from torch_bsf._kernels.fitting import _incidence, _parameter, _smoothness_penalty
+from torch_bsf._kernels.fitting import _laplacian, _parameter, _smoothness_penalty
 from torch_bsf._kernels.sets import Simploid
 from torch_bsf._kernels.space import SimploidalBezierSpace
 from torch_bsf._validation import _choice
@@ -377,8 +377,7 @@ class _Update:
             self.metric = gram_matrix(model, weights)[block]
         self.laplacian: torch.Tensor | None = None
         if smoothness_weight > 0:
-            d = _incidence(model.adjacency(), n)
-            self.laplacian = (2 * smoothness_weight * d.T @ d)[block]
+            self.laplacian = (2 * smoothness_weight * _laplacian(model.adjacency(), n))[block]
             if self.metric is None:
                 self.metric = torch.eye(len(rows), dtype=torch.float64)
         self.alpha: float | None = None

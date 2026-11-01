@@ -358,6 +358,54 @@ def test_grouped_operator_values_and_input_gradients(operation):
     assert torch.equal(second_actual, second_expected)
 
 
+@pytest.mark.parametrize("indices", [[4, 0, 3], [0, 1, 2, 3, 4], [2], [], [3, 1]])
+def test_restricted_operator_matches_fresh_operator(indices):
+    from torch_bsf.core import BasisOperator
+
+    generator = torch.Generator().manual_seed(len(indices))
+    parameters = torch.rand(5, 3, generator=generator, dtype=torch.float64)
+    parameters[:, :2] /= parameters[:, :2].sum(1, keepdim=True)
+    parameters[[0, 2, 4]] /= parameters[[0, 2, 4]].sum(1, keepdim=True)
+    space, operator = _mixed_operator_case(parameters)
+    rows = torch.tensor(indices, dtype=torch.long)
+    subset = operator.points.take(rows)
+    restricted, fresh = operator._take(rows, subset), BasisOperator(space, subset)
+    assert restricted.shape == fresh.shape and restricted.points is subset
+    assert len(restricted.blocks) == len(fresh.blocks)
+    for got, expected in zip(restricted.blocks, fresh.blocks, strict=True):
+        assert all(torch.equal(a, b) for a, b in zip(got, expected, strict=True))
+    coefficients = torch.rand(4, 2, generator=generator, dtype=torch.float64)
+    assert torch.equal(restricted.matmat(coefficients), fresh.matmat(coefficients))
+    assert torch.equal(restricted.to_dense(), fresh.to_dense())
+
+
+def test_points_to_returns_self_only_when_nothing_changes():
+    points = bsf.Points(torch.tensor([[0.25, 0.75]], dtype=torch.float64))
+    assert points.to() is points
+    assert points.to(device=torch.device("cpu"), dtype=torch.float64) is points
+    narrow = points.to(dtype=torch.float32)
+    assert narrow is not points and narrow.parameters.dtype == torch.float32
+    assert narrow.to(dtype=torch.float32) is narrow
+    # Copies never alias the caller's tensors, and the original Points are unchanged.
+    widened = narrow.to()
+    assert widened is not narrow and widened.parameters.data_ptr() != narrow.parameters.data_ptr()
+    assert torch.equal(points.parameters, torch.tensor([[0.25, 0.75]], dtype=torch.float64))
+
+
+def test_model_forward_keeps_validation_and_copy_semantics():
+    space = bsf.BezierSpace.simplex(1, degree=1)
+    model = bsf.BezierModel(space, torch.tensor([[1.0], [3.0]], dtype=torch.float64))
+    raw = torch.tensor([[0.5, 0.5]], dtype=torch.float64)
+    assert model(raw).tolist() == [[2.0]]
+    raw[0] = torch.tensor([0.75, 0.25])
+    assert model(raw).tolist() == [[1.5]]
+    for bad, message in (([[0.5, 0.6]], "barycentric"), ([[float("inf"), 0.0]], "finite"), ([[1.0]], "width")):
+        with pytest.raises(ValueError, match=message):
+            model(bsf.Points(torch.tensor(bad, dtype=torch.float64)))
+    with pytest.raises(ValueError, match="invalid cell ID"):
+        model(bsf.Points(raw, [1]))
+
+
 def test_grouped_operator_empty_batch():
     from torch_bsf.core import Cell
 
