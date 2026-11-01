@@ -910,7 +910,6 @@ pytorch-bsf/
 ├── MLproject                         # MLflow project definition
 ├── README.md                         # Project overview and usage
 ├── _typos.toml                       # Exceptions for the typos spell checker
-├── control_points.yml                # Sample control points in the YAML format
 ├── environment.yml                   # Conda environment definition
 ├── params.csv                        # Sample parameters for the CLI
 ├── pyproject.toml                    # Package configuration, dependencies, tool settings
