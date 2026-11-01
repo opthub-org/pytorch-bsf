@@ -262,3 +262,22 @@ def test_constant_cli_fit_and_prediction(tmp_path, capsys):
     assert load_model(saved).space.width == 0
     main(["predict", "--model", str(saved), "--params", str(parameters), "--save", str(predicted)])
     assert np.allclose(np.loadtxt(predicted), 2)
+
+
+@pytest.mark.parametrize("error", ["LinAlgError", "ZeroDivisionError", "OverflowError", "FloatingPointError"])
+def test_numerical_errors_are_reported_concisely(tmp_path, capsys, error):
+    """Numerical failures are reported through parser.error, without a traceback."""
+    from unittest.mock import patch
+
+    import torch
+
+    exception = {
+        "LinAlgError": torch.linalg.LinAlgError,
+        "ZeroDivisionError": ZeroDivisionError,
+        "OverflowError": OverflowError,
+        "FloatingPointError": FloatingPointError,
+    }[error]("numerical failure")
+    with patch("torch_bsf.__main__._regression", side_effect=exception), pytest.raises(SystemExit) as raised:
+        main(["fit", *data(tmp_path), "--save", str(tmp_path / "model.bsf")])
+    assert raised.value.code == 2
+    assert "error: numerical failure" in capsys.readouterr().err

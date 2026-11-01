@@ -130,7 +130,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             )
         else:
             output, success = _regression(args)
-    except (ValueError, OSError, ImportError) as error:
+    except (ValueError, OSError, ImportError, ArithmeticError, torch.linalg.LinAlgError) as error:
         parser.error(str(error))
     print(json.dumps(output, allow_nan=True, default=lambda value: value.tolist()))
     if not success:

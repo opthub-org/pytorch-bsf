@@ -4,9 +4,9 @@ import csv
 import json
 import pickle
 from ast import literal_eval
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 
 import torch
 import yaml
@@ -49,14 +49,25 @@ def _parse_index_key(key: object) -> SimploidIndex:
     )
 
 
-def _from_items(items: Iterable[tuple[object, Sequence[Any]]], path: Path) -> BezierSimploid:
+def _values(value: object, index: SimploidIndex, path: Path) -> list[float]:
+    """Converts the values of a control point, rejecting strings, scalars and non-numeric items."""
+    message = f"Control point {_index_key(index)} in '{path}' must be a list of numbers, got {value!r}."
+    if not isinstance(value, (list, tuple)):
+        raise ValueError(message)
+    try:
+        return [float(v) for v in value]
+    except (TypeError, ValueError) as e:
+        raise ValueError(message) from e
+
+
+def _from_items(items: Iterable[tuple[object, object]], path: Path) -> BezierSimploid:
     """Builds a Bézier simploid from ``(index key, values)`` pairs, inferring its type and degree from the keys."""
     points: dict[SimploidIndex, list[float]] = {}
     for key, value in items:
         index = _parse_index_key(key)
         if index in points:
             raise ValueError(f"Duplicate control point index {_index_key(index)} in '{path}'.")
-        points[index] = [float(v) for v in value]
+        points[index] = _values(value, index, path)
     if not points:
         raise ValueError(f"No control points found in '{path}'.")
     first = next(iter(points))
@@ -155,8 +166,9 @@ def _load_pt(path: Path) -> BezierSimploid:
     message = f"'{path}' must contain a dictionary with the keys 'simploid_type', 'degree' and 'control_points'."
     try:
         # Only plain containers and tensors are accepted: loading never executes arbitrary code.
-        data = torch.load(path, weights_only=True)
-    except pickle.UnpicklingError as e:
+        # Tensors saved on an accelerator are mapped to the CPU so that any machine can read the file.
+        data = torch.load(path, map_location="cpu", weights_only=True)
+    except (pickle.UnpicklingError, RuntimeError, EOFError) as e:
         raise ValueError(message) from e
     if not (isinstance(data, dict) and {"simploid_type", "degree", "control_points"} <= data.keys()):
         raise ValueError(message)
@@ -185,7 +197,7 @@ def load(path: str | Path) -> BezierSimploid:
     Raises
     ------
     ValueError
-        If the file type is unknown or the control points are invalid or incomplete.
+        If the file type is unknown, the file is corrupted, or the control points are invalid or incomplete.
 
     Examples
     --------
