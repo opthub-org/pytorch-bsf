@@ -324,6 +324,19 @@ two exact fractions using a proved series-tail majorant. Both functions use
 only the standard library; the limit is taken at fixed M. See
 [the general proof](../../docs/advanced/skeleton_risk_vertex_general.rst).
 
+For every `M>=4,D>=256`, the finite-degree error is additionally bounded
+by `R_M*(1+log(D))^(M-2)/D^(M+2)` with an explicit computable `R_M`.
+This bound shrinks relatively at each fixed M; the constants are conservative.
+`vertex_general_asymptotic` combines the constant interval and analytic
+remainder, uses the exact evaluator below256, and optionally adds Arb
+rounding with restored precision. See
+[the error proof](../../docs/advanced/skeleton_risk_vertex_general_asymptotics.rst).
+
+```sh
+python -m tools.risk_research.vertex_general_asymptotic --vertices 6 \
+  --degree 100000 --relative-target 1/100 --output .research/skeleton-risk/vertex6-error.json
+```
+
 ```sh
 .venv/bin/python -m tools.risk_research.vertex_general --vertices 6 \
   --constant-terms 128 --output .research/skeleton-risk/results/vertex6-constant.json
