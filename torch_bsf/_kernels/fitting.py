@@ -64,14 +64,20 @@ def _solve_least_squares(a: torch.Tensor, y: torch.Tensor, ridge: float) -> torc
     if ridge < 0:
         raise ValueError(f"ridge must be non-negative, but {ridge} is given.")
     a64, y64 = a.detach().cpu().double(), y.detach().cpu().double()
+    rcond: float | None = None
     if ridge > 0:
         n_cols = a64.shape[1]
-        if ridge >= torch.linalg.matrix_norm(a64).item() ** 2:
+        frobenius2 = torch.linalg.matrix_norm(a64).item() ** 2
+        if ridge >= frobenius2:
             lhs = a64.T @ a64 + ridge * torch.eye(n_cols, dtype=torch.float64)
             return cast(torch.Tensor, torch.linalg.solve(lhs, a64.T @ y64))
         a64 = torch.cat([a64, ridge**0.5 * torch.eye(n_cols, dtype=torch.float64)])
         y64 = torch.cat([y64, y64.new_zeros(n_cols, y64.shape[1])])
-    return cast(torch.Tensor, torch.linalg.lstsq(a64, y64, driver="gelsd").solution)
+        # Every singular value of the stacked matrix is at least sqrt(ridge), so keep them all: the default
+        # cutoff eps * max(m, n) * sigma_max would discard directions that the ridge solution retains.
+        default = torch.finfo(torch.float64).eps * max(a64.shape)
+        rcond = min(default, 0.5 * (ridge / (frobenius2 + ridge)) ** 0.5)
+    return cast(torch.Tensor, torch.linalg.lstsq(a64, y64, rcond=rcond, driver="gelsd").solution)
 
 
 #: A model whose output is linear in its only parameter: ``model(*inputs) == model.design_matrix(*inputs) @ parameter``.

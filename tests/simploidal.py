@@ -1096,6 +1096,16 @@ def test_solve_least_squares_ridge_is_accurate_on_ill_conditioned_matrix():
     assert error(solution) < 1e-3 * error(normal_equations)
 
 
+def test_solve_least_squares_ridge_keeps_directions_below_the_default_cutoff():
+    # The singular value 1e-18 is below lstsq's default rank cutoff, but the stacked matrix has full rank:
+    # the ridge solution keeps that direction, s / (s**2 + ridge) * (u^T y).
+    a = torch.diag(torch.tensor([1.0, 1e-18], dtype=torch.float64))
+    y = torch.ones(2, 1, dtype=torch.float64)
+    ridge = 1e-40
+    expected = torch.tensor([[1 / (1 + ridge)], [1e-18 / (1e-36 + ridge)]], dtype=torch.float64)
+    assert torch.allclose(_solve_least_squares(a, y, ridge), expected, rtol=1e-12)
+
+
 @pytest.mark.parametrize("ridge", [1e-300, 0.5, "below", "at", 1e100, 1e200, 1e300])
 def test_solve_least_squares_ridge_matches_closed_form(ridge):
     # Ridges from ||A||_F^2 on take the (then well-conditioned) normal equations, where the stacked
