@@ -10,7 +10,6 @@ import argparse
 import hashlib
 import json
 import math
-import resource
 import subprocess
 import sys
 import time
@@ -20,7 +19,7 @@ from importlib import import_module
 from pathlib import Path
 from typing import Any
 
-from .exact import record_fraction
+from .exact import peak_rss_bytes, record_fraction
 
 
 def read_experiment(path: Path, *, rising: int = 0, central_binomial: bool = False) -> dict[int, Fraction]:
@@ -149,7 +148,7 @@ def _worker(arguments: argparse.Namespace) -> None:
         document["status"] = "incomplete_search"
     document["elapsed_seconds"] = time.monotonic() - started
     document["cpu_seconds"] = time.process_time() - cpu_started
-    document["peak_rss_bytes"] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * (1 if sys.platform == "darwin" else 1024)
+    document["peak_rss_bytes"] = peak_rss_bytes()
     if hashlib.sha256(Path(__file__).read_bytes()).hexdigest() != document["source_sha256"]:
         raise RuntimeError("experiment source changed during evaluation; reject this run")
     if hashlib.sha256(arguments.input.read_bytes()).hexdigest() != input_sha256:

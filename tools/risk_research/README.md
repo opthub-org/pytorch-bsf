@@ -250,3 +250,5 @@ prime before exact reconstruction. Full modular rank excludes only the
 recorded order/degree space; a successful finite fit remains a conjecture
 until a separate certificate proves it. `vertex_boundary.py` is a bounded
 exact reference for the proved vertex reduction, not a completed closed form.
+The experiment and scan reports record `peak_rss_bytes` where OS resource
+accounting is available, and JSON `null` otherwise (including Windows).

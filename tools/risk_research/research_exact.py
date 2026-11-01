@@ -10,7 +10,6 @@ import hashlib
 import json
 import math
 import platform
-import resource
 import subprocess
 import sys
 import time
@@ -20,6 +19,8 @@ from fractions import Fraction
 from importlib import import_module
 from pathlib import Path
 from typing import Any
+
+from .exact import peak_rss_bytes
 
 
 @dataclass(frozen=True)
@@ -164,10 +165,7 @@ def _worker(arguments: argparse.Namespace) -> None:
         document["records"].append(record)
         document["elapsed_seconds"] = time.monotonic() - started
         document["cpu_seconds"] = time.process_time() - cpu_started
-        # ru_maxrss is bytes on macOS, KiB on other supported Unix systems.
-        document["peak_rss_bytes"] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * (
-            1 if sys.platform == "darwin" else 1024
-        )
+        document["peak_rss_bytes"] = peak_rss_bytes()
         _write(arguments.output, document)
         print(
             json.dumps({"skeleton": arguments.skeleton, **{key: record[key] for key in ("degree", "elapsed_seconds")}}),
@@ -190,7 +188,7 @@ def main() -> None:
     if arguments.worker:
         _worker(arguments)
         return
-    command = [sys.executable, str(Path(__file__).resolve()), *sys.argv[1:], "--worker"]
+    command = [sys.executable, "-m", "tools.risk_research.research_exact", *sys.argv[1:], "--worker"]
     try:
         subprocess.run(command, check=True, timeout=arguments.timeout_seconds)
     except subprocess.TimeoutExpired:

@@ -58,6 +58,16 @@ def record_fraction(value: dict[str, str]) -> Fraction:
     return Fraction(numerator, denominator)
 
 
+def peak_rss_bytes() -> int | None:
+    """Return peak resident bytes, or None when OS resource accounting is unavailable."""
+    try:
+        import resource
+    except ImportError:
+        return None
+    # ru_maxrss is bytes on macOS and KiB on other supported Unix systems.
+    return int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss) * (1 if sys.platform == "darwin" else 1024)
+
+
 def exact_coefficient(case: Case) -> Fraction:
     """Evaluate a coefficient with a reference separate from production code."""
     if case.skeleton >= case.degree:
