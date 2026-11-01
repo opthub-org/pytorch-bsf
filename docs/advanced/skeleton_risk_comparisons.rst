@@ -305,7 +305,9 @@ limit is reached, certification fails and no all-dimension result is
 reported. An exact equality is therefore never silently included among
 strict wins or losses.
 
-All 2,391 finite comparisons in the theorem separate at :math:`b=32`.
+All 2,391 finite comparisons for degrees nine through twenty and all 3,726
+for degrees twenty-one through thirty separate at :math:`b=32`, giving
+6,117 comparisons in total.
 This is a 32-bit fractional grid for the square roots, with arbitrarily
 large integer arithmetic throughout; it is not a 32-bit floating-point
 calculation.

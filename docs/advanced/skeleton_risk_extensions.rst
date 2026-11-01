@@ -796,7 +796,7 @@ classical-special-function evaluation of the remaining codimension-two
 angular sums is also still open beyond the fixed-state evaluations above
 and the six-vertex tetrahedral-face formula in :doc:`codimension_two_states`.
 :doc:`skeleton_risk_comparisons` settles the complete comparison at every
-fixed degree through twenty. A general crossover law and the nonlinear
+fixed degree through thirty. A general crossover law and the nonlinear
 self-identification questions of :doc:`skeleton_risk_theory` remain.
 The fixed-tetrahedron comparison is completely classified over all degrees
 in :doc:`skeleton_risk_tetrahedron_comparison`.
