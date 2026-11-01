@@ -9,6 +9,10 @@ sum and gives an eight-dimensional rational state for every degree.
 These are exact results about the risk coefficient :math:`a_3(6,D)`.
 They do not extend the public sampling API or assert a state bound for
 arbitrary face size.
+The separate construction in :doc:`codimension_two_family` now proves a
+common fifteen-state bound for arbitrary nonvertex codimension-two face
+size. The eight-state formula here remains a smaller representation for
+the six-vertex case.
 
 The odd half-range state
 ------------------------
