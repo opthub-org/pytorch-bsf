@@ -95,8 +95,9 @@ lattices. Neither obtains response measurements. Product factors retain
 independent barycentric normalization, and assembled samples retain cell
 IDs. See :doc:`advanced/sampling` and :doc:`advanced/grid_sampling`.
 ``sample_skeleton`` splits rows among the vertices, edges and higher faces of
-a simplex or simploid, by default in the ratio that minimizes the asymptotic risk of
-inductive skeleton fitting; see :doc:`advanced/skeleton_sampling`.
+a simplex, simploid or assembled set, preferring the cell-optimal design with
+a limited dimension fallback. ``optimal_skeleton_ratio`` returns a reusable
+``SkeletonAllocation`` with the actual strategy and reason; see :doc:`advanced/skeleton_sampling`.
 
 .. automodule:: torch_bsf.sampling
    :members:

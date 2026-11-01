@@ -133,3 +133,58 @@ def test_linear_corner_collisions_include_identifications_and_degenerate_faces(k
         assert grouped < space.n_controls
     if space.n_controls == 1:
         assert traces == [Fraction(1)]
+
+
+@pytest.mark.parametrize(
+    ("kind", "degree"), [("triangles", 3), ("mixed", 3), ("tetrahedra", 3), ("nonpure", 2), ("nonmanifold", 3)]
+)
+@pytest.mark.parametrize("mode", ["all", "maximal"])
+def test_public_regular_risk_uses_incidence_without_assembled_matrices(kind, degree, mode):
+    from unittest.mock import patch
+
+    from torch_bsf.sampling import _gram_condition, skeleton_risk_coefficients
+
+    space = _regular_space(kind, degree)
+    _, stages = _assembled_grams(space)
+    weights = _weights(space, mode)
+    expected = _incidence_traces(space, stages, weights)
+    # Factor moment/solve bounds add in products; chart accumulation is positive.
+    factor_bound = max(
+        ((a + 1) * (2 * (a + 1) + 2 + math.comb(a + d, d)) * _gram_condition((a,), (d,)) + math.comb(a + d, d)) * 2**-53
+        for cell in space.cells
+        for a, d in zip(cell.dimensions, cell.degree, strict=True)
+    )
+    tolerance = 4 * (max(len(c.dimensions) for c in space.cells) * factor_bound + space.n_cells * 2**-53)
+    with patch("torch_bsf.sampling._assembled_risk_system", side_effect=AssertionError("no assembled incidence system")):
+        actual = skeleton_risk_coefficients(
+            space, allocation="cell", evaluation_weights={i: float(w) for i, w in enumerate(weights)}
+        )
+    assert list(actual.values()) == pytest.approx([float(c) for c in expected], rel=tolerance, abs=0)
+
+
+@pytest.mark.parametrize("kind", ["point", "loop", "mixed", "torus", "sphere"])
+def test_public_linear_risk_uses_corner_collisions(kind):
+    from unittest.mock import patch
+
+    from torch_bsf.sampling import skeleton_risk_coefficients
+
+    space = _space(kind, 1)
+    _, stages = _assembled_grams(space)
+    weights = _weights(space, "all")
+    expected = _corner_collision_traces(space, stages, weights)
+    with patch("torch_bsf.sampling._assembled_risk_system", side_effect=AssertionError("no linear system")):
+        actual = skeleton_risk_coefficients(
+            space, allocation="cell", evaluation_weights={i: float(w) for i, w in enumerate(weights)}
+        )
+    assert list(actual.values()) == pytest.approx([float(c) for c in expected], rel=16 * space.n_cells * 2**-53, abs=0)
+
+
+def test_regular_closed_form_exceeds_global_dense_limit():
+    from torch_bsf.sampling import skeleton_risk_coefficients
+
+    domain = SimploidalSet()
+    for _ in range(100):
+        domain.add_simplex(2)
+    space = BezierSpace.on_set(domain, degree=2)
+    assert space.n_controls == 600
+    assert skeleton_risk_coefficients(space) == pytest.approx((37.5, 300, 0), rel=16 * space.n_cells * 2**-53, abs=0)

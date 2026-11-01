@@ -45,6 +45,45 @@ Existing numerical penalty values may therefore need retuning.
 The internal ``_kernels`` package retains tested geometry algorithms. It is
 private and is not a compatibility API.
 
+
+Skeleton allocation plans (unreleased)
+--------------------------------------
+
+``optimal_skeleton_ratio`` now returns :class:`~torch_bsf.SkeletonAllocation`
+for every strategy. It no longer returns a tuple in dimension mode or a
+dictionary in cell mode. Select ``allocation="auto"`` (the new default),
+``"cell"`` or ``"dimension"`` explicitly; manual modes never fall back.
+
+.. testcode:: skeleton-plan-migration
+
+    from torch_bsf import BezierSpace, SimploidalSet
+    from torch_bsf.sampling import optimal_skeleton_ratio, sample_skeleton
+
+    domain = SimploidalSet()
+    _ = domain.add_simplex(1)
+    space = BezierSpace.on_set(domain, degree=2)
+    plan = optimal_skeleton_ratio(space)
+    assert plan.strategy == "cell"
+    points = sample_skeleton(space, 20, allocation=plan, seed=0)
+    old_dimension_ratio = optimal_skeleton_ratio(space, allocation="dimension").ratio
+    explicit_cell_weights = optimal_skeleton_ratio(space, allocation="cell").cell_weights
+    assert len(points) == 20
+    assert abs(sum(old_dimension_ratio) - 1) < 1e-14
+    assert abs(sum(explicit_cell_weights.values()) - 1) < 1e-14
+
+Use the entire plan when sampling: passing only ``plan.ratio`` from a cell
+plan discards unequal within-dimension shares. Explicit ``ratio`` and
+``cell_weights`` still work. The sampler's default now optimizes per cell on
+assembled spaces, so seeded rows may change; ``allocation="dimension"``
+retains the previous design. Bare simplex/simploid constructors directly
+retain the old fast path and default draws, and report
+``fallback_reason="single_cell_fast_path"``. In the zero-coefficient rescue
+case, the reason is ``"zero_cell_coefficients"``. Invalid input, numerical
+precision and work-limit failures remain errors.
+
+The coefficient API keeps its tuple/dictionary meanings and default dimension
+mode; its return type does not follow the automatic sampling strategy.
+
 Python 3.11 minimum (unreleased)
 --------------------------------
 

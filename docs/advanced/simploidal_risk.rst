@@ -23,8 +23,9 @@ The later analytic results eliminate assembled matrices for regular glued
 complexes, for arbitrary sets at linear factor degrees, and for every
 one-dimensional set at every positive degree. The regular case reduces to
 weighted face incidences; the other two cases explicitly retain the cross
-terms from identified corners. These are mathematical simplifications;
-the public assembled risk implementation still uses matrix propagation.
+terms from identified corners. The public assembled risk implementation uses
+these closed forms directly and retains checked matrix propagation for the
+remaining nonlinear identified sets.
 
 Using the assembled APIs
 -------------------------
@@ -45,8 +46,9 @@ Two quadratic intervals with one shared endpoint illustrate the whole path:
     domain.identify(left.face(0, 0), right.face(0, 1))
     space = BezierSpace.on_set(domain, degree=2)
     print(tuple(round(a, 6) for a in skeleton_risk_coefficients(space)))
-    ratio = optimal_skeleton_ratio(space)
-    points = sample_skeleton(space, 120, ratio=ratio, seed=0)
+    plan = optimal_skeleton_ratio(space)
+    assert plan.strategy == "cell" and plan.fallback_reason is None
+    points = sample_skeleton(space, 120, allocation=plan, seed=0)
     truth = BezierModel(space, torch.arange(space.n_controls, dtype=torch.float64)[:, None])
     result = fit_skeleton_regression(space, Samples(points, truth(points).detach())).require_success()
     assert torch.allclose(result.model.coefficients, truth.coefficients)
@@ -67,21 +69,28 @@ another measure, including a mixture with lower-dimensional cells:
     evaluation = {left: 3.0, right: 1.0}
     c = skeleton_risk_coefficients(space, evaluation_weights=evaluation, allocation="cell")
     q = optimal_skeleton_ratio(space, evaluation_weights=evaluation, allocation="cell")
-    points = sample_skeleton(space, 120, cell_weights=q, seed=0)
-    assert set(c) == set(q) == set(result.faces)
-    assert abs(sum(q.values()) - 1) < 1e-14
-    risk_factor = sum(c[cid] / q[cid] for cid in c)
+    points = sample_skeleton(space, 120, allocation=q, seed=0)
+    assert set(c) == set(q.cell_weights) == set(result.faces)
+    assert abs(sum(q.cell_weights.values()) - 1) < 1e-14
+    risk_factor = sum(c[cid] / q.cell_weights[cid] for cid in c)
     assert abs(risk_factor - sum(value**0.5 for value in c.values())**2) < 1e-12
 
-``allocation="dimension"`` (the default) returns a tuple indexed by dimension,
-including zero entries for dimensions without active cells. It uses
-:math:`a_m=K_m\sum_{\dim s=m}c_s` and assigns equal shares to the
-:math:`K_m` active cells of each dimension. ``allocation="cell"`` returns an
-increasing-dimension, then increasing-cell-ID dictionary and optimizes the
-original cell objective. Cell mode needs addressable faces: use ``on_set``
-for positive-dimensional spaces; a bare ``BezierSpace.simplex`` or
-``simploid`` has only one chart ID and cannot name its faces this way.
-Zero-dimensional spaces support both modes.
+``optimal_skeleton_ratio`` and ``sample_skeleton`` default to
+``allocation="auto"``: prefer individual cells, falling back to dimension
+shares only for zero-cell coefficients with positive active-group coefficients.
+Manual ``"cell"`` and ``"dimension"`` modes remain strict. Every optimized
+allocation has the same :class:`~torch_bsf.SkeletonAllocation` result type;
+inspect ``strategy`` and ``fallback_reason`` and pass the whole plan when
+sampling. See :ref:`skeleton-auto-allocation`.
+
+The coefficient function keeps ``allocation="dimension"`` as its default,
+returning a tuple indexed by dimension, including zero entries for empty
+active dimensions. It uses :math:`a_m=K_m\sum_{\dim s=m}c_s` for equal shares
+within each dimension. ``allocation="cell"`` returns an increasing-dimension,
+then increasing-cell-ID dictionary and describes the individual-cell objective.
+Cell mode needs addressable faces: use ``on_set`` for positive-dimensional
+spaces; bare ``BezierSpace.simplex``/``simploid`` retain their fast dimension
+path. Zero-dimensional spaces support both modes.
 
 ``evaluation_weights`` and ``cell_weights`` accept integer IDs or the original
 builder handles. An ID and its handle are aliases whose weights add. Missing
@@ -95,10 +104,12 @@ weights may include any compiled cell. They never change an explicit sampling
 allocation. Pass the same evaluation weights when requesting coefficients and
 an automatic ratio.
 
-Sampling first rounds dimension budgets by largest remainder (dimension order
-breaks ties), then splits each budget equally among its active cells, randomly
-breaking remainder ties with a local generator. Explicit cell shares use one
-largest-remainder rounding in fitting order. Both paths return exactly ``n``
+Dimension plans and explicit ``ratio`` first round dimension budgets by largest
+remainder (dimension order breaks ties), then split each budget equally among
+its active cells, randomly breaking remainder ties with a local generator.
+Cell plans, including the usual automatic selection, and explicit
+``cell_weights`` use one largest-remainder rounding in fitting order.
+Both paths return exactly ``n``
 rows, including for ``n=0`` or budgets smaller than the active-cell count.
 Positive shares on empty dimensions are rejected. Small budgets and rounded
 zero counts do not guarantee that fitting has enough observations or full
@@ -125,29 +136,33 @@ A zero evaluation weight need not make a cell coefficient zero: boundary
 errors can propagate into evaluated cells. If a coefficient is zero, that cell
 still owns controls and needs positive sampling share for the theorem's
 estimator. With a zero-coefficient active cell, the cell formula describes
-only an infimum over strictly positive allocations, so automatic cell
-allocation raises ``ValueError``. Dimension allocation remains feasible when
-such a cell shares a dimension with a positive coefficient; the equal split
-still samples it. It raises when an entire active dimension has zero
-coefficient. Supply strictly positive explicit shares to estimate all active
+only an infimum over strictly positive allocations, so strict
+``allocation="cell"`` raises ``ValueError``. Dimension allocation remains
+feasible when such a cell shares a dimension with a positive coefficient;
+the equal split still samples it. ``allocation="auto"`` selects this rescue
+when every active dimension has a positive coefficient, reporting
+``fallback_reason="zero_cell_coefficients"``. Both automatic and dimension
+allocation raise when an entire active dimension has zero coefficient.
+Supply strictly positive explicit shares to estimate all active
 controls in either case. Explicit zero shares are allowed for sampling but do
 not promise that fitting all controls will succeed.
 
-The assembled risk implementation uses float64 local moment/Cholesky solves
-and a unit triangular propagation solve. It retains repeated-control cross
-terms. It checks local Gram and propagation condition numbers, rejecting a
-first-order roundoff budget above ``1e-6``. Positive subnormal evaluation
+The remaining nonlinear identified sets use float64 local moment/Cholesky
+solves and a unit triangular propagation solve. This dense path retains
+repeated-control cross terms and checks local Gram and propagation condition
+numbers, rejecting a first-order roundoff budget above ``1e-6``.
+Across all implementation paths, positive subnormal evaluation
 weights or weighted trace contributions are rejected as numerically unreliable;
 they are never reported as structural zeros or as a mathematical infimum.
-The first-order screen budgets moment/reduction errors of order
+For the dense path, the first-order screen budgets moment/reduction errors of order
 :math:`(2w+p+2)u` across :math:`d+1` propagation levels, multiplied by the
 largest local Gram condition and the squared propagation condition, with a
 safety factor of eight for whitening, trace rounding and higher orders. Here
 :math:`w` is the maximum chart width, :math:`p` the global control count and
 :math:`u=2^{-53}`. This conservative screen is not an all-degree certificate.
-Its conservative work limits are
-512 global controls and a total of 4,000,000 local Gram entries. Dense
-propagation costs quadratic global memory and cubic global time, with extra
+The dense path's conservative work limits are 512 global controls and a total
+of 4,000,000 local Gram entries. Its propagation costs quadratic global memory
+and cubic global time, with extra
 local moment and trace contractions. Explicit ``ratio`` or ``cell_weights``
 lets sampling proceed without this risk calculation; fitting uses the usual
 solver and its diagnostics. Positive-dimensional degree-zero factors remain
@@ -155,6 +170,34 @@ unsupported. These risk formulas assume the correctly specified model,
 independent homoscedastic noise, independent product-uniform observations and
 unregularized least squares; Sobol sampling is a design option rather than a
 claim that the independent-design risk theorem applies to its dependence.
+
+
+Closed-form implementation paths
+--------------------------------
+
+The public risk and allocation APIs use the updated theory directly:
+
+- Arbitrary graphs, including loops, parallel edges and isolated vertices,
+  use :prf:ref:`thm-skeleton-graph-risk`. Endpoint/loop norms and interior
+  ranks need only scalar arithmetic and incidence accumulation. Large graphs
+  and high-degree graph edges avoid the global dense limit.
+- At linear factor degrees, :prf:ref:`thm-skeleton-linear-assembled` sums
+  corner collisions, retaining cross terms from identified or collapsed
+  corners. There is no global matrix. Local corner-pair work is limited to
+  4,000,000 pairs per chart; a chart with a single global corner is exactly
+  constant and needs no pair expansion.
+- Regular chart closures use :prf:ref:`thm-skeleton-regular-incidence` and
+  conditioned single-simplex factor traces. Thus large regular meshes avoid
+  global Gram/propagation matrices while retaining the existing factor-level
+  numerical safeguards. Each factor is limited to 512 controls; compounded
+  factor/accumulation error must fit the ``1e-6`` first-order screen.
+- Other nonlinear identified sets retain checked dense propagation and its
+  global work limits above.
+
+Closed formulas can evaluate theoretical coefficients when a numerical fit
+at the same degree is poorly conditioned. They do not certify that a finite
+sample or floating-point regression identifies all controls; inspect the
+ordinary fit rank/condition and solver diagnostics separately.
 
 Global controls and moments
 ---------------------------

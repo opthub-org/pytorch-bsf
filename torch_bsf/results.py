@@ -1,12 +1,14 @@
 """Explicit numerical results: a computed model is not a convergence certificate."""
 
 import warnings
-from dataclasses import dataclass, replace
+from collections.abc import Mapping
+from dataclasses import dataclass, field, replace
+from types import MappingProxyType
 from typing import Literal
 
 import torch
 
-from torch_bsf.core import BezierModel
+from torch_bsf.core import BezierModel, BezierSpace
 
 
 class ConvergenceWarning(UserWarning):
@@ -157,3 +159,55 @@ class SkeletonRegressionResult:
             failed = list(self.faces.values())[-1]
             raise ConvergenceError(replace(failed, message=self.message))
         return self
+
+
+@dataclass(frozen=True)
+class SkeletonAllocation:
+    """Reusable skeleton allocation and an explicit record of the selected strategy.
+
+    ``ratio`` contains total fractions by dimension. ``cell_weights`` contains
+    individual active-cell fractions on addressable spaces, and is empty for
+    bare positive-dimensional simplex/simploid constructors. Pass this entire
+    result as ``sample_skeleton(..., allocation=result)`` to preserve both the
+    selected rounding strategy and unequal within-dimension cell fractions.
+
+    ``strategy`` is the method actually used. ``fallback_reason`` is
+    ``"single_cell_fast_path"`` when automatic selection retains the original
+    unassembled algorithm, ``"zero_cell_coefficients"`` when equal dimension
+    shares rescue zero-risk cells, and otherwise ``None``. The frozen space
+    snapshot prevents accidental reuse on an incompatible domain or degree.
+
+    Attributes
+    ----------
+    space : BezierSpace
+        Compiled space snapshot for checking sampling compatibility.
+    strategy : {"cell", "dimension"}
+        Allocation method actually selected.
+    ratio : tuple of float
+        Total sampling fractions indexed by dimension.
+    cell_weights : Mapping of int to float
+        Read-only active-cell fractions, empty for bare positive-dimensional spaces.
+    fallback_reason : {"single_cell_fast_path", "zero_cell_coefficients"} or None
+        Reason automatic selection used dimension allocation, or None otherwise.
+
+    Examples
+    --------
+    >>> from torch_bsf import BezierSpace, SkeletonAllocation
+    >>> from torch_bsf.sampling import optimal_skeleton_ratio, sample_skeleton
+    >>> space = BezierSpace.simplex(1, degree=2)
+    >>> plan = optimal_skeleton_ratio(space)
+    >>> isinstance(plan, SkeletonAllocation), plan.strategy, plan.fallback_reason
+    (True, 'dimension', 'single_cell_fast_path')
+    >>> len(sample_skeleton(space, 8, allocation=plan, seed=0))
+    8
+    """
+
+    space: BezierSpace = field(repr=False)
+    strategy: Literal["cell", "dimension"]
+    ratio: tuple[float, ...]
+    cell_weights: Mapping[int, float]
+    fallback_reason: Literal["single_cell_fast_path", "zero_cell_coefficients"] | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "ratio", tuple(self.ratio))
+        object.__setattr__(self, "cell_weights", MappingProxyType(dict(self.cell_weights)))

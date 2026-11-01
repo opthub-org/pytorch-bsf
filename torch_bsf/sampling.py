@@ -26,9 +26,11 @@ from torch_bsf._skeleton import (
     _skeleton_cell,
     _skeleton_stages,
 )
+from torch_bsf._skeleton_risk import _closed_risk_coefficients
 from torch_bsf._validation import _choice
 from torch_bsf.core import BezierSpace, Points, _integer
 from torch_bsf.geometry import Simploid
+from torch_bsf.results import SkeletonAllocation
 
 _CellWeights = Mapping[int, float] | Mapping[Simploid, float] | Mapping[int | Simploid, float]
 
@@ -447,6 +449,33 @@ def _assembled_coefficients(space: BezierSpace, weights: torch.Tensor) -> dict[i
         raise ValueError("assembled risk is unreliable in float64: a Gram factorization failed.") from error
 
 
+def _cell_risk_coefficients(space: BezierSpace, weights: torch.Tensor) -> dict[int, float]:
+    """Use proved closed forms when applicable; otherwise retain the dense identified-set algorithm."""
+    if ((weights > 0) & (weights < sys.float_info.min)).any():
+        raise ValueError("assembled risk underflow: evaluation weights have insufficient float64 relative precision.")
+    n_factors = max((len(cell.dimensions) for cell in space.cells), default=1)
+
+    def factor_coefficients(a: int, d: int) -> tuple[float, ...]:
+        """Bound compounded factor errors and positive chart accumulation before using incidence products."""
+        n_controls = math.comb(a + d, d)
+        try:
+            condition = _gram_condition((a,), (d,))
+        except OverflowError:
+            condition = math.inf
+        bound = ((a + 1) * (2 * (a + 1) + 2 + n_controls) * condition + n_controls) * _UNIT_ROUNDOFF
+        # Factor relative errors add in products; four budgets the subsequent
+        # divisions, products, positive reductions and higher-order terms.
+        if 4 * (n_factors * bound + space.n_cells * _UNIT_ROUNDOFF) > _RISK_RELATIVE_ERROR:
+            raise ValueError("incidence risk is unreliable in float64: factor roundoff exceeds 1e-6.")
+        if n_controls > _ASSEMBLED_RISK_CONTROLS:
+            raise ValueError("incidence risk exceeds the dense limit of 512 controls per simplex factor.")
+        factor = BezierSpace.simplex(a, degree=d)
+        return skeleton_risk_coefficients(factor)
+
+    closed = _closed_risk_coefficients(space, weights, factor_coefficients, _ASSEMBLED_RISK_ENTRIES)
+    return _assembled_coefficients(space, weights) if closed is None else closed
+
+
 @overload
 def skeleton_risk_coefficients(  # noqa: D418 - numpydoc validates overload docstrings.
     space: BezierSpace,
@@ -527,7 +556,7 @@ def skeleton_risk_coefficients(
     :math:`m`. A face has interior controls when no factor has more vertices
     than its degree, and the :math:`N^{(m)}` observations are split equally
     among the faces of dimension :math:`m` with interior controls, as
-    :func:`sample_skeleton` does. Observations and the error are uniform on
+    :func:`sample_skeleton` does with ``allocation="dimension"``. Observations and the error are uniform on
     the product.
 
     Parameters
@@ -556,11 +585,12 @@ def skeleton_risk_coefficients(
     TypeError
         If ``space`` is not a :class:`~torch_bsf.BezierSpace`.
     ValueError
-        If a positive-dimensional factor has degree zero, or its Bernstein Gram matrices are too
-        ill-conditioned to bound the float64 relative error by ``1e-6``. For a
-        simplex, the largest accepted degree falls with the dimension: 14 for 2
+        If a positive-dimensional factor has degree zero, weights are invalid,
+        numerical reliability checks fail, or a computation limit is exceeded.
+        For the original bare simplex algorithm, the largest accepted degree
+        falls with the dimension: 14 for 2
         vertices, 12 for 3, 11 for 4, 9 for 5, 8 for 6 and 7, and 7 for 8. On
-        a simploid, the condition number of the Gram matrix on the whole
+        a bare simploid, the condition number of the Gram matrix on the whole
         simploid is the product of those of its factors' Gram matrices, so it
         also grows with the number of factors: 12 segments of degree 1 are
         rejected.
@@ -572,9 +602,12 @@ def skeleton_risk_coefficients(
     ``a_m = K_m * sum(c_s for dim(s) == m)``. The evaluator is independent of
     sampling allocation and may include lower cells. The model must be correctly
     specified, with independent homoscedastic noise, uniform within-cell designs
-    and unregularized least squares. Dense assembled computation is limited to
-    512 global controls and 4,000,000 local Gram entries in total; it checks local
-    and propagated conditioning before returning coefficients. Unrepresentable
+    and unregularized least squares. Graphs, linear factor degrees and regular
+    complexes use the closed graph, corner-collision and weighted-incidence
+    formulas, without global dense matrices. Incidences retain conditioned
+    factor computations with at most 512 controls per factor. Nonlinear
+    identified sets retain dense propagation, limited to 512 global controls
+    and 4,000,000 local Gram entries, with local/propagated conditioning checks. Unrepresentable
     positive weights and subnormal weighted risk contributions raise a numerical
     reliability error instead of being classified as mathematical zeros. Zero coefficients
     do not remove active cells from the estimator. See :ref:`skeleton-risk-assembled`.
@@ -616,7 +649,7 @@ def skeleton_risk_coefficients(
     _choice(allocation, "allocation", ("dimension", "cell"))
     weights = _evaluation_probabilities(space, evaluation_weights)
     if not single or allocation == "cell":
-        coefficients = _assembled_coefficients(space, weights)
+        coefficients = _cell_risk_coefficients(space, weights)
         if allocation == "cell":
             return coefficients
         levels = max(sum(c.dimensions) for c in space.cells) + 1
@@ -685,123 +718,93 @@ def skeleton_risk_coefficients(
     return tuple(_n_skeleton_faces(dimensions, degree, m) * t if t else 0.0 for m, t in enumerate(trace_sums))
 
 
-@overload
-def optimal_skeleton_ratio(  # noqa: D418 - numpydoc validates overload docstrings.
-    space: BezierSpace,
-    *,
-    evaluation_weights: _CellWeights | None = None,
-    allocation: Literal["dimension"] = "dimension",
-) -> tuple[float, ...]:
-    """Optimal fractions indexed by dimension.
-
-    Parameters
-    ----------
-    space
-        Compiled simploidal space.
-    evaluation_weights
-        Optional nonnegative chart weights for risk evaluation.
-    allocation
-        Select dimension-indexed results.
-
-    Returns
-    -------
-    tuple of float
-        Optimal fractions for the selected allocation.
-    """
-    ...
-
-
-@overload
-def optimal_skeleton_ratio(  # noqa: D418 - numpydoc validates overload docstrings.
-    space: BezierSpace,
-    *,
-    evaluation_weights: _CellWeights | None = None,
-    allocation: Literal["cell"],
-) -> dict[int, float]:
-    """Optimal fractions indexed by cell.
-
-    Parameters
-    ----------
-    space
-        Compiled simploidal space.
-    evaluation_weights
-        Optional nonnegative chart weights for risk evaluation.
-    allocation
-        Select cell-indexed results.
-
-    Returns
-    -------
-    dict of int to float
-        Optimal fractions for the selected allocation.
-    """
-    ...
-
-
 def optimal_skeleton_ratio(
     space: BezierSpace,
     *,
     evaluation_weights: _CellWeights | None = None,
-    allocation: Literal["dimension", "cell"] = "dimension",
-) -> tuple[float, ...] | dict[int, float]:
-    r"""Skeleton sample fractions that minimize the asymptotic risk of inductive skeleton fitting.
-
-    Minimizing :math:`\sum_m a_m / N^{(m)}` subject to :math:`\sum_m N^{(m)} = N`
-    gives :math:`N^{(m)} / N = \sqrt{a_m} / \sum_k \sqrt{a_k}` and the minimum
-    :math:`(\sum_m \sqrt{a_m})^2 / N` (Cauchy-Schwarz), where :math:`a_m` are
-    :func:`skeleton_risk_coefficients`.
+    allocation: Literal["auto", "dimension", "cell"] = "auto",
+) -> SkeletonAllocation:
+    r"""Choose a skeleton allocation, preferring the individual-cell asymptotic optimum.
 
     Parameters
     ----------
     space
-        A simplex, simploid or assembled set with positive degrees in positive-dimensional factors.
-
+        Compiled simplex, simploid or assembled domain with positive factor degrees.
     evaluation_weights
-        Chart evaluation weights, as in :func:`skeleton_risk_coefficients`.
+        Risk measure, normalized independently of sampling shares as in
+        :func:`skeleton_risk_coefficients`.
     allocation
-        ``"dimension"`` for dimension fractions; ``"cell"`` for cell-ID fractions
-        proportional to the square roots of the cell coefficients.
+        ``"auto"`` prefers cell shares proportional to ``sqrt(c_s)``. It selects
+        equal-within-dimension shares only when zero-risk active cells prevent
+        a cell minimum but every active dimension has positive coefficient.
+        Bare simplex/simploid constructors directly use their original fast
+        dimension path. ``"cell"`` and ``"dimension"`` select a strict method
+        without fallback. Cell mode requires addressable faces via ``on_set``.
 
     Returns
     -------
-    tuple of float or dict of int to float
-        Nonnegative fractions for the 0-, 1-, ..., n-skeletons of a domain of
-        dimension n (n = M - 1 for a simplex with M vertices), summing to one.
+    SkeletonAllocation
+        One stable result type for every strategy. Inspect ``strategy`` and
+        ``fallback_reason``; pass the whole result as ``sample_skeleton``'s
+        ``allocation`` argument to preserve within-dimension fractions and
+        the corresponding rounding rule. ``ratio`` gives dimension totals;
+        ``cell_weights`` gives active-cell fractions on addressable spaces.
 
     Raises
     ------
     TypeError
-        If ``space`` is not a :class:`~torch_bsf.BezierSpace`.
+        If ``space`` is not a BezierSpace.
     ValueError
-        As :func:`skeleton_risk_coefficients`, including degrees too high for
-        float64 and simploids with too many factors. Automatic allocation is
-        rejected when an active cell (cell mode) or whole active dimension
-        (dimension mode) has zero coefficient: a positive-allocation minimizer
-        then does not exist. Supply positive explicit shares to fit all controls.
+        For invalid inputs, unreliable numerical evaluation, work-limit errors,
+        or a zero coefficient in an active dimension. Strict cell allocation
+        also rejects zero-coefficient active cells. Zero-coefficient cases
+        describe a mathematical infimum, not an attained positive-allocation optimum.
+        Numerical and input errors never trigger fallback.
 
     Examples
     --------
-    >>> from torch_bsf import BezierSpace
-    >>> from torch_bsf.sampling import optimal_skeleton_ratio
-    >>> [round(r, 4) for r in optimal_skeleton_ratio(BezierSpace.simplex(1, degree=2))]
+    >>> from torch_bsf import BezierSpace, SimploidalSet
+    >>> from torch_bsf.sampling import optimal_skeleton_ratio, sample_skeleton
+    >>> domain = SimploidalSet()
+    >>> _ = domain.add_simplex(1)
+    >>> space = BezierSpace.on_set(domain, degree=2)
+    >>> plan = optimal_skeleton_ratio(space)
+    >>> plan.strategy, plan.fallback_reason
+    ('cell', None)
+    >>> [round(r, 4) for r in plan.ratio]
     [0.4142, 0.5858]
+    >>> len(sample_skeleton(space, 8, allocation=plan, seed=0))
+    8
     """
-    _choice(allocation, "allocation", ("dimension", "cell"))
-    if allocation == "cell":
-        coefficients = skeleton_risk_coefficients(space, evaluation_weights=evaluation_weights, allocation="cell")
-        if any(c <= 0 for c in coefficients.values()):
-            raise ValueError(
-                "zero-risk active cells have only an infimum under positive allocation; pass cell_weights explicitly."
-            )
-        roots_by_cell = {cid: math.sqrt(c) for cid, c in coefficients.items()}
+    single = _single_skeleton(space)
+    _choice(allocation, "allocation", ("auto", "dimension", "cell"))
+    if single and allocation != "cell":
+        coefficients = skeleton_risk_coefficients(space, evaluation_weights=evaluation_weights)
+        roots = [math.sqrt(a) for a in coefficients]
+        ratio = tuple(r / sum(roots) for r in roots)
+        return SkeletonAllocation(space, "dimension", ratio, {}, "single_cell_fast_path" if allocation == "auto" else None)
+    cells = skeleton_risk_coefficients(space, evaluation_weights=evaluation_weights, allocation="cell")
+    stages = list(cells)
+    levels = max(sum(cell.dimensions) for cell in space.cells) + 1
+    groups = [[cid for cid in stages if sum(space.cells[cid].dimensions) == m] for m in range(levels)]
+    grouped = [len(group) * math.fsum(cells[cid] for cid in group) for group in groups]
+    zero_cells = any(c <= 0 for c in cells.values())
+    if allocation == "cell" and zero_cells:
+        raise ValueError(
+            "zero-risk active cells have only an infimum under positive allocation; pass cell_weights explicitly."
+        )
+    if allocation != "dimension" and not zero_cells:
+        roots_by_cell = {cid: math.sqrt(c) for cid, c in cells.items()}
         total = math.fsum(roots_by_cell.values())
-        return {cid: r / total for cid, r in roots_by_cell.items()}
-    coefficients_by_dimension = skeleton_risk_coefficients(space, evaluation_weights=evaluation_weights)
-    if not _single_skeleton(space):
-        active = {sum(space.cells[cid].dimensions) for cid, _ in _skeleton_stages(space)}
-        if any(coefficients_by_dimension[m] <= 0 for m in active):
-            raise ValueError("zero-risk active groups have only an infimum under positive allocation; pass ratio explicitly.")
-    roots = [math.sqrt(a) for a in coefficients_by_dimension]
-    return tuple(r / sum(roots) for r in roots)
+        shares = {cid: root / total for cid, root in roots_by_cell.items()}
+        ratio = tuple(math.fsum(shares[cid] for cid in group) for group in groups)
+        return SkeletonAllocation(space, "cell", ratio, shares)
+    if any(group and coefficient <= 0 for group, coefficient in zip(groups, grouped, strict=True)):
+        raise ValueError("zero-risk active groups have only an infimum under positive allocation; pass ratio explicitly.")
+    roots = [math.sqrt(a) for a in grouped]
+    ratio = tuple(root / math.fsum(roots) for root in roots)
+    shares = {cid: ratio[m] / len(group) for m, group in enumerate(groups) for cid in group}
+    return SkeletonAllocation(space, "dimension", ratio, shares, "zero_cell_coefficients" if allocation == "auto" else None)
 
 
 def _real_entries(ratio: object) -> bool:
@@ -817,18 +820,8 @@ def _real_entries(ratio: object) -> bool:
     return isinstance(ratio, Sequence) and not isinstance(ratio, str) and all(real(entry) for entry in ratio)
 
 
-def _skeleton_fractions(
-    ratio: Sequence[float] | torch.Tensor | None,
-    space: BezierSpace,
-    levels: int,
-    evaluation_weights: _CellWeights | None = None,
-) -> list[float]:
-    """Validated fractions of the ``levels`` skeletons summing to one, the optimal ones by default."""
-    if ratio is None:
-        try:
-            return list(optimal_skeleton_ratio(space, evaluation_weights=evaluation_weights))
-        except ValueError as error:
-            raise ValueError(f"{error} Pass ratio explicitly.") from error
+def _skeleton_fractions(ratio: Sequence[float] | torch.Tensor | None, levels: int) -> list[float]:
+    """Normalize explicit dimension shares after the allocation policy has been resolved."""
     message = f"ratio must have {levels} finite nonnegative real entries with a positive sum."
     if isinstance(ratio, torch.Tensor):
         if ratio.dtype == torch.bool or ratio.is_complex():
@@ -902,13 +895,15 @@ def sample_skeleton(
     seed: int | None = None,
     evaluation_weights: _CellWeights | None = None,
     cell_weights: _CellWeights | None = None,
+    allocation: Literal["auto", "dimension", "cell"] | SkeletonAllocation = "auto",
 ) -> Points:
     """Stratified sample of a simploidal space for inductive skeleton fitting.
 
-    The ``n`` rows are split among the 0-skeleton (vertices), 1-skeleton
-    (edges), ... in proportion to ``ratio`` by largest-remainder rounding.
-    Each skeleton's count is split equally among its faces; when it does not
-    divide, randomly chosen faces receive one extra row. Rows are uniform on
+    Automatic allocation prefers individual-cell optimal shares and falls back
+    to equal-within-dimension shares only when zero-risk cells can be rescued.
+    Explicit ``ratio`` or dimension allocation first rounds each dimension's
+    budget and splits it equally among active faces, with random remainder
+    ties. Cell allocation uses one largest-remainder rounding in fitting order. Rows are uniform on
     their face, with exact zeros outside it, and are ordered by face dimension.
 
     A face of a simploid is a product of one face per simplex factor, and its
@@ -931,8 +926,8 @@ def sample_skeleton(
     ratio
         Relative sizes of the 0-, 1-, ..., n-skeletons of a domain of
         dimension n: n + 1 finite nonnegative real entries with a positive sum,
-        that is, M entries for a simplex with M vertices. Defaults to
-        :func:`optimal_skeleton_ratio`, which places no rows on skeletons
+        that is, M entries for a simplex with M vertices. When omitted,
+        ``allocation`` chooses the automatic plan, with no rows on skeletons
         without interior controls. Rows on faces without interior controls
         (with more vertices than the degree in some factor) are not used by
         :func:`~torch_bsf.fitting.fit_skeleton_regression`.
@@ -942,13 +937,20 @@ def sample_skeleton(
         Seed of the local generator; global random state is not used.
 
     evaluation_weights
-        Evaluation measure used for the automatic dimension ratio. Validated
+        Evaluation measure used for automatic optimization. Validated
         independently of explicit sampling shares; see :func:`skeleton_risk_coefficients`.
     cell_weights
         Explicit active-cell shares by cell ID or builder handle, normalized to
         probabilities. Mutually exclusive with ``ratio``. Requires addressable
         faces (``BezierSpace.on_set`` or a zero-dimensional space). Pass the
-        dictionary from ``optimal_skeleton_ratio(..., allocation="cell")`` here.
+        ``cell_weights`` field from :func:`optimal_skeleton_ratio` here.
+
+    allocation
+        ``"auto"`` (default), strict ``"cell"`` or strict ``"dimension"``
+        strategy, or a reusable :class:`~torch_bsf.SkeletonAllocation` from
+        :func:`optimal_skeleton_ratio`. Plans cannot be combined with explicit
+        ``ratio`` or ``cell_weights`` and must match the space. Explicit shares
+        override automatic optimization; contradictory strict methods raise.
 
     Returns
     -------
@@ -958,6 +960,7 @@ def sample_skeleton(
         budget, even for ``n=0`` or budgets below the active-cell count; it does
         not guarantee sufficient rows or rank for fitting. Dimension shares are
         split equally within each dimension, with randomized remainder ties.
+        Pass a plan to inspect its strategy and fallback reason before sampling.
         On assembled spaces, positive shares on empty dimensions or inactive cells are rejected.
         Explicit shares bypass risk conditioning and dense-computation limits.
 
@@ -985,10 +988,11 @@ def sample_skeleton(
     _choice(method, "method", ("random", "sobol"), message="method must be 'random' or 'sobol'.")
     if evaluation_weights is not None:
         _evaluation_probabilities(space, evaluation_weights)
+    ratio, cell_weights = _sampling_allocation(space, ratio, cell_weights, allocation, evaluation_weights)
     if not single or cell_weights is not None:
         return _sample_assembled_skeleton(space, n, ratio, method, seed, evaluation_weights, cell_weights)
     cell = _skeleton_cell(space)
-    counts = _skeleton_counts(n, _skeleton_fractions(ratio, space, sum(cell.dimensions) + 1, evaluation_weights))
+    counts = _skeleton_counts(n, _skeleton_fractions(ratio, sum(cell.dimensions) + 1))
     generator = _generator(seed)
     # Each factor's coordinates on a face are normalized to sum to one; ends[j] bounds factor j's coordinates.
     ends = torch.tensor([block.stop for block in _blocks(cell.dimensions)])
@@ -1010,6 +1014,35 @@ def sample_skeleton(
     return Points(torch.cat(chunks))
 
 
+def _sampling_allocation(
+    space: BezierSpace,
+    ratio: Sequence[float] | torch.Tensor | None,
+    cell_weights: _CellWeights | None,
+    allocation: Literal["auto", "dimension", "cell"] | SkeletonAllocation,
+    evaluation_weights: _CellWeights | None,
+) -> tuple[Sequence[float] | torch.Tensor | None, _CellWeights | None]:
+    """Resolve an explicit plan or automatic policy, without silently overriding explicit shares."""
+    if isinstance(allocation, SkeletonAllocation):
+        if ratio is not None or cell_weights is not None:
+            raise ValueError("allocation plans and explicit ratio/cell_weights are mutually exclusive.")
+        if not space.compatible(allocation.space):
+            raise ValueError("allocation plan belongs to an incompatible space.")
+        _choice(allocation.strategy, "strategy", ("cell", "dimension"))
+        return (None, allocation.cell_weights) if allocation.strategy == "cell" else (allocation.ratio, None)
+    _choice(allocation, "allocation", ("auto", "dimension", "cell"))
+    if ratio is not None or cell_weights is not None:
+        if allocation == "cell" and ratio is not None:
+            raise ValueError("ratio is a dimension allocation; select allocation='dimension' or 'auto'.")
+        if allocation == "dimension" and cell_weights is not None:
+            raise ValueError("cell_weights require allocation='cell' or 'auto'.")
+        return ratio, cell_weights
+    try:
+        plan = optimal_skeleton_ratio(space, evaluation_weights=evaluation_weights, allocation=allocation)
+    except ValueError as error:
+        raise ValueError(f"{error} Pass ratio explicitly or supply cell_weights.") from error
+    return (None, plan.cell_weights) if plan.strategy == "cell" else (plan.ratio, None)
+
+
 def _assembled_counts(
     space: BezierSpace,
     stages: list[tuple[int, tuple[int, ...]]],
@@ -1029,7 +1062,7 @@ def _assembled_counts(
             raise ValueError("cell_weights may assign positive mass only to cells with proper controls.")
         return _skeleton_counts(n, [probabilities[cid].item() for cid, _ in stages])
     levels = max(sum(c.dimensions) for c in space.cells) + 1
-    fractions = _skeleton_fractions(ratio, space, levels, evaluation_weights)
+    fractions = _skeleton_fractions(ratio, levels)
     groups = [[k for k, (cid, _) in enumerate(stages) if sum(space.cells[cid].dimensions) == m] for m in range(levels)]
     if any(f > 0 and not group for f, group in zip(fractions, groups, strict=True)):
         raise ValueError("ratio assigns mass to a dimension without active cells.")

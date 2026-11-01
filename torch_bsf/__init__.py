@@ -34,6 +34,7 @@ from torch_bsf.results import (
     FitDiagnostics,
     FitResult,
     MatrixDiagnostics,
+    SkeletonAllocation,
     SkeletonRegressionResult,
 )
 
@@ -65,6 +66,7 @@ __all__ = [
     "PointCloudFitResult",
     "SkeletonFitResult",
     "SkeletonRegressionResult",
+    "SkeletonAllocation",
     "FitResult",
     "FitDiagnostics",
     "MatrixDiagnostics",

@@ -14,6 +14,43 @@ The same APIs also accept assembled domains, with shared or degenerate faces,
 isolated vertices and a chosen evaluation measure. See :doc:`simploidal_risk`
 for executable examples, cell-specific allocation and the assembled theory.
 
+
+.. _skeleton-auto-allocation:
+
+Automatic selection and manual strategies
+-----------------------------------------
+
+``optimal_skeleton_ratio`` always returns :class:`~torch_bsf.SkeletonAllocation`.
+The default ``allocation="auto"`` prefers cell-optimal sampling on assembled
+spaces. When zero-coefficient active cells prevent an attained cell minimum,
+it falls back to equal-within-dimension allocation only if every active
+dimension has positive coefficient. Other input, precision and computation
+errors propagate; a numerical failure is never reclassified as a structural
+zero. Specify ``"cell"`` or ``"dimension"`` to select a strict method directly.
+Bare simplex/simploid constructors retain their original factorized dimension
+path without first attempting an unsupported cell calculation.
+
+Inspect ``plan.strategy`` and ``plan.fallback_reason`` to see the actual
+choice. ``plan.ratio`` is the tuple of total shares by dimension, and
+``plan.cell_weights`` contains per-cell shares on addressable spaces. The
+latter is empty for a bare positive-dimensional simplex/simploid, whose faces
+have no cell IDs. Pass the whole result to
+``sample_skeleton(space, n, allocation=plan)`` to preserve both cell shares and
+strategy-specific rounding. The plan is immutable and may be reused only on
+compatible spaces. Explicit ``ratio`` and ``cell_weights`` remain available
+and bypass optimization.
+
+The coefficient function keeps its explicit mathematical meanings:
+``skeleton_risk_coefficients(..., allocation="dimension")`` returns the
+:math:`a_m` tuple, while ``allocation="cell"`` returns the :math:`c_s`
+dictionary. It does not silently change between these quantities.
+
+Assembled default draws can change for the same seed because cells of the
+same dimension need not have equal risk coefficients. Select
+``allocation="dimension"`` to retain the old sampling strategy. Bare
+single-cell default draws retain their original values and order. See
+:doc:`../migration` for return-type migration examples.
+
 Sample, fit and compare
 -----------------------
 
@@ -25,7 +62,7 @@ Sample, fit and compare
 
     space = BezierSpace.simplex(2, degree=3)
     print([round(a, 4) for a in skeleton_risk_coefficients(space)])
-    print([round(r, 3) for r in optimal_skeleton_ratio(space)])
+    print([round(r, 3) for r in optimal_skeleton_ratio(space).ratio])
 
     truth = BezierModel(space, torch.linspace(-1, 1, space.n_controls, dtype=torch.float64)[:, None])
     points = sample_skeleton(space, 300, seed=0)
@@ -156,7 +193,8 @@ gives, by the Cauchy-Schwarz inequality,
    \frac{N^{(m)}}{N} = \frac{\sqrt{a_m}}{\sum_k \sqrt{a_k}}, \qquad
    R^\ast = \frac{\sigma^2 L}{N} \Bigl(\sum_m \sqrt{a_m}\Bigr)^2.
 
-:func:`~torch_bsf.sampling.optimal_skeleton_ratio` returns these fractions.
+:func:`~torch_bsf.sampling.optimal_skeleton_ratio` returns these fractions in
+the ``ratio`` field of a :class:`~torch_bsf.SkeletonAllocation`.
 For comparison, ordinary least squares on :math:`N` uniform rows on the whole
 simplex (all-at-once fitting) has risk
 :math:`\sigma^2 L \binom{D+M-1}{D} / N`, the number of controls over
@@ -244,7 +282,7 @@ coordinates 0 to 2 belong to the triangle and 3 to 4 to the interval, so
 
     prism = BezierSpace.simploid((2, 1), degree=(2, 1))
     print([round(a, 4) for a in skeleton_risk_coefficients(prism)])
-    print([round(r, 3) for r in optimal_skeleton_ratio(prism)])
+    print([round(r, 3) for r in optimal_skeleton_ratio(prism).ratio])
 
     truth = BezierModel(prism, torch.linspace(-1, 1, prism.n_controls, dtype=torch.float64)[:, None])
     points = sample_skeleton(prism, 300, seed=0)
