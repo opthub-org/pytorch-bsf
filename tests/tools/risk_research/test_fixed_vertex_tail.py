@@ -112,9 +112,15 @@ def test_cli_round_trip_and_canonical_source_hashes(tmp_path):
     }
 
 
-def test_crlf_hashes_are_portable_but_concurrent_raw_edit_is_rejected(tmp_path, monkeypatch):
+@pytest.mark.parametrize("initial_line_ending", ["lf", "crlf"])
+def test_crlf_hashes_are_portable_but_concurrent_raw_edit_is_rejected(tmp_path, monkeypatch, initial_line_ending):
+    initial_sources = {name: source.replace(b"\r\n", b"\n") for name, source in tail._sources().items()}
+    if initial_line_ending == "crlf":
+        initial_sources = {name: source.replace(b"\n", b"\r\n") for name, source in initial_sources.items()}
+    monkeypatch.setattr(tail, "_sources", lambda: initial_sources)
     original_sources = tail._sources()
-    crlf = {name: source.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n") for name, source in original_sources.items()}
+    lf = {name: source.replace(b"\r\n", b"\n") for name, source in original_sources.items()}
+    crlf = {name: source.replace(b"\n", b"\r\n") for name, source in lf.items()}
     expected = tail.certify_vertices(6)
     monkeypatch.setattr(tail, "_sources", lambda: crlf)
     assert tail.certify_vertices(6) == expected
@@ -125,7 +131,7 @@ def test_crlf_hashes_are_portable_but_concurrent_raw_edit_is_rejected(tmp_path, 
     def changing_sources():
         nonlocal calls
         calls += 1
-        return original_sources if calls == 1 else crlf
+        return lf if calls == 1 else crlf
 
     monkeypatch.setattr(tail, "_sources", changing_sources)
     with pytest.raises(SystemExit) as error:
