@@ -1,0 +1,381 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quantitative five-vertex vertex asymptotics &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Risk on an assembled simploidal set" href="simploidal_risk.html" />
+    <link rel="prev" title="Five-vertex vertex degree recurrence" href="skeleton_risk_five_vertex_recurrence.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_family.html">Uniform construction for codimension two</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html">An all-degree sufficient region for large vertex counts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html">Five-vertex vertex degree recurrence</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Quantitative five-vertex vertex asymptotics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#reproducible-enclosures">Reproducible enclosures</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Quantitative five-vertex vertex asymptotics</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/skeleton_risk_five_vertex_asymptotics.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="quantitative-five-vertex-vertex-asymptotics">
+<h1>Quantitative five-vertex vertex asymptotics<a class="headerlink" href="#quantitative-five-vertex-vertex-asymptotics" title="Link to this heading"></a></h1>
+<p>Under the uniform-simplex assumptions of <a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a>,
+<a class="reference internal" href="skeleton_risk_five_vertex.html"><span class="doc">Five-vertex vertex risk</span></a> gives a positive single sum and the leading
+constant of the vertex coefficient on five vertices. The following bound
+replaces its unspecified asymptotic remainder by an explicit one. Put
+<span class="math notranslate nohighlight">\(c=\zeta(2)-\zeta(3)\)</span>, so <span class="math notranslate nohighlight">\(0&lt;c&lt;1\)</span>.</p>
+<div class="proof theorem admonition" id="thm-risk-five-vertex-explicit-error">
+<p class="admonition-title"><span class="caption-number">Theorem 38 </span> (Five-vertex leading term with an explicit remainder)</p>
+<section class="theorem-content" id="proof-content">
+<p>For every integer <span class="math notranslate nohighlight">\(D\geq256\)</span>,</p>
+<div class="math notranslate nohighlight" id="equation-risk-five-vertex-leading-error">
+<span class="eqno">(67)<a class="headerlink" href="#equation-risk-five-vertex-leading-error" title="Link to this equation"></a></span>\[\left|a_0(5,D)-\frac{7200c}{D^6}\right|
+   \leq\frac{3000000(1+\log D)}{D^7}.\]</div>
+</section>
+</div><p>The constant is conservative: at the start of the domain the error bound
+can exceed the coefficient. The bound is <span class="math notranslate nohighlight">\(O(\log D/D^7)\)</span> and
+therefore gives a relative enclosure that shrinks to zero. It is a bound
+on the mathematical coefficient, in addition to any numerical rounding.</p>
+<div class="proof admonition" id="proof">
+<p>Proof. <strong>A pointwise bound.</strong> Use <span class="math notranslate nohighlight">\(\Psi_j\)</span> from
+<a class="reference internal" href="skeleton_risk_five_vertex.html#equation-risk-five-vertex-diagonal">(62)</a>, and put <span class="math notranslate nohighlight">\(n=j+1\)</span> and
+<span class="math notranslate nohighlight">\(B_n=1+\log n\)</span>. Integral comparison gives</p>
+<div class="math notranslate nohighlight">
+\[H_{n-1}\leq B_n,\qquad H_{n-1}^2\leq2n,\qquad
+H_{n-1}^{(2)}&lt;2,\qquad H_{n-1}^{(3)}&lt;5/4.\]</div>
+<p>For the squared bound, the maximum of
+<span class="math notranslate nohighlight">\((1+\log t)^2/t\)</span> over <span class="math notranslate nohighlight">\(t\geq1\)</span> is <span class="math notranslate nohighlight">\(4/e&lt;2\)</span>.
+The last bound follows from
+<span class="math notranslate nohighlight">\(\zeta(3)&lt;1+1/8+\int_2^\infty t^{-3}\,dt=5/4\)</span>.</p>
+<p>Separate the two terms containing the eventual constant:</p>
+<div class="math notranslate nohighlight">
+\[\Psi_j=\frac{48(H_j^{(2)}-A_j)}{n(n+2)}+R_j.\]</div>
+<p>The remaining cubic, quadratic, mixed, linear, second-harmonic,
+third-harmonic and rational terms have the following absolute bounds,
+in their order in <a class="reference internal" href="skeleton_risk_five_vertex.html#equation-risk-five-vertex-diagonal">(62)</a>:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}|R_j|&amp;\leq\frac{48H_j+120+96H_j+48H_j+48+60+1}{n^3}\\
+      &amp;=\frac{192H_j+229}{n^3}.\end{split}\]</div>
+<p>Here the second-harmonic contribution is the difference between its
+original coefficient and <span class="math notranslate nohighlight">\(48/(n(n+2))\)</span>. The rational inequalities
+behind this bound hold throughout <span class="math notranslate nohighlight">\(n\geq1\)</span>. To check them
+without an asymptotic expansion, write</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}Q&amp;=(n+1)^2(n+2)^2(n+3),\\
+P_2&amp;=5n^3+7n^2-6n-12,\\
+P_4&amp;=2n^4+15n^3+44n^2+47n+24,\\
+P_5&amp;=2n^3+3n^2-2n-12.\end{split}\]</div>
+<p>Then <span class="math notranslate nohighlight">\(5Q\pm n^2P_2\)</span> have nonnegative coefficients;
+<span class="math notranslate nohighlight">\(2Q-nP_4=3n^4+18n^3+55n^2+56n+24\)</span>;
+and
+<span class="math notranslate nohighlight">\(2(n+1)(n+2)(n+3)-n^2(2n+3)=9n^2+22n+12\)</span>.
+Similarly <span class="math notranslate nohighlight">\(2(n+1)(n+2)^2(n+3)\pm nP_5\)</span> have nonnegative
+coefficients. Finally <span class="math notranslate nohighlight">\(Q-144n\)</span>, after substituting
+<span class="math notranslate nohighlight">\(n=1+t\)</span>, has nonnegative coefficients. These respectively bound
+the quadratic, linear, mixed, second-harmonic correction and rational
+factors. All cleared denominators are positive.</p>
+<p>For <span class="math notranslate nohighlight">\(j\geq1\)</span>, the Euler-sum identity from
+<a class="reference internal" href="skeleton_risk_five_vertex.html#cor-risk-five-vertex-asymptotic">Corollary 14</a> gives</p>
+<div class="math notranslate nohighlight">
+\[0\leq H_j^{(2)}-A_j-c
+   =\sum_{k=j+1}^{\infty}\frac{H_{k-1}-1}{k^2}
+   \leq\zeta(3)-A_j
+   \leq\frac{2+\log j}{j}
+   \leq\frac{4B_n}{n}.\]</div>
+<p>Consequently the additional error in replacing
+<span class="math notranslate nohighlight">\(H_j^{(2)}-A_j\)</span> by <span class="math notranslate nohighlight">\(c\)</span> is at most
+<span class="math notranslate nohighlight">\(192B_n/n^3\)</span>. Since <span class="math notranslate nohighlight">\(H_j\leq B_n\)</span> and <span class="math notranslate nohighlight">\(B_n\geq1\)</span>,
+<span class="math notranslate nohighlight">\(192+229+192=613&lt;625\)</span> proves</p>
+<div class="math notranslate nohighlight" id="equation-risk-five-vertex-pointwise-bound">
+<span class="eqno">(68)<a class="headerlink" href="#equation-risk-five-vertex-pointwise-bound" title="Link to this equation"></a></span>\[\left|\Psi_j-\frac{48c}{(j+1)(j+3)}\right|
+   \leq\frac{625(1+\log(j+1))}{(j+1)^3}.\]</div>
+<p>At <span class="math notranslate nohighlight">\(j=0\)</span>, <span class="math notranslate nohighlight">\(\Psi_0=1\)</span> and <span class="math notranslate nohighlight">\(0&lt;c&lt;1\)</span>, so the same
+bound follows from <span class="math notranslate nohighlight">\(|1-16c|\leq15&lt;625\)</span>.
+The function <span class="math notranslate nohighlight">\((1+\log n)/n^3\)</span> decreases for <span class="math notranslate nohighlight">\(n\geq1\)</span>.
+Positivity of the transformed kernel therefore also gives the uniform
+bound <span class="math notranslate nohighlight">\(0&lt;\Psi_j\leq16+625=641\)</span>.</p>
+<p><strong>Averaging the rational leading term.</strong> Use the distribution</p>
+<div class="math notranslate nohighlight">
+\[\mathbb P(J=j)=
+ \frac{\binom{D-1}j\binom{D+1}j}{\binom{2D}{D-1}},
+\qquad 0\leq j&lt;D.\]</div>
+<p>Put <span class="math notranslate nohighlight">\(x=D/2\)</span>, <span class="math notranslate nohighlight">\(X=J-x\)</span>, <span class="math notranslate nohighlight">\(B=1+\log D\)</span> and
+<span class="math notranslate nohighlight">\(C=\{J&gt;\lfloor D/4\rfloor\}\)</span>. The moments and the small-index
+bound in <a class="reference internal" href="skeleton_risk_vertex_asymptotics.html"><span class="doc">Quantitative tetrahedron vertex asymptotics</span></a> give, for
+<span class="math notranslate nohighlight">\(D\geq12\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\mathbb E[X]&amp;=-1/(2D),\\
+\mathbb E[X^2]&amp;=
+  \frac{D^3-2D+2}{4D(2D-1)}\leq D/4,\\
+\mathbb P(C^c)&amp;\leq\epsilon_D=4\,2^{-D/12}.\end{split}\]</div>
+<p>Write <span class="math notranslate nohighlight">\(r(t)=1/((t+1)(t+3))\)</span>. For <span class="math notranslate nohighlight">\(t&gt;0\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[r(t)=\frac12\int_1^3(t+u)^{-2}\,du,\]</div>
+<p>hence <span class="math notranslate nohighlight">\(|r'(t)|\leq2/t^3\)</span> and <span class="math notranslate nohighlight">\(|r''(t)|\leq6/t^4\)</span>.
+Also <span class="math notranslate nohighlight">\(|r(t)-t^{-2}|\leq4/t^3\)</span>. On the segment from
+<span class="math notranslate nohighlight">\(x\)</span> to any <span class="math notranslate nohighlight">\(j\in C\)</span>, <span class="math notranslate nohighlight">\(t&gt;D/4\)</span>. First-order Taylor
+expansion thus has expected remainder at most
+<span class="math notranslate nohighlight">\(192/D^3\)</span>. Its linear expectation has absolute value at most
+<span class="math notranslate nohighlight">\(8/D^4\leq1/D^3\)</span>, while
+<span class="math notranslate nohighlight">\(|r(x)-4/D^2|\leq32/D^3\)</span>.
+On the omitted range the absolute Taylor polynomial is bounded by
+<span class="math notranslate nohighlight">\((4+8)/D^2\)</span>, since <span class="math notranslate nohighlight">\(|X|\leq D/2\)</span>. It follows that</p>
+<div class="math notranslate nohighlight">
+\[\left|\mathbb E[\mathbf1_Cr(J)]-4/D^2\right|
+   \leq225/D^3+12\epsilon_D/D^2.\]</div>
+<p>On <span class="math notranslate nohighlight">\(C\)</span>, <span class="math notranslate nohighlight">\(j+1&gt;D/4\)</span> and <span class="math notranslate nohighlight">\(B_{j+1}\leq B\)</span>.
+Combining <a class="reference internal" href="#equation-risk-five-vertex-pointwise-bound">(68)</a>, the rational
+expectation bound and <span class="math notranslate nohighlight">\(\Psi_j\leq641\)</span> on the omitted range yields</p>
+<div class="math notranslate nohighlight">
+\[\left|\mathbb E[\Psi_J]-\frac{192c}{D^2}\right|
+  \leq\frac{40000B+10800}{D^3}
+    +\frac{576\epsilon_D}{D^2}+641\epsilon_D.\]</div>
+<p>For <span class="math notranslate nohighlight">\(D\geq256\)</span>, both <span class="math notranslate nohighlight">\(D^3\epsilon_D\)</span> and
+<span class="math notranslate nohighlight">\(D\epsilon_D\)</span> decrease: their logarithmic derivatives are
+<span class="math notranslate nohighlight">\(3/D-\log2/12\)</span> and <span class="math notranslate nohighlight">\(1/D-\log2/12\)</span>, respectively, and
+<span class="math notranslate nohighlight">\(\log2&gt;1/2\)</span>. At 256, <span class="math notranslate nohighlight">\(\epsilon_D&lt;2^{-19}\)</span>.
+Therefore <span class="math notranslate nohighlight">\(D^3\epsilon_D&lt;32\)</span> and
+<span class="math notranslate nohighlight">\(576D\epsilon_D&lt;576/2048&lt;1\)</span>. Since <span class="math notranslate nohighlight">\(B\geq1\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[\left|\mathbb E[\Psi_J]-\frac{192c}{D^2}\right|
+    \leq\frac{71313B}{D^3}.\]</div>
+<p><strong>Outer normalization.</strong> The exact single sum is</p>
+<div class="math notranslate nohighlight">
+\[a_0(5,D)=\frac{75}{2D^4}q_D\mathbb E[\Psi_J],\qquad
+q_D=\prod_{r=1}^4(1+r/(2D))^{-1}.\]</div>
+<p>Here <span class="math notranslate nohighlight">\(0&lt;q_D\leq1\)</span> and
+<span class="math notranslate nohighlight">\(1-q_D\leq\sum_{r=1}^4r/(2D)=5/D\)</span>. Thus the final error is
+at most</p>
+<div class="math notranslate nohighlight">
+\[\left(\frac{75\cdot71313}{2}+36000\right)\frac{B}{D^7}
+  =\frac{5420475}{2}\frac{B}{D^7}
+  &lt;3000000\frac{B}{D^7},\]</div>
+<p>which proves <a class="reference internal" href="#equation-risk-five-vertex-leading-error">(67)</a>.</p>
+</div>
+<section id="reproducible-enclosures">
+<h2>Reproducible enclosures<a class="headerlink" href="#reproducible-enclosures" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">tools/risk_research/vertex_five_asymptotic.py</span></code> returns the exact rational
+majorant <span class="math notranslate nohighlight">\(3000000(1+\lceil\log_2D\rceil)/D^7\)</span>. The integer bit count
+dominates the logarithm without a floating-point conversion. For this bound
+alone, no optional numerical dependency is needed:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m tools.risk_research.vertex_five_asymptotic --degree 100000 --bound-only --output .research/five-vertex-error.json</span>
+</pre></div>
+</div>
+<p>Without <code class="docutils literal notranslate"><span class="pre">--bound-only</span></code>, use the prepared Sage environment, which includes
+python-flint. Arb encloses <span class="math notranslate nohighlight">\(\zeta(2)\)</span> and <span class="math notranslate nohighlight">\(\zeta(3)\)</span>, then adds
+both arithmetic rounding and the proved analytic error. The local precision
+context is restored. Reports record the evaluator hash and numerical version.
+Native tests also reparse the emitted JSON balls and compare them with the
+independent exact single sum. Finite checks validate the implementation;
+the all-degree guarantee is the inequality proof above.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="skeleton_risk_five_vertex_recurrence.html" class="btn btn-neutral float-left" title="Five-vertex vertex degree recurrence" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="simploidal_risk.html" class="btn btn-neutral float-right" title="Risk on an assembled simploidal set" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: feat/risk-uniform-dimension-tail
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/index.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="skeleton_risk_five_vertex_asymptotics.html">feat/risk-uniform-dimension-tail</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
