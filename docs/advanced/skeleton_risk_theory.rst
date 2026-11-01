@@ -12,6 +12,8 @@ reductions are proved in :doc:`skeleton_risk_extensions`.
 Explicit tetrahedron vertex and six-vertex tetrahedral-face recurrences
 are proved in :doc:`skeleton_risk_vertex_recurrence` and
 :doc:`codimension_two_states`.
+The five-vertex vertex recurrence is proved in
+:doc:`skeleton_risk_five_vertex_recurrence`.
 :doc:`codimension_two_family` gives a uniform fifteen-state construction
 for every nonvertex codimension-two face, with both parity cases.
 The tetrahedron vertex single sum and its large-degree constant are proved
@@ -63,6 +65,8 @@ explicit evaluations. The conditions in each row are part of the result.
        :prf:ref:`thm-risk-tetrahedron-vertex-recurrence` gives an order-ten
        vertex operator, and :doc:`codimension_two_states` gives an order-eight
        six-vertex tetrahedral-face operator.
+       :prf:ref:`thm-risk-five-vertex-degree-recurrence` supplies an order-seventeen
+       five-vertex vertex operator, with initial values and no exceptional integers.
    * - :math:`M=4` or :math:`M=5`, :math:`m=0`, every degree
      - :prf:ref:`thm-risk-tetrahedron-vertex-single` and
        :prf:ref:`thm-risk-five-vertex-single`: one positive harmonic sum;
@@ -1848,6 +1852,9 @@ active positive-dimensional faces, so the dimension and shape optima agree.
   of length :math:`D`, and :prf:ref:`cor-risk-five-vertex-asymptotic`
   gives its leading constant. A bounded-length classical-special-function
   evaluation is still open in these dimensions.
+  :prf:ref:`thm-risk-five-vertex-degree-recurrence` now supplies the
+  five-vertex order-seventeen operator as well, with all initial values
+  and no positive integer exceptions.
   :prf:ref:`thm-risk-general-vertex-construction` now supplies rational
   univariate convolutions for every vertex count, and
   :prf:ref:`thm-risk-general-vertex-asymptotic` gives the leading constant

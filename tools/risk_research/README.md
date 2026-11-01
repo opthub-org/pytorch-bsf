@@ -414,3 +414,20 @@ standard-library exact evaluation. The second supplies
 the original degree-dependent angular sum. Their native Sage regressions
 are selected by `BSF_SAGE_PYTHON` as for the triangular-face verifier above.
 The proofs and domain checks are in the new recurrence chapters.
+
+The five-vertex vertex also has an explicit order-seventeen, degree-188
+operator, proved by eight rational telescoping identities. All 189
+coefficients of its leading polynomial are positive, and all 280 certificate
+parameter denominators have positive domain certificates. It is valid for
+every positive integer degree with seventeen initial values and no exceptions.
+See [the proof](../../docs/advanced/skeleton_risk_five_vertex_recurrence.rst).
+Using the prepared Sage interpreter:
+
+```sh
+python -m tools.risk_research.vertex_five_recurrence \
+  --verify tools/risk_research/examples/five_vertex_vertex_recurrence_order17.json
+```
+
+`vertex_five_recurrence.recurrence_coefficients(maximum)` evaluates the
+sequence with exact standard-library arithmetic. Optional native Sage tests
+rederive every coefficient and exercise altered data and both CLI actions.
