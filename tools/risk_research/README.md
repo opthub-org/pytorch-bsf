@@ -225,6 +225,15 @@ ordinary exact, parser and finite-residual tests still run without Sage.
 
 ## Proved risk extensions
 
+The [nonvertex boundary-transfer theorem](../../docs/advanced/skeleton_risk_codimension_three.rst)
+bounds every nonvertex face by the same source face on smaller simplices.
+In particular `a_1(5,D)<30000/D^2` for every `D>=2`, with zero at degree1.
+`codimension_three.five_vertex_edge_upper_bound(D)` evaluates a stronger
+rational upper bound using only the standard library. This is an inequality,
+not an exact codimension-three evaluation. The CLI emits and verifies
+source-bound bound data; the optional symbolic certificate checks the
+finite rational and harmonic identities used in the proof.
+
 The derivations and their limits are in
 [Further evaluations of the skeleton risk](../../docs/advanced/skeleton_risk_extensions.rst).
 They include a codimension-two mode reduction, the all-degree tetrahedron

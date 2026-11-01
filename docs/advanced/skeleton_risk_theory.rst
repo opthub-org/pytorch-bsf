@@ -1832,6 +1832,11 @@ active positive-dimensional faces, so the dimension and shape optima agree.
   rather than only those individual source sizes. The state bound is
   independent of the face size; its minimality and a bounded classical
   special-function expression remain separate questions.
+  :prf:ref:`thm-risk-nonvertex-boundary-transfer` also bounds nonvertex
+  coefficients using smaller simplices, with a trace-correct lift on every
+  facet. Its five-vertex edge consequence
+  :prf:ref:`thm-risk-five-vertex-edge-upper` is an all-degree upper bound,
+  rather than an exact evaluation of the remaining codimension-three sums.
 - **Finite-dimensional vertex coefficients beyond triangles.**
   For :math:`M\geq4` and :math:`D\geq4`, simplify
   :prf:ref:`thm-skeleton-vertex-sum` uniformly in the degree, or give an
