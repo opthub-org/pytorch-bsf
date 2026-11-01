@@ -12,6 +12,8 @@ reductions are proved in :doc:`skeleton_risk_extensions`.
 Explicit tetrahedron vertex and six-vertex tetrahedral-face recurrences
 are proved in :doc:`skeleton_risk_vertex_recurrence` and
 :doc:`codimension_two_states`.
+:doc:`codimension_two_family` gives a uniform fifteen-state construction
+for every nonvertex codimension-two face, with both parity cases.
 The tetrahedron vertex single sum and its large-degree constant are proved
 in :doc:`skeleton_risk_vertex`. Its next asymptotic term and explicit error
 bound are in :doc:`skeleton_risk_vertex_asymptotics`; the five-vertex vertex
@@ -76,6 +78,11 @@ explicit evaluations. The conditions in each row are part of the result.
        :prf:ref:`thm-risk-general-vertex-asymptotic` gives a positive
        constant :math:`C_M` with :math:`a_0(M,D)\sim C_M/D^{M+1}`;
        the constant has certified rational truncation bounds.
+   * - Every :math:`s\geq2`, :math:`M=s+2`, :math:`m=s-1`
+     - :prf:ref:`thm-risk-uniform-codimension-two-state`: a common fifteen-state
+       rational construction for every degree, including the inactive prefix.
+       The output-row construction depends on :math:`s` but has no
+       degree-length angular sum.
    * - Risk comparison
      - Curves win at every degree; :prf:ref:`prop-skeleton-wins` classifies
        all vertex counts for :math:`D\leq8`, and
@@ -1816,6 +1823,11 @@ active positive-dimensional faces, so the dimension and shape optima agree.
   representation with one additional auxiliary sequence.
   :prf:ref:`thm-risk-six-vertex-tetrahedral-state` extends the fixed-state
   evaluation and certified scalar recurrence to tetrahedral faces on six vertices.
+  :prf:ref:`thm-risk-uniform-codimension-two-state` now gives a common
+  fifteen-state construction for every nonvertex codimension-two face,
+  rather than only those individual source sizes. The state bound is
+  independent of the face size; its minimality and a bounded classical
+  special-function expression remain separate questions.
 - **Finite-dimensional vertex coefficients beyond triangles.**
   For :math:`M\geq4` and :math:`D\geq4`, simplify
   :prf:ref:`thm-skeleton-vertex-sum` uniformly in the degree, or give an

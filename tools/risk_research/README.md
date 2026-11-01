@@ -374,6 +374,24 @@ native tests are skipped unless an explicit native interpreter is selected.
 
 ## Further certified degree recurrences
 
+The nonvertex codimension-two family also has one common fifteen-state
+construction for every source-face size `s>=2`, with `M=s+2`. It removes
+the degree-length angular sum for every such face, includes the inactive
+degree prefix, and handles both half-range parities. This is a uniform
+state bound; the smaller eight-state cases remain useful, and no minimal
+order or exception-free eliminated scalar operator is inferred. See
+[the general proof](../../docs/advanced/codimension_two_family.rst).
+
+```sh
+.venv/bin/python -m tools.risk_research.codimension_two_family \
+  --face-size 5 --max-degree 50 --output .research/skeleton-risk/results/family-m7.json
+```
+
+The evaluator needs only exact standard-library fractions. The optional
+`codimension_two_family_certificate` module runs in the prepared Sage
+environment to verify a selected symbolic output construction and its
+domain, with both evaluator and verifier source hashes recorded.
+
 The tetrahedron vertex operator has order ten and polynomial degree 69.
 Its proof reduces to four rational telescoping identities with finite
 endpoints and no poles on the integer domain. The next codimension-two
