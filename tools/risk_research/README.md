@@ -351,7 +351,7 @@ For every `M>=4,D>=256`, the finite-degree error is additionally bounded
 by `R_M*(1+log(D))^(M-2)/D^(M+2)` with an explicit computable `R_M`.
 This bound shrinks relatively at each fixed M; the constants are conservative.
 `vertex_general_asymptotic` combines the constant interval and analytic
-remainder, uses the exact evaluator below256, and optionally adds Arb
+remainder, uses the exact evaluator below 256, and optionally adds Arb
 rounding with restored precision. See
 [the error proof](../../docs/advanced/skeleton_risk_vertex_general_asymptotics.rst).
 
@@ -407,6 +407,14 @@ The native tests compare the returned ball to the existing exact single sum
 through D4096 and check that precision settings are restored. If python-flint
 is installed in the project Python it is used directly; otherwise those
 native tests are skipped unless an explicit native interpreter is selected.
+
+### Refined single-log vertex errors
+
+`vertex_refined_asymptotic` proves an explicit single-log error for every
+`M>=5,D>=256`, combines it with the existing guarantee, and keeps exact
+evaluation below 256. At M6 its 1% relative threshold is `2^38`, improving
+on the earlier `2^56`. The thresholds remain conservative.
+See [the proof](../../docs/advanced/skeleton_risk_vertex_refined_asymptotics.rst).
 
 ## Further certified degree recurrences
 
