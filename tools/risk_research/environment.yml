@@ -1,0 +1,12 @@
+# Research tools are isolated from the package's runtime dependencies.
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python=3.12
+  # This Ore algebra commit still uses the pre-10.9 Arb Cython headers.
+  - sage=10.6
+  # Match the Cython host version used to build the Sage binary.
+  - cython=3.0.12
+  - python-flint
+  - pip

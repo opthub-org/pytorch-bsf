@@ -1,0 +1,217 @@
+{
+  "schema_version": 1,
+  "resources": [
+    {
+      "id": "a-equals-b",
+      "title": "A=B",
+      "authors": "Marko Petkovsek, Herbert S. Wilf, Doron Zeilberger",
+      "filename": "a-equals-b.pdf",
+      "kind": "pdf",
+      "scope": "Full book, publicly distributed by a coauthor; copyright remains with its owners.",
+      "landing_url": "https://www2.math.upenn.edu/~wilf/AeqB.html",
+      "urls": [
+        "https://sites.math.rutgers.edu/~zeilberg/AeqB.pdf"
+      ]
+    },
+    {
+      "id": "a-equals-b-errata",
+      "title": "Errata for A=B, as of March 2006",
+      "authors": "Marko Petkovsek, Herbert S. Wilf, Doron Zeilberger",
+      "filename": "a-equals-b-errata.pdf",
+      "kind": "pdf",
+      "scope": "Author-hosted public errata for the reprint.",
+      "landing_url": "https://www2.math.upenn.edu/~wilf/AeqB.html",
+      "browser_url": "http://www.math.upenn.edu/%7Ewilf/website/AeqBErrataForReprint.pdf",
+      "access_note": "Retrieved with Playwright in headed Google Chrome via browser_url. Direct HTTP clients and headless browsers returned 403.",
+      "urls": [
+        "https://www2.math.upenn.edu/~wilf/website/AeqBErrataForReprint.pdf"
+      ]
+    },
+    {
+      "id": "creative-telescoping",
+      "title": "Creative Telescoping for Holonomic Functions",
+      "authors": "Christoph Koutschan",
+      "filename": "creative-telescoping.pdf",
+      "kind": "pdf",
+      "scope": "Public author preprint, arXiv:1307.4554v1.",
+      "landing_url": "https://arxiv.org/abs/1307.4554v1",
+      "urls": [
+        "https://arxiv.org/pdf/1307.4554v1"
+      ]
+    },
+    {
+      "id": "ore-polynomials",
+      "title": "Ore Polynomials in Sage",
+      "authors": "Manuel Kauers, Maximilian Jaroschek, Fredrik Johansson",
+      "filename": "ore-polynomials-in-sage.pdf",
+      "kind": "pdf",
+      "scope": "Public author preprint and package tutorial, arXiv:1306.4263v1.",
+      "landing_url": "https://arxiv.org/abs/1306.4263v1",
+      "urls": [
+        "https://arxiv.org/pdf/1306.4263v1"
+      ]
+    },
+    {
+      "id": "algorithms-d-finite-functions",
+      "title": "Algorithms for D-Finite Functions",
+      "authors": "Manuel Kauers",
+      "filename": "algorithms-for-d-finite-functions.pdf",
+      "kind": "pdf",
+      "scope": "Public JNCF 2015 course notes, linked from the author talks page; this is not the 2023 monograph.",
+      "landing_url": "http://www.kauers.de/talks.html",
+      "urls": [
+        "http://www.algebra.uni-linz.ac.at/people/mkauers/publications/kauers15n.pdf"
+      ],
+      "allow_http": true,
+      "purpose": "Exact recurrences, holonomic closure and symbolic algorithms for the remaining fixed-dimension risk coefficients."
+    },
+    {
+      "id": "multivariate-orthogonal-polynomials",
+      "title": "Orthogonal polynomials of several variables",
+      "authors": "Yuan Xu",
+      "filename": "multivariate-orthogonal-polynomials-survey.pdf",
+      "kind": "pdf",
+      "scope": "Public survey/chapter preprint, arXiv:1701.02709v2; this is not the Dunkl-Xu monograph.",
+      "landing_url": "https://arxiv.org/abs/1701.02709v2",
+      "urls": [
+        "https://arxiv.org/pdf/1701.02709v2"
+      ]
+    },
+    {
+      "id": "analytic-combinatorics",
+      "title": "Analytic Combinatorics",
+      "authors": "Philippe Flajolet, Robert Sedgewick",
+      "filename": "analytic-combinatorics.pdf",
+      "kind": "pdf",
+      "scope": "Full book, free author-hosted electronic edition; copyright remains with its owners.",
+      "landing_url": "https://algo.inria.fr/flajolet/Publications/AnaCombi/anacombi.html",
+      "urls": [
+        "https://algo.inria.fr/flajolet/Publications/book.pdf"
+      ]
+    },
+    {
+      "id": "dunkl-xu-frontmatter",
+      "title": "Orthogonal Polynomials of Several Variables, second edition: frontmatter",
+      "authors": "Charles F. Dunkl, Yuan Xu",
+      "filename": "dunkl-xu-frontmatter.pdf",
+      "kind": "pdf",
+      "scope": "Publisher's public frontmatter and table of contents only; full book requires separate access.",
+      "landing_url": "https://www.cambridge.org/core/books/orthogonal-polynomials-of-several-variables/8EED7CD01F4807A476374C2CD00D5969",
+      "urls": [
+        "https://assets.cambridge.org/97811070/71896/frontmatter/9781107071896_frontmatter.pdf"
+      ]
+    },
+    {
+      "id": "kauers-creative-telescoping-2023-tuesday",
+      "title": "Creative Telescoping, 2023 long course: Sister Celine's Method (Tuesday)",
+      "authors": "Manuel Kauers (course jointly designed with Shaoshi Chen and Christoph Koutschan)",
+      "filename": "kauers-creative-telescoping-2023-tuesday.pdf",
+      "kind": "pdf",
+      "scope": "Author-hosted Beamer lecture slides with incremental overlays, Recent Trends in Computer Algebra long course, Paris, November/December 2023. PDF pages are not distinct-slide counts.",
+      "landing_url": "http://www.kauers.de/talks.html",
+      "urls": [
+        "http://www.algebra.uni-linz.ac.at/people/mkauers/publications/chen23c-tuesday.pdf"
+      ],
+      "allow_http": true,
+      "purpose": "Creative telescoping and symbolic summation for the remaining scalar risk sums."
+    },
+    {
+      "id": "kauers-creative-telescoping-2023-wednesday",
+      "title": "Creative Telescoping, 2023 long course: Creative Telescoping (Wednesday)",
+      "authors": "Manuel Kauers (course jointly designed with Shaoshi Chen and Christoph Koutschan)",
+      "filename": "kauers-creative-telescoping-2023-wednesday.pdf",
+      "kind": "pdf",
+      "scope": "Author-hosted Beamer lecture slides with incremental overlays, Recent Trends in Computer Algebra long course, Paris, November/December 2023. PDF pages are not distinct-slide counts.",
+      "landing_url": "http://www.kauers.de/talks.html",
+      "urls": [
+        "http://www.algebra.uni-linz.ac.at/people/mkauers/publications/chen23c-wednesday.pdf"
+      ],
+      "allow_http": true,
+      "purpose": "Creative telescoping and symbolic summation for the remaining scalar risk sums."
+    },
+    {
+      "id": "kauers-creative-telescoping-2023-thursday",
+      "title": "Creative Telescoping, 2023 long course: Advanced Closure Properties (Thursday)",
+      "authors": "Manuel Kauers (course jointly designed with Shaoshi Chen and Christoph Koutschan)",
+      "filename": "kauers-creative-telescoping-2023-thursday.pdf",
+      "kind": "pdf",
+      "scope": "Author-hosted Beamer lecture slides with incremental overlays, Recent Trends in Computer Algebra long course, Paris, November/December 2023. PDF pages are not distinct-slide counts.",
+      "landing_url": "http://www.kauers.de/talks.html",
+      "urls": [
+        "http://www.algebra.uni-linz.ac.at/people/mkauers/publications/chen23c-thursday.pdf"
+      ],
+      "allow_http": true,
+      "purpose": "Creative telescoping and symbolic summation for the remaining scalar risk sums."
+    },
+    {
+      "id": "kauers-creative-telescoping-2023-friday",
+      "title": "Creative Telescoping, 2023 long course: Conclusion (Friday)",
+      "authors": "Manuel Kauers (course jointly designed with Shaoshi Chen and Christoph Koutschan)",
+      "filename": "kauers-creative-telescoping-2023-friday.pdf",
+      "kind": "pdf",
+      "scope": "Author-hosted Beamer lecture slides with incremental overlays, Recent Trends in Computer Algebra long course, Paris, November/December 2023. PDF pages are not distinct-slide counts.",
+      "landing_url": "http://www.kauers.de/talks.html",
+      "urls": [
+        "http://www.algebra.uni-linz.ac.at/people/mkauers/publications/chen23c-friday.pdf"
+      ],
+      "allow_http": true,
+      "purpose": "Creative telescoping and symbolic summation for the remaining scalar risk sums."
+    },
+    {
+      "id": "kauers-guessing-little-data-2022",
+      "title": "Guessing with Little Data",
+      "authors": "Manuel Kauers",
+      "filename": "kauers-guessing-with-little-data-2022.pdf",
+      "kind": "pdf",
+      "scope": "Author-hosted talk slides, Joint AMS EMS SMF Meeting, Grenoble, July 2022. Beamer slides include incremental overlays.",
+      "landing_url": "http://www.kauers.de/talks.html",
+      "urls": [
+        "http://www.algebra.uni-linz.ac.at/people/mkauers/publications/kauers22d.pdf"
+      ],
+      "allow_http": true,
+      "purpose": "Recurrence discovery when exact coefficient data are expensive."
+    },
+    {
+      "id": "kauers-desingularization-2014",
+      "title": "Desingularization of Ore Operators",
+      "authors": "Manuel Kauers",
+      "filename": "kauers-desingularization-of-ore-operators-2014.pdf",
+      "kind": "pdf",
+      "scope": "Author-hosted talk slides, FOCM 2014, Montevideo, December 2014. Beamer slides include incremental overlays.",
+      "landing_url": "http://www.kauers.de/talks.html",
+      "urls": [
+        "http://www.algebra.uni-linz.ac.at/people/mkauers/publications/kauers14j.pdf"
+      ],
+      "allow_http": true,
+      "purpose": "Leading-coefficient zeros, exceptional indices and initial values of degree recurrences."
+    },
+    {
+      "id": "kauers-inequalities-2010",
+      "title": "Inequalities",
+      "authors": "Manuel Kauers",
+      "filename": "kauers-inequalities-2010.pdf",
+      "kind": "pdf",
+      "scope": "Author-hosted talk slides, Seminaire Lotharingien de Combinatoire, Strobl, September 2010. Beamer slides include incremental overlays.",
+      "landing_url": "http://www.kauers.de/talks.html",
+      "urls": [
+        "http://www.algebra.uni-linz.ac.at/people/mkauers/publications/kauers10g.pdf"
+      ],
+      "allow_http": true,
+      "purpose": "Proving risk-comparison inequalities after coefficient evaluation."
+    }
+  ],
+  "additional_access": [
+    {
+      "title": "D-Finite Functions",
+      "authors": "Manuel Kauers",
+      "url": "https://link.springer.com/book/10.1007/978-3-031-34652-1",
+      "status": "Full book not included; optional purchase or institutional access. Public tutorials above support the initial work."
+    },
+    {
+      "title": "Orthogonal Polynomials of Several Variables, second edition",
+      "authors": "Charles F. Dunkl, Yuan Xu",
+      "url": "https://www.cambridge.org/core/books/orthogonal-polynomials-of-several-variables/8EED7CD01F4807A476374C2CD00D5969",
+      "status": "Full monograph not included; public survey and frontmatter above are available."
+    }
+  ]
+}

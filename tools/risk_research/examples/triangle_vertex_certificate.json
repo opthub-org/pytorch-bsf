@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "kind": "rational_telescoping",
+  "name": "triangle_vertex_harmonic_correction",
+  "domain": {
+    "degree_min": 1,
+    "lower": 0,
+    "upper_offset": 1
+  },
+  "weight": "binomial(d + 1, h + 2) * binomial(d + 1, h)",
+  "weight_ratio": "(d - 1 - h) * (d + 1 - h) / ((h + 1) * (h + 3))",
+  "summand_factor": "1 / (h + 2) - (2 * d + 3) * (d**2 + 2*d - 1) / (d * (d + 1) * (d + 2) * (d + 3))",
+  "certificate_factor": "(h + 2) * ((d**2 + 2*d - 1) * h - 1) / (d * (d + 1) * (d + 2) * (d + 3) * (h + 1))",
+  "boundaries": {
+    "lower": "-1 / ((d + 2) * (d + 3))",
+    "upper": "0"
+  }
+}

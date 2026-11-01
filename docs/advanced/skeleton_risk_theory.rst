@@ -7,6 +7,8 @@ formula, then derives the closed forms and comparisons used in
 :doc:`skeleton_sampling`.
 The extension to general finite simploidal sets, including shared and
 degenerate faces, is proved in :doc:`simploidal_risk`.
+Further degree recurrences, codimension-two evaluations and vertex
+reductions are proved in :doc:`skeleton_risk_extensions`.
 The results are organized by mathematical dependence; finite verification
 and reference tables are collected in :doc:`skeleton_risk_verification`.
 
@@ -37,6 +39,10 @@ explicit evaluations. The conditions in each row are part of the result.
    * - Fixed :math:`D`, growing :math:`M`
      - :prf:ref:`thm-skeleton-rational`: dimension polynomials;
        :prf:ref:`cor-skeleton-large-dimension`: the limit of every coefficient.
+   * - Fixed :math:`M,m`, growing :math:`D`
+     - :prf:ref:`thm-risk-fixed-dimension-holonomic`: a polynomial-coefficient
+       recurrence exists; explicit tetrahedron edge operators and a
+       codimension-two harmonic reduction are in :doc:`skeleton_risk_extensions`.
    * - Risk comparison
      - Curves win at every degree; :prf:ref:`prop-skeleton-wins` classifies
        all vertex counts for :math:`D\leq8`; every fixed degree wins for sufficiently large :math:`M`.
@@ -1762,6 +1768,11 @@ active positive-dimensional faces, so the dimension and shape optima agree.
   remaining range without sums whose lengths grow
   with :math:`D`, for example in rational functions, harmonic numbers or
   standard hypergeometric functions, remains to be obtained in this range.
+  For tetrahedron edges, :prf:ref:`thm-risk-tetrahedron-edge-representation`
+  gives a bounded expression with two auxiliary recurrences, and
+  :prf:ref:`cor-risk-tetrahedron-edge-scalar-recurrences` supplies explicit
+  scalar degree recurrences. A representation using only classical
+  harmonic or hypergeometric functions is a separate remaining question.
 - **Finite-dimensional vertex coefficients beyond triangles.**
   For :math:`M\geq4` and :math:`D\geq4`, simplify
   :prf:ref:`thm-skeleton-vertex-sum` uniformly in the degree, or give an
@@ -1769,7 +1780,10 @@ active positive-dimensional faces, so the dimension and shape optima agree.
   coefficients, initial values and exceptional indices. The triangle
   formula in :prf:ref:`thm-skeleton-triangle-vertex-risk` and the
   fixed-degree dimension polynomials do not supply that general
-  evaluation.
+  evaluation. :prf:ref:`thm-risk-fixed-dimension-holonomic` proves that
+  a degree recurrence exists at every fixed dimension, while
+  :prf:ref:`thm-risk-vertex-boundary-pair` reduces its remaining kernel
+  complexity. Neither supplies an explicit tetrahedron vertex recurrence.
 - **The full comparison at degrees above eight.**
   :prf:ref:`prop-skeleton-wins` classifies every :math:`M` at
   :math:`D\leq8`. For :math:`D\geq9`, determine the exact set of

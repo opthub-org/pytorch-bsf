@@ -407,10 +407,17 @@ def _assembled_risk_system(
     inverse = torch.linalg.solve_triangular(ordered, torch.eye(p, dtype=torch.float64), upper=False, unitriangular=True)
     propagation = torch.empty_like(inverse)
     propagation[order[:, None], order[None, :]] = inverse
+    if not torch.isfinite(propagation).all():
+        raise ValueError("assembled risk is unreliable in float64: propagation is not finite.")
+    propagation_condition = torch.linalg.cond(propagation).item()
+    if not math.isfinite(propagation_condition):
+        raise ValueError("assembled risk is unreliable in float64: propagation condition number is not finite.")
     # One propagation condition factor covers the unit triangular solve; a second
     # covers conversion of its normwise perturbation to the quadratic trace energy.
     # This is a conservative first-order reliability screen, not an all-degree certificate.
-    bound = scale * condition * max(1.0, torch.linalg.cond(propagation).item()) ** 2
+    amplification = max(1.0, propagation_condition)
+    # Products overflow to infinity, which the screen below rejects.
+    bound = scale * condition * amplification * amplification
     if not math.isfinite(bound) or bound > _RISK_RELATIVE_ERROR:
         raise ValueError("assembled risk is unreliable in float64: propagated roundoff exceeds 1e-6.")
     return stages, propagation, blocks, bound
