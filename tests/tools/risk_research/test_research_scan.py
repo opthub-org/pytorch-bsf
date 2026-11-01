@@ -81,6 +81,39 @@ def test_missing_data_and_bad_modulus_are_not_exclusions():
         modular_attempt(sequence, order=1, degree=1, train_through=10, prime=1000)
 
 
+@pytest.mark.parametrize(
+    ("degrees", "status", "skipped"), [([1, 2, 3, 4, 10], "incomplete_search", 1), (list(range(1, 8)), "conjecture_found", 0)]
+)
+def test_exact_fit_without_held_out_windows_is_incomplete(tmp_path, monkeypatch, degrees, status, skipped):
+    source = _manifest(
+        tmp_path / "input.json", [{"degree": degree, "numerator": "1", "denominator": "1"} for degree in degrees]
+    )
+    monkeypatch.setattr(research_scan, "modular_attempt", lambda *args, **kwargs: {"status": "possible_nullspace"})
+    output = tmp_path / "output.json"
+    research_scan._worker(
+        Namespace(
+            input=source,
+            output=output,
+            rising=0,
+            central_binomial=False,
+            train_through=4,
+            prime=1009,
+            max_order=1,
+            max_degree=0,
+            max_unknowns=2,
+        )
+    )
+    document = json.loads(output.read_text())
+    assert document["status"] == status
+    assert document["skipped_spaces"] == skipped
+    assert document["excluded_spaces"] == 0
+    if skipped:
+        assert "held-out window" in document["attempts"][0]["exact_fit_error"]
+        assert document["candidates"] == []
+    else:
+        assert document["candidates"][0]["proof_status"] == "finite_exact_checks_only"
+
+
 def test_input_replaced_during_screen_is_rejected_before_output(tmp_path, monkeypatch):
     path = _manifest(
         tmp_path / "sequence.json", [{"degree": index, "numerator": str(index), "denominator": "1"} for index in range(1, 8)]

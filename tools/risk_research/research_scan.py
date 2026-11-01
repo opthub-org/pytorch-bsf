@@ -142,7 +142,8 @@ def _worker(arguments: argparse.Namespace) -> None:
                     break
     document["excluded_spaces"] = sum(item["status"] == "excluded_by_full_rank" for item in document["attempts"])
     document["skipped_spaces"] = sum(
-        item["status"] in {"insufficient_data", "noninvertible_denominator"} for item in document["attempts"]
+        item["status"] in {"insufficient_data", "noninvertible_denominator"} or "exact_fit_error" in item
+        for item in document["attempts"]
     )
     if document["status"] != "conjecture_found" and document["skipped_spaces"]:
         document["status"] = "incomplete_search"
