@@ -266,6 +266,14 @@ def test_fit_sgd_diverging_step_error() -> None:
         fit_sgd(init, loss, n_samples=5, step_size=1e30, max_iter=20)
 
 
+def test_fit_sgd_overflowing_update_error() -> None:
+    # A single step large enough to overflow the parameters is reported before the next iteration.
+    init = BezierSimploid.zeros((1,), 1, n_values=1)
+    loss = linear_scalarization(lambda x: torch.cat([x**2, (x - 1) ** 2], dim=1))
+    with pytest.raises(ArithmeticError, match="non-finite parameters at iteration 0"):
+        fit_sgd(init, loss, n_samples=5, step_size=1e300, max_iter=1)
+
+
 def _reference_sgd(
     init: BezierSimploid, loss: Any, t: torch.Tensor, batch_size: int, max_iter: int, step_size: float, seed: int
 ) -> tuple[list[tuple[torch.Tensor, float]], torch.Tensor]:
