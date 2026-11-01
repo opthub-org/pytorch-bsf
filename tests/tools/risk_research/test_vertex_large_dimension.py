@@ -274,6 +274,8 @@ record=json.loads(open({str(output)!r}).read())
 with ctx.workprec(160):
     direct=integral_normalized_ball(1026,bits=128)
     saved=arb(record['normalized_integral_ball'])
+    original=integral_normalized_ball(1026,bits={bits})
+    assert saved.contains(original)
     assert saved.overlaps(direct)
     scale=1026**2*arb(1026).gamma()*(2*arb(2).log())**1025
     assert arb(record['constant_ball']).contains(scale*direct)
