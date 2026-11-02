@@ -1,5 +1,5 @@
 A first correction with a quadratic large-vertex remainder
-=========================================================
+==========================================================
 
 Keep the uniform-simplex assumptions, the fixed-degree-limit constant
 :math:`C_M`, and the leading term :math:`B_M` from
@@ -125,7 +125,7 @@ limit and no finite-sample risk approximation.
 
    Extend this positive majorant to infinity. Using
    :math:`G_n^{-1}\int_0^\infty x^{2k}e^{-\alpha nx^2}dx
-      =(2k-1)!!/(2\alpha n)^k`, its integral divided by
+   =(2k-1)!!/(2\alpha n)^k`, its integral divided by
    :math:`G_n` is bounded by :math:`K_0/n^2`, where
 
    .. math::
