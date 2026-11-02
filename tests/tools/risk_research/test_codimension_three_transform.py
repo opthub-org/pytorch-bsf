@@ -199,8 +199,8 @@ def test_output_parent_retargeted_during_calculation_cannot_reach_any_source(tmp
     alias = tmp_path / "alias"
     try:
         alias.symlink_to(safe, target_is_directory=True)
-    except (OSError, NotImplementedError) as error:
-        pytest.skip(f"directory symlinks unavailable: {error}")
+    except (OSError, NotImplementedError) as link_error:
+        pytest.skip(f"directory symlinks unavailable: {link_error}")
     calculate = transform._record
     attempts = []
 
@@ -241,8 +241,8 @@ def test_output_parent_retargeted_during_calculation_cannot_replace_saved_input(
     alias = tmp_path / "alias"
     try:
         alias.symlink_to(safe, target_is_directory=True)
-    except (OSError, NotImplementedError) as error:
-        pytest.skip(f"directory symlinks unavailable: {error}")
+    except (OSError, NotImplementedError) as link_error:
+        pytest.skip(f"directory symlinks unavailable: {link_error}")
     calculate = transform._record
     attempts = []
 
