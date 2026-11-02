@@ -7,6 +7,10 @@ convolution formula at every vertex count and proves the leading vertex
 constant for **each fixed** :math:`M\geq4`. The limit is not asserted
 uniformly when :math:`M` grows with the degree.
 
+For the separate dependence of the leading constant on the vertex count,
+:doc:`skeleton_risk_vertex_large_dimension` gives its large-M prefactor,
+explicit remainder and certified intervals.
+
 A rational univariate construction
 -----------------------------------
 

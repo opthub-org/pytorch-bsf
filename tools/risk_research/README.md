@@ -337,6 +337,14 @@ exact reference for the proved vertex reduction, not a completed closed form.
 The experiment and scan reports record `peak_rss_bytes` where OS resource
 accounting is available, and JSON `null` otherwise (including Windows).
 
+## Leading constants at large vertex counts
+
+`vertex_large_dimension` proves an explicit large-M approximation to
+`C_M`, with relative error at most `25/(M-2)` for `M>=1026`.
+It provides standard-library rational intervals and an optional independent
+Arb integral. This concerns the leading constant, not a finite-degree
+coefficient interval. See [the proof](../../docs/advanced/skeleton_risk_vertex_large_dimension.rst).
+
 ## Further vertex evaluations and explicit errors
 
 `vertex_general.vertex_coefficient(M,D)` constructs every vertex coefficient
