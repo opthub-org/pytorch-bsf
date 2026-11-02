@@ -540,27 +540,7 @@ class Points:
         -------
         Points
             Coordinates in the requested dtype and cell IDs on the requested device.
-            Points are immutable, so when the coordinates already have that dtype
-            and both tensors are already on that device, ``self`` is returned
-            without copying.
-
-        Examples
-        --------
-        >>> import torch
-        >>> from torch_bsf import Points
-        >>> points = Points(torch.tensor([[0.25, 0.75]], dtype=torch.float64))
-        >>> points.to() is points
-        True
-        >>> points.to(dtype=torch.float32).parameters.dtype
-        torch.float32
         """
-        target = torch.device(device)
-        if (
-            self.parameters.dtype == dtype
-            and _same_device(self.parameters.device, target)
-            and _same_device(self.cell_ids.device, target)
-        ):
-            return self
         # MPS-to-CPU casts must transfer before changing dtype: MPS has no
         # float64, and a combined transfer/cast can silently return zeros.
         if torch.device(device).type == "cpu":
@@ -845,15 +825,6 @@ class FixedControls:
                 raise ValueError("conflicting fixed values for the same shared control.")
             checked[row] = normalized
         return cls(checked)
-
-
-def _same_device(actual: torch.device, target: torch.device) -> bool:
-    """Whether a tensor on ``actual`` is already on ``target``, resolving an index-less accelerator target."""
-    if actual.type != target.type:
-        return False
-    if target.index is None and target.type != "cpu":
-        target = torch.empty(0, device=target).device
-    return actual == target
 
 
 def _point_groups(ids: torch.Tensor) -> list[tuple[int, torch.Tensor]]:

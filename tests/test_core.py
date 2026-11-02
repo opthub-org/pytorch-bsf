@@ -379,27 +379,13 @@ def test_restricted_operator_matches_fresh_operator(indices):
     assert torch.equal(restricted.to_dense(), fresh.to_dense())
 
 
-def test_points_to_returns_self_only_when_nothing_changes():
+def test_points_to_always_copies():
     points = bsf.Points(torch.tensor([[0.25, 0.75]], dtype=torch.float64))
-    assert points.to() is points
-    assert points.to(device=torch.device("cpu"), dtype=torch.float64) is points
-    narrow = points.to(dtype=torch.float32)
-    assert narrow is not points and narrow.parameters.dtype == torch.float32
-    assert narrow.to(dtype=torch.float32) is narrow
-    # Copies never alias the caller's tensors, and the original Points are unchanged.
-    widened = narrow.to()
-    assert widened is not narrow and widened.parameters.data_ptr() != narrow.parameters.data_ptr()
-    assert torch.equal(points.parameters, torch.tensor([[0.25, 0.75]], dtype=torch.float64))
-
-
-def test_same_device_resolves_an_index_less_accelerator_target():
-    from torch_bsf.core import _same_device
-
-    # "meta" stands in for an accelerator: not CPU, and the target names no index.
-    assert _same_device(torch.device("meta"), torch.device("meta"))
-    assert not _same_device(torch.device("cpu"), torch.device("meta"))
-    assert not _same_device(torch.device("meta"), torch.device("cpu"))
-    assert _same_device(torch.device("cpu"), torch.device("cpu"))
+    same = points.to()
+    assert same is not points
+    assert same.parameters.data_ptr() != points.parameters.data_ptr()
+    assert same.cell_ids.data_ptr() != points.cell_ids.data_ptr()
+    assert torch.equal(same.parameters, points.parameters)
 
 
 def test_model_forward_keeps_validation_and_copy_semantics():
