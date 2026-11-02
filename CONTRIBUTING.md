@@ -852,7 +852,7 @@ pytorch-bsf/
 │   ├── ensemble.py                   # Ensemble of fitted models
 │   ├── fitting.py                    # fit for every space and solver; fit_skeleton_regression
 │   ├── geometry.py                   # Public topology builders (Simploid, SimploidalSet from _kernels/sets.py)
-│   ├── interpolation.py              # Shape-preserving cubic interpolation on simplicial complexes
+│   ├── interpolation.py              # Shape-preserving cubic interpolation (re-exports _interpolation/)
 │   ├── io.py                         # Versioned model persistence (save_model, load_model, …)
 │   ├── optimization.py               # Objective minimization (minimize, PreconditionedSGD, …)
 │   ├── plotting.py                   # Visualization (plot_model)
@@ -881,6 +881,14 @@ pytorch-bsf/
 │   │   ├── _plotting.py              # Plots of Bézier simplices, simploids and spaces
 │   │   ├── _sampling.py              # Grid, random and Sobol sampling of simplices
 │   │   └── _splitting.py             # De Casteljau splitting of Bézier simplices and simploids
+│   ├── _interpolation/               # Private modules re-exported by interpolation.py
+│   │   ├── __init__.py               # Package marker and module layout
+│   │   ├── exact.py                  # Exact and power-of-two arithmetic, argument checks
+│   │   ├── mesh.py                   # SimplicialMesh
+│   │   ├── refinement.py             # lattice_mesh and conforming bisection (refine)
+│   │   ├── hermite.py                # estimate_gradients and hermite_interpolant
+│   │   ├── constructions.py          # Splits, continuities and the Clough–Tocher C1 construction
+│   │   └── macro.py                  # MacroInterpolant, macro_interpolant and refinement_indicator
 │   ├── integrations/                 # Optional adapters; importing them loads no framework
 │   │   ├── __init__.py               # Package marker; import each adapter module explicitly
 │   │   ├── lightning.py              # Opt-in Lightning execution (regression_module)
