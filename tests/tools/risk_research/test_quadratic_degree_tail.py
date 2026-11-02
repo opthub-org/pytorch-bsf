@@ -176,6 +176,40 @@ def test_cli_rejects_a_resolved_source_alias_and_preserves_the_link(tmp_path, mo
     assert tail._sources() == before
 
 
+@pytest.mark.parametrize(
+    "name",
+    ["tools/risk_research/quadratic_degree_tail.py", "docs/advanced/skeleton_risk_quadratic_degree_tail.rst"],
+)
+def test_cli_rechecks_parent_alias_after_computation(tmp_path, monkeypatch, name):
+    root = Path(tail.__file__).resolve().parents[2]
+    protected = root / name
+    safe = tmp_path / "safe"
+    safe.mkdir()
+    alias = tmp_path / "parent"
+    try:
+        alias.symlink_to(safe, target_is_directory=True)
+    except (OSError, NotImplementedError) as link_error:
+        pytest.skip(f"symlink creation is unavailable: {link_error}")
+    output = alias / protected.name
+    before = tail._sources()
+    original = tail.certify_vertices
+    calls = []
+
+    def calculation(*args, **kwargs):
+        report = original(*args, **kwargs)
+        alias.unlink()
+        alias.symlink_to(protected.parent, target_is_directory=True)
+        return report
+
+    monkeypatch.setattr(tail, "certify_vertices", calculation)
+    monkeypatch.setattr(tail, "atomic_json", lambda path, record: calls.append(path))
+    with pytest.raises(SystemExit) as error:
+        tail.main(["--vertices", "4", "--output", str(output)])
+    assert error.value.code == 2 and not calls
+    assert alias.is_symlink() and alias.resolve() == protected.parent
+    assert tail._sources() == before
+
+
 @pytest.mark.parametrize("crlf", [False, True])
 def test_hashes_are_portable_and_raw_concurrent_edits_preserve_output(tmp_path, monkeypatch, crlf):
     lf = {name: value.replace(b"\r\n", b"\n") for name, value in tail._sources().items()}

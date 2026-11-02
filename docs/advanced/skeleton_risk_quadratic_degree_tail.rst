@@ -175,6 +175,7 @@ Fingerprints canonicalize CRLF to LF; execution guards compare raw source
 bytes before and after. Failed generation preserves an existing output.
 Output paths resolving to any fingerprinted evaluator or proof source,
 including symlink aliases, are rejected before evaluation or writing.
+The destination is checked again after calculation and immediately before writing.
 Independent Gram/scalar coefficient checks, integer-root comparisons and
 frozen holdouts validate implementation; the proof establishes the
 infinite region.
