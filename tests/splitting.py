@@ -1294,3 +1294,30 @@ def test_max_error_criterion_scales_errors_relative_to_the_largest_error():
     k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
     assert (k, i, j) == (0, 0, 1)
     assert abs(s - 0.6) < 1e-3
+
+
+def test_max_error_criterion_keeps_subnormal_errors():
+    # Halving 5e-324 rounds it to zero; errors that do not overflow must be formed without halving.
+    bs = BezierSimploid((1,), 1, {(1, 0): [0.0], (0, 1): [0.0]}).double()
+    t = torch.linspace(0.05, 0.95, 10, dtype=torch.float64)
+    params = torch.stack([1 - t, t], dim=1)
+    values = torch.zeros(10, 1, dtype=torch.float64)
+    values[t > 0.6] = 5e-324
+    k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
+    assert (k, i, j) == (0, 0, 1)
+    assert abs(s - 0.6) < 1e-3
+
+
+def test_max_error_criterion_halves_only_overflowing_errors():
+    # 1e308 - (-1e308) overflows; then the errors are halved instead. (The predictions are stubbed, because
+    # evaluating a model this close to the float64 limit overflows by itself.)
+    bs = BezierSimploid((1,), 1, {(1, 0): [0.0], (0, 1): [0.0]}).double()
+    bs.forward = lambda t: torch.full((len(t), 1), 1e308, dtype=torch.float64)  # type: ignore[method-assign]
+    t = torch.linspace(0.05, 0.95, 10, dtype=torch.float64)
+    params = torch.stack([1 - t, t], dim=1)
+    values = torch.full((10, 1), 1e308, dtype=torch.float64)
+    values[t > 0.6] = -1e308 * 0.9
+    values[t > 0.8] = -1e308
+    k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
+    assert (k, i, j) == (0, 0, 1)
+    assert abs(s - 0.6) < 1e-3
