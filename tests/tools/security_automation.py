@@ -5,6 +5,7 @@ import copy
 import datetime as dt
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -87,12 +88,23 @@ class CheckEvidenceTests(unittest.TestCase):
 
     def test_secret_scan_is_mandatory_and_walks_the_full_history(self):
         self.assertIn("secret-scan", security.expected_checks(ROOT))
-        job = (ROOT / ".github/workflows/security-policy.yml").read_text().split("\n  secret-scan:\n", 1)[1]
+        workflow = (ROOT / ".github/workflows/security-policy.yml").read_text()
+        triggers = workflow.split("\njobs:\n", 1)[0]
+        self.assertIn("pull_request:", triggers)
+        self.assertIn("branches: [master]", triggers)
+        job = re.split(r"\n  [\w-]+:\n", workflow.split("\n  secret-scan:\n", 1)[1], maxsplit=1)[0]
         self.assertIn("fetch-depth: 0", job)
         self.assertIn("pre-commit run betterleaks-history --hook-stage manual", job)
+        history = (ROOT / ".pre-commit-config.yaml").read_text().split("alias: betterleaks-history\n", 1)[1]
+        # Without always_run, pre-commit can skip the hook as having no files to check, and CI stays green without a scan
+        for setting in ("always_run: true", "stages: [manual]", "--redact", '--log-opts="HEAD ', "--full-history"):
+            self.assertIn(setting, history)
+        self.assertIn("--diff-merges=remerge", history)
+
+    def test_staged_secret_hook_runs_on_commit_but_not_in_the_lint_job(self):
         hooks = (ROOT / ".pre-commit-config.yaml").read_text()
-        self.assertIn('--log-opts="HEAD ', hooks)
-        self.assertIn("--diff-merges=first-parent", hooks)
+        staged = hooks.split("- id: betterleaks\n", 2)[1]
+        self.assertIn("stages: [pre-commit]", staged)
         self.assertIn("SKIP: typos,betterleaks", (ROOT / ".github/workflows/python-package.yml").read_text())
 
     def test_dispatch_preserves_pr_identity_for_isolated_coverage_upload(self):

@@ -68,6 +68,7 @@ VALIDATION_NAMES = {
     "tox.ini",
     "setup.cfg",
     ".gitattributes",
+    # Betterleaks also reads the Gitleaks names, for backwards compatibility
     ".betterleaks.toml",
     ".betterleaksignore",
     ".gitleaks.toml",

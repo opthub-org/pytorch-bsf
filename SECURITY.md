@@ -125,7 +125,8 @@ For a false positive, give the reason in the PR and use one of these:
   an earlier one.
 - In a file without comments, such as JSON or CSV, add the `<path>:<rule>:<line>` entry
   to `.betterleaksignore`. The git hook prints it as `Fingerprint`. It applies to that
-  path, rule and line in every commit.
+  path, rule and line in every commit, so if the line moves, add an entry with the line
+  number that the job reports.
 - If the commit is on `master`, add its `Fingerprint` from the job's log to
   `.betterleaksignore`.
 
