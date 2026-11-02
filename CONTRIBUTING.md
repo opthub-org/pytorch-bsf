@@ -817,7 +817,7 @@ External link checking is not part of this PR gate.
 
 Documentation construction and publication run separately. **GHPages build**
 has read-only repository access and no secrets. It still runs the full
-`sphinx-multiversion` build, with CPU PyTorch and a dependency cache, but sends
+`sphinx-multiversion` build with CPU PyTorch and fresh dependencies, but sends
 only the triggering ref's pages and byte digests to **GHPages publish**.
 Only the trusted default-branch publisher holds the shared `gh-pages` lock;
 the dependency installation and construction of different refs can overlap.
