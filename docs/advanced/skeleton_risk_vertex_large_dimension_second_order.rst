@@ -53,8 +53,10 @@ limit and no finite-sample risk approximation.
    Define
    :math:`a_4=(4L-3)/(192L)` and
    :math:`\lambda=a_4-\alpha^2/2<0`.
-   The positive logarithm series gives :math:`2/3<L<7/10` and
-   :math:`2/29<\alpha<1/14`, as in the refined chapter.
+   The first two terms of the positive logarithm series give
+   :math:`L>2/3+2/81=56/81>29/42`. Together with
+   :math:`L<7/10` from the refined chapter, this implies
+   :math:`2/29<\alpha<1/14`.
 
    **Sixth-order control on the fixed local interval.** For
    :math:`0\leq x\leq1`, write :math:`c=\cos x` and
