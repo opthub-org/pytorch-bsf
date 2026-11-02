@@ -93,11 +93,18 @@ jobs:
         uv pip install --resolution lowest-direct '.[lightning,mlflow]'
         # Keep the resolved versions while adding the optional dependencies and test tools
         uv pip freeze | grep -v '^pytorch-bsf' > lowest-constraints.txt
-        uv pip install '.[all]' pytest pytest-randomly hypothesis -c lowest-constraints.txt
+        uv pip install '.[all]' pytest pytest-cov pytest-randomly hypothesis -c lowest-constraints.txt
         uv pip list
     - name: Test with pytest
       run: |
-        pytest
+        pytest --cov=torch_bsf --cov-report=xml:lowest-coverage.xml
+    - name: Export lowest-version coverage as untrusted report data
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: lowest-coverage
+        path: lowest-coverage.xml
+        if-no-files-found: error
+        retention-days: 2
 
   optional-deps:
     permissions:
@@ -224,7 +231,7 @@ jobs:
         bash examples/quickstart/run.sh
 
   coverage:
-    needs: [python-support, build]
+    needs: [python-support, lowest, build]
     permissions:
       contents: read
       id-token: write
