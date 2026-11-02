@@ -41,6 +41,8 @@ PROTECTED = (
     "tools",
     "tests/tools",
     ".github/workflows/codeql-analysis.yml",
+    ".github/workflows/sphinx-pages-publish.yml",
+    ".github/pages-build-template.yml",
 )
 ACTION_PIN = re.compile(r"^(\s*(?:- )?uses:\s+[\w./-]+@)[0-9a-f]{40}(\s*(?:#.*)?)$", re.MULTILINE)
 POST_MERGE = [*WORKFLOWS, "release-please-action.yml", "sphinx-pages.yml"]

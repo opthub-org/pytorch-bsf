@@ -22,7 +22,9 @@ Report no_change if no confirmed vulnerability is found.
 
 Never weaken tests, scanners, coverage, action pins, or release protections to
 make a check pass. Do not change the automation scripts, their tests, prompts,
-schemas, repository instructions, or security workflows. Other workflow files
+schemas, repository instructions, security workflows, or the trusted
+`sphinx-pages-publish.yml` documentation publisher and its
+`.github/pages-build-template.yml` trusted producer definition. Other workflow files
 may only change existing immutable action SHA pins. Return blocked with a clear
 reason if a safe fix needs broader access, a missing upstream patch, credential
 revocation, or an intentionally breaking product decision.

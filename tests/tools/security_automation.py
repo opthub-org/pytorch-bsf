@@ -126,6 +126,8 @@ class PatchBoundaryTests(GitFixture):
             ".github/workflows/security-remediation.yml",
             ".github/workflows/security-policy.yml",
             ".github/workflows/codeql-analysis.yml",
+            ".github/workflows/sphinx-pages-publish.yml",
+            ".github/pages-build-template.yml",
             "nested/AGENTS.md",
             ".codex/config.toml",
             ".claude/settings.json",
