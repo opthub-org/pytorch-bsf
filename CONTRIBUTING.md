@@ -810,14 +810,26 @@ release metadata, using the current build configuration. Their warnings do
 not replace the strict checks of the current PR.
 External link checking is not part of this PR gate.
 
-The default-branch `GHPages publish` workflow is being introduced separately
-from the read-only producer. It remains dormant until the `GHPages build`
-workflow is activated. It runs only trusted default-branch code, authenticates
-the producer run and artifact, and updates the triggering version's files.
-The trusted producer definition is `.github/pages-build-template.yml`;
-the producer workflow must match it byte for byte. Updating that definition
-requires landing the trusted template first, then updating the producer.
-The publisher never imports candidate modules or installs their dependencies.
+Documentation construction and publication run separately. **GHPages build**
+has read-only repository access and no secrets. It still runs the full
+`sphinx-multiversion` build, with CPU PyTorch and a dependency cache, but sends
+only the triggering ref's pages and byte digests to **GHPages publish**.
+Only the trusted default-branch publisher holds the shared `gh-pages` lock;
+the dependency installation and construction of different refs can overlap.
+
+Require the producer-commit **GHPages publish** check as well as **build**,
+all existing PyTest/Conda/platform/lowest-dependency checks, Codecov's accepted
+two-report upload, same-head Codex review, zero unresolved review threads and
+a clean merge state. Missing, queued, pending or stale publication evidence
+blocks a merge. The publisher's native `workflow_run` job checks the default
+branch and is not the producer-commit check.
+
+The publisher runs no candidate code. The producer YAML must exactly match
+the trusted `.github/pages-build-template.yml` on the publisher's default
+branch checkout. To update it, first land the trusted template in a separate
+reviewed PR, then copy it to `.github/workflows/sphinx-pages-build.yml`.
+It authenticates the repository, workflow, run attempt, source commit and
+artifact before checking regular files, paths, byte digests and size limits.
 
 The trusted `.github/pages-legacy-owners.json` census binds existing version
 URL roots to their full branch or tag refs at its recorded `gh-pages` commit.
@@ -834,12 +846,21 @@ by `objects.inv` or `.buildinfo`. Branches and tags with colliding URL roots
 fail publication. Only files owned by the same ref's generation ledger may be
 deleted; remaining historical files within that version are retained.
 
-Publication checks are attached explicitly to the producer commit as
-**GHPages publish**. Once the producer is activated, require this check in
-addition to the existing **build**, PyTest/Conda/platform/lowest-dependency,
-Codecov and same-head Codex review gates. A missing or pending publication
-check is not success. The native `workflow_run` job belongs to the default
-branch and does not replace the producer-commit check.
+Each publication starts from the latest `gh-pages`, replaces only files owned
+by that ref, and keeps master, release tags and other previews. First adoption
+retains unknown legacy files because they may belong to archived previews.
+Overlapping branch/tag destinations and reserved paths are rejected. Source
+refs are rechecked before and after publication, and conflicting pushes fail
+safely. A source ref and `gh-pages` cannot be updated atomically together:
+a ref change during the final network window can temporarily leave stale
+pages; detection fails the publication check and requires a new build.
+
+Migration disables the legacy `sphinx-pages.yml` workflow repository-wide
+after its outstanding runs finish. This prevents old branches' whole-site
+writers from running. Existing published URLs remain available; old branches
+must incorporate the new workflow before their next preview can pass the
+required publication gate. Existing historical tag pages are retained, and
+new release tags include the new producer. Do not re-enable the legacy writer.
 
 ---
 
