@@ -652,6 +652,16 @@ The certificate records every constant, the full tail domain and a strict
 rational margin; verification rejects changed fields or source hashes.
 This does not classify the finite prefix below `H(M)`.
 
+## A wider simultaneous vertex-count and degree regime
+
+`vertex_joint_growth_refined` lowers the dyadic start to exponent384 and
+allows `4<=M<=1+floor(N/(12*ceil(log2(N+2))))`, where
+`N=floor(log2(D))`, while retaining the relative error `D**(-3/4)`.
+The certificate stores compressed bounds without materializing the huge
+degree. This improves the vertex-approximation domain, separately from
+the quadratic sufficient region for comparing total risks.
+See [the proof](../../docs/advanced/skeleton_risk_vertex_joint_growth_refined.rst).
+
 ## A quadratic degree region uniform in the vertex count
 
 The [quadratic-region proof](../../docs/advanced/skeleton_risk_quadratic_degree_tail.rst)
