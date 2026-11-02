@@ -46,7 +46,7 @@ PROTECTED = (
     ".github/pages-legacy-owners.json",
 )
 ACTION_PIN = re.compile(r"^(\s*(?:- )?uses:\s+[\w./-]+@)[0-9a-f]{40}(\s*(?:#.*)?)$", re.MULTILINE)
-POST_MERGE = [*WORKFLOWS, "release-please-action.yml", "sphinx-pages.yml"]
+POST_MERGE = [*WORKFLOWS, "release-please-action.yml", "sphinx-pages-build.yml"]
 VALIDATION_NAMES = {
     ".pre-commit-config.yaml",
     ".coveragerc",

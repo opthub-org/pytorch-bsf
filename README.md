@@ -8,7 +8,7 @@
 [![PyPI](https://img.shields.io/pypi/v/pytorch-bsf.svg)](https://pypi.org/project/pytorch-bsf/)
 [![Python versions](https://img.shields.io/pypi/pyversions/pytorch-bsf.svg)](https://pypi.org/project/pytorch-bsf/)
 [![PyTest](https://github.com/opthub-org/pytorch-bsf/actions/workflows/python-package.yml/badge.svg)](https://github.com/opthub-org/pytorch-bsf/actions/workflows/python-package.yml)
-[![Documentation](https://github.com/opthub-org/pytorch-bsf/actions/workflows/sphinx-pages.yml/badge.svg)](https://opthub-org.github.io/pytorch-bsf/)
+[![Documentation](https://github.com/opthub-org/pytorch-bsf/actions/workflows/sphinx-pages-build.yml/badge.svg)](https://opthub-org.github.io/pytorch-bsf/)
 [![codecov](https://codecov.io/gh/opthub-org/pytorch-bsf/graph/badge.svg?token=0BNDP4QUVT)](https://codecov.io/gh/opthub-org/pytorch-bsf)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/opthub-org/pytorch-bsf/blob/master/LICENSE)
 
