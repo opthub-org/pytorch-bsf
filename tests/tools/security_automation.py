@@ -85,7 +85,20 @@ class CheckEvidenceTests(unittest.TestCase):
             "actions/workflows/python-package.yml/dispatches",
             {"ref": "automation/security/test", "inputs": {"pr_number": "123"}},
         )
+        api.write.assert_any_call("actions/workflows/sphinx-pages-build.yml/dispatches", {"ref": "automation/security/test"})
         self.assertEqual(api.write.call_count, len(security.WORKFLOWS))
+
+    def test_post_merge_docs_dispatch_is_unique(self):
+        api = api_mock()
+        task = {"id": "id", "post_merge_remaining": list(security.POST_MERGE)}
+        with patch.object(security, "update_task"):
+            security.finish_post_merge(api, task)
+        self.assertEqual(len(security.POST_MERGE), len(set(security.POST_MERGE)))
+        self.assertEqual(
+            [call.args for call in api.write.call_args_list if "sphinx-pages-build.yml" in call.args[0]],
+            [("actions/workflows/sphinx-pages-build.yml/dispatches", {"ref": "master"})],
+        )
+        self.assertEqual(task["post_merge_remaining"], [])
 
 
 class GitFixture(unittest.TestCase):
@@ -720,6 +733,26 @@ class RealCIEvidenceTests(unittest.TestCase):
         with patch.object(security, "base_sha", return_value=task["base"]), self.assertRaisesRegex(ValueError, "merge gate"):
             security.merge(self.api, task, ROOT, verdict)
         self.api.write.assert_not_called()
+
+    def test_missing_pending_or_failed_docs_checks_block_actual_merge_before_any_write(self):
+        green_checks = list(self.checks)
+        self.api.get.return_value = pull_request()
+        task = {"id": "id", "pr": 123, "head": "h" * 40, "base": "b" * 40}
+        verdict = {"approved": True, "findings": [], "resolved_threads": [], "summary": "safe"}
+        for required in ("build", "GHPages publish"):
+            self.assertIn(required, {row["name"] for row in green_checks})
+            for state in ("absent", "pending", "failure"):
+                with self.subTest(required=required, state=state):
+                    self.checks = [row for row in green_checks if row["name"] != required]
+                    if state != "absent":
+                        self.checks.append(check(required, state, ident=1000))
+                    with (
+                        patch.object(security, "base_sha", return_value=task["base"]),
+                        self.assertRaisesRegex(ValueError, "merge gate"),
+                    ):
+                        security.merge(self.api, task, ROOT, verdict)
+                    self.api.write.assert_not_called()
+                    self.api.fetch_commit.assert_not_called()
 
 
 class PublicationIntegrationTests(GitFixture):

@@ -27,6 +27,7 @@ WORKFLOWS = [
     "release-config.yml",
     "codeql-analysis.yml",
     "security-policy.yml",
+    "sphinx-pages-build.yml",
 ]
 MAX_ATTEMPTS = 3
 RECOVERY_COOLDOWN = 3600
@@ -46,7 +47,7 @@ PROTECTED = (
     ".github/pages-legacy-owners.json",
 )
 ACTION_PIN = re.compile(r"^(\s*(?:- )?uses:\s+[\w./-]+@)[0-9a-f]{40}(\s*(?:#.*)?)$", re.MULTILINE)
-POST_MERGE = [*WORKFLOWS, "release-please-action.yml", "sphinx-pages-build.yml"]
+POST_MERGE = [*WORKFLOWS, "release-please-action.yml"]
 VALIDATION_NAMES = {
     ".pre-commit-config.yaml",
     ".coveragerc",
@@ -274,6 +275,8 @@ def expected_checks(root: Path) -> set[str]:
         "lowest",
         "distribution",
         "docs",
+        "build",
+        "GHPages publish",
         "release-config",
         "Analyze",
         "CodeQL",
