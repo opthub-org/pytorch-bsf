@@ -645,19 +645,35 @@ class SimploidalSet:
         >>> bool((S.boundary_matrix(1) @ S.boundary_matrix(2) == 0).all())
         True
         """
+        n_rows, columns = self._boundary_columns(dim)
+        matrix = torch.zeros(n_rows, len(columns), dtype=torch.long)
+        entries = [(r, c, value) for c, column in enumerate(columns) for r, value in column.items()]
+        if entries:
+            r, c, value = zip(*entries, strict=True)
+            matrix[list(r), list(c)] = torch.tensor(value, dtype=torch.long)
+        return matrix
+
+    def _boundary_columns(self, dim: int) -> tuple[int, list[dict[int, int]]]:
+        """The number of rows and the nonzero entries ``{row: value}`` of each column of :meth:`boundary_matrix`."""
         if dim < 0:
             raise ValueError(f"dim must be non-negative, but {dim} is given.")
         rows = {s: r for r, s in enumerate(self.simploids(dim - 1))}
-        columns = self.simploids(dim)
-        matrix = torch.zeros(len(rows), len(columns), dtype=torch.long)
-        for c, s in enumerate(columns):
+        columns = []
+        for s in self.simploids(dim):
+            column: dict[int, int] = {}
             for (i, j), f in s.faces():
                 if f.is_degenerate:
                     continue
                 if f not in rows:
                     raise ValueError(f"Face ({i}, {j}) of {s!r} does not belong to this simploidal set.")
-                matrix[rows[f], c] += (-1) ** (sum(s.simploid_type[:i]) + j)
-        return matrix
+                r = rows[f]
+                value = column.get(r, 0) + (-1) ** (sum(s.simploid_type[:i]) + j)
+                if value:
+                    column[r] = value
+                else:
+                    del column[r]
+            columns.append(column)
+        return len(rows), columns
 
     def betti_numbers(self, field: Literal["Q", "Z2"] = "Q") -> list[int]:
         r"""The Betti numbers :math:`\beta_0, \ldots, \beta_{\mathrm{dim}}` of the simploidal set.
@@ -698,38 +714,57 @@ class SimploidalSet:
         """
         _choice(field, "field", ("Q", "Z2"), message=f'field must be "Q" or "Z2", but {field!r} is given.')
         modulus = 2 if field == "Z2" else None
-        ranks = [_rank(self.boundary_matrix(k), modulus) for k in range(self.dim + 2)]
+        ranks = [_sparse_rank(self._boundary_columns(k)[1], modulus) for k in range(self.dim + 2)]
         return [len(self.simploids(k)) - ranks[k] - ranks[k + 1] for k in range(self.dim + 1)]
 
 
 def _rank(matrix: torch.Tensor, modulus: int | None) -> int:
     """The exact rank of an integer matrix over the rationals (``modulus=None``) or over the integers modulo a prime."""
-    rows = [_reduce(r, modulus) for r in cast(list[list[int]], matrix.tolist())]
-    rows = [r for r in rows if any(r)]
-    rank = 0
-    while rows:
-        pivot = rows.pop()
-        c = next(k for k, x in enumerate(pivot) if x)
-        rows = [_eliminate(r, pivot, c, modulus) for r in rows]
-        rows = [r for r in rows if any(r)]
-        rank += 1
-    return rank
+    rows = cast(list[list[int]], matrix.tolist())
+    return _sparse_rank([{c: x for c, x in enumerate(row) if x} for row in rows], modulus)
 
 
-def _eliminate(row: list[int], pivot: list[int], c: int, modulus: int | None) -> list[int]:
-    """Cancels the entry of ``row`` in column ``c`` with ``pivot``, whose entry there is nonzero."""
-    if not row[c]:
-        return row
-    p, q = pivot[c], row[c]
-    return _reduce([p * x - q * y for x, y in zip(row, pivot, strict=True)], modulus)
+def _sparse_rank(vectors: Sequence[dict[int, int]], modulus: int | None) -> int:
+    """The exact rank of integer vectors given by their nonzero entries ``{index: value}``.
+
+    Each vector is reduced against the pivot vectors found so far, each stored under its largest index, until
+    its largest index has no pivot (it becomes a pivot) or it vanishes. Elimination with a pivot only touches
+    indices up to that largest index, so sparse vectors such as the columns of a boundary matrix stay sparse.
+    The sparsest vectors are processed first, which tends to give sparse pivots with unit entries.
+    """
+    pivots: dict[int, dict[int, int]] = {}
+    for vector in sorted(vectors, key=len):
+        v = _reduce(vector, modulus)
+        while v:
+            c = max(v)
+            pivot = pivots.get(c)
+            if pivot is None:
+                pivots[c] = v
+                break
+            v = _eliminate(v, pivot, c, modulus)
+    return len(pivots)
 
 
-def _reduce(row: list[int], modulus: int | None) -> list[int]:
-    """Reduces a row modulo ``modulus``, or divides it by the gcd of its entries if ``modulus`` is ``None``."""
+def _eliminate(v: dict[int, int], pivot: dict[int, int], c: int, modulus: int | None) -> dict[int, int]:
+    """Cancels the entry of ``v`` at index ``c`` with ``pivot``; both are nonzero there."""
+    # p * v - q * pivot, with the common factor of p and q removed: the cofactor of v is 1 for unit pivots.
+    # Over a prime modulus, p is invertible, so multiplying v by it does not change the span.
+    p, q = pivot[c], v[c]
+    g = gcd(p, q)
+    a, b = p // g, q // g
+    result = {k: a * x for k, x in v.items()} if a != 1 else dict(v)
+    for k, y in pivot.items():
+        result[k] = result.get(k, 0) - b * y
+    return _reduce(result, modulus)
+
+
+def _reduce(v: dict[int, int], modulus: int | None) -> dict[int, int]:
+    """Drops zeros and reduces modulo ``modulus``, or divides by the gcd of the entries if ``modulus`` is ``None``."""
     if modulus is not None:
-        return [x % modulus for x in row]
-    g = gcd(*row)
-    return [x // g for x in row] if g > 1 else row
+        return {k: r for k, x in v.items() if (r := x % modulus)}
+    v = {k: x for k, x in v.items() if x}
+    g = gcd(*v.values())
+    return {k: x // g for k, x in v.items()} if g > 1 else v
 
 
 def _resolve(x: Simploid, final: dict[Simploid, Simploid]) -> Simploid:

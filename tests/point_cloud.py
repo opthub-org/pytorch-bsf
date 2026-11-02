@@ -4,6 +4,7 @@ import math
 import warnings
 from dataclasses import replace
 from itertools import combinations
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -530,3 +531,159 @@ def test_skeleton_on_simploids_requires_face_values_and_initial():
         fit_skeleton(space, torch.zeros(3, 2), initial=initial)
     with pytest.raises(ValueError, match=r"\(0, 2\), \(0, 3\), \(1, 2\), \(1, 3\)"):
         fit_skeleton(space, torch.zeros(3, 2), initial=initial, face_values={(0,): torch.zeros(1, 2)})
+
+
+# Reference implementations from before #630, kept to check that the faster code computes the same values.
+
+
+def _reference_nondominated(y: torch.Tensor, face: tuple[int, ...]) -> torch.Tensor:
+    selected = y[:, face]
+    keep = torch.ones(len(y), dtype=torch.bool)
+    for i, point in enumerate(selected):
+        keep[i] = not bool(((selected <= point).all(1) & (selected < point).any(1)).any())
+    return y[keep]
+
+
+class _ReferencePolynomial:
+    """``_Polynomial`` before #630: every derivative rebuilds its power table or basis lookups."""
+
+    def __init__(self, poly: _Polynomial):
+        self.coefficients, self.dimensions, self.degrees = poly.coefficients, poly.dimensions, poly.degrees
+        self.powers, self.high, self.factors = poly.powers, poly.high, poly.factors
+
+    def derivative(self, t: torch.Tensor, axes: tuple[int, ...] = ()) -> torch.Tensor:
+        from torch_bsf._kernels.combinatorics import _recursive_basis, _simplex_indices
+
+        powers = self.powers.clone()
+        if self.high:
+            for axis in axes:
+                powers[:, axis] -= 1
+            derivative = torch.ones((len(t), len(powers)), dtype=t.dtype)
+            for block, full in zip(_blocks(self.dimensions), self.degrees, strict=True):
+                degree = full - sum(axis in block for axis in axes)
+                if degree < 0:
+                    return torch.zeros((len(t), self.coefficients.shape[1]), dtype=t.dtype)
+                positions = {alpha: i + 1 for i, alpha in enumerate(_simplex_indices(len(block), degree))}
+                indices = torch.tensor([positions.get(tuple(row), 0) for row in powers[:, block.start : block.stop].tolist()])
+                basis = _recursive_basis(t[:, block.start : block.stop], degree)
+                padded = torch.cat((torch.zeros_like(basis[:, :1]), basis), 1)
+                derivative = derivative * (padded[:, indices] * math.prod(range(degree + 1, full + 1)))
+            return derivative @ self.coefficients
+        factors = self.factors.clone()
+        for axis in axes:
+            factors *= powers[:, axis].clamp_min(0)
+            powers[:, axis] -= 1
+        basis = t[:, None, :].pow(powers.clamp_min(0)[None, :, :]).prod(2) * factors
+        return basis @ self.coefficients
+
+    def geometry(self, t: torch.Tensor, y: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        residual = self.derivative(t) - y
+        width = t.shape[1]
+        jacobian = torch.stack([self.derivative(t, (i,)) for i in range(width)], dim=2)
+        gradient = torch.einsum("no,noi->ni", residual, jacobian)
+        hessian = torch.einsum("noi,noj->nij", jacobian, jacobian)
+        for i in range(width):
+            for j in range(i, width):
+                term = (residual * self.derivative(t, (i, j))).sum(1)
+                hessian[:, i, j] += term
+                if i != j:
+                    hessian[:, j, i] += term
+        return residual.square().sum(1), gradient, hessian
+
+
+def _reference_line_search(poly, t, direction, y):
+    best = t.clone()
+    error = (poly.derivative(t) - y).square().sum(1)
+    pending = torch.ones(len(t), dtype=torch.bool)
+    step = 1.0
+    for _ in range(25):
+        candidate = _project_factors(t + step * direction, poly.dimensions)
+        candidate_error = (poly.derivative(candidate) - y).square().sum(1)
+        improved = pending & torch.isfinite(candidate_error) & (candidate_error < error)
+        best[improved], error[improved] = candidate[improved], candidate_error[improved]
+        pending &= ~improved & ((candidate - t).abs().amax(1) > 1e-15)
+        if not pending.any():
+            break
+        step *= 0.5
+    return best
+
+
+def _reference_parameters(model, y, t, max_iter, tolerance):
+    poly = _ReferencePolynomial(_Polynomial(model))
+    tangent = torch.block_diag(*(torch.cat((torch.eye(a), -torch.ones(1, a))).to(torch.float64) for a in poly.dimensions))
+    for _ in range(max_iter):
+        _, gradient, hessian = poly.geometry(t, y)
+        if (_project_factors(t - gradient, poly.dimensions) - t).abs().max().item() <= tolerance:
+            return t, True
+        reduced = tangent.T @ hessian @ tangent
+        rhs = gradient @ tangent
+        delta = -(torch.linalg.pinv(reduced, hermitian=True) @ rhs[:, :, None]).squeeze(2) @ tangent.T
+        newton = _reference_line_search(poly, t, delta, y)
+        scale = hessian.abs().sum(2).amax(1).clamp_min(1e-12)
+        descent = _reference_line_search(poly, t, -gradient / scale[:, None], y)
+        use_newton = (poly.derivative(newton) - y).square().sum(1) < (poly.derivative(descent) - y).square().sum(1)
+        t = torch.where(use_newton[:, None], newton, descent)
+    _, gradient, _ = poly.geometry(t, y)
+    return t, bool((_project_factors(t - gradient, poly.dimensions) - t).abs().max() <= tolerance)
+
+
+@given(
+    st.integers(0, 60),
+    st.integers(1, 4),
+    st.integers(2, 6),
+    st.integers(0, 2**32 - 1),
+)
+@example(2500, 1, 6, 0)  # several blocks of rows: 2**22 // (2500 * 1) < 2500
+@example(1500, 3, 4, 1)  # several blocks with three objectives, many ties
+@example(0, 2, 3, 0)  # no points
+def test_blocked_nondominated_matches_the_pointwise_reference(n, m, levels, seed):
+    """The blocked comparison of #630 keeps exactly the rows that the pointwise loop kept, ties included."""
+    y = torch.randint(0, levels, (n, m + 1), generator=torch.Generator().manual_seed(seed)).double()
+    for k in range(1, m + 1):
+        for face in combinations(range(m), k):
+            torch.testing.assert_close(_nondominated(y, face), _reference_nondominated(y, face), rtol=0, atol=0)
+
+
+def _random_polynomial(dimensions, degree, seed):
+    space = BezierSpace.simploid(dimensions, degree=degree)
+    generator = torch.Generator().manual_seed(seed)
+    model = BezierModel(space, torch.randn(space.n_controls, 2, dtype=torch.float64, generator=generator))
+    return model, sample(space, 9, seed=seed).parameters
+
+
+POLYNOMIAL_CASES = [((1,), 3), ((2,), 4), ((1, 1), (2, 3)), ((2, 1), (2, 2)), ((1,), 17), ((1, 2), (16, 2))]
+
+
+@pytest.mark.parametrize(("dimensions", "degree"), POLYNOMIAL_CASES)
+def test_cached_derivatives_match_the_reference(dimensions, degree):
+    """Shared power tables and cached lookups (#630) give the same derivatives, bit for bit, as recomputing them."""
+    model, t = _random_polynomial(dimensions, degree, 7)
+    t = torch.cat([t, grid(model.space, 1).parameters])  # vertices: zero coordinates
+    poly = _Polynomial(model)
+    reference = _ReferencePolynomial(poly)
+    width = t.shape[1]
+    memo: dict[Any, torch.Tensor] = {}
+    for axes in [(), *((i,) for i in range(width)), *combinations(range(width), 2), (0, 0), (0,) * 3, (0,) * 18]:
+        expected = reference.derivative(t, axes)
+        torch.testing.assert_close(poly.derivative(t, axes), expected, rtol=0, atol=0)
+        torch.testing.assert_close(poly.derivative(t, axes, memo), expected, rtol=0, atol=0)  # tables shared
+        torch.testing.assert_close(poly.derivative(t, axes, memo), expected, rtol=0, atol=0)  # lookups cached
+    y = torch.randn(len(t), 2, dtype=torch.float64, generator=torch.Generator().manual_seed(1))
+    for actual, expected in zip(poly.geometry(t, y), reference.geometry(t, y), strict=True):
+        torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+
+
+@pytest.mark.parametrize(("dimensions", "degree"), POLYNOMIAL_CASES[:5])
+def test_newton_parameters_match_the_reference(dimensions, degree):
+    """Reusing the squared errors of the line searches (#630) leaves every Newton iterate unchanged.
+
+    The reference recomputes each error from the same rows with the same operations, so the iterates agree exactly.
+    """
+    model, _ = _random_polynomial(dimensions, degree, 3)
+    y = torch.randn(25, 2, dtype=torch.float64, generator=torch.Generator().manual_seed(4))
+    start = sample(model.space, 25, seed=5).parameters
+    for max_iter in (1, 4, 10):
+        t, converged = _parameters(model, y, start, max_iter, 1e-12)
+        expected, expected_converged = _reference_parameters(model, y, start, max_iter, 1e-12)
+        torch.testing.assert_close(t, expected, rtol=0, atol=0)
+        assert converged == expected_converged
