@@ -1,5 +1,5 @@
 A classical closed form for the codimension-four constant
-========================================================
+=========================================================
 
 Keep the uniform-simplex assumptions of :doc:`skeleton_risk_theory`.
 The general constant and fixed-codimension asymptotic are already proved

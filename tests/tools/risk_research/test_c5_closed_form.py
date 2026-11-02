@@ -1,6 +1,5 @@
 """Check the finite c5 reduction and its independent rational evaluator."""
 
-import copy
 import importlib.util
 import json
 import os
@@ -79,7 +78,7 @@ def test_signed_cancellation_bounds_shrink_and_records_use_540_scale():
         assert lo <= left <= right <= hi
         lo, hi = left, right
     assert Fraction(55464, 1000) < lo < hi < Fraction(55465, 1000)
-    record = closed.build_record(29, 7)
+    record = json.loads(json.dumps(closed.build_record(29, 7)))
     assert _fraction(record["C6"]["lower"]) == 540 * _fraction(record["c5"]["lower"])
     assert _fraction(record["C6"]["upper"]) == 540 * _fraction(record["c5"]["upper"])
 
@@ -117,8 +116,7 @@ def test_cli_saved_nondefault_options_round_trip(tmp_path):
 
 @pytest.mark.parametrize("field", ["terms", "face_size", "outside", "c5", "C6", "q4_scale", "source_sha256", "extra"])
 def test_record_tampering_is_rejected(field):
-    original = closed.build_record(8, 3)
-    record = copy.deepcopy(original)
+    record = json.loads(json.dumps(closed.build_record(8, 3)))
     if field in ("terms", "face_size", "outside"):
         record[field] = float(record[field])
     elif field in ("c5", "C6"):
