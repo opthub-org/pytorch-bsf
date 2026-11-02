@@ -71,8 +71,11 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_exact.html">Positive diagonal formulas for nonvertex risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension.html">The vertex leading constant at large vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_refined_asymptotics.html">Single-log vertex errors for every fixed M at least five</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth.html">A simultaneous vertex-count and degree regime</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html">An all-degree sufficient region for large vertex counts</a></li>
@@ -248,10 +251,10 @@ evaluate the whole query using these expressions, preserving point and vertex
 tangents without exposing dual tensor storage to Python.
 <code class="docutils literal notranslate"><span class="pre">torch.func.jacrev</span></code> and <code class="docutils literal notranslate"><span class="pre">torch.func.jacfwd</span></code> batch the exact evaluations
 independently, retaining their individual rational bindings.
-In a fresh PyTorch 2.3 process, its lazy compiler initialization can fail
-when first triggered inside a transform. Calling
-<code class="docutils literal notranslate"><span class="pre">torch.compiler.disable(lambda:</span> <span class="pre">None)</span></code> before entering the transform
-initializes the compiler outside it.
+PyTorch 2.3’s lazy compiler initialization can fail when first triggered
+inside a transform. Importing <code class="docutils literal notranslate"><span class="pre">torch_bsf</span></code> initializes that compiler
+before transforms automatically on PyTorch 2.3. Later versions retain
+their usual lazy initialization.
 <code class="docutils literal notranslate"><span class="pre">locate(batch_size=...)</span></code> bounds temporary float64 storage by
 <code class="docutils literal notranslate"><span class="pre">O(batch_size</span> <span class="pre">*</span> <span class="pre">n_simplices</span> <span class="pre">*</span> <span class="pre">(d</span> <span class="pre">+</span> <span class="pre">1))</span></code>, in addition to that cache.</p>
 <p>This corrects loss of precision in the solve, rather than changing the
