@@ -392,6 +392,16 @@ def test_points_to_returns_self_only_when_nothing_changes():
     assert torch.equal(points.parameters, torch.tensor([[0.25, 0.75]], dtype=torch.float64))
 
 
+def test_same_device_resolves_an_index_less_accelerator_target():
+    from torch_bsf.core import _same_device
+
+    # "meta" stands in for an accelerator: not CPU, and the target names no index.
+    assert _same_device(torch.device("meta"), torch.device("meta"))
+    assert not _same_device(torch.device("cpu"), torch.device("meta"))
+    assert not _same_device(torch.device("meta"), torch.device("cpu"))
+    assert _same_device(torch.device("cpu"), torch.device("cpu"))
+
+
 def test_model_forward_keeps_validation_and_copy_semantics():
     space = bsf.BezierSpace.simplex(1, degree=1)
     model = bsf.BezierModel(space, torch.tensor([[1.0], [3.0]], dtype=torch.float64))
