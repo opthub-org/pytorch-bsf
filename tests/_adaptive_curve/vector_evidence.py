@@ -1,6 +1,8 @@
 """Cross-fitted directions must not turn generic vector roughness into gaps."""
 
 from dataclasses import asdict, replace
+from decimal import Decimal, localcontext
+from fractions import Fraction
 
 import pytest
 import torch
@@ -209,12 +211,84 @@ def _projected_fixture(degree):
     )
 
 
-@pytest.mark.parametrize("degree,floor", [(1, "0x1.7643f68a12096p+0"), (2, "0x1.773c2591f16acp+0")])
-def test_ordinary_projected_statistics_retain_frozen_float64_values(degree, floor):
+def _projected_closed_form_and_roundoff(degree):
+    # An independent rational oracle: u=(3/5,4/5) gives residual projections
+    # (-1/8,-1/20,2/5), energy P=57/320, and raw energy T=27/64 per side.
+    # Both Taylor maxima are 3/16. For t=+/-1/8 the forecast leverages are
+    # (1381,1349)/4096 or (90453,87893)/262144, respectively.
+    f = Fraction
+    p, total = f(57, 320), f(27, 64)
+    leverage_sum = f(1365, 2048) if degree == 1 else f(89173, 131072)
+    variance = p * (2 + leverage_sum) / 2
+    unit = f(1, 2**53)
+    gamma2, gamma3 = 2 * unit / (1 - 2 * unit), 3 * unit / (1 - 3 * unit)
+
+    # Including conversion of the rational direction, a two-term dot has
+    # absolute error <= gamma3 * sum(abs(a_i*u_i)). The residual dot condition
+    # numbers are 11/5, 5, and 1; using their absolute errors avoids treating
+    # cancellation as a well-conditioned relative calculation.
+    projections = (f(1, 8), f(1, 20), f(2, 5))
+    dot_errors = tuple(gamma3 * a for a in (f(11, 40), f(1, 4), f(2, 5)))
+    projected_error = sum(
+        2 * value * error + error**2 + gamma3 * (value + error) ** 2
+        for value, error in zip(projections, dot_errors, strict=True)
+    )
+    # Each square plus the three-term reduction has depth at most three.
+    # All raw energies, forecast rows, leverages, and 1+leverage are dyadics
+    # with fewer than 53 significant bits, so their arithmetic is exact.
+    # P/2 is exact; two variance products and their sum add gamma2.
+    variance_error = (p + projected_error) * (2 + leverage_sum) / 2 * (1 + gamma2) - variance
+
+    # Multiplication by width=1/4 is exact. The two scalar additions in each
+    # Taylor bound contribute gamma2 times the absolute-term envelope.
+    bound_errors = []
+    for slope, slope_abs, curvature, curvature_abs in (
+        (f(1, 4), f(13, 20), f(19, 40), f(19, 40)),
+        (f(3, 4), f(3, 4), f(1, 20), f(1, 4)),
+    ):
+        curvature = curvature if degree == 2 else f(0)
+        slope_error = gamma3 * slope_abs
+        curvature_error = gamma3 * curvature_abs if degree == 2 else f(0)
+        input_error = slope_error / 4 + curvature_error / 8
+        envelope = slope / 4 + curvature / 8
+        bound_errors.append(input_error + gamma2 * (envelope + input_error))
+
+    # Both projected energies are added before division by the exact 2*T.
+    numerator_error = 2 * projected_error + unit * 2 * (p + projected_error)
+    ratio_error = numerator_error / (2 * total) + unit * (p / total + numerator_error / (2 * total))
+    orthogonal_error = ratio_error + unit * (f(26, 45) + ratio_error)
+    with localcontext() as context:
+        context.prec = 80
+
+        def decimal(value):
+            return Decimal(value.numerator) / Decimal(value.denominator)
+
+        root = decimal(variance).sqrt()
+        lower, upper = decimal(variance - variance_error).sqrt(), decimal(variance + variance_error).sqrt()
+        # sqrt's one-ULP allowance (2u relative), followed by multiplication by
+        # 3 (u relative), also permits platform libm rounding differences.
+        floor_error = 3 * decimal(variance_error) / (root + lower)
+        floor_error += 3 * upper * decimal((1 + 2 * unit) * (1 + unit) - 1)
+        expected = (decimal(f(3, 16)), 3 * root, decimal(f(26, 45)))
+        errors = (decimal(max(bound_errors)), floor_error, decimal(orthogonal_error))
+        return expected, errors
+
+
+@pytest.mark.parametrize("degree", [1, 2])
+def test_ordinary_projected_statistics_match_closed_form_with_float64_roundoff(degree):
     model = _projected_fixture(degree)
     actual = _projected_statistics(model, torch.tensor([0.6, 0.8], dtype=torch.float64), 0.25)
-    expected = tuple(float.fromhex(v) for v in ("0x1.8000000000001p-3", floor, "0x1.27d27d27d27d2p-1"))
-    assert actual == expected
+    expected, errors = _projected_closed_form_and_roundoff(degree)
+    for name, observed, reference, error in zip(
+        ("Taylor bound", "forecast floor", "orthogonal fraction"), actual, expected, errors, strict=True
+    ):
+        with localcontext() as context:
+            context.prec = 80
+            difference = abs(Decimal.from_float(observed) - reference)
+        assert difference <= error, (
+            f"degree={degree}, {name}: actual={observed!r} ({observed.hex()}), "
+            f"exact={reference}, absolute_error={difference}, roundoff_bound={error}"
+        )
 
 
 @pytest.mark.parametrize("degree", [1, 2])
