@@ -68,6 +68,7 @@
 <li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="codimension_two_family.html">Uniform construction for codimension two</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three.html">Boundary transfer and a codimension-three edge bound</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_exact.html">Positive diagonal formulas for nonvertex risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">The vertex leading constant at large vertex count</a><ul>
@@ -158,11 +159,11 @@ that constant as <span class="math notranslate nohighlight">\(M\)</span> grows. 
 \[B_M=\frac{M^2(M-1)!\,(2\log2)^{M-1}\sqrt{M-1}}
                {4\sqrt{\pi\log2\,(\log2-1/2)}}.\]</div>
 <div class="proof theorem admonition" id="thm-risk-large-vertex-constant">
-<p class="admonition-title"><span class="caption-number">Theorem 32 </span> (Explicit large-vertex asymptotic constant)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 34 </span> (Explicit large-vertex asymptotic constant)</p>
 <section class="theorem-content" id="proof-content">
 <p>For every integer <span class="math notranslate nohighlight">\(M\geq1026\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-risk-large-vertex-error">
-<span class="eqno">(61)<a class="headerlink" href="#equation-risk-large-vertex-error" title="Link to this equation"></a></span>\[\left|\frac{C_M}{B_M}-1\right|\leq\frac{25}{M-2}.\]</div>
+<span class="eqno">(68)<a class="headerlink" href="#equation-risk-large-vertex-error" title="Link to this equation"></a></span>\[\left|\frac{C_M}{B_M}-1\right|\leq\frac{25}{M-2}.\]</div>
 <p>Consequently <span class="math notranslate nohighlight">\(C_M\sim B_M\)</span> as <span class="math notranslate nohighlight">\(M\to\infty\)</span>.
 In particular, the relative error is at most one percent for every
 integer <span class="math notranslate nohighlight">\(M\geq2502\)</span>.
@@ -190,7 +191,7 @@ Set <span class="math notranslate nohighlight">\(f(x)=h(\pi-x)/H\)</span>, <span
 \alpha=\frac{a}{4L}.\]</div>
 <p>Symmetry and <span class="math notranslate nohighlight">\(|1-e^{i(\pi-x)}|^2=4\cos^2(x/2)\)</span> give exactly</p>
 <div class="math notranslate nohighlight" id="equation-risk-large-vertex-normalization">
-<span class="eqno">(62)<a class="headerlink" href="#equation-risk-large-vertex-normalization" title="Link to this equation"></a></span>\[\frac{C_M}{M^2q!\,(2L)^q}=\frac{q}{4\pi L}I_n.\]</div>
+<span class="eqno">(69)<a class="headerlink" href="#equation-risk-large-vertex-normalization" title="Link to this equation"></a></span>\[\frac{C_M}{M^2q!\,(2L)^q}=\frac{q}{4\pi L}I_n.\]</div>
 <p><strong>Local estimates with explicit constants.</strong> The elementary bounds
 <span class="math notranslate nohighlight">\(2/3&lt;L&lt;7/10\)</span> imply <span class="math notranslate nohighlight">\(1/16&lt;\alpha&lt;1/12\)</span>.
 They follow, for example, by bounding the positive series
@@ -281,7 +282,7 @@ Combining the three errors proves</p>
 <p>The standard-library evaluator
 <code class="docutils literal notranslate"><span class="pre">tools.risk_research.vertex_large_dimension</span></code> saves exact rational
 intervals for the normalized constant in
-<a class="reference internal" href="#equation-risk-large-vertex-normalization">(62)</a>. It encloses <span class="math notranslate nohighlight">\(\log2\)</span> by its
+<a class="reference internal" href="#equation-risk-large-vertex-normalization">(69)</a>. It encloses <span class="math notranslate nohighlight">\(\log2\)</span> by its
 positive series, <span class="math notranslate nohighlight">\(\pi\)</span> by Machin’s alternating arctangent formula,
 and square roots by integer square roots. Removing the factorial and
 exponential scale keeps reports short even at large <span class="math notranslate nohighlight">\(M\)</span>.</p>
