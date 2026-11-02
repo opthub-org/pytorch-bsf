@@ -5,6 +5,11 @@ Keep the uniform-simplex assumptions of :doc:`skeleton_risk_theory`.
 The leading constant :math:`C_M` and its exact rational enclosures are
 proved in :doc:`skeleton_risk_vertex_general`. Here the error of the
 finite-degree coefficient itself is bounded, for every fixed :math:`M\geq4`.
+For every :math:`M\geq5`,
+:doc:`skeleton_risk_vertex_refined_asymptotics` subsequently improves the
+logarithmic power to one, with explicit constants and the same degree
+start. The bounds here remain valid, including the critical :math:`M=4`.
+
 The constants are deliberately conservative. The sharper existing
 tetrahedron and five-vertex results remain useful.
 
