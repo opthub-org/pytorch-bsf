@@ -136,7 +136,7 @@ Choose a policy
      - Longest chord between selected cell vertex images.
      - Output units affect which chord is longest.
    * - ``ResidualSplit(samples, resolution=10)``
-     - Edge/fraction minimizing the sum of unweighted child MSEs over a grid.
+     - Edge/fraction best separating large from small residuals over a grid.
      - Groups current errors; does not refit or guarantee lower error.
 
 ``LongestEdge`` compares lengths using normalized float64 mantissas and
@@ -155,13 +155,20 @@ chord despite a long curved path. Rescaling one output coordinate can change
 which chord is selected, so keep units consistent when comparing policies.
 
 ``ResidualSplit`` requires equally weighted observations on the selected
-cell. It uses current model residuals to assess how observations group into
+cell; a cell without observations is split at the midpoint of its longest
+edge. It uses current model residuals to assess how observations group into
 two pieces. A larger ``resolution`` examines a finer split-fraction grid and
 costs more evaluation work. It does not increase the model's degree or add
-training points. Since the score sums two child means rather than recomputing
-a single observation-weighted global MSE, it can favor partitions with very
-different point counts. Inspect those counts and the selected location before
-interpreting the policy as an accuracy improvement.
+training points. Because the split is exact, the squared residual of each
+observation is the same before and after it; the residuals are computed once
+and the candidate minimizing their within-piece sum of squared deviations
+from each piece's mean is selected, as a regression tree would split them.
+Every observation counts once, so a piece holding few points gains no
+advantage from averaging. A candidate that leaves a piece without
+observations of its own is rejected, and when every candidate is rejected the
+midpoint of the longest edge is used. Equal scores prefer more balanced point
+counts. Inspect the counts and the selected location before interpreting the
+policy as an accuracy improvement.
 
 No policy changes the exactness guarantee: once an edge and fraction have
 been selected, the two local models represent the same parent function.
