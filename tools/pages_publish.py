@@ -150,6 +150,50 @@ def trusted_workflow() -> bytes:
     return (Path(__file__).resolve().parents[1] / ".github/pages-build-template.yml").read_bytes()
 
 
+def trusted_legacy_owners() -> dict[str, str]:
+    """Read the reviewed ownership census from the trusted control checkout."""
+    path = Path(__file__).resolve().parents[1] / ".github/pages-legacy-owners.json"
+    raw = path.read_bytes()
+    if len(raw) > MAX_MANIFEST_BYTES:
+        raise ValueError("Legacy ownership policy is too large")
+    policy = json.loads(raw, object_pairs_hook=unique_json)
+    if (
+        not isinstance(policy, dict)
+        or set(policy) != {"schema", "gh_pages_sha", "owners"}
+        or type(policy["schema"]) is not int
+        or policy["schema"] != 1
+        or not isinstance(policy["gh_pages_sha"], str)
+        or SHA.fullmatch(policy["gh_pages_sha"]) is None
+        or not isinstance(policy["owners"], dict)
+        or not 0 < len(policy["owners"]) <= MAX_FILES
+    ):
+        raise ValueError("Invalid legacy ownership policy")
+    owners: dict[str, str] = policy["owners"]
+    for root, ref in owners.items():
+        if destination(ref) != root:
+            raise ValueError("Legacy ownership root and ref disagree")
+    roots = sorted(owners)
+    if any(overlap(left, right) for index, left in enumerate(roots) for right in roots[index + 1 :]):
+        raise ValueError("Legacy publication namespaces overlap")
+    return owners
+
+
+def check_namespace(ref: str, paths: list[str], ledgers: list[Json], owners: dict[str, str]) -> None:
+    """Reject unknown existing prefixes and every other legacy version owner."""
+    target = destination(ref)
+    for root, owner in owners.items():
+        if overlap(root, target) and owner != ref:
+            raise ValueError("Trusted legacy publication URLs overlap")
+    owned = owners.get(target) == ref or any(record["source_ref"] == ref for record in ledgers)
+    if not owned and any(path == target or path.startswith(target + "/") for path in paths):
+        raise ValueError("Existing publication prefix has no trusted owner")
+    # Catch roots introduced after the census, including archived versions that
+    # no longer have a live Git ref or a publisher generation ledger.
+    roots = {path.rsplit("/", 1)[0] for path in paths if path.endswith(("/objects.inv", "/.buildinfo"))}
+    if any(overlap(root, target) and (root != target or not owned) for root in roots):
+        raise ValueError("Unregistered legacy publication URLs overlap")
+
+
 def authenticate_run(api: Any, event: Json) -> tuple[Json, Json]:
     """Bind the webhook to canonical service metadata before any check write."""
     run = event["workflow_run"]
@@ -436,13 +480,16 @@ class GitPages:
 
     def prepare(self, manifest: Json, files: dict[str, bytes], record: Json) -> str:
         target = destination(manifest["source_ref"])
-        # On first adoption legacy files have no owner. Preserve them, rather than
-        # deleting a whole prefix that may contain archived branch previews.
+        ledgers = self.ledgers()
+        paths = self.paths()
+        check_namespace(manifest["source_ref"], paths, ledgers, trusted_legacy_owners())
+        # Keep unknown old files within an authenticated owner's version, and
+        # delete only files previously managed by this same publisher/ref.
         removed = []
-        for old in self.ledgers():
+        for old in ledgers:
             if old["source_ref"] == manifest["source_ref"]:
                 removed = [target + "/" + name for name in old["files"]]
-        existing = set(self.paths()) - set(removed)
+        existing = set(paths) - set(removed)
         for name in files:
             path = target + "/" + name
             if any("/".join(path.split("/")[:count]) in existing for count in range(1, len(path.split("/")))):

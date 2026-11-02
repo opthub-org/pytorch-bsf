@@ -345,11 +345,67 @@ class ArchiveTests(unittest.TestCase):
             )
 
 
+class LegacyOwnershipTests(unittest.TestCase):
+    def test_reviewed_census_has_valid_nonoverlapping_full_ref_owners(self):
+        owners = pages.trusted_legacy_owners()
+        self.assertEqual(owners["master"], "refs/heads/master")
+        self.assertEqual(owners["v0.24.0"], "refs/tags/v0.24.0")
+
+    def test_malformed_policy_and_colliding_owners_fail_closed(self):
+        baseline = {"schema": 1, "gh_pages_sha": SHA, "owners": {"master": "refs/heads/master"}}
+        changes: list[dict[str, Any]] = [
+            {"schema": True},
+            {"gh_pages_sha": "invalid"},
+            {"owners": {}},
+            {"owners": {"master": "refs/heads/other"}},
+            {"owners": {"v1.2.3": "refs/tags/v1.2.3", "v1.2.3/child": "refs/heads/v1.2.3/child"}},
+        ]
+        for change in changes:
+            raw = json.dumps({**baseline, **change}).encode()
+            with (
+                self.subTest(change=change),
+                patch.object(Path, "read_bytes", return_value=raw),
+                self.assertRaises(ValueError),
+            ):
+                pages.trusted_legacy_owners()
+
+    def test_unknown_existing_prefix_requires_trusted_owner_or_same_ref_ledger(self):
+        with self.assertRaisesRegex(ValueError, "no trusted owner"):
+            pages.check_namespace("refs/heads/new", ["new/index.html"], [], {})
+        pages.check_namespace("refs/heads/new", ["new/index.html"], [{"source_ref": "refs/heads/new"}], {})
+
+    def test_known_tag_owner_cannot_be_replaced_by_same_named_branch(self):
+        with self.assertRaisesRegex(ValueError, "Trusted legacy"):
+            pages.check_namespace("refs/heads/v1.2.3", [], [], {"v1.2.3": "refs/tags/v1.2.3"})
+
+    def test_unknown_nested_or_ancestor_sphinx_root_blocks_owned_publication(self):
+        for marker in ("objects.inv", ".buildinfo"):
+            for root in ("master/archived", "parent"):
+                ref = "refs/heads/master" if root.startswith("master/") else "refs/heads/parent/child"
+                owners = {pages.destination(ref): ref}
+                with self.subTest(marker=marker, root=root), self.assertRaisesRegex(ValueError, "Unregistered"):
+                    pages.check_namespace(ref, [root + "/" + marker], [], owners)
+        pages.check_namespace(
+            "refs/heads/master", ["master/objects.inv", "other/.buildinfo"], [], {"master": "refs/heads/master"}
+        )
+
+
 class BareGitTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
+        owner_policy = patch.object(
+            pages,
+            "trusted_legacy_owners",
+            return_value={
+                "master": "refs/heads/master",
+                "v1.2.3": "refs/tags/v1.2.3",
+                "fix/archived": "refs/heads/fix/archived",
+            },
+        )
+        owner_policy.start()
+        self.addCleanup(owner_policy.stop)
         self.remote = self.root / "remote.git"
         self.source = self.root / "source"
         self.git("init", "--bare", "--quiet", str(self.remote))
@@ -441,6 +497,30 @@ class BareGitTests(unittest.TestCase):
         self.git("--git-dir", str(self.remote), "update-ref", "refs/heads/gh-pages", original)
         with self.assertRaises(RuntimeError):
             pending.push(commit)
+        self.assertEqual(self.show("master/index.html"), b"legacy")
+
+    def test_parent_branch_cannot_overwrite_archived_preview_exact_file(self):
+        target = self.publisher("parent.git")
+        files = {"index.html": b"parent", "archived/index.html": b"overwritten"}
+        record = self.record(files)
+        record["source_ref"] = "refs/heads/fix"
+        with self.assertRaisesRegex(ValueError, "Trusted legacy"):
+            target.prepare(manifest("refs/heads/fix", files), files, record)
+        self.assertEqual(self.show("fix/archived/index.html"), b"legacy")
+        self.assertEqual(target.git("write-tree"), target.git("rev-parse", target.base + "^{tree}"))
+
+    def test_sphinx_root_added_after_census_blocks_owned_parent_before_mutation(self):
+        marker = self.source / "master/late-preview/objects.inv"
+        marker.parent.mkdir(parents=True)
+        marker.write_bytes(b"inventory")
+        self.git("-C", str(self.source), "add", ".")
+        self.git("-C", str(self.source), "commit", "-qm", "Late legacy preview")
+        self.git("-C", str(self.source), "push", "--quiet", str(self.remote), "HEAD:refs/heads/gh-pages")
+        target = self.publisher("late.git")
+        files = {"index.html": b"new", "late-preview/objects.inv": b"overwritten"}
+        with self.assertRaisesRegex(ValueError, "Unregistered"):
+            target.prepare(manifest(files=files), files, self.record(files))
+        self.assertEqual(self.show("master/late-preview/objects.inv"), b"inventory")
         self.assertEqual(self.show("master/index.html"), b"legacy")
 
 

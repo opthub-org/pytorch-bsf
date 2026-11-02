@@ -819,6 +819,18 @@ the producer workflow must match it byte for byte. Updating that definition
 requires landing the trusted template first, then updating the producer.
 The publisher never imports candidate modules or installs their dependencies.
 
+The trusted `.github/pages-legacy-owners.json` census binds existing version
+URL roots to their full branch or tag refs at its recorded `gh-pages` commit.
+Before activation, drain and disable the legacy writer and verify that every
+retained version root in the final snapshot is covered by this reviewed census.
+Update the census through a reviewed default-branch change if that snapshot
+introduces another root; do not infer ownership from an artifact or a deleted
+branch's absence. The publisher rejects overlap with another census owner,
+unknown existing destination prefixes, and overlapping Sphinx roots identified
+by `objects.inv` or `.buildinfo`. Branches and tags with colliding URL roots
+fail publication. Only files owned by the same ref's generation ledger may be
+deleted; remaining historical files within that version are retained.
+
 Publication checks are attached explicitly to the producer commit as
 **GHPages publish**. Once the producer is activated, require this check in
 addition to the existing **build**, PyTest/Conda/platform/lowest-dependency,
