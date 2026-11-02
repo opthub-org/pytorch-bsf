@@ -163,10 +163,10 @@ CRLF-to-LF normalized hashes, while before/after source checks compare
 raw bytes.  Verification recomputes the exact value and compares the
 complete JSON record with scalar types preserved.  Duplicate keys,
 nonfinite numbers and changed fields are rejected.  Failed calculation
-or verification preserves an existing output; proof/evaluator sources
-and the verification input cannot be used as the destination.  Decimal
-serialization does not change Python's process-wide integer-string
-limit.
+or verification preserves an existing output.  The resolved output is
+checked against proof/evaluator sources and the saved input before
+calculation and again immediately before the atomic write.  Decimal
+serialization does not change Python's process-wide integer-string limit.
 
 Tests use arbitrary diagonal basis vectors to check the transform's
 coefficient identity, the pre-existing double sum to check complete mode

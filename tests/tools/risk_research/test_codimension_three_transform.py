@@ -188,6 +188,102 @@ def test_sources_and_saved_input_cannot_be_used_as_output(tmp_path):
         assert path.read_bytes() == before_source
 
 
+@pytest.mark.parametrize("source_name", list(transform._raw_sources()))
+def test_output_parent_retargeted_during_calculation_cannot_reach_any_source(tmp_path, monkeypatch, source_name):
+    protected = ROOT / source_name
+    original_bytes = protected.read_bytes()
+    safe = tmp_path / "safe"
+    safe.mkdir()
+    destination = safe / protected.name
+    destination.write_bytes(b"keep destination")
+    alias = tmp_path / "alias"
+    try:
+        alias.symlink_to(safe, target_is_directory=True)
+    except (OSError, NotImplementedError) as error:
+        pytest.skip(f"directory symlinks unavailable: {error}")
+    calculate = transform._record
+    attempts = []
+
+    def retargeted(size, degree, sources):
+        result = calculate(size, degree, sources)
+        alias.unlink()
+        alias.symlink_to(protected.parent, target_is_directory=True)
+        return result
+
+    def safe_writer(path, report):
+        # A regression must detect the attempted protected destination without
+        # ever writing a real source file, including against the old guard.
+        attempts.append(path.resolve())
+
+    monkeypatch.setattr(transform, "_record", retargeted)
+    monkeypatch.setattr(transform, "atomic_json", safe_writer)
+    try:
+        with pytest.raises(SystemExit) as error:
+            transform.main(["--face-size", "2", "--degree", "4", "--output", str(alias / protected.name)])
+        assert error.value.code == 2
+        assert not attempts
+        assert protected.read_bytes() == original_bytes
+        assert destination.read_bytes() == b"keep destination"
+    finally:
+        alias.unlink()
+
+
+def test_output_parent_retargeted_during_calculation_cannot_replace_saved_input(tmp_path, monkeypatch):
+    saved = tmp_path / "saved"
+    saved.mkdir()
+    source = saved / "record.json"
+    source.write_text(json.dumps(transform._record(2, 4, transform._raw_sources())), encoding="utf-8")
+    original_bytes = source.read_bytes()
+    safe = tmp_path / "safe"
+    safe.mkdir()
+    destination = safe / source.name
+    destination.write_bytes(b"keep destination")
+    alias = tmp_path / "alias"
+    try:
+        alias.symlink_to(safe, target_is_directory=True)
+    except (OSError, NotImplementedError) as error:
+        pytest.skip(f"directory symlinks unavailable: {error}")
+    calculate = transform._record
+    attempts = []
+
+    def retargeted(size, degree, sources):
+        result = calculate(size, degree, sources)
+        alias.unlink()
+        alias.symlink_to(saved, target_is_directory=True)
+        return result
+
+    def safe_writer(path, report):
+        attempts.append(path.resolve())
+
+    monkeypatch.setattr(transform, "_record", retargeted)
+    monkeypatch.setattr(transform, "atomic_json", safe_writer)
+    try:
+        with pytest.raises(SystemExit) as error:
+            transform.main(
+                ["--face-size", "2", "--degree", "4", "--verify", str(source), "--output", str(alias / source.name)]
+            )
+        assert error.value.code == 2
+        assert not attempts
+        assert source.read_bytes() == original_bytes
+        assert destination.read_bytes() == b"keep destination"
+    finally:
+        alias.unlink()
+
+
+def test_normal_atomic_output_replaces_a_leaf_symlink_without_changing_its_target(tmp_path):
+    target = tmp_path / "target.json"
+    target.write_bytes(b"keep target")
+    output = tmp_path / "output.json"
+    try:
+        output.symlink_to(target)
+    except (OSError, NotImplementedError) as error:
+        pytest.skip(f"file symlinks unavailable: {error}")
+    assert transform.main(["--face-size", "2", "--degree", "4", "--output", str(output)]) == 0
+    assert not output.is_symlink()
+    assert json.loads(output.read_bytes())["degree"] == 4
+    assert target.read_bytes() == b"keep target"
+
+
 def test_large_decimal_serialization_preserves_the_process_limit():
     before = sys.get_int_max_str_digits()
     value = 10**5000 + 123
