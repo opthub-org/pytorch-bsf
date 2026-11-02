@@ -252,9 +252,7 @@ def validate_file(root: Path, base: str, path: str, head: str | None = None) -> 
         path,
     ).decode()
     if any(
-        line.startswith("+")
-        and not line.startswith("+++")
-        and SECRET_SCANNER_ALLOW.search(line[1:])
+        line.startswith("+") and not line.startswith("+++") and SECRET_SCANNER_ALLOW.search(line[1:])
         for line in diff.splitlines()
     ):
         raise ValueError("Automatic patches cannot add secret-scanner allow comments")
