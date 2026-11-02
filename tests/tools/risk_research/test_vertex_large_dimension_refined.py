@@ -288,6 +288,56 @@ def test_generation_can_replace_an_unrelated_output_and_verify_it(tmp_path, caps
     assert "verified" in capsys.readouterr().out
 
 
+@pytest.mark.parametrize(
+    "name",
+    [
+        "tools/risk_research/vertex_large_dimension_refined.py",
+        "tools/risk_research/vertex_large_dimension.py",
+        "tools/risk_research/exact.py",
+        "tools/risk_research/saved_records.py",
+        "docs/advanced/skeleton_risk_vertex_large_dimension_refined.rst",
+    ],
+)
+def test_output_parent_retargeted_during_computation_is_rejected(name, tmp_path, monkeypatch):
+    source = ROOT / name
+    before = source.read_bytes()
+    safe = tmp_path / "safe-output-directory"
+    safe.mkdir()
+    previous = safe / source.name
+    previous.write_bytes(b"previous output\n")
+    alias = tmp_path / "retargetable-directory"
+    try:
+        alias.symlink_to(safe, target_is_directory=True)
+    except OSError as link_error:
+        pytest.skip(f"symbolic links are unavailable: {link_error}")
+    output = alias / source.name
+    original_build = refined.build_record
+    events = []
+
+    def retarget_during_build(*args, **kwargs):
+        record = original_build(*args, **kwargs)
+        alias.unlink()
+        alias.symlink_to(source.parent, target_is_directory=True)
+        events.append("retargeted")
+        return record
+
+    def write_without_side_effects(*args, **kwargs):
+        events.append("write")
+
+    monkeypatch.setattr(refined, "build_record", retarget_during_build)
+    monkeypatch.setattr(refined, "atomic_json", write_without_side_effects)
+    try:
+        with pytest.raises(SystemExit) as error:
+            refined.main(["--vertices", "602", "--bits", "32", "--output", str(output)])
+        assert error.value.code == 2
+        assert alias.resolve() == source.parent.resolve()
+        assert events == ["retargeted"]
+    finally:
+        # The regression never calls a real writer, including its RED run.
+        assert source.read_bytes() == before
+        assert previous.read_bytes() == b"previous output\n"
+
+
 def test_concurrent_source_changes_and_backend_failures_preserve_output(tmp_path, monkeypatch):
     output = tmp_path / "record.json"
     output.write_bytes(b"previous\n")
