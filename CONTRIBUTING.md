@@ -810,6 +810,37 @@ release metadata, using the current build configuration. Their warnings do
 not replace the strict checks of the current PR.
 External link checking is not part of this PR gate.
 
+The default-branch `GHPages publish` workflow is being introduced separately
+from the read-only producer. It remains dormant until the `GHPages build`
+workflow is activated. It runs only trusted default-branch code, authenticates
+the producer run and artifact, and updates the triggering version's files.
+The trusted producer definition is `.github/pages-build-template.yml`;
+the producer workflow must match it byte for byte. Updating that definition
+requires landing the trusted template first, then updating the producer.
+The publisher never imports candidate modules or installs their dependencies.
+
+The trusted `.github/pages-legacy-owners.json` census binds existing version
+URL roots to their full branch or tag refs at its recorded `gh-pages` commit.
+Its separate `reserved_owners` section reserves the bootstrap PR's own planned
+preview namespace; this reservation is not an observed root in that snapshot.
+Before activation, drain and disable the legacy writer and verify that every
+retained version root in the final snapshot is covered by the reviewed census,
+its explicit reservations, or an authenticated new publisher generation ledger.
+Update the census through a reviewed default-branch change if that snapshot
+introduces another root; do not infer ownership from an artifact or a deleted
+branch's absence. The publisher rejects overlap with another census owner,
+unknown existing destination prefixes, and overlapping Sphinx roots identified
+by `objects.inv` or `.buildinfo`. Branches and tags with colliding URL roots
+fail publication. Only files owned by the same ref's generation ledger may be
+deleted; remaining historical files within that version are retained.
+
+Publication checks are attached explicitly to the producer commit as
+**GHPages publish**. Once the producer is activated, require this check in
+addition to the existing **build**, PyTest/Conda/platform/lowest-dependency,
+Codecov and same-head Codex review gates. A missing or pending publication
+check is not success. The native `workflow_run` job belongs to the default
+branch and does not replace the producer-commit check.
+
 ---
 
 ## Repository Structure

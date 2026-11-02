@@ -1,0 +1,34 @@
+name: GHPages publisher
+
+on:
+  workflow_run: # zizmor: ignore[dangerous-triggers] -- Trusted control only; bounded artifacts are data, never checked out or executed.
+    workflows: [GHPages build]
+    types: [completed]
+
+permissions: {}
+
+# Only the short privileged publisher is serialized; producer builds run freely.
+concurrency:
+  group: gh-pages
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  publish:
+    if: github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+      checks: write
+    steps:
+      # For workflow_run this SHA is the trusted default-branch commit, never the producer head.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Validate and publish artifact data without running candidate code
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -I tools/pages_publish.py

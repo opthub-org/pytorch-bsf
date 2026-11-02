@@ -1,0 +1,53 @@
+name: GHPages build
+
+on:
+  push:
+    branches-ignore:
+      - 'gh-pages'
+      - 'release-please**'
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions: {}
+
+# Dependencies and the complete multiversion build do not hold the publish lock.
+jobs:
+  build:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Freeze the triggering ref at the event commit
+        run: python tools/pages_build.py --freeze
+      - name: Read supported Python versions from package metadata
+        id: python
+        run: python tools/update_python_support.py --ci-output "$GITHUB_OUTPUT"
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ steps.python.outputs.integrations }}
+          cache: pip
+          cache-dependency-path: |
+            docs/requirements.txt
+            pyproject.toml
+      - name: Install CPU PyTorch and all documentation dependencies
+        run: |
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -r docs/requirements.txt
+          python -c "import torch; assert torch.version.cuda is None, torch.__version__; print(torch.__version__)"
+      - name: Build documentation with sphinx-multiversion
+        run: sphinx-multiversion docs/ docs/_build
+      - name: Package only the triggering ref as inert publication data
+        run: python tools/pages_build.py --output "$RUNNER_TEMP/pages-artifact"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pages-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pages-artifact/
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
