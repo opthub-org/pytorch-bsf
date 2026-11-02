@@ -1261,3 +1261,14 @@ def test_residual_split_of_a_cell_without_observations_falls_back_to_the_longest
     cell = space.main_cells[0]
     result = subdivide_space(model, cell=cell, policy=ResidualSplit(samples))
     assert result.split == subdivide_space(model, cell=cell, policy=LongestEdge()).split
+
+
+def test_max_error_criterion_keeps_targets_out_of_the_model_range():
+    # Targets of 1e5 are finite in float32 but overflow float16; they must not be narrowed to the model dtype.
+    bs = BezierSimploid((1,), 1, {(1, 0): [0.0], (0, 1): [0.0]}).half()
+    t = torch.linspace(0.05, 0.95, 10)
+    params = torch.stack([1 - t, t], dim=1)
+    values = (1e5 * (1 + t) * (t > 0.6).float())[:, None]
+    k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
+    assert (k, i, j) == (0, 0, 1)
+    assert abs(s - 0.6) < 1e-3

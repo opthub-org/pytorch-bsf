@@ -527,17 +527,16 @@ def max_error_criterion(params: torch.Tensor, values: torch.Tensor, grid_size: i
     def criterion(model: BezierSimploid) -> tuple[int, int, int, float]:
         _check_splittable(model)
         _check_split_data(params_t, values_t, model)
-        # Move data to the same device and dtype as the model so that the
-        # forward pass doesn't raise device/dtype mismatch errors.
+        # Move the parameters to the device and dtype of the model for the forward pass.
         cp = model.control_points
         p = params_t.to(device=cp.device, dtype=cp.dtype)
-        v = values_t.to(device=cp.device, dtype=cp.dtype)
         if not len(p):
             return longest_edge_criterion(model)
         with torch.no_grad():
             # The score squares these squared errors again, which overflows low-precision dtypes, so it is
             # computed in float64 on the CPU (some accelerators, such as MPS, have no float64).
-            residuals = (model(p).cpu().double() - v.cpu().double()).square().sum(dim=1)
+            # The targets are widened from their own dtype, not from the model dtype they might overflow.
+            residuals = (model(p).cpu().double() - values_t.detach().cpu().double()).square().sum(dim=1)
             # Squaring again could still overflow for huge errors; a common scale does not change the minimiser.
             scale = residuals.max()
             if 0 < scale < float("inf"):
