@@ -484,6 +484,26 @@ python -m tools.risk_research.vertex_five_recurrence \
 sequence with exact standard-library arithmetic. Optional native Sage tests
 rederive every coefficient and exercise altered data and both CLI actions.
 
+## A simultaneous vertex-count and degree regime
+
+`vertex_joint_growth` certifies a genuine growing-M asymptotic using
+explicit control of every previous error-budget constant. For
+`D>=2^1024`, write `N=floor(log2(D))` and `ell=ceil(log2(N+2))`;
+all `4<=M<=1+floor(N/(16*ell))` have relative vertex error at most
+`D^(-3/4)`. The start is astronomical; this is a theoretical regime.
+See [the proof](../../docs/advanced/skeleton_risk_vertex_joint_growth.rst).
+
+```sh
+python -m tools.risk_research.vertex_joint_growth --vertices 6 \
+  --degree-floor-exponent 1024 --output .research/skeleton-risk/joint6.json
+python -m tools.risk_research.vertex_joint_growth \
+  --check .research/skeleton-risk/joint6.json
+```
+
+The source-bound standard-library certificate covers an entire dyadic
+block without materializing the degree or denominator. The checker
+rejects changed fields, types, budget constants and source hashes.
+
 ## A sufficient linear vertex threshold at every degree
 
 For every integer `D>=1` and `M>=9720*D`, optimal inductive asymptotic
