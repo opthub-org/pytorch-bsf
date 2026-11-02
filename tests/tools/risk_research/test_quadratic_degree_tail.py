@@ -162,7 +162,10 @@ def test_cli_rejects_each_fingerprinted_source_before_calling_writer(monkeypatch
 def test_cli_rejects_a_resolved_source_alias_and_preserves_the_link(tmp_path, monkeypatch):
     protected = Path(tail.__file__).resolve()
     alias = tmp_path / "source-alias.json"
-    alias.symlink_to(protected)
+    try:
+        alias.symlink_to(protected)
+    except (OSError, NotImplementedError) as link_error:
+        pytest.skip(f"symlink creation is unavailable: {link_error}")
     before = tail._sources()
     calls = []
     monkeypatch.setattr(tail, "atomic_json", lambda path, record: calls.append(path))
