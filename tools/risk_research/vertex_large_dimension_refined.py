@@ -77,7 +77,7 @@ def constant_ball(vertices: int, *, bits: int = 128) -> Any:
     return result
 
 
-def _sources() -> dict[str, bytes]:
+def _source_paths() -> dict[str, Path]:
     root = Path(__file__).resolve().parents[2]
     names = (
         "tools/risk_research/vertex_large_dimension_refined.py",
@@ -86,7 +86,11 @@ def _sources() -> dict[str, bytes]:
         "tools/risk_research/saved_records.py",
         "docs/advanced/skeleton_risk_vertex_large_dimension_refined.rst",
     )
-    return {name: (root / name).read_bytes() for name in names}
+    return {name: root / name for name in names}
+
+
+def _sources() -> dict[str, bytes]:
+    return {name: path.read_bytes() for name, path in _source_paths().items()}
 
 
 def build_record(
@@ -199,6 +203,8 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if arguments.vertices is None or arguments.output is None:
             raise ValueError("generation requires --vertices and --output")
+        if arguments.output.resolve() in {path.resolve() for path in _source_paths().values()}:
+            raise ValueError("output must not replace an evaluator or proof source")
         record = build_record(
             arguments.vertices,
             bits=128 if arguments.bits is None else arguments.bits,

@@ -1,9 +1,10 @@
 A sharper elementary large-vertex guarantee
 ============================================
 
-Keep the uniform-simplex assumptions, the fixed-degree-limit constant
-:math:`C_M=M^2(M-1)!2^{3-M}c_{M-1}`, and the leading term :math:`B_M`
-from :doc:`skeleton_risk_vertex_large_dimension`. This chapter improves
+Keep the uniform-simplex assumptions and the leading term :math:`B_M`
+from :doc:`skeleton_risk_vertex_large_dimension`.
+The degree-limit constant at fixed :math:`M` is
+:math:`C_M=M^2(M-1)!2^{3-M}c_{M-1}`. This chapter improves
 the explicit error and starting vertex count. It does not assert a
 second correction coefficient or a joint :math:`M,D` limit.
 
@@ -181,6 +182,8 @@ changed proof/source fingerprints and altered intervals are rejected.
 Fingerprints canonicalize CRLF to LF; the calculation guard compares
 raw source bytes before replacing output. Failed generation preserves
 an existing output, and verification preserves its input.
+Generation rejects output paths resolving to any evaluator or proof
+source, including symbolic-link aliases, before calculation.
 
 Optional ``--with-arb --integral-check`` restores the scale and calls
 the existing positive-integral implementation without using the refined

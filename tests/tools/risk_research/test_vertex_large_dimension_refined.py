@@ -3,6 +3,7 @@
 import copy
 import hashlib
 import importlib.util
+import json
 import os
 import subprocess
 import sys
@@ -222,6 +223,69 @@ def test_invalid_generation_and_verify_overrides_preserve_previous_output(tmp_pa
         with pytest.raises(SystemExit) as error:
             refined.main(arguments)
         assert error.value.code == 2 and output.read_bytes() == b"previous\n"
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "tools/risk_research/vertex_large_dimension_refined.py",
+        "tools/risk_research/vertex_large_dimension.py",
+        "tools/risk_research/exact.py",
+        "tools/risk_research/saved_records.py",
+        "docs/advanced/skeleton_risk_vertex_large_dimension_refined.rst",
+    ],
+)
+@pytest.mark.parametrize("alias_kind", ["direct", "leaf-symlink", "parent-symlink"])
+def test_output_source_destinations_are_rejected_before_computation_or_write(name, alias_kind, tmp_path, monkeypatch):
+    source = ROOT / name
+    assert name in refined._sources()
+    before = source.read_bytes()
+    output = source
+    if alias_kind == "leaf-symlink":
+        output = tmp_path / "aliased-source"
+        try:
+            output.symlink_to(source)
+        except OSError as error:
+            pytest.skip(f"symbolic links are unavailable: {error}")
+    elif alias_kind == "parent-symlink":
+        parent = tmp_path / "aliased-directory"
+        try:
+            parent.symlink_to(source.parent, target_is_directory=True)
+        except OSError as error:
+            pytest.skip(f"symbolic links are unavailable: {error}")
+        output = parent / source.name
+    events = []
+
+    def build_without_side_effects(*args, **kwargs):
+        events.append("build")
+        return {"patched_record": "safe red regression"}
+
+    def write_without_side_effects(*args, **kwargs):
+        events.append("write")
+
+    monkeypatch.setattr(refined, "build_record", build_without_side_effects)
+    monkeypatch.setattr(refined, "atomic_json", write_without_side_effects)
+    try:
+        with pytest.raises(SystemExit) as error:
+            refined.main(["--vertices", "602", "--bits", "32", "--output", str(output)])
+        assert error.value.code == 2
+        assert events == []
+    finally:
+        # Even against the unsafe implementation, both production side-effect
+        # points are patched and the protected source is never written.
+        assert source.read_bytes() == before
+
+
+def test_generation_can_replace_an_unrelated_output_and_verify_it(tmp_path, capsys):
+    output = tmp_path / "previous.json"
+    output.write_bytes(b"previous\n")
+    assert refined.main(["--vertices", "602", "--bits", "32", "--output", str(output)]) == 0
+    record = json.loads(output.read_text())
+    assert record["vertices"] == 602 and record["bits"] == 32
+    before = output.read_bytes()
+    assert refined.main(["--verify", str(output)]) == 0
+    assert output.read_bytes() == before
+    assert "verified" in capsys.readouterr().out
 
 
 def test_concurrent_source_changes_and_backend_failures_preserve_output(tmp_path, monkeypatch):
