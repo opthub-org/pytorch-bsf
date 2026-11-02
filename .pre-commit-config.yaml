@@ -1,6 +1,6 @@
 # pre-commit hooks: https://pre-commit.com/
 # Install the git hook once per clone with `pre-commit install`; it also applies to all `git worktree`s of the clone.
-# The hook versions below are the single source of truth: CI runs these same hooks (except typos, see SKIP in
+# The hook versions below are the single source of truth: CI runs these same hooks (except typos and betterleaks, see SKIP in
 # .github/workflows/python-package.yml) with `pre-commit run --all-files`, and Dependabot (`package-ecosystem: "pre-commit"` in .github/dependabot.yml) bumps `rev`.
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
@@ -35,3 +35,19 @@ repos:
       # false positives is observed. Without the default --write-changes, findings are reported, never rewritten.
       - id: typos
         args: [--force-exclude]
+  - repo: https://github.com/betterleaks/betterleaks
+    rev: v1.9.0
+    hooks:
+      # Block a commit whose staged changes contain a secret. It sees only the index, so `--all-files` does not widen it
+      # and the lint job of CI skips it; the secret-scan job of .github/workflows/security-policy.yml runs the hook below.
+      - id: betterleaks
+        stages: [pre-commit]
+      # Scan the history of all refs: `pre-commit run betterleaks-history --hook-stage manual`
+      # --legacy-print shows the fingerprint that .betterleaksignore takes. --log-opts replaces the default options of
+      # `git log`; --diff-merges adds what only a merge commit introduces.
+      - id: betterleaks
+        alias: betterleaks-history
+        name: Detect hardcoded secrets in the git history
+        entry: betterleaks git --redact --verbose --legacy-print --no-banner --log-opts="--all --full-history --diff-filter=tuxdb --diff-merges=first-parent"
+        always_run: true
+        stages: [manual]

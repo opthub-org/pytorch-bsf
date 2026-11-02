@@ -83,7 +83,7 @@ class CheckEvidenceTests(unittest.TestCase):
         for classifier in metadata["project"]["classifiers"]:
             if classifier.startswith("Programming Language :: Python :: 3."):
                 self.assertIn(f"build ({classifier.rsplit(' ', 1)[-1]})", expected)
-        self.assertTrue({"coverage / coverage", "codecov/patch", "optional-deps (no-mlflow)"} <= expected)
+        self.assertTrue({"coverage / coverage", "codecov/patch", "optional-deps (no-mlflow)", "secret-scan"} <= expected)
 
     def test_dispatch_preserves_pr_identity_for_isolated_coverage_upload(self):
         api = api_mock()

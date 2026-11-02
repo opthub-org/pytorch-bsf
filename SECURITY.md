@@ -95,6 +95,17 @@ action SHA pins. Publishing workflow-file changes
 may additionally require an App/PAT with GitHub's workflows permission; without
 it, the operation stops and is recorded in the status issue.
 
+## Secret scanning
+
+[Betterleaks](https://github.com/betterleaks/betterleaks) checks staged changes in
+the `pre-commit` git hook, and the `secret-scan` job of the **Security policy**
+workflow checks the history of all refs, including merge commits, on pull requests
+and pushes to `master`.
+
+If a real secret is reported, revoke or rotate it first: rewriting history does not
+undo the exposure of a pushed credential. For a false positive, follow
+[the procedure in CONTRIBUTING.md](CONTRIBUTING.md#linter-and-formatter).
+
 ## Operation and limits
 
 The repository's Actions Secret **OPENAI_API_KEY** powers repair and independent
