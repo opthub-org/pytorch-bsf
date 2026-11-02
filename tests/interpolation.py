@@ -894,7 +894,7 @@ def _gradient_tolerance(mesh: SimplicialMesh, magnitude: float, max_rings: int =
     The design matrix, and so the relative error of the estimate, does not change when an axis of the mesh is scaled
     by :math:`c` and the gradient component by :math:`1 / c`. So a mesh whose coordinates overflow in differences can
     be replaced by a copy scaled to order one, with ``magnitude`` in the units of that copy. The neighbours are chosen
-    as in ``_neighbourhood`` of ``torch_bsf/interpolation.py``; keep the two in step.
+    as in ``_neighbourhood`` of ``torch_bsf/_interpolation/hermite.py``; keep the two in step.
     """
     d = mesh.dimension
     n_quadratic = d + d * (d + 1) // 2
@@ -1988,7 +1988,7 @@ def test_locate_default_batch_matches_explicit_batches(dim, monkeypatch):
 
     Every point is located independently of the others in its batch, so the comparison is exact.
     """
-    import torch_bsf.interpolation as interpolation
+    import torch_bsf._interpolation.mesh as mesh_module
 
     mesh = lattice_mesh(dim, 4)
     gen = torch.Generator().manual_seed(dim)
@@ -2000,7 +2000,7 @@ def test_locate_default_batch_matches_explicit_batches(dim, monkeypatch):
         torch.testing.assert_close(explicit.parameters, default.parameters, rtol=1e-12, atol=1e-14)
         assert torch.equal(explicit.cell_ids, default.cell_ids)
     # A budget of a few points per batch splits the query into many batches.
-    monkeypatch.setattr(interpolation, "_LOCATE_ARRAY_BYTES", 3 * 8 * mesh.n_simplices * (dim + 1))
+    monkeypatch.setattr(mesh_module, "_LOCATE_ARRAY_BYTES", 3 * 8 * mesh.n_simplices * (dim + 1))
     small = mesh.locate(x)
     torch.testing.assert_close(small.parameters, default.parameters, rtol=1e-12, atol=1e-14)
     assert torch.equal(small.cell_ids, default.cell_ids)
