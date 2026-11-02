@@ -620,6 +620,15 @@ The source-bound standard-library certificate covers an entire dyadic
 block without materializing the degree or denominator. The checker
 rejects changed fields, types, budget constants and source hashes.
 
+## Certified finite-degree errors in codimension four
+
+`nonvertex_q4_error` specializes a proved finite-degree relative-error
+bound for fixed source size. Its explicit all-tail threshold separates
+finite-degree error from uncertainty in the positive leading constant.
+See [the proof](../../docs/advanced/skeleton_risk_nonvertex_q4_error.rst).
+The saved record verifies its own nondefault parameters and exact fields.
+It does not substitute fixed-source limits into growing source sizes.
+
 ## A sufficient linear vertex threshold at every degree
 
 For every integer `D>=1` and `M>=9720*D`, optimal inductive asymptotic

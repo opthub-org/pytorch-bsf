@@ -1,0 +1,39 @@
+{
+  "method": "original_integer_outside_kernel_scalar_sum",
+  "outside": 4,
+  "proof_freeze_sha256": "7f9fa5ed40e0a18f6d3e3aedd393714e7b671b75a429b15bb4e3bfdd7499e19d",
+  "cases": [
+    {
+      "face_size": 2,
+      "vertices": 6,
+      "degree": 43,
+      "numerator": "497226448204953124779293300833487785125315630478179414482817270702688489247",
+      "denominator": "96053168786915149160068095588889174504791927287639565494731593218515584000000",
+      "old_positive_diagonal_formula_equal": true
+    },
+    {
+      "face_size": 3,
+      "vertices": 7,
+      "degree": 47,
+      "numerator": "61828886013311442865605608950708892256159186885929542438986168215684971081205957",
+      "denominator": "29223785011342590634123139440204779582962603700386677211989627339378562073600000",
+      "old_positive_diagonal_formula_equal": true
+    },
+    {
+      "face_size": 5,
+      "vertices": 9,
+      "degree": 29,
+      "numerator": "431084205823049246427374712758011249375051402587829",
+      "denominator": "14308195933680057052343134995820006383436800000",
+      "old_positive_diagonal_formula_equal": true
+    },
+    {
+      "face_size": 8,
+      "vertices": 12,
+      "degree": 19,
+      "numerator": "455955710117761254357275",
+      "denominator": "28102057411288224",
+      "old_positive_diagonal_formula_equal": true
+    }
+  ]
+}
