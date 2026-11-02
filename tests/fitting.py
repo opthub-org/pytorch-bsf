@@ -1087,6 +1087,8 @@ def _skeleton_space(case):
 @pytest.mark.parametrize("case", ["triangle", "tetrahedron", "prism", "chain", "mixed", "triangles"])
 @pytest.mark.parametrize("solver", [DenseLeastSquares(), SparseLeastSquares()], ids=["dense", "sparse"])
 def test_skeleton_regression_matches_face_by_face_fits(case, solver):
+    if isinstance(solver, SparseLeastSquares):
+        pytest.importorskip("scipy")
     space = _skeleton_space(case)
     points = sample_skeleton(space, 20 * space.n_controls, seed=0)
     generator = torch.Generator().manual_seed(0)
