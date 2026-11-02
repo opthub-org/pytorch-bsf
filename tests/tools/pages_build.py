@@ -2,7 +2,9 @@
 
 import hashlib
 import json
+import os
 import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import patch
 
@@ -133,10 +135,75 @@ def test_copy_failure_removes_partial_artifact(tmp_path):
     assert not output.exists()
 
 
+def test_competing_packager_does_not_remove_the_completed_artifact(tmp_path, monkeypatch):
+    from tools import pages_build
+
+    build, _, metadata = _build(tmp_path)
+    output = tmp_path / "output"
+    original = pages_build.inventory
+    competing_writer_finished = False
+
+    def finish_competitor(source):
+        nonlocal competing_writer_finished
+        if not competing_writer_finished:
+            competing_writer_finished = True
+            package(build, output, metadata)
+        return original(source)
+
+    monkeypatch.setattr(pages_build, "inventory", finish_competitor)
+    with pytest.raises(FileExistsError):
+        package(build, output, metadata)
+    assert (output / "site/index.html").read_bytes() == b"new preview"
+    assert json.loads((output / "manifest.json").read_text())["run_id"] == 12
+
+
+def test_changed_source_rejects_copy_and_removes_its_partial_output(tmp_path, monkeypatch):
+    from tools import pages_build
+
+    build, _, metadata = _build(tmp_path)
+    output = tmp_path / "output"
+    original = pages_build.inventory
+
+    def change_after_inventory(source):
+        files = original(source)
+        (source / "index.html").write_bytes(b"changed during packaging")
+        return files
+
+    monkeypatch.setattr(pages_build, "inventory", change_after_inventory)
+    with pytest.raises(ValueError, match="changed during"):
+        package(build, output, metadata)
+    assert not output.exists()
+
+
+def test_cli_records_event_provenance_and_preserves_existing_output(tmp_path):
+    build, _, metadata = _build(tmp_path)
+    output = tmp_path / "output"
+    environment = {
+        **os.environ,
+        "PYTHONPATH": ".",
+        "GITHUB_REPOSITORY": str(metadata["repository"]),
+        "GITHUB_RUN_ID": str(metadata["run_id"]),
+        "GITHUB_RUN_ATTEMPT": str(metadata["run_attempt"]),
+        "GITHUB_REF": str(metadata["source_ref"]),
+        "GITHUB_SHA": str(metadata["source_sha"]),
+    }
+    command = [sys.executable, "-m", "tools.pages_build", "--build", str(build), "--output", str(output)]
+    root = Path(__file__).resolve().parents[2]
+    first = subprocess.run(command, cwd=root, env=environment, capture_output=True, text=True, timeout=30)
+    assert first.returncode == 0, first.stderr
+    saved = (output / "manifest.json").read_bytes()
+    record = json.loads(saved)
+    assert {key: record[key] for key in metadata} == metadata
+    second = subprocess.run(command, cwd=root, env=environment, capture_output=True, text=True, timeout=30)
+    assert second.returncode != 0
+    assert (output / "manifest.json").read_bytes() == saved
+
+
 def test_workflow_keeps_complete_build_readonly_and_outside_publish_lock():
     root = Path(__file__).resolve().parents[2]
-    workflow = (root / ".github/workflows/sphinx-pages-build.yml").read_text()
-    assert workflow.encode() == (root / ".github/pages-build-template.yml").read_bytes()
+    raw = (root / ".github/workflows/sphinx-pages-build.yml").read_bytes()
+    assert raw == (root / ".github/pages-build-template.yml").read_bytes()
+    workflow = raw.decode()
     assert "sphinx-multiversion docs/ docs/_build" in workflow
     assert "contents: read" in workflow
     assert "contents: write" not in workflow

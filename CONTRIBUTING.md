@@ -882,7 +882,8 @@ pytorch-bsf/
 │   │   ├── python-package.yml        # pre-commit (Ruff, numpydoc-validation, lint-conventions), pytest, mypy, Sphinx; lowest and optional deps
 │   │   ├── release-please-action.yml # Automated releases (CHANGELOG + PyPI publish)
 │   │   ├── docker.yml                # Docker image published to ghcr.io on release
-│   │   ├── sphinx-pages.yml          # Build and publish Sphinx docs to GitHub Pages
+│   │   ├── sphinx-pages-build.yml    # Read-only multiversion documentation build
+│   │   ├── sphinx-pages-publish.yml  # Trusted, serialized per-ref publication
 │   │   ├── codeql-analysis.yml       # Security scanning
 │   │   └── python-package-conda.yml  # End-to-end tests in a Conda environment
 │   ├── ISSUE_TEMPLATE/

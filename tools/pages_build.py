@@ -85,8 +85,11 @@ def package(build: Path, output: Path, metadata: dict[str, object]) -> None:
     if output.exists():
         raise ValueError("Artifact staging directory already exists")
     files = inventory(source)
+    # Reserve ownership atomically. A competing creator's directory must never
+    # enter our cleanup block when this exclusive creation fails.
+    output.mkdir(parents=True)
     try:
-        (output / "site").mkdir(parents=True)
+        (output / "site").mkdir()
         for relative in files:
             target = output / "site" / relative
             target.parent.mkdir(parents=True, exist_ok=True)
