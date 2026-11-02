@@ -357,6 +357,22 @@ It provides standard-library rational intervals and an optional independent
 Arb integral. This concerns the leading constant, not a finite-degree
 coefficient interval. See [the proof](../../docs/advanced/skeleton_risk_vertex_large_dimension.rst).
 
+## Six-vertex comparison at every degree
+
+The [six-vertex comparison](../../docs/advanced/skeleton_risk_six_vertex_comparison.rst)
+classifies every positive degree: inductive fitting wins at 1, 2 and all
+D>=17; all-at-once wins exactly at 3..16, with no ties. A separate analytic
+tail covers D>=128 and exact radical intervals certify all 127 smaller
+degrees. The default positive-diagonal evaluator uses the standard library;
+`--backend flint` independently evaluates the original edge/triangle kernels.
+
+```sh
+python -m tools.risk_research.six_vertex_comparison \
+  --output .research/skeleton-risk/six-vertex-comparison.json
+python -m tools.risk_research.six_vertex_comparison \
+  --verify .research/skeleton-risk/six-vertex-comparison.json
+```
+
 ## Further vertex evaluations and explicit errors
 
 `vertex_general.vertex_coefficient(M,D)` constructs every vertex coefficient
