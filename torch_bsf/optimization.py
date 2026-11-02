@@ -1,5 +1,6 @@
 """Objective minimization, separate from supervised least-squares regression."""
 
+import functools
 import math
 import warnings
 from collections.abc import Callable, Mapping
@@ -9,10 +10,11 @@ from typing import Literal
 
 import torch
 
+from torch_bsf._kernels.fitting import _laplacian
 from torch_bsf._kernels.sgd import _simploid_gram
 from torch_bsf._numeric import _finite_mean
 from torch_bsf._validation import _choice
-from torch_bsf.core import BezierModel, BezierSpace, FixedControls, Points, QuadraticPenalty, _integer
+from torch_bsf.core import BezierModel, BezierSpace, FixedControls, Points, QuadraticPenalty, _integer, _point_groups
 from torch_bsf.geometry import Simploid
 from torch_bsf.results import ConvergenceWarning
 from torch_bsf.sampling import _generator, _probabilities, sample
@@ -160,8 +162,19 @@ def _wide(tensor: torch.Tensor) -> torch.Tensor:
     return tensor.to(device=_optimization_device(tensor)).to(dtype=torch.float64)
 
 
-def _objective(model: BezierModel, loss: Loss, points: Points, penalty: QuadraticPenalty) -> torch.Tensor:
-    values = loss(model(points), points)
+def _objective(
+    model: BezierModel,
+    loss: Loss,
+    points: Points,
+    penalty: QuadraticPenalty,
+    *,
+    groups: list[tuple[int, torch.Tensor]] | None = None,
+    edges: torch.Tensor | None = None,
+) -> torch.Tensor:
+    # ``groups`` marks points already validated on the coefficient device and dtype: evaluate them
+    # without copying or revalidating. ``edges`` is the adjacency, already on the penalty device.
+    predicted = model(points) if groups is None else model._evaluate(points, groups)
+    values = loss(predicted, points)
     if values.shape != (len(points),) or not torch.isfinite(values).all():
         raise ValueError("loss must return one finite value per sample.")
     # Keep Python-float penalty weights representable even with float32 controls.
@@ -174,7 +187,8 @@ def _objective(model: BezierModel, loss: Loss, points: Points, penalty: Quadrati
     if penalty.ridge:
         objective = objective + ((coefficients * penalty.ridge) * coefficients).sum()
     if penalty.smoothness:
-        edges = model.space.adjacency().to(coefficients.device)
+        if edges is None:
+            edges = model.space.adjacency().to(coefficients.device)
         differences = coefficients[edges[:, 0]] - coefficients[edges[:, 1]]
         if torch.isfinite(differences).all():
             smoothness = ((differences * penalty.smoothness) * differences).sum()
@@ -190,6 +204,16 @@ def _objective(model: BezierModel, loss: Loss, points: Points, penalty: Quadrati
     if not torch.isfinite(objective):
         raise ArithmeticError("loss and penalties produced a non-finite objective.")
     return objective
+
+
+def _cpu_groups(cell_ids: torch.Tensor, device: torch.device) -> list[tuple[int, torch.Tensor]]:
+    # Group CPU cell IDs (no device synchronization), then move the row indices once.
+    return [(cid, rows.to(device)) for cid, rows in _point_groups(cell_ids)]
+
+
+def _penalty_edges(model: BezierModel, penalty: QuadraticPenalty) -> torch.Tensor | None:
+    # Smoothness penalties are evaluated on the widened coefficients, hence on the optimization device.
+    return model.space.adjacency().to(_optimization_device(model.coefficients)) if penalty.smoothness else None
 
 
 def _fix_controls(model: BezierModel, fixed: FixedControls | None) -> torch.Tensor:
@@ -283,13 +307,7 @@ def _prepare_regularizer(
     device = _optimization_device(model.coefficients)
     topology = None
     if penalty.smoothness:
-        topology = torch.zeros(len(free), len(free), dtype=torch.float64)
-        for i, j in model.space.adjacency().tolist():
-            topology[i, i] += 1
-            topology[j, j] += 1
-            topology[i, j] -= 1
-            topology[j, i] -= 1
-        topology = topology[selected][:, selected].to(device=device)
+        topology = _laplacian(model.space.adjacency(), len(free))[selected][:, selected].to(device=device)
     size = int(selected.sum().item())
     return lambda alpha: _regularizer(topology, penalty, alpha, size, device)
 
@@ -335,6 +353,15 @@ def _prepare_step(
         return result, update_alpha
 
     return step
+
+
+def _minibatch(
+    batch: Points, cell_ids: torch.Tensor, rows: torch.Tensor, device: torch.device
+) -> tuple[Points, list[tuple[int, torch.Tensor]]]:
+    """Rows ``rows`` (CPU indices) of a validated batch and their cell groups, without copying or revalidating twice."""
+    # Indexing copies the rows, so the minibatch can wrap them directly (same rows as batch.take).
+    selected = rows.to(device)
+    return Points._trusted(batch.parameters[selected], batch.cell_ids[selected]), _cpu_groups(cell_ids[rows], device)
 
 
 def minimize(
@@ -399,6 +426,14 @@ def minimize(
     model.space.validate(batch)
     if not len(batch):
         raise ValueError("minimize requires at least one sample.")
+    # The batch is validated once; every objective below reuses it without copies or revalidation.
+    cell_ids = batch.cell_ids.cpu()
+    full_groups = _cpu_groups(cell_ids, p.device)
+    edges = _penalty_edges(fitted, penalty)
+
+    # Evaluate the penalized objective on validated rows of the batch, given their cell groups.
+    objective = functools.partial(_objective, fitted, loss, penalty=penalty, edges=edges)
+
     free = _fix_controls(fitted, fixed)
     if not free.any():
         return OptimizationResult(
@@ -407,7 +442,7 @@ def minimize(
             True,
             "all_fixed",
             "All coefficients are fixed.",
-            _objective(fitted, loss, batch, penalty).item(),
+            objective(batch, groups=full_groups).item(),
             0,
             seed,
         )
@@ -425,7 +460,7 @@ def minimize(
     # With a tolerance, one extra pass checks the state reached by the last update.
     for k in range(method.max_iter + (tolerance is not None)):
         if tolerance is not None:
-            full = checked = _objective(fitted, loss, batch, penalty)
+            full = checked = objective(batch, groups=full_groups)
             full_grad = _gradient(full, p)
             if full_grad[free].norm().item() <= tolerance:
                 success, status, message = True, "gradient_tolerance", "Full-sample gradient tolerance reached."
@@ -436,8 +471,8 @@ def minimize(
             value, gradient = full, full_grad
         else:
             rows = torch.randperm(len(batch), generator=generator)[: method.batch_size or len(batch)]
-            current = batch.take(rows)
-            value = _objective(fitted, loss, current, penalty)
+            minibatch, groups = _minibatch(batch, cell_ids, rows, p.device)
+            value = objective(minibatch, groups=groups)
             gradient = _gradient(value, p)
         record = Iteration(k, value.item(), gradient[free].norm().item())
         history.append(record)
@@ -449,7 +484,7 @@ def minimize(
         alpha = method.step_size / math.sqrt(k + 1) if method.step_decay == "sqrt" else method.step_size
         direction, update_alpha = step_for(gradient[free], alpha)
         _update(p, free, update_alpha, direction)
-    final = (_objective(fitted, loss, batch, penalty) if checked is None else checked).item()
+    final = (objective(batch, groups=full_groups) if checked is None else checked).item()
     result = OptimizationResult(fitted, tuple(history), success, status, message, final, len(history), seed)
     if not success and status == "iteration_limit":
         warnings.warn(message, ConvergenceWarning, stacklevel=2)

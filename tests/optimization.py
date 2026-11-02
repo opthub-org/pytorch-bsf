@@ -676,3 +676,131 @@ def test_callback_stop_is_not_promoted_to_convergence():
         callback=lambda record, model: True,
     )
     assert not result.success and result.status == "callback_stop"
+
+
+def _glued_triangles(degree):
+    from torch_bsf import SimploidalSet
+
+    domain = SimploidalSet()
+    left, right = domain.add_simplex(2), domain.add_simplex(2)
+    domain.identify(left.face(0, 0), right.face(0, 1))
+    return BezierSpace.on_set(domain, degree=degree)
+
+
+@pytest.mark.parametrize(
+    "space",
+    [
+        BezierSpace.simplex(1, degree=3),
+        BezierSpace.simplex(3, degree=4),
+        BezierSpace.simploid((2, 1), degree=2),
+        _glued_triangles(3),
+    ],
+    ids=["segment", "tetrahedron", "prism", "glued"],
+)
+@pytest.mark.parametrize("constrained", [False, True])
+def test_vectorized_regularizer_matches_edge_loop(space, constrained):
+    from torch_bsf.optimization import _prepare_regularizer
+
+    n = space.n_controls
+    model = BezierModel(space, torch.zeros(n, 1, dtype=torch.float64))
+    free = torch.ones(n, dtype=torch.bool)
+    if constrained:
+        free[::3] = False
+    # The former per-edge assembly, kept here as the reference.
+    topology = torch.zeros(n, n, dtype=torch.float64)
+    for i, j in space.adjacency().tolist():
+        topology[i, i] += 1
+        topology[j, j] += 1
+        topology[i, j] -= 1
+        topology[j, i] -= 1
+    penalty = QuadraticPenalty(ridge=0.1, smoothness=0.3)
+    for alpha in (1.0, 0.07):
+        expected = topology[free][:, free] * ((penalty.smoothness * alpha) * 2)
+        expected.diagonal().add_((penalty.ridge * alpha) * 2)
+        matrix = _prepare_regularizer(model, penalty, free)(alpha)
+        assert matrix is not None and torch.equal(matrix, expected)
+
+
+def _evaluate_with_validation(self, points, groups):
+    # The former evaluation: copy, regroup and revalidate on every call.
+    return self(points)
+
+
+@pytest.mark.parametrize("multi_cell", [False, True])
+@pytest.mark.parametrize(
+    "method,penalty,constrained",
+    [
+        (PreconditionedSGD(max_iter=15, step_size=0.1), QuadraticPenalty(), False),
+        (PreconditionedSGD(max_iter=15, step_size=0.1, batch_size=7, step_decay="sqrt"), QuadraticPenalty(0.01, 0.05), True),
+        (
+            PreconditionedSGD(max_iter=15, step_size=0.1, preconditioner="none", batch_size=5),
+            QuadraticPenalty(smoothness=0.05),
+            False,
+        ),
+        (PreconditionedSGD(max_iter=15, step_size=0.1, gradient_tolerance=1e-3), QuadraticPenalty(ridge=0.01), True),
+    ],
+)
+def test_minimize_hot_path_matches_validated_evaluation(multi_cell, method, penalty, constrained):
+    from unittest.mock import patch
+
+    from torch_bsf.sampling import sample
+
+    space = _glued_triangles(2) if multi_cell else BezierSpace.simploid((1, 1), degree=2)
+    initial = BezierModel(space, torch.zeros(space.n_controls, 2, dtype=torch.float64))
+    target = torch.tensor([1.0, -0.5], dtype=torch.float64)
+
+    def loss(values, points):
+        return (values - target).square().sum(1) * (1 + points.parameters[:, 0])
+
+    def run():
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", ConvergenceWarning)
+            return minimize(
+                initial,
+                loss,
+                method=method,
+                points=sample(space, 30, seed=1),
+                seed=3,
+                penalty=penalty,
+                fixed=FixedControls({0: [0.3, -0.2]}) if constrained else None,
+            )
+
+    fast = run()
+    with patch.object(BezierModel, "_evaluate", _evaluate_with_validation):
+        reference = run()
+    assert torch.equal(fast.model.coefficients, reference.model.coefficients)
+    assert fast.history == reference.history
+    assert (fast.objective, fast.status, fast.n_iterations) == (reference.objective, reference.status, reference.n_iterations)
+
+
+def test_minimize_validates_the_batch_once():
+    from unittest.mock import patch
+
+    space = _glued_triangles(2)
+    initial = BezierModel(space, torch.zeros(space.n_controls, 1, dtype=torch.float64))
+    with (
+        patch.object(BezierSpace, "_validate_groups", autospec=True, side_effect=BezierSpace._validate_groups) as check,
+        patch("torch_bsf.core.Points.__init__", autospec=True, side_effect=Points.__init__) as construct,
+        pytest.warns(ConvergenceWarning),
+    ):
+        minimize(
+            initial,
+            lambda y, p: (y[:, 0] - 1).square(),
+            n_samples=20,
+            seed=0,
+            method=PreconditionedSGD(max_iter=10, batch_size=4, gradient_tolerance=0.0),
+        )
+    # Only minimize's own up-front validation; minibatches are neither revalidated nor copied twice.
+    assert check.call_count == 1
+    assert construct.call_count <= 2
+
+
+@pytest.mark.parametrize(
+    "coordinates,message",
+    [([[0.5, 0.6]], "barycentric"), ([[float("nan"), 1.0]], "finite"), ([[0.5, 0.25, 0.25]], "width")],
+)
+def test_minimize_still_rejects_invalid_points(coordinates, message):
+    space = BezierSpace.simplex(1, degree=2)
+    initial = BezierModel(space, torch.zeros(3, 1, dtype=torch.float64))
+    with pytest.raises(ValueError, match=message):
+        minimize(initial, lambda y, p: y[:, 0], points=Points(torch.tensor(coordinates, dtype=torch.float64)))

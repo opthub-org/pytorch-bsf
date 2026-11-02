@@ -139,6 +139,23 @@ def _incidence(adjacency: torch.Tensor, n_rows: int) -> torch.Tensor:
     return d
 
 
+def _laplacian(adjacency: torch.Tensor, n_rows: int) -> torch.Tensor:
+    """The graph Laplacian ``L = D^T D`` of the pairs, assembled without the dense incidence matrix.
+
+    Each pair ``(p, q)`` with ``p != q`` adds ``+1`` at ``(p, p)`` and ``(q, q)`` and ``-1`` at ``(p, q)`` and
+    ``(q, p)``; repeated pairs accumulate.  The result is a CPU double-precision ``(n_rows, n_rows)`` matrix of
+    exact small integers, built in ``O(n_rows**2 + n_pairs)`` instead of ``O(n_pairs * n_rows**2)``.
+    """
+    pairs = adjacency.cpu()
+    p, q = pairs[:, 0], pairs[:, 1]
+    rows = torch.cat([p, q, p, q])
+    columns = torch.cat([p, q, q, p])
+    ones = torch.ones(len(pairs), dtype=torch.float64)
+    values = torch.cat([ones, ones, -ones, -ones])
+    laplacian = torch.zeros(n_rows, n_rows, dtype=torch.float64)
+    return laplacian.index_put_((rows, columns), values, accumulate=True)
+
+
 def _solve(
     model: _LinearBezierModel,
     inputs: Sequence[torch.Tensor],

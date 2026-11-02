@@ -10,13 +10,12 @@ from torch_bsf._problem import LeastSquaresProblem
 from torch_bsf._skeleton import (
     _control_faces,
     _faces_with_interior_controls,
-    _interior_and_boundary,
     _single_skeleton,
     _skeleton_cell,
     _skeleton_observations,
     _skeleton_stages,
 )
-from torch_bsf.core import BezierModel, BezierSpace, FixedControls, QuadraticPenalty, Samples
+from torch_bsf.core import BezierModel, BezierSpace, FixedControls, Points, QuadraticPenalty, Samples
 from torch_bsf.results import FitDiagnostics, FitResult, MatrixDiagnostics, SkeletonRegressionResult
 from torch_bsf.solvers import DenseLeastSquares, LeastSquaresSolver, SparseLeastSquares
 
@@ -230,9 +229,17 @@ def fit(
     """
     if not isinstance(space, BezierSpace) or not isinstance(samples, Samples):
         raise TypeError("fit requires a BezierSpace and Samples.")
+    _check_solver(solver)
+    return _fit_problem(space, samples, solver, LeastSquaresProblem(space, samples, penalty, fixed))
+
+
+def _check_solver(solver: LeastSquaresSolver) -> None:
     if not isinstance(solver, DenseLeastSquares | SparseLeastSquares):
         raise TypeError("solver must be a typed least-squares configuration.")
-    problem = LeastSquaresProblem(space, samples, penalty, fixed)
+
+
+def _fit_problem(space: BezierSpace, samples: Samples, solver: LeastSquaresSolver, problem: LeastSquaresProblem) -> FitResult:
+    """Solve an assembled problem of ``samples`` exactly as :func:`fit` does."""
     n = problem.n_free
     outputs = problem.values.shape[1]
     diagnostics = FitDiagnostics(
@@ -399,13 +406,25 @@ def fit_skeleton_regression(
     missing = [face for face in faces if not (samples.weights[rows[face]] > 0).any()]
     if missing:
         raise ValueError(f"faces without rows of positive weight: {missing}.")
-    control_faces = _control_faces(cell.dimensions, cell.degree)
+    _check_solver(solver)
+    # Each control is interior to exactly one face: group them once instead of scanning per face.
+    interior: dict[tuple[int, ...], list[int]] = {}
+    for k, control_face in enumerate(_control_faces(cell.dimensions, cell.degree)):
+        interior.setdefault(control_face, []).append(k)
+    # Evaluate the (validated) basis once; each face takes its rows of it. Fixed values are passed as a
+    # mask over the current coefficients, i.e., every control not interior to the face keeps its value.
+    basis = space.basis(Points(samples.points.parameters.detach(), samples.points.cell_ids).to())
+    wide = basis.points
     coefficients = torch.zeros(space.n_controls, samples.values.shape[1], dtype=torch.float64)
     results: dict[tuple[int, ...] | int, FitResult] = {}
     for face in faces:
-        free, _ = _interior_and_boundary(control_faces, face)
-        fixed = FixedControls({k: coefficients[k] for k in range(space.n_controls) if k not in free})
-        result = fit(space, samples.take(rows[face]), solver=solver, fixed=fixed)
+        free = interior[face]
+        mask = torch.zeros(space.n_controls, dtype=torch.bool)
+        mask[free] = True
+        selected = samples.take(rows[face])
+        face_basis = basis._take(rows[face], Points._trusted(wide.parameters[rows[face]], wide.cell_ids[rows[face]]))
+        problem = LeastSquaresProblem(space, selected, QuadraticPenalty(), (mask, coefficients), basis=face_basis)
+        result = _fit_problem(space, selected, solver, problem)
         results[face] = result
         coefficients[free] = result.model.coefficients.detach()[free]
         if not result.success:
@@ -429,6 +448,9 @@ def _fit_assembled_skeleton(space: BezierSpace, samples: Samples, solver: LeastS
         raise ValueError(f"cells without rows of positive weight: {missing}.")
     ignored = len(samples) - sum(len(groups[cid]) for cid, _ in stages)
     suffix = f" Ignored {ignored} rows on cells with no interior controls." if ignored else ""
+    _check_solver(solver)
+    basis = space.basis(Points(samples.points.parameters.detach(), samples.points.cell_ids).to())
+    wide = basis.points
     coefficients = torch.zeros(space.n_controls, samples.values.shape[1], dtype=torch.float64)
     results: dict[tuple[int, ...] | int, FitResult] = {}
     for cid, proper in stages:
@@ -436,8 +458,11 @@ def _fit_assembled_skeleton(space: BezierSpace, samples: Samples, solver: LeastS
         # Canonicalization determines ownership. Preserve the validated original design:
         # dropping a nearly unit collapsed factor would otherwise change its basis values.
         selected = samples.take(rows)
-        fixed = FixedControls({k: coefficients[k] for k in range(space.n_controls) if k not in proper})
-        result = fit(space, selected, solver=solver, fixed=fixed)
+        mask = torch.zeros(space.n_controls, dtype=torch.bool)
+        mask[list(proper)] = True
+        cell_basis = basis._take(rows, Points._trusted(wide.parameters[rows], wide.cell_ids[rows]))
+        problem = LeastSquaresProblem(space, selected, QuadraticPenalty(), (mask, coefficients), basis=cell_basis)
+        result = _fit_problem(space, selected, solver, problem)
         results[cid] = result
         coefficients[list(proper)] = result.model.coefficients.detach()[list(proper)]
         if not result.success:

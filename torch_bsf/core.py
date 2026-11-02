@@ -495,6 +495,18 @@ class Points:
             identifiers.append(batch.cell_ids.cpu())
         return cls(torch.cat(coordinates), torch.cat(identifiers))
 
+    @classmethod
+    def _trusted(cls, parameters: torch.Tensor, cell_ids: torch.Tensor) -> "Points":
+        """Wrap tensors that already satisfy the constructor checks, without copying them.
+
+        Internal use only: the caller must pass freshly created tensors that no one else
+        holds (for example, results of advanced indexing), so immutability is preserved.
+        """
+        points = object.__new__(cls)
+        object.__setattr__(points, "parameters", parameters)
+        object.__setattr__(points, "cell_ids", cell_ids)
+        return points
+
     def __len__(self) -> int:
         return len(self.parameters)
 
@@ -848,6 +860,27 @@ class BasisOperator:
             basis = bernstein_basis(info.dimensions, info.degree, t[rows, : info.width])
             self.blocks.append((rows, columns, basis))
 
+    def _take(self, indices: torch.Tensor, points: Points) -> "BasisOperator":
+        """Restrict to the rows ``indices`` without re-evaluating the basis (internal reuse).
+
+        ``points`` must be the selected rows of :attr:`points` and ``indices`` distinct row
+        indices on the coordinate device. The blocks are regrouped exactly as
+        ``BasisOperator(space, points)`` groups them, so every product is identical.
+        """
+        position = torch.full((self.shape[0],), -1, dtype=torch.long, device=indices.device)
+        position[indices] = torch.arange(len(indices), device=indices.device)
+        operator = object.__new__(BasisOperator)
+        operator.space, operator.points = self.space, points
+        operator.shape = (len(points), self.shape[1])
+        operator.blocks = []
+        for rows, columns, basis in self.blocks:
+            selected = position[rows]
+            keep = torch.nonzero(selected >= 0).flatten()
+            if len(keep):
+                order = keep[torch.argsort(selected[keep], stable=True)]
+                operator.blocks.append((selected[order], columns, basis[order]))
+        return operator
+
     def matmat(self, coefficients: torch.Tensor) -> torch.Tensor:
         """Evaluate a coefficient matrix, accumulating only local contributions.
 
@@ -996,6 +1029,15 @@ class BezierModel(nn.Module):
         batch = points if isinstance(points, Points) else Points(points)
         batch = batch.to(device=self.coefficients.device, dtype=self.coefficients.dtype)
         return self.space.basis(batch).matmat(self.coefficients)
+
+    def _evaluate(self, points: Points, groups: list[tuple[int, torch.Tensor]]) -> torch.Tensor:
+        """Evaluate already validated points without copies or validation (internal hot path).
+
+        ``points`` must already be on the coefficient device and dtype and must have passed
+        :meth:`BezierSpace.validate`; ``groups`` must equal ``_point_groups(points.cell_ids)``.
+        The result is then identical to ``self(points)``.
+        """
+        return BasisOperator(self.space, points, _groups=groups).matmat(self.coefficients)
 
     def copy(self) -> "BezierModel":
         """Copy coefficients without mutating or duplicating immutable geometry.
