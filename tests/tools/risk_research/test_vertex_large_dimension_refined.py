@@ -245,14 +245,14 @@ def test_output_source_destinations_are_rejected_before_computation_or_write(nam
         output = tmp_path / "aliased-source"
         try:
             output.symlink_to(source)
-        except OSError as error:
-            pytest.skip(f"symbolic links are unavailable: {error}")
+        except OSError as link_error:
+            pytest.skip(f"symbolic links are unavailable: {link_error}")
     elif alias_kind == "parent-symlink":
         parent = tmp_path / "aliased-directory"
         try:
             parent.symlink_to(source.parent, target_is_directory=True)
-        except OSError as error:
-            pytest.skip(f"symbolic links are unavailable: {error}")
+        except OSError as link_error:
+            pytest.skip(f"symbolic links are unavailable: {link_error}")
         output = parent / source.name
     events = []
 
