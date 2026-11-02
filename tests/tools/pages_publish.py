@@ -261,6 +261,20 @@ class AuthenticationTests(unittest.TestCase):
 
 
 class ArchiveTests(unittest.TestCase):
+    def test_transport_uses_repository_root_without_a_trailing_slash(self):
+        client = pages.GitHub("not-a-real-token")
+        with patch.object(client.opener, "open", side_effect=[io.BytesIO(b'{"id":7}'), io.BytesIO(b'{"id":100}')]) as opened:
+            self.assertEqual(client.request(""), {"id": 7})
+            self.assertEqual(client.request("actions/runs/100"), {"id": 100})
+        urls = [call.args[0].full_url for call in opened.call_args_list]
+        self.assertEqual(
+            urls,
+            [
+                f"https://api.github.com/repos/{pages.REPOSITORY}",
+                f"https://api.github.com/repos/{pages.REPOSITORY}/actions/runs/100",
+            ],
+        )
+
     def test_valid_regular_files_and_optional_directories(self):
         raw = archive(extra=[("site/", b""), ("site/_static/", b"")])
         _, files = pages.validate_archive(raw)

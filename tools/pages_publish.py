@@ -73,7 +73,7 @@ class GitHub:
 
     def request(self, path: str, method: str = "GET", data: Any = None, *, binary: bool = False) -> Any:
         request = urllib.request.Request(
-            f"https://api.github.com/repos/{REPOSITORY}/{path}",
+            f"https://api.github.com/repos/{REPOSITORY}" + (f"/{path}" if path else ""),
             data=None if data is None else json.dumps(data).encode(),
             headers={"Authorization": f"Bearer {self.token}", "Accept": "application/vnd.github+json"},
             method=method,
