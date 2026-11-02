@@ -1,0 +1,501 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Positive diagonal formulas for nonvertex risk &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Tetrahedron vertex risk" href="skeleton_risk_vertex.html" />
+    <link rel="prev" title="Boundary transfer and a codimension-three edge bound" href="skeleton_risk_codimension_three.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_family.html">Uniform construction for codimension two</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three.html">Boundary transfer and a codimension-three edge bound</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Positive diagonal formulas for nonvertex risk</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#a-laguerre-identity-with-arbitrary-weight">A Laguerre identity with arbitrary weight</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#one-universal-diagonal-for-every-source-face">One universal diagonal for every source face</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#the-exact-harmonic-codimension-three-family">The exact harmonic codimension-three family</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#fixed-codimension-large-degree-behavior">Fixed-codimension large-degree behavior</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#evaluation-and-independent-verification">Evaluation and independent verification</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html">An all-degree sufficient region for large vertex counts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html">Five-vertex vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_comparison.html">Five-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Positive diagonal formulas for nonvertex risk</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/skeleton_risk_codimension_three_exact.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="positive-diagonal-formulas-for-nonvertex-risk">
+<h1>Positive diagonal formulas for nonvertex risk<a class="headerlink" href="#positive-diagonal-formulas-for-nonvertex-risk" title="Link to this heading"></a></h1>
+<p>Under the uniform-simplex assumptions of <a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a>,
+every nonvertex coefficient admits a positive construction using the same
+univariate transformed diagonals as vertex risk.  At codimension three
+these diagonals are explicit harmonic expressions.  This gives an exact
+positive double sum for every source-face size, including the five-vertex
+edge and six-vertex triangle, without a bivariate kernel convolution.
+The number of terms still grows with the degree; no bounded classical
+special-function expression, fixed-state bound or minimal order is claimed.</p>
+<section id="a-laguerre-identity-with-arbitrary-weight">
+<h2>A Laguerre identity with arbitrary weight<a class="headerlink" href="#a-laguerre-identity-with-arbitrary-weight" title="Link to this heading"></a></h2>
+<p>For integers <span class="math notranslate nohighlight">\(L,\beta\geq0\)</span>, put</p>
+<div class="math notranslate nohighlight">
+\[A_h=(-1)^h\binom Lh\binom{L+\beta}h,\qquad
+W_j=\binom Lj\binom{L+\beta}j,\qquad
+C=L!(L+\beta)!.\]</div>
+<div class="proof lemma admonition" id="lem-risk-nonvertex-gram-diagonal">
+<p class="admonition-title"><span class="caption-number">Lemma 8 </span> (Arbitrary-weight binomial Gram diagonalization)</p>
+<section class="lemma-content" id="proof-content">
+<p>For arrays <span class="math notranslate nohighlight">\(u,v\)</span> indexed by <span class="math notranslate nohighlight">\(0,\ldots,L\)</span>, let
+<span class="math notranslate nohighlight">\(\widehat u_j=\sum_{h=0}^j(-1)^h\binom jh u_h\)</span>, and similarly
+for <span class="math notranslate nohighlight">\(v\)</span>.  Then</p>
+<div class="math notranslate nohighlight" id="equation-risk-nonvertex-gram-diagonal">
+<span class="eqno">(49)<a class="headerlink" href="#equation-risk-nonvertex-gram-diagonal" title="Link to this equation"></a></span>\[\sum_{h,l=0}^L A_hA_lh!l!(2L+\beta-h-l)!u_hv_l
+ =C\sum_{j=0}^LW_j\widehat u_j\widehat v_j.\]</div>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Define <span class="math notranslate nohighlight">\(P_u(t)=\sum_{h=0}^LA_hh!u_ht^{L-h}\)</span>.  Binomial
+inversion and the finite Laguerre expansion give</p>
+<div class="math notranslate nohighlight">
+\[P_u(t)=(-1)^LL!\sum_{j=0}^L(-1)^j
+     \binom{L+\beta}j\widehat u_jL_{L-j}^{(\beta)}(t).\]</div>
+<p>To check this identity, compare the coefficient of <span class="math notranslate nohighlight">\(t^{L-h}\)</span>
+and use ordinary binomial inversion on <span class="math notranslate nohighlight">\(u_h\)</span>; thus it also
+holds at <span class="math notranslate nohighlight">\(L=0\)</span>.  Integrate <span class="math notranslate nohighlight">\(P_uP_ve^{-t}t^\beta\)</span>
+on <span class="math notranslate nohighlight">\([0,\infty)\)</span>.  Its monomial moments are the factorials
+on the left of <a class="reference internal" href="#equation-risk-nonvertex-gram-diagonal">(49)</a>.  Laguerre
+orthogonality removes all unequal indices and gives</p>
+<div class="math notranslate nohighlight">
+\[L!^2\binom{L+\beta}j^2
+    \frac{(L+\beta-j)!}{(L-j)!}
+  =CW_j.\]</div>
+<p>This proves the identity, including all endpoints.</p>
+</div>
+<p>For a bivariate formal series <span class="math notranslate nohighlight">\(G\)</span>, let</p>
+<div class="math notranslate nohighlight">
+\[\mathscr T(G)(x,y)
+   =\frac{G(-x/(1-x),-y/(1-y))}{(1-x)(1-y)}.\]</div>
+<p>By linearity, the lemma evaluates the corresponding bivariate
+functional as <span class="math notranslate nohighlight">\(C\sum_jW_j[x^jy^j]\mathscr T(G)\)</span>.
+Only coefficients through <span class="math notranslate nohighlight">\(L\)</span> in each variable are used, so this
+statement concerns finite sums and requires no analytic interchange.</p>
+</section>
+<section id="one-universal-diagonal-for-every-source-face">
+<h2>One universal diagonal for every source face<a class="headerlink" href="#one-universal-diagonal-for-every-source-face" title="Link to this heading"></a></h2>
+<p>Use <span class="math notranslate nohighlight">\(g(t)=-(1-t)\log(1-t)/t\)</span> and the positive sequences
+<span class="math notranslate nohighlight">\(\delta_q(j)\)</span> of <a class="reference internal" href="skeleton_risk_vertex_general.html"><span class="doc">Vertex coefficients at every fixed vertex count</span></a>:</p>
+<div class="math notranslate nohighlight">
+\[\delta_q(j)=[x^jy^j]
+    \frac{(g(x)+g(y)-g(xy))^q}{(1-x)(1-y)}.\]</div>
+<p>For convenience put <span class="math notranslate nohighlight">\(\delta_0(j)=1\)</span>.  At every <span class="math notranslate nohighlight">\(q\geq1\)</span>
+the existing univariate convolution construction evaluates these
+diagonals exactly, and they are strictly positive.</p>
+<div class="proof theorem admonition" id="thm-risk-nonvertex-positive-diagonals">
+<p class="admonition-title"><span class="caption-number">Theorem 28 </span> (Positive nonvertex diagonal averages)</p>
+<section class="theorem-content" id="proof-content">
+<p>Let <span class="math notranslate nohighlight">\(M\geq s\geq2\)</span>, <span class="math notranslate nohighlight">\(q=M-s\)</span>, <span class="math notranslate nohighlight">\(D\geq s\)</span>, and
+<span class="math notranslate nohighlight">\(0\leq k\leq D-s\)</span>.  Define</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}L&amp;=D-s-k,&amp;\beta&amp;=3s+2k-1,\\
+Z_{L,\beta}&amp;=\binom{2L+\beta}L,&amp;
+\mathbb P(J=j)&amp;=\frac{\binom Lj\binom{L+\beta}j}{Z_{L,\beta}}
+         \quad(0\leq j\leq L).\end{split}\]</div>
+<p>Every source-face angular mode of degree <span class="math notranslate nohighlight">\(k\)</span> has propagated
+squared norm divided by its source norm equal to</p>
+<div class="math notranslate nohighlight" id="equation-risk-nonvertex-diagonal-norm">
+<span class="eqno">(50)<a class="headerlink" href="#equation-risk-nonvertex-diagonal-norm" title="Link to this equation"></a></span>\[\rho_{s,q,k,D}=\frac{(s)_q}{(2D+s)_q}\,
+                        \mathbb E[\delta_q(J)].\]</div>
+<p>Consequently</p>
+<div class="math notranslate nohighlight" id="equation-risk-nonvertex-positive-diagonal-coefficient">
+<span class="eqno">(51)<a class="headerlink" href="#equation-risk-nonvertex-positive-diagonal-coefficient" title="Link to this equation"></a></span>\[a_{s-1}(M,D)=\binom Ms^2\frac{(s)_q}{(2D+s)_q}
+  \sum_{k=0}^{D-s}\binom{k+s-2}{s-2}
+       \mathbb E[\delta_q(J)].\]</div>
+<p>The coefficient is zero when <span class="math notranslate nohighlight">\(1\leq D&lt;s\)</span>.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. The radial coefficients in <a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-scalar-sum">Theorem 11</a>
+are exactly <span class="math notranslate nohighlight">\(A_h\)</span> with the displayed <span class="math notranslate nohighlight">\(L,\beta\)</span>.
+Moreover <span class="math notranslate nohighlight">\(2L+\beta=2D+s-1\)</span>, independent of <span class="math notranslate nohighlight">\(k\)</span>.
+Apply <a class="reference internal" href="#lem-risk-nonvertex-gram-diagonal">Lemma 8</a> to its outside
+kernel <span class="math notranslate nohighlight">\(F^q\)</span>.  The formal substitution already proved in
+<a class="reference internal" href="skeleton_risk_vertex.html"><span class="doc">Tetrahedron vertex risk</span></a> gives
+<span class="math notranslate nohighlight">\(F(-x/(1-x),-y/(1-y))=g(x)+g(y)-g(xy)\)</span>.
+Thus its transformed diagonal is precisely <span class="math notranslate nohighlight">\(\delta_q(j)\)</span>;
+it does not depend on <span class="math notranslate nohighlight">\(s,k\)</span> or <span class="math notranslate nohighlight">\(D\)</span>.</p>
+<p>Vandermonde’s identity gives <span class="math notranslate nohighlight">\(\sum_jW_j=Z_{L,\beta}\)</span> and
+<span class="math notranslate nohighlight">\(CZ_{L,\beta}=(2D+s-1)!\)</span>.  The remaining normalization
+in the scalar mode formula is</p>
+<div class="math notranslate nohighlight">
+\[\frac{(2D+s-1)!}{(s-1)!(M)_{2D}}
+  =\frac{(s)_q}{(2D+s)_q}.\]</div>
+<p>This proves <a class="reference internal" href="#equation-risk-nonvertex-diagonal-norm">(50)</a>.  Summing the
+<span class="math notranslate nohighlight">\(\binom{k+s-2}{s-2}\)</span> angular modes and multiplying by
+<span class="math notranslate nohighlight">\(\binom Ms^2\)</span> proves the coefficient formula.  For
+<span class="math notranslate nohighlight">\(D&lt;s\)</span> there are no source bubbles.  For <span class="math notranslate nohighlight">\(q=0\)</span>, every
+average is one and the formula recovers
+<span class="math notranslate nohighlight">\(a_{s-1}(s,D)=\binom{D-1}{s-1}\)</span>.</p>
+</div>
+</section>
+<section id="the-exact-harmonic-codimension-three-family">
+<h2>The exact harmonic codimension-three family<a class="headerlink" href="#the-exact-harmonic-codimension-three-family" title="Link to this heading"></a></h2>
+<p>Write <span class="math notranslate nohighlight">\(H_j=\sum_{r=1}^j1/r\)</span>,
+<span class="math notranslate nohighlight">\(H_j^{(2)}=\sum_{r=1}^j1/r^2\)</span>, with both zero at <span class="math notranslate nohighlight">\(j=0\)</span>.
+The tetrahedron vertex identity in <a class="reference internal" href="skeleton_risk_vertex.html"><span class="doc">Tetrahedron vertex risk</span></a> gives</p>
+<div class="math notranslate nohighlight" id="equation-risk-nonvertex-q3-harmonic-diagonal">
+<span class="eqno">(52)<a class="headerlink" href="#equation-risk-nonvertex-q3-harmonic-diagonal" title="Link to this equation"></a></span>\[\delta_3(j)=6\left(
+   \frac{H_j(H_j-j/(j+2))}{(j+1)(j+2)(j+3)}
+   +\frac{H_j^{(2)}}{(j+1)(j+3)}
+   +\frac{2}{(j+1)^2(j+2)^2(j+3)}\right)&gt;0.\]</div>
+<p>At <span class="math notranslate nohighlight">\(j=0\)</span> this is one.  At positive <span class="math notranslate nohighlight">\(j\)</span>,
+<span class="math notranslate nohighlight">\(H_j\geq1&gt;j/(j+2)\)</span> proves positivity term by term.</p>
+<div class="proof corollary admonition" id="cor-risk-nonvertex-codimension-three-exact">
+<p class="admonition-title"><span class="caption-number">Corollary 13 </span> (Every nonvertex codimension-three coefficient)</p>
+<section class="corollary-content" id="proof-content">
+<p>For all integers <span class="math notranslate nohighlight">\(s\geq2,D\geq s\)</span>,</p>
+<div class="math notranslate nohighlight" id="equation-risk-nonvertex-codimension-three-exact">
+<span class="eqno">(53)<a class="headerlink" href="#equation-risk-nonvertex-codimension-three-exact" title="Link to this equation"></a></span>\[a_{s-1}(s+3,D)=
+ \binom{s+3}s^2\frac{s(s+1)(s+2)}
+    {(2D+s)(2D+s+1)(2D+s+2)}
+ \sum_{k=0}^{D-s}\binom{k+s-2}{s-2}
+ \frac{\displaystyle\sum_{j=0}^{D-s-k}
+     \binom{D-s-k}j\binom{D+2s+k-1}j\delta_3(j)}
+      {\binom{2D+s-1}{D-s-k}}.\]</div>
+<p>It is zero on the inactive prefix <span class="math notranslate nohighlight">\(1\leq D&lt;s\)</span>.
+In particular this evaluates <span class="math notranslate nohighlight">\(a_1(5,D)\)</span> and
+<span class="math notranslate nohighlight">\(a_2(6,D)\)</span> at every positive degree.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Substitute <span class="math notranslate nohighlight">\(q=3\)</span> and
+<a class="reference internal" href="#equation-risk-nonvertex-q3-harmonic-diagonal">(52)</a> in
+<a class="reference internal" href="#equation-risk-nonvertex-positive-diagonal-coefficient">(51)</a>.
+Every denominator is a positive integer on the active domain.
+The formula has exactly <span class="math notranslate nohighlight">\((D-s+1)(D-s+2)/2\)</span> inner terms;
+harmonic tables and binomial weights have nonsingular updates.</p>
+</div>
+</section>
+<section id="fixed-codimension-large-degree-behavior">
+<h2>Fixed-codimension large-degree behavior<a class="headerlink" href="#fixed-codimension-large-degree-behavior" title="Link to this heading"></a></h2>
+<p>The same positive formula determines the true leading order at every
+fixed nonvertex source size and codimension at least two.</p>
+<div class="proof theorem admonition" id="thm-risk-nonvertex-fixed-codimension-asymptotic">
+<p class="admonition-title"><span class="caption-number">Theorem 29 </span> (Nonvertex asymptotic at every fixed codimension)</p>
+<section class="theorem-content" id="proof-content">
+<p>For each fixed pair of integers <span class="math notranslate nohighlight">\(s\geq2,q\geq2\)</span>,</p>
+<div class="math notranslate nohighlight" id="equation-risk-nonvertex-fixed-codimension-asymptotic">
+<span class="eqno">(54)<a class="headerlink" href="#equation-risk-nonvertex-fixed-codimension-asymptotic" title="Link to this equation"></a></span>\[a_{s-1}(s+q,D)\sim A_{s,q}D^{s-q-2},\qquad
+A_{s,q}=\binom{s+q}s^2
+  \frac{(s)_q}{2^q(s-2)!}\frac{c_{q+1}}{q+1}&gt;0.\]</div>
+<p>Here <span class="math notranslate nohighlight">\(c_{q+1}\)</span> is the positive constant of
+<a class="reference internal" href="skeleton_risk_vertex_general.html#thm-risk-general-vertex-asymptotic">Theorem 33</a>.  In particular,</p>
+<div class="math notranslate nohighlight" id="equation-risk-nonvertex-codimension-three-asymptotic">
+<span class="eqno">(55)<a class="headerlink" href="#equation-risk-nonvertex-codimension-three-asymptotic" title="Link to this equation"></a></span>\[a_{s-1}(s+3,D)\sim
+ \frac{s(s+1)^3(s+2)^3(s+3)^2}{24(s-2)!}
+    (\zeta(2)-\zeta(3))D^{s-5}.\]</div>
+<p>Thus <span class="math notranslate nohighlight">\(a_1(5,D)\sim3600(\zeta(2)-\zeta(3))D^{-3}\)</span> and
+<span class="math notranslate nohighlight">\(a_2(6,D)\sim36000(\zeta(2)-\zeta(3))D^{-2}\)</span>.
+No finite-degree error bound or simultaneous growth of <span class="math notranslate nohighlight">\(s,q,D\)</span>
+is asserted by this theorem.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. First the univariate construction in
+<a class="reference internal" href="skeleton_risk_vertex_general.html"><span class="doc">Vertex coefficients at every fixed vertex count</span></a> gives, for <span class="math notranslate nohighlight">\(q\geq2\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[\sum_{j\geq0}\delta_q(j)
+ =\sum_{j\geq0}e_q(j)=\frac{c_{q+1}}{q+1}.\]</div>
+<p>Indeed all sequences in that construction are absolutely summable.
+The sum of <span class="math notranslate nohighlight">\(\phi_q\)</span> is zero, by its generating function
+<span class="math notranslate nohighlight">\(g(t)^q/(1-t)\)</span> at <span class="math notranslate nohighlight">\(t=1\)</span>.  For <span class="math notranslate nohighlight">\(k\geq1\)</span>,
+<span class="math notranslate nohighlight">\(\sum_jb_k(j)=0\)</span>, so the sum of every convolution
+<span class="math notranslate nohighlight">\(b_k*e_{q-k}\)</span> is zero.  Only the <span class="math notranslate nohighlight">\(k=0\)</span> term remains.
+This also proves that the displayed sum is finite and positive.</p>
+<p>For summable domination we use the following exact inverse-factorial
+moment of the binomial weights.  Write <span class="math notranslate nohighlight">\(B=L+\beta\geq L\)</span>.
+Vandermonde’s identity gives</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\mathbb E\!\left[\frac1{(J+1)(J+2)}\right]
+ &amp;=\frac{(L+B+1)(L+B+2)}
+        {(L+1)(L+2)(B+1)(B+2)},\\
+\mathbb E[(J+1)^{-2}]
+ &amp;\leq\frac8{(L+1)(L+2)}.\end{split}\]</div>
+<p>For the first identity, replace
+<span class="math notranslate nohighlight">\(\binom Bj/((j+1)(j+2))\)</span> by
+<span class="math notranslate nohighlight">\(\binom{B+2}{j+2}/((B+1)(B+2))\)</span> and sum.
+For the inequality use
+<span class="math notranslate nohighlight">\((j+1)^{-2}\leq2/((j+1)(j+2))\)</span> and
+<span class="math notranslate nohighlight">\((L+B+i)/(B+i)\leq2\)</span> for <span class="math notranslate nohighlight">\(i=1,2\)</span>.</p>
+<p>For each fixed <span class="math notranslate nohighlight">\(q\geq2\)</span>, constants <span class="math notranslate nohighlight">\(K,p\)</span> exist with</p>
+<div class="math notranslate nohighlight">
+\[0&lt;\delta_q(j)\leq
+     K\frac{(1+\log(j+1))^p}{(j+1)^2}\quad(j\geq0).\]</div>
+<p>At <span class="math notranslate nohighlight">\(q=2\)</span>, this follows directly from
+<span class="math notranslate nohighlight">\(\delta_2=-\phi_2+2\phi_1^2\)</span>, with <span class="math notranslate nohighlight">\(p=1\)</span>.
+At <span class="math notranslate nohighlight">\(q\geq3\)</span>, it follows from the explicit diagonal error
+<a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html#equation-risk-general-diagonal-explicit-error">(72)</a>, with <span class="math notranslate nohighlight">\(p=q-1\)</span>.
+Since <span class="math notranslate nohighlight">\(0\leq J\leq L\)</span>, the inverse-square bound therefore gives</p>
+<div class="math notranslate nohighlight">
+\[\mathbb E[\delta_q(J)]\leq
+    \frac{8K(1+\log(L+1))^p}{(L+1)(L+2)},\]</div>
+<p>a summable sequence in <span class="math notranslate nohighlight">\(L\)</span>, independent of <span class="math notranslate nohighlight">\(D\)</span>.</p>
+<p>Reindex the angular sum by <span class="math notranslate nohighlight">\(L=D-s-k\)</span>.  For each fixed
+<span class="math notranslate nohighlight">\(L\)</span>, <span class="math notranslate nohighlight">\(B=2D+s-L-1\)</span> tends to infinity, and
+<span class="math notranslate nohighlight">\(\mathbb P(J=L)=\binom BL/\binom{B+L}L\to1\)</span>.
+Thus its average tends to <span class="math notranslate nohighlight">\(\delta_q(L)\)</span>.
+Also</p>
+<div class="math notranslate nohighlight">
+\[\frac{\binom{k+s-2}{s-2}}{D^{s-2}}
+     \longrightarrow\frac1{(s-2)!},\qquad
+0\leq\frac{\binom{k+s-2}{s-2}}{D^{s-2}}
+     \leq\frac1{(s-2)!}.\]</div>
+<p>Set terms outside <span class="math notranslate nohighlight">\(0\leq L\leq D-s\)</span> to zero.  Dominated
+convergence and <span class="math notranslate nohighlight">\(D^q(s)_q/(2D+s)_q\to(s)_q/2^q\)</span>
+prove <a class="reference internal" href="#equation-risk-nonvertex-fixed-codimension-asymptotic">(54)</a>.
+At <span class="math notranslate nohighlight">\(q=3\)</span>, use
+<span class="math notranslate nohighlight">\(c_4=48(\zeta(2)-\zeta(3))\)</span> and simplify.  At <span class="math notranslate nohighlight">\(q=2\)</span>
+the theorem recovers the existing codimension-two asymptotic.</p>
+</div>
+</section>
+<section id="evaluation-and-independent-verification">
+<h2>Evaluation and independent verification<a class="headerlink" href="#evaluation-and-independent-verification" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">tools.risk_research.codimension_three_exact</span></code> evaluates the harmonic
+double sum using exact fractions.  Its generic nonvertex evaluator uses
+the same theorem with the existing univariate <span class="math notranslate nohighlight">\(\delta_q\)</span>
+construction.  Neither path constructs <span class="math notranslate nohighlight">\(F^q\)</span>.  The q3 path uses
+quadratically many rational operations in <span class="math notranslate nohighlight">\(D-s+1\)</span>, with growing
+integer bit lengths.  The generic diagonal construction adds
+<span class="math notranslate nohighlight">\(O(q^2(D-s+1)+q(D-s+1)^2)\)</span> rational operations.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>tools.risk_research.codimension_three_exact<span class="w"> </span>--face-size<span class="w"> </span><span class="m">2</span><span class="w"> </span>--degree<span class="w"> </span><span class="m">40</span><span class="w"> </span>--output<span class="w"> </span>.research/skeleton-risk/q3-edge-exact.json
+<span class="gp">$ </span>.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>tools.risk_research.codimension_three_exact<span class="w"> </span>--face-size<span class="w"> </span><span class="m">3</span><span class="w"> </span>--degree<span class="w"> </span><span class="m">40</span><span class="w"> </span>--output<span class="w"> </span>.research/skeleton-risk/q3-triangle-exact.json
+<span class="gp">$ </span>.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>tools.risk_research.codimension_three_exact<span class="w"> </span>--face-size<span class="w"> </span><span class="m">2</span><span class="w"> </span>--degree<span class="w"> </span><span class="m">40</span><span class="w"> </span>--verify<span class="w"> </span>.research/skeleton-risk/q3-edge-exact.json<span class="w"> </span>--output<span class="w"> </span>.research/skeleton-risk/q3-edge-rechecked.json
+</pre></div>
+</div>
+<p>Records bind the evaluator and its direct source dependencies.  SHA256
+hashes normalize CRLF pairs to LF so that the same source record can be
+checked on Windows.  The concurrent-edit guard compares the original raw
+bytes and therefore still rejects line-ending edits during calculation.
+Invalid inputs, changed records and calculation failures preserve the
+previous destination through atomic output.  Recomputing a record checks
+its exact value and provenance; the all-degree proof is the theorem above.</p>
+<p><code class="docutils literal notranslate"><span class="pre">nonvertex_leading_constant_enclosure(s,q,terms)</span></code> scales the existing
+vertex-constant interval by the exact positive rational factor</p>
+<div class="math notranslate nohighlight">
+\[\frac{A_{s,q}}{C_{q+2}}=
+  \frac{\binom{s+q}s^2(s)_q}
+    {2(s-2)!(q+1)(q+2)^2(q+1)!}.\]</div>
+<p>It encloses the leading constant for fixed <span class="math notranslate nohighlight">\(s,q\geq2\)</span>; it does
+not enclose the finite-degree coefficient by itself.</p>
+<p>Tests compare every mode with independent polynomial moments at genuine
+full-bubble degrees, recover existing q0/q1/q2 formulas, and compare small
+values with the original scalar formula and separate Gram propagation.
+Frozen larger cases are generated by the original integer outside-kernel
+path, independently of this diagonal formula.  No finite comparison is
+used in place of the all-parameter proof.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="skeleton_risk_codimension_three.html" class="btn btn-neutral float-left" title="Boundary transfer and a codimension-three edge bound" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="skeleton_risk_vertex.html" class="btn btn-neutral float-right" title="Tetrahedron vertex risk" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: feat/risk-codimension-three-exact
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/index.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="skeleton_risk_codimension_three_exact.html">feat/risk-codimension-three-exact</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

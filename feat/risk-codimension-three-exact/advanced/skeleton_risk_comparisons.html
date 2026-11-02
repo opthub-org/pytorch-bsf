@@ -1,0 +1,572 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fixed-degree risk comparisons in every dimension &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="An all-degree sufficient region for large vertex counts" href="skeleton_risk_uniform_dimension_tail.html" />
+    <link rel="prev" title="Quantitative tetrahedron vertex asymptotics" href="skeleton_risk_vertex_asymptotics.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_family.html">Uniform construction for codimension two</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three.html">Boundary transfer and a codimension-three edge bound</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_exact.html">Positive diagonal formulas for nonvertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Fixed-degree risk comparisons in every dimension</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#complete-comparisons-through-degree-twenty">Complete comparisons through degree twenty</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#complete-comparisons-at-degrees-twenty-one-through-thirty">Complete comparisons at degrees twenty-one through thirty</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#exact-construction-of-the-dimension-polynomials">Exact construction of the dimension polynomials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#a-rational-bound-for-the-infinite-tail">A rational bound for the infinite tail</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#strict-comparisons-for-the-finite-prefix">Strict comparisons for the finite prefix</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#reproduction-and-verification">Reproduction and verification</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html">An all-degree sufficient region for large vertex counts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html">Five-vertex vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_comparison.html">Five-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Fixed-degree risk comparisons in every dimension</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/skeleton_risk_comparisons.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="fixed-degree-risk-comparisons-in-every-dimension">
+<h1>Fixed-degree risk comparisons in every dimension<a class="headerlink" href="#fixed-degree-risk-comparisons-in-every-dimension" title="Link to this heading"></a></h1>
+<p>This chapter uses the uniform-simplex design, evaluation and noise
+assumptions of <a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a>. Write <span class="math notranslate nohighlight">\(M\geq2\)</span> for the
+number of vertices and <span class="math notranslate nohighlight">\(D\geq1\)</span> for the degree. The optimal risk of
+dimension-based inductive fitting and the all-at-once risk are</p>
+<div class="math notranslate nohighlight">
+\[R_{\mathrm{ind}}(M,D)
+  =\left(\sum_{s=1}^{\min(D,M)}\sqrt{a_{s-1}(M,D)}\right)^2,
+\qquad
+R_{\mathrm{all}}(M,D)=\binom{M+D-1}{D}.\]</div>
+<p>The polynomial dependence on <span class="math notranslate nohighlight">\(M\)</span> in
+<a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-rational">Theorem 18</a> permits a complete comparison at each
+listed degree without requiring a bounded-length tetrahedron vertex
+formula or an explicit vertex degree recurrence. The positive single sum
+is proved separately in <a class="reference internal" href="skeleton_risk_vertex.html"><span class="doc">Tetrahedron vertex risk</span></a>.
+The proof below uses exact integers and rational numbers,
+including the square-root enclosures; it needs no floating-point error
+estimate or paid computer-algebra system.</p>
+<section id="complete-comparisons-through-degree-twenty">
+<h2>Complete comparisons through degree twenty<a class="headerlink" href="#complete-comparisons-through-degree-twenty" title="Link to this heading"></a></h2>
+<div class="proof theorem admonition" id="thm-risk-comparisons-nine-twenty">
+<p class="admonition-title"><span class="caption-number">Theorem 37 </span> (Fixed-degree comparison for degrees nine through twenty)</p>
+<section class="theorem-content" id="proof-content">
+<p>For every row of the following table,
+<span class="math notranslate nohighlight">\(R_{\mathrm{ind}}(M,D)&lt;R_{\mathrm{all}}(M,D)\)</span> holds exactly in
+the two displayed ranges. In the remaining integer range the reverse
+inequality is strict. There are no ties.</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-number">Table 13 </span><span class="caption-text">All vertex counts, not a finite dimension cutoff</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Degree <span class="math notranslate nohighlight">\(D\)</span></p></th>
+<th class="head"><p>First winning range</p></th>
+<th class="head"><p>Second winning range</p></th>
+<th class="head"><p>Certified infinite tail starts at</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>9</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\leq M\leq4\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M\geq71\)</span></p></td>
+<td><p>115</p></td>
+</tr>
+<tr class="row-odd"><td><p>10</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\leq M\leq4\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M\geq81\)</span></p></td>
+<td><p>131</p></td>
+</tr>
+<tr class="row-even"><td><p>11</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\leq M\leq4\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M\geq92\)</span></p></td>
+<td><p>146</p></td>
+</tr>
+<tr class="row-odd"><td><p>12</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\leq M\leq5\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M\geq103\)</span></p></td>
+<td><p>162</p></td>
+</tr>
+<tr class="row-even"><td><p>13</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\leq M\leq5\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M\geq114\)</span></p></td>
+<td><p>178</p></td>
+</tr>
+<tr class="row-odd"><td><p>14</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\leq M\leq5\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M\geq126\)</span></p></td>
+<td><p>193</p></td>
+</tr>
+<tr class="row-even"><td><p>15</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\leq M\leq5\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M\geq137\)</span></p></td>
+<td><p>209</p></td>
+</tr>
+<tr class="row-odd"><td><p>16</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\leq M\leq5\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M\geq148\)</span></p></td>
+<td><p>225</p></td>
+</tr>
+<tr class="row-even"><td><p>17</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\leq M\leq6\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M\geq160\)</span></p></td>
+<td><p>240</p></td>
+</tr>
+<tr class="row-odd"><td><p>18</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\leq M\leq6\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M\geq171\)</span></p></td>
+<td><p>256</p></td>
+</tr>
+<tr class="row-even"><td><p>19</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\leq M\leq6\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M\geq182\)</span></p></td>
+<td><p>272</p></td>
+</tr>
+<tr class="row-odd"><td><p>20</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\leq M\leq6\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M\geq194\)</span></p></td>
+<td><p>288</p></td>
+</tr>
+</tbody>
+</table>
+<p>The result is computer-assisted. The final column is a sufficient
+bound used in the proof; it is not the actual crossover. The
+classifications for <span class="math notranslate nohighlight">\(D\leq8\)</span> are in
+<a class="reference internal" href="skeleton_risk_theory.html#prop-skeleton-wins">Proposition 5</a>.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. The next three steps give the exact polynomial construction, a finite
+radical comparison, and a bound for all remaining dimensions. Their
+implementation is <code class="docutils literal notranslate"><span class="pre">tools/risk_research/comparison.py</span></code>. Applied to
+the twelve rows, they certify 2,391 finite comparisons and twelve
+infinite tails, with no unresolved cases. Each degree has <span class="math notranslate nohighlight">\(D\)</span>
+polynomial rows; the twelve degrees contain 174 rows and 2,666
+rational coefficients. No shape for the losing set is assumed.</p>
+</div>
+</section>
+<section id="complete-comparisons-at-degrees-twenty-one-through-thirty">
+<h2>Complete comparisons at degrees twenty-one through thirty<a class="headerlink" href="#complete-comparisons-at-degrees-twenty-one-through-thirty" title="Link to this heading"></a></h2>
+<div class="proof theorem admonition" id="thm-risk-comparisons-twentyone-thirty">
+<p class="admonition-title"><span class="caption-number">Theorem 38 </span> (Fixed-degree comparison for degrees twenty-one through thirty)</p>
+<section class="theorem-content" id="proof-content">
+<p>For every row below, inductive fitting wins exactly in the two displayed
+ranges. All-at-once fitting wins strictly at every remaining integer
+vertex count. There are no ties.</p>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-number">Table 14 </span><span class="caption-text">Complete classifications for every integer vertex count</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Degree <span class="math notranslate nohighlight">\(D\)</span></p></th>
+<th class="head"><p>First winning range</p></th>
+<th class="head"><p>Second winning range</p></th>
+<th class="head"><p>Certified infinite tail starts at</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>21</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\leq M\leq6\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M\geq205\)</span></p></td>
+<td><p>304</p></td>
+</tr>
+<tr class="row-odd"><td><p>22</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\leq M\leq6\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M\geq217\)</span></p></td>
+<td><p>319</p></td>
+</tr>
+<tr class="row-even"><td><p>23</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\leq M\leq7\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M\geq228\)</span></p></td>
+<td><p>335</p></td>
+</tr>
+<tr class="row-odd"><td><p>24</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\leq M\leq7\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M\geq240\)</span></p></td>
+<td><p>351</p></td>
+</tr>
+<tr class="row-even"><td><p>25</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\leq M\leq7\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M\geq252\)</span></p></td>
+<td><p>367</p></td>
+</tr>
+<tr class="row-odd"><td><p>26</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\leq M\leq7\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M\geq263\)</span></p></td>
+<td><p>382</p></td>
+</tr>
+<tr class="row-even"><td><p>27</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\leq M\leq7\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M\geq275\)</span></p></td>
+<td><p>398</p></td>
+</tr>
+<tr class="row-odd"><td><p>28</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\leq M\leq7\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M\geq286\)</span></p></td>
+<td><p>414</p></td>
+</tr>
+<tr class="row-even"><td><p>29</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\leq M\leq8\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M\geq298\)</span></p></td>
+<td><p>430</p></td>
+</tr>
+<tr class="row-odd"><td><p>30</p></td>
+<td><p><span class="math notranslate nohighlight">\(2\leq M\leq8\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M\geq310\)</span></p></td>
+<td><p>446</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Apply the exact construction, finite radical enclosures and infinite-tail
+argument below. These ten degrees give 255 polynomial rows with 6,585
+rational coefficients. All 3,726 finite comparisons separate at a 32-bit
+fractional grid using exact integers; the ten rational tail inequalities
+cover every remaining vertex count. No shape for the losing set is assumed.</p>
+<p>A separate Newton interpolation of the original scalar angular-mode
+reference, using the proved degree bounds, reproduced every polynomial.
+Additional vertex counts beyond those used in the interpolation agree
+exactly. Independent rational radical enclosures and tail bounds reproduce
+all ten classifications. Finite checks verify these computations; the
+infinite tail is covered by the displayed rational inequality.</p>
+</div>
+<p>The last column is a sufficient proof threshold, rather than the exact
+crossover. Reproduce this extension with <code class="docutils literal notranslate"><span class="pre">--degrees</span> <span class="pre">21:30</span></code> in the command
+below. The earlier degree-nine-through-twenty certificates remain unchanged.</p>
+</section>
+<section id="exact-construction-of-the-dimension-polynomials">
+<h2>Exact construction of the dimension polynomials<a class="headerlink" href="#exact-construction-of-the-dimension-polynomials" title="Link to this heading"></a></h2>
+<p>Put <span class="math notranslate nohighlight">\(s=m+1\)</span>, <span class="math notranslate nohighlight">\(n=D-s\)</span>, and define</p>
+<div class="math notranslate nohighlight">
+\[F(x,y)=\sum_{h,l\geq0}
+  \frac{\binom{h+l}{h}}{(h+1)(l+1)}x^hy^l,
+\qquad
+T_r(h,l)=[x^hy^l](F-1)^r.\]</div>
+<p>Since <span class="math notranslate nohighlight">\(F-1\)</span> has no constant term, <span class="math notranslate nohighlight">\(T_r(h,l)=0\)</span> when
+<span class="math notranslate nohighlight">\(r&gt;h+l\)</span>. Therefore, for every integer <span class="math notranslate nohighlight">\(M\geq s\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[K_{M-s}(h,l)=[x^hy^l]F^{M-s}
+ =\sum_{r=0}^{h+l}\binom{M-s}{r}T_r(h,l).\]</div>
+<p>The binomial on the right is its falling-factorial polynomial in
+<span class="math notranslate nohighlight">\(M\)</span>; it vanishes when <span class="math notranslate nohighlight">\(r&gt;M-s\)</span>. Truncation to
+<span class="math notranslate nohighlight">\(0\leq h,l\leq n\)</span> is exact because all powers are nonnegative.
+Define</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}A_{k,h}=(-1)^h\binom{n-k}{h}\binom{n+k+3s-1}{h},
+\qquad
+d_s(k)=\begin{cases}
+  \binom{k+s-2}{s-2},&amp;s\geq2,\\
+  \mathbf1_{k=0},&amp;s=1.
+\end{cases}\end{split}\]</div>
+<p>Substitution in <a class="reference internal" href="skeleton_risk_theory.html#equation-skeleton-scalar-sum">(12)</a> constructs</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}P_{D,s-1}(M)
+ ={}&amp;\frac1{(s-1)!}\sum_{k=0}^n d_s(k)
+   \sum_{h,l=0}^{n-k}
+     A_{k,h}A_{k,l}(2D+s-h-l-1)!h!l!\\
+  &amp;\hspace{2em}\cdot\sum_{r=0}^{h+l}\binom{M-s}{r}T_r(h,l).\end{split}\]</div>
+<p>Its degree is at most <span class="math notranslate nohighlight">\(2(D-s)\)</span>, and</p>
+<div class="math notranslate nohighlight">
+\[a_{s-1}(M,D)=\binom Ms^2\frac{P_{D,s-1}(M)}{(M)_{2D}}
+\qquad(M\geq s).\]</div>
+<p>This is a direct symbolic construction, not interpolation. For
+<span class="math notranslate nohighlight">\(s&gt;M\)</span> the face does not exist and its coefficient is set to zero;
+one does not evaluate the polynomial as a physical risk outside its
+stated range.</p>
+</section>
+<section id="a-rational-bound-for-the-infinite-tail">
+<h2>A rational bound for the infinite tail<a class="headerlink" href="#a-rational-bound-for-the-infinite-tail" title="Link to this heading"></a></h2>
+<p>Write <span class="math notranslate nohighlight">\(P_{D,s-1}(M)=\sum_i p_{s,i}M^i\)</span>. Fix an integer
+<span class="math notranslate nohighlight">\(L\geq\max(2,D)\)</span> and put</p>
+<div class="math notranslate nohighlight">
+\[B_s(L)=\frac1{(s!)^2}\sum_{i=0}^{2(D-s)}
+           |p_{s,i}|L^{i-2(D-s)}.\]</div>
+<p>For all <span class="math notranslate nohighlight">\(M\geq L\)</span>, the inequalities
+<span class="math notranslate nohighlight">\(\binom Ms\leq M^s/s!\)</span> and <span class="math notranslate nohighlight">\((M)_{2D}\geq M^{2D}\)</span> give</p>
+<div class="math notranslate nohighlight">
+\[0\leq a_{s-1}(M,D)
+   \leq\frac1{(s!)^2}\sum_i|p_{s,i}|M^{i-2(D-s)}
+   \leq B_s(L).\]</div>
+<p>The last inequality follows because every exponent is nonpositive.
+More generally an absent face <span class="math notranslate nohighlight">\(s&gt;M\)</span> has coefficient zero, so also
+satisfies the bound. By Cauchy–Schwarz,</p>
+<div class="math notranslate nohighlight">
+\[R_{\mathrm{ind}}(M,D)\leq D\sum_{s=1}^DB_s(L).\]</div>
+<p>Since <span class="math notranslate nohighlight">\(\binom{M+D-1}{D}\)</span> increases with <span class="math notranslate nohighlight">\(M\)</span>, the single
+strict rational inequality</p>
+<div class="math notranslate nohighlight">
+\[D\sum_{s=1}^DB_s(L)&lt;\binom{L+D-1}{D}\]</div>
+<p>proves that inductive fitting wins for every <span class="math notranslate nohighlight">\(M\geq L\)</span>.
+The certificate records each <span class="math notranslate nohighlight">\(B_s(L)\)</span>, both sides, and their
+strictly positive difference. The displayed tail thresholds satisfy
+this inequality exactly.</p>
+</section>
+<section id="strict-comparisons-for-the-finite-prefix">
+<h2>Strict comparisons for the finite prefix<a class="headerlink" href="#strict-comparisons-for-the-finite-prefix" title="Link to this heading"></a></h2>
+<p>For every remaining integer <span class="math notranslate nohighlight">\(2\leq M&lt;L\)</span>, evaluate the active
+coefficients as exact fractions. For <span class="math notranslate nohighlight">\(a=u/v\geq0\)</span>, choose
+<span class="math notranslate nohighlight">\(K=2^b\)</span> and compute the integer</p>
+<div class="math notranslate nohighlight">
+\[t=\operatorname{isqrt}\left(\left\lfloor\frac{uK^2}{v}\right\rfloor\right).\]</div>
+<p>Then <span class="math notranslate nohighlight">\(t/K\leq\sqrt a\leq(t+1)/K\)</span>. If
+<span class="math notranslate nohighlight">\(t^2v=uK^2\)</span>, the two endpoints coincide at <span class="math notranslate nohighlight">\(t/K\)</span>.
+Let <span class="math notranslate nohighlight">\(A\)</span> and <span class="math notranslate nohighlight">\(B\)</span> be the sums of the lower and upper integer
+numerators. Positivity gives</p>
+<div class="math notranslate nohighlight">
+\[A^2\leq K^2R_{\mathrm{ind}}(M,D)\leq B^2.\]</div>
+<p>Thus <span class="math notranslate nohighlight">\(B^2&lt;K^2R_{\mathrm{all}}\)</span> certifies an inductive win, and
+<span class="math notranslate nohighlight">\(A^2&gt;K^2R_{\mathrm{all}}\)</span> certifies an all-at-once win.
+Overlapping bounds require higher precision. If the configured precision
+limit is reached, certification fails and no all-dimension result is
+reported. An exact equality is therefore never silently included among
+strict wins or losses.</p>
+<p>All 2,391 finite comparisons for degrees nine through twenty and all 3,726
+for degrees twenty-one through thirty separate at <span class="math notranslate nohighlight">\(b=32\)</span>, giving
+6,117 comparisons in total.
+This is a 32-bit fractional grid for the square roots, with arbitrarily
+large integer arithmetic throughout; it is not a 32-bit floating-point
+calculation.</p>
+</section>
+<section id="reproduction-and-verification">
+<h2>Reproduction and verification<a class="headerlink" href="#reproduction-and-verification" title="Link to this heading"></a></h2>
+<p>From a source checkout with the development environment available, run</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>tools.risk_research.comparison<span class="w"> </span>--degrees<span class="w"> </span><span class="m">9</span>:20<span class="w"> </span>--output<span class="w"> </span>.research/skeleton-risk/comparisons.json
+</pre></div>
+</div>
+<p>The command needs only the Python standard library. <code class="docutils literal notranslate"><span class="pre">--degrees</span> <span class="pre">9</span></code>
+restricts it to the first new degree. <code class="docutils literal notranslate"><span class="pre">--max-tail</span></code> bounds the search for
+a sufficient infinite-tail inequality, and <code class="docutils literal notranslate"><span class="pre">--max-bits</span></code> bounds finite
+comparison precision. A failure preserves an existing output file.</p>
+<p>The JSON certificate contains exact numerator/denominator decimal strings
+for the polynomials, the dyadic endpoints and strict sign margin for
+every finite <span class="math notranslate nohighlight">\(M\)</span>, the tail inequalities, and the SHA256 of the
+source used. Polynomial rows are ordered by <span class="math notranslate nohighlight">\(s=1,\ldots,D\)</span>, with
+ascending powers of <span class="math notranslate nohighlight">\(M\)</span> within each row. The output is
+deterministic for fixed source and arguments.</p>
+<p>Independent validation includes equality with the orbit-counted
+polynomials through degree eight, the original scalar-sum reference,
+the rational Gram-propagation solver at degree nine on a triangle, all
+triangle closed forms at degree twenty, and the independently derived
+large-dimension limits. A separate exact interpolation of the scalar
+reference, using the proved degree bounds and additional check points,
+also reproduced all 174 polynomial rows and all comparison certificates
+for degrees nine through twenty.</p>
+<p>The extension to degrees twenty-one through thirty independently reproduces
+another 255 polynomial rows, 6,585 rational coefficients, 3,726 finite
+comparisons and ten infinite tails by Newton interpolation of the original
+scalar reference. The degree-thirty regression also checks the previously
+proved triangle, tetrahedron-vertex, five-vertex-vertex and five-vertex-face
+formulas, together with every independently derived large-dimension limit.</p>
+<p>These results give complete fixed-degree comparisons through thirty.
+They do not assert a uniform formula for the two winning ranges as
+functions of <span class="math notranslate nohighlight">\(D\)</span>, or settle the remaining all-degree vertex
+evaluations.</p>
+<p><a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html"><span class="doc">An all-degree sufficient region for large vertex counts</span></a> proves the separate all-degree
+sufficient condition <span class="math notranslate nohighlight">\(M\geq9720D\)</span>, without constructing these
+degree-specific polynomials. It does not locate the exact winning boundary.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="skeleton_risk_vertex_asymptotics.html" class="btn btn-neutral float-left" title="Quantitative tetrahedron vertex asymptotics" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="skeleton_risk_uniform_dimension_tail.html" class="btn btn-neutral float-right" title="An all-degree sufficient region for large vertex counts" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: feat/risk-codimension-three-exact
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/index.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="skeleton_risk_comparisons.html">feat/risk-codimension-three-exact</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
