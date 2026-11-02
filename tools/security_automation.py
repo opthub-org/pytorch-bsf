@@ -4,6 +4,7 @@ import argparse
 import base64
 import datetime as dt
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -27,6 +28,7 @@ WORKFLOWS = [
     "release-config.yml",
     "codeql-analysis.yml",
     "security-policy.yml",
+    "sphinx-pages-build.yml",
 ]
 MAX_ATTEMPTS = 3
 RECOVERY_COOLDOWN = 3600
@@ -41,12 +43,13 @@ PROTECTED = (
     "tools",
     "tests/tools",
     ".github/workflows/codeql-analysis.yml",
+    ".github/workflows/sphinx-pages.yml",
     ".github/workflows/sphinx-pages-publish.yml",
     ".github/pages-build-template.yml",
     ".github/pages-legacy-owners.json",
 )
 ACTION_PIN = re.compile(r"^(\s*(?:- )?uses:\s+[\w./-]+@)[0-9a-f]{40}(\s*(?:#.*)?)$", re.MULTILINE)
-POST_MERGE = [*WORKFLOWS, "release-please-action.yml", "sphinx-pages-build.yml"]
+POST_MERGE = [*WORKFLOWS, "release-please-action.yml"]
 VALIDATION_NAMES = {
     ".pre-commit-config.yaml",
     ".coveragerc",
@@ -274,6 +277,8 @@ def expected_checks(root: Path) -> set[str]:
         "lowest",
         "distribution",
         "docs",
+        "build",
+        "GHPages publish",
         "release-config",
         "Analyze",
         "CodeQL",
@@ -322,6 +327,115 @@ def ci_state(api: GitHub, sha: str, root: Path) -> tuple[list[str], list[str], d
         if matching and matching["status"] == "completed" and matching["conclusion"] in {"failure", "cancelled", "timed_out"}:
             failed.append(workflow)
     return failed, sorted(set(pending)), latest
+
+
+class PublicationReads:
+    """Expose only repository GETs to the protected publisher authenticator."""
+
+    def __init__(self, api: GitHub) -> None:
+        self.api = api
+
+    def request(self, path: str) -> Any:
+        return self.api.get(path)
+
+
+def _publication_policy() -> Any:
+    """Load authentication policy from this trusted script's sibling file."""
+    spec = importlib.util.spec_from_file_location(
+        "_security_pages_publish", Path(__file__).resolve().with_name("pages_publish.py")
+    )
+    if spec is None or spec.loader is None:
+        raise ValueError("Could not load the trusted publication policy")
+    pages = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pages)
+    return pages
+
+
+def _publication_ledger(api: GitHub, ref: str, sha: str, pages: Any) -> Json:
+    """Read the exact-ref ledger without executing publication contents."""
+    content = api.get(f"contents/{pages.ledger_path(ref)}?ref=gh-pages")
+    if (
+        content["type"] != "file"
+        or content["encoding"] != "base64"
+        or type(content["size"]) is not int
+        or not 0 < content["size"] <= pages.MAX_MANIFEST_BYTES
+    ):
+        raise ValueError("Invalid documentation publication ledger")
+    raw = base64.b64decode("".join(content["content"].split()), validate=True)
+    if len(raw) != content["size"]:
+        raise ValueError("Documentation publication ledger size mismatch")
+    ledger = json.loads(raw, object_pairs_hook=pages.unique_json)
+    if (
+        not isinstance(ledger, dict)
+        or set(ledger) != {"source_ref", "source_sha", "run_id", "run_attempt", "run_number", "artifact_id", "digest", "files"}
+        or ledger["source_ref"] != ref
+        or ledger["source_sha"] != sha
+        or not isinstance(ledger["digest"], str)
+        or pages.DIGEST.fullmatch(ledger["digest"]) is None
+        or not isinstance(ledger["files"], list)
+        or not 0 < len(ledger["files"]) <= pages.MAX_FILES
+        or "index.html" not in ledger["files"]
+    ):
+        raise ValueError("Documentation ledger does not match the PR source")
+    for key in ("run_id", "run_attempt", "run_number", "artifact_id"):
+        pages.positive_int(ledger[key])
+    for name in ledger["files"]:
+        pages.safe_path(name)
+    if len(set(ledger["files"])) != len(ledger["files"]):
+        raise ValueError("Duplicate managed documentation path")
+    return ledger
+
+
+def validate_publication(api: GitHub, pr: Json) -> None:
+    """Require publication evidence for this full source ref and exact head."""
+    pages = _publication_policy()
+    ref, sha = "refs/heads/" + pr["head"]["ref"], pr["head"]["sha"]
+    pages.destination(ref)
+    if api.repo != pages.REPOSITORY or pages.SHA.fullmatch(sha) is None:
+        raise ValueError("Invalid documentation publication source")
+    ledger = _publication_ledger(api, ref, sha, pages)
+    external_id = f"pages-{ledger['run_id']}-{ledger['run_attempt']}"
+    checks = api.pages(f"commits/{sha}/check-runs?filter=all", "check_runs")
+    matching = [row for row in checks if row["name"] == pages.CHECK_NAME and row.get("external_id") == external_id]
+    if not matching:
+        raise ValueError("No publication check matches this source ref and run attempt")
+    check = max(matching, key=lambda row: pages.positive_int(row["id"]))
+    if (
+        check["head_sha"] != sha
+        or check["status"] != "completed"
+        or check["conclusion"] != "success"
+        or check["app"]["id"] != 15368
+        or check["app"]["slug"] != "github-actions"
+        or check["output"]["summary"] != f"Published `{ref}` at `{sha}` from artifact {ledger['artifact_id']}."
+    ):
+        raise ValueError("The source-ref publication check is not authenticated and successful")
+    producer = api.get(f"actions/runs/{ledger['run_id']}")
+    run, repo = pages.authenticate_run(PublicationReads(api), {"workflow_run": producer})
+    if (
+        run["head_sha"] != sha
+        or run["head_branch"] != pr["head"]["ref"]
+        or run["id"] != ledger["run_id"]
+        or run["run_attempt"] != ledger["run_attempt"]
+        or run["run_number"] != ledger["run_number"]
+    ):
+        raise ValueError("The published producer does not match the current source ref and attempt")
+    artifact = api.get(f"actions/artifacts/{ledger['artifact_id']}")
+    owner = artifact["workflow_run"]
+    if (
+        pages.positive_int(artifact["id"]) != ledger["artifact_id"]
+        or artifact["name"] != external_id
+        or artifact["expired"] is not False
+        or artifact["digest"] != ledger["digest"]
+        or type(artifact["size_in_bytes"]) is not int
+        or not 0 < artifact["size_in_bytes"] <= pages.MAX_ARCHIVE_BYTES
+        or owner["id"] != run["id"]
+        or owner["repository_id"] != repo["id"]
+        or owner["head_repository_id"] != repo["id"]
+        or owner["head_sha"] != sha
+        or owner["head_branch"] != pr["head"]["ref"]
+        or dt.datetime.fromisoformat(artifact["created_at"]) < dt.datetime.fromisoformat(run["run_started_at"])
+    ):
+        raise ValueError("Published artifact metadata does not match the source ref and producer")
 
 
 def dispatch_workflow(api: GitHub, workflow: str, branch: str, pr: int | None = None) -> None:
@@ -758,6 +872,7 @@ def merge(api: GitHub, task: Json, root: Path, verdict: Json) -> None:
     failed, pending, _ = ci_state(api, task["head"], root)
     if failed or pending or pr.get("mergeable_state") != "clean":
         raise ValueError("The exact-head merge gate is not satisfied")
+    validate_publication(api, pr)
     api.fetch_commit(root, task["head"])
     validate_changes(root, task["base"], task["head"])
     resolve_threads(api, pr["number"], verdict["resolved_threads"])

@@ -11,6 +11,53 @@ Run commands from the repository root. Use the project's development Python
 environment for the exact runner, SymPy, and tests. Use the separate SageMath
 environment for Ore algebra. No Mathematica installation is needed.
 
+## Replay saved enclosures and isolate validation checkouts
+
+The general vertex error, refined vertex error and large-vertex constant
+records can be rechecked without repeating their generation options:
+
+```sh
+.venv/bin/python -m tools.risk_research.vertex_refined_asymptotic \
+  --vertices 6 --degree 257 --constant-terms 17 \
+  --output .research/skeleton-risk/refined.json
+.venv/bin/python -m tools.risk_research.saved_records \
+  --verify .research/skeleton-risk/refined.json
+```
+
+This verifier supports only `skeleton-risk-general-vertex-error-v1`,
+`skeleton-risk-refined-vertex-error-v1` and
+`skeleton-risk-large-vertex-constant-v1`. It recovers the recorded terms,
+degree, precision, relative target and optional Arb calculations, regenerates
+into temporary storage in a captured subprocess from the same source checkout,
+and compares the complete record including source hashes and JSON scalar
+types. Each replay has a 60-second limit and leaves the parent process's
+streams alone. Replay does not require a clean Git checkout; the saved
+fingerprints must match the current sources. It never writes the supplied record. Unknown
+schemas, duplicate keys, extra fields, changed options or sources, and
+nonfinite values fail.
+Arb records require the recorded python-flint version and reproducible ball
+serialization; a different backend version fails the complete comparison.
+Each schema retains its existing source-hash policy: this verifier does not
+make raw-source hashes portable across LF/CRLF conversions. The existing
+comparison, tail and joint-growth certificate CLIs retain their own
+`--verify` or `--check` commands.
+
+`checkout_harness.run_python` is a standard-library helper for checks in a
+separate clean Git checkout. Pass the expected HEAD and tree plus the modules
+whose import locations must belong to that checkout. It sets the relative
+`PYTHONPATH=.` and disables child bytecode writes, checks imports before
+launching the command, and verifies HEAD, tree and tracked, untracked and
+ignored status afterward, including failed commands and timeouts. Ignored
+extensions, bytecode, data and caches also make the initial checkout dirty.
+Keep every output and cache directory outside the checkout; there is no
+ignored-cache allowlist. Start the parent Python process with
+`PYTHONDONTWRITEBYTECODE=1` before importing the helper, especially when the
+parent runs in the same target checkout. Setting it after imports is too late
+to prevent the parent's initial bytecode residue.
+Only explicit `-m module` and `-c code` commands are supported; script paths
+and Python path flags are rejected so the import search paths agree.
+The helper detects source changes; it is not a sandbox for untrusted code.
+
 ## Install the symbolic environment
 
 With Conda already installed:

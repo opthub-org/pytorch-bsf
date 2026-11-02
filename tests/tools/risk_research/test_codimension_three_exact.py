@@ -15,6 +15,7 @@ import pytest
 
 from tests.sampling import _exact_coefficients, _scalar_risk_sum
 from tools.risk_research import codimension_three_exact as diagonal
+from tools.risk_research.checkout_harness import checkout_state, run_python
 from tools.risk_research.edge_closed import codimension_two_coefficient
 from tools.risk_research.research_exact import integer_kernel
 from tools.risk_research.vertex_general import leading_constant_enclosure as vertex_constant_enclosure
@@ -292,11 +293,30 @@ def test_real_crlf_and_lf_source_files_produce_identical_records_without_site_pa
         for name, source in diagonal._sources().items():
             canonical = source.replace(b"\r\n", b"\n")
             (destination / name).write_bytes(canonical if line_endings == "lf" else canonical.replace(b"\n", b"\r\n"))
+        checkout = tmp_path / line_endings
+        for arguments in [["init"], ["add", "tools"], ["commit", "-m", "Test sources"]]:
+            subprocess.run(
+                [
+                    "git",
+                    "-c",
+                    "core.hooksPath=/dev/null",
+                    "-c",
+                    "commit.gpgsign=false",
+                    "-c",
+                    "user.name=Harness Test",
+                    "-c",
+                    "user.email=harness@example.invalid",
+                    *arguments,
+                ],
+                cwd=checkout,
+                check=True,
+                capture_output=True,
+            )
+        state = checkout_state(checkout)
         output = tmp_path / f"{line_endings}.json"
-        result = subprocess.run(
+        result = run_python(
+            checkout,
             [
-                sys.executable,
-                "-S",
                 "-m",
                 "tools.risk_research.codimension_three_exact",
                 "--face-size",
@@ -306,9 +326,10 @@ def test_real_crlf_and_lf_source_files_produce_identical_records_without_site_pa
                 "--output",
                 str(output),
             ],
-            cwd=tmp_path / line_endings,
-            capture_output=True,
-            text=True,
+            modules=("tools.risk_research.codimension_three_exact",),
+            expected_head=state.head,
+            expected_tree=state.tree,
+            no_site=True,
             timeout=30,
         )
         assert result.returncode == 0, result.stdout + result.stderr

@@ -176,7 +176,13 @@ def verify_certificate(record: object) -> None:
         expected = certify_six_vertex_comparison(max_bits=max(precisions))
     except ArithmeticError as error:
         raise ValueError("certificate has insufficient recorded precision") from error
-    if record != expected:
+    # Python equality identifies 1, 1.0 and True. Saved certificates require
+    # their exact JSON scalar types as well as their mathematical values.
+    try:
+        matches = json.dumps(record, sort_keys=True, allow_nan=False) == json.dumps(expected, sort_keys=True, allow_nan=False)
+    except (TypeError, ValueError) as error:
+        raise ValueError("certificate does not match the full comparison and sources") from error
+    if not matches:
         raise ValueError("certificate does not match the full comparison and sources")
 
 
