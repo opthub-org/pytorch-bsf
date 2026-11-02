@@ -433,6 +433,24 @@ python -m tools.risk_research.six_vertex_comparison \
   --verify .research/skeleton-risk/six-vertex-comparison.json
 ```
 
+## A classical expression for the fifth leading constant
+
+`c5_closed_form` proves `c5=900*zeta(4)-600*zeta(3)-120*zeta(2)` by a
+finite harmonic telescope and low-weight zeta identities. Thus `C6=540*c5`
+and every fixed-source q4 leading constant has an ordinary-zeta formula.
+The standard-library evaluator uses positive Euler-transform sums and
+rigorous rational tails, including cancellation-aware endpoints:
+
+```sh
+python -m tools.risk_research.c5_closed_form --terms 64 --face-size 2 \
+  --output .research/skeleton-risk/c5.json
+python -m tools.risk_research.c5_closed_form --verify .research/skeleton-risk/c5.json
+```
+
+See [the proof](../../docs/advanced/skeleton_risk_c5_closed_form.rst).
+These are leading constants; no finite-degree remainder or joint limit is
+claimed by this evaluator. Saved records restore both nondefault parameters.
+
 ## Further vertex evaluations and explicit errors
 
 `vertex_general.vertex_coefficient(M,D)` constructs every vertex coefficient
