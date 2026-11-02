@@ -96,6 +96,7 @@ choose them when your domain, objective or execution environment requires it.
    advanced/codimension_two_states
    advanced/codimension_two_family
    advanced/skeleton_risk_codimension_three
+   advanced/skeleton_risk_codimension_three_exact
    advanced/skeleton_risk_vertex
    advanced/skeleton_risk_vertex_general
    advanced/skeleton_risk_vertex_large_dimension
@@ -106,6 +107,7 @@ choose them when your domain, objective or execution environment requires it.
    advanced/skeleton_risk_vertex_asymptotics
    advanced/skeleton_risk_comparisons
    advanced/skeleton_risk_uniform_dimension_tail
+   advanced/skeleton_risk_fixed_vertex_tail
    advanced/skeleton_risk_tetrahedron_comparison
    advanced/skeleton_risk_five_vertex
    advanced/skeleton_risk_five_vertex_recurrence

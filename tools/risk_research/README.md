@@ -233,6 +233,18 @@ rational upper bound using only the standard library. This is an inequality,
 not an exact codimension-three evaluation. The CLI emits source-bound bound data. The optional symbolic checker verifies
 the finite rational and harmonic identities used in the proof.
 
+The [positive nonvertex diagonal theorem](../../docs/advanced/skeleton_risk_codimension_three_exact.rst)
+now evaluates every source size and outside-coordinate count by universal
+univariate diagonals. In codimension three it is a positive harmonic double
+sum, including `a_1(5,D)` and `a_2(6,D)`. At fixed `s>=2,q>=2` it also gives
+the leading large-degree term; for example
+`a_1(5,D)~3600*(zeta(2)-zeta(3))/D^3`. The sum lengths grow with degree.
+
+```sh
+python -m tools.risk_research.codimension_three_exact --face-size 2 --degree 40 \
+  --output .research/skeleton-risk/q3-edge-exact.json
+```
+
 The derivations and their limits are in
 [Further evaluations of the skeleton risk](../../docs/advanced/skeleton_risk_extensions.rst).
 They include a codimension-two mode reduction, the all-degree tetrahedron
@@ -526,3 +538,22 @@ The raw-byte before/after guard still rejects any source edit during
 certification, including a line-ending change. A finite set of its
 certificates checks the implementation; the documented inequalities prove
 the all-degree theorem.
+
+## A sufficient degree threshold at every fixed vertex count
+
+For every integer `M>=4`, `fixed_vertex_tail.degree_threshold(M)` constructs
+an explicit `H(M)` such that inductive asymptotic risk is strictly smaller
+for all `D>=H(M)`. The conservative threshold uses rational coefficient
+majorants and integer roots, without evaluating degree-specific risks.
+See [the proof](../../docs/advanced/skeleton_risk_fixed_vertex_tail.rst).
+
+```sh
+python -m tools.risk_research.fixed_vertex_tail --vertices 6 \
+  --output .research/skeleton-risk/fixed6-tail.json
+python -m tools.risk_research.fixed_vertex_tail \
+  --verify .research/skeleton-risk/fixed6-tail.json
+```
+
+The certificate records every constant, the full tail domain and a strict
+rational margin; verification rejects changed fields or source hashes.
+This does not classify the finite prefix below `H(M)`.
