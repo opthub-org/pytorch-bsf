@@ -43,6 +43,7 @@ PROTECTED = (
     "tools",
     "tests/tools",
     ".github/workflows/codeql-analysis.yml",
+    ".github/workflows/sphinx-pages.yml",
     ".github/workflows/sphinx-pages-publish.yml",
     ".github/pages-build-template.yml",
     ".github/pages-legacy-owners.json",

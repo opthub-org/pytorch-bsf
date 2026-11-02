@@ -860,9 +860,19 @@ safely. A source ref and `gh-pages` cannot be updated atomically together:
 a ref change during the final network window can temporarily leave stale
 pages; detection fails the publication check and requires a new build.
 
-Migration disables the legacy `sphinx-pages.yml` workflow repository-wide
-after its outstanding runs finish. This prevents old branches' whole-site
-writers from running. Existing published URLs remain available; old branches
+Migration retains the exact legacy `sphinx-pages.yml` path as an inert,
+manual-only definition with empty permissions and an always-skipped job.
+Keep this protected control file present. Deleting it can change the workflow
+registration to `deleted`, which is not verified manual disablement.
+Resolve the workflow by filename and confirm the legacy ID `10834421`, then
+manually disable it without first enabling it. Require `disabled_manually`,
+drain all outstanding legacy runs, and verify the state and zero active runs
+again after the final merge. Restoration can change registration state, so
+repeat the final ownership census after draining.
+
+The verified repository-wide disabled state prevents old branches' whole-site
+writers from running; the inert default-branch file alone does not establish
+that control. Existing published URLs remain available; old branches
 must incorporate the new workflow before their next preview can pass the
 required publication gate. Existing historical tag pages are retained, and
 new release tags include the new producer. Release Please explicitly dispatches
@@ -892,6 +902,7 @@ pytorch-bsf/
 │   │   ├── docker.yml                # Docker image published to ghcr.io on release
 │   │   ├── sphinx-pages-build.yml    # Read-only multiversion documentation build
 │   │   ├── sphinx-pages-publish.yml  # Trusted, serialized per-ref publication
+│   │   ├── sphinx-pages.yml          # Inert legacy identifier; keep manually disabled
 │   │   ├── codeql-analysis.yml       # Security scanning
 │   │   └── python-package-conda.yml  # End-to-end tests in a Conda environment
 │   ├── ISSUE_TEMPLATE/

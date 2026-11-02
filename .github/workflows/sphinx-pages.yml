@@ -1,0 +1,17 @@
+# Keep the legacy workflow path registered so its existing ID can stay disabled.
+# Retirement also requires verified manual disablement and drained legacy runs.
+name: GHPages legacy writer (retired)
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  retired:
+    # Intentionally constant: this retirement definition must never run a job.
+    if: false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Preserve the retired workflow identifier
+        run: ':'
