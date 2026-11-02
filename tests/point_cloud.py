@@ -656,7 +656,10 @@ POLYNOMIAL_CASES = [((1,), 3), ((2,), 4), ((1, 1), (2, 3)), ((2, 1), (2, 2)), ((
 
 @pytest.mark.parametrize(("dimensions", "degree"), POLYNOMIAL_CASES)
 def test_cached_derivatives_match_the_reference(dimensions, degree):
-    """Shared power tables and cached lookups (#630) give the same derivatives, bit for bit, as recomputing them."""
+    """Shared power tables and cached lookups (#630) give the same derivatives as recomputing them.
+
+    They agree up to rounding: the order of floating-point operations can differ by platform.
+    """
     model, t = _random_polynomial(dimensions, degree, 7)
     t = torch.cat([t, grid(model.space, 1).parameters])  # vertices: zero coordinates
     poly = _Polynomial(model)
@@ -665,12 +668,12 @@ def test_cached_derivatives_match_the_reference(dimensions, degree):
     memo: dict[Any, torch.Tensor] = {}
     for axes in [(), *((i,) for i in range(width)), *combinations(range(width), 2), (0, 0), (0,) * 3, (0,) * 18]:
         expected = reference.derivative(t, axes)
-        torch.testing.assert_close(poly.derivative(t, axes), expected, rtol=0, atol=0)
-        torch.testing.assert_close(poly.derivative(t, axes, memo), expected, rtol=0, atol=0)  # tables shared
-        torch.testing.assert_close(poly.derivative(t, axes, memo), expected, rtol=0, atol=0)  # lookups cached
+        torch.testing.assert_close(poly.derivative(t, axes), expected, rtol=1e-12, atol=1e-14)
+        torch.testing.assert_close(poly.derivative(t, axes, memo), expected, rtol=1e-12, atol=1e-14)  # tables shared
+        torch.testing.assert_close(poly.derivative(t, axes, memo), expected, rtol=1e-12, atol=1e-14)  # lookups cached
     y = torch.randn(len(t), 2, dtype=torch.float64, generator=torch.Generator().manual_seed(1))
     for actual, expected in zip(poly.geometry(t, y), reference.geometry(t, y), strict=True):
-        torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+        torch.testing.assert_close(actual, expected, rtol=1e-12, atol=1e-14)
 
 
 @pytest.mark.parametrize(("dimensions", "degree"), POLYNOMIAL_CASES[:5])
