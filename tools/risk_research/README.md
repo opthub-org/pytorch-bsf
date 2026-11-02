@@ -620,3 +620,25 @@ python -m tools.risk_research.fixed_vertex_tail \
 The certificate records every constant, the full tail domain and a strict
 rational margin; verification rejects changed fields or source hashes.
 This does not classify the finite prefix below `H(M)`.
+
+## A quadratic degree region uniform in the vertex count
+
+The [quadratic-region proof](../../docs/advanced/skeleton_risk_quadratic_degree_tail.rst)
+shows strict inductive victory simultaneously for every `M>=4` and
+`D>=8*M**2`. It replaces the repeated transfer constants by direct
+positive-diagonal majorants and bounds the lower-skeleton sum uniformly.
+The quantitative margin is greater than
+`239/3200 * M/(M-2)! * D**(M-2)`; this is a sufficient region, not a
+classification below the threshold. The new standard-library tool
+specializes that theorem without evaluating actual risk coefficients:
+
+```sh
+python -m tools.risk_research.quadratic_degree_tail --vertices 6 \
+  --output .research/skeleton-risk/quadratic6.json
+python -m tools.risk_research.quadratic_degree_tail \
+  --verify .research/skeleton-risk/quadratic6.json
+```
+
+The certificate retains the full domain, exact rational margin, JSON
+types and source fingerprints. All `M` share the proved constant `8`;
+finite numerical checks are implementation validation, not its proof.
