@@ -41,6 +41,12 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.13'
+      - name: Reject octopus merges, whose changes the scan below cannot read
+        run: |
+          if [ "$(git rev-list --min-parents=3 --count HEAD)" -ne 0 ]; then
+            echo "::error::The history has a merge of three or more parents; see SECURITY.md"
+            exit 1
+          fi
       - name: Scan the git history for secrets with Betterleaks
         # The version is the `rev` of .pre-commit-config.yaml, which Dependabot bumps. SECURITY.md lists what the log can expose.
         run: |

@@ -569,7 +569,7 @@ Conventions that a tool can check are enforced by the pre-commit hooks (see [Ins
 - [typos](https://github.com/crate-ci/typos) finds misspellings; false positives are suppressed narrowly in `_typos.toml`. It runs only in the local git hook for now, and CI skips it, while the rate of false positives is observed. Add a false positive to `_typos.toml` (or report it) rather than rewording correct text.
 - [Betterleaks](https://github.com/betterleaks/betterleaks) blocks a commit whose staged changes contain a secret. pre-commit builds it on first use, downloading Go if needed. [SECURITY.md](SECURITY.md#secret-scanning) says what to do about a finding, real or false.
 
-CI runs the same hooks (except typos and Betterleaks) on all files and fails if they report a problem or change a file. Betterleaks sees only staged changes, so the `secret-scan` job of `.github/workflows/security-policy.yml` runs it on the full history instead. To run them manually:
+CI runs the same hooks (except typos and Betterleaks) on all files and fails if they report a problem or change a file. The Betterleaks git hook sees only staged changes, so the `secret-scan` job of `.github/workflows/security-policy.yml` runs the scanner on the full history instead. To run them manually:
 
 ```bash
 # Run the hooks on all files, as CI does

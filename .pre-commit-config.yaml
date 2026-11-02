@@ -45,11 +45,12 @@ repos:
         stages: [pre-commit]
       # Scan the full history of the checked-out commit: `pre-commit run betterleaks-history --hook-stage manual`
       # --log-opts replaces the default `--all --full-history --diff-filter=tuxdb`: HEAD instead of --all keeps a finding
-      # on another branch from failing unrelated PRs, and --diff-merges=remerge (git 2.35 or later) adds only what a merge
-      # commit changes beyond the automatic merge, so merged lines are not reported again under the merge's own SHA.
+      # on another branch from failing unrelated PRs, dropping t from the filter scans a symlink replaced by a file, and
+      # --diff-merges=remerge (git 2.35 or later) adds only what a merge commit changes beyond the automatic merge, so
+      # merged lines are not reported again under the merge's own SHA. It skips octopus merges, which the job rejects.
       - id: betterleaks
         alias: betterleaks-history
         name: Detect hardcoded secrets in the git history
-        entry: betterleaks git --redact --verbose --legacy-print --no-banner --log-opts="HEAD --full-history --diff-filter=tuxdb --diff-merges=remerge"
+        entry: betterleaks git --redact --verbose --legacy-print --no-banner --log-opts="HEAD --full-history --diff-filter=uxdb --diff-merges=remerge"
         always_run: true
         stages: [manual]
