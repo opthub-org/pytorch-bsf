@@ -675,9 +675,10 @@ def test_cached_derivatives_match_the_reference(dimensions, degree):
 
 @pytest.mark.parametrize(("dimensions", "degree"), POLYNOMIAL_CASES[:5])
 def test_newton_parameters_match_the_reference(dimensions, degree):
-    """Reusing the squared errors of the line searches (#630) leaves every Newton iterate unchanged.
+    """Reusing the squared errors of the line searches (#630) leaves every Newton iterate unchanged up to rounding.
 
-    The reference recomputes each error from the same rows with the same operations, so the iterates agree exactly.
+    The reference evaluates the same rows with the same operations, but evaluating only the rows still
+    backtracking can round matrix products differently on some BLAS builds, so the iterates agree to rounding.
     """
     model, _ = _random_polynomial(dimensions, degree, 3)
     y = torch.randn(25, 2, dtype=torch.float64, generator=torch.Generator().manual_seed(4))
@@ -685,5 +686,5 @@ def test_newton_parameters_match_the_reference(dimensions, degree):
     for max_iter in (1, 4, 10):
         t, converged = _parameters(model, y, start, max_iter, 1e-12)
         expected, expected_converged = _reference_parameters(model, y, start, max_iter, 1e-12)
-        torch.testing.assert_close(t, expected, rtol=0, atol=0)
+        torch.testing.assert_close(t, expected, rtol=1e-7, atol=1e-9)
         assert converged == expected_converged
