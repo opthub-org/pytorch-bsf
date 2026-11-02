@@ -14,7 +14,7 @@ from typing import Any
 
 import torch
 
-from .evidence import GapEvidence, MultiscaleGapDetector, _inputs, _norm
+from .evidence import GapEvidence, MultiscaleGapDetector, _inputs, _norm, _scale_bound
 
 
 @dataclass(frozen=True)
@@ -75,7 +75,7 @@ class StableContrastHintDetector(MultiscaleGapDetector):
             for near in (i - 1, i + 1):
                 if 0 <= near < len(widths):
                     change = _norm(deltas[near]) + floors[near]
-                    bounds.append(change * (widths[i] / widths[near]) if change else 0.0)
+                    bounds.append(_scale_bound(change, widths[i], widths[near]) if change else 0.0)
             first = max(bounds, default=0.0)
             first_excess = max(0.0, row.raw_change - row.noise_floor - self.continuation_factor * first)
             exponent, direction = self._latest((row.left, row.right), noise_variance)

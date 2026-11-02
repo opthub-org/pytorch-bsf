@@ -155,7 +155,7 @@ def _casteljau(controls, t):
 
 
 @given(_coefficients_and_degree())
-@settings(max_examples=40, deadline=None)
+@settings(deadline=None)
 def test_random_degree_elevation_preserves_polynomials_against_de_casteljau(case):
     controls, target, t = case
     raised = _elevate_controls(controls, target)

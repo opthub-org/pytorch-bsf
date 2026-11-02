@@ -40,7 +40,7 @@ def problem():
 
 
 @given(eta=st.floats(min_value=0, max_value=100, allow_nan=False, allow_infinity=False))
-@settings(max_examples=12, deadline=None)
+@settings(deadline=None)
 def test_component_kernel_is_psd_and_is_unchanged_by_chart_renaming(eta):
     unit = np.linspace(0, 1, 13)
     labels = np.array([0] * 4 + [1] * 5 + [2] * 4, dtype=np.int64)

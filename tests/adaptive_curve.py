@@ -241,3 +241,29 @@ def test_smallest_positive_interval_uses_a_representable_default_tolerance():
     torch.testing.assert_close(default.inputs, explicit.inputs, rtol=0, atol=0)
     torch.testing.assert_close(default.model.coefficients, explicit.model.coefficients, rtol=0, atol=0)
     assert torch.equal(default.predict([[0.0], [width]]), torch.ones((2, 1), dtype=torch.float64))
+
+
+@requires_scipy
+@pytest.mark.parametrize("constant", [False, True])
+@pytest.mark.filterwarnings("error:overflow encountered in divide:RuntimeWarning")
+def test_near_duplicate_initial_rows_do_not_overflow_finite_continuation(constant):
+    received = []
+
+    def oracle(x):
+        received.append(x.clone())
+        return torch.ones_like(x) if constant else x
+
+    result = fit_adaptive_curve(oracle, (0.0, 1.0), budget=10, initial_inputs=[[0.0], [1e-320]])
+    assert result.cost == sum(map(len, received)) == 10
+    assert not result.gaps
+    at = torch.linspace(0, 1, 33, dtype=torch.float64)[:, None]
+    expected = torch.ones_like(at) if constant else at
+    torch.testing.assert_close(result.predict(at), expected, rtol=0, atol=1e-14)
+
+
+@requires_scipy
+def test_empty_initial_design_is_rejected_before_any_response_is_charged():
+    received = []
+    with pytest.raises(ValueError, match="empty query"):
+        fit_adaptive_curve(lambda x: received.append(x), (0.0, 1.0), budget=9, initial_inputs=torch.empty((0, 1)))
+    assert not received

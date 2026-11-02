@@ -73,7 +73,7 @@ costs no additional response. ``proposed_rows`` also counts those cache hits.
 their means. A callback failure or invalid response still incurs its requested
 rows; the propagated exception includes a note with the charged count.
 
-An application can provide ``initial_inputs`` of shape ``(n, 1)``. Their
+An application can provide nonempty ``initial_inputs`` of shape ``(n, 1)``. Their
 responses are obtained and charged before the policy adds any missing uniform
 anchors. An initial design that already includes the nine anchors does not
 query them twice. This makes a declared comparison design reproducible without

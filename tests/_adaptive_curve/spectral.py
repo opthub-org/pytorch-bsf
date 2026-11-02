@@ -46,7 +46,7 @@ def test_generic_analytic_vector_curve_has_spectral_accuracy_and_actual_bsf_agre
     assert exported.domain.betti_numbers()[0] == 1
 
 
-@settings(max_examples=16, deadline=None)
+@settings(deadline=None)
 @given(degree=st.integers(2, 7), shift=st.floats(-4, 4), scale=st.floats(0.2, 5))
 def test_generated_polynomials_survive_input_units_and_vector_output_basis(degree, shift, scale):
     x = torch.linspace(-1, 1, 39, dtype=torch.float64)

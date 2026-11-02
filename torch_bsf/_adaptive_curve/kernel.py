@@ -129,7 +129,11 @@ def _search(
         for length in np.exp2(np.linspace(-8.0, 1.0, 19)):
             covariance = _kernel(unit, unit, kind, float(length))
             for ridge in (0.0, 1e-12, 1e-10, 1e-8, 1e-6, 1e-4, 1e-2):
-                diagonal = ridge / (len(unit) * mass)
+                # An almost coincident initial row can have subnormal mass.
+                # Nonfinite regularization is rejected by the existing fit
+                # checks; it should not emit a warning from this candidate.
+                with np.errstate(over="ignore"):
+                    diagonal = ridge / (len(unit) * mass)
                 for degree in (0, 1):
                     trend = np.column_stack((np.ones(len(unit)), 2 * unit - 1))[:, : degree + 1]
                     fitted = _fixed_fit(covariance, normalized, trend, diagonal)

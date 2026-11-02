@@ -1,4 +1,4 @@
-"""Research-only continuation checks for vector-valued one-dimensional data.
+"""Empirical continuation checks for vector-valued one-dimensional data.
 
 Large approximation error is not itself evidence for a disconnected chart.
 An adjacent change is compared with the *norms* of neighboring secants, then
@@ -44,6 +44,36 @@ def _norm(value: torch.Tensor) -> float:
     if not math.isfinite(result):
         raise ArithmeticError("Response differences exceed the finite float64 range.")
     return result
+
+
+def _scale_delta(delta: torch.Tensor, numerator: float, denominator: float) -> torch.Tensor:
+    """Keep ordinary multiplication and rescue unrepresentable width ratios."""
+    ratio = numerator / denominator
+    if 0 < ratio < math.inf:
+        return delta * ratio
+    # The response change can be finite even when the width ratio alone
+    # overflows or underflows. Combine exponents before restoring its scale.
+    # Python's ldexp also handles zero with a large exponent on the oldest
+    # supported PyTorch, whose tensor ldexp can otherwise produce 0 * inf.
+    return delta.new_tensor([_scale_bound(value, numerator, denominator) for value in delta.reshape(-1).tolist()]).reshape_as(
+        delta
+    )
+
+
+def _scale_bound(change: float, numerator: float, denominator: float) -> float:
+    """Scale a scalar change without manufacturing zero times infinity."""
+    ratio = numerator / denominator
+    if 0 < ratio < math.inf:
+        return change * ratio
+    if change == 0:
+        return 0.0
+    first, first_exponent = math.frexp(numerator)
+    second, second_exponent = math.frexp(denominator)
+    mantissa, exponent = math.frexp(change)
+    try:
+        return math.ldexp(mantissa * (first / second), exponent + first_exponent - second_exponent)
+    except OverflowError as failure:
+        raise ArithmeticError("Response continuation exceeds the finite float64 range.") from failure
 
 
 def _variation(y: torch.Tensor) -> float:
@@ -169,15 +199,16 @@ class MultiscaleGapDetector:
             near, far = i + direction, i + 2 * direction
             if not 0 <= near < len(widths):
                 continue
-            first = deltas[near] * (widths[i] / widths[near])
-            first_noise = floors[near] * (widths[i] / widths[near])
+            first = _scale_delta(deltas[near], widths[i], widths[near])
+            first_noise = _scale_bound(floors[near], widths[i], widths[near])
             bound = _norm(first) + first_noise
             if 0 <= far < len(widths):
-                second = deltas[far] * (widths[i] / widths[far])
-                second_noise = floors[far] * (widths[i] / widths[far])
-                bound += ((widths[i] + widths[near]) / (widths[near] + widths[far])) * (
-                    _norm(first - second) + first_noise + second_noise
-                )
+                second = _scale_delta(deltas[far], widths[i], widths[far])
+                second_noise = _scale_bound(floors[far], widths[i], widths[far])
+                curvature = _norm(first - second) + first_noise + second_noise
+                numerator, denominator = widths[i] + widths[near], widths[near] + widths[far]
+                ratio = numerator / denominator
+                bound += ratio * curvature if 0 < ratio < math.inf else _scale_bound(curvature, numerator, denominator)
             bounds.append(bound)
         return max(bounds, default=0.0)
 

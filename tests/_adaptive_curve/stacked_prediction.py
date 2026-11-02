@@ -167,7 +167,7 @@ def test_expanded_fit_is_rotation_equivariant_without_modifying_sources_or_obser
     weight=st.floats(0, 1, allow_nan=False, allow_infinity=False),
     seed=st.integers(0, 10000),
 )
-@settings(max_examples=24, deadline=None)
+@settings(deadline=None)
 def test_exact_blend_identity_over_generated_degrees_and_independent_c0_partitions(first_degree, second_degree, weight, seed):
     generator = torch.Generator().manual_seed(seed)
     first = _Spline(

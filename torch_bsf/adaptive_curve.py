@@ -228,7 +228,7 @@ def fit_adaptive_curve(
         generator. Scalar acquisitions use no random jitter. The acquisition
         policy does not consume the global random generator.
     initial_inputs : array-like or None
-        Optional initial parameter rows of shape ``(n, 1)``. These are queried
+        Optional nonempty initial parameter rows of shape ``(n, 1)``. These are queried
         and charged first. The policy then queries any missing points from its
         nine uniform anchors, subject to the remaining budget. None starts
         with those anchors alone. Responses cannot be supplied for free.

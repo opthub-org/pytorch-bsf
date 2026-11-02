@@ -7,13 +7,57 @@ import torch
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from torch_bsf._adaptive_curve.evidence import MultiscaleGapDetector
+from torch_bsf._adaptive_curve.evidence import MultiscaleGapDetector, _scale_bound, _scale_delta
 from torch_bsf._adaptive_curve.queries import QuerySession
 
 
 def observed(detector, session):
     x, y, counts = session.observations()
     return detector.update(x, y, counts=counts, noise_variance=session.noise_variance() or 0.0)
+
+
+@pytest.mark.parametrize("change", [0.0, 1.0, -1.0])
+@pytest.mark.parametrize(
+    "i,widths", [(1, [1e-320, 0.125, 0.125]), (2, [1e-320, 0.125, 0.125, 0.125]), (2, [1e-320, 1e-320, 0.125])]
+)
+def test_unrepresentable_neighbor_width_ratios_keep_linear_continuation_finite(change, i, widths):
+    deltas = torch.tensor(widths, dtype=torch.float64)[:, None] * change
+    bound = MultiscaleGapDetector._continuation(i, widths, deltas, [0.0] * len(widths))
+    expected = widths[i] * abs(change)
+    assert abs(bound - expected) <= 8 * math.ulp(expected)
+
+
+@pytest.mark.parametrize(
+    "change,numerator,denominator", [(1e308, math.ulp(0.0), 1e308), (1e-320, 0.125, 1e-320), (0.0, 1.0, 1e-320)]
+)
+def test_scaled_response_change_agrees_with_independent_exact_rational(change, numerator, denominator):
+    from fractions import Fraction
+
+    expected = float(Fraction(change) * Fraction(numerator) / Fraction(denominator))
+    scalar = _scale_bound(change, numerator, denominator)
+    vector = float(_scale_delta(torch.tensor([change], dtype=torch.float64), numerator, denominator))
+    assert abs(scalar - expected) <= 2 * math.ulp(expected)
+    assert abs(vector - expected) <= 2 * math.ulp(expected)
+
+
+def test_unrepresentable_physical_continuation_fails_explicitly():
+    with pytest.raises(ArithmeticError, match="continuation.*finite float64"):
+        _scale_bound(1.0, 1.0, 1e-320)
+
+
+@pytest.mark.parametrize("inserted,reason", [(0.05, "contracting_change"), (-0.5, "rotating_change")])
+def test_nested_change_that_shrinks_or_reverses_direction_remains_unresolved(inserted, reason):
+    detector = MultiscaleGapDetector(min_refinements=1)
+    detector.update([-2.0, -1.0, 0.0, 1.0, 2.0], [[0.0], [0.0], [0.0], [1.0], [1.0]])
+    rows = detector.update([-2.0, -1.0, 0.0, 0.01, 1.0, 2.0], [[0.0], [0.0], [0.0], [inserted], [1.0], [1.0]])
+    row = next(item for item in rows if item.left == 0 and item.right == 0.01)
+    assert row.nested_scales == 1 and row.excess > row.threshold
+    assert row.status == "unresolved" and row.reason == reason
+    assert row.contraction_exponent is not None and row.direction_agreement is not None
+    if inserted > 0:
+        assert row.contraction_exponent > 0.5 and row.direction_agreement == 1.0
+    else:
+        assert row.contraction_exponent < 0.5 and row.direction_agreement == -1.0
 
 
 def test_charged_nested_queries_are_required_and_repeated_updates_do_not_count():
@@ -142,7 +186,7 @@ def test_adjacent_float_boundary_has_no_fabricated_probe():
 @given(
     st.lists(st.integers(-100, 100), min_size=5, max_size=18, unique=True), st.sampled_from([1e-9, 0.001, 1.0, 1000.0, 1e9])
 )
-@settings(max_examples=40, deadline=None)
+@settings(deadline=None)
 def test_irregular_affine_vector_data_never_creates_a_cut(integer_points, scale):
     x = torch.tensor(sorted(integer_points), dtype=torch.float64) / 16
     y = torch.stack((2 * x + 3, -x + 0.1, 0.5 * x - 1), 1) * scale

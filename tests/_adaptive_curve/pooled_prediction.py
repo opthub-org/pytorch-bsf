@@ -206,7 +206,7 @@ def _restricted_curves(draw):
 
 
 @given(_restricted_curves())
-@settings(max_examples=30, deadline=None)
+@settings(deadline=None)
 def test_exact_restriction_preserves_random_c0_charts_and_output_offset(case):
     source, left, right = case
     original_controls = source.controls.clone()
