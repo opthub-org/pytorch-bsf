@@ -19,6 +19,11 @@ from .polynomial import CurveGap, StructureLearningResult, _midpoints, _noise_pi
 from .queries import QuerySession
 
 
+def _default_bracket_limit(width: float) -> float:
+    """Keep the default positive when dividing a subnormal width underflows."""
+    return max(2 * (width / 256), math.ulp(0.0))
+
+
 class GapDetector(Protocol):
     """One private observation history and its finite-scale evidence."""
 
@@ -160,8 +165,7 @@ def learn_with_detector(
     finite-width brackets remain distinct from a confidence certificate.
     """
     width = float(session.bounds[0, 1] - session.bounds[0, 0])
-    position_target = width / 256
-    bracket_limit = 2 * position_target if location_tolerance is None else location_tolerance
+    bracket_limit = _default_bracket_limit(width) if location_tolerance is None else location_tolerance
     lower, upper, width, target = _settings(
         session, initial_samples, bracket_limit, 32, exploration_every, noise_replicates, min_relative_jump
     )

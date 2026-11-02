@@ -12,7 +12,7 @@ from .._numeric import _finite_mean
 
 
 def _exact_grid(values: torch.Tensor, bounds: torch.Tensor, step: torch.Tensor) -> torch.Tensor:
-    """Snap with exact integer keys when floating-point key ratios overflow."""
+    """Snap with exact keys near integer-precision limits or ratio overflow."""
     spacing = Fraction.from_float(float(step))
     lower, upper = (Fraction.from_float(value) for value in bounds.tolist())
     minimum, maximum = math.ceil(lower / spacing), math.floor(upper / spacing)
@@ -27,7 +27,11 @@ def _exact_grid(values: torch.Tensor, bounds: torch.Tensor, step: torch.Tensor) 
 def _snap_grid(values: torch.Tensor, bounds: torch.Tensor, step: torch.Tensor) -> torch.Tensor:
     """Keep the ordinary grid reduction and repair outward-rounded key limits."""
     ratios = bounds / step
-    if not torch.isfinite(ratios).all():
+    # Select one rule for the whole axis: at large keys, division and product
+    # rounding can move a represented grid point to another key on requery.
+    # This conservative margin stays well below float64's 2**53 integer limit.
+    exact_threshold = 2**50 * (1 - 4 * torch.finfo(torch.float64).eps)
+    if not torch.isfinite(ratios).all() or (ratios.abs() >= exact_threshold).any():
         return _exact_grid(values, bounds, step)
     minimum, maximum = torch.ceil(ratios[0]), torch.floor(ratios[1])
     if not torch.isfinite(torch.stack((minimum * step, maximum * step))).all():

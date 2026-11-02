@@ -220,8 +220,9 @@ def fit_adaptive_curve(
         queries. This is an input protocol supplied by the application.
     location_tolerance : float or None
         Maximum proposed bracket width, enlarged to one declared grid step if
-        necessary. None uses twice the domain width divided by 256. This is a
-        requested finite-scale resolution, not a localization guarantee.
+        necessary. None uses twice the domain width divided by 256, with a
+        positive float64 lower limit. This is a requested finite-scale
+        resolution, not a localization guarantee.
     seed : int
         Integer from zero through ``2**64 - 1`` for a private vector-query jitter
         generator. Scalar acquisitions use no random jitter. The acquisition
@@ -268,7 +269,7 @@ def fit_adaptive_curve(
         raise ImportError("fit_adaptive_curve requires SciPy; install 'pytorch-bsf[adaptive]'.") from failure
 
     from torch_bsf._adaptive_curve.detector import EmbeddingGapDetector
-    from torch_bsf._adaptive_curve.engine import learn_with_detector
+    from torch_bsf._adaptive_curve.engine import _default_bracket_limit, learn_with_detector
     from torch_bsf._adaptive_curve.kernel_prediction import refit_prediction as refit_kernel_prediction
     from torch_bsf._adaptive_curve.polynomial import _settings
     from torch_bsf._adaptive_curve.pooled_prediction import refit_prediction
@@ -278,7 +279,9 @@ def fit_adaptive_curve(
     session = QuerySession(oracle, pairs, budget=budget, deterministic=deterministic, resolution=resolution)
     try:
         width = float(session.bounds[0, 1] - session.bounds[0, 0])
-        _settings(session, 9, 2 * (width / 256) if location_tolerance is None else location_tolerance, 32, 4, 3, 0.01)
+        _settings(
+            session, 9, _default_bracket_limit(width) if location_tolerance is None else location_tolerance, 32, 4, 3, 0.01
+        )
         if initial_inputs is not None:
             session.query(initial_inputs)
         learned = learn_with_detector(

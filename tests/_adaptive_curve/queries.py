@@ -108,10 +108,12 @@ def test_extreme_grid_ratios_remain_finite_and_idempotent():
     assert session.cost == 3
 
 
-def test_ordinary_grid_reduction_remains_bitwise_identical():
-    session = QuerySession(lambda x: x, [[-1.0, 1.0]], budget=1, resolution=0.1)
-    points = torch.linspace(-1, 1, 1001, dtype=torch.float64)[:, None]
-    previous = torch.round(points / 0.1).clamp(-10, 10) * 0.1
+@pytest.mark.parametrize("bounds, step", [((-1.0, 1.0), 0.1), ((-1.8, 1.8), 1e-9), ((0.0, 3600.0), 1e-6)])
+def test_ordinary_grid_reduction_remains_bitwise_identical(bounds, step):
+    session = QuerySession(lambda x: x, [bounds], budget=1, resolution=step)
+    points = torch.linspace(bounds[0], bounds[1], 1001, dtype=torch.float64)[:, None]
+    minimum, maximum = math.ceil(bounds[0] / step), math.floor(bounds[1] / step)
+    previous = torch.round(points / step).clamp(minimum, maximum) * step
     assert torch.equal(session.canonical(points).view(torch.int64), previous.view(torch.int64))
 
 
@@ -129,6 +131,61 @@ def test_canonical_grid_is_bounded_and_idempotent(step, key, fraction, sign):
     canonical = session.canonical(points)
     assert ((canonical >= bounds[0]) & (canonical <= bounds[1])).all()
     assert torch.equal(session.canonical(canonical), canonical)
+
+
+def _assert_stable_grid_requery(bounds, step, point, deterministic):
+    received = []
+
+    def oracle(x):
+        received.append(x.clone())
+        return x
+
+    session = QuerySession(oracle, [bounds], budget=2, resolution=step, deterministic=deterministic)
+    canonical = session.canonical([[point]])
+    assert torch.isfinite(canonical).all()
+    assert ((canonical >= bounds[0]) & (canonical <= bounds[1])).all()
+    repeated = canonical
+    for _ in range(3):
+        repeated = session.canonical(repeated)
+        assert torch.equal(repeated, canonical)
+    first = session.query([[point]])
+    observed = session.observations()[0]
+    assert torch.equal(observed, canonical)
+    assert torch.equal(session.query(observed), first)
+    expected = 1 if deterministic else 2
+    assert len(received) == session.cost == expected
+    assert torch.equal(received[0], received[-1])
+    assert session.observations()[2].tolist() == [expected]
+
+
+@pytest.mark.parametrize("deterministic", [False, True])
+@pytest.mark.parametrize("exponent", [-500, -100, 0, 100, 500])
+@pytest.mark.parametrize("sign", [-1, 1])
+def test_large_grid_keys_keep_observed_locations_stable(deterministic, exponent, sign):
+    lower, upper = (math.ldexp(value, exponent) for value in (1.2520630658639984, 1.2520630658639995))
+    bounds = (lower, upper) if sign == 1 else (-upper, -lower)
+    step = math.ldexp(2.844936542058989e-16, exponent)
+    _assert_stable_grid_requery(bounds, step, bounds[1], deterministic)
+
+
+@given(
+    base=st.floats(1, 2, allow_nan=False, allow_infinity=False),
+    exponent=st.integers(-500, 500),
+    width=st.integers(8, 32),
+    spacing=st.floats(0.125, 4, allow_nan=False, allow_infinity=False),
+    fraction=st.floats(0, 1, allow_nan=False, allow_infinity=False),
+    sign=st.sampled_from([-1, 1]),
+    deterministic=st.booleans(),
+)
+def test_narrow_grid_requery_preserves_cache_or_replicate_location(
+    base, exponent, width, spacing, fraction, sign, deterministic
+):
+    lower = math.ldexp(base, exponent)
+    upper = lower + width * math.ulp(lower)
+    bounds = (lower, upper) if sign == 1 else (-upper, -lower)
+    step = spacing * math.ulp(lower)
+    point = bounds[0] + fraction * (bounds[1] - bounds[0])
+    _assert_stable_grid_requery(bounds, step, point, deterministic)
 
 
 def test_constant_extreme_repeats_have_finite_means_and_zero_noise():

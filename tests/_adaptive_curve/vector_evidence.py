@@ -1,13 +1,19 @@
 """Cross-fitted directions must not turn generic vector roughness into gaps."""
 
-from dataclasses import asdict
+from dataclasses import asdict, replace
 
 import pytest
 import torch
 
 from torch_bsf._adaptive_curve.evidence import MultiscaleGapDetector
 from torch_bsf._adaptive_curve.queries import QuerySession
-from torch_bsf._adaptive_curve.vector_evidence import CrossFittedVectorGapDetector, _outer_models
+from torch_bsf._adaptive_curve.vector_evidence import (
+    CrossFittedVectorGapDetector,
+    _Outer,
+    _outer_models,
+    _projected_statistics,
+    _Side,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -185,3 +191,79 @@ def test_replicate_mean_and_noise_changes_recompute_evidence_without_stale_outer
     assert all(
         row.noise_floor >= 3 * 2**0.5 * (1 / int(counts[i]) + 1 / int(counts[i + 1])) ** 0.5 for i, row in enumerate(first)
     )
+
+
+def _projected_fixture(degree):
+    first = torch.tensor([[0.5, 0.25], [0.75, -0.25], [0.125, 0.5]], dtype=torch.float64)[: degree + 1]
+    second = torch.tensor([[1.0, 0.5], [0.25, 0.75], [-0.25, 0.125]], dtype=torch.float64)[: degree + 1]
+    residual = torch.tensor([[0.125, -0.25], [-0.25, 0.125], [0.5, 0.125]], dtype=torch.float64)
+    inverse = torch.tensor([[0.5, 0.25, -0.125], [0.25, -0.5, 0.125], [0.125, 0.5, -0.25]], dtype=torch.float64)[: degree + 1]
+    return _Outer(
+        _Side(first, residual, inverse, 0.125, 2),
+        _Side(second, -residual, inverse, 0.125, 2),
+        1.0,
+        degree,
+        3,
+        3,
+        torch.ones(2, dtype=torch.float64),
+    )
+
+
+@pytest.mark.parametrize("degree,floor", [(1, "0x1.7643f68a12096p+0"), (2, "0x1.773c2591f16acp+0")])
+def test_ordinary_projected_statistics_retain_frozen_float64_values(degree, floor):
+    model = _projected_fixture(degree)
+    actual = _projected_statistics(model, torch.tensor([0.6, 0.8], dtype=torch.float64), 0.25)
+    expected = tuple(float.fromhex(v) for v in ("0x1.8000000000001p-3", floor, "0x1.27d27d27d27d2p-1"))
+    assert actual == expected
+
+
+@pytest.mark.parametrize("degree", [1, 2])
+@pytest.mark.parametrize("scale", [1e-170, 1e170, 2.0**-600, 2.0**600])
+def test_projected_statistics_are_finite_when_physical_input_squares_underflow_or_overflow(degree, scale):
+    model, direction = _projected_fixture(degree), torch.tensor([0.6, 0.8], dtype=torch.float64)
+    expected = _projected_statistics(model, direction, 0.25)
+    actual = _projected_statistics(replace(model, radius=scale), direction, 0.25 * scale)
+    assert actual == pytest.approx(expected, rel=2e-15, abs=0)
+
+
+def test_tiny_interval_ratio_is_not_squared_before_multiplying_its_curvature_coefficient():
+    model = _projected_fixture(2)
+    for side in (model.left, model.right):
+        side.coefficients.zero_()
+        side.coefficients[2, 0] = 1e300
+        side.residual.zero_()
+    bound, floor, orthogonal = _projected_statistics(model, torch.tensor([1.0, 0.0], dtype=torch.float64), 1e-200)
+    assert bound == pytest.approx(2e-100, rel=2e-15, abs=0)
+    assert floor == orthogonal == 0
+
+
+@pytest.mark.parametrize(
+    "radius,width,curvature,message",
+    [(0.0, 1.0, 0.0, "positive"), (1e170, 5e-324, 0.0, "ratio"), (1e170, 1.5e170, 1e308, "bound")],
+)
+def test_unrepresentable_projected_diagnostics_fail_explicitly(radius, width, curvature, message):
+    model = replace(_projected_fixture(2), radius=radius)
+    for side in (model.left, model.right):
+        side.coefficients.zero_()
+        side.coefficients[2, 0] = curvature
+    with pytest.raises(ArithmeticError, match=message):
+        _projected_statistics(model, torch.tensor([1.0, 0.0], dtype=torch.float64), width)
+
+
+@pytest.mark.parametrize("width", [1e-170, 1e170])
+def test_public_vector_fit_completes_all_charged_rows_on_extreme_input_widths(width):
+    pytest.importorskip("scipy")
+    from torch_bsf import fit_adaptive_curve
+
+    charged = []
+
+    def oracle(points):
+        charged.extend(points[:, 0].tolist())
+        unit = points / width
+        return torch.cat((unit.square(), unit**3), 1)
+
+    result = fit_adaptive_curve(oracle, (0.0, width), budget=17)
+    assert result.cost == len(charged) == 17
+    assert not result.gaps
+    unit = torch.linspace(0, 1, 33, dtype=torch.float64)[:, None]
+    torch.testing.assert_close(result.predict(unit * width), torch.cat((unit.square(), unit**3), 1), rtol=0, atol=3e-14)

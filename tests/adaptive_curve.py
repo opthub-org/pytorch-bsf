@@ -1,4 +1,5 @@
 import importlib.util
+import math
 import subprocess
 import sys
 
@@ -6,6 +7,14 @@ import pytest
 import torch
 
 from torch_bsf import AdaptiveCurveResult, Points, fit_adaptive_curve
+
+
+def test_default_bracket_limit_is_positive_for_subnormal_width():
+    pytest.importorskip("scipy")
+    from torch_bsf._adaptive_curve.engine import _default_bracket_limit
+
+    assert _default_bracket_limit(math.ulp(0.0)) == math.ulp(0.0)
+    assert _default_bracket_limit(1.0) == 2 / 256
 
 
 @pytest.fixture(autouse=True)
@@ -221,3 +230,14 @@ def test_rounded_grid_endpoint_never_reaches_callback_outside_bounds(initial_inp
     assert result.cost == sum(map(len, received)) == 4
     assert ((result.inputs >= 0.0) & (result.inputs <= 1.7)).all()
     assert torch.isfinite(result.predict([[0.0], [1.7]])).all()
+
+
+@requires_scipy
+def test_smallest_positive_interval_uses_a_representable_default_tolerance():
+    width = math.ulp(0.0)
+    default = fit_adaptive_curve(lambda x: torch.ones_like(x), (0.0, width), budget=2)
+    explicit = fit_adaptive_curve(lambda x: torch.ones_like(x), (0.0, width), budget=2, location_tolerance=width)
+    assert default.cost == explicit.cost == 2
+    torch.testing.assert_close(default.inputs, explicit.inputs, rtol=0, atol=0)
+    torch.testing.assert_close(default.model.coefficients, explicit.model.coefficients, rtol=0, atol=0)
+    assert torch.equal(default.predict([[0.0], [width]]), torch.ones((2, 1), dtype=torch.float64))

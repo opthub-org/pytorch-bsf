@@ -98,7 +98,8 @@ different embeddings even when their numeric parameters are close.
 
 ``location_tolerance`` is a maximum proposed bracket width, enlarged to at
 least one declared grid step. Its default is twice the domain width divided
-by 256. Smaller targets require more localization work. They do not guarantee
+by 256, with a positive float64 lower limit. Smaller targets require more
+localization work. They do not guarantee
 that every feature will be found. ``status`` distinguishes budget exhaustion,
 an exhausted declared grid, floating-point exhaustion and insufficient
 observations; budget exhaustion is not convergence.

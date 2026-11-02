@@ -92,15 +92,37 @@ def _outer_models(x: torch.Tensor, y: torch.Tensor, i: int) -> list[_Outer]:
     return models
 
 
+def _scaled_continuation(model: _Outer, side: _Side, u: torch.Tensor, width: float, sign: int) -> tuple[float, float]:
+    """Use dimensionless input ratios when physical input squares are unsafe."""
+    if not (math.isfinite(width) and width > 0 and math.isfinite(model.radius) and model.radius > 0):
+        raise ArithmeticError("Projected continuation requires finite positive input width and radius.")
+    ratio = width / model.radius
+    if not math.isfinite(ratio) or not 0 < ratio <= 2:
+        raise ArithmeticError("Projected continuation interval/radius ratio is outside its finite float64 range.")
+    slope = float(side.coefficients[1] @ u) * ratio
+    # Multiply the coefficient first: ratio**2 can underflow even when the
+    # coefficient times the squared ratio is a representable response change.
+    curvature = (float(side.coefficients[2] @ u) * ratio) * ratio if model.degree == 2 else 0.0
+    bound = abs(slope + sign * curvature) + abs(curvature)
+    if not math.isfinite(bound):
+        raise ArithmeticError("Projected continuation bound exceeds the finite float64 response range.")
+    return sign * (ratio / 2), bound
+
+
 def _projected_statistics(model: _Outer, u: torch.Tensor, width: float) -> tuple[float, float, float]:
     """Absolute sided Taylor continuation plus forecast residual floor."""
     bounds, variances, total_residual = [], [], 0.0
+    scaled = not (1e-100 <= width <= 1e100 and 1e-100 <= model.radius <= 1e100)
     for sign, side in ((-1, model.left), (1, model.right)):
-        t = sign * width / (2 * model.radius)
+        if scaled:
+            t, bound = _scaled_continuation(model, side, u, width, sign)
+        else:
+            t = sign * width / (2 * model.radius)
+            derivative = float(side.coefficients[1] @ u) / model.radius
+            curvature = float(side.coefficients[2] @ u) / model.radius**2 if model.degree == 2 else 0.0
+            bound = width * abs(derivative + sign * width * curvature) + width**2 * abs(curvature)
         row = u.new_tensor([t**power for power in range(model.degree + 1)])
-        derivative = float(side.coefficients[1] @ u) / model.radius
-        curvature = float(side.coefficients[2] @ u) / model.radius**2 if model.degree == 2 else 0.0
-        bounds.append(width * abs(derivative + sign * width * curvature) + width**2 * abs(curvature))
+        bounds.append(bound)
         projected = side.residual @ u
         variance = float(projected.square().sum()) / side.degrees_of_freedom
         forecast_leverage = float((row @ side.inverse).square().sum())
@@ -108,7 +130,10 @@ def _projected_statistics(model: _Outer, u: torch.Tensor, width: float) -> tuple
         total_residual += float(side.residual.square().sum())
     projected_residual = sum(float((side.residual @ u).square().sum()) for side in (model.left, model.right))
     orthogonal_fraction = max(0.0, 1 - projected_residual / total_residual) if total_residual > 0 else 0.0
-    return max(bounds), 3 * math.sqrt(sum(variances)), orthogonal_fraction
+    statistics = max(bounds), 3 * math.sqrt(sum(variances)), orthogonal_fraction
+    if scaled and not all(math.isfinite(value) for value in statistics):
+        raise ArithmeticError("Projected residual diagnostics exceed the finite float64 response range.")
+    return statistics
 
 
 class CrossFittedVectorGapDetector(MultiscaleGapDetector):
