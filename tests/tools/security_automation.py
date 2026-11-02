@@ -1,8 +1,10 @@
 """Offline regressions for security repairs, privileged publication, and merge gates."""
 
 import base64
+import copy
 import datetime as dt
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -12,6 +14,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+from tools import pages_publish as pages
 from tools import security_automation as security
 
 REPO = "opthub-org/pytorch-bsf"
@@ -430,6 +433,7 @@ class MergeTests(unittest.TestCase):
         with (
             patch.object(security, "base_sha", side_effect=options.get("bases", [self.task["base"], self.task["base"]])),
             patch.object(security, "ci_state", return_value=options.get("ci", ([], [], {}))),
+            patch.object(security, "validate_publication"),
             patch.object(security, "review_threads", return_value=options.get("threads", [])),
             patch.object(security, "validate_changes", return_value=([], b"")),
             patch.object(security, "update_task") as update,
@@ -536,6 +540,7 @@ class CommittedPolicyTests(GitFixture):
         with (
             patch.object(security, "base_sha", return_value=self.base),
             patch.object(security, "ci_state", return_value=([], [], {})),
+            patch.object(security, "validate_publication"),
             self.assertRaisesRegex(ValueError, "Validation policy"),
         ):
             security.merge(api, task, self.root, {"approved": True, "findings": [], "resolved_threads": []})
@@ -753,6 +758,204 @@ class RealCIEvidenceTests(unittest.TestCase):
                         security.merge(self.api, task, ROOT, verdict)
                     self.api.write.assert_not_called()
                     self.api.fetch_commit.assert_not_called()
+
+
+class PublicationEvidenceTests(unittest.TestCase):
+    def setUp(self):
+        self.reset_evidence()
+
+    def reset_evidence(self):
+        self.api = api_mock()
+        self.pr = pull_request()
+        self.pr["head"].update(sha="a" * 40, ref=security.BRANCH_PREFIX + "docs")
+        self.ref = "refs/heads/" + self.pr["head"]["ref"]
+        self.sha = self.pr["head"]["sha"]
+        self.task = {"id": "id", "pr": 123, "head": self.sha, "base": "b" * 40}
+        self.repo = {"id": 7, "full_name": REPO, "default_branch": "master"}
+        self.current = {
+            "id": 100,
+            "run_attempt": 1,
+            "run_number": 3,
+            "workflow_id": 20,
+            "repository": self.repo,
+            "head_repository": self.repo,
+            "path": pages.WORKFLOW_PATH,
+            "name": pages.WORKFLOW_NAME,
+            "head_sha": self.sha,
+            "head_branch": self.pr["head"]["ref"],
+            "event": "workflow_dispatch",
+            "status": "completed",
+            "conclusion": "success",
+            "run_started_at": "2026-11-02T01:00:00Z",
+        }
+        self.attempts = {1: copy.deepcopy(self.current)}
+        self.definition = pages.trusted_workflow()
+        self.workflow = {"id": 20, "path": pages.WORKFLOW_PATH}
+        self.ledger = {
+            "source_ref": self.ref,
+            "source_sha": self.sha,
+            "run_id": 100,
+            "run_attempt": 1,
+            "run_number": 3,
+            "artifact_id": 50,
+            "digest": "sha256:" + "c" * 64,
+            "files": ["index.html"],
+        }
+        self.artifact = {
+            "id": 50,
+            "name": "pages-100-1",
+            "expired": False,
+            "size_in_bytes": 100,
+            "digest": self.ledger["digest"],
+            "created_at": "2026-11-02T01:00:10Z",
+            "workflow_run": {
+                "id": 100,
+                "repository_id": 7,
+                "head_repository_id": 7,
+                "head_sha": self.sha,
+                "head_branch": self.pr["head"]["ref"],
+            },
+        }
+        self.publication = dict(
+            check(pages.CHECK_NAME, ident=1001),
+            head_sha=self.sha,
+            external_id="pages-100-1",
+            app={"id": 15368, "slug": "github-actions"},
+            output={"summary": f"Published `{self.ref}` at `{self.sha}` from artifact 50."},
+        )
+        self.checks = [
+            check(name, ident=index)
+            for index, name in enumerate(security.expected_checks(ROOT), 1)
+            if name != pages.CHECK_NAME
+        ] + [self.publication]
+        self.runs = [
+            self.current
+            if workflow == "sphinx-pages-build.yml"
+            else {"id": index, "path": ".github/workflows/" + workflow, "status": "completed", "conclusion": "success"}
+            for index, workflow in enumerate(security.WORKFLOWS, 1)
+        ]
+
+        self.api.get.side_effect = self.get
+        self.api.pages.side_effect = self.records
+
+    def content(self, raw):
+        return {"type": "file", "encoding": "base64", "size": len(raw), "content": base64.b64encode(raw).decode()}
+
+    def get(self, path):
+        if path == "pulls/123":
+            return self.pr
+        if path == "":
+            return self.repo
+        if path == f"contents/{pages.ledger_path(self.ref)}?ref=gh-pages":
+            return self.content(json.dumps(self.ledger).encode())
+        if path == "actions/runs/100":
+            return copy.deepcopy(self.current)
+        if path.startswith("actions/runs/100/attempts/"):
+            return copy.deepcopy(self.attempts[int(path.rsplit("/", 1)[-1])])
+        if path == "actions/workflows/sphinx-pages-build.yml":
+            return self.workflow
+        if path == f"contents/{pages.WORKFLOW_PATH}?ref={self.sha}":
+            return self.content(self.definition)
+        if path == "actions/artifacts/50":
+            return self.artifact
+        raise AssertionError("Unexpected publication GET: " + path)
+
+    def records(self, path, key=None):
+        if "check-runs" in path:
+            return self.checks
+        if "actions/runs" in path:
+            return self.runs
+        return []
+
+    def test_standalone_cli_and_sibling_policy_ignore_an_ambient_checkout(self):
+        environment = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+        environment.pop("PYTHONPATH", None)
+        with tempfile.TemporaryDirectory() as directory:
+            ambient = Path(directory) / "tools"
+            ambient.mkdir()
+            (ambient / "__init__.py").write_text("raise AssertionError('ambient package imported')\n")
+            (ambient / "pages_publish.py").write_text("raise AssertionError('ambient policy imported')\n")
+            help_result = subprocess.run(
+                [sys.executable, str(Path(security.__file__).resolve()), "--help"],
+                cwd=directory,
+                env=environment,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            self.assertIn("Drive bounded security repairs", help_result.stdout)
+            code = """
+import importlib.util,sys
+spec=importlib.util.spec_from_file_location('trusted_security',sys.argv[1])
+module=importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+print(module._publication_policy().__file__)
+"""
+            policy = subprocess.check_output(
+                [sys.executable, "-c", code, str(Path(security.__file__).resolve())],
+                cwd=directory,
+                env=environment,
+                text=True,
+            )
+            self.assertEqual(Path(policy.strip()), Path(security.__file__).resolve().with_name("pages_publish.py"))
+
+    def test_ref_bound_metadata_is_accepted_using_only_gets(self):
+        security.validate_publication(self.api, self.pr)
+        self.api.write.assert_not_called()
+        self.api.fetch_commit.assert_not_called()
+        self.assertFalse(any("/zip" in call.args[0] for call in self.api.get.call_args_list))
+
+    def test_another_ref_check_on_same_sha_does_not_hide_matching_publication(self):
+        other = copy.deepcopy(self.publication)
+        other.update(id=2001, external_id="pages-200-1")
+        other["output"]["summary"] = f"Published `refs/heads/other` at `{self.sha}` from artifact 60."
+        self.checks.append(other)
+        security.validate_publication(self.api, self.pr)
+        self.api.write.assert_not_called()
+
+    def test_newer_matching_check_blocks_an_older_publication_success(self):
+        newer = copy.deepcopy(self.publication)
+        newer.update(id=2001, status="in_progress", conclusion=None)
+        self.checks.append(newer)
+        with self.assertRaisesRegex(ValueError, "not authenticated and successful"):
+            security.validate_publication(self.api, self.pr)
+        self.api.write.assert_not_called()
+
+    def test_other_ref_untrusted_app_stale_attempt_and_tampered_metadata_block_actual_merge(self):
+        def old_attempt():
+            self.current["run_attempt"] = 2
+            self.attempts[2] = copy.deepcopy(self.current)
+
+        mutations = (
+            ("only another ref check on same SHA", lambda: self.publication.update(external_id="pages-200-1")),
+            ("other ref ledger on same SHA", lambda: self.ledger.update(source_ref="refs/heads/other")),
+            ("other source SHA", lambda: self.ledger.update(source_sha="d" * 40)),
+            ("unrelated app", lambda: self.publication.update(app={"id": 42, "slug": "other"})),
+            (
+                "wrong summary ref",
+                lambda: self.publication["output"].update(
+                    summary=f"Published `refs/heads/other` at `{self.sha}` from artifact 50."
+                ),
+            ),
+            ("old attempt", old_attempt),
+            ("tampered artifact digest", lambda: self.artifact.update(digest="sha256:" + "d" * 64)),
+            ("tampered artifact ID", lambda: self.artifact.update(id=51)),
+            ("artifact other ref", lambda: self.artifact["workflow_run"].update(head_branch="other")),
+            ("artifact other repository", lambda: self.artifact["workflow_run"].update(repository_id=8)),
+            ("artifact before attempt", lambda: self.artifact.update(created_at="2026-11-02T00:59:59Z")),
+            ("untrusted producer definition", lambda: setattr(self, "definition", b"untrusted\n")),
+            ("wrong workflow", lambda: self.workflow.update(id=21)),
+        )
+        for label, mutate in mutations:
+            with self.subTest(label=label):
+                self.reset_evidence()
+                mutate()
+                self.assertEqual(security.ci_state(self.api, self.sha, ROOT)[:2], ([], []))
+                verdict = {"approved": True, "findings": [], "resolved_threads": [], "summary": "safe"}
+                with patch.object(security, "base_sha", return_value=self.task["base"]), self.assertRaises(ValueError):
+                    security.merge(self.api, self.task, ROOT, verdict)
+                self.api.write.assert_not_called()
+                self.api.fetch_commit.assert_not_called()
 
 
 class PublicationIntegrationTests(GitFixture):
