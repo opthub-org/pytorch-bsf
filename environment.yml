@@ -12,7 +12,7 @@ dependencies:
 - "sympy>=1.12,<2"
 - "mlflow>=3.11.1,<4"
 - "pyyaml>=6,<7"
-# Optional integrations (the sparse, sklearn and plot extras), installed from conda-forge so that their tests run
+# Optional integrations (the adaptive, sparse, sklearn and plot extras), installed from conda-forge so that their tests run
 # instead of being skipped. matplotlib-base is conda-forge's matplotlib without the Qt GUI backend.
 - "scipy>=1.9.2,<2"
 - "scikit-learn>=1.1.3,<2"
