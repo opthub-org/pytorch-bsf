@@ -172,6 +172,23 @@ class PatchBoundaryTests(GitFixture):
         self.assertEqual(paths, ["new_test.py", "source.py"])
         self.assertIn(b"+value = 2", data)
 
+    def test_new_secret_scanner_allow_comments_are_rejected(self):
+        for scanner in ("betterleaks", "gitleaks"):
+            with self.subTest(scanner=scanner):
+                (self.root / "source.py").write_text(f"value = 2  # {scanner}:allow\n", newline="\n")
+                with self.assertRaisesRegex(ValueError, "secret-scanner allow comments"):
+                    security.validate_changes(self.root, self.base)
+
+    def test_existing_secret_scanner_allow_comment_is_not_rejected(self):
+        instructions = self.root / "SECURITY.md"
+        instructions.write_text("Use # betterleaks:allow for a documented false positive.\n", newline="\n")
+        self.run_git("add", "SECURITY.md")
+        self.run_git("commit", "-qm", "add existing suppression instructions")
+        base = self.run_git("rev-parse", "HEAD").strip()
+
+        (self.root / "source.py").write_text("value = 2\n", newline="\n")
+        security.validate_changes(self.root, base)
+
     def test_control_plane_instructions_and_secret_paths_are_rejected(self):
         paths = [
             ".github/security/fix.md",

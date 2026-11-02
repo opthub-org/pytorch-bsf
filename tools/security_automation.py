@@ -49,6 +49,7 @@ PROTECTED = (
     ".github/pages-legacy-owners.json",
 )
 ACTION_PIN = re.compile(r"^(\s*(?:- )?uses:\s+[\w./-]+@)[0-9a-f]{40}(\s*(?:#.*)?)$", re.MULTILINE)
+SECRET_SCANNER_ALLOW = re.compile(r"#\s*(?:betterleaks|gitleaks):allow\b", re.IGNORECASE)
 POST_MERGE = [*WORKFLOWS, "release-please-action.yml"]
 VALIDATION_NAMES = {
     ".pre-commit-config.yaml",
@@ -238,6 +239,25 @@ def validate_file(root: Path, base: str, path: str, head: str | None = None) -> 
         "\0" in content.decode("utf-8") or re.search(rb"sk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{20,}", content)
     ):
         raise ValueError("Binary content or an API key is present in the patch")
+    revisions = [base] if head is None else [base, head]
+    diff = git(
+        root,
+        "diff",
+        "--no-ext-diff",
+        "--no-textconv",
+        "--no-renames",
+        "--unified=0",
+        *revisions,
+        "--",
+        path,
+    ).decode()
+    if any(
+        line.startswith("+")
+        and not line.startswith("+++")
+        and SECRET_SCANNER_ALLOW.search(line[1:])
+        for line in diff.splitlines()
+    ):
+        raise ValueError("Automatic patches cannot add secret-scanner allow comments")
     if path == "pyproject.toml":
         if content is None:
             raise ValueError("The root manifest cannot be deleted automatically")
