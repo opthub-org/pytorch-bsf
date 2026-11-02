@@ -158,9 +158,10 @@ def main(argv: list[str] | None = None) -> int:
             report = certify_vertices(arguments.vertices)
             if _sources() != before:
                 raise RuntimeError("proof sources changed during certification")
-            if arguments.output.resolve() in {(root / name).resolve() for name in before}:
+            output = arguments.output.parent.resolve() / arguments.output.name
+            if output.resolve() in {(root / name).resolve() for name in before}:
                 raise ValueError("output must not overwrite evaluator or proof sources")
-            atomic_json(arguments.output, report)
+            atomic_json(output, report)
         else:
             if arguments.output is not None:
                 parser.error("--output is only supported with --vertices")

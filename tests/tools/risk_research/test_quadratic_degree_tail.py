@@ -210,6 +210,52 @@ def test_cli_rechecks_parent_alias_after_computation(tmp_path, monkeypatch, name
     assert tail._sources() == before
 
 
+@pytest.mark.parametrize("name", list(tail._sources()))
+def test_cli_pins_parent_before_alias_retargets_at_writer_entry(tmp_path, monkeypatch, name):
+    root = Path(tail.__file__).resolve().parents[2]
+    protected = root / name
+    safe = tmp_path / "safe"
+    safe.mkdir()
+    destination = safe.resolve() / protected.name
+    destination.write_bytes(b"previous output\n")
+    alias = tmp_path / "parent"
+    try:
+        alias.symlink_to(safe, target_is_directory=True)
+    except (OSError, NotImplementedError) as link_error:
+        pytest.skip(f"symlink creation is unavailable: {link_error}")
+    before = tail._sources()
+    original_writer = tail.atomic_json
+
+    def retarget_before_write(path, record):
+        alias.unlink()
+        alias.symlink_to(protected.parent, target_is_directory=True)
+        # Even the unfixed implementation stops here before a real source write.
+        assert path.resolve() == destination
+        original_writer(path, record)
+
+    monkeypatch.setattr(tail, "atomic_json", retarget_before_write)
+    try:
+        assert tail.main(["--vertices", "4", "--output", str(alias / protected.name)]) == 0
+        assert json.loads(destination.read_text())["vertices"] == 4
+        assert alias.resolve() == protected.parent
+    finally:
+        assert tail._sources() == before
+
+
+def test_cli_atomic_output_replaces_an_unrelated_leaf_symlink(tmp_path):
+    target = tmp_path / "target.json"
+    target.write_bytes(b"preserve target\n")
+    output = tmp_path / "output.json"
+    try:
+        output.symlink_to(target)
+    except (OSError, NotImplementedError) as link_error:
+        pytest.skip(f"symlink creation is unavailable: {link_error}")
+    assert tail.main(["--vertices", "4", "--output", str(output)]) == 0
+    assert not output.is_symlink()
+    assert json.loads(output.read_text())["vertices"] == 4
+    assert target.read_bytes() == b"preserve target\n"
+
+
 @pytest.mark.parametrize("crlf", [False, True])
 def test_hashes_are_portable_and_raw_concurrent_edits_preserve_output(tmp_path, monkeypatch, crlf):
     lf = {name: value.replace(b"\r\n", b"\n") for name, value in tail._sources().items()}
