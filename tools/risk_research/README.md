@@ -287,6 +287,19 @@ sum, including `a_1(5,D)` and `a_2(6,D)`. At fixed `s>=2,q>=2` it also gives
 the leading large-degree term; for example
 `a_1(5,D)~3600*(zeta(2)-zeta(3))/D^3`. The sum lengths grow with degree.
 
+The [homogeneous q3 transform](../../docs/advanced/skeleton_risk_codimension_three_transform.rst)
+replaces the triangular angular/binomial loop by one integer polynomial
+transform and a final positive angular sum, for every `s>=2`. Its portable
+Karatsuba implementation uses a subquadratic integer-operation count at
+fixed `s`, with growing integer bit lengths. It gives the same exact
+fraction as the retained double-sum evaluator. This is an operation-count
+improvement, without a fixed-state or bounded special-function claim.
+
+```sh
+python -m tools.risk_research.codimension_three_transform --face-size 2 --degree 128 \
+  --output .research/skeleton-risk/q3-edge-transform.json
+```
+
 ```sh
 python -m tools.risk_research.codimension_three_exact --face-size 2 --degree 40 \
   --output .research/skeleton-risk/q3-edge-exact.json
