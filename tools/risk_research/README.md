@@ -526,3 +526,22 @@ The raw-byte before/after guard still rejects any source edit during
 certification, including a line-ending change. A finite set of its
 certificates checks the implementation; the documented inequalities prove
 the all-degree theorem.
+
+## A sufficient degree threshold at every fixed vertex count
+
+For every integer `M>=4`, `fixed_vertex_tail.degree_threshold(M)` constructs
+an explicit `H(M)` such that inductive asymptotic risk is strictly smaller
+for all `D>=H(M)`. The conservative threshold uses rational coefficient
+majorants and integer roots, without evaluating degree-specific risks.
+See [the proof](../../docs/advanced/skeleton_risk_fixed_vertex_tail.rst).
+
+```sh
+python -m tools.risk_research.fixed_vertex_tail --vertices 6 \
+  --output .research/skeleton-risk/fixed6-tail.json
+python -m tools.risk_research.fixed_vertex_tail \
+  --verify .research/skeleton-risk/fixed6-tail.json
+```
+
+The certificate records every constant, the full tail domain and a strict
+rational margin; verification rejects changed fields or source hashes.
+This does not classify the finite prefix below `H(M)`.
