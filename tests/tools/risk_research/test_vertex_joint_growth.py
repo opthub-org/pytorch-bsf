@@ -13,6 +13,7 @@ import pytest
 import sympy as sp
 
 from tools.risk_research import vertex_joint_growth as joint
+from tools.risk_research.checkout_harness import checkout_state, run_python
 from tools.risk_research.vertex_general import leading_constant_enclosure
 from tools.risk_research.vertex_general_asymptotic import _majorants, error_constants
 
@@ -243,27 +244,47 @@ def test_real_crlf_checkout_verifies_lf_certificate_and_rejects_genuine_source_e
             data = (source / name).read_bytes().replace(b"\r\n", b"\n")
             (directory / name).write_bytes(data if style == "lf" else data.replace(b"\n", b"\r\n"))
         copies[style] = checkout
+        for arguments in [["init"], ["add", "tools"], ["commit", "-m", "Test sources"]]:
+            subprocess.run(
+                [
+                    "git",
+                    "-c",
+                    "core.hooksPath=/dev/null",
+                    "-c",
+                    "commit.gpgsign=false",
+                    "-c",
+                    "user.name=Harness Test",
+                    "-c",
+                    "user.email=harness@example.invalid",
+                    *arguments,
+                ],
+                cwd=checkout,
+                check=True,
+                capture_output=True,
+            )
     output = tmp_path / "portable.json"
-    command = [sys.executable, "-S", "-m", "tools.risk_research.vertex_joint_growth"]
+    command = ["-m", "tools.risk_research.vertex_joint_growth"]
     for style, arguments in (
         ("lf", ["--vertices", "6", "--degree-floor-exponent", "1024", "--output", str(output)]),
         ("crlf", ["--check", str(output)]),
     ):
-        result = subprocess.run(
+        state = checkout_state(copies[style])
+        result = run_python(
+            copies[style],
             [*command, *arguments],
-            cwd=copies[style],
-            env={**os.environ, "PYTHONPATH": str(copies[style])},
-            capture_output=True,
-            text=True,
+            modules=("tools.risk_research.vertex_joint_growth",),
+            expected_head=state.head,
+            expected_tree=state.tree,
+            no_site=True,
             timeout=20,
         )
         assert result.returncode == 0, result.stdout + result.stderr
     changed = copies["crlf"] / "tools/risk_research/vertex_general.py"
     changed.write_bytes(changed.read_bytes() + b"\r\n# changed content\r\n")
     result = subprocess.run(
-        [*command, "--check", str(output)],
+        [sys.executable, "-S", *command, "--check", str(output)],
         cwd=copies["crlf"],
-        env={**os.environ, "PYTHONPATH": str(copies["crlf"])},
+        env={**os.environ, "PYTHONPATH": ".", "PYTHONDONTWRITEBYTECODE": "1"},
         capture_output=True,
         text=True,
         timeout=20,

@@ -187,7 +187,12 @@ def verify_certificate(record: object) -> None:
     """Reject altered fields, domains, constants, thresholds and sources."""
     if not isinstance(record, dict) or type(record.get("vertices")) is not int:
         raise ValueError("certificate must have an integer vertex count")
-    if record != certify_vertices(record["vertices"]):
+    expected = certify_vertices(record["vertices"])
+    try:
+        matches = json.dumps(record, sort_keys=True, allow_nan=False) == json.dumps(expected, sort_keys=True, allow_nan=False)
+    except (TypeError, ValueError) as error:
+        raise ValueError("certificate does not match the proof specialization and sources") from error
+    if not matches:
         raise ValueError("certificate does not match the proof specialization and sources")
 
 

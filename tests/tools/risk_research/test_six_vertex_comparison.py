@@ -161,6 +161,14 @@ def test_insufficient_precision_preserves_existing_output(tmp_path):
     assert output.read_bytes() == original
 
 
+@pytest.mark.parametrize("replacement", [1.0, True])
+def test_recorded_degree_requires_the_exact_json_integer_type(certificate, replacement):
+    changed = copy.deepcopy(certificate)
+    changed["finite_comparisons"][0]["degree"] = replacement
+    with pytest.raises(ValueError, match="full comparison"):
+        comparison.verify_certificate(changed)
+
+
 @pytest.mark.parametrize("initial_line_ending", ["lf", "crlf"])
 def test_portable_crlf_hashes_and_raw_concurrent_edit_guard(certificate, tmp_path, monkeypatch, initial_line_ending):
     initial_sources = {name: source.replace(b"\r\n", b"\n") for name, source in comparison._sources().items()}

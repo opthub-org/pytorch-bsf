@@ -101,6 +101,16 @@ def test_malformed_certificate_is_rejected(record):
         tail.verify_certificate(record)
 
 
+@pytest.mark.parametrize("replacement", [1.0, True])
+def test_majorant_size_requires_the_exact_json_integer_type(replacement):
+    record = tail.certify_vertices(7)
+    majorants = record["lower_skeleton_majorants"]
+    assert isinstance(majorants, list)
+    majorants[0]["size"] = replacement
+    with pytest.raises(ValueError, match="does not match"):
+        tail.verify_certificate(record)
+
+
 def test_cli_round_trip_and_canonical_source_hashes(tmp_path):
     output = tmp_path / "tail.json"
     assert tail.main(["--vertices", "6", "--output", str(output)]) == 0
