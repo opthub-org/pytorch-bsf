@@ -68,6 +68,10 @@ VALIDATION_NAMES = {
     "tox.ini",
     "setup.cfg",
     ".gitattributes",
+    ".betterleaks.toml",
+    ".betterleaksignore",
+    ".gitleaks.toml",
+    ".gitleaksignore",
 }
 CREDENTIAL_NAMES = {".netrc", ".npmrc", ".pypirc", "credentials.json", "service-account.json", "id_rsa", "id_ed25519"}
 

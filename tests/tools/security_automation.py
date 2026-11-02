@@ -83,7 +83,17 @@ class CheckEvidenceTests(unittest.TestCase):
         for classifier in metadata["project"]["classifiers"]:
             if classifier.startswith("Programming Language :: Python :: 3."):
                 self.assertIn(f"build ({classifier.rsplit(' ', 1)[-1]})", expected)
-        self.assertTrue({"coverage / coverage", "codecov/patch", "optional-deps (no-mlflow)", "secret-scan"} <= expected)
+        self.assertTrue({"coverage / coverage", "codecov/patch", "optional-deps (no-mlflow)"} <= expected)
+
+    def test_secret_scan_is_mandatory_and_walks_the_full_history(self):
+        self.assertIn("secret-scan", security.expected_checks(ROOT))
+        job = (ROOT / ".github/workflows/security-policy.yml").read_text().split("\n  secret-scan:\n", 1)[1]
+        self.assertIn("fetch-depth: 0", job)
+        self.assertIn("pre-commit run betterleaks-history --hook-stage manual", job)
+        hooks = (ROOT / ".pre-commit-config.yaml").read_text()
+        self.assertIn('--log-opts="HEAD ', hooks)
+        self.assertIn("--diff-merges=first-parent", hooks)
+        self.assertIn("SKIP: typos,betterleaks", (ROOT / ".github/workflows/python-package.yml").read_text())
 
     def test_dispatch_preserves_pr_identity_for_isolated_coverage_upload(self):
         api = api_mock()
@@ -176,6 +186,10 @@ class PatchBoundaryTests(GitFixture):
     def test_validation_configuration_and_common_credentials_are_protected(self):
         for path in [
             ".pre-commit-config.yaml",
+            ".betterleaks.toml",
+            ".betterleaksignore",
+            ".gitleaks.toml",
+            ".gitleaksignore",
             "codecov.yml",
             "pytest.ini",
             "tools/check_distribution.py",

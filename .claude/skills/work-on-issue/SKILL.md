@@ -67,7 +67,7 @@ If anything is missing or `torch_bsf` comes from elsewhere, follow the `setup-en
 Run all of these and fix every failure:
 
 ```bash
-SKIP=typos "$PY" -m pre_commit run --all-files    # the CI lint job: Ruff and numpydoc-validation
+SKIP=typos,betterleaks "$PY" -m pre_commit run --all-files    # the CI lint job: Ruff and numpydoc-validation
 "$PY" -m pre_commit run typos --files <changed files>  # local only; report false positives in the PR
 "$PY" -m mypy torch_bsf tests
 "$PY" -m pytest --cov=torch_bsf --cov-report=xml  # the reports are not in addopts; diff_cover reads coverage.xml
@@ -132,7 +132,7 @@ Closes #<N>
 ## Verification
 - `python -m pytest`: <N passed>
 - `python -m mypy torch_bsf tests`: <result>
-- `SKIP=typos pre-commit run --all-files` / `pre-commit run typos --files <changed files>`: <result>
+- `SKIP=typos,betterleaks pre-commit run --all-files` / `pre-commit run typos --files <changed files>`: <result>
 - `sphinx-build -b doctest`: <result>
 
 ## Local review

@@ -98,13 +98,40 @@ it, the operation stops and is recorded in the status issue.
 ## Secret scanning
 
 [Betterleaks](https://github.com/betterleaks/betterleaks) checks staged changes in
-the `pre-commit` git hook, and the `secret-scan` job of the **Security policy**
-workflow checks the history of all refs, including merge commits, on pull requests
-and pushes to `master`.
+the `pre-commit` git hook. The `secret-scan` job of the **Security policy** workflow
+checks the full history of the checked-out commit, including merge commits, on pull
+requests and pushes to `master`. On a pull request that commit is the merge with
+`master`, so a finding on another branch cannot fail it.
 
-If a real secret is reported, revoke or rotate it first: rewriting history does not
-undo the exposure of a pushed credential. For a false positive, follow
-[the procedure in CONTRIBUTING.md](CONTRIBUTING.md#linter-and-formatter).
+Betterleaks reads diffs. It does not scan commit messages, files that git treats as
+binary, or branches without a pull request. It redacts each finding's own secret, but
+the log still shows the commit message and any other text on the reported line, so
+treat every credential on that line as exposed.
+
+For a real secret:
+
+1. Revoke or rotate it first. Rewriting history does not undo the exposure of a pushed
+   credential, and removing it in a later commit does not clear the job.
+2. If the commit is not on `master`, rewrite the branch to drop the secret and
+   force-push.
+3. If the commit is on `master`, add its `Fingerprint` from the job's log to
+   `.betterleaksignore`, and state in the PR that the credential was revoked. Rewriting
+   the history of `master` is a maintainer's decision.
+
+For a false positive, give the reason in the PR and use one of these:
+
+- Add `# betterleaks:allow` to the line in the commit that introduces it. If that
+  commit is already on the branch, amend or rebase it, as a later commit does not clear
+  an earlier one.
+- In a file without comments, such as JSON or CSV, add the `<path>:<rule>:<line>` entry
+  to `.betterleaksignore`. The git hook prints it as `Fingerprint`. It applies to that
+  path, rule and line in every commit.
+- If the commit is on `master`, add its `Fingerprint` from the job's log to
+  `.betterleaksignore`.
+
+Do not ignore a fingerprint of a commit that is not on `master`: a pull request's merge
+commit changes on every push, and a squash merge creates a new commit. The security
+automation cannot change `.betterleaksignore` or the scanner's configuration files.
 
 ## Operation and limits
 

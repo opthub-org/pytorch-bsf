@@ -41,13 +41,14 @@ repos:
       # Block a commit whose staged changes contain a secret. It sees only the index, so `--all-files` does not widen it
       # and the lint job of CI skips it; the secret-scan job of .github/workflows/security-policy.yml runs the hook below.
       - id: betterleaks
+        args: [--legacy-print]  # also print the fingerprint that .betterleaksignore takes
         stages: [pre-commit]
-      # Scan the history of all refs: `pre-commit run betterleaks-history --hook-stage manual`
-      # --legacy-print shows the fingerprint that .betterleaksignore takes. --log-opts replaces the default options of
-      # `git log`; --diff-merges adds what only a merge commit introduces.
+      # Scan the full history of the checked-out commit: `pre-commit run betterleaks-history --hook-stage manual`
+      # --log-opts replaces the default `--all --full-history --diff-filter=tuxdb`: HEAD instead of --all keeps a finding
+      # on another branch from failing unrelated PRs, and --diff-merges adds what only a merge commit introduces.
       - id: betterleaks
         alias: betterleaks-history
         name: Detect hardcoded secrets in the git history
-        entry: betterleaks git --redact --verbose --legacy-print --no-banner --log-opts="--all --full-history --diff-filter=tuxdb --diff-merges=first-parent"
+        entry: betterleaks git --redact --verbose --legacy-print --no-banner --log-opts="HEAD --full-history --diff-filter=tuxdb --diff-merges=first-parent"
         always_run: true
         stages: [manual]
