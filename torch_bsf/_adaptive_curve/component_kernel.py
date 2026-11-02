@@ -232,7 +232,7 @@ def fit_component_kernel(x: Any, y: Any, gaps: Any = (), *, noise: float = 0.0) 
         return None
     response = values.numpy()
     center = response.mean(0)
-    amplitude = float(np.linalg.norm(response - center, axis=1).max())
+    amplitude = float(np.max(np.linalg.norm(response - center, axis=1)))
     if not math.isfinite(amplitude) or amplitude <= 0:
         return None
     normalized = (response - center) / amplitude

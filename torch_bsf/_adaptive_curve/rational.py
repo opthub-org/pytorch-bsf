@@ -54,7 +54,7 @@ class _Rational:
 def _aaa(x: np.ndarray[Any, np.dtype[np.float64]], y: np.ndarray[Any, np.dtype[np.float64]]) -> _Rational:
     center = y.mean(axis=0)
     values = y - center
-    scale = max(float(np.linalg.norm(values, axis=1).max()), np.finfo(np.float64).tiny)
+    scale = max(float(np.max(np.linalg.norm(values, axis=1))), np.finfo(np.float64).tiny)
     normalized = values / scale
     approximation = np.zeros_like(normalized)
     support: list[int] = []
@@ -75,7 +75,7 @@ def _aaa(x: np.ndarray[Any, np.dtype[np.float64]], y: np.ndarray[Any, np.dtype[n
         approximation = (model.predict(x) - center) / scale
         if not np.isfinite(approximation).all() or not np.isfinite(weights).all():
             raise ArithmeticError("Rational weights or training predictions are nonfinite.")
-        if np.linalg.norm(normalized - approximation, axis=1).max() <= 1e-11:
+        if np.max(np.linalg.norm(normalized - approximation, axis=1)) <= 1e-11:
             break
     return _Rational(x[support], values[support], weights, center)
 
@@ -112,7 +112,7 @@ class RationalCurveModel:
         nodes = np.cos(np.pi * np.arange(degree + 1) / degree)
         checks = np.cos(np.pi * (np.arange(2 * degree + 3) + 0.5) / (2 * degree + 3))
         response = self.values.numpy()
-        amplitude = float(np.linalg.norm(response - response.mean(axis=0), axis=1).max())
+        amplitude = float(np.max(np.linalg.norm(response - response.mean(axis=0), axis=1)))
         magnitude = float(np.linalg.norm(response, axis=1).max())
         tolerance = max(
             amplitude * 1e-10, magnitude * float(np.finfo(np.float64).eps) * 2048, float(np.finfo(np.float64).tiny)

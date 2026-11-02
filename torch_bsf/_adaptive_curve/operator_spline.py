@@ -37,7 +37,7 @@ def approximate_operator(
     nodes = np.cos(np.pi * np.arange(degree + 1) / degree)
     checks = np.cos(np.pi * (np.arange(2 * degree + 3) + 0.5) / (2 * degree + 3))
     response = values.numpy()
-    amplitude = float(np.linalg.norm(response - response.mean(axis=0), axis=1).max())
+    amplitude = float(np.max(np.linalg.norm(response - response.mean(axis=0), axis=1)))
     magnitude = float(np.linalg.norm(response, axis=1).max())
     tolerance = max(amplitude * 1e-10, magnitude * float(np.finfo(np.float64).eps) * 2048, float(np.finfo(np.float64).tiny))
     pending = [(-1.0, 1.0, 0)]
