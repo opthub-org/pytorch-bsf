@@ -24,7 +24,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Explicit vertex errors at every fixed vertex count" href="skeleton_risk_vertex_general_asymptotics.html" />
+    <link rel="next" title="A first correction with a quadratic large-vertex remainder" href="skeleton_risk_vertex_large_dimension_second_order.html" />
     <link rel="prev" title="The vertex leading constant at large vertex count" href="skeleton_risk_vertex_large_dimension.html" /> 
 </head>
 
@@ -70,6 +70,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three.html">Boundary transfer and a codimension-three edge bound</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_exact.html">Positive diagonal formulas for nonvertex risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q3_error.html">Finite-degree errors for every nonvertex q3 face</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_error.html">Finite-degree errors for every fixed nonvertex q4 face size</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c5_closed_form.html">A classical closed form for the codimension-four constant</a></li>
@@ -79,10 +80,12 @@
 <li class="toctree-l4"><a class="reference internal" href="#evaluation-replay-and-limits">Evaluation, replay and limits</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension_second_order.html">A first correction with a quadratic large-vertex remainder</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_refined_asymptotics.html">Single-log vertex errors for every fixed M at least five</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth.html">A simultaneous vertex-count and degree regime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth_refined.html">A broader simultaneous vertex-count and degree regime</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html">An all-degree sufficient region for large vertex counts</a></li>
@@ -159,11 +162,11 @@ The degree-limit constant at fixed <span class="math notranslate nohighlight">\(
 the explicit error and starting vertex count. It does not assert a
 second correction coefficient or a joint <span class="math notranslate nohighlight">\(M,D\)</span> limit.</p>
 <div class="proof theorem admonition" id="thm-risk-refined-large-vertex-constant">
-<p class="admonition-title"><span class="caption-number">Theorem 39 </span> (Improved first-order large-vertex guarantee)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 40 </span> (Improved first-order large-vertex guarantee)</p>
 <section class="theorem-content" id="proof-content">
 <p>For every integer <span class="math notranslate nohighlight">\(M\geq162\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-risk-refined-large-vertex-error">
-<span class="eqno">(78)<a class="headerlink" href="#equation-risk-refined-large-vertex-error" title="Link to this equation"></a></span>\[\left|C_M/B_M-1\right|\leq\frac6{M-2}.\]</div>
+<span class="eqno">(83)<a class="headerlink" href="#equation-risk-refined-large-vertex-error" title="Link to this equation"></a></span>\[\left|C_M/B_M-1\right|\leq\frac6{M-2}.\]</div>
 <p>In particular, one percent is guaranteed at every integer
 <span class="math notranslate nohighlight">\(M\geq602\)</span>. The previous sufficient start was <span class="math notranslate nohighlight">\(2502\)</span>;
 the previous simple radius was <span class="math notranslate nohighlight">\(25/(M-2)\)</span> starting at 1026.
@@ -253,7 +256,7 @@ Consequently</p>
 <div class="math notranslate nohighlight">
 \[|I_n/G_n-1|\leq\frac{21}{4n}\qquad(n\geq160).\]</div>
 <p><strong>The normalization is retained exactly.</strong> Equation
-<a class="reference internal" href="skeleton_risk_vertex_large_dimension.html#equation-risk-large-vertex-normalization">(77)</a> gives
+<a class="reference internal" href="skeleton_risk_vertex_large_dimension.html#equation-risk-large-vertex-normalization">(82)</a> gives
 <span class="math notranslate nohighlight">\(C_M/B_M=\sqrt{1+1/n}\,I_n/G_n\)</span>. Hence</p>
 <div class="math notranslate nohighlight">
 \[|C_M/B_M-1|
@@ -311,7 +314,7 @@ assert a higher-order expansion or a simultaneous growing-degree limit.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="skeleton_risk_vertex_large_dimension.html" class="btn btn-neutral float-left" title="The vertex leading constant at large vertex count" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="skeleton_risk_vertex_general_asymptotics.html" class="btn btn-neutral float-right" title="Explicit vertex errors at every fixed vertex count" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="skeleton_risk_vertex_large_dimension_second_order.html" class="btn btn-neutral float-right" title="A first correction with a quadratic large-vertex remainder" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
