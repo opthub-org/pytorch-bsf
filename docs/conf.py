@@ -187,9 +187,11 @@ def linkcode_resolve(domain, info):
         obj = inspect.unwrap(obj)
         imported_file = _source_file(obj)
         relative = imported_file.relative_to(Path(torch_bsf.__file__).resolve().parent)
-        filename = (Path("torch_bsf") / relative).as_posix()
-        start, end = _definition_lines(_source_root / filename, obj.__qualname__)
-        fragment = f"#L{start}-L{end}"
+        defining = (Path("torch_bsf") / relative).as_posix()
+        # Keep the public file unless the documented tree has the defining one
+        # (an older tag predates the private modules).
+        start, end = _definition_lines(_source_root / defining, obj.__qualname__)
+        filename, fragment = defining, f"#L{start}-L{end}"
     except (AttributeError, KeyError, OSError, TypeError, ValueError, StopIteration, SyntaxError):
         # Some generated members have no standalone definition. The file link
         # still points to the correct ref, without guessing newer line numbers.
