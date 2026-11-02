@@ -148,7 +148,8 @@ def _choose(model: BezierModel, cid: int, policy: EdgeSplit | LongestEdge | Resi
         points = policy.samples.points.parameters[selected, : info.width]
         values = policy.samples.values[selected.to(policy.samples.values.device)]
         weights = policy.samples.weights[selected.cpu()]
-        if not len(weights) or not torch.all(weights == weights[0]):
+        # A cell without observations falls back to the longest edge in max_error_criterion.
+        if len(weights) and not torch.all(weights == weights[0]):
             raise ValueError("ResidualSplit requires equally weighted observations on the selected cell.")
         factor, i, j, fraction = max_error_criterion(points, values, policy.resolution)(local)
         return EdgeSplit(i, j, fraction, factor)

@@ -1246,3 +1246,18 @@ def test_max_error_criterion_scales_huge_residuals():
     k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
     assert (k, i, j) == (0, 0, 1)
     assert abs(s - 0.6) < 1e-3
+
+
+def test_residual_split_of_a_cell_without_observations_falls_back_to_the_longest_edge():
+    from torch_bsf.core import BezierModel, BezierSpace, Points, Samples
+    from torch_bsf.splitting import ResidualSplit
+
+    space = BezierSpace.on_set(_glued(), degree=2)
+    torch.manual_seed(5)
+    model = BezierModel(space, torch.randn(space.n_controls, 1, dtype=torch.float64))
+    points = _uniform_points(space)
+    other = points.cell_ids == space.main_cells[1]  # observations only on another cell
+    samples = Samples(Points(points.parameters[other], points.cell_ids[other]), torch.randn(int(other.sum()), 1))
+    cell = space.main_cells[0]
+    result = subdivide_space(model, cell=cell, policy=ResidualSplit(samples))
+    assert result.split == subdivide_space(model, cell=cell, policy=LongestEdge()).split
