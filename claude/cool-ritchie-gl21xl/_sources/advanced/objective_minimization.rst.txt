@@ -537,7 +537,11 @@ Do not label callback iteration ``k`` as the model after update ``k`` when
 building an animation or convergence figure.
 
 A configured ``gradient_tolerance`` triggers a full-sample gradient check
-before an update. Reaching it yields success. The norm is the ordinary free
+before every update and once more after the last update of the budget, so a
+tolerance reached by the final update still yields success. When the minibatch
+covers every sample (``batch_size=None`` or at least the number of samples),
+the checked full-sample objective and gradient also drive the update, so each
+iteration evaluates the loss once. The norm is the ordinary free
 coefficient gradient norm, not a normalized relative error or a guarantee
 about test performance. Its magnitude depends on objective units and degree;
 choose it according to required accuracy rather than copying a number between
