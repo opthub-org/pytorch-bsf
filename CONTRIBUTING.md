@@ -821,8 +821,11 @@ The publisher never imports candidate modules or installs their dependencies.
 
 The trusted `.github/pages-legacy-owners.json` census binds existing version
 URL roots to their full branch or tag refs at its recorded `gh-pages` commit.
+Its separate `reserved_owners` section reserves the bootstrap PR's own planned
+preview namespace; this reservation is not an observed root in that snapshot.
 Before activation, drain and disable the legacy writer and verify that every
-retained version root in the final snapshot is covered by this reviewed census.
+retained version root in the final snapshot is covered by the reviewed census,
+its explicit reservations, or an authenticated new publisher generation ledger.
 Update the census through a reviewed default-branch change if that snapshot
 introduces another root; do not infer ownership from an artifact or a deleted
 branch's absence. The publisher rejects overlap with another census owner,

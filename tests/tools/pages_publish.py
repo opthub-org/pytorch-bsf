@@ -352,12 +352,14 @@ class LegacyOwnershipTests(unittest.TestCase):
         self.assertEqual(owners["v0.24.0"], "refs/tags/v0.24.0")
 
     def test_malformed_policy_and_colliding_owners_fail_closed(self):
-        baseline = {"schema": 1, "gh_pages_sha": SHA, "owners": {"master": "refs/heads/master"}}
+        baseline = {"schema": 1, "gh_pages_sha": SHA, "owners": {"master": "refs/heads/master"}, "reserved_owners": {}}
         changes: list[dict[str, Any]] = [
             {"schema": True},
             {"gh_pages_sha": "invalid"},
             {"owners": {}},
             {"owners": {"master": "refs/heads/other"}},
+            {"reserved_owners": {"master": "refs/heads/master"}},
+            {"reserved_owners": {"master/reserved": "refs/heads/master/reserved"}},
             {"owners": {"v1.2.3": "refs/tags/v1.2.3", "v1.2.3/child": "refs/heads/v1.2.3/child"}},
         ]
         for change in changes:
@@ -368,6 +370,21 @@ class LegacyOwnershipTests(unittest.TestCase):
                 self.assertRaises(ValueError),
             ):
                 pages.trusted_legacy_owners()
+
+    def test_reserved_migration_namespace_is_distinct_from_observed_census(self):
+        policy: dict[str, Any] = {
+            "schema": 1,
+            "gh_pages_sha": SHA,
+            "owners": {"master": "refs/heads/master"},
+            "reserved_owners": {"ci/migration": "refs/heads/ci/migration"},
+        }
+        with patch.object(Path, "read_bytes", return_value=json.dumps(policy).encode()):
+            owners = pages.trusted_legacy_owners()
+        self.assertNotIn("ci/migration", policy["owners"])
+        self.assertEqual(owners["ci/migration"], "refs/heads/ci/migration")
+        pages.check_namespace("refs/heads/ci/migration", ["ci/migration/index.html"], [], owners)
+        with self.assertRaisesRegex(ValueError, "Trusted legacy"):
+            pages.check_namespace("refs/heads/ci", ["ci/migration/index.html"], [], owners)
 
     def test_unknown_existing_prefix_requires_trusted_owner_or_same_ref_ledger(self):
         with self.assertRaisesRegex(ValueError, "no trusted owner"):

@@ -159,16 +159,20 @@ def trusted_legacy_owners() -> dict[str, str]:
     policy = json.loads(raw, object_pairs_hook=unique_json)
     if (
         not isinstance(policy, dict)
-        or set(policy) != {"schema", "gh_pages_sha", "owners"}
+        or set(policy) != {"schema", "gh_pages_sha", "owners", "reserved_owners"}
         or type(policy["schema"]) is not int
         or policy["schema"] != 1
         or not isinstance(policy["gh_pages_sha"], str)
         or SHA.fullmatch(policy["gh_pages_sha"]) is None
         or not isinstance(policy["owners"], dict)
         or not 0 < len(policy["owners"]) <= MAX_FILES
+        or not isinstance(policy["reserved_owners"], dict)
+        or len(policy["reserved_owners"]) > MAX_FILES
     ):
         raise ValueError("Invalid legacy ownership policy")
-    owners: dict[str, str] = policy["owners"]
+    if set(policy["owners"]) & set(policy["reserved_owners"]):
+        raise ValueError("Observed and reserved ownership roots must be distinct")
+    owners: dict[str, str] = {**policy["owners"], **policy["reserved_owners"]}
     for root, ref in owners.items():
         if destination(ref) != root:
             raise ValueError("Legacy ownership root and ref disagree")
