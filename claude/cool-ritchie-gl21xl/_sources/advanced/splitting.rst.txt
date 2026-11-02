@@ -155,7 +155,8 @@ chord despite a long curved path. Rescaling one output coordinate can change
 which chord is selected, so keep units consistent when comparing policies.
 
 ``ResidualSplit`` requires equally weighted observations on the selected
-cell. It uses current model residuals to assess how observations group into
+cell; a cell without observations is split at the midpoint of its longest
+edge. It uses current model residuals to assess how observations group into
 two pieces. A larger ``resolution`` examines a finer split-fraction grid and
 costs more evaluation work. It does not increase the model's degree or add
 training points. Because the split is exact, the squared residual of each
