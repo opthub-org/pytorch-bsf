@@ -68,6 +68,11 @@ VALIDATION_NAMES = {
     "tox.ini",
     "setup.cfg",
     ".gitattributes",
+    # Betterleaks also reads the Gitleaks names, for backwards compatibility
+    ".betterleaks.toml",
+    ".betterleaksignore",
+    ".gitleaks.toml",
+    ".gitleaksignore",
 }
 CREDENTIAL_NAMES = {".netrc", ".npmrc", ".pypirc", "credentials.json", "service-account.json", "id_rsa", "id_ed25519"}
 
@@ -286,6 +291,7 @@ def expected_checks(root: Path) -> set[str]:
         "coverage / coverage",
         "build-mlflow",
         "security-policy",
+        "secret-scan",
         *(f"build ({version})" for version in versions),
         *(f"build ({platform}-latest)" for platform in ("ubuntu", "macos", "windows")),
         *(f"optional-deps ({extra})" for extra in ("minimal", "no-lightning", "no-mlflow")),

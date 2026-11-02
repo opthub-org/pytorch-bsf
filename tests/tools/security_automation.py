@@ -5,6 +5,7 @@ import copy
 import datetime as dt
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -84,6 +85,39 @@ class CheckEvidenceTests(unittest.TestCase):
             if classifier.startswith("Programming Language :: Python :: 3."):
                 self.assertIn(f"build ({classifier.rsplit(' ', 1)[-1]})", expected)
         self.assertTrue({"coverage / coverage", "codecov/patch", "optional-deps (no-mlflow)"} <= expected)
+
+    def test_secret_scan_is_mandatory_and_walks_the_full_history(self):
+        self.assertIn("secret-scan", security.expected_checks(ROOT))
+        workflow = (ROOT / ".github/workflows/security-policy.yml").read_text()
+        triggers = workflow.split("\njobs:\n", 1)[0]
+        self.assertIn("  push:\n    branches: [master]\n  pull_request:\n", triggers)
+        job = re.split(r"\n  [\w-]+:\n", workflow.split("\n  secret-scan:\n", 1)[1], maxsplit=1)[0]
+        self.assertIn("fetch-depth: 0", job)
+        self.assertIn("git rev-list --min-parents=3 --count HEAD", job)
+        self.assertRegex(job, r"(?m)^\s+pre-commit run betterleaks-history --hook-stage manual$")
+        self.assertNotIn("continue-on-error", job)
+        self.assertNotIn("\n    if:", job)
+        hooks = (ROOT / ".pre-commit-config.yaml").read_text()
+        history = hooks.split("alias: betterleaks-history\n", 1)[1].split("\n      - id:", 1)[0].split("\n  - repo:", 1)[0]
+        for setting in (
+            "always_run: true",  # otherwise pre-commit can skip the hook as having no files to check, and CI stays green
+            "stages: [manual]",
+            "--redact",
+            "--verbose",
+            "--legacy-print",  # SECURITY.md relies on the printed fingerprint
+            '--log-opts="HEAD ',
+            "--full-history",
+            "--diff-filter=uxdb",
+            "--diff-merges=remerge",
+        ):
+            self.assertIn(setting, history)
+
+    def test_staged_secret_hook_runs_on_commit_but_not_in_the_lint_job(self):
+        hooks = (ROOT / ".pre-commit-config.yaml").read_text()
+        staged = hooks.split("- id: betterleaks\n", 2)[1]
+        self.assertIn("stages: [pre-commit]", staged)
+        self.assertIn("--legacy-print", staged)
+        self.assertIn("SKIP: typos,betterleaks", (ROOT / ".github/workflows/python-package.yml").read_text())
 
     def test_dispatch_preserves_pr_identity_for_isolated_coverage_upload(self):
         api = api_mock()
@@ -176,6 +210,10 @@ class PatchBoundaryTests(GitFixture):
     def test_validation_configuration_and_common_credentials_are_protected(self):
         for path in [
             ".pre-commit-config.yaml",
+            ".betterleaks.toml",
+            ".betterleaksignore",
+            ".gitleaks.toml",
+            ".gitleaksignore",
             "codecov.yml",
             "pytest.ini",
             "tools/check_distribution.py",

@@ -1,6 +1,6 @@
 # pre-commit hooks: https://pre-commit.com/
 # Install the git hook once per clone with `pre-commit install`; it also applies to all `git worktree`s of the clone.
-# The hook versions below are the single source of truth: CI runs these same hooks (except typos, see SKIP in
+# The hook versions below are the single source of truth: CI runs these same hooks (except typos and betterleaks, see SKIP in
 # .github/workflows/python-package.yml) with `pre-commit run --all-files`, and Dependabot (`package-ecosystem: "pre-commit"` in .github/dependabot.yml) bumps `rev`.
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
@@ -35,3 +35,22 @@ repos:
       # false positives is observed. Without the default --write-changes, findings are reported, never rewritten.
       - id: typos
         args: [--force-exclude]
+  - repo: https://github.com/betterleaks/betterleaks
+    rev: v1.9.0
+    hooks:
+      # Block a commit whose staged changes contain a secret. It sees only the index, so `--all-files` does not widen it
+      # and the lint job of CI skips it; the secret-scan job of .github/workflows/security-policy.yml runs the hook below.
+      - id: betterleaks
+        args: [--legacy-print]  # also print the fingerprint that .betterleaksignore takes
+        stages: [pre-commit]
+      # Scan the full history of the checked-out commit: `pre-commit run betterleaks-history --hook-stage manual`
+      # --log-opts replaces the default `--all --full-history --diff-filter=tuxdb`: HEAD instead of --all keeps a finding
+      # on another branch from failing unrelated PRs, dropping t from the filter scans a symlink replaced by a file, and
+      # --diff-merges=remerge (git 2.35 or later) adds only what a merge commit changes beyond the automatic merge, so
+      # merged lines are not reported again under the merge's own SHA. It skips octopus merges, which the job rejects.
+      - id: betterleaks
+        alias: betterleaks-history
+        name: Detect hardcoded secrets in the git history
+        entry: betterleaks git --redact --verbose --legacy-print --no-banner --log-opts="HEAD --full-history --diff-filter=uxdb --diff-merges=remerge"
+        always_run: true
+        stages: [manual]
