@@ -185,6 +185,51 @@ class AuthenticationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "trusted read-only"):
             pages.authenticate_run(api, {"workflow_run": api.run})
 
+    def _authenticate_paths(self, paths, workflow_path=pages.WORKFLOW_PATH):
+        api = API()
+        event = {"workflow_run": copy.deepcopy(api.run)}
+        event["workflow_run"]["path"] = paths[0]
+        original_request = api.request
+
+        def request(path, *args, **kwargs):
+            response = original_request(path, *args, **kwargs)
+            if path == "actions/runs/100/attempts/1":
+                response["path"] = paths[1]
+            elif path == "actions/runs/100":
+                response["path"] = paths[2]
+            elif path.startswith("actions/workflows/"):
+                response["path"] = workflow_path
+            return response
+
+        with patch.object(api, "request", side_effect=request):
+            return pages.authenticate_run(api, event)
+
+    def test_run_paths_accept_bare_ref_qualified_and_mixed_service_formats(self):
+        bare = pages.WORKFLOW_PATH
+        for paths in (
+            (bare, bare, bare),
+            (bare + "@main", bare + "@main", bare + "@main"),
+            (bare + "@main", bare, bare + "@refs/heads/master"),
+            (bare, bare + "@topic/branch", bare),
+        ):
+            with self.subTest(paths=paths):
+                run, _ = self._authenticate_paths(paths)
+                self.assertEqual(run["head_branch"], "master")
+                self.assertEqual(run["head_sha"], SHA)
+
+    def test_every_run_path_rejects_other_workflow_empty_qualifier_and_nonstrings(self):
+        invalid_paths: tuple[Any, ...] = (".github/workflows/other.yml@main", pages.WORKFLOW_PATH + "@", None, 123, {})
+        for invalid in invalid_paths:
+            for index in range(3):
+                paths: list[Any] = [pages.WORKFLOW_PATH] * 3
+                paths[index] = invalid
+                with self.subTest(invalid=invalid, index=index), self.assertRaises(ValueError):
+                    self._authenticate_paths(paths)
+
+    def test_workflow_metadata_still_requires_the_exact_bare_path(self):
+        with self.assertRaisesRegex(ValueError, "Invalid producer workflow"):
+            self._authenticate_paths([pages.WORKFLOW_PATH] * 3, workflow_path=pages.WORKFLOW_PATH + "@main")
+
     def test_artifact_identity_digest_expiry_and_attempt_time_are_checked(self):
         changes: list[dict[str, Any]] = [
             {"id": 51},

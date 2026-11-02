@@ -198,6 +198,14 @@ def check_namespace(ref: str, paths: list[str], ledgers: list[Json], owners: dic
         raise ValueError("Unregistered legacy publication URLs overlap")
 
 
+def producer_run_path(value: Any) -> bool:
+    """Accept GitHub's bare or ref-qualified run path, without trusting its ref."""
+    if not isinstance(value, str):
+        return False
+    path, separator, qualifier = value.partition("@")
+    return path == WORKFLOW_PATH and (not separator or bool(qualifier))
+
+
 def authenticate_run(api: Any, event: Json) -> tuple[Json, Json]:
     """Bind the webhook to canonical service metadata before any check write."""
     run = event["workflow_run"]
@@ -217,7 +225,7 @@ def authenticate_run(api: Any, event: Json) -> tuple[Json, Json]:
             or record["repository"]["full_name"] != REPOSITORY
             or record["head_repository"]["full_name"] != REPOSITORY
             or record["workflow_id"] != workflow["id"]
-            or record["path"] != WORKFLOW_PATH
+            or not producer_run_path(record["path"])
             or record["name"] != WORKFLOW_NAME
             or record["event"] not in {"push", "workflow_dispatch"}
             or record["status"] != "completed"
@@ -393,6 +401,8 @@ def live_refs(api: Any, manifest: Json) -> None:
     name = destination(ref)
     if not isinstance(sha, str) or SHA.fullmatch(sha) is None:
         raise ValueError("Invalid source SHA")
+    # This endpoint returns a complete array; page/per_page are ignored.
+    # https://docs.github.com/en/rest/git/refs#list-matching-references
     refs = api.request("git/matching-refs/heads/") + api.request("git/matching-refs/tags/")
     selected = [row for row in refs if row["ref"] == ref]
     if len(selected) != 1:
