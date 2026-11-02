@@ -172,7 +172,7 @@ def test_invalid_prediction_inputs_are_rejected(points):
 
 def test_invalid_source_geometry_or_controls_are_not_silently_exported():
     with pytest.raises(TypeError):
-        export_curve(object())
+        export_curve(object())  # type: ignore[arg-type]
     source = _mixed()
     source._models[0].knots[1] = source._models[0].knots[0]
     with pytest.raises(ValueError, match="knots"):

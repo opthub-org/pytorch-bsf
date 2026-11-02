@@ -195,7 +195,8 @@ def fit_adaptive_curve(
     All initialization, global exploration, localization, continuing audits and
     stochastic repeats consume the same response-row budget. Observed-data
     cross-validation chooses chart predictors and can share a smooth shape
-    between vector charts. Vector queries combine coverage, localization and
+    between vector charts, including a convex spline/kernel mixture. Vector
+    queries combine coverage, localization and
     private central jitter; scalar responses retain the scalar persistence
     policy and can select a stationary kernel predictor.
 
@@ -272,6 +273,7 @@ def fit_adaptive_curve(
     from torch_bsf._adaptive_curve.polynomial import _settings
     from torch_bsf._adaptive_curve.pooled_prediction import refit_prediction
     from torch_bsf._adaptive_curve.queries import QuerySession
+    from torch_bsf._adaptive_curve.stacked_prediction import refit_prediction as refit_stacked_prediction
 
     session = QuerySession(oracle, pairs, budget=budget, deterministic=deterministic, resolution=resolution)
     try:
@@ -289,7 +291,11 @@ def fit_adaptive_curve(
             jitter_vector_only=True,
             jitter_seed=seed,
         )
-        learned = refit_kernel_prediction(learned) if learned.values.shape[1] == 1 else refit_prediction(learned)
+        learned = (
+            refit_kernel_prediction(learned)
+            if learned.values.shape[1] == 1
+            else refit_stacked_prediction(refit_prediction(learned))
+        )
     except Exception as failure:
         failure.add_note(f"Adaptive curve requested {session.cost} response rows from {session.proposed_rows} proposed rows.")
         raise
@@ -297,7 +303,7 @@ def fit_adaptive_curve(
         for row in learned.diagnostics["trace"]:
             row.pop("selected_midpoint", None)
             row.pop("query_jittered", None)
-    learned.diagnostics["profile"] = "kernel_cv_scalar" if learned.values.shape[1] == 1 else "coverage_shared_c0_localization"
+    learned.diagnostics["profile"] = "kernel_cv_scalar" if learned.values.shape[1] == 1 else "coverage_shared_c0_component_gp"
     compiled = learned._compiled
     if compiled is None:
         raise ArithmeticError("Adaptive curve model was not compiled.")

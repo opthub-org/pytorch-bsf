@@ -142,6 +142,22 @@ independent chart fits. The input charts remain disconnected. Diagnostics in
 BSF endpoint contrasts with observed endpoint contrasts; a component count
 alone does not establish faithful output geometry.
 
+These vector charts can also use a shared stationary kernel with a random
+intercept for each inferred chart. A finite input-volume-weighted
+cross-validation search chooses the kernel, mean and regularization. If the
+best regularization reaches the upper end of its initial grid, a bounded
+expansion checks larger values. One convex weight combines the selected
+kernel predictor with the shared C0 predictor, using their signed deleted-row
+residuals at the same interior observations. This is a conditional selection
+score; it does not validate the complete adaptive pipeline.
+
+The mixture must retain an endpoint change in the observed direction beyond
+the empirical detector threshold. Otherwise, or if numerical conversion
+fails, the existing predictor remains available. ``stacked_gap_prediction``
+records the selected model, weight, conditional scores and conversion checks.
+This extra step obtains no evaluator responses and does not change the
+query locations or proposed gap brackets.
+
 The rational candidate follows the `AAA algorithm
 <https://doi.org/10.1137/16M1106122>`_. It rejects detected real poles in the
 chart. Rational and kernel operators convert to polynomial pieces without
@@ -151,6 +167,14 @@ checks are empirical, not a certified uniform approximation bound. Export
 from the resulting polynomial pieces to Bernstein controls preserves the
 polynomial, subject to floating-point rounding. Conversion diagnostics remain
 in ``diagnostics['capacity']`` and ``diagnostics['kernel_prediction']``.
+
+For vector Matérn mixtures, conversion starts at the fitted kernel's known
+support coordinates. This avoids fitting a single polynomial across kernel
+breakpoints. Subsequent subdivision has a finite depth and a limit of 1024
+pieces. These bounds differ from starting subdivision on the whole interval;
+the scalar conversion policy is separate. Even with fewer pieces, the
+resulting dense Bernstein coefficients can occupy more storage than the
+observations. Inspect model size as well as query cost and predictive error.
 
 A narrow unobserved pulse, a grid alias, a continuous cusp or deterministic
 roughness can be mistaken for a gap or remain undiscovered. Proposed cuts can

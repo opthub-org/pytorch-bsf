@@ -162,7 +162,7 @@ def test_outer_cache_matches_uncached_fits_and_invalidates_only_local_context():
 
 def test_invalid_cache_flag_is_rejected():
     with pytest.raises(ValueError, match="cache_outer"):
-        CrossFittedVectorGapDetector(cache_outer=1)
+        CrossFittedVectorGapDetector(cache_outer=1)  # type: ignore[arg-type]
 
 
 def test_replicate_mean_and_noise_changes_recompute_evidence_without_stale_outer_fits():
