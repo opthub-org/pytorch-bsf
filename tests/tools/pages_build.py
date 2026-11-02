@@ -134,13 +134,22 @@ def test_copy_failure_removes_partial_artifact(tmp_path):
 
 
 def test_workflow_keeps_complete_build_readonly_and_outside_publish_lock():
-    workflow = (Path(__file__).resolve().parents[2] / ".github/workflows/sphinx-pages-build.yml").read_text()
+    root = Path(__file__).resolve().parents[2]
+    workflow = (root / ".github/workflows/sphinx-pages-build.yml").read_text()
+    assert workflow.encode() == (root / ".github/pages-build-template.yml").read_bytes()
     assert "sphinx-multiversion docs/ docs/_build" in workflow
     assert "contents: read" in workflow
     assert "contents: write" not in workflow
     assert "concurrency:" not in workflow
     assert "secrets." not in workflow
     assert "include-hidden-files: true" in workflow
+
+
+def test_security_postmerge_dispatch_uses_the_new_readonly_producer():
+    from tools.security_automation import POST_MERGE
+
+    assert "sphinx-pages-build.yml" in POST_MERGE
+    assert "sphinx-pages.yml" not in POST_MERGE
 
 
 def test_invalid_sha_is_not_sent_to_git():
