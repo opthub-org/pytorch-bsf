@@ -1272,3 +1272,25 @@ def test_max_error_criterion_keeps_targets_out_of_the_model_range():
     k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
     assert (k, i, j) == (0, 0, 1)
     assert abs(s - 0.6) < 1e-3
+
+
+def test_max_error_criterion_scales_errors_before_squaring():
+    # Errors of 1e200 overflow float64 when squared; predictions and targets must be scaled first.
+    bs = BezierSimploid((1,), 1, {(1, 0): [0.0], (0, 1): [0.0]}).double()
+    t = torch.linspace(0.05, 0.95, 10, dtype=torch.float64)
+    params = torch.stack([1 - t, t], dim=1)
+    values = (1e200 * (1 + t) * (t > 0.6).double())[:, None]
+    k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
+    assert (k, i, j) == (0, 0, 1)
+    assert abs(s - 0.6) < 1e-3
+
+
+def test_max_error_criterion_scales_errors_relative_to_the_largest_error():
+    # Errors of 1e-170 underflow to zero when squared unless measured against the largest error.
+    bs = BezierSimploid((1,), 1, {(1, 0): [0.0], (0, 1): [0.0]}).double()
+    t = torch.linspace(0.05, 0.95, 10, dtype=torch.float64)
+    params = torch.stack([1 - t, t], dim=1)
+    values = (1e-170 * (1 + t) * (t > 0.6).double())[:, None]
+    k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
+    assert (k, i, j) == (0, 0, 1)
+    assert abs(s - 0.6) < 1e-3

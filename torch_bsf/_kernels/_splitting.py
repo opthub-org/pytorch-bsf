@@ -533,14 +533,15 @@ def max_error_criterion(params: torch.Tensor, values: torch.Tensor, grid_size: i
         if not len(p):
             return longest_edge_criterion(model)
         with torch.no_grad():
-            # The score squares these squared errors again, which overflows low-precision dtypes, so it is
-            # computed in float64 on the CPU (some accelerators, such as MPS, have no float64).
-            # The targets are widened from their own dtype, not from the model dtype they might overflow.
-            residuals = (model(p).cpu().double() - values_t.detach().cpu().double()).square().sum(dim=1)
-            # Squaring again could still overflow for huge errors; a common scale does not change the minimiser.
-            scale = residuals.max()
+            # The score squares the squared errors again, so it is computed in float64 on the CPU (some
+            # accelerators, such as MPS, have no float64), from the targets in their own dtype. Halving before
+            # subtracting cannot overflow, and dividing the errors by the largest one (a common scale, which does not
+            # change the minimiser) keeps every later step finite and the largest residual from underflowing.
+            errors = model(p).cpu().double() / 2 - values_t.detach().cpu().double() / 2
+            scale = errors.abs().max()
             if 0 < scale < float("inf"):
-                residuals = residuals / scale
+                errors = errors / scale
+            residuals = errors.square().sum(dim=1)
         p = p.cpu()
 
         best: tuple[int, int, int, float] | None = None
