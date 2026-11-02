@@ -31,10 +31,6 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ steps.python.outputs.integrations }}
-          cache: pip
-          cache-dependency-path: |
-            docs/requirements.txt
-            pyproject.toml
       - name: Install CPU PyTorch and all documentation dependencies
         run: |
           python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
