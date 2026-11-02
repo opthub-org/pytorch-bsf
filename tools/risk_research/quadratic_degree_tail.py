@@ -152,6 +152,9 @@ def main(argv: list[str] | None = None) -> int:
         if arguments.vertices is not None:
             if arguments.output is None:
                 parser.error("--vertices requires --output")
+            root = Path(__file__).resolve().parents[2]
+            if arguments.output.resolve() in {(root / name).resolve() for name in before}:
+                raise ValueError("output must not overwrite evaluator or proof sources")
             report = certify_vertices(arguments.vertices)
             if _sources() != before:
                 raise RuntimeError("proof sources changed during certification")

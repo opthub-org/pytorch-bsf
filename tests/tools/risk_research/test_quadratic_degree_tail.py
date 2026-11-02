@@ -146,6 +146,33 @@ def test_cli_round_trip_preservation_and_duplicate_keys(tmp_path):
     assert output.read_bytes() == original
 
 
+@pytest.mark.parametrize("name", list(tail._sources()))
+def test_cli_rejects_each_fingerprinted_source_before_calling_writer(monkeypatch, name):
+    root = Path(__file__).resolve().parents[3]
+    before = tail._sources()
+    calls = []
+    monkeypatch.setattr(tail, "atomic_json", lambda path, record: calls.append(path))
+    with pytest.raises(SystemExit) as error:
+        tail.main(["--vertices", "4", "--output", str(root / name)])
+    assert error.value.code == 2
+    assert calls == []
+    assert tail._sources() == before
+
+
+def test_cli_rejects_a_resolved_source_alias_and_preserves_the_link(tmp_path, monkeypatch):
+    protected = Path(tail.__file__).resolve()
+    alias = tmp_path / "source-alias.json"
+    alias.symlink_to(protected)
+    before = tail._sources()
+    calls = []
+    monkeypatch.setattr(tail, "atomic_json", lambda path, record: calls.append(path))
+    with pytest.raises(SystemExit) as error:
+        tail.main(["--vertices", "4", "--output", str(alias)])
+    assert error.value.code == 2
+    assert not calls and alias.is_symlink() and alias.resolve() == protected
+    assert tail._sources() == before
+
+
 @pytest.mark.parametrize("crlf", [False, True])
 def test_hashes_are_portable_and_raw_concurrent_edits_preserve_output(tmp_path, monkeypatch, crlf):
     lf = {name: value.replace(b"\r\n", b"\n") for name, value in tail._sources().items()}
