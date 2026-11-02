@@ -19,6 +19,39 @@ from tools.risk_research.codimension_three_exact import harmonic_diagonals
 ROOT = Path(__file__).resolve().parents[3]
 
 
+@pytest.mark.parametrize("source_name", list(error._sources()))
+def test_output_parent_is_pinned_before_atomic_writer_entry(tmp_path, monkeypatch, source_name):
+    protected = ROOT / source_name
+    original_bytes = protected.read_bytes()
+    safe = tmp_path / "safe"
+    safe.mkdir()
+    destination = safe / protected.name
+    destination.write_bytes(b"keep destination")
+    alias = tmp_path / "alias"
+    try:
+        alias.symlink_to(safe, target_is_directory=True)
+    except (OSError, NotImplementedError) as link_error:
+        pytest.skip(f"directory symlinks unavailable: {link_error}")
+    writer = error.atomic_json
+
+    def retarget_at_writer_entry(path, record):
+        alias.unlink()
+        alias.symlink_to(protected.parent, target_is_directory=True)
+        # Assert before the real writer: the old implementation fails safely
+        # here without any possibility of replacing a real source file.
+        assert path == destination
+        assert path.resolve() == destination
+        writer(path, record)
+
+    monkeypatch.setattr(error, "atomic_json", retarget_at_writer_entry)
+    try:
+        assert error.main(["--face-size", "2", "--degree", "8", "--output", str(alias / protected.name)]) == 0
+        assert destination.read_bytes() != b"keep destination"
+        assert protected.read_bytes() == original_bytes
+    finally:
+        alias.unlink()
+
+
 def _large_integer(text):
     sign = -1 if text.startswith("-") else 1
     text = text.removeprefix("-")

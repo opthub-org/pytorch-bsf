@@ -313,9 +313,10 @@ def main(argv: list[str] | None = None) -> int:
             report = certificate(arguments.face_size, arguments.degree, terms, arguments.relative_target)
         if _sources() != sources:
             raise RuntimeError("nonvertex q3 error sources changed during calculation")
-        _protect_output(arguments.output, sources)
-        if arguments.output is not None:
-            atomic_json(arguments.output, report)
+        output = None if arguments.output is None else arguments.output.parent.resolve() / arguments.output.name
+        _protect_output(output, sources)
+        if output is not None:
+            atomic_json(output, report)
         else:
             print("verified saved nonvertex q3 error certificate")
     except (ValueError, TypeError, ArithmeticError, RuntimeError, OSError) as error:

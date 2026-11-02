@@ -256,6 +256,8 @@ inequalities prove the infinite degree tail.
 
 The CLI rejects outputs resolving to evaluator or proof sources, including
 symlink aliases, before calculation and immediately before replacement.
+The writer uses that validated canonical parent and the original leaf name,
+so retargeting the original parent alias cannot redirect the write.
 Large rational integers and JSON integer parameters use local bounded
 decimal chunks; parameter fields remain JSON numbers. Replay uses the
 same local decoder, and no process-wide integer conversion limit is changed.
