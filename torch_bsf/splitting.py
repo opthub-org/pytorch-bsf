@@ -44,10 +44,15 @@ class LongestEdge:
 
 @dataclass(frozen=True)
 class ResidualSplit:
-    """Minimize the sum of unweighted child MSEs over a split-fraction grid.
+    """Group the current residuals into two homogeneous pieces over a split-fraction grid.
 
-    Exact subdivision preserves the represented function. This policy balances
-    residual grouping; it does not refit the children or guarantee error reduction.
+    Exact subdivision preserves the represented function, so each observation's squared
+    residual is computed once with the parent and only assigned to the pieces. Over every
+    factor edge and ``resolution`` interior fractions, the split minimizing the within-piece
+    sum of squared deviations of these residuals from each piece's mean is selected.
+    Candidates leaving a piece without observations of its own are rejected; if all are,
+    the midpoint of the longest edge is used. This does not refit the children or
+    guarantee error reduction.
     """
 
     samples: Samples
@@ -143,7 +148,8 @@ def _choose(model: BezierModel, cid: int, policy: EdgeSplit | LongestEdge | Resi
         points = policy.samples.points.parameters[selected, : info.width]
         values = policy.samples.values[selected.to(policy.samples.values.device)]
         weights = policy.samples.weights[selected.cpu()]
-        if not len(weights) or not torch.all(weights == weights[0]):
+        # A cell without observations falls back to the longest edge in max_error_criterion.
+        if len(weights) and not torch.all(weights == weights[0]):
             raise ValueError("ResidualSplit requires equally weighted observations on the selected cell.")
         factor, i, j, fraction = max_error_criterion(points, values, policy.resolution)(local)
         return EdgeSplit(i, j, fraction, factor)

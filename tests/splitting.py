@@ -549,13 +549,74 @@ def test_max_error_criterion_wrong_values_shape():
 
 def test_max_error_criterion_piece_without_data():
     # All data lie at vertex 0, so one of the two pieces holds no data for every s.
-    # That piece contributes nothing to the error; the error is 0.25 for every s,
-    # so the first candidate s = 0.25 wins (an empty piece yielding NaN would keep the default s = 0.5).
+    # Every candidate is rejected, and the criterion falls back to the midpoint of the longest edge.
     bs = _identity_curve()
     params = torch.tensor([[1.0, 0.0]])
     values = torch.tensor([[0.5]])
     criterion = max_error_criterion(params, values, grid_size=3)
-    assert criterion(bs) == (0, 0, 1, 0.25)
+    assert criterion(bs) == (0, 0, 1, 0.5)
+
+
+def test_max_error_criterion_without_data_falls_back_to_longest_edge():
+    bs = _rand(3, 2, 2)
+    criterion = max_error_criterion(torch.zeros(0, 3), torch.zeros(0, 2), grid_size=3)
+    assert criterion(bs) == longest_edge_criterion(bs)
+
+
+def test_max_error_criterion_rejects_splits_with_an_empty_piece():
+    # Data near vertex 1 only: the cuts s = 0.25 and s = 0.5 would leave piece B, resp. A, empty;
+    # only s = 0.75 separates the data, even though the residuals of the two points are very different.
+    bs = _identity_curve()
+    params = torch.tensor([[0.1, 0.9], [0.4, 0.6]])
+    values = torch.tensor([[0.0], [0.6]])
+    criterion = max_error_criterion(params, values, grid_size=3)
+    assert criterion(bs) == (0, 0, 1, 0.75)
+
+
+def test_max_error_criterion_separates_high_and_low_residuals():
+    # The model is exact for t_1 < 0.6 and off by one beyond, so the best cut groups the residuals at 0.6.
+    bs = _identity_curve()
+    t = torch.linspace(0.01, 0.99, 50, dtype=torch.float64)
+    params = torch.stack([1 - t, t], dim=1)
+    values = (t + (t > 0.6).double())[:, None]
+    criterion = max_error_criterion(params, values, grid_size=9)
+    k, i, j, s = criterion(bs.to(torch.float64))
+    assert (k, i, j) == (0, 0, 1)
+    assert s == pytest.approx(0.6)
+
+
+def test_max_error_criterion_does_not_favor_one_sided_splits():
+    # Regression test for #621: the old score MSE_A + MSE_B was smaller for cuts leaving few points
+    # on one side (s = 0.05: 1.82, s = 0.5: 1.83, s = 0.95: 0.91), so a cut next to the end was chosen
+    # although the residuals are unchanged by an exact split.
+    torch.manual_seed(0)
+    t = torch.rand(200)
+    params = torch.stack([t, 1 - t], 1)
+    values = torch.sin(6 * t)[:, None]
+    bs = BezierSimploid.rand((1,), 2, n_values=1)
+    k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
+    assert (k, i, j) == (0, 0, 1)
+    assert 0.2 < s < 0.8
+    in_a = params[:, 1] <= s
+    assert 0.25 < float(in_a.double().mean()) < 0.75
+
+
+def test_residual_split_does_not_favor_one_sided_splits():
+    # The public policy goes through the same criterion (#621).
+    from torch_bsf.core import Samples
+    from torch_bsf.splitting import ResidualSplit
+
+    torch.manual_seed(0)
+    t = torch.rand(200, dtype=torch.float64)
+    params = torch.stack([t, 1 - t], 1)
+    model = BezierModel(BezierSpace.simplex(1, degree=2), torch.randn(3, 1, dtype=torch.float64))
+    samples = Samples(params, torch.sin(6 * t)[:, None])
+    chosen = subdivide(model, policy=ResidualSplit(samples, resolution=9)).maps[0].split
+    info = model.space.cells[0]
+    local = BezierSimploid(info.dimensions, info.degree, model.coefficients[list(info.controls)])
+    assert (chosen.factor, chosen.i, chosen.j, chosen.fraction) == max_error_criterion(params, samples.values, 9)(local)
+    assert 0.2 < chosen.fraction < 0.8
+    assert subdivide_space(model, policy=ResidualSplit(samples, resolution=9)).split == chosen
 
 
 # ---------------------------------------------------------------------------
@@ -959,6 +1020,17 @@ def test_transfer_keeps_points_on_their_device():
     torch.testing.assert_close(result.model(cpu.to()), model(original.to()), rtol=0, atol=1e-6)
 
 
+@pytest.mark.skipif(not _ACCELERATORS, reason="no accelerator available")
+def test_max_error_criterion_scores_accelerator_models_on_the_cpu():
+    # Scoring is in float64, which MPS lacks; it must run on the CPU and match a CPU model.
+    bs = BezierSimploid((1,), 1, {(1, 0): [0.0], (0, 1): [1.0]})
+    t = torch.linspace(0.05, 0.95, 10)
+    params = torch.stack([1 - t, t], dim=1)
+    values = (t + (t > 0.6).float())[:, None]
+    criterion = max_error_criterion(params, values, grid_size=9)
+    assert criterion(bs.to(_ACCELERATORS[0])) == criterion(bs)
+
+
 # ---------------------------------------------------------------------------
 # Properties (Hypothesis)
 # ---------------------------------------------------------------------------
@@ -1130,3 +1202,122 @@ def test_subdivide_space_keeps_the_function_at_any_fraction(data):
         _split_tolerance(cell.dimensions, (2,) * len(cell.dimensions), 0, magnitude) for cell in space.cells if cell.dimensions
     )
     torch.testing.assert_close(result.model(result.transfer(points)), model(points), rtol=0, atol=tolerance)
+
+
+def test_max_error_criterion_scores_low_precision_models_in_double():
+    # Squaring the squared errors (~9e4) again overflows float16; the score must not fall back to the longest edge.
+    bs = BezierSimploid((1,), 1, {(1, 0): [0.0], (0, 1): [1.0]}).half()
+    t = torch.linspace(0.05, 0.95, 10)
+    params = torch.stack([1 - t, t], dim=1)
+    values = (t + 300 * (t > 0.6).float())[:, None]
+    k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
+    assert (k, i, j) == (0, 0, 1)
+    assert abs(s - 0.6) < 1e-3
+
+
+def test_split_score_counts_a_point_on_the_cut_once():
+    from torch_bsf._kernels._splitting import _split_score
+
+    t = torch.tensor([0.1, 0.5, 0.9], dtype=torch.float64)
+    params = torch.stack([1 - t, t], dim=1)
+    residuals = torch.tensor([0.0, 1.0, 2.0], dtype=torch.float64)
+    key = _split_score(residuals, params, (1,), 0, 0, 1, 0.5)
+    assert key is not None
+    assert key[1] == 1  # three points split 2 + 1, not 2 + 2
+
+
+def test_max_error_criterion_widens_before_subtracting():
+    # 6e4 - (-6e4) overflows float16; the errors must be formed in float64.
+    bs = BezierSimploid((1,), 1, {(1, 0): [6e4], (0, 1): [6e4]}).half()
+    t = torch.linspace(0.05, 0.95, 10)
+    params = torch.stack([1 - t, t], dim=1)
+    values = torch.where(t > 0.6, -6e4, 6e4)[:, None]
+    k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
+    assert (k, i, j) == (0, 0, 1)
+    assert abs(s - 0.6) < 1e-3
+
+
+def test_max_error_criterion_scales_huge_residuals():
+    # Errors of 1e100 give finite squared residuals (1e200) whose squares overflow float64 unless scaled.
+    bs = BezierSimploid((1,), 1, {(1, 0): [0.0], (0, 1): [0.0]}).double()
+    t = torch.linspace(0.05, 0.95, 10, dtype=torch.float64)
+    params = torch.stack([1 - t, t], dim=1)
+    values = (1e100 * (1 + t) * (t > 0.6).double())[:, None]  # uneven, so no piece has zero spread
+    k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
+    assert (k, i, j) == (0, 0, 1)
+    assert abs(s - 0.6) < 1e-3
+
+
+def test_residual_split_of_a_cell_without_observations_falls_back_to_the_longest_edge():
+    from torch_bsf.core import BezierModel, BezierSpace, Points, Samples
+    from torch_bsf.splitting import ResidualSplit
+
+    space = BezierSpace.on_set(_glued(), degree=2)
+    torch.manual_seed(5)
+    model = BezierModel(space, torch.randn(space.n_controls, 1, dtype=torch.float64))
+    points = _uniform_points(space)
+    other = points.cell_ids == space.main_cells[1]  # observations only on another cell
+    samples = Samples(Points(points.parameters[other], points.cell_ids[other]), torch.randn(int(other.sum()), 1))
+    cell = space.main_cells[0]
+    result = subdivide_space(model, cell=cell, policy=ResidualSplit(samples))
+    assert result.split == subdivide_space(model, cell=cell, policy=LongestEdge()).split
+
+
+def test_max_error_criterion_keeps_targets_out_of_the_model_range():
+    # Targets of 1e5 are finite in float32 but overflow float16; they must not be narrowed to the model dtype.
+    bs = BezierSimploid((1,), 1, {(1, 0): [0.0], (0, 1): [0.0]}).half()
+    t = torch.linspace(0.05, 0.95, 10)
+    params = torch.stack([1 - t, t], dim=1)
+    values = (1e5 * (1 + t) * (t > 0.6).float())[:, None]
+    k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
+    assert (k, i, j) == (0, 0, 1)
+    assert abs(s - 0.6) < 1e-3
+
+
+def test_max_error_criterion_scales_errors_before_squaring():
+    # Errors of 1e200 overflow float64 when squared; predictions and targets must be scaled first.
+    bs = BezierSimploid((1,), 1, {(1, 0): [0.0], (0, 1): [0.0]}).double()
+    t = torch.linspace(0.05, 0.95, 10, dtype=torch.float64)
+    params = torch.stack([1 - t, t], dim=1)
+    values = (1e200 * (1 + t) * (t > 0.6).double())[:, None]
+    k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
+    assert (k, i, j) == (0, 0, 1)
+    assert abs(s - 0.6) < 1e-3
+
+
+def test_max_error_criterion_scales_errors_relative_to_the_largest_error():
+    # Errors of 1e-170 underflow to zero when squared unless measured against the largest error.
+    bs = BezierSimploid((1,), 1, {(1, 0): [0.0], (0, 1): [0.0]}).double()
+    t = torch.linspace(0.05, 0.95, 10, dtype=torch.float64)
+    params = torch.stack([1 - t, t], dim=1)
+    values = (1e-170 * (1 + t) * (t > 0.6).double())[:, None]
+    k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
+    assert (k, i, j) == (0, 0, 1)
+    assert abs(s - 0.6) < 1e-3
+
+
+def test_max_error_criterion_keeps_subnormal_errors():
+    # Halving 5e-324 rounds it to zero; errors that do not overflow must be formed without halving.
+    bs = BezierSimploid((1,), 1, {(1, 0): [0.0], (0, 1): [0.0]}).double()
+    t = torch.linspace(0.05, 0.95, 10, dtype=torch.float64)
+    params = torch.stack([1 - t, t], dim=1)
+    values = torch.zeros(10, 1, dtype=torch.float64)
+    values[t > 0.6] = 5e-324
+    k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
+    assert (k, i, j) == (0, 0, 1)
+    assert abs(s - 0.6) < 1e-3
+
+
+def test_max_error_criterion_halves_only_overflowing_errors():
+    # 1e308 - (-1e308) overflows; then the errors are halved instead. (The predictions are stubbed, because
+    # evaluating a model this close to the float64 limit overflows by itself.)
+    bs = BezierSimploid((1,), 1, {(1, 0): [0.0], (0, 1): [0.0]}).double()
+    bs.forward = lambda t: torch.full((len(t), 1), 1e308, dtype=torch.float64)  # type: ignore[method-assign]
+    t = torch.linspace(0.05, 0.95, 10, dtype=torch.float64)
+    params = torch.stack([1 - t, t], dim=1)
+    values = torch.full((10, 1), 1e308, dtype=torch.float64)
+    values[t > 0.6] = -1e308 * 0.9
+    values[t > 0.8] = -1e308
+    k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
+    assert (k, i, j) == (0, 0, 1)
+    assert abs(s - 0.6) < 1e-3
