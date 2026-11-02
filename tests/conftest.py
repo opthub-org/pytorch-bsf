@@ -4,7 +4,12 @@ import os
 import sys
 
 import pytest
+import torch._dynamo  # noqa: F401 - see below
 from hypothesis import settings
+
+# PyTorch 2.3 imports torch._dynamo lazily, the first time a torch.autograd.Function runs under a torch.func
+# transform, and that import fails inside the transform ("clone is not supported by NestedIntSymNode", then a
+# circular import). Importing it up front keeps such tests independent of the (random) test order.
 
 # Property-based tests run with the profile named by the HYPOTHESIS_PROFILE environment variable:
 # - "ci" (default): few examples, derandomized so that every run (and CI) tests the same inputs, no deadline
