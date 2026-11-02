@@ -448,15 +448,19 @@ PyPI Trusted Publisher registration as well.
 
 ### Codecov authentication and upload verification
 
-The PyTest `build` job uploads `coverage.xml` only on the full-integration Python
-version selected by `environment.yml`. Upload errors fail that job; a green
-workflow from before this policy is not proof that Codecov accepted a report.
+The PyTest full-integration `build` job exports `coverage.xml`, and `lowest`
+exports `lowest-coverage.xml`, as untrusted report artifacts. This includes
+branches used only by the oldest supported dependencies. After both jobs
+succeed, `coverage / coverage` validates and uploads both reports together on
+a fresh runner that checks out `master` and never executes candidate code.
+Upload errors fail that job; a green workflow from before this policy is not
+proof that Codecov accepted a report.
 
 - Ordinary PRs and `master` pushes use the existing `CODECOV_TOKEN` Actions
   secret, configured under **Settings → Secrets and variables → Actions**.
 - Same-repository PR runs triggered by `dependabot[bot]` use Codecov's OIDC
-  authentication. The `build` job grants `id-token: write`; other jobs retain
-  their existing permissions. OIDC requires no copied Dependabot secret or
+  authentication. Only the isolated upload job grants `id-token: write`;
+  candidate test jobs have neither OIDC nor coverage credentials. OIDC requires no copied Dependabot secret or
   Codecov token-policy change. Dependabot cannot read ordinary Actions secrets, and manually rerunning
   its workflow retains the original restricted context.
 - Public fork PRs retain Codecov's tokenless upload path. They receive no
@@ -465,11 +469,12 @@ workflow from before this policy is not proof that Codecov accepted a report.
 
 For an Action upgrade, verify the actual upload as well as the CI result:
 
-1. Record the PR head SHA and open its PyTest `build` job for the full-integration
-   Python version. For Dependabot, verify that the workflow's original actor is
+1. Record the PR head SHA and check its full-integration `build` and `lowest`
+   coverage exports. For Dependabot, verify that the workflow's original actor is
    `dependabot[bot]`; a maintainer's own PR does not exercise that context.
-2. Expand **Upload coverage to Codecov**. Check that it finds `coverage.xml`,
-   uploads for the recorded PR head SHA, and finishes without authentication,
+2. Open `coverage / coverage` and expand **Upload data with credentials isolated
+   from the test runner**. Check that it finds both `coverage.xml` and
+   `lowest-coverage.xml`, uploads for the recorded PR head SHA, and finishes without authentication,
    queueing or upload errors. A message that a report was queued alone does not
    prove that processing succeeded.
 3. Open the matching commit at

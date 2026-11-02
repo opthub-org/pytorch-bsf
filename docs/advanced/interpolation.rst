@@ -108,10 +108,10 @@ evaluate the whole query using these expressions, preserving point and vertex
 tangents without exposing dual tensor storage to Python.
 ``torch.func.jacrev`` and ``torch.func.jacfwd`` batch the exact evaluations
 independently, retaining their individual rational bindings.
-In a fresh PyTorch 2.3 process, its lazy compiler initialization can fail
-when first triggered inside a transform. Calling
-``torch.compiler.disable(lambda: None)`` before entering the transform
-initializes the compiler outside it.
+PyTorch 2.3's lazy compiler initialization can fail when first triggered
+inside a transform. Importing ``torch_bsf`` initializes that compiler
+before transforms automatically on PyTorch 2.3. Later versions retain
+their usual lazy initialization.
 ``locate(batch_size=...)`` bounds temporary float64 storage by
 ``O(batch_size * n_simplices * (d + 1))``, in addition to that cache.
 
