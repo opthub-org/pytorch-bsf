@@ -1,0 +1,469 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vertex coefficients at every fixed vertex count &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Explicit vertex errors at every fixed vertex count" href="skeleton_risk_vertex_general_asymptotics.html" />
+    <link rel="prev" title="Tetrahedron vertex risk" href="skeleton_risk_vertex.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_family.html">Uniform construction for codimension two</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three.html">Boundary transfer and a codimension-three edge bound</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Vertex coefficients at every fixed vertex count</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#a-rational-univariate-construction">A rational univariate construction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#a-positive-integral-for-the-leading-constant">A positive integral for the leading constant</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#certified-constant-enclosures">Certified constant enclosures</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html">An all-degree sufficient region for large vertex counts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html">Five-vertex vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_comparison.html">Five-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Vertex coefficients at every fixed vertex count</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/skeleton_risk_vertex_general.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="vertex-coefficients-at-every-fixed-vertex-count">
+<h1>Vertex coefficients at every fixed vertex count<a class="headerlink" href="#vertex-coefficients-at-every-fixed-vertex-count" title="Link to this heading"></a></h1>
+<p>This chapter keeps the uniform-simplex assumptions of
+<a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a>. It gives a constructive one-dimensional
+convolution formula at every vertex count and proves the leading vertex
+constant for <strong>each fixed</strong> <span class="math notranslate nohighlight">\(M\geq4\)</span>. The limit is not asserted
+uniformly when <span class="math notranslate nohighlight">\(M\)</span> grows with the degree.</p>
+<section id="a-rational-univariate-construction">
+<h2>A rational univariate construction<a class="headerlink" href="#a-rational-univariate-construction" title="Link to this heading"></a></h2>
+<p>Put <span class="math notranslate nohighlight">\(g(t)=-(1-t)\log(1-t)/t\)</span>, with <span class="math notranslate nohighlight">\(g(0)=1\)</span>, and set</p>
+<div class="math notranslate nohighlight">
+\[\phi_r(j)=[t^j]\frac{g(t)^r}{1-t},\qquad
+e_r(j)=\sum_{a=1}^{r-1}\binom ra\phi_a(j)\phi_{r-a}(j).\]</div>
+<p>Thus <span class="math notranslate nohighlight">\(e_0=e_1=0\)</span>. Let <span class="math notranslate nohighlight">\(b_k(j)=[t^j]g(t)^k\)</span> and use ordinary
+sequence convolution. In particular, <span class="math notranslate nohighlight">\(b_0\)</span> is the unit sequence
+and <span class="math notranslate nohighlight">\(b_k(j)=\phi_k(j)-\phi_k(j-1)\)</span>, where
+<span class="math notranslate nohighlight">\(\phi_k(-1)=0\)</span>. Define</p>
+<div class="math notranslate nohighlight" id="equation-risk-general-transformed-diagonal">
+<span class="eqno">(55)<a class="headerlink" href="#equation-risk-general-transformed-diagonal" title="Link to this equation"></a></span>\[\delta_q(j)=(-1)^{q+1}\phi_q(j)
+    +\sum_{k=0}^{q-2}(-1)^k\binom qk(b_k*e_{q-k})(j).\]</div>
+<p>An empty sum is zero. These sequences require only rational arithmetic.
+For example, writing <span class="math notranslate nohighlight">\(E_l\)</span> for an elementary symmetric polynomial,</p>
+<div class="math notranslate nohighlight" id="equation-risk-general-phi-elementary">
+<span class="eqno">(56)<a class="headerlink" href="#equation-risk-general-phi-elementary" title="Link to this equation"></a></span>\[\phi_r(j)=\frac{r!(r-1)!j!}{(j+r)!}
+ E_{r-1}\left(1,\frac12,\ldots,\frac1{r-1},
+                 -1,-\frac12,\ldots,-\frac1j\right).\]</div>
+<p>The positive list is empty at <span class="math notranslate nohighlight">\(r=1\)</span>; the negative list is empty
+at <span class="math notranslate nohighlight">\(j=0\)</span>. Adding <span class="math notranslate nohighlight">\(-1/(j+1)\)</span> updates the finite symmetric
+polynomial state, while the factorial ratio has a rational update.</p>
+<div class="proof theorem admonition" id="thm-risk-general-vertex-construction">
+<p class="admonition-title"><span class="caption-number">Theorem 30 </span> (Constructive vertex formula at every vertex count)</p>
+<section class="theorem-content" id="proof-content">
+<p>For integers <span class="math notranslate nohighlight">\(M\geq2\)</span>, <span class="math notranslate nohighlight">\(D\geq1\)</span>, let
+<span class="math notranslate nohighlight">\(W_{D,j}=\binom{D-1}j\binom{D+1}j\)</span> and
+<span class="math notranslate nohighlight">\(Z_D=\binom{2D}{D-1}\)</span>. Then</p>
+<div class="math notranslate nohighlight" id="equation-risk-general-vertex-single">
+<span class="eqno">(57)<a class="headerlink" href="#equation-risk-general-vertex-single" title="Link to this equation"></a></span>\[a_0(M,D)=\frac{M^2(M-1)!}
+  {Z_D\prod_{h=1}^{M-1}(2D+h)}
+    \sum_{j=0}^{D-1}W_{D,j}\delta_{M-1}(j).\]</div>
+<p>Every <span class="math notranslate nohighlight">\(\delta_q(j)\)</span> is strictly positive. Formula
+<a class="reference internal" href="#equation-risk-general-transformed-diagonal">(55)</a> evaluates it by univariate
+convolutions, without constructing a bivariate outside kernel.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. The transformed-kernel identity in <a class="reference internal" href="skeleton_risk_vertex.html"><span class="doc">Tetrahedron vertex risk</span></a> gives</p>
+<div class="math notranslate nohighlight">
+\[\delta_q(j)=[x^jy^j]
+  \frac{(g(x)+g(y)-g(xy))^q}{(1-x)(1-y)}.\]</div>
+<p>Expanding by powers of <span class="math notranslate nohighlight">\(g(xy)\)</span> gives
+<span class="math notranslate nohighlight">\(\sum_{k=0}^q(-1)^k\binom qk(b_k*d_{q-k})(j)\)</span>, where
+<span class="math notranslate nohighlight">\(d_r=2\phi_r+e_r\)</span> for <span class="math notranslate nohighlight">\(r\geq1\)</span> and <span class="math notranslate nohighlight">\(d_0=1\)</span>.
+Since <span class="math notranslate nohighlight">\(b_k*\phi_{q-k}=\phi_q\)</span>, the edge terms combine to
+<span class="math notranslate nohighlight">\((-1)^{q+1}\phi_q\)</span>. This proves
+<a class="reference internal" href="#equation-risk-general-transformed-diagonal">(55)</a>.
+The previously proved binomial Gram diagonalization supplies
+<a class="reference internal" href="#equation-risk-general-vertex-single">(57)</a>; positivity is
+<a class="reference internal" href="skeleton_risk_five_vertex.html#prop-risk-positive-transformed-kernel">Proposition 6</a>.</p>
+<p>To prove <a class="reference internal" href="#equation-risk-general-phi-elementary">(56)</a>, extract the coefficient
+of <span class="math notranslate nohighlight">\(t^{j+r}\)</span> after differentiating
+<span class="math notranslate nohighlight">\((1-t)^\alpha\)</span> exactly <span class="math notranslate nohighlight">\(r\)</span> times at
+<span class="math notranslate nohighlight">\(\alpha=r-1\)</span>. The generalized binomial coefficient has one
+vanishing factor there. Expanding its remaining factors yields the
+displayed elementary symmetric polynomial, including both empty-list
+cases. Thus the evaluator does not require symbolic differentiation.</p>
+</div>
+</section>
+<section id="a-positive-integral-for-the-leading-constant">
+<h2>A positive integral for the leading constant<a class="headerlink" href="#a-positive-integral-for-the-leading-constant" title="Link to this heading"></a></h2>
+<div class="proof theorem admonition" id="thm-risk-general-vertex-asymptotic">
+<p class="admonition-title"><span class="caption-number">Theorem 31 </span> (Vertex leading constant for every fixed M at least four)</p>
+<section class="theorem-content" id="proof-content">
+<p>For each fixed integer <span class="math notranslate nohighlight">\(M\geq4\)</span>, put <span class="math notranslate nohighlight">\(q=M-1\)</span>. Then</p>
+<div class="math notranslate nohighlight">
+\[a_0(M,D)\sim\frac{C_M}{D^{M+1}},\qquad
+C_M=M^2(M-1)!\,2^{3-M}c_q&gt;0,\]</div>
+<p>where the following absolutely convergent expressions agree:</p>
+<div class="math notranslate nohighlight" id="equation-risk-general-vertex-constant">
+<span class="eqno">(58)<a class="headerlink" href="#equation-risk-general-vertex-constant" title="Link to this equation"></a></span>\[c_q=q\sum_{j=0}^{\infty}e_{q-1}(j)
+   =\frac{q}{2\pi}\int_{-\pi}^{\pi}
+    \frac{\left(2\operatorname{Re}g(e^{it})\right)^{q-1}}
+         {|1-e^{it}|^2}\,dt.\]</div>
+<p>At <span class="math notranslate nohighlight">\(M=4,5\)</span>, this recovers
+<span class="math notranslate nohighlight">\(C_4=48\pi^2\)</span> and
+<span class="math notranslate nohighlight">\(C_5=7200(\zeta(2)-\zeta(3))\)</span>.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. <strong>Coefficient bounds.</strong> For each fixed <span class="math notranslate nohighlight">\(r\geq1\)</span>, the elementary
+symmetric formula and
+<span class="math notranslate nohighlight">\(|E_l(x)|\leq(\sum|x_i|)^l/l!\)</span> give</p>
+<div class="math notranslate nohighlight" id="equation-risk-general-phi-bound">
+<span class="eqno">(59)<a class="headerlink" href="#equation-risk-general-phi-bound" title="Link to this equation"></a></span>\[|\phi_r(j)|\leq B_r
+  \frac{(1+\log(j+1))^{r-1}}{(j+1)^r},
+\qquad B_r=r!r^{r-1}.\]</div>
+<p>Indeed, the reciprocal sum is at most
+<span class="math notranslate nohighlight">\(H_{r-1}+H_j\leq r+\log(j+1)\)</span> and
+<span class="math notranslate nohighlight">\(j!/(j+r)!\leq(j+1)^{-r}\)</span>.
+Differentiating the same binomial product at <span class="math notranslate nohighlight">\(\alpha=r\)</span>
+instead proves</p>
+<div class="math notranslate nohighlight">
+\[b_r(j)=O_r\!\left(\frac{(1+\log(j+1))^{r-1}}
+                          {(j+1)^{r+1}}\right).\]</div>
+<p>Consequently <span class="math notranslate nohighlight">\(\sum_jb_r(j)=g(1)^r=0\)</span> for <span class="math notranslate nohighlight">\(r\geq1\)</span>:
+the coefficients are absolutely summable, so Abel’s limit is the
+ordinary sum. For <span class="math notranslate nohighlight">\(r\geq2\)</span>, <span class="math notranslate nohighlight">\(b_r\)</span> also has an absolutely
+summable first absolute moment. For <span class="math notranslate nohighlight">\(r=1\)</span>,
+<span class="math notranslate nohighlight">\(b_1(j)=-1/(j(j+1))\)</span> at positive indices, and its first absolute
+moment through <span class="math notranslate nohighlight">\(n\)</span> is <span class="math notranslate nohighlight">\(O(1+\log n)\)</span>.</p>
+<p>Products and differences of <a class="reference internal" href="#equation-risk-general-phi-bound">(59)</a>, using
+<span class="math notranslate nohighlight">\(\phi_r(j+1)-\phi_r(j)=b_r(j+1)\)</span>, give, for <span class="math notranslate nohighlight">\(r\geq2\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}e_r(j)&amp;=O_r((1+\log(j+1))^{r-2}(j+1)^{-r}),\\
+e_r(j+1)-e_r(j)
+  &amp;=O_r((1+\log(j+1))^{r-2}(j+1)^{-r-1}).\end{split}\]</div>
+<p>In particular, <span class="math notranslate nohighlight">\(e_r\)</span> is absolutely summable.</p>
+<p><strong>The convolution limit.</strong> Fix <span class="math notranslate nohighlight">\(k\geq1\)</span>, <span class="math notranslate nohighlight">\(r\geq2\)</span>.
+Split <span class="math notranslate nohighlight">\((b_k*e_r)(n)\)</span> at <span class="math notranslate nohighlight">\(l=\lfloor n/2\rfloor\)</span> in
+the index of <span class="math notranslate nohighlight">\(b_k(l)\)</span>. On the first part, subtract
+<span class="math notranslate nohighlight">\(e_r(n)\sum_{l\geq0}b_k(l)=0\)</span>. The difference estimate bounds
+this part by</p>
+<div class="math notranslate nohighlight">
+\[O_{k,r}\!\left(\frac{(1+\log n)^{r-2}}{n^{r+1}}
+             \sum_{l\leq n/2}l|b_k(l)|\right)
+ +|e_r(n)|\sum_{l&gt;n/2}|b_k(l)|=o(n^{-2}).\]</div>
+<p>For the second part set <span class="math notranslate nohighlight">\(m=n-l&lt;n/2\)</span>. The coefficients satisfy
+<span class="math notranslate nohighlight">\(n^2b_1(n-m)\to-1\)</span> and
+<span class="math notranslate nohighlight">\(n^2b_k(n-m)\to0\)</span> for <span class="math notranslate nohighlight">\(k\geq2\)</span>, at every fixed <span class="math notranslate nohighlight">\(m\)</span>.
+They are uniformly bounded over <span class="math notranslate nohighlight">\(m&lt;n/2\)</span>, by the coefficient
+bounds above. Absolute summability of <span class="math notranslate nohighlight">\(e_r\)</span> permits dominated
+convergence. Hence</p>
+<div class="math notranslate nohighlight">
+\[n^2(b_1*e_r)(n)\longrightarrow-\sum_me_r(m),\qquad
+n^2(b_k*e_r)(n)\longrightarrow0\quad(k\geq2).\]</div>
+<p>In <a class="reference internal" href="#equation-risk-general-transformed-diagonal">(55)</a>, both
+<span class="math notranslate nohighlight">\(\phi_q(n)\)</span> and the <span class="math notranslate nohighlight">\(k=0\)</span> term <span class="math notranslate nohighlight">\(e_q(n)\)</span> are
+<span class="math notranslate nohighlight">\(o(n^{-2})\)</span> when <span class="math notranslate nohighlight">\(q\geq3\)</span>. Its <span class="math notranslate nohighlight">\(k=1\)</span> term proves
+<span class="math notranslate nohighlight">\(n^2\delta_q(n)\to c_q\)</span> with the displayed series.</p>
+<p><strong>Boundary integrals and positivity.</strong> The sequences
+<span class="math notranslate nohighlight">\(\phi_a\)</span>, <span class="math notranslate nohighlight">\(a\geq1\)</span>, are square summable. Parseval, or
+finite polynomial Parseval followed by their Abel limits, gives</p>
+<div class="math notranslate nohighlight">
+\[\sum_j\phi_a(j)\phi_b(j)
+ =\frac1{2\pi}\int_{-\pi}^{\pi}
+     \frac{g(e^{it})^a\overline{g(e^{it})}^{\,b}}
+          {|1-e^{it}|^2}\,dt\quad(a,b\geq1).\]</div>
+<p>All these boundary products are integrable: near zero they are bounded
+by a constant times
+<span class="math notranslate nohighlight">\(|t|^{a+b-2}(1+|\log|t||)^{a+b}\)</span>.
+The analytic terms absent from <span class="math notranslate nohighlight">\(e_r\)</span> have zero integral. Indeed,
+on <span class="math notranslate nohighlight">\(|z|=1\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[\frac{g(z)^r}{|1-z|^2}=-\frac{zg(z)^r}{(1-z)^2}.\]</div>
+<p>The right side is analytic in the disk with zero constant coefficient.
+Its circle integrals vanish at every radius less than one. For radii
+at least one half its absolute value is dominated, uniformly near
+<span class="math notranslate nohighlight">\(t=0\)</span>, by
+<span class="math notranslate nohighlight">\(O_r((1+|\log|t||)^r)\)</span> for <span class="math notranslate nohighlight">\(r\geq2\)</span>; use
+<span class="math notranslate nohighlight">\(|1-\rho e^{it}|\geq c|t|\)</span> and the explicit formula for
+<span class="math notranslate nohighlight">\(g\)</span>. Dominated convergence therefore proves that its boundary
+integral vanishes too. Summing the mixed Parseval identities gives
+<a class="reference internal" href="#equation-risk-general-vertex-constant">(58)</a>.</p>
+<p>Finally, for <span class="math notranslate nohighlight">\(z=e^{it}\ne1\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[g(z)=\int_0^1\frac{1-z}{1-uz}\,du,\qquad
+\operatorname{Re}\frac{1-z}{1-uz}
+  =\frac{(1+u)(1-\cos t)}{|1-uz|^2}&gt;0.\]</div>
+<p>The integral for <span class="math notranslate nohighlight">\(c_q\)</span> is thus strictly positive. Its absolute
+convergence also follows from the preceding boundary bound.</p>
+<p><strong>The weighted vertex limit.</strong> Under probabilities
+<span class="math notranslate nohighlight">\(W_{D,j}/Z_D\)</span>, the random variable <span class="math notranslate nohighlight">\(J\)</span> satisfies
+<span class="math notranslate nohighlight">\(J/D\to1/2\)</span> in probability and
+<span class="math notranslate nohighlight">\(\mathbb P(J\leq\lfloor D/4\rfloor)\leq4\,2^{-D/12}\)</span>,
+as proved in <a class="reference internal" href="skeleton_risk_vertex.html"><span class="doc">Tetrahedron vertex risk</span></a>. The diagonal limit implies
+a bound <span class="math notranslate nohighlight">\(|\delta_q(j)|\leq K_q/(j+1)^2\)</span>. On the complementary
+central event, <span class="math notranslate nohighlight">\(D^2\delta_q(J)\)</span> is bounded and converges in
+probability to <span class="math notranslate nohighlight">\(4c_q\)</span>; its expectations therefore converge.
+The small-index event contributes at most
+<span class="math notranslate nohighlight">\(4K_qD^2 2^{-D/12}\to0\)</span>. Multiplying the outer prefactor in
+<a class="reference internal" href="#equation-risk-general-vertex-single">(57)</a> proves the theorem.</p>
+<p>For the known constants, <span class="math notranslate nohighlight">\(e_2(j)=2/(j+1)^2\)</span> gives
+<span class="math notranslate nohighlight">\(c_3=6\zeta(2)\)</span>. At <span class="math notranslate nohighlight">\(M=5\)</span>, the same limit agrees with
+<a class="reference internal" href="skeleton_risk_five_vertex.html#cor-risk-five-vertex-asymptotic">Corollary 14</a>, giving
+<span class="math notranslate nohighlight">\(c_4=48(\zeta(2)-\zeta(3))\)</span>.</p>
+</div>
+<p>The critical triangle case is separate: <span class="math notranslate nohighlight">\(q=2\)</span> leaves
+<span class="math notranslate nohighlight">\(\delta_2=-\phi_2+e_2\)</span>, whose first term has a logarithm at order
+<span class="math notranslate nohighlight">\(j^{-2}\)</span>. The known triangle formula gives
+<span class="math notranslate nohighlight">\(a_0(3,D)\sim36\log D/D^4\)</span>, rather than a finite constant at that
+normalization.</p>
+</section>
+<section id="certified-constant-enclosures">
+<h2>Certified constant enclosures<a class="headerlink" href="#certified-constant-enclosures" title="Link to this heading"></a></h2>
+<p>The infinite constant does not require unverified numerical integration.
+For <span class="math notranslate nohighlight">\(r\geq2\)</span>, put</p>
+<div class="math notranslate nohighlight">
+\[A_r=\sum_{a=1}^{r-1}\binom ra B_aB_{r-a},\qquad
+m=r-2,\qquad L_T=1+\lceil\log_2T\rceil.\]</div>
+<p>For every integer <span class="math notranslate nohighlight">\(T\geq1\)</span>, <a class="reference internal" href="#equation-risk-general-phi-bound">(59)</a> and the
+decreasing function <span class="math notranslate nohighlight">\((1+\log x)^m/x^r\)</span> give</p>
+<div class="math notranslate nohighlight" id="equation-risk-general-constant-tail">
+<span class="eqno">(60)<a class="headerlink" href="#equation-risk-general-constant-tail" title="Link to this equation"></a></span>\[\left|c_q-q\sum_{j=0}^{T-1}e_{q-1}(j)\right|
+ \leq\frac{qA_r}{T^{r-1}}
+    \sum_{k=0}^{m}\frac{m!L_T^{m-k}}
+           {(m-k)!(r-1)^{k+1}},\qquad r=q-1.\]</div>
+<p>To check the integral exactly, substitute <span class="math notranslate nohighlight">\(u=\log x\)</span> in
+<span class="math notranslate nohighlight">\(\int_T^\infty(1+\log x)^m x^{-r}\,dx\)</span> and integrate by parts
+<span class="math notranslate nohighlight">\(m\)</span> times. Replacing <span class="math notranslate nohighlight">\(1+\log T\)</span> by the integer
+<span class="math notranslate nohighlight">\(L_T\)</span> increases every positive term. The tool computes this
+rational bound and the partial sum exactly, then scales by
+<span class="math notranslate nohighlight">\(M^2(M-1)!2^{3-M}\)</span>. The known positivity permits clipping a
+negative lower bound to zero. Increasing <span class="math notranslate nohighlight">\(T\)</span> converges to the
+true constant for each fixed <span class="math notranslate nohighlight">\(M\)</span>; no claim of uniform cost in
+<span class="math notranslate nohighlight">\(M\)</span> is made.</p>
+<p>From a source checkout, for example:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>tools.risk_research.vertex_general<span class="w"> </span>--vertices<span class="w"> </span><span class="m">6</span><span class="w"> </span>--constant-terms<span class="w"> </span><span class="m">128</span><span class="w"> </span>--output<span class="w"> </span>.research/skeleton-risk/vertex6-constant.json
+<span class="gp">$ </span>.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>tools.risk_research.vertex_general<span class="w"> </span>--vertices<span class="w"> </span><span class="m">6</span><span class="w"> </span>--degree<span class="w"> </span><span class="m">32</span><span class="w"> </span>--output<span class="w"> </span>.research/skeleton-risk/vertex6-exact.json
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">vertex_general.vertex_coefficient</span></code> implements the all-degree formula;
+<code class="docutils literal notranslate"><span class="pre">leading_constant_enclosure</span></code> returns two exact fractions. These are
+checkout-only research tools, with no additional runtime dependency or
+public sampling API. This chapter certifies the constant’s truncation error.
+<a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html"><span class="doc">Explicit vertex errors at every fixed vertex count</span></a> separately proves an explicit
+finite-degree error for every fixed <span class="math notranslate nohighlight">\(M\geq4\)</span> and <span class="math notranslate nohighlight">\(D\geq256\)</span>,
+combining the constant interval with an analytic remainder. The sharper
+five-vertex finite-degree error remains a separate result.</p>
+<p>Independent implementation checks compare the elementary rows with
+logarithmic-series expansion, the convolutions with the original bivariate
+kernel and signed transform, and the coefficient with the original scalar
+and rational Gram oracles. After freezing the candidate, a separate
+integer-polynomial computation of <span class="math notranslate nohighlight">\(F^5\)</span> at degrees 67, 79 and 97
+agreed exactly; the committed artifact records both source hashes.
+Native Arb checks place the independently known constants at M4/M5
+inside the exact rational intervals. These finite checks support the
+implementation; the general claims use the proofs above.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="skeleton_risk_vertex.html" class="btn btn-neutral float-left" title="Tetrahedron vertex risk" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="skeleton_risk_vertex_general_asymptotics.html" class="btn btn-neutral float-right" title="Explicit vertex errors at every fixed vertex count" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: fix/torch23-vmap-initialization
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/index.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="skeleton_risk_vertex_general.html">fix/torch23-vmap-initialization</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
