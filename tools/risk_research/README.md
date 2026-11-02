@@ -417,6 +417,16 @@ It provides standard-library rational intervals and an optional independent
 Arb integral. This concerns the leading constant, not a finite-degree
 coefficient interval. See [the proof](../../docs/advanced/skeleton_risk_vertex_large_dimension.rst).
 
+## A first large-vertex correction with a quadratic remainder
+
+`vertex_large_dimension_second_order` proves, for `n=M-2>=256`,
+`abs(C_M/B_M-1-beta/n)<=84/n**2`, with
+`beta=(28*log(2)**2-18*log(2)+1)/(8*(2*log(2)-1)**2)`.
+The corrected center differs from the original leading term. Exact rational
+logarithm intervals and optional original-integral checks retain their
+separate uncertainties; saved records restore nondefault options.
+See [the proof](../../docs/advanced/skeleton_risk_vertex_large_dimension_second_order.rst).
+
 ## Six-vertex comparison at every degree
 
 The [six-vertex comparison](../../docs/advanced/skeleton_risk_six_vertex_comparison.rst)

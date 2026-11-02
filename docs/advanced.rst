@@ -104,6 +104,7 @@ choose them when your domain, objective or execution environment requires it.
    advanced/skeleton_risk_codimension_three_transform
    advanced/skeleton_risk_vertex_large_dimension
    advanced/skeleton_risk_vertex_large_dimension_refined
+   advanced/skeleton_risk_vertex_large_dimension_second_order
    advanced/skeleton_risk_vertex_general_asymptotics
    advanced/skeleton_risk_vertex_refined_asymptotics
    advanced/skeleton_risk_vertex_recurrence
