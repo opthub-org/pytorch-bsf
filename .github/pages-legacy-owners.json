@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "gh_pages_sha": "21f0455601dd4dc64c051aa217d2c55d94201fd1",
+  "gh_pages_sha": "e33994e9347dc07d14b7f43e194e0e7a4488ab48",
   "owners": {
     "138-docs-multiversion": "refs/heads/138-docs-multiversion",
     "140-use-git-lfs": "refs/heads/140-use-git-lfs",
@@ -56,6 +56,8 @@
     "ci/575-migrate-release-please": "refs/heads/ci/575-migrate-release-please",
     "ci/dependency-lifecycle": "refs/heads/ci/dependency-lifecycle",
     "ci/fix-cli-sample-testing": "refs/heads/ci/fix-cli-sample-testing",
+    "ci/phase7-cache-policy": "refs/heads/ci/phase7-cache-policy",
+    "ci/phase7-pages-publisher": "refs/heads/ci/phase7-pages-publisher",
     "ci/pypi-provenance": "refs/heads/ci/pypi-provenance",
     "ci/release-bump-minor-pre-major": "refs/heads/ci/release-bump-minor-pre-major",
     "claude/cool-ritchie-gl21xl": "refs/heads/claude/cool-ritchie-gl21xl",
@@ -295,7 +297,5 @@
     "v0.8.0": "refs/tags/v0.8.0",
     "v0.9.0": "refs/tags/v0.9.0"
   },
-  "reserved_owners": {
-    "ci/phase7-pages-publisher": "refs/heads/ci/phase7-pages-publisher"
-  }
+  "reserved_owners": {}
 }
