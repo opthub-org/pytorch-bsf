@@ -157,7 +157,26 @@ def certify_six_vertex_comparison(*, backend: str = "python", max_bits: int = 40
 
 def verify_certificate(record: object) -> None:
     """Recompute every degree and reject altered or partial certificates."""
-    if not isinstance(record, dict) or record != certify_six_vertex_comparison():
+    if not isinstance(record, dict):
+        raise ValueError("certificate does not match the full comparison and sources")
+    points = record.get("finite_comparisons")
+    if not isinstance(points, list) or len(points) != TAIL_START - 1:
+        raise ValueError("certificate does not match the full comparison and sources")
+    precisions: list[int] = []
+    for point in points:
+        if not isinstance(point, dict):
+            raise ValueError("certificate does not match the full comparison and sources")
+        bits = point.get("bits")
+        if type(bits) is not int or bits < 1:
+            raise ValueError("recorded bits must be a positive integer")
+        precisions.append(bits)
+    # The doubling schedule reaches the same first successful interval when
+    # its cap is reduced to the largest precision actually used in any row.
+    try:
+        expected = certify_six_vertex_comparison(max_bits=max(precisions))
+    except ArithmeticError as error:
+        raise ValueError("certificate has insufficient recorded precision") from error
+    if record != expected:
         raise ValueError("certificate does not match the full comparison and sources")
 
 
@@ -167,11 +186,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path)
     parser.add_argument("--verify", type=Path)
     parser.add_argument("--backend", choices=("python", "flint"), default="python")
-    parser.add_argument("--max-bits", type=int, default=4096)
+    parser.add_argument("--max-bits", type=int)
     arguments = parser.parse_args(argv)
     try:
         if arguments.verify is not None:
-            if arguments.output is not None or arguments.backend != "python" or arguments.max_bits != 4096:
+            if arguments.output is not None or arguments.backend != "python" or arguments.max_bits is not None:
                 parser.error("--verify cannot be combined with generation options")
             verify_certificate(json.loads(arguments.verify.read_text(encoding="utf-8")))
             print("verified six-vertex all-degree comparison")
@@ -179,7 +198,8 @@ def main(argv: list[str] | None = None) -> int:
             if arguments.output is None:
                 parser.error("generation requires --output")
             sources = _sources()
-            report = certify_six_vertex_comparison(backend=arguments.backend, max_bits=arguments.max_bits)
+            max_bits = 4096 if arguments.max_bits is None else arguments.max_bits
+            report = certify_six_vertex_comparison(backend=arguments.backend, max_bits=max_bits)
             if _sources() != sources:
                 raise RuntimeError("comparison sources changed during certification")
             atomic_json(arguments.output, report)

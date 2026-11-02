@@ -87,13 +87,68 @@ def test_tampered_certificate_is_rejected(certificate, field):
         comparison.verify_certificate(changed)
 
 
-def test_cli_round_trip(tmp_path):
+@pytest.mark.parametrize("max_bits", [8, 17, 4096])
+def test_cli_round_trip(tmp_path, max_bits):
     output = tmp_path / "six-vertex.json"
-    assert comparison.main(["--output", str(output)]) == 0
+    assert comparison.main(["--output", str(output), "--max-bits", str(max_bits)]) == 0
     assert comparison.main(["--verify", str(output)]) == 0
     report = json.loads(output.read_text())
     assert len(report["finite_comparisons"]) == 127
     assert report["source_hash_policy"] == "sha256-crlf-to-lf-v1"
+    assert all(point["bits"] <= max_bits for point in report["finite_comparisons"])
+
+
+@pytest.mark.parametrize("invalid", [None, True, False, 0, -1, 1.5, "8"])
+def test_invalid_recorded_precision_is_rejected(certificate, invalid):
+    changed = copy.deepcopy(certificate)
+    changed["finite_comparisons"][0]["bits"] = invalid
+    with pytest.raises(ValueError, match="recorded bits"):
+        comparison.verify_certificate(changed)
+
+
+def test_missing_recorded_precision_is_rejected(certificate):
+    changed = copy.deepcopy(certificate)
+    del changed["finite_comparisons"][0]["bits"]
+    with pytest.raises(ValueError, match="recorded bits"):
+        comparison.verify_certificate(changed)
+
+
+def test_partial_prefix_with_recorded_precision_is_rejected(certificate):
+    changed = copy.deepcopy(certificate)
+    changed["finite_comparisons"].pop()
+    with pytest.raises(ValueError, match="does not match"):
+        comparison.verify_certificate(changed)
+
+
+def test_malformed_recorded_row_is_rejected(certificate):
+    changed = copy.deepcopy(certificate)
+    changed["finite_comparisons"][0] = None
+    with pytest.raises(ValueError, match="does not match"):
+        comparison.verify_certificate(changed)
+
+
+def test_insufficient_recorded_precision_is_rejected(certificate):
+    changed = copy.deepcopy(certificate)
+    for point in changed["finite_comparisons"]:
+        point["bits"] = 1
+    with pytest.raises(ValueError, match="insufficient recorded precision"):
+        comparison.verify_certificate(changed)
+
+
+def test_recorded_precision_must_match_the_saved_bounds(certificate):
+    changed = copy.deepcopy(certificate)
+    changed["finite_comparisons"][0]["bits"] = 8
+    with pytest.raises(ValueError, match="does not match"):
+        comparison.verify_certificate(changed)
+
+
+@pytest.mark.parametrize("max_bits", [8, 4096])
+def test_verify_rejects_generation_precision_override(certificate, tmp_path, max_bits):
+    output = tmp_path / "six-vertex.json"
+    output.write_text(json.dumps(certificate))
+    with pytest.raises(SystemExit) as error:
+        comparison.main(["--verify", str(output), "--max-bits", str(max_bits)])
+    assert error.value.code == 2
 
 
 def test_insufficient_precision_preserves_existing_output(tmp_path):

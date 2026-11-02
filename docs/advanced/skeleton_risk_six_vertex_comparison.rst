@@ -192,7 +192,10 @@ all 127 exact coefficient rows.
 
 The certificate records all 127 coefficient rows, radical intervals,
 strict margins, the separate analytic tail and all evaluation-source
-fingerprints. Verification recomputes every field. Source hashes
+fingerprints. Verification uses the largest recorded per-row bit count
+as its effective precision budget and recomputes every field. Certificates
+generated with a nondefault ``--max-bits`` use the same plain ``--verify``
+command; precision overrides are generation options only. Source hashes
 canonicalize CRLF pairs to LF, while concurrent edits are detected by
 comparing original raw bytes. Partial coverage, overlapping intervals,
 altered sources or a possible equality cause failure before replacing
