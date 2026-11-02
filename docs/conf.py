@@ -153,6 +153,25 @@ def _definition_lines(path, fullname):
     return start, node.end_lineno
 
 
+def _source_file(obj):
+    """Return the imported file that defines ``obj``.
+
+    A class re-exported under its public module (``__module__`` rewritten) would
+    resolve to that module, so look for the loaded submodule that defines it.
+    """
+    if inspect.isclass(obj):
+        for name, module in list(sys.modules.items()):
+            if not name.startswith("torch_bsf.") or vars(module).get(obj.__name__) is not obj:
+                continue
+            path = Path(inspect.getsourcefile(module)).resolve()
+            try:
+                _definition_lines(path, obj.__qualname__)
+            except (StopIteration, SyntaxError, OSError):
+                continue
+            return path
+    return Path(inspect.getsourcefile(obj)).resolve()
+
+
 def linkcode_resolve(domain, info):
     """Link a public Python object to the same ref and source lines as its docs."""
     if domain != "py" or not info.get("module"):
@@ -166,7 +185,7 @@ def linkcode_resolve(domain, info):
         if isinstance(obj, property):
             obj = obj.fget
         obj = inspect.unwrap(obj)
-        imported_file = Path(inspect.getsourcefile(obj)).resolve()
+        imported_file = _source_file(obj)
         relative = imported_file.relative_to(Path(torch_bsf.__file__).resolve().parent)
         filename = (Path("torch_bsf") / relative).as_posix()
         start, end = _definition_lines(_source_root / filename, obj.__qualname__)
