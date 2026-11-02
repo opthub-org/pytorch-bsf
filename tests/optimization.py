@@ -1,6 +1,7 @@
 """Objective minimization, exact constraints and stopping honesty."""
 
 import math
+import warnings
 
 import numpy as np
 import pytest
@@ -567,3 +568,111 @@ def test_step_decay_rejects_non_string_choice(wrap):
 def test_step_decay_accepts_string_choice(string_type, option):
     value = string_type(option)
     PreconditionedSGD(step_decay=value)
+
+
+def _quadratic_loss(calls: list[int] | None = None):
+    def loss(y, t):
+        if calls is not None:
+            calls.append(len(t))
+        return (y[:, 0] - 3).square()
+
+    return loss
+
+
+@pytest.mark.parametrize("batch_size", [None, 21, 50])
+def test_full_batch_tolerance_evaluates_loss_once_per_iteration(batch_size):
+    space = BezierSpace.simplex(1, degree=2)
+    initial = BezierModel(space, torch.zeros(space.n_controls, 1, dtype=torch.float64))
+    calls: list[int] = []
+    with pytest.warns(ConvergenceWarning):
+        result = minimize(
+            initial,
+            _quadratic_loss(calls),
+            points=grid(space, 20),
+            method=PreconditionedSGD(max_iter=3, batch_size=batch_size, gradient_tolerance=1e-30),
+            seed=0,
+        )
+    # One full-sample evaluation per iteration, plus one final check reused as the objective.
+    assert calls == [21] * 4
+    assert [record.iteration for record in result.history] == [0, 1, 2]
+
+
+def test_full_batch_tolerance_history_reports_full_objective():
+    space = BezierSpace.simplex(1, degree=2)
+    initial = BezierModel(space, torch.zeros(space.n_controls, 1, dtype=torch.float64))
+    with pytest.warns(ConvergenceWarning):
+        result = minimize(
+            initial,
+            _quadratic_loss(),
+            points=grid(space, 20),
+            method=PreconditionedSGD(max_iter=1, gradient_tolerance=1e-30),
+        )
+    assert result.history[0].loss == 9.0
+
+
+def test_partial_minibatch_tolerance_keeps_separate_evaluations():
+    space = BezierSpace.simplex(1, degree=2)
+    initial = BezierModel(space, torch.zeros(space.n_controls, 1, dtype=torch.float64))
+    calls: list[int] = []
+    with pytest.warns(ConvergenceWarning):
+        minimize(
+            initial,
+            _quadratic_loss(calls),
+            points=grid(space, 20),
+            method=PreconditionedSGD(max_iter=2, batch_size=5, gradient_tolerance=1e-30),
+            seed=0,
+        )
+    assert calls == [21, 5, 21, 5, 21]
+
+
+@pytest.mark.parametrize("batch_size", [None, 7])
+def test_tolerance_reached_by_last_update_succeeds(batch_size):
+    space = BezierSpace.simplex(1, degree=2)
+    initial = BezierModel(space, torch.zeros(space.n_controls, 1, dtype=torch.float64))
+    points = grid(space, 20)
+
+    def run(max_iter):
+        method = PreconditionedSGD(max_iter=max_iter, step_size=0.1, batch_size=batch_size, gradient_tolerance=1e-7)
+        return minimize(initial, _quadratic_loss(), points=points, method=method, seed=3)
+
+    reference = run(200)
+    assert reference.success and reference.n_iterations > 0
+    # The budget ends exactly at the update that reaches the tolerance.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ConvergenceWarning)
+        result = run(reference.n_iterations)
+    assert result.success and result.status == "gradient_tolerance"
+    assert result.n_iterations == reference.n_iterations
+    assert result.objective == reference.objective
+    torch.testing.assert_close(result.model.coefficients, reference.model.coefficients, rtol=0, atol=0)
+    result.require_success()
+
+
+def test_tolerance_reached_by_single_update_succeeds():
+    space = BezierSpace.simplex(1, degree=1)
+    initial = BezierModel(space, torch.zeros(space.n_controls, 1, dtype=torch.float64))
+    # The unpreconditioned gradient of the mean of (y - 3)^2 on both vertices is
+    # -3 per control, so one step of size 1 lands exactly on the minimizer.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ConvergenceWarning)
+        result = minimize(
+            initial,
+            _quadratic_loss(),
+            points=grid(space, 2),
+            method=PreconditionedSGD(max_iter=1, step_size=1, preconditioner="none", gradient_tolerance=0),
+        )
+    assert result.success and result.status == "gradient_tolerance"
+    assert result.n_iterations == 1 and result.objective == 0
+
+
+def test_callback_stop_is_not_promoted_to_convergence():
+    space = BezierSpace.simplex(1, degree=1)
+    initial = BezierModel(space, torch.zeros(space.n_controls, 1, dtype=torch.float64))
+    result = minimize(
+        initial,
+        _quadratic_loss(),
+        points=grid(space, 2),
+        method=PreconditionedSGD(max_iter=1, step_size=1, preconditioner="none", gradient_tolerance=0),
+        callback=lambda record, model: True,
+    )
+    assert not result.success and result.status == "callback_stop"
