@@ -4,8 +4,13 @@ Vertex coefficients at every fixed vertex count
 This chapter keeps the uniform-simplex assumptions of
 :doc:`skeleton_risk_theory`. It gives a constructive one-dimensional
 convolution formula at every vertex count and proves the leading vertex
-constant for **each fixed** :math:`M\geq4`. The limit is not asserted
-uniformly when :math:`M` grows with the degree.
+constant for **each fixed** :math:`M\geq4`. A quantified regime with
+both :math:`M` and the degree growing is proved separately in
+:doc:`skeleton_risk_vertex_joint_growth`.
+
+For the separate dependence of the leading constant on the vertex count,
+:doc:`skeleton_risk_vertex_large_dimension` gives its large-M prefactor,
+explicit remainder and certified intervals.
 
 A rational univariate construction
 -----------------------------------

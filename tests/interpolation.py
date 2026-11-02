@@ -4,9 +4,12 @@ import functools
 import importlib.util
 import itertools
 import math
+import subprocess
+import sys
 import warnings
 from collections import Counter
 from fractions import Fraction
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -584,6 +587,67 @@ def test_exact_forward_mode_cancels_before_rounding_and_retains_reverse_gradient
     slope = 2.0**500
     expected = torch.tensor([[-small * 2.0**-500, slope], [small * 2.0**-500, -slope], [0.0, 0.0]], dtype=torch.float64)
     torch.testing.assert_close(gradient, expected, rtol=0, atol=0)
+
+
+@pytest.mark.parametrize("transform", ["jacfwd", "jvp", "hessian"])
+def test_barycentric_first_transform_in_fresh_process(transform):
+    """First-use transforms must work without another test initializing PyTorch's compiler."""
+    script = """
+import random
+import sys
+import numpy as np
+import torch
+
+python_state = random.getstate()
+numpy_state = np.random.get_state()
+torch_state = torch.random.get_rng_state()
+dynamo_loaded = "torch._dynamo" in sys.modules
+from torch_bsf import SimplicialMesh
+if torch.__version__.startswith("2.3."):
+    assert "torch._dynamo" in sys.modules
+else:
+    assert ("torch._dynamo" in sys.modules) == dynamo_loaded
+assert random.getstate() == python_state
+np.testing.assert_equal(np.random.get_state(), numpy_state)
+assert torch.equal(torch.random.get_rng_state(), torch_state)
+
+for short in (1.0, 2.0**-100):
+    vertices = torch.tensor([[0.0, 0.0], [1.0, 1.0], [short, -short]], dtype=torch.float64)
+    point = torch.tensor([[0.5, 0.5]], dtype=torch.float64)
+    if sys.argv[1] != "hessian":
+        def coordinates(v):
+            return SimplicialMesh(v, [[0, 1, 2]]).barycentric(point)
+        jacobian = torch.tensor(
+            [[-0.5 - 0.5 / short, -0.5 + 0.5 / short], [0.5, 0.5], [0.5 / short, -0.5 / short]],
+            dtype=torch.float64,
+        )
+        weights = torch.tensor([0.5, 0.5, 0.0], dtype=torch.float64)
+        expected = (-jacobian[:, None, :] * weights[None, :, None])[None, None]
+        if sys.argv[1] == "jacfwd":
+            actual = torch.func.jacfwd(coordinates)(vertices)
+        else:
+            tangent = torch.zeros_like(vertices)
+            tangent[0, 0] = 1.0
+            _, actual = torch.func.jvp(coordinates, (vertices,), (tangent,))
+            expected = expected[..., 0, 0]
+    else:
+        def coordinate(v):
+            return SimplicialMesh(v, [[0, 1, 2]]).barycentric(point)[0, 0, 2]
+        actual = torch.func.hessian(coordinate)(vertices)
+        expected = torch.autograd.functional.hessian(coordinate, vertices)
+    torch.testing.assert_close(actual, expected, rtol=0, atol=0)
+assert random.getstate() == python_state
+np.testing.assert_equal(np.random.get_state(), numpy_state)
+assert torch.equal(torch.random.get_rng_state(), torch_state)
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script, transform],
+        cwd=Path(__file__).resolve().parents[1],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 @pytest.mark.parametrize("transform", [torch.func.jacrev, torch.func.jacfwd])

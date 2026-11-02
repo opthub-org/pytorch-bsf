@@ -828,13 +828,17 @@ class DurableRecoveryTests(unittest.TestCase):
     def test_candidate_tests_have_no_oidc_or_coverage_credentials(self):
         workflow = (ROOT / ".github/workflows/python-package.yml").read_text()
         build = workflow.split("\n  build:\n", 1)[1].split("\n  coverage:\n", 1)[0]
-        self.assertNotIn("id-token:", build)
-        self.assertNotIn("secrets.", build)
-        self.assertNotIn("codecov/codecov-action@", build)
-        self.assertIn("actions/upload-artifact@", build)
+        lowest = workflow.split("\n  lowest:\n", 1)[1].split("\n  optional-deps:\n", 1)[0]
+        for candidate in (build, lowest):
+            self.assertNotIn("id-token:", candidate)
+            self.assertNotIn("secrets.", candidate)
+            self.assertNotIn("codecov/codecov-action@", candidate)
+            self.assertIn("actions/upload-artifact@", candidate)
+        self.assertIn("pytest-cov", lowest)
+        self.assertIn("--cov-report=xml:lowest-coverage.xml", lowest)
         coverage = workflow.split("\n  coverage:\n", 1)[1].split("\n  distribution:\n", 1)[0]
         self.assertIn("uses: ./.github/workflows/security-coverage.yml", coverage)
-        self.assertIn("needs: [python-support, build]", coverage)
+        self.assertIn("needs: [python-support, lowest, build]", coverage)
 
     def test_credentialed_coverage_workflow_is_protected_and_reads_only_report_data(self):
         path = ".github/workflows/security-coverage.yml"
@@ -854,8 +858,10 @@ class DurableRecoveryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as scratch:
             directory = Path(scratch) / "coverage"
             directory.mkdir()
-            report = directory / "coverage.xml"
-            report.write_bytes(b"raise RuntimeError('Report content must never execute')\n")
+            reports = [directory / name for name in ("coverage.xml", "lowest-coverage.xml")]
+            payload = b"raise RuntimeError('Report content must never execute')\n"
+            for report in reports:
+                report.write_bytes(payload)
 
             def run():
                 return subprocess.run(
@@ -870,13 +876,21 @@ class DurableRecoveryTests(unittest.TestCase):
             extra.write_bytes(b"raise RuntimeError('must never execute')")
             self.assertNotEqual(run(), 0)
             extra.unlink()
-            report.unlink()
-            report.symlink_to(ROOT / "pyproject.toml")
-            self.assertNotEqual(run(), 0)
-            report.unlink()
-            with report.open("wb") as stream:
-                stream.truncate(20_000_001)
-            self.assertNotEqual(run(), 0)
+            for report in reports:
+                with self.subTest(report=report.name):
+                    report.unlink()
+                    self.assertNotEqual(run(), 0)
+                    report.symlink_to(ROOT / "pyproject.toml")
+                    self.assertNotEqual(run(), 0)
+                    report.unlink()
+                    report.mkdir()
+                    self.assertNotEqual(run(), 0)
+                    report.rmdir()
+                    with report.open("wb") as stream:
+                        stream.truncate(20_000_001)
+                    self.assertNotEqual(run(), 0)
+                    report.write_bytes(payload)
+            self.assertEqual(run(), 0)
 
     def test_technical_outage_recovers_after_cooldown_without_new_ai_budget(self):
         api = api_mock()

@@ -110,13 +110,20 @@ def test_legacy_flags_rejected():
 
 def test_minimal_install_supports_full_core(tmp_path):
     script = """
-import importlib.abc
+import importlib
+import importlib.util
 import sys
-class ExcludeExtras(importlib.abc.MetaPathFinder):
-    def find_spec(self, fullname, path=None, target=None):
-        if fullname.split('.')[0] in {'lightning','mlflow','scipy','sklearn','matplotlib'}:
-            raise ModuleNotFoundError('extra unavailable', name=fullname.split('.')[0])
-sys.meta_path.insert(0,ExcludeExtras())
+extras = {'lightning', 'mlflow', 'scipy', 'sklearn', 'matplotlib'}
+for name in extras:
+    # A missing package returns None from find_spec while actual imports still fail.
+    sys.modules[name] = None
+    assert importlib.util.find_spec(name) is None
+    try:
+        importlib.import_module(name)
+    except ModuleNotFoundError as error:
+        assert error.name == name
+    else:
+        raise AssertionError(f'{name} was not blocked')
 import torch
 from torch_bsf import BezierSpace, Samples, fit, minimize, PreconditionedSGD
 from torch_bsf.sampling import grid
@@ -130,6 +137,7 @@ optimized=minimize(result.model,lambda y,t: (y[:,0]-t.parameters[:,0]).square(),
 assert optimized.success
 save_model(sys.argv[1],optimized.model)
 assert torch.allclose(load_model(sys.argv[1])(points),result.model(points))
+assert not any(name.split('.')[0] in extras and module is not None for name, module in sys.modules.items())
 """
     run = subprocess.run([sys.executable, "-c", script, str(tmp_path / "model.bsf")], capture_output=True, text=True)
     assert run.returncode == 0, run.stderr

@@ -337,6 +337,14 @@ exact reference for the proved vertex reduction, not a completed closed form.
 The experiment and scan reports record `peak_rss_bytes` where OS resource
 accounting is available, and JSON `null` otherwise (including Windows).
 
+## Leading constants at large vertex counts
+
+`vertex_large_dimension` proves an explicit large-M approximation to
+`C_M`, with relative error at most `25/(M-2)` for `M>=1026`.
+It provides standard-library rational intervals and an optional independent
+Arb integral. This concerns the leading constant, not a finite-degree
+coefficient interval. See [the proof](../../docs/advanced/skeleton_risk_vertex_large_dimension.rst).
+
 ## Further vertex evaluations and explicit errors
 
 `vertex_general.vertex_coefficient(M,D)` constructs every vertex coefficient
@@ -351,7 +359,7 @@ For every `M>=4,D>=256`, the finite-degree error is additionally bounded
 by `R_M*(1+log(D))^(M-2)/D^(M+2)` with an explicit computable `R_M`.
 This bound shrinks relatively at each fixed M; the constants are conservative.
 `vertex_general_asymptotic` combines the constant interval and analytic
-remainder, uses the exact evaluator below256, and optionally adds Arb
+remainder, uses the exact evaluator below 256, and optionally adds Arb
 rounding with restored precision. See
 [the error proof](../../docs/advanced/skeleton_risk_vertex_general_asymptotics.rst).
 
@@ -407,6 +415,14 @@ The native tests compare the returned ball to the existing exact single sum
 through D4096 and check that precision settings are restored. If python-flint
 is installed in the project Python it is used directly; otherwise those
 native tests are skipped unless an explicit native interpreter is selected.
+
+### Refined single-log vertex errors
+
+`vertex_refined_asymptotic` proves an explicit single-log error for every
+`M>=5,D>=256`, combines it with the existing guarantee, and keeps exact
+evaluation below 256. At M6 its 1% relative threshold is `2^38`, improving
+on the earlier `2^56`. The thresholds remain conservative.
+See [the proof](../../docs/advanced/skeleton_risk_vertex_refined_asymptotics.rst).
 
 ## Further certified degree recurrences
 
@@ -467,6 +483,26 @@ python -m tools.risk_research.vertex_five_recurrence \
 `vertex_five_recurrence.recurrence_coefficients(maximum)` evaluates the
 sequence with exact standard-library arithmetic. Optional native Sage tests
 rederive every coefficient and exercise altered data and both CLI actions.
+
+## A simultaneous vertex-count and degree regime
+
+`vertex_joint_growth` certifies a genuine growing-M asymptotic using
+explicit control of every previous error-budget constant. For
+`D>=2^1024`, write `N=floor(log2(D))` and `ell=ceil(log2(N+2))`;
+all `4<=M<=1+floor(N/(16*ell))` have relative vertex error at most
+`D^(-3/4)`. The start is astronomical; this is a theoretical regime.
+See [the proof](../../docs/advanced/skeleton_risk_vertex_joint_growth.rst).
+
+```sh
+python -m tools.risk_research.vertex_joint_growth --vertices 6 \
+  --degree-floor-exponent 1024 --output .research/skeleton-risk/joint6.json
+python -m tools.risk_research.vertex_joint_growth \
+  --check .research/skeleton-risk/joint6.json
+```
+
+The source-bound standard-library certificate covers an entire dyadic
+block without materializing the degree or denominator. The checker
+rejects changed fields, types, budget constants and source hashes.
 
 ## A sufficient linear vertex threshold at every degree
 
