@@ -1,0 +1,35 @@
+{
+  "method": "original_integer_outside_kernel_scalar_sum",
+  "backend": "python-flint",
+  "proof_constants_frozen_before_new_cases": true,
+  "cases": [
+    {
+      "face_size": 2,
+      "degree": 43,
+      "vertices": 5,
+      "numerator": "2006694217713127610239293623463509469703902583204061438364668199787",
+      "denominator": "102019625820071753213687547003834348323562523542484678989583284000000"
+    },
+    {
+      "face_size": 3,
+      "degree": 47,
+      "vertices": 6,
+      "numerator": "26206041884013501058933487329263927656797111019958410224124176212654793",
+      "denominator": "4700009722306776721592405490412666093387277106326823551114669180221440"
+    },
+    {
+      "face_size": 4,
+      "degree": 31,
+      "vertices": 7,
+      "numerator": "1560322836719037364477712706845189253155467",
+      "denominator": "1966993022497854267855162192115552204800"
+    },
+    {
+      "face_size": 7,
+      "degree": 19,
+      "vertices": 10,
+      "numerator": "273017727798568539649664",
+      "denominator": "251040096258134183"
+    }
+  ]
+}
