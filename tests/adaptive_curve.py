@@ -185,3 +185,39 @@ def test_invalid_options_do_not_obtain_any_response(options):
     arguments = {"bounds": (0.0, 1.0), "budget": 4, **options}
     with pytest.raises(ValueError):
         fit_adaptive_curve(forbidden, **arguments)
+
+
+@requires_scipy
+@pytest.mark.parametrize("seed", [2**64, 2**128])
+def test_oversized_seed_is_rejected_before_charging_initial_inputs(seed):
+    called = []
+
+    def oracle(x):
+        called.append(x.clone())
+        return x
+
+    with pytest.raises(ValueError, match="seed.*2\\*\\*64"):
+        fit_adaptive_curve(oracle, (0.0, 1.0), budget=4, initial_inputs=[[0.5]], seed=seed)
+    assert not called
+
+
+@requires_scipy
+def test_largest_supported_seed_is_accepted():
+    result = fit_adaptive_curve(lambda x: x, (0.0, 1.0), budget=4, seed=2**64 - 1)
+    assert result.cost == 4
+
+
+@requires_scipy
+@pytest.mark.parametrize("initial_inputs", [None, [[1.7]]])
+def test_rounded_grid_endpoint_never_reaches_callback_outside_bounds(initial_inputs):
+    received = []
+
+    def oracle(x):
+        assert ((x >= 0.0) & (x <= 1.7)).all()
+        received.append(x.clone())
+        return x
+
+    result = fit_adaptive_curve(oracle, (0.0, 1.7), budget=4, resolution=0.1, initial_inputs=initial_inputs)
+    assert result.cost == sum(map(len, received)) == 4
+    assert ((result.inputs >= 0.0) & (result.inputs <= 1.7)).all()
+    assert torch.isfinite(result.predict([[0.0], [1.7]])).all()

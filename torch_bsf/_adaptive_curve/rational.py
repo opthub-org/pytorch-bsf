@@ -16,6 +16,7 @@ import torch
 from scipy.linalg import eigvals
 
 from .polynomial import _Spline
+from .response_units import response_scale, restore_conversion, restore_score, restore_spline
 from .spectral import _bernstein_controls, _mass, _rows
 
 
@@ -88,6 +89,7 @@ class RationalCurveModel:
     diagnostics: dict[str, Any]
     _rational: _Rational
     _spline: _Spline | None = None
+    _response_unit: float = 1.0
 
     def predict(self, points: Any) -> torch.Tensor:
         x = _rows(points, "points")
@@ -95,11 +97,16 @@ class RationalCurveModel:
             raise ValueError("prediction points must lie within the observed one-dimensional support.")
         left, right = float(self.inputs[0, 0]), float(self.inputs[-1, 0])
         z = ((x[:, 0] - left) / (right - left) * 2 - 1).numpy()
-        return torch.from_numpy(self._rational.predict(z))
+        return torch.from_numpy(self._rational.predict(z)) * self._response_unit
 
     def as_spline(self) -> _Spline:
         """Approximate the fitted operator by checked degree12 connected pieces."""
         if self._spline is not None:
+            return self._spline
+        if self._response_unit != 1:
+            normalized = RationalCurveModel(self.inputs, self.values / self._response_unit, {}, self._rational)
+            self._spline = restore_spline(normalized.as_spline(), self._response_unit)
+            restore_conversion(self.diagnostics, normalized.diagnostics, self._response_unit)
             return self._spline
         degree = 12
         nodes = np.cos(np.pi * np.arange(degree + 1) / degree)
@@ -219,6 +226,14 @@ def fit_rational(x: Any, y: Any) -> RationalCurveModel | None:
         return None
     if not (inputs[1:, 0] > inputs[:-1, 0]).all():
         raise ValueError("Inputs must be increasing and unique.")
+    unit = response_scale(values)
+    if unit != 1:
+        normalized = fit_rational(inputs, values / unit)
+        if normalized is not None:
+            normalized.values = values
+            normalized._response_unit = unit
+            restore_score(normalized.diagnostics, "cv_mse", unit)
+        return normalized
     try:
         with np.errstate(over="raise", invalid="raise", divide="raise"):
             return _validated_fit(inputs, values)

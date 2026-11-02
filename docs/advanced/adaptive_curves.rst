@@ -84,7 +84,8 @@ With ``deterministic=False``, initial repeat measurements and later replicates
 estimate pooled vector noise. The caller owns the callback's noise generator.
 ``seed`` controls only the policy's private vector-query jitter. Scalar query
 locations use the scalar evidence policy without jitter. Neither path seeds
-the global random generator.
+the global random generator. Supported seeds are integers from zero through
+``2**64 - 1``; an invalid seed is rejected before obtaining initial responses.
 
 Resolution and prediction support
 ---------------------------------
@@ -124,6 +125,14 @@ polynomial regression, continuous piecewise polynomials, interpolation and a
 shared-weight rational candidate using input-volume-weighted validation
 errors. Scalar shape-preserving interpolation is excluded from vector fits
 because its coordinatewise decisions do not preserve rotations.
+
+For extreme response magnitudes, predictor losses and operator conversions
+use a common power-of-two response scale. Diagnostics retain normalized
+scores and their scale alongside physical squared-error scores, which can
+underflow or overflow. Gap, acquisition and noise diagnostics use physical
+response units and remain subject to the range of float64. An unrepresentable
+pooled noise variance raises a numerical error rather than supplying an
+infinite noise estimate to a solver.
 
 When the empirical noise estimate is zero or unavailable, scalar responses
 can additionally use stationary RBF and Matérn kernel predictors selected by

@@ -21,6 +21,8 @@ import scipy
 import torch
 from scipy.interpolate import CubicSpline, PchipInterpolator
 
+from .._numeric import _finite_mean
+from .response_units import response_scale
 from .spectral import (
     SpectralCurveModel,
     _Candidate,
@@ -28,6 +30,7 @@ from .spectral import (
     _designs,
     _linear_predict,
     _mass,
+    _restore_response_units,
     _solve,
     _validated,
 )
@@ -38,7 +41,7 @@ def _direct_loo(design: torch.Tensor, y: torch.Tensor, mass: torch.Tensor, max_c
     error = total = condition = 0.0
     for i in range(1, len(y) - 1):
         train = torch.arange(len(y)) != i
-        center = y[train].mean(0)
+        center = _finite_mean(y[train], 0)
         fit = _solve(design[train], y[train] - center, mass[train], max_condition)
         if fit is None:
             return None
@@ -54,7 +57,7 @@ def _press(
     design: torch.Tensor, y: torch.Tensor, mass: torch.Tensor, max_condition: float
 ) -> tuple[torch.Tensor, float, float, bool] | None:
     """Exact linear-model LOOCV, using direct refits when leverage is high."""
-    if design.shape[1] >= len(y):
+    if design.shape[1] >= len(y) or not torch.isfinite(y).all():
         return None
     weight = (mass / mass.max()).sqrt()
     weighted = design * weight[:, None]
@@ -107,12 +110,12 @@ def _cubic_candidate(kind: str, x: torch.Tensor, y: torch.Tensor, mass: torch.Te
     error = total = 0.0
     for i in range(1, len(x) - 1):
         train = torch.arange(len(x)) != i
-        center = y[train].mean(0)
+        center = _finite_mean(y[train], 0)
         fitted = _interpolator(kind, x[train], y[train] - center)
         residual = torch.from_numpy(np.asarray(fitted(float(x[i]))).copy()) + center - y[i]
         error += float(residual.square().sum() * mass[i])
         total += float(mass[i])
-    center = y.mean(0)
+    center = _finite_mean(y, 0)
     centered = y - center
     fitted = _interpolator(kind, x, centered)
     slopes = torch.from_numpy(np.asarray(fitted(x.numpy(), 1)).copy())
@@ -129,7 +132,7 @@ def _linear_candidate(x: torch.Tensor, y: torch.Tensor, mass: torch.Tensor) -> _
         residual = _linear_predict(x[train], y[train], x[i : i + 1])[0] - y[i]
         error += float(residual.square().sum() * mass[i])
         total += float(mass[i])
-    center = y.mean(0)
+    center = _finite_mean(y, 0)
     return _Candidate("linear", 1, x.clone(), y - center, center, error / total, 1.0, len(x))
 
 
@@ -145,6 +148,32 @@ def fit_predictor(
 ) -> SpectralCurveModel:
     """Fit the fixed LOOCV candidate family using observed responses only."""
     inputs, values, limits = _validated(x, y, noise, bounds, max_degree, max_pieces, max_condition)
+    unit = response_scale(values, noise)
+    if unit != 1:
+        result = fit_predictor(
+            inputs,
+            values / unit,
+            noise / unit / unit,
+            bounds=bounds,
+            max_degree=max_degree,
+            max_pieces=max_pieces,
+            max_condition=max_condition,
+        )
+        return _restore_response_units(result, values, unit)
+    return _fit_observed(inputs, values, noise, limits, bounds, max_degree, max_pieces, max_condition)
+
+
+def _fit_observed(
+    inputs: torch.Tensor,
+    values: torch.Tensor,
+    noise: float,
+    limits: tuple[float, float],
+    bounds: Any,
+    max_degree: int,
+    max_pieces: int,
+    max_condition: float,
+) -> SpectralCurveModel:
+    """Run the unchanged portfolio in safe response units."""
     if len(inputs) < 6:
         result = _previous(
             inputs, values, noise, bounds=bounds, max_degree=max_degree, max_pieces=max_pieces, max_condition=max_condition
@@ -153,7 +182,7 @@ def fit_predictor(
         return result
     coordinates = inputs[:, 0]
     mass = _mass(coordinates)
-    center = values.mean(0)
+    center = _finite_mean(values, 0)
     centered = values - center
     candidates: list[tuple[_Candidate, str]] = [(_linear_candidate(coordinates, values, mass), "linear")]
     failed_interpolators = []

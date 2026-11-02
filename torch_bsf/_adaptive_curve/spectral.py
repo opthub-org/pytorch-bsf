@@ -14,7 +14,9 @@ from typing import Any
 
 import torch
 
+from .._numeric import _finite_mean
 from .polynomial import _basis, _Spline
+from .response_units import response_scale, restore_score
 
 
 def _rows(value: Any, name: str, *, allow_vector: bool = False) -> torch.Tensor:
@@ -51,7 +53,7 @@ def _mass(x: torch.Tensor) -> torch.Tensor:
 def _solve(
     design: torch.Tensor, centered: torch.Tensor, mass: torch.Tensor, max_condition: float
 ) -> tuple[torch.Tensor, float] | None:
-    if design.shape[1] > len(design):
+    if design.shape[1] > len(design) or not torch.isfinite(centered).all():
         return None
     weight = (mass / mass.max()).sqrt()
     weighted = design * weight[:, None]
@@ -110,7 +112,7 @@ def _score(
     numerator = denominator = condition = 0.0
     for validation in folds:
         training = ~validation
-        center = y[training].mean(0)
+        center = _finite_mean(y[training], 0)
         result = _solve(design[training], y[training] - center, mass[training], max_condition)
         if result is None:
             return None
@@ -140,7 +142,7 @@ def _designs(x: torch.Tensor, max_degree: int, max_pieces: int) -> list[tuple[st
     return result
 
 
-def _bernstein_controls(coefficients: torch.Tensor, pieces: int) -> torch.Tensor:
+def _bernstein_controls(coefficients: torch.Tensor, pieces: int, knots: torch.Tensor | None = None) -> torch.Tensor:
     """Convert exactly represented Chebyshev polynomial before float rounding.
 
     High precision controls are subdivided before returningfloat64. This
@@ -170,7 +172,11 @@ def _bernstein_controls(coefficients: torch.Tensor, pieces: int) -> torch.Tensor
             if current == pieces - 1:
                 output.append(remaining)
                 break
-            t = Decimal(1) / Decimal(pieces - current)
+            if knots is None:
+                t = Decimal(1) / Decimal(pieces - current)
+            else:
+                start, stop = Decimal.from_float(float(knots[current])), Decimal.from_float(float(knots[-1]))
+                t = (Decimal.from_float(float(knots[current + 1])) - start) / (stop - start)
             level = remaining
             left, right = [level[0]], [level[-1]]
             while len(level) > 1:
@@ -217,13 +223,54 @@ class SpectralCurveModel:
             if selected.kind == "chebyshev":
                 pieces = max(1, math.ceil(selected.degree / 6))
                 knots = torch.linspace(float(selected.knots[0]), float(selected.knots[-1]), pieces + 1, dtype=torch.float64)
-                controls = _bernstein_controls(selected.coefficients, pieces)
+                if not (knots[1:] > knots[:-1]).all():
+                    raise ArithmeticError("Spectral pieces collapse at the represented physical input scale.")
+                represented = (knots - knots[0]) / (knots[-1] - knots[0])
+                ideal = torch.arange(pieces + 1, dtype=torch.float64) / pieces
+                translated = float((represented - ideal).abs().max()) > 8 * torch.finfo(torch.float64).eps
+                controls = _bernstein_controls(selected.coefficients, pieces, knots if translated else None)
                 self._exported = _Spline(knots, selected.degree, controls, selected.center.clone())
+                if translated:
+                    # Use actual physical coordinates: equal rational pieces
+                    # need not match rounded torch.linspace knots far from 0.
+                    at = torch.unique(
+                        torch.cat(
+                            (
+                                self.inputs[:, 0],
+                                torch.linspace(
+                                    float(knots[0]),
+                                    float(knots[-1]),
+                                    max(129, 8 * selected.degree + 1),
+                                    dtype=torch.float64,
+                                ),
+                            )
+                        )
+                    )
+                    expected = selected.predict(at)
+                    error = float((self._exported.predict(at) - expected).abs().max())
+                    magnitude = max(float(expected.abs().max()), float(selected.center.abs().max()))
+                    info = torch.finfo(torch.float64)
+                    tolerance = max(magnitude * 1e-11, info.tiny * info.eps * 256)
+                    if not math.isfinite(error) or error > tolerance:
+                        self._exported = None
+                        raise ArithmeticError("Spectral Bernstein conversion failed its physical-coordinate check.")
             else:
                 self._exported = _Spline(
                     selected.knots.clone(), selected.degree, selected.coefficients.clone(), selected.center.clone()
                 )
         return self._exported
+
+
+def _restore_response_units(model: SpectralCurveModel, values: torch.Tensor, unit: float) -> SpectralCurveModel:
+    """Restore a normalized fit without squaring tiny or enormous responses."""
+    model.values = values
+    model._selected.coefficients *= unit
+    model._selected.center *= unit
+    if not torch.isfinite(model._selected.coefficients).all() or not torch.isfinite(model._selected.center).all():
+        raise ArithmeticError("Fitted polynomial coefficients exceed finite response units.")
+    if "weighted_cv_mse" in model.diagnostics:
+        restore_score(model.diagnostics, "weighted_cv_mse", unit)
+    return model
 
 
 def _bounds(coordinates: torch.Tensor, bounds: Any) -> tuple[float, float]:
@@ -288,8 +335,20 @@ def fit_predictor(
     Exact duplicate coordinates are rejected; aggregate replicates first.
     """
     inputs, values, limits = _validated(x, y, noise, bounds, max_degree, max_pieces, max_condition)
+    unit = response_scale(values, noise)
+    if unit != 1:
+        result = fit_predictor(
+            inputs,
+            values / unit,
+            noise / unit / unit,
+            bounds=bounds,
+            max_degree=max_degree,
+            max_pieces=max_pieces,
+            max_condition=max_condition,
+        )
+        return _restore_response_units(result, values, unit)
     coordinates = inputs[:, 0]
-    center = values.mean(0)
+    center = _finite_mean(values, 0)
     centered = values - center
     if len(inputs) < 6:
         selected = _Candidate(

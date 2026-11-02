@@ -21,7 +21,17 @@ class _Spline:
     center: torch.Tensor
 
     def predict(self, x: torch.Tensor) -> torch.Tensor:
-        return _basis(x, self.knots, self.degree) @ self.controls + self.center
+        if len(self.knots) == 1 or self.degree == 0:
+            return self.controls[:1].expand(len(x), -1) + self.center
+        indices = torch.searchsorted(self.knots, x.contiguous(), right=True).sub(1).clamp(0, len(self.knots) - 2)
+        t = ((x - self.knots[indices]) / (self.knots[indices + 1] - self.knots[indices])).clamp(0, 1)
+        # Query memory depends on local degree and output size, not on the
+        # number of pieces. Keep the global design only for regression.
+        result = torch.zeros((len(x), self.controls.shape[1]), dtype=torch.float64)
+        for j in range(self.degree + 1):
+            weight = math.comb(self.degree, j) * t.pow(j) * (1 - t).pow(self.degree - j)
+            result += weight[:, None] * self.controls[indices * self.degree + j]
+        return result + self.center
 
 
 @dataclass

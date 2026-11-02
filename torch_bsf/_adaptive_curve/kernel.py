@@ -17,6 +17,7 @@ from scipy.linalg.lapack import dpocon
 
 from .evidence import _inputs
 from .polynomial import _Spline
+from .response_units import response_scale, restore_conversion, restore_score, restore_spline
 from .spectral import _mass, _rows
 
 
@@ -151,6 +152,7 @@ class KernelCurveModel:
     diagnostics: dict[str, Any]
     _operator: _StableOperator
     _spline: _Spline | None = field(default=None, repr=False)
+    _response_unit: float = field(default=1.0, repr=False)
 
     def predict(self, points: Any) -> torch.Tensor:
         x = _rows(points, "points")
@@ -158,14 +160,19 @@ class KernelCurveModel:
         if x.shape[1] != 1 or ((x[:, 0] < left) | (x[:, 0] > right)).any():
             raise ValueError("Prediction points must lie within observed scalar support.")
         normalized = ((x[:, 0] - left) / (right - left) * 2 - 1).numpy()
-        return torch.from_numpy(self._operator.predict(normalized))
+        return torch.from_numpy(self._operator.predict(normalized)) * self._response_unit
 
     def as_spline(self) -> _Spline:
         """Convert the fitted operator with empirical degree12 checks, not a certificate."""
         from .operator_spline import approximate_operator
 
         if self._spline is None:
-            self._spline = approximate_operator(self.inputs, self.values, self._operator, self.predict, self.diagnostics)
+            if self._response_unit != 1:
+                normalized = KernelCurveModel(self.inputs, self.values / self._response_unit, {}, self._operator)
+                self._spline = restore_spline(normalized.as_spline(), self._response_unit)
+                restore_conversion(self.diagnostics, normalized.diagnostics, self._response_unit)
+            else:
+                self._spline = approximate_operator(self.inputs, self.values, self._operator, self.predict, self.diagnostics)
         return self._spline
 
 
@@ -176,6 +183,17 @@ def fit_kernel_predictor(x: Any, y: Any, *, noise: float = 0.0) -> KernelCurveMo
         raise ValueError("noise must be finite and nonnegative.")
     if len(points) < 6 or values.shape[1] != 1 or noise > 0:
         return None
+    response_unit = response_scale(values)
+    if response_unit != 1:
+        result = fit_kernel_predictor(points[:, None], values / response_unit)
+        if result is not None:
+            result.values = values
+            result._response_unit = response_unit
+            restore_score(result.diagnostics, "weighted_cv_mse", response_unit)
+            result.diagnostics["weighted_training_mse"] = (
+                result.diagnostics["weighted_training_mse"] * response_unit * response_unit
+            )
+        return result
     width = float(points[-1] - points[0])
     if not math.isfinite(width) or width <= 0:
         return None

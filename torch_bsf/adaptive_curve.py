@@ -163,8 +163,8 @@ def _validate_options(
 ) -> torch.Tensor:
     if not isinstance(deterministic, bool):
         raise ValueError("deterministic must be a bool.")
-    if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
-        raise ValueError("seed must be a nonnegative integer.")
+    if isinstance(seed, bool) or not isinstance(seed, int) or not 0 <= seed < 2**64:
+        raise ValueError("seed must be an integer between zero and 2**64 - 1.")
     raw_bounds = torch.as_tensor(bounds)
     if raw_bounds.is_complex() or raw_bounds.shape not in ((2,), (1, 2)):
         raise ValueError("bounds must be a real increasing parameter pair.")
@@ -223,9 +223,9 @@ def fit_adaptive_curve(
         necessary. None uses twice the domain width divided by 256. This is a
         requested finite-scale resolution, not a localization guarantee.
     seed : int
-        Nonnegative seed for a private vector-query jitter generator. Scalar
-        acquisitions use no random jitter. The acquisition policy does not
-        consume the global random generator.
+        Integer from zero through ``2**64 - 1`` for a private vector-query jitter
+        generator. Scalar acquisitions use no random jitter. The acquisition
+        policy does not consume the global random generator.
     initial_inputs : array-like or None
         Optional initial parameter rows of shape ``(n, 1)``. These are queried
         and charged first. The policy then queries any missing points from its

@@ -1,5 +1,9 @@
+import math
+
 import pytest
 import torch
+from hypothesis import given
+from hypothesis import strategies as st
 
 from torch_bsf._adaptive_curve.queries import QuerySession
 
@@ -61,3 +65,104 @@ def test_invalid_evaluator_responses_still_spend_requested_evaluations():
     assert session.cost == 2
     with pytest.raises(RuntimeError, match="budget"):
         session.query([[0.5]])
+
+
+@pytest.mark.parametrize("upper, step", [(1.7, 0.1), (0.35, 0.01), (0.009, 0.001)])
+@pytest.mark.parametrize("sign", [-1, 1])
+def test_rounded_grid_endpoint_keys_remain_inside_bounds(upper, step, sign):
+    bounds = (0.0, upper) if sign == 1 else (-upper, 0.0)
+    received = []
+
+    def oracle(x):
+        assert ((x >= bounds[0]) & (x <= bounds[1])).all()
+        received.append(x.clone())
+        return x
+
+    session = QuerySession(oracle, [bounds], budget=2, resolution=step)
+    canonical = session.canonical([[bounds[0]], [bounds[1]]])
+    assert torch.equal(session.canonical(canonical), canonical)
+    assert torch.equal(session.query([[bounds[0]], [bounds[1]]]), canonical)
+    assert len(received) == 1 and session.cost == 2
+    assert ((canonical >= bounds[0]) & (canonical <= bounds[1])).all()
+
+
+def test_no_represented_grid_key_inside_narrow_bounds_uses_no_response():
+    called = []
+
+    def oracle(x):
+        called.append(x)
+        return x
+
+    session = QuerySession(oracle, [[math.nextafter(1.7, -math.inf), 1.7]], budget=1, resolution=0.1)
+    with pytest.raises(ValueError, match="grid.*bounds"):
+        session.query([[1.7]])
+    assert session.cost == 0 and not called
+
+
+def test_extreme_grid_ratios_remain_finite_and_idempotent():
+    session = QuerySession(lambda x: x, [[0.0, 1.0]], budget=3, resolution=1e-320)
+    points = torch.tensor([[0.0], [0.5], [1.0]], dtype=torch.float64)
+    actual = session.query(points)
+    assert torch.equal(actual, points)
+    assert torch.equal(session.canonical(actual), actual)
+    assert session.cost == 3
+
+
+def test_ordinary_grid_reduction_remains_bitwise_identical():
+    session = QuerySession(lambda x: x, [[-1.0, 1.0]], budget=1, resolution=0.1)
+    points = torch.linspace(-1, 1, 1001, dtype=torch.float64)[:, None]
+    previous = torch.round(points / 0.1).clamp(-10, 10) * 0.1
+    assert torch.equal(session.canonical(points).view(torch.int64), previous.view(torch.int64))
+
+
+@given(
+    step=st.sampled_from([0.001, 0.01, 0.1, 0.2, 0.3]),
+    key=st.integers(1, 1000),
+    fraction=st.floats(0, 1, allow_nan=False, allow_infinity=False),
+    sign=st.sampled_from([-1, 1]),
+)
+def test_canonical_grid_is_bounded_and_idempotent(step, key, fraction, sign):
+    edge = math.nextafter(key * step, 0.0)
+    bounds = (0.0, edge) if sign == 1 else (-edge, 0.0)
+    session = QuerySession(lambda x: x, [bounds], budget=2, resolution=step)
+    points = torch.tensor([[sign * fraction * edge], [sign * edge]], dtype=torch.float64)
+    canonical = session.canonical(points)
+    assert ((canonical >= bounds[0]) & (canonical <= bounds[1])).all()
+    assert torch.equal(session.canonical(canonical), canonical)
+
+
+def test_constant_extreme_repeats_have_finite_means_and_zero_noise():
+    expected = torch.tensor([[1e308, -1e308]], dtype=torch.float64)
+    session = QuerySession(lambda x: expected.expand(len(x), -1), [[0.0, 1.0]], budget=3, deterministic=False)
+    queried = session.query([[0.5], [0.5], [0.5]])
+    assert torch.equal(queried, expected.expand(3, -1))
+    _, mean, counts = session.observations()
+    assert torch.equal(mean, expected) and counts.tolist() == [3]
+    assert session.noise_variance() == 0
+
+
+def test_ordinary_repeat_means_and_pooled_noise_remain_bitwise_identical():
+    rows = torch.tensor([[0.1, -0.3], [1.7, 0.7], [0.4, -0.2]], dtype=torch.float64)
+    session = QuerySession(lambda _: rows, [[0.0, 1.0]], budget=3, deterministic=False)
+    actual = session.query([[0.5], [0.5], [0.5]])
+    previous = rows.mean(0)
+    assert torch.equal(actual.view(torch.int64), previous.expand(3, -1).contiguous().view(torch.int64))
+    assert torch.equal(session.observations()[1].view(torch.int64), previous[None].view(torch.int64))
+    assert session.noise_variance() == float((rows - previous).square().sum()) / 2
+
+
+def test_pooled_noise_can_be_finite_when_squared_deviation_sum_overflows():
+    rows = torch.tensor([[-1e154], [0.0], [1e154]], dtype=torch.float64)
+    session = QuerySession(lambda _: rows, [[0.0, 1.0]], budget=3, deterministic=False)
+    session.query([[0.5], [0.5], [0.5]])
+    # The numerator is 2 * 1e308, but dividing by its two degrees of freedom
+    # yields a representable variance. The symmetric mean is exactly zero.
+    assert session.noise_variance() == 1e154 * 1e154
+
+
+def test_unrepresentable_pooled_noise_fails_explicitly():
+    rows = torch.tensor([[-1e308], [1e308]], dtype=torch.float64)
+    session = QuerySession(lambda _: rows, [[0.0, 1.0]], budget=2, deterministic=False)
+    session.query([[0.5], [0.5]])
+    with pytest.raises(ArithmeticError, match="noise variance.*finite float64"):
+        session.noise_variance()
