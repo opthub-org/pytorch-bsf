@@ -6,14 +6,16 @@ import mpmath as mp  # type: ignore[import-untyped]
 import numpy as np
 import pytest
 import torch
-from scipy.linalg import cho_factor, cho_solve
 
-from torch_bsf._adaptive_curve.export import _compile_result
-from torch_bsf._adaptive_curve.kernel import _fixed_fit, _kernel, _StableOperator, fit_kernel_predictor
-from torch_bsf._adaptive_curve.kernel_prediction import refit_prediction
-from torch_bsf._adaptive_curve.polynomial import CurveGap, StructureLearningResult, _Spline
-from torch_bsf._adaptive_curve.queries import QuerySession
-from torch_bsf._adaptive_curve.spectral import _mass
+pytest.importorskip("scipy")
+from scipy.linalg import cho_factor, cho_solve  # noqa: E402
+
+from torch_bsf._adaptive_curve.export import _compile_result  # noqa: E402
+from torch_bsf._adaptive_curve.kernel import _fixed_fit, _kernel, _StableOperator, fit_kernel_predictor  # noqa: E402
+from torch_bsf._adaptive_curve.kernel_prediction import refit_prediction  # noqa: E402
+from torch_bsf._adaptive_curve.polynomial import CurveGap, StructureLearningResult, _Spline  # noqa: E402
+from torch_bsf._adaptive_curve.queries import QuerySession  # noqa: E402
+from torch_bsf._adaptive_curve.spectral import _mass  # noqa: E402
 
 
 @pytest.fixture(autouse=True)

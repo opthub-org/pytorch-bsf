@@ -5,12 +5,13 @@ import torch
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from torch_bsf._adaptive_curve.advanced import _press
-from torch_bsf._adaptive_curve.export import _compile_result
-from torch_bsf._adaptive_curve.polynomial import CurveGap, StructureLearningResult, _basis, _Spline
-from torch_bsf._adaptive_curve.pooled_prediction import gap_contrasts, refit_prediction
-from torch_bsf._adaptive_curve.shared_spline import _contrast, _score, fit_spline_charts, restrict_spline
-from torch_bsf._adaptive_curve.spectral import _mass
+pytest.importorskip("scipy")
+from torch_bsf._adaptive_curve.advanced import _press  # noqa: E402
+from torch_bsf._adaptive_curve.export import _compile_result  # noqa: E402
+from torch_bsf._adaptive_curve.polynomial import CurveGap, StructureLearningResult, _basis, _Spline  # noqa: E402
+from torch_bsf._adaptive_curve.pooled_prediction import gap_contrasts, refit_prediction  # noqa: E402
+from torch_bsf._adaptive_curve.shared_spline import _contrast, _score, fit_spline_charts, restrict_spline  # noqa: E402
+from torch_bsf._adaptive_curve.spectral import _mass  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
