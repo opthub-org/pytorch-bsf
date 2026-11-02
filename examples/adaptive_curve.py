@@ -43,6 +43,13 @@ def write_example(output: Path, budget: int) -> dict:
     truth = response(grid)
     connected = initial.model(torch.cat((1 - grid, grid), 1)).detach()
     predicted = result.predict(grid)
+    chart_ranges = list(
+        zip(
+            [result.bounds[0], *[gap.right for gap in result.gaps]],
+            [*[gap.left for gap in result.gaps], result.bounds[1]],
+            strict=True,
+        )
+    )
     chronology = torch.cat([x for x, _ in batches])[:, 0]
     figure, axes = plt.subplots(2, 2, figsize=(11, 8), constrained_layout=True)
     for axis, values, title in [
@@ -53,7 +60,10 @@ def write_example(output: Path, budget: int) -> dict:
         # fictitious connecting line. This truth is for rendering only.
         for use in (grid[:, 0] < 0.413, grid[:, 0] >= 0.413):
             axis.plot(truth[use, 0], truth[use, 1], color="0.7", linewidth=3)
-        axis.plot(values[:, 0], values[:, 1], color="tab:blue", label="BSF prediction")
+        ranges = chart_ranges if axis is axes[0, 1] else [result.bounds]
+        for i, (left, right) in enumerate(ranges):
+            use = (grid[:, 0] >= left) & (grid[:, 0] <= right)
+            axis.plot(values[use, 0], values[use, 1], color="tab:blue", label="BSF prediction" if i == 0 else None)
         observed = initial_y if axis is axes[0, 0] else result.values
         axis.scatter(observed[:, 0], observed[:, 1], s=12, color="tab:orange", label="Measured responses")
         axis.set(xlabel="Response 1", ylabel="Response 2", title=title)
@@ -62,7 +72,9 @@ def write_example(output: Path, budget: int) -> dict:
     axes[1, 0].axvline(0.413, color="0.6", linestyle="--", label="Known demonstration boundary")
     axes[1, 0].set(xlabel="Queried parameter", ylabel="Charged response row", title="Acquisition order")
     error = (predicted - truth).norm(dim=1)
-    axes[1, 1].plot(grid[:, 0], error)
+    for left, right in chart_ranges:
+        use = (grid[:, 0] >= left) & (grid[:, 0] <= right)
+        axes[1, 1].plot(grid[use, 0], error[use], color="tab:blue")
     axes[1, 1].set(xlabel="Parameter", ylabel="Vector error norm", title="Display-grid error and excluded brackets")
     for gap in result.gaps:
         for axis in axes[1]:
