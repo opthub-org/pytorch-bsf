@@ -334,7 +334,11 @@ The root component's `release_created` and `tag_name` outputs connect to the
 Docker and PyPI build jobs. Both build only when `release_created == 'true'`,
 and both build the reported release tag. The separate PyPI publishing job also
 requires a successful PyPI build. Keep the reusable Docker call: releases created
-with `GITHUB_TOKEN` do not start another release-event workflow.
+with `GITHUB_TOKEN` do not start another release-event workflow. The separate
+documentation dispatch job has only `actions: write`, checks the stable
+`vN.N.N` release tag, and explicitly starts the read-only documentation
+producer at that tag. Prereleases are skipped, matching the documentation
+version policy; no candidate checkout or package code runs in the dispatch job.
 
 Validate release configuration without creating a release or publishing anything:
 
@@ -860,7 +864,10 @@ after its outstanding runs finish. This prevents old branches' whole-site
 writers from running. Existing published URLs remain available; old branches
 must incorporate the new workflow before their next preview can pass the
 required publication gate. Existing historical tag pages are retained, and
-new release tags include the new producer. Do not re-enable the legacy writer.
+new release tags include the new producer. Release Please explicitly dispatches
+that producer for a newly created stable tag because `GITHUB_TOKEN`-created
+tags do not start push workflows. Ordinary user-created stable tag pushes use
+the producer's push trigger. Do not re-enable the legacy writer.
 
 ---
 

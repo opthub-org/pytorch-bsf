@@ -25,6 +25,42 @@ jobs:
         config-file: release-please-config.json
         manifest-file: .release-please-manifest.json
 
+  docs:
+    needs: github-release
+    if: >-
+      ${{ needs.github-release.outputs.release_created == 'true' &&
+          !contains(needs.github-release.outputs.tag_name, '-') &&
+          !contains(needs.github-release.outputs.tag_name, '+') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+    # GITHUB_TOKEN-created tags do not trigger push workflows; dispatch does.
+    # No checkout or release code runs with this dispatch-only token.
+    - name: Dispatch documentation for the stable release tag
+      env:
+        GH_TOKEN: ${{ github.token }}
+        DOCS_TAG: ${{ needs.github-release.outputs.tag_name }}
+      run: |
+        python3 -I - <<'PY'
+        import json
+        import os
+        import re
+        import subprocess
+
+        tag = os.environ["DOCS_TAG"]
+        if re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", tag) is None:
+            raise SystemExit("Expected a stable documentation release tag")
+        subprocess.run(
+            ["gh", "api", "--method", "POST",
+             "repos/opthub-org/pytorch-bsf/actions/workflows/sphinx-pages-build.yml/dispatches",
+             "--input", "-"],
+            input=json.dumps({"ref": tag}).encode(),
+            check=True,
+        )
+        PY
+
   docker:
     needs: github-release
     if: ${{ needs.github-release.outputs.release_created == 'true' }}
