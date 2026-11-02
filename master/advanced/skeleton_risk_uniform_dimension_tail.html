@@ -70,6 +70,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three.html">Boundary transfer and a codimension-three edge bound</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension.html">The vertex leading constant at large vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
@@ -152,11 +153,11 @@ bound covers every positive integer degree without generating a
 degree-specific dimension polynomial. It is a sufficient region, not a
 claim about the exact crossover or the shape of the intervening loss set.</p>
 <div class="proof theorem admonition" id="thm-risk-uniform-dimension-tail">
-<p class="admonition-title"><span class="caption-number">Theorem 37 </span> (A linear sufficient vertex threshold at every degree)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 38 </span> (A linear sufficient vertex threshold at every degree)</p>
 <section class="theorem-content" id="proof-content">
 <p>For all integers <span class="math notranslate nohighlight">\(D\geq1\)</span> and <span class="math notranslate nohighlight">\(M\geq9720D\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-risk-uniform-dimension-tail">
-<span class="eqno">(70)<a class="headerlink" href="#equation-risk-uniform-dimension-tail" title="Link to this equation"></a></span>\[R_{\mathrm{ind}}(M,D)&lt;\frac45R_{\mathrm{all}}(M,D).\]</div>
+<span class="eqno">(72)<a class="headerlink" href="#equation-risk-uniform-dimension-tail" title="Link to this equation"></a></span>\[R_{\mathrm{ind}}(M,D)&lt;\frac45R_{\mathrm{all}}(M,D).\]</div>
 <p>In particular, optimal inductive fitting has strictly smaller
 asymptotic risk throughout this region. The constant 9720 is
 conservative and is not asserted to be optimal.</p>
@@ -177,7 +178,7 @@ and coefficientwise</p>
 is at most <span class="math notranslate nohighlight">\(M+2D\)</span>, including the empty product at <span class="math notranslate nohighlight">\(t=0\)</span>.
 Therefore</p>
 <div class="math notranslate nohighlight" id="equation-risk-uniform-kernel-majorant">
-<span class="eqno">(71)<a class="headerlink" href="#equation-risk-uniform-kernel-majorant" title="Link to this equation"></a></span>\[(q)_t\leq M^t\left(1+\frac{2D}{M}\right)^{2D}
+<span class="eqno">(73)<a class="headerlink" href="#equation-risk-uniform-kernel-majorant" title="Link to this equation"></a></span>\[(q)_t\leq M^t\left(1+\frac{2D}{M}\right)^{2D}
     \leq M^t\left(\frac94\right)^D.\]</div>
 <p><strong>A bound for one skeleton.</strong> Set <span class="math notranslate nohighlight">\(n=D-s\)</span>. In
 <a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-scalar-sum">Theorem 11</a>, the two binomial upper indices
@@ -207,7 +208,7 @@ original nonnegativity follows because it is a risk coefficient.
 The factors <span class="math notranslate nohighlight">\(h!l!\)</span> cancel with the kernel majorant. Combining
 the displayed bounds gives, simultaneously for all <span class="math notranslate nohighlight">\(M\geq4D\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-risk-uniform-skeleton-majorant">
-<span class="eqno">(72)<a class="headerlink" href="#equation-risk-uniform-skeleton-majorant" title="Link to this equation"></a></span>\[0\leq a_{s-1}(M,D)\leq
+<span class="eqno">(74)<a class="headerlink" href="#equation-risk-uniform-skeleton-majorant" title="Link to this equation"></a></span>\[0\leq a_{s-1}(M,D)\leq
 B_{D,s}:=D^2 36^D4^{s-1}\binom{D-1}{s-1}
         \frac{(3D)^{2s}}{(s!)^2}.\]</div>
 <p><strong>Sum over all skeletons.</strong> The sequence
@@ -216,9 +217,9 @@ Moreover,</p>
 <div class="math notranslate nohighlight">
 \[\sum_{s=1}^D4^{s-1}\binom{D-1}{s-1}=5^{D-1}.\]</div>
 <p>There are exactly <span class="math notranslate nohighlight">\(D\)</span> active sizes because <span class="math notranslate nohighlight">\(M\geq4D\)</span>.
-Cauchy–Schwarz and <a class="reference internal" href="#equation-risk-uniform-skeleton-majorant">(72)</a> imply</p>
+Cauchy–Schwarz and <a class="reference internal" href="#equation-risk-uniform-skeleton-majorant">(74)</a> imply</p>
 <div class="math notranslate nohighlight" id="equation-risk-uniform-risk-majorant">
-<span class="eqno">(73)<a class="headerlink" href="#equation-risk-uniform-risk-majorant" title="Link to this equation"></a></span>\[R_{\mathrm{ind}}(M,D)\leq D\sum_{s=1}^DB_{D,s}
+<span class="eqno">(75)<a class="headerlink" href="#equation-risk-uniform-risk-majorant" title="Link to this equation"></a></span>\[R_{\mathrm{ind}}(M,D)\leq D\sum_{s=1}^DB_{D,s}
 \leq U_D:=D^3 36^D5^{D-1}
               \left(\frac{(3D)^D}{D!}\right)^2.\]</div>
 <p><strong>Elementary degree bounds.</strong> For every positive integer <span class="math notranslate nohighlight">\(D\)</span>,</p>
@@ -241,8 +242,8 @@ For the second, check <span class="math notranslate nohighlight">\(D=1,2,3,4\)</
  \leq\frac45(9720D)^D.\end{split}\]</div>
 <p>Finally <span class="math notranslate nohighlight">\(R_{\mathrm{all}}(M,D)=(M)_D/D!\geq M^D/D!\)</span>.
 If <span class="math notranslate nohighlight">\(M\geq9720D\)</span>, this bound and
-<a class="reference internal" href="#equation-risk-uniform-risk-majorant">(73)</a> prove
-<a class="reference internal" href="#equation-risk-uniform-dimension-tail">(70)</a>, including <span class="math notranslate nohighlight">\(D=1\)</span>.</p>
+<a class="reference internal" href="#equation-risk-uniform-risk-majorant">(75)</a> prove
+<a class="reference internal" href="#equation-risk-uniform-dimension-tail">(72)</a>, including <span class="math notranslate nohighlight">\(D=1\)</span>.</p>
 </div>
 <section id="exact-specialization-and-checks">
 <h2>Exact specialization and checks<a class="headerlink" href="#exact-specialization-and-checks" title="Link to this heading"></a></h2>
