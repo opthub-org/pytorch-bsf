@@ -1235,3 +1235,14 @@ def test_max_error_criterion_widens_before_subtracting():
     k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
     assert (k, i, j) == (0, 0, 1)
     assert abs(s - 0.6) < 1e-3
+
+
+def test_max_error_criterion_scales_huge_residuals():
+    # Errors of 1e100 give finite squared residuals (1e200) whose squares overflow float64 unless scaled.
+    bs = BezierSimploid((1,), 1, {(1, 0): [0.0], (0, 1): [0.0]}).double()
+    t = torch.linspace(0.05, 0.95, 10, dtype=torch.float64)
+    params = torch.stack([1 - t, t], dim=1)
+    values = (1e100 * (1 + t) * (t > 0.6).double())[:, None]  # uneven, so no piece has zero spread
+    k, i, j, s = max_error_criterion(params, values, grid_size=9)(bs)
+    assert (k, i, j) == (0, 0, 1)
+    assert abs(s - 0.6) < 1e-3
