@@ -25,7 +25,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Quantitative tetrahedron vertex asymptotics" href="skeleton_risk_vertex_asymptotics.html" />
-    <link rel="prev" title="Explicit vertex errors at every fixed vertex count" href="skeleton_risk_vertex_general_asymptotics.html" /> 
+    <link rel="prev" title="Single-log vertex errors for every fixed M at least five" href="skeleton_risk_vertex_refined_asymptotics.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -72,6 +72,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension.html">The vertex leading constant at large vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_refined_asymptotics.html">Single-log vertex errors for every fixed M at least five</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Tetrahedron vertex degree recurrence</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#four-polynomial-difference-equations">Four polynomial difference equations</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#the-rational-telescope-and-its-boundaries">The rational telescope and its boundaries</a></li>
@@ -151,7 +152,7 @@ exceptional integer indices, and determines the coefficient from its first
 ten values. This supplies a fixed-order recurrence; it does not evaluate
 the coefficient by a bounded number of classical special functions.</p>
 <div class="proof theorem admonition" id="thm-risk-tetrahedron-vertex-recurrence">
-<p class="admonition-title"><span class="caption-number">Theorem 34 </span> (A certified degree recurrence)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 35 </span> (A certified degree recurrence)</p>
 <section class="theorem-content" id="proof-content">
 <p>Under the uniform-simplex assumptions of <a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a>,
 write <span class="math notranslate nohighlight">\(a_D=a_0(4,D)\)</span>. The eleven integer polynomials recorded in
@@ -201,7 +202,7 @@ over <span class="math notranslate nohighlight">\(\mathbb Q(N)\)</span>:</p>
 L_3 q&amp;=A(j)(j+1)^2q(j+1)-j^2(j+2)(j+3)q(j).\end{split}\]</div>
 <p>Four certificate polynomials <span class="math notranslate nohighlight">\(q_1,q_2,q_3,q_4\)</span> must satisfy</p>
 <div class="math notranslate nohighlight" id="equation-risk-vertex-polynomial-certificate">
-<span class="eqno">(68)<a class="headerlink" href="#equation-risk-vertex-polynomial-certificate" title="Link to this equation"></a></span>\[\begin{split}L_2q_1&amp;=P,\\
+<span class="eqno">(71)<a class="headerlink" href="#equation-risk-vertex-polynomial-certificate" title="Link to this equation"></a></span>\[\begin{split}L_2q_1&amp;=P,\\
 L_2q_2&amp;=(j+2)P,\\
 L_3q_3&amp;=-j(j+1)P
    -2A(j)(j+1)(j+2)q_1(j+1),\\
@@ -238,7 +239,7 @@ four rational coefficients of <span class="math notranslate nohighlight">\(G_j=b
    0&amp;0&amp;1&amp;1/(j+1)\\
    0&amp;0&amp;0&amp;1
 \end{pmatrix}.\end{split}\]</div>
-<p>Substitution of <a class="reference internal" href="#equation-risk-vertex-polynomial-certificate">(68)</a> gives the four
+<p>Substitution of <a class="reference internal" href="#equation-risk-vertex-polynomial-certificate">(71)</a> gives the four
 rational identities</p>
 <div class="math notranslate nohighlight">
 \[\frac{A(j)}{(j+1)^2}c(j+1)T(j)-c(j)=P(j)b(j).\]</div>
@@ -305,7 +306,7 @@ frozen. These checks do not replace the symbolic certificate.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="skeleton_risk_vertex_general_asymptotics.html" class="btn btn-neutral float-left" title="Explicit vertex errors at every fixed vertex count" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="skeleton_risk_vertex_refined_asymptotics.html" class="btn btn-neutral float-left" title="Single-log vertex errors for every fixed M at least five" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="skeleton_risk_vertex_asymptotics.html" class="btn btn-neutral float-right" title="Quantitative tetrahedron vertex asymptotics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

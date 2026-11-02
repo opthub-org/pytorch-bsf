@@ -72,6 +72,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension.html">The vertex leading constant at large vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_refined_asymptotics.html">Single-log vertex errors for every fixed M at least five</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
@@ -151,7 +152,7 @@ harmonic single sum in <a class="reference internal" href="skeleton_risk_five_ve
 scalar recurrence. The construction uses eight rational telescoping
 identities. It does not fit finitely many coefficient values.</p>
 <div class="proof theorem admonition" id="thm-risk-five-vertex-recurrence">
-<p class="admonition-title"><span class="caption-number">Theorem 41 </span> (Certified five-vertex vertex degree recurrence)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 42 </span> (Certified five-vertex vertex degree recurrence)</p>
 <section class="theorem-content" id="proof-content">
 <p>Put <span class="math notranslate nohighlight">\(a_D=a_0(5,D)\)</span>. The artifact
 <code class="docutils literal notranslate"><span class="pre">tools/risk_research/examples/five_vertex_vertex_recurrence_order17.json</span></code>
@@ -187,7 +188,7 @@ the following increments of its eight components:</p>
 \right)^{\mathsf T}.\]</div>
 <p>Thus <span class="math notranslate nohighlight">\(T(j+1)=S(j)T(j)\)</span>. Write the known diagonal weight as
 <span class="math notranslate nohighlight">\(\Psi_j=b(j)T(j)\)</span>; the eight rational entries of <span class="math notranslate nohighlight">\(b\)</span> are
-exactly <a class="reference internal" href="skeleton_risk_five_vertex.html#equation-risk-five-vertex-diagonal">(76)</a> in this ordering.</p>
+exactly <a class="reference internal" href="skeleton_risk_five_vertex.html#equation-risk-five-vertex-diagonal">(79)</a> in this ordering.</p>
 </section>
 <section id="normalization-to-the-largest-shift">
 <h2>Normalization to the largest shift<a class="headerlink" href="#normalization-to-the-largest-shift" title="Link to this heading"></a></h2>
@@ -203,7 +204,7 @@ weight for degree <span class="math notranslate nohighlight">\(D+i\)</span>, div
 supports: <span class="math notranslate nohighlight">\(U_m\)</span> vanishes at the extra upper indices.</p>
 <p>Put <span class="math notranslate nohighlight">\(A(j)=(N-j)(N+2-j)\)</span>. A row certificate <span class="math notranslate nohighlight">\(c(j)\)</span> must satisfy</p>
 <div class="math notranslate nohighlight" id="equation-risk-five-vertex-certificate-row">
-<span class="eqno">(80)<a class="headerlink" href="#equation-risk-five-vertex-certificate-row" title="Link to this equation"></a></span>\[\frac{A(j)}{(j+1)^2}c(j+1)S(j)-c(j)=P(j)b(j).\]</div>
+<span class="eqno">(83)<a class="headerlink" href="#equation-risk-five-vertex-certificate-row" title="Link to this equation"></a></span>\[\frac{A(j)}{(j+1)^2}c(j+1)S(j)-c(j)=P(j)b(j).\]</div>
 <p>Multiplication by <span class="math notranslate nohighlight">\(w_{N,j}T(j)\)</span> then gives a telescoping difference.</p>
 </section>
 <section id="eight-polynomial-equations">
@@ -218,7 +219,7 @@ E_{\mathrm H}(j)&amp;=(j+1)^3(j+2)^2(j+3).\end{split}\]</div>
 \mathrm M,\mathrm M,\mathrm H)\)</span>. Let
 <span class="math notranslate nohighlight">\(\Omega_i=\operatorname{lcm}(E_i(j),E_i(j+1))\)</span>.
 After the previous <span class="math notranslate nohighlight">\(Q_l\)</span> are known, equation <span class="math notranslate nohighlight">\(i\)</span> of
-<a class="reference internal" href="#equation-risk-five-vertex-certificate-row">(80)</a> becomes</p>
+<a class="reference internal" href="#equation-risk-five-vertex-certificate-row">(83)</a> becomes</p>
 <div class="math notranslate nohighlight">
 \[\mathcal L_iQ_i=\Omega_i\left(Pb_i
    -A\sum_{l&lt;i}\frac{Q_l(j+1)}{E_l(j+1)}S_{li}(j)\right).\]</div>
@@ -239,7 +240,7 @@ Triangular polynomial reduction therefore leaves at most
 kernel. Its vector supplies <span class="math notranslate nohighlight">\(\lambda_0,\ldots,\lambda_{17}\)</span>.
 The verifier reconstructs the resulting eight <span class="math notranslate nohighlight">\(Q_i\)</span>, checks all
 polynomial remainders are zero, and separately substitutes the rational
-row into <a class="reference internal" href="#equation-risk-five-vertex-certificate-row">(80)</a>. The certificate degrees
+row into <a class="reference internal" href="#equation-risk-five-vertex-certificate-row">(83)</a>. The certificate degrees
 are <span class="math notranslate nohighlight">\((32,34,33,33,34,35,36,35)\)</span>.</p>
 </section>
 <section id="domain-boundaries-and-scalar-coefficients">
