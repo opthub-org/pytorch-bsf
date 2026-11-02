@@ -90,6 +90,37 @@ def test_initial_dirty_or_untracked_source_is_rejected(checkout):
         run_python(checkout, ["-c", "pass"], modules=("probe",))
 
 
+@pytest.mark.parametrize("relative", ["ignored_module.py", "cache/data.bin", "native_extension.so", "__pycache__/probe.pyc"])
+def test_initial_ignored_importable_files_and_caches_are_rejected_before_execution(checkout, tmp_path, relative):
+    marker = tmp_path / "executed"
+    (checkout / "probe.py").write_text(
+        "from pathlib import Path\n" + f"Path({str(marker)!r}).write_text('import executed')\n", encoding="utf-8"
+    )
+    (checkout / ".gitignore").write_text(relative + "\n", encoding="utf-8")
+    _git(checkout, "add", ".gitignore", "probe.py")
+    _git(checkout, "commit", "-m", "Ignore validation residue")
+    residue = checkout / relative
+    residue.parent.mkdir(parents=True, exist_ok=True)
+    residue.write_text("VALUE = 'ignored input'\n", encoding="utf-8")
+    command = "import ignored_module; " if relative == "ignored_module.py" else ""
+    command += "from pathlib import Path; import sys; Path(sys.argv[1]).write_text('executed')"
+    with pytest.raises(ValueError, match="clean before"):
+        run_python(checkout, ["-c", command, str(marker)], modules=("probe",), no_site=True)
+    assert not marker.exists()
+
+
+@pytest.mark.parametrize("outcome", ["success", "failure", "timeout"])
+def test_ignored_writes_are_detected_even_after_failure_or_timeout(checkout, outcome):
+    (checkout / ".gitignore").write_text("cache/\n", encoding="utf-8")
+    _git(checkout, "add", ".gitignore")
+    _git(checkout, "commit", "-m", "Ignore validation outputs")
+    command = "from pathlib import Path; Path('cache').mkdir(); Path('cache/result.bin').write_bytes(b'output'); "
+    command += {"success": "pass", "failure": "raise SystemExit(7)", "timeout": "import time; time.sleep(5)"}[outcome]
+    with pytest.raises(RuntimeError, match="clean status changed"):
+        run_python(checkout, ["-c", command], modules=("probe",), timeout=1, no_site=True)
+    assert (checkout / "cache/result.bin").exists()
+
+
 def test_installed_module_origin_outside_checkout_is_rejected(checkout):
     with pytest.raises(RuntimeError, match="module import escaped"):
         run_python(checkout, ["-c", "pass"], modules=("json",))

@@ -45,9 +45,15 @@ comparison, tail and joint-growth certificate CLIs retain their own
 `checkout_harness.run_python` is a standard-library helper for checks in a
 separate clean Git checkout. Pass the expected HEAD and tree plus the modules
 whose import locations must belong to that checkout. It sets the relative
-`PYTHONPATH=.` and disables bytecode writes, checks imports before launching
-the command, and verifies HEAD, tree and tracked/untracked status afterward,
-including failed commands and timeouts. Keep outputs outside the checkout.
+`PYTHONPATH=.` and disables child bytecode writes, checks imports before
+launching the command, and verifies HEAD, tree and tracked, untracked and
+ignored status afterward, including failed commands and timeouts. Ignored
+extensions, bytecode, data and caches also make the initial checkout dirty.
+Keep every output and cache directory outside the checkout; there is no
+ignored-cache allowlist. Start the parent Python process with
+`PYTHONDONTWRITEBYTECODE=1` before importing the helper, especially when the
+parent runs in the same target checkout. Setting it after imports is too late
+to prevent the parent's initial bytecode residue.
 Only explicit `-m module` and `-c code` commands are supported; script paths
 and Python path flags are rejected so the import search paths agree.
 The helper detects source changes; it is not a sandbox for untrusted code.

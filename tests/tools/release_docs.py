@@ -10,6 +10,24 @@ import pytest
 import yaml
 
 
+def test_retired_pages_workflow_is_manual_inert_and_unprivileged():
+    root = Path(__file__).resolve().parents[2]
+    workflow = yaml.load((root / ".github/workflows/sphinx-pages.yml").read_text(), Loader=yaml.BaseLoader)
+    assert set(workflow) == {"name", "on", "permissions", "jobs"}
+    assert set(workflow["on"]) == {"workflow_dispatch"}
+    assert not workflow["on"]["workflow_dispatch"]
+    assert workflow["permissions"] == {}
+    assert workflow["jobs"]
+    for job in workflow["jobs"].values():
+        assert set(job) <= {"if", "runs-on", "steps", "permissions"}
+        assert job["if"] == "false"
+        assert job.get("permissions", {}) == {}
+        assert job["steps"]
+        for step in job["steps"]:
+            assert set(step) <= {"name", "run"}
+            assert step["run"] == ":"
+
+
 def _job() -> dict[str, Any]:
     root = Path(__file__).resolve().parents[2]
     workflow = yaml.safe_load((root / ".github/workflows/release-please-action.yml").read_text())

@@ -23,7 +23,7 @@ class CheckoutState:
 
 
 def checkout_state(checkout: Path) -> CheckoutState:
-    """Read HEAD, its tree and tracked/untracked status without optional locks."""
+    """Read HEAD, its tree and tracked, untracked and ignored paths."""
     environment = {**os.environ, "GIT_OPTIONAL_LOCKS": "0"}
 
     def git(*arguments: str) -> str:
@@ -33,7 +33,9 @@ def checkout_state(checkout: Path) -> CheckoutState:
 
     if Path(git("rev-parse", "--show-toplevel")).resolve() != checkout.resolve():
         raise ValueError("checkout must be the repository root")
-    return CheckoutState(git("rev-parse", "HEAD"), git("rev-parse", "HEAD^{tree}"), git("status", "--porcelain", "-uall"))
+    return CheckoutState(
+        git("rev-parse", "HEAD"), git("rev-parse", "HEAD^{tree}"), git("status", "--porcelain", "-uall", "--ignored=matching")
+    )
 
 
 def _module_name(name: object) -> bool:

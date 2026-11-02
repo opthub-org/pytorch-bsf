@@ -14,8 +14,6 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-import yaml
-
 from tools import pages_publish as pages
 from tools import security_automation as security
 
@@ -49,24 +47,9 @@ def check(name, state="success", ident=1):
 
 
 class CheckEvidenceTests(unittest.TestCase):
-    def test_retired_pages_workflow_is_manual_inert_unprivileged_and_protected(self):
-        path = ".github/workflows/sphinx-pages.yml"
-        workflow = yaml.load((ROOT / path).read_text(), Loader=yaml.BaseLoader)
-        self.assertEqual(set(workflow), {"name", "on", "permissions", "jobs"})
-        self.assertEqual(set(workflow["on"]), {"workflow_dispatch"})
-        self.assertFalse(workflow["on"]["workflow_dispatch"])
-        self.assertEqual(workflow["permissions"], {})
-        self.assertTrue(workflow["jobs"])
-        for job in workflow["jobs"].values():
-            self.assertLessEqual(set(job), {"if", "runs-on", "steps", "permissions"})
-            self.assertEqual(job["if"], "false")
-            self.assertEqual(job.get("permissions", {}), {})
-            self.assertTrue(job["steps"])
-            for step in job["steps"]:
-                self.assertLessEqual(set(step), {"name", "run"})
-                self.assertEqual(step["run"], ":")
+    def test_retired_pages_workflow_requires_maintainer_review(self):
         with self.assertRaisesRegex(ValueError, "require maintainer review"):
-            security.validate_path(path)
+            security.validate_path(".github/workflows/sphinx-pages.yml")
 
     def test_missing_pending_skipped_and_neutral_checks_block(self):
         for rows in ([], [check("test", "pending")], [check("test", "skipped")], [check("test", "neutral")]):
