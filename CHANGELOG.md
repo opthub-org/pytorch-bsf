@@ -1,5 +1,63 @@
 # Changelog
 
+## [0.25.0](https://github.com/opthub-org/pytorch-bsf/compare/v0.24.0...v0.25.0) (2026-11-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* **sampling:** optimal_skeleton_ratio returns SkeletonAllocation for all modes; assembled sampling defaults to cell-first automatic allocation. Use plan.ratio, plan.cell_weights, or pass allocation=plan. Select allocation="dimension" for the previous grouped strategy.
+* **deps:** Require Python 3.11 or later and NumPy 1.23.2 or later. Recreate Python 3.10 environments before upgrading.
+
+### Features
+
+* **research:** bound leading constants at large vertex counts ([#642](https://github.com/opthub-org/pytorch-bsf/issues/642)) ([6957579](https://github.com/opthub-org/pytorch-bsf/commit/6957579691349eae827e3cccf2189fcc820ab011))
+* **research:** bound nonvertex risk by boundary transfer ([#619](https://github.com/opthub-org/pytorch-bsf/issues/619)) ([e242e5f](https://github.com/opthub-org/pytorch-bsf/commit/e242e5fa05c693ac7d587ca79808ae704e0aa130))
+* **research:** certify simultaneous vertex and degree growth ([#643](https://github.com/opthub-org/pytorch-bsf/issues/643)) ([7c4ab04](https://github.com/opthub-org/pytorch-bsf/commit/7c4ab049538058fe2aeceb73bee28629ac4c0df4))
+* **research:** certify the five-vertex degree recurrence ([#616](https://github.com/opthub-org/pytorch-bsf/issues/616)) ([9759c7a](https://github.com/opthub-org/pytorch-bsf/commit/9759c7a328f1dcdbcba2b79389e405ee15f76b02))
+* **research:** certify vertex and six-vertex degree recurrences ([#612](https://github.com/opthub-org/pytorch-bsf/issues/612)) ([a823c60](https://github.com/opthub-org/pytorch-bsf/commit/a823c6031ff68c76b803b687563cc16d9e4b53b6))
+* **research:** certify vertex asymptotic errors at every fixed M ([#618](https://github.com/opthub-org/pytorch-bsf/issues/618)) ([70ac8eb](https://github.com/opthub-org/pytorch-bsf/commit/70ac8eba4e004df7fe6c31635b2b6d9d9f7af0cf))
+* **research:** certify vertex, face and risk comparisons ([#610](https://github.com/opthub-org/pytorch-bsf/issues/610)) ([fb4afa5](https://github.com/opthub-org/pytorch-bsf/commit/fb4afa50c361a817ce9955496f36f52cffd686c0))
+* **research:** classify five-vertex risk at every degree ([#620](https://github.com/opthub-org/pytorch-bsf/issues/620)) ([c27149a](https://github.com/opthub-org/pytorch-bsf/commit/c27149a16ee9ad1178a895f6c0df5164638ded95))
+* **research:** construct a uniform codimension-two risk family ([#615](https://github.com/opthub-org/pytorch-bsf/issues/615)) ([136f8d0](https://github.com/opthub-org/pytorch-bsf/commit/136f8d086dda286926b7c9a30c7daf34fc8ea819))
+* **research:** construct vertex risks and constants in every dimension ([#614](https://github.com/opthub-org/pytorch-bsf/issues/614)) ([c7509f8](https://github.com/opthub-org/pytorch-bsf/commit/c7509f86d474fdc4d10ca1560e7678f5ec53a395))
+* **research:** derive vertex formulas and explicit error bounds ([#611](https://github.com/opthub-org/pytorch-bsf/issues/611)) ([ebffaa4](https://github.com/opthub-org/pytorch-bsf/commit/ebffaa4d4a0d54ec920119b73fdbdd3c3d54229c))
+* **research:** extend exact skeleton-risk formulas and certificates ([#609](https://github.com/opthub-org/pytorch-bsf/issues/609)) ([9176122](https://github.com/opthub-org/pytorch-bsf/commit/9176122e24e61c8690bd3407e079178414f58606))
+* **research:** prove a uniform linear dimension threshold ([#617](https://github.com/opthub-org/pytorch-bsf/issues/617)) ([62651aa](https://github.com/opthub-org/pytorch-bsf/commit/62651aa06f25845fc4ffc5ab8b7da072dcaba082))
+* **research:** sharpen general vertex error to one logarithm ([#641](https://github.com/opthub-org/pytorch-bsf/issues/641)) ([120f5f8](https://github.com/opthub-org/pytorch-bsf/commit/120f5f8d3809149b7108cc374bbf221ea949b342))
+* **sampling:** generalize skeleton fitting to simploids ([#591](https://github.com/opthub-org/pytorch-bsf/issues/591)) ([0e79909](https://github.com/opthub-org/pytorch-bsf/commit/0e79909394ffb01024513a35a4efedf56f835fc8))
+* **sampling:** select skeleton allocation automatically ([#608](https://github.com/opthub-org/pytorch-bsf/issues/608)) ([d9fa486](https://github.com/opthub-org/pytorch-bsf/commit/d9fa4867121afb15f573ac1b222fa7e2902d26a5))
+* **security:** automate alert repairs and reviewed merges ([#592](https://github.com/opthub-org/pytorch-bsf/issues/592)) ([7404818](https://github.com/opthub-org/pytorch-bsf/commit/74048185d33b9322d86b41c5b84273b7ef5d3c9a))
+* **skeleton:** support assembled simploidal spaces ([#606](https://github.com/opthub-org/pytorch-bsf/issues/606)) ([a456343](https://github.com/opthub-org/pytorch-bsf/commit/a4563434146302dec9ec04628004f761dca2ee63))
+
+
+### Bug Fixes
+
+* **deps:** remove vulnerable legacy release fixture dependencies ([#590](https://github.com/opthub-org/pytorch-bsf/issues/590)) ([4aa9825](https://github.com/opthub-org/pytorch-bsf/commit/4aa9825bee2e21408bb1ce2baf4eaf22da194cf1))
+* **deps:** secure dependencies and support Python 3.11-3.15 ([#571](https://github.com/opthub-org/pytorch-bsf/issues/571)) ([a9aa35b](https://github.com/opthub-org/pytorch-bsf/commit/a9aa35b8537d39ec332b70f68ab1afca22a60872))
+* **fitting:** solve ridge by stacked gelsd and reject non-finite data ([#635](https://github.com/opthub-org/pytorch-bsf/issues/635)) ([f77b6cd](https://github.com/opthub-org/pytorch-bsf/commit/f77b6cd953d9b999053a0a10a41784ad70a416a8)), closes [#622](https://github.com/opthub-org/pytorch-bsf/issues/622)
+* **interpolation:** support first-use transforms on Torch 2.3 ([#644](https://github.com/opthub-org/pytorch-bsf/issues/644)) ([b09d261](https://github.com/opthub-org/pytorch-bsf/commit/b09d261bd9c5a3584301b914f6163145b00a94d8))
+* **io:** harden model saving, simploid loading and CLI errors ([#633](https://github.com/opthub-org/pytorch-bsf/issues/633)) ([23045ce](https://github.com/opthub-org/pytorch-bsf/commit/23045cec8869211e9ca32db670884821be961501)), closes [#625](https://github.com/opthub-org/pytorch-bsf/issues/625)
+* **sampling:** check simploid conditioning before allocating ([#596](https://github.com/opthub-org/pytorch-bsf/issues/596)) ([7e481c4](https://github.com/opthub-org/pytorch-bsf/commit/7e481c45a60599dbbd450b7557af31270b345342))
+* **splitting:** score ResidualSplit by grouping fixed residuals ([#638](https://github.com/opthub-org/pytorch-bsf/issues/638)) ([1db5f41](https://github.com/opthub-org/pytorch-bsf/commit/1db5f415f18b98207c48d7e830a286c461e2fcbc)), closes [#621](https://github.com/opthub-org/pytorch-bsf/issues/621)
+* validate simploid_ids, tol, values shape and empty grid dtype ([#637](https://github.com/opthub-org/pytorch-bsf/issues/637)) ([1723eb4](https://github.com/opthub-org/pytorch-bsf/commit/1723eb409045d29577dc3198352cd24506107058)), closes [#624](https://github.com/opthub-org/pytorch-bsf/issues/624)
+
+
+### Performance Improvements
+
+* **core:** vectorize control adjacency construction ([#604](https://github.com/opthub-org/pytorch-bsf/issues/604)) ([0849e60](https://github.com/opthub-org/pytorch-bsf/commit/0849e60004ed5f73f964c9d40c577510d073191e))
+* **sampling:** compute simploid skeleton risk factor by factor ([#597](https://github.com/opthub-org/pytorch-bsf/issues/597)) ([87ad6d7](https://github.com/opthub-org/pytorch-bsf/commit/87ad6d785713c494b33d02dae1806749badd5f9c))
+* **sampling:** reduce simplex risk propagation and contractions ([#603](https://github.com/opthub-org/pytorch-bsf/issues/603)) ([a2066cd](https://github.com/opthub-org/pytorch-bsf/commit/a2066cd3e3db395d546576e834628065dc230cca))
+
+
+### Documentation
+
+* **interpolation:** clarify Hermite continuity and PCHIP slopes ([#556](https://github.com/opthub-org/pytorch-bsf/issues/556)) ([9e39ad0](https://github.com/opthub-org/pytorch-bsf/commit/9e39ad0dfd510bbcf09d272ccdb23571b9a2bf5c))
+* **research:** certify risk comparisons through degree thirty ([#613](https://github.com/opthub-org/pytorch-bsf/issues/613)) ([ee5e37d](https://github.com/opthub-org/pytorch-bsf/commit/ee5e37dc5bcdfdecf8b20b669bae83087e0ec1e7))
+* **sampling:** derive closed risk formulas for glued simploids ([#607](https://github.com/opthub-org/pytorch-bsf/issues/607)) ([b581ca7](https://github.com/opthub-org/pytorch-bsf/commit/b581ca7016df0309e7a1171e2f6a821cf7e1a9a0))
+* **sampling:** extend asymptotic risk to simploidal sets ([#599](https://github.com/opthub-org/pytorch-bsf/issues/599)) ([60781a5](https://github.com/opthub-org/pytorch-bsf/commit/60781a5ef1a126d4b3fffa602470401ef255c47a))
+* **sampling:** preserve product risk proofs and closed forms ([#605](https://github.com/opthub-org/pytorch-bsf/issues/605)) ([50faa4d](https://github.com/opthub-org/pytorch-bsf/commit/50faa4d0634735e4827046bcd22a4053ec3e7cd7))
+* **sampling:** prove simploid skeleton risk formulas ([#598](https://github.com/opthub-org/pytorch-bsf/issues/598)) ([39e8e2e](https://github.com/opthub-org/pytorch-bsf/commit/39e8e2eb502b4b6fba43cda233ba5a8ea8bf58a7))
+
 ## [0.24.0](https://github.com/opthub-org/pytorch-bsf/compare/v0.23.0...v0.24.0) (2026-10-29)
 
 
