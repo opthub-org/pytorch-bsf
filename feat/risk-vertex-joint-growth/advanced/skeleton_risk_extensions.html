@@ -1,0 +1,896 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Further evaluations of the skeleton risk &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Quadratic codimension-two multiplicities" href="codimension_two_states.html" />
+    <link rel="prev" title="Theory of the skeleton risk" href="skeleton_risk_theory.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Further evaluations of the skeleton risk</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#fixed-dimension-degree-recurrences-exist">Fixed-dimension degree recurrences exist</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#two-outside-coordinates">Two outside coordinates</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#a-codimension-two-face">A codimension-two face</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#tetrahedron-edges-at-every-degree">Tetrahedron edges at every degree</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#explicit-scalar-degree-recurrences">Explicit scalar degree recurrences</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#triangular-faces-on-a-five-vertex-simplex">Triangular faces on a five-vertex simplex</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#large-degree-constants">Large-degree constants</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vertex-boundary-pair-reduction">Vertex boundary-pair reduction</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#verification-and-remaining-questions">Verification and remaining questions</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_family.html">Uniform construction for codimension two</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three.html">Boundary transfer and a codimension-three edge bound</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth.html">A simultaneous vertex-count and degree regime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html">An all-degree sufficient region for large vertex counts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html">Five-vertex vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_comparison.html">Five-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Further evaluations of the skeleton risk</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/skeleton_risk_extensions.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="further-evaluations-of-the-skeleton-risk">
+<h1>Further evaluations of the skeleton risk<a class="headerlink" href="#further-evaluations-of-the-skeleton-risk" title="Link to this heading"></a></h1>
+<p>This chapter continues <a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a> under exactly its
+uniform-simplex design, evaluation and noise assumptions. Here <code class="docutils literal notranslate"><span class="pre">M</span></code> is
+the number of vertices and <code class="docutils literal notranslate"><span class="pre">D</span></code> is the degree. It separates proved
+identities from finite computational checks and remaining evaluations.
+The optional reference implementations live in <code class="docutils literal notranslate"><span class="pre">tools/risk_research</span></code>.
+They add no runtime dependencies. An accompanying numerical guard rejects
+nonfinite assembled-risk propagation before its condition estimate.</p>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-number">Table 12 </span><span class="caption-text">Results and limitations</span><a class="headerlink" href="#id3" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Result</p></th>
+<th class="head"><p>Scope</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#thm-risk-fixed-dimension-holonomic">Theorem 19</a></p></td>
+<td><p>Every fixed <code class="docutils literal notranslate"><span class="pre">M,m</span></code> admits a polynomial-coefficient degree recurrence;
+this existence statement does not supply a small operator uniformly in <code class="docutils literal notranslate"><span class="pre">M</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#lem-risk-two-coordinate-kernel">Lemma 6</a></p></td>
+<td><p>The entire two-coordinate kernel is evaluated with harmonic numbers.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="skeleton_risk_codimension_three.html#thm-risk-nonvertex-boundary-transfer">Theorem 26</a></p></td>
+<td><p>Every nonvertex source has a trace-correct boundary-transfer inequality.
+In particular the five-vertex edge has an all-degree rational upper bound;
+this does not provide an exact codimension-three formula.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#thm-risk-codimension-two-modes">Theorem 20</a></p></td>
+<td><p>Every codimension-two coefficient reduces to one angular sum.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#thm-risk-tetrahedron-edge-representation">Theorem 21</a></p></td>
+<td><p>Every tetrahedron edge coefficient is evaluated using harmonic numbers
+and two explicitly specified auxiliary recurrences.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#thm-risk-five-vertex-triangle-state">Theorem 22</a></p></td>
+<td><p>Every triangular-face coefficient on a five-vertex simplex has an
+eight-state rational representation and a certified order-eight recurrence.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="codimension_two_states.html#thm-risk-six-vertex-tetrahedral-state">Theorem 24</a></p></td>
+<td><p>Every tetrahedral-face coefficient on a six-vertex simplex also has
+an eight-state formula and a certified order-eight recurrence.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="skeleton_risk_vertex_recurrence.html#thm-risk-tetrahedron-vertex-recurrence">Theorem 33</a></p></td>
+<td><p>The tetrahedron vertex has an explicit order-ten degree recurrence
+certified by four rational telescoping identities.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#cor-risk-codimension-two-asymptotic">Corollary 12</a></p></td>
+<td><p>The leading large-degree constant for every fixed codimension-two face
+with at least two vertices.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#thm-risk-vertex-boundary-pair">Theorem 23</a></p></td>
+<td><p>A vertex norm identity reduces the largest outside-kernel power by two;
+it is not a completed tetrahedron vertex closed form.</p></td>
+</tr>
+</tbody>
+</table>
+<p><a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html#thm-risk-uniform-dimension-tail">Theorem 38</a> additionally proves a sufficient
+linear vertex threshold at every positive degree: if <span class="math notranslate nohighlight">\(M\geq9720D\)</span>,
+optimal inductive risk is less than four fifths of all-at-once risk. This
+conservative sufficient region does not determine an exact crossover.</p>
+<section id="fixed-dimension-degree-recurrences-exist">
+<h2>Fixed-dimension degree recurrences exist<a class="headerlink" href="#fixed-dimension-degree-recurrences-exist" title="Link to this heading"></a></h2>
+<div class="proof theorem admonition" id="thm-risk-fixed-dimension-holonomic">
+<p class="admonition-title"><span class="caption-number">Theorem 19 </span> (Holonomicity at fixed dimension)</p>
+<section class="theorem-content" id="proof-content">
+<p>Fix integers <span class="math notranslate nohighlight">\(M\geq2\)</span> and <span class="math notranslate nohighlight">\(0\leq m&lt;M\)</span>. There exist an
+integer <span class="math notranslate nohighlight">\(r\geq0\)</span> and polynomials
+<span class="math notranslate nohighlight">\(p_0,\ldots,p_r\in\mathbb Q[D]\)</span>, not all zero, such that</p>
+<div class="math notranslate nohighlight">
+\[\sum_{j=0}^r p_j(D)a_m(M,D+j)=0\]</div>
+<p>for all sufficiently large integer <span class="math notranslate nohighlight">\(D\)</span>. A polynomial factor can
+include any exceptional finite prefix. The order and degrees may depend
+on <span class="math notranslate nohighlight">\(M,m\)</span>.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Put <span class="math notranslate nohighlight">\(s=m+1\)</span>, <span class="math notranslate nohighlight">\(q=M-s\)</span>. The explicit logarithmic expression
+for <span class="math notranslate nohighlight">\(F(x,y)\)</span> in <a class="reference internal" href="skeleton_risk_theory.html#lem-skeleton-kernel">Lemma 5</a> is multivariate
+differential D-finite. For fixed nonnegative integer <span class="math notranslate nohighlight">\(q\)</span>, the
+derivatives of <span class="math notranslate nohighlight">\(F^q\)</span> lie in the rational-function span of monomials
+of total degree at most <span class="math notranslate nohighlight">\(q\)</span> in
+<span class="math notranslate nohighlight">\(\log(1-x-y),\log(1-x),\log(1-y)\)</span>. This is a finite-dimensional
+span, including the constant function. Thus <span class="math notranslate nohighlight">\(F^q\)</span> is D-finite.</p>
+<p>The coefficient dictionary from holonomic power series to holonomic
+discrete sequences makes <span class="math notranslate nohighlight">\(K_q(h,l)=[x^hy^l]F^q\)</span> holonomic.
+This uses differential D-finiteness of the generating series, rather
+than a claim about arbitrary multivariate shift-D-finite sequences.
+The distinction and coefficient dictionary are discussed in
+<span class="bibtex-citation" id="id1">Kauers [<a class="reference internal" href="../references.html#id13" title="Manuel Kauers. D-Finite Functions. Volume 30 of Algorithms and Computation in Mathematics. Springer, Cham, 2023. URL: https://doi.org/10.1007/978-3-031-34652-1, doi:10.1007/978-3-031-34652-1.">Kau23</a>]</span>, Section 4.5, printed page 368.</p>
+<p>In <a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-scalar-sum">Theorem 11</a>, all remaining factors are
+factorial ratios of affine integer expressions, signs and polynomial
+factors, hence holonomic on the summation domain. Numerator factorials
+can be extended by zero to negative arguments and their boundary
+recurrences cleared; denominator factorials use reciprocal-factorial
+zero extensions. The case <span class="math notranslate nohighlight">\(s=1\)</span> uses the holonomic multiplier
+<span class="math notranslate nohighlight">\(\mathbf1_{k=0}\)</span>. Multiply by the indicators of</p>
+<div class="math notranslate nohighlight">
+\[k,h,l\geq0,\qquad k+h\leq D-s,\qquad k+l\leq D-s.\]</div>
+<p>All factorial arguments in the original summand are nonnegative on
+this domain. Holonomic sequences are closed under pointwise products
+and finite summation over such rational polyhedral ranges
+(<span class="bibtex-citation" id="id2">Kauers [<a class="reference internal" href="../references.html#id13" title="Manuel Kauers. D-Finite Functions. Volume 30 of Algorithms and Computation in Mathematics. Springer, Cham, 2023. URL: https://doi.org/10.1007/978-3-031-34652-1, doi:10.1007/978-3-031-34652-1.">Kau23</a>]</span>, Theorems 5.24 and 5.33 and printed
+pages 442–443). Consequently the scalar sum is holonomic in <span class="math notranslate nohighlight">\(D\)</span>.
+Its remaining prefactor is hypergeometric in <span class="math notranslate nohighlight">\(D\)</span>. The inactive
+degrees form only a finite prefix, which preserves P-recursiveness.</p>
+</div>
+<p>Finite products of such fixed-dimension sequences and finite weighted
+sums preserve P-recursiveness. Therefore the product-cell formulas and
+regular-complex incidence formulas inherit the conclusion when their
+combinatorics are fixed and their factor degrees follow fixed affine
+integer functions of <code class="docutils literal notranslate"><span class="pre">D</span></code> that remain positive for all sufficiently large
+<code class="docutils literal notranslate"><span class="pre">D</span></code>. This statement concerns risk coefficients;
+it does not assert closure for the square roots in optimal allocation.</p>
+</section>
+<section id="two-outside-coordinates">
+<h2>Two outside coordinates<a class="headerlink" href="#two-outside-coordinates" title="Link to this heading"></a></h2>
+<p>Write <span class="math notranslate nohighlight">\(H_n=\sum_{j=1}^n1/j\)</span>, with <span class="math notranslate nohighlight">\(H_0=0\)</span>.</p>
+<div class="proof lemma admonition" id="lem-risk-two-coordinate-kernel">
+<p class="admonition-title"><span class="caption-number">Lemma 6 </span> (Harmonic evaluation of the two-coordinate kernel)</p>
+<section class="lemma-content" id="proof-content">
+<p>For all nonnegative integers <span class="math notranslate nohighlight">\(h,l\)</span>,</p>
+<div class="math notranslate nohighlight" id="equation-risk-two-coordinate-kernel">
+<span class="eqno">(25)<a class="headerlink" href="#equation-risk-two-coordinate-kernel" title="Link to this equation"></a></span>\[\begin{split}K_2(h,l)={}&amp;
+\frac{2(h+l+1)!}{(h+2)!(l+2)!}
+\left((h+l+2)H_{h+l+1}-1-hH_h-lH_l\right)\\
+&amp;+\frac{2}{(h+1)(h+2)(l+1)(l+2)}.\end{split}\]</div>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Put <span class="math notranslate nohighlight">\(U=(1-x-y)\log(1-x-y)\)</span>,
+<span class="math notranslate nohighlight">\(A=(1-x)\log(1-x)\)</span>, <span class="math notranslate nohighlight">\(B=(1-y)\log(1-y)\)</span>.
+Then <span class="math notranslate nohighlight">\(x^2y^2F^2=U^2-2UA-2UB+2AB+A^2+B^2\)</span>.
+Set <span class="math notranslate nohighlight">\(a=h+2\)</span>, <span class="math notranslate nohighlight">\(b=l+2\)</span>, <span class="math notranslate nohighlight">\(n=a+b\)</span>, and
+<span class="math notranslate nohighlight">\(C=(n-3)!/(a!b!)\)</span>. The last two terms have zero mixed coefficient,
+and <span class="math notranslate nohighlight">\([x^ay^b]AB=1/(a(a-1)b(b-1))\)</span>.</p>
+<p>Differentiating the finite binomial products in</p>
+<div class="math notranslate nohighlight">
+\[[x^ay^b](1-x-y)^\alpha(1-x)^\beta
+=(-1)^{a+b}\binom\alpha b\binom{\alpha+\beta-b}{a}\]</div>
+<p>once in each parameter at <span class="math notranslate nohighlight">\(\alpha=\beta=1\)</span> gives</p>
+<div class="math notranslate nohighlight">
+\[[x^ay^b]UA=-C\left(1+(b-2)(H_{n-3}-H_{b-2})\right).\]</div>
+<p>For <span class="math notranslate nohighlight">\(b=2\)</span> this follows directly from the derivative at zero;
+for <span class="math notranslate nohighlight">\(b\geq3\)</span>, use the logarithmic derivative of the binomial
+product at <span class="math notranslate nohighlight">\(2-b\)</span>. The displayed expression includes both cases
+without a negative-index harmonic number. Interchange <span class="math notranslate nohighlight">\(a,b\)</span>
+for <span class="math notranslate nohighlight">\(UB\)</span>. Twice differentiating
+<span class="math notranslate nohighlight">\((-1)^n\binom\alpha n\)</span> at <span class="math notranslate nohighlight">\(\alpha=2\)</span> gives
+<span class="math notranslate nohighlight">\([x^ay^b]U^2=4C(H_{n-3}-3/2)\)</span>. Combining the terms proves the formula.</p>
+</div>
+</section>
+<section id="a-codimension-two-face">
+<h2>A codimension-two face<a class="headerlink" href="#a-codimension-two-face" title="Link to this heading"></a></h2>
+<div class="proof theorem admonition" id="thm-risk-codimension-two-modes">
+<p class="admonition-title"><span class="caption-number">Theorem 20 </span> (Harmonic norm of every codimension-two mode)</p>
+<section class="theorem-content" id="proof-content">
+<p>Let <span class="math notranslate nohighlight">\(M=s+2\)</span>, <span class="math notranslate nohighlight">\(s\geq1\)</span>, <span class="math notranslate nohighlight">\(D\geq s\)</span>,
+<span class="math notranslate nohighlight">\(0\leq k\leq D-s\)</span>. Put</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}L=D-s-k,\quad \beta=3s+2k-1,\quad N=2L+\beta+2=2D+s+1,\\
+\Delta=(L+1)(L+2)(L+\beta+1)(L+\beta+2),\\
+U=(L+1)(L+\beta+1)-1,\quad c=(N+1)U/\Delta,
+\quad W=\binom NL.\end{split}\]</div>
+<p>The full-simplex squared norm of a propagated angular mode, divided
+by its source-face squared norm, equals</p>
+<div class="math notranslate nohighlight" id="equation-risk-codimension-two-mode">
+<span class="eqno">(26)<a class="headerlink" href="#equation-risk-codimension-two-mode" title="Link to this equation"></a></span>\[\rho_{s,k,D}=\frac{2s(s+1)}\Delta
+\left(H_{L+2}+H_{L+\beta+2}-H_N-c
+ -\frac1{(L+\beta+1)(L+\beta+2)W}\right).\]</div>
+<p>With <span class="math notranslate nohighlight">\(d_s(k)\)</span> as in <a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-scalar-sum">Theorem 11</a>,</p>
+<div class="math notranslate nohighlight" id="equation-risk-codimension-two-coefficient">
+<span class="eqno">(27)<a class="headerlink" href="#equation-risk-codimension-two-coefficient" title="Link to this equation"></a></span>\[a_{s-1}(s+2,D)=\binom{s+2}s^2
+\sum_{k=0}^{D-s}d_s(k)\rho_{s,k,D}.\]</div>
+<p>If <span class="math notranslate nohighlight">\(D&lt;s\)</span>, the coefficient is zero.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Let <span class="math notranslate nohighlight">\(p\)</span> be a propagated mode, with outside coordinates <span class="math notranslate nohighlight">\(y,z\)</span>.
+Let <span class="math notranslate nohighlight">\(g\)</span> be its codimension-one extension with the outside
+coordinate replaced by <span class="math notranslate nohighlight">\(y+z\)</span>. On each facet the traces agree;
+thus <span class="math notranslate nohighlight">\(p-g\)</span> is a full-simplex bubble. Propagation orthogonality
+gives <span class="math notranslate nohighlight">\(\langle p,p\rangle=\langle p,g\rangle\)</span>.</p>
+<p>The common angular factor cancels. The radial factor of <span class="math notranslate nohighlight">\(g\)</span> is
+<span class="math notranslate nohighlight">\(P_L^{(1,\beta)}(2r-1)/(L+1)\)</span>, while the conditional average of
+<span class="math notranslate nohighlight">\(p\)</span> has coefficients
+<span class="math notranslate nohighlight">\(A_h=(-1)^h\binom Lh\binom{L+\beta}h\)</span> multiplied by
+<span class="math notranslate nohighlight">\(2H_{h+1}/((h+1)(h+2))\)</span>. The latter is the uniform outside-edge
+moment of <span class="math notranslate nohighlight">\(T_h\)</span> in the scalar-sum proof.</p>
+<p>For</p>
+<div class="math notranslate nohighlight">
+\[I_h=\frac1{L+1}\int_0^1 r^\beta(1-r)
+P_L^{(1,\beta)}(2r-1)r^{L-h}(1-r)^h\,dr,\]</div>
+<p>Jacobi orthogonality gives <span class="math notranslate nohighlight">\(I_h=(-1)^hI_0\)</span>.
+Rodrigues’ formula and <span class="math notranslate nohighlight">\(L\)</span> integrations by parts give
+<span class="math notranslate nohighlight">\(I_0=L!(L+\beta)!/N!\)</span>; all boundary terms vanish.
+The beta density of <span class="math notranslate nohighlight">\(r\)</span> supplies <span class="math notranslate nohighlight">\(s(s+1)\)</span>. Hence</p>
+<div class="math notranslate nohighlight">
+\[\rho=2s(s+1)I_0\sum_{h=0}^L
+\binom Lh\binom{L+\beta}h
+\frac{H_{h+1}}{(h+1)(h+2)}.\]</div>
+<p>Set <span class="math notranslate nohighlight">\(w_h=\binom{L+2}{h+2}\binom{L+\beta}h\)</span>.
+Vandermonde gives <span class="math notranslate nohighlight">\(\sum w_h=W\)</span>; differentiating its first
+upper parameter gives
+<span class="math notranslate nohighlight">\(\sum w_hH_{h+2}=W(H_{L+2}+H_{L+\beta+2}-H_N)\)</span>.
+The rational certificate</p>
+<div class="math notranslate nohighlight">
+\[R_h=\frac{(h+2)(Uh-1)}{\Delta(h+1)},\qquad
+w_h\left(\frac1{h+2}-c\right)
+ =w_{h+1}R_{h+1}-w_hR_h\]</div>
+<p>includes both endpoints: <span class="math notranslate nohighlight">\(w_{L+1}=0\)</span> and
+<span class="math notranslate nohighlight">\(w_0R_0=-1/((L+\beta+1)(L+\beta+2))\)</span>.
+Subtract the telescoped sum from the harmonic Vandermonde identity.
+Finally use <span class="math notranslate nohighlight">\(I_0W=1/((L+\beta+1)(L+\beta+2))\)</span> and the
+factor <span class="math notranslate nohighlight">\(1/((L+1)(L+2))\)</span> from rewriting the binomial coefficient.</p>
+</div>
+</section>
+<section id="tetrahedron-edges-at-every-degree">
+<h2>Tetrahedron edges at every degree<a class="headerlink" href="#tetrahedron-edges-at-every-degree" title="Link to this heading"></a></h2>
+<p>The remaining angular sum for <span class="math notranslate nohighlight">\(s=2\)</span> can itself be evaluated with
+harmonic numbers and two explicitly specified auxiliary recurrences.
+This is a fixed-order recurrence representation; it is not a claim that
+only ordinary harmonic numbers are needed.</p>
+<p>Define <span class="math notranslate nohighlight">\(F_0=G_0=0\)</span> and, for <span class="math notranslate nohighlight">\(n\geq1\)</span>,</p>
+<div class="math notranslate nohighlight" id="equation-risk-edge-auxiliary-recurrences">
+<span class="eqno">(28)<a class="headerlink" href="#equation-risk-edge-auxiliary-recurrences" title="Link to this equation"></a></span>\[G_n=\tfrac12G_{n-1}+\frac1n,\qquad
+F_n=F_{n-1}-\frac{G_{n-1}}n+\frac1{n^2}.\]</div>
+<p>Equivalently,
+<span class="math notranslate nohighlight">\(F_n=\sum_{j=1}^n1/(j^2\binom nj)\)</span> and
+<span class="math notranslate nohighlight">\(G_n=\sum_{j=1}^n1/(j\binom nj)\)</span>.
+To see the recurrences directly, put
+<span class="math notranslate nohighlight">\(S_n=\sum_{j=0}^n1/\binom nj\)</span>.
+Symmetry and Pascal’s identity give
+<span class="math notranslate nohighlight">\(S_n=(n+1)S_{n-1}/(2n)+1\)</span> and <span class="math notranslate nohighlight">\(G_n=S_{n-1}/n\)</span>.
+The same identity applied to the sum defining <span class="math notranslate nohighlight">\(F_n\)</span> gives its
+displayed recurrence. In particular,
+<span class="math notranslate nohighlight">\(G_n=2^{-n}\sum_{j=1}^n2^j/j\)</span>.</p>
+<div class="proof theorem admonition" id="thm-risk-tetrahedron-edge-representation">
+<p class="admonition-title"><span class="caption-number">Theorem 21 </span> (Tetrahedron edge representation)</p>
+<section class="theorem-content" id="proof-content">
+<p>For <span class="math notranslate nohighlight">\(D\geq1\)</span>, set <span class="math notranslate nohighlight">\(N=2D+3\)</span> and define</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}Q_N={}&amp;\frac{H_N^2}{N(N+1)(N+2)}
++\frac{(N^2+2)H_N^{(2)}}{N^2(N+1)(N+2)}\\
+&amp;-\frac{2(N-2)H_N}{N^3(N+2)}
+ -\frac{N^2-3N+6}{N^4(N+2)},\\
+V_N={}&amp;\frac{2(N^2+N+2)F_N}{N^2(N+1)(N+2)}
+ -\frac{4(N-2)G_N}{N^3(N+2)}\\
+&amp;-\frac{2(N^3-2N^2+3N+6)}{N^4(N+1)(N+2)}.\end{split}\]</div>
+<p>For <span class="math notranslate nohighlight">\(1\leq j&lt;N\)</span>, put</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\Delta_j=j(j+1)(N-j)(N-j+1),\quad
+c_j=\frac{(N+1)(j(N-j)-1)}{\Delta_j},\\
+f_N(j)=\frac{H_{j+1}+H_{N-j+1}-H_N-c_j}{\Delta_j},\\
+v_N(j)=\frac1{j^2(j+1)(N-j)^2(N-j+1)\binom Nj},
+\qquad g_N(j)=f_N(j)-v_N(j).\end{split}\]</div>
+<p>Then</p>
+<div class="math notranslate nohighlight" id="equation-risk-tetrahedron-edge-representation">
+<span class="eqno">(29)<a class="headerlink" href="#equation-risk-tetrahedron-edge-representation" title="Link to this equation"></a></span>\[a_1(4,D)=432\left(Q_N-\frac12V_N-g_N(D)-g_N(D+1)\right).\]</div>
+<p>All denominators are nonzero on this range. The same formula gives
+<span class="math notranslate nohighlight">\(a_1(4,1)=0\)</span>; at <span class="math notranslate nohighlight">\(D=2,3,4,5\)</span> it gives
+<span class="math notranslate nohighlight">\(36/7,33/7,169/44,34/11\)</span>.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Reindex <a class="reference internal" href="#equation-risk-codimension-two-coefficient">(27)</a> by <span class="math notranslate nohighlight">\(j=L+1\)</span>.
+Its summand is <span class="math notranslate nohighlight">\(432g_N(j)\)</span>. Both <span class="math notranslate nohighlight">\(f_N\)</span> and <span class="math notranslate nohighlight">\(v_N\)</span>
+are symmetric under <span class="math notranslate nohighlight">\(j\mapsto N-j\)</span>. Since <span class="math notranslate nohighlight">\(N=2D+3\)</span>,
+half the full range <span class="math notranslate nohighlight">\(1\leq j&lt;N\)</span> is <span class="math notranslate nohighlight">\(1\leq j\leq D+1\)</span>.
+Remove the central terms <span class="math notranslate nohighlight">\(j=D,D+1\)</span>.</p>
+<p>To evaluate the harmonic range, use</p>
+<div class="math notranslate nohighlight">
+\[\frac1{\Delta_j}=\frac1{N(N+1)}
+ \left(\frac1j+\frac1{N-j}\right)
+ -\frac1{(N+1)(N+2)}
+ \left(\frac1{j+1}+\frac1{N-j+1}\right).\]</div>
+<p>The usual harmonic convolution identities give</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\sum_{j=1}^{N-1}\frac{H_{j+1}+H_{N-j+1}-H_N}{j}
+ =\frac{H_N^2-H_N^{(2)}}2+\frac{2H_N}{N+1}+1-\frac2N,\\
+\sum_{j=1}^{N-1}\frac{H_{j+1}+H_{N-j+1}-H_N}{j+1}
+ =\frac{H_N^2-H_N^{(2)}}2
+  +2H_N\left(\frac1{N+1}+\frac1{N+2}\right)-1-\frac2{N+2}.\end{split}\]</div>
+<p>For the rational correction, use</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\frac{c_j}{\Delta_j}={}&amp;A_1\left(\frac1j+\frac1{N-j}\right)
+ -B_1\left(\frac1{j+1}+\frac1{N-j+1}\right)\\
+ &amp;-A_2\left(\frac1{j^2}+\frac1{(N-j)^2}\right)
+ -B_2\left(\frac1{(j+1)^2}+\frac1{(N-j+1)^2}\right),\\
+A_1={}&amp;\frac{(N-1)(N^2+4N+2)}{N^3(N+1)^2},\qquad
+B_1=\frac{N^2+7N+8}{(N+1)^2(N+2)^2},\\
+A_2={}&amp;\frac1{N^2(N+1)},\qquad
+B_2=\frac1{(N+1)(N+2)}.\end{split}\]</div>
+<p>Summation of these rational terms and the two harmonic identities
+yields <span class="math notranslate nohighlight">\(\frac12\sum f_N(j)=Q_N\)</span>.</p>
+<p>For the reciprocal range, write <span class="math notranslate nohighlight">\(w_j=1/\binom Nj\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}P(j)={}&amp;\frac1{N+2}-\frac{(6N+4)j}{N^3(N+1)(N+2)}
+  -\frac{6(N-2)j^2}{N^3(N+2)}
+  +\frac{4(N-2)j^3}{N^3(N+1)(N+2)},\\
+R(j)={}&amp;\frac{P(j)}{j^2(N-j+1)},\quad
+b_0=-\frac{8(N-2)}{N^3(N+1)(N+2)},\quad
+b_1=\frac{N^2+N+2}{N^2(N+1)(N+2)}.\end{split}\]</div>
+<p>Direct multiplication verifies the rational identity</p>
+<div class="math notranslate nohighlight">
+\[\frac{v_N(j)}{w_j}
+ =\frac{j+1}{N-j}R(j+1)-R(j)
+   +b_0+b_1\left(\frac1{j^2}+\frac1{(N-j)^2}\right).\]</div>
+<p>The telescoping boundary is
+<span class="math notranslate nohighlight">\(R(N)-R(1)/N=-2(N-1)(N^2+2N-4)/(N^4(N+1)(N+2))\)</span>.
+Finally
+<span class="math notranslate nohighlight">\(\sum_{j=1}^{N-1}w_j=(N+1)G_N/2-1\)</span> and
+<span class="math notranslate nohighlight">\(\sum_{j=1}^{N-1}w_j/j^2=F_N-1/N^2\)</span>.
+Substitution gives <span class="math notranslate nohighlight">\(\sum v_N(j)=V_N\)</span> and proves the result.</p>
+</div>
+</section>
+<section id="explicit-scalar-degree-recurrences">
+<h2>Explicit scalar degree recurrences<a class="headerlink" href="#explicit-scalar-degree-recurrences" title="Link to this heading"></a></h2>
+<div class="proof corollary admonition" id="cor-risk-tetrahedron-edge-scalar-recurrences">
+<p class="admonition-title"><span class="caption-number">Corollary 10 </span> (Certified tetrahedron edge recurrences)</p>
+<section class="corollary-content" id="proof-content">
+<p>The sequence <span class="math notranslate nohighlight">\(a_1(4,D)\)</span> satisfies both of the following
+polynomial-coefficient recurrences for every integer <span class="math notranslate nohighlight">\(D\geq1\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[\sum_{j=0}^r p_j(D)a_1(4,D+j)=0.\]</div>
+<p>One operator has <span class="math notranslate nohighlight">\(r=7\)</span> and maximum polynomial degree 67; another
+has <span class="math notranslate nohighlight">\(r=8\)</span> and maximum polynomial degree 40. Their complete
+integer coefficients, in ascending powers of <span class="math notranslate nohighlight">\(D\)</span>, are stored in
+<code class="docutils literal notranslate"><span class="pre">tools/risk_research/examples/tetrahedron_edge_recurrence_order7.json</span></code>
+and <code class="docutils literal notranslate"><span class="pre">tetrahedron_edge_recurrence_order8.json</span></code>.</p>
+<p>The leading polynomial of each operator has no positive integer root.
+Their initial values are the corresponding prefix of</p>
+<div class="math notranslate nohighlight">
+\[(a_1(4,1),\ldots,a_1(4,8))=
+ \left(0,\frac{36}7,\frac{33}7,\frac{169}{44},\frac{34}{11},
+ \frac{4708411}{1876875},\frac{250779}{121550},
+ \frac{24981497}{14523600}\right).\]</div>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. This is a computer-assisted proof by exact rational identities,
+independently of the finite data that suggested the order-eight
+operator. Put <span class="math notranslate nohighlight">\(N=2D+3\)</span> and</p>
+<div class="math notranslate nohighlight">
+\[v(D)=\left(H_N^2,H_N^{(2)},H_N,H_D,F_N,G_N,1,
+  \binom{N}{D}^{-1}\right)^\mathsf T.\]</div>
+<p>The finite representation gives a rational row <span class="math notranslate nohighlight">\(r(D)\)</span> with
+<span class="math notranslate nohighlight">\(a_1(4,D)=432r(D)v(D)\)</span>. The state satisfies
+<span class="math notranslate nohighlight">\(v(D+1)=T(D)v(D)\)</span> over <span class="math notranslate nohighlight">\(\mathbb Q(D)\)</span>.
+In detail, writing <span class="math notranslate nohighlight">\(a=1/(N+1)+1/(N+2)\)</span> and
+<span class="math notranslate nohighlight">\(b=1/(N+1)^2+1/(N+2)^2\)</span>, its nonconstant updates are</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}H_{N+2}^2&amp;=H_N^2+2aH_N+a^2,&amp;
+H_{N+2}^{(2)}&amp;=H_N^{(2)}+b,\\
+H_{N+2}&amp;=H_N+a,&amp;H_{D+1}&amp;=H_D+1/(D+1),\\
+G_{N+2}&amp;=\tfrac14G_N+\frac1{2(N+1)}+\frac1{N+2},\\
+F_{N+2}&amp;=F_N-\left(\frac1{N+1}+\frac1{2(N+2)}\right)G_N
+ +b-\frac1{(N+1)(N+2)},\\
+\binom{2D+5}{D+1}^{-1}
+ &amp;=\frac{(D+1)(D+4)}{(2D+4)(2D+5)}\binom{2D+3}{D}^{-1}.\end{split}\]</div>
+<p>For each supplied operator, exact multiplication verifies the eight
+component identities</p>
+<div class="math notranslate nohighlight">
+\[\sum_{j=0}^r p_j(D)r(D+j)
+ T(D+j-1)\cdots T(D)=0,\]</div>
+<p>where the empty product is the identity matrix. All state and output
+denominators are nonzero for <span class="math notranslate nohighlight">\(D\geq1\)</span>; the verifier checks that
+these nonzero polynomials have nonnegative coefficients. Thus these are
+identities for all
+stated degrees, rather than a finite list of zero residuals.
+The order-seven operator is obtained directly from a left kernel of
+these state rows, without numerical fitting.</p>
+<p>Every coefficient of the order-seven leading polynomial is strictly
+positive. Exact rational-root determination also excludes positive
+integer roots for the supplied operators. The finite representation
+supplies the initial values above, completing forward determination.
+<code class="docutils literal notranslate"><span class="pre">tools/risk_research/edge_recurrence.py</span></code> rebuilds the rational state
+and verifies the operators and initial values from their coefficient
+files; its reports include file hashes and the eight zero identities.</p>
+</div>
+</section>
+<section id="triangular-faces-on-a-five-vertex-simplex">
+<h2>Triangular faces on a five-vertex simplex<a class="headerlink" href="#triangular-faces-on-a-five-vertex-simplex" title="Link to this heading"></a></h2>
+<p>The angular multiplicity for <span class="math notranslate nohighlight">\(s=3\)</span> is <span class="math notranslate nohighlight">\(d_3(k)=k+1\)</span>.
+One additional auxiliary sequence evaluates this weighted angular sum.
+Use the same <span class="math notranslate nohighlight">\(F_n,G_n,Q_N,V_N,g_N(j)\)</span> as in the tetrahedron-edge
+representation; their displayed definitions make sense for even
+<span class="math notranslate nohighlight">\(N\)</span> as well as odd <span class="math notranslate nohighlight">\(N\)</span>.</p>
+<p>Define <span class="math notranslate nohighlight">\(J_1=3/4\)</span> and, for <span class="math notranslate nohighlight">\(n\geq1\)</span>,</p>
+<div class="math notranslate nohighlight" id="equation-risk-triangle-auxiliary-state">
+<span class="eqno">(30)<a class="headerlink" href="#equation-risk-triangle-auxiliary-state" title="Link to this equation"></a></span>\[J_{n+1}=J_n+\frac1{(n+1)^2}
+ -\frac{(3n+2)^2}{2n^2(2n+1)(2n+2)\binom{2n}{n}}.\]</div>
+<div class="proof theorem admonition" id="thm-risk-five-vertex-triangle-state">
+<p class="admonition-title"><span class="caption-number">Theorem 22 </span> (Eight-state triangular-face representation)</p>
+<section class="theorem-content" id="proof-content">
+<p>For every integer <span class="math notranslate nohighlight">\(D\geq1\)</span>, put <span class="math notranslate nohighlight">\(n=D+2\)</span>, <span class="math notranslate nohighlight">\(N=2n\)</span>,
+<span class="math notranslate nohighlight">\(w_n=\binom{2n}{n}^{-1}\)</span> and</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}A_n={}&amp;\frac{n+1}{2n(n+2)}
+ -\frac{H_n+H_{n+2}-H_N}{2n(n+1)},\\
+E_n={}&amp;A_n+\frac{J_n}{2n}
+ -\frac{(3n+1)w_n}{4n^3(n+1)}
+ -\frac{2n^4+2n^3-3n^2+1}{4n^3(n+1)^2}.\end{split}\]</div>
+<p>Then</p>
+<div class="math notranslate nohighlight" id="equation-risk-five-vertex-triangle-state">
+<span class="eqno">(31)<a class="headerlink" href="#equation-risk-five-vertex-triangle-state" title="Link to this equation"></a></span>\[a_2(5,D)=2400\left[
+ -3\left(Q_N-\frac{V_N}2-\frac{g_N(n)}2\right)
+ +E_n+g_N(n-2)+2g_N(n-1)\right].\]</div>
+<p>Every denominator is nonzero on this domain. In particular the same
+formula gives the inactive values <span class="math notranslate nohighlight">\(a_2(5,1)=a_2(5,2)=0\)</span> and</p>
+<div class="math notranslate nohighlight">
+\[(a_2(5,3),a_2(5,4),a_2(5,5))
+  =\left(\frac{40}3,\frac{255}{11},\frac{2675}{91}\right).\]</div>
+<p>The expression is a rational row on the eight-state vector</p>
+<div class="math notranslate nohighlight">
+\[v_n=\left(H_N^2-H_N^{(2)},H_N,H_n,
+  F_N-H_N^{(2)},G_N,J_n,w_n,1\right)^{\mathsf T}.\]</div>
+<p>It therefore evaluates each new degree with a fixed number of rational
+operations on its state. This concerns arithmetic operation counts;
+integer bit lengths still grow with the degree.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Reindex <a class="reference internal" href="#equation-risk-codimension-two-coefficient">(27)</a> by <span class="math notranslate nohighlight">\(j=L+1\)</span>.
+Its normalized summand is <span class="math notranslate nohighlight">\((n-3-j)g_N(j)\)</span>, so</p>
+<div class="math notranslate nohighlight">
+\[\frac{a_2(5,D)}{2400}
+ =-3\sum_{j=1}^{n-1}g_N(j)
+  +\sum_{j=1}^{n-1}(n-j)g_N(j)
+  +g_N(n-2)+2g_N(n-1).\]</div>
+<p>This also gives zero for <span class="math notranslate nohighlight">\(D=1,2\)</span> by cancellation. Symmetry gives
+<span class="math notranslate nohighlight">\(\sum_{j=1}^{n-1}g_N(j)=Q_N-V_N/2-g_N(n)/2\)</span>.
+It remains to evaluate the weighted half range as <span class="math notranslate nohighlight">\(E_n\)</span>.</p>
+<p>Write <span class="math notranslate nohighlight">\(B_j=H_{j+1}+H_{N-j+1}-H_N\)</span> and
+<span class="math notranslate nohighlight">\(\Delta_j=j(j+1)(N-j)(N-j+1)\)</span>. For
+<span class="math notranslate nohighlight">\(r_j=1/(j(N-j+1))\)</span>, <span class="math notranslate nohighlight">\(t_j=1/(j(N-j+2))\)</span>, direct
+rational identities give</p>
+<div class="math notranslate nohighlight">
+\[\frac{n-j}{\Delta_j}=\frac{r_j-r_{j+1}}2,
+\qquad r_j(B_j-B_{j-1})=t_j-t_{j+1}.\]</div>
+<p>Summation by parts, including both endpoints, yields
+<span class="math notranslate nohighlight">\(\sum_{j=1}^{n-1}(n-j)B_j/\Delta_j=A_n\)</span>.
+The rational partial fractions used in the edge proof similarly give</p>
+<div class="math notranslate nohighlight">
+\[\sum_{j=1}^{n-1}\frac{(n-j)c_j}{\Delta_j}
+ =\frac{H_N^{(2)}-2H_n^{(2)}}{4n}
+  +\frac{(2n+1)(4n^3+3n^2-6n+3)}{16n^3(n+1)^2}.\]</div>
+<p>For the reciprocal term put <span class="math notranslate nohighlight">\(b_j=\binom Nj^{-1}\)</span> and
+<span class="math notranslate nohighlight">\(R_j=1/(2j^2(N-j+1))\)</span>. Exact multiplication verifies</p>
+<div class="math notranslate nohighlight">
+\[(n-j)v_N(j)=b_{j+1}R_{j+1}-b_jR_j
+ +\frac{b_j}{2N}\left(\frac1{j^2}-\frac1{(N-j)^2}\right).\]</div>
+<p>Define <span class="math notranslate nohighlight">\(T_n=\sum_{j=1}^{n-1}b_j/j^2\)</span>. The boundary is
+<span class="math notranslate nohighlight">\(b_nR_n-b_1R_1=w_n/(2n^2(n+1))-1/(2N^2)\)</span> and symmetry gives</p>
+<div class="math notranslate nohighlight">
+\[\sum_{j=1}^{n-1}b_j\left(\frac1{j^2}-\frac1{(N-j)^2}\right)
+  =2T_n-F_N+\frac{w_n}{n^2}+\frac1{N^2}.\]</div>
+<p>The partial first and zeroth moments are</p>
+<div class="math notranslate nohighlight">
+\[\sum_{j=1}^{n-1}\frac{b_j}{j}=\frac{G_N}2-\frac{w_n}{n},
+\qquad
+\sum_{j=1}^{n-1}b_j=\frac{N+1}{4}G_N-\frac12-\frac{w_n}2.\]</div>
+<p>The first follows by telescoping
+<span class="math notranslate nohighlight">\(b_j(1/j-1/(N-j))\)</span>; the second follows from symmetry and the
+full reciprocal sum in the edge proof. The ratio
+<span class="math notranslate nohighlight">\(\binom{N+2}{j}^{-1}/b_j=(N+2-j)(N+1-j)/((N+1)(N+2))\)</span>
+and the added endpoint <span class="math notranslate nohighlight">\(j=n\)</span> now give</p>
+<div class="math notranslate nohighlight">
+\[T_{n+1}-T_n=-\frac{(6n+5)G_N}{4(N+1)(N+2)}
+  -\frac1{2(N+1)(N+2)}
+  +\frac{(3n+2)^2w_n}{2n^2(N+1)(N+2)}.\]</div>
+<p>Consequently <span class="math notranslate nohighlight">\(J_n=H_n^{(2)}-T_n+(F_N-H_N^{(2)})/2\)</span>
+has initial value <span class="math notranslate nohighlight">\(3/4\)</span> and satisfies
+<a class="reference internal" href="#equation-risk-triangle-auxiliary-state">(30)</a>. Combining the three weighted
+ranges gives exactly <span class="math notranslate nohighlight">\(E_n\)</span>.</p>
+<p>Finally <span class="math notranslate nohighlight">\(w_{n+1}=(n+1)w_n/(2(2n+1))\)</span>. The other state
+transitions follow from harmonic increments and the displayed
+<span class="math notranslate nohighlight">\(F,G\)</span> recurrences. In <span class="math notranslate nohighlight">\(Q_N-V_N/2\)</span>, the coefficients of
+<span class="math notranslate nohighlight">\(H_N^2,H_N^{(2)},F_N\)</span> sum to zero, so the two differences in
+<span class="math notranslate nohighlight">\(v_n\)</span> suffice. Each central term uses
+<span class="math notranslate nohighlight">\(H_{n+r}=H_n+\sum_{i=1}^r1/(n+i)\)</span> and
+<span class="math notranslate nohighlight">\(\binom{N}{n-r}^{-1}=w_n\prod_{i=1}^r(n+i)/(n-i+1)\)</span>
+for <span class="math notranslate nohighlight">\(r=0,1,2\)</span>; only a fixed number of shifts occurs.
+Thus all output coefficients and all state transitions are rational
+in <span class="math notranslate nohighlight">\(n\)</span>, proving the asserted fixed-state representation.</p>
+</div>
+<div class="proof corollary admonition" id="cor-risk-five-vertex-triangle-recurrence">
+<p class="admonition-title"><span class="caption-number">Corollary 11 </span> (Certified triangular-face degree recurrence)</p>
+<section class="corollary-content" id="proof-content">
+<p>The sequence <span class="math notranslate nohighlight">\(a_2(5,D)\)</span> satisfies</p>
+<div class="math notranslate nohighlight">
+\[\sum_{j=0}^8 p_j(D)a_2(5,D+j)=0,\qquad D\geq1,\]</div>
+<p>where the complete integer coefficient lists are stored in
+<code class="docutils literal notranslate"><span class="pre">tools/risk_research/examples/five_vertex_triangle_recurrence_order8.json</span></code>.
+The order is eight and the maximum polynomial degree is 76. The leading
+coefficient is strictly positive for every real <span class="math notranslate nohighlight">\(D\geq1\)</span>, so
+there are no positive-integer exceptional indices. Its initial values are</p>
+<div class="math notranslate nohighlight">
+\[(a_2(5,1),\ldots,a_2(5,8))=
+  \left(0,0,\frac{40}3,\frac{255}{11},\frac{2675}{91},
+    \frac{96345}{2912},\frac{2934923}{83538},
+    \frac{84006889}{2325600}\right).\]</div>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. This is an exact rational-state certificate, with the same construction
+as <a class="reference internal" href="#cor-risk-tetrahedron-edge-scalar-recurrences">Corollary 10</a>.
+<code class="docutils literal notranslate"><span class="pre">tools/risk_research/triangle_recurrence.py</span></code> reconstructs the eight
+state transitions and rational output row of
+<a class="reference internal" href="#thm-risk-five-vertex-triangle-state">Theorem 22</a> over <span class="math notranslate nohighlight">\(\mathbb Q(D)\)</span>.
+Exact elimination supplies the displayed operator; multiplication of
+its coefficient row by the shifted state-output rows gives eight zero
+rational functions. After <span class="math notranslate nohighlight">\(n=D+2\)</span>, every output and transition
+denominator is a nonzero polynomial with nonnegative coefficients,
+proving validity for <span class="math notranslate nohighlight">\(D\geq1\)</span>. Every coefficient of
+<span class="math notranslate nohighlight">\(p_8(1+z)\)</span> is strictly positive, proving the leading-coefficient
+claim. The fixed-state representation supplies the eight initial values.</p>
+</div>
+</section>
+<section id="large-degree-constants">
+<h2>Large-degree constants<a class="headerlink" href="#large-degree-constants" title="Link to this heading"></a></h2>
+<div class="proof corollary admonition" id="cor-risk-codimension-two-asymptotic">
+<p class="admonition-title"><span class="caption-number">Corollary 12 </span> (Codimension-two large-degree risk)</p>
+<section class="corollary-content" id="proof-content">
+<p>For every fixed integer <span class="math notranslate nohighlight">\(s\geq2\)</span>,</p>
+<div class="math notranslate nohighlight" id="equation-risk-codimension-two-asymptotic">
+<span class="eqno">(32)<a class="headerlink" href="#equation-risk-codimension-two-asymptotic" title="Link to this equation"></a></span>\[a_{s-1}(s+2,D)\sim
+ \frac{s(s+1)^3(s+2)^2\pi^2}{48(s-2)!}\,D^{s-4}.\]</div>
+<p>In particular,</p>
+<div class="math notranslate nohighlight">
+\[a_1(4,D)=\frac{18\pi^2}{D^2}
+  +O\!\left(\frac{\log^2D}{D^3}\right).\]</div>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. In <a class="reference internal" href="#equation-risk-codimension-two-coefficient">(27)</a>, put <span class="math notranslate nohighlight">\(j=L+1\)</span>.
+For fixed <span class="math notranslate nohighlight">\(j\)</span>, the multiplicity divided by <span class="math notranslate nohighlight">\(D^{s-2}\)</span>
+tends to <span class="math notranslate nohighlight">\(1/(s-2)!\)</span>, and</p>
+<div class="math notranslate nohighlight">
+\[D^2\rho_{s,k,D}\longrightarrow
+ \frac{s(s+1)H_j}{2j(j+1)}.\]</div>
+<p>The bracket in <a class="reference internal" href="#equation-risk-codimension-two-mode">(26)</a> is nonnegative because
+it is a squared norm. It is at most <span class="math notranslate nohighlight">\(H_{j+1}\)</span>: the other
+harmonic difference is nonpositive, and both subtracted terms are
+nonnegative. Also <span class="math notranslate nohighlight">\((N-j)(N-j+1)\geq D^2\)</span>, and the scaled
+multiplicities are bounded by <span class="math notranslate nohighlight">\(1/(s-2)!\)</span>. A constant multiple
+of the summable sequence <span class="math notranslate nohighlight">\(H_{j+1}/(j(j+1))\)</span> dominates the
+scaled summands. Dominated convergence applies, with</p>
+<div class="math notranslate nohighlight">
+\[\sum_{j\geq1}\frac{H_j}{j(j+1)}
+ =\sum_{i\geq1}\frac1i\sum_{j\geq i}\frac1{j(j+1)}
+ =\frac{\pi^2}6.\]</div>
+<p>Multiplication by <span class="math notranslate nohighlight">\(\binom{s+2}s^2\)</span> proves the first result.
+For the sharper tetrahedron error, <span class="math notranslate nohighlight">\(Q_N=\pi^2/(6N^2)
++O(\log^2N/N^3)\)</span>, each central <span class="math notranslate nohighlight">\(f_N\)</span> is
+<span class="math notranslate nohighlight">\(O(\log N/N^4)\)</span>, and
+<span class="math notranslate nohighlight">\(0\leq\sum_{j=1}^{D-1}v_N(j)\leq16/N^4\)</span>.
+Substitute <span class="math notranslate nohighlight">\(N=2D+3\)</span> in the finite formula.</p>
+</div>
+</section>
+<section id="vertex-boundary-pair-reduction">
+<h2>Vertex boundary-pair reduction<a class="headerlink" href="#vertex-boundary-pair-reduction" title="Link to this heading"></a></h2>
+<p>Let <span class="math notranslate nohighlight">\(q=M-1\)</span>, <span class="math notranslate nohighlight">\(f(x)=-\log(1-x)/x\)</span>, and</p>
+<div class="math notranslate nohighlight">
+\[A_h=(-1)^h\binom{D-1}h\binom{D+1}h,\qquad
+\mathcal L_D(G)=\sum_{h,l=0}^{D-1}
+  A_hA_lh!l!(2D-h-l)!\,[x^hy^l]G.\]</div>
+<p>Then <span class="math notranslate nohighlight">\(a_0(M,D)=M^2\mathcal L_D(F^q)/(M)_{2D}\)</span> by
+<a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-scalar-sum">Theorem 11</a>.</p>
+<div class="proof theorem admonition" id="thm-risk-vertex-boundary-pair">
+<p class="admonition-title"><span class="caption-number">Theorem 23 </span> (Two fewer outside-kernel factors for vertex risk)</p>
+<section class="theorem-content" id="proof-content">
+<p>For all <span class="math notranslate nohighlight">\(M\geq2,D\geq1\)</span>,</p>
+<div class="math notranslate nohighlight" id="equation-risk-vertex-boundary-pair">
+<span class="eqno">(33)<a class="headerlink" href="#equation-risk-vertex-boundary-pair" title="Link to this equation"></a></span>\[\begin{split}\mathcal L_D(F^q)=(-1)^{q+1}\mathcal L_D(f(x)^q)
+ +\sum_{\substack{a,b\geq1\\a+b\leq q}}
+  (-1)^{a+b}\frac{q!}{a!b!(q-a-b)!}
+  \mathcal L_D(F^{q-a-b}f(x)^af(y)^b).\end{split}\]</div>
+<p>For <span class="math notranslate nohighlight">\(q=1\)</span> the sum is empty. In particular, symmetry gives</p>
+<div class="math notranslate nohighlight">
+\[\mathcal L_D(F^3)=6\mathcal L_D(Ff(x)f(y))
+ -6\mathcal L_D(f(x)^2f(y))+\mathcal L_D(f(x)^3).\]</div>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Write <span class="math notranslate nohighlight">\(x\)</span> for the source-vertex coordinate. For a subset
+<span class="math notranslate nohighlight">\(S\)</span> of the <span class="math notranslate nohighlight">\(q\)</span> outside coordinates, let <span class="math notranslate nohighlight">\(p_S\)</span> be
+the homogeneous degree-<span class="math notranslate nohighlight">\(D\)</span> lift of the vertex error on its face
+with <span class="math notranslate nohighlight">\(x\)</span>. The scalar-mode extension has coefficients independent
+of the ambient number of coordinates. Dirichlet moments therefore give</p>
+<div class="math notranslate nohighlight">
+\[\langle p_{[q]},p_S\rangle
+ =\frac{\mathcal L_D(F^{|S|}f(x)^{q-|S|})}{(q+1)_{2D}}.\]</div>
+<p>The inclusion-exclusion lift
+<span class="math notranslate nohighlight">\(b=\sum_{S\subsetneq[q]}(-1)^{q-|S|+1}p_S\)</span> agrees with
+<span class="math notranslate nohighlight">\(p_{[q]}\)</span> on every facet. Their difference is a full bubble,
+so <span class="math notranslate nohighlight">\(\langle p_{[q]},p_{[q]}\rangle=\langle p_{[q]},b\rangle\)</span>.
+Grouping subsets by size yields</p>
+<div class="math notranslate nohighlight">
+\[\mathcal L_D(F^q)=\sum_{r=0}^{q-1}
+ (-1)^{q-r+1}\binom qr\mathcal L_D(F^rf(x)^{q-r}).\]</div>
+<p>For <span class="math notranslate nohighlight">\(1\leq r&lt;q\)</span>, condition on the sum of the coordinates of
+the corresponding face. Its normalized angular coordinates are uniform
+and independent of that sum and the remaining coordinates. The terms
+of <span class="math notranslate nohighlight">\(p_{[q]}\)</span> positive in all <span class="math notranslate nohighlight">\(r\)</span> selected outside
+coordinates also have positive source-coordinate <span class="math notranslate nohighlight">\(x\)</span> exponent.
+They are face bubbles of angular degree at most <span class="math notranslate nohighlight">\(D\)</span>;
+they are orthogonal to <span class="math notranslate nohighlight">\(p_S\)</span>. Removing the zero first-exponent
+axis in each coordinate kernel therefore gives</p>
+<div class="math notranslate nohighlight">
+\[\mathcal L_D((F-f(y))^rf(x)^{q-r})=0.\]</div>
+<p>If <span class="math notranslate nohighlight">\(D&lt;r+1\)</span>, the same statement holds because the relevant
+monomials do not exist. Expand this identity in the preceding subset
+sum and put <span class="math notranslate nohighlight">\(a=q-r\)</span>, <span class="math notranslate nohighlight">\(b=r-j\)</span>. The resulting signs and
+binomial factors are exactly <a class="reference internal" href="#equation-risk-vertex-boundary-pair">(33)</a>.</p>
+</div>
+</section>
+<section id="verification-and-remaining-questions">
+<h2>Verification and remaining questions<a class="headerlink" href="#verification-and-remaining-questions" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">tools/risk_research/kernel_identities.py</span></code> independently evaluates
+<a class="reference internal" href="#equation-risk-two-coordinate-kernel">(25)</a>; its tests compare exact polynomial
+convolution and the axis boundary through degree 100.
+<code class="docutils literal notranslate"><span class="pre">tools/risk_research/edge_closed.py</span></code> evaluates
+<a class="reference internal" href="#equation-risk-tetrahedron-edge-representation">(29)</a> and the general codimension-two
+mode formula. Tests compare the pre-existing scalar sum, independent Gram
+propagation and direct reciprocal-binomial sums, including degree one.
+<code class="docutils literal notranslate"><span class="pre">vertex_boundary.py</span></code> checks the reduced vertex formula with exact
+coefficient arithmetic. Finite checks detect errors; the all-degree
+claims rely on the proofs above.
+<code class="docutils literal notranslate"><span class="pre">triangle_faces.py</span></code> evaluates <a class="reference internal" href="#equation-risk-five-vertex-triangle-state">(31)</a>
+using a fixed state and checks independent scalar and Gram references.
+<code class="docutils literal notranslate"><span class="pre">triangle_recurrence.py</span></code> verifies its complete scalar operator by eight
+exact rational identities, including the initial values and denominator
+conditions, independently of finite sequence residual checks.</p>
+<p><a class="reference internal" href="skeleton_risk_vertex_recurrence.html"><span class="doc">Tetrahedron vertex degree recurrence</span></a> supplies a certified order-ten
+tetrahedron vertex recurrence at every positive integer degree. A bounded
+classical-special-function expression remains open.
+The boundary-pair identity reduces its mixed part to
+<span class="math notranslate nohighlight">\(\mathcal L_D(Ff(x)f(y))\)</span>; <a class="reference internal" href="skeleton_risk_vertex.html"><span class="doc">Tetrahedron vertex risk</span></a> further
+evaluates the complete vertex coefficient by one positive harmonic sum
+and proves its leading large-degree constant. Bounded polynomial/harmonic ansatz spaces
+can be excluded by exact modular rank, but such exclusions say nothing
+about formulas outside the recorded spaces. A general elementary or
+classical-special-function evaluation of the remaining codimension-two
+angular sums is also still open beyond the fixed-state evaluations above
+and the common fifteen-state construction for every nonvertex codimension-two
+face in <a class="reference internal" href="codimension_two_family.html"><span class="doc">Uniform construction for codimension two</span></a>. That construction has a state bound
+independent of face size; it does not assert a bounded classical-special-function
+expression or a minimal scalar order.
+<a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html"><span class="doc">Explicit vertex errors at every fixed vertex count</span></a> supplies an explicit
+finite-degree remainder for every fixed vertex count at least four, with
+a computable constant and the common degree domain <span class="math notranslate nohighlight">\(D\geq256\)</span>.
+It distinguishes the analytic error from truncating the leading constant
+and from arithmetic rounding.
+<a class="reference internal" href="skeleton_risk_comparisons.html"><span class="doc">Fixed-degree risk comparisons in every dimension</span></a> settles the complete comparison at every
+fixed degree through thirty. A general crossover law and the nonlinear
+self-identification questions of <a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a> remain.
+The fixed-tetrahedron comparison is completely classified over all degrees
+in <a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html"><span class="doc">Tetrahedron risk comparison at every degree</span></a>.
+The five-vertex comparison is also completely classified over all positive
+degrees in <a class="reference internal" href="skeleton_risk_five_vertex_comparison.html"><span class="doc">Five-vertex risk comparison at every degree</span></a>, using the nonvertex
+boundary-transfer inequality and an independently certified finite prefix.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="skeleton_risk_theory.html" class="btn btn-neutral float-left" title="Theory of the skeleton risk" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="codimension_two_states.html" class="btn btn-neutral float-right" title="Quadratic codimension-two multiplicities" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: feat/risk-vertex-joint-growth
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/index.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="skeleton_risk_extensions.html">feat/risk-vertex-joint-growth</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

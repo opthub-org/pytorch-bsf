@@ -1,0 +1,469 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Five-vertex vertex risk &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Five-vertex vertex degree recurrence" href="skeleton_risk_five_vertex_recurrence.html" />
+    <link rel="prev" title="Tetrahedron risk comparison at every degree" href="skeleton_risk_tetrahedron_comparison.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_family.html">Uniform construction for codimension two</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three.html">Boundary transfer and a codimension-three edge bound</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth.html">A simultaneous vertex-count and degree regime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html">An all-degree sufficient region for large vertex counts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Five-vertex vertex risk</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#an-exact-harmonic-weight">An exact harmonic weight</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#positive-diagonals-for-every-vertex-count">Positive diagonals for every vertex count</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#the-leading-asymptotic-constant">The leading asymptotic constant</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#reproduction-and-limits">Reproduction and limits</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html">Five-vertex vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_comparison.html">Five-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Five-vertex vertex risk</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/skeleton_risk_five_vertex.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="five-vertex-vertex-risk">
+<h1>Five-vertex vertex risk<a class="headerlink" href="#five-vertex-vertex-risk" title="Link to this heading"></a></h1>
+<p>The additive-kernel transform from <a class="reference internal" href="skeleton_risk_vertex.html"><span class="doc">Tetrahedron vertex risk</span></a> also resolves
+the vertex coefficient on a simplex with five vertices. The result is one
+sum with four harmonic states, and its leading constant involves
+<span class="math notranslate nohighlight">\(\zeta(2)-\zeta(3)\)</span>. A positivity argument for the transformed
+diagonals applies to every fixed vertex count.</p>
+<p>All statements use the uniform-simplex assumptions of
+<a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a>. The sum has <span class="math notranslate nohighlight">\(D\)</span> terms. It is not a
+bounded-length classical-special-function expression.
+<a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html"><span class="doc">Five-vertex vertex degree recurrence</span></a> gives an explicit certified
+order-seventeen degree recurrence with initial values and no exceptional
+positive integer indices.
+The broader construction and fixed-dimension leading constants are in
+<a class="reference internal" href="skeleton_risk_vertex_general.html"><span class="doc">Vertex coefficients at every fixed vertex count</span></a>. The five-vertex leading term has an
+explicit remainder bound in <a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html"><span class="doc">Quantitative five-vertex vertex asymptotics</span></a>.
+Together with the nonvertex edge upper bound, this also completes the
+all-degree risk comparison in <a class="reference internal" href="skeleton_risk_five_vertex_comparison.html"><span class="doc">Five-vertex risk comparison at every degree</span></a>.</p>
+<section id="an-exact-harmonic-weight">
+<h2>An exact harmonic weight<a class="headerlink" href="#an-exact-harmonic-weight" title="Link to this heading"></a></h2>
+<p>Write <span class="math notranslate nohighlight">\(H_j^{(r)}=\sum_{k=1}^j k^{-r}\)</span>, <span class="math notranslate nohighlight">\(H_j=H_j^{(1)}\)</span>,
+and define the depth-two finite harmonic sum</p>
+<div class="math notranslate nohighlight">
+\[A_j=\sum_{k=1}^j\frac{H_{k-1}}{k^2}.\]</div>
+<p>All four states vanish at zero. They update by
+<span class="math notranslate nohighlight">\(H_j^{(r)}=H_{j-1}^{(r)}+j^{-r}\)</span> and
+<span class="math notranslate nohighlight">\(A_j=A_{j-1}+H_{j-1}/j^2\)</span>; no inner summation is needed during
+evaluation. For <span class="math notranslate nohighlight">\(n=j+1\)</span>, abbreviate
+<span class="math notranslate nohighlight">\(H=H_j\)</span>, <span class="math notranslate nohighlight">\(H_2=H_j^{(2)}\)</span>, <span class="math notranslate nohighlight">\(H_3=H_j^{(3)}\)</span>, and
+<span class="math notranslate nohighlight">\(A=A_j\)</span>. Define</p>
+<div class="math notranslate nohighlight" id="equation-risk-five-vertex-diagonal">
+<span class="eqno">(75)<a class="headerlink" href="#equation-risk-five-vertex-diagonal" title="Link to this equation"></a></span>\[\begin{split}\Psi_j={}&amp;\frac{24H^3}{n(n+1)(n+2)(n+3)}\\
+ &amp;-\frac{12(5n^3+7n^2-6n-12)H^2}
+          {n^2(n+1)^2(n+2)^2(n+3)}\\
+ &amp;+\frac{24(2n+3)HH_2}{n(n+1)(n+2)(n+3)}\\
+ &amp;-\frac{24(2n^4+15n^3+44n^2+47n+24)H}
+          {n^2(n+1)^2(n+2)^2(n+3)}\\
+ &amp;+\frac{12(4n^4+22n^3+41n^2+26n+12)H_2}
+          {n^2(n+1)(n+2)^2(n+3)}\\
+ &amp;-\frac{48H_3}{n(n+1)(n+3)}
+   -\frac{48A}{n(n+2)}
+   +\frac{144}{n^2(n+1)^2(n+2)^2(n+3)}.\end{split}\]</div>
+<div class="proof theorem admonition" id="thm-risk-five-vertex-single">
+<p class="admonition-title"><span class="caption-number">Theorem 40 </span> (Five-vertex vertex coefficient at every degree)</p>
+<section class="theorem-content" id="proof-content">
+<p>For every integer <span class="math notranslate nohighlight">\(D\geq1\)</span>, let
+<span class="math notranslate nohighlight">\(W_{D,j}=\binom{D-1}j\binom{D+1}j\)</span> and
+<span class="math notranslate nohighlight">\(Z_D=\binom{2D}{D-1}\)</span>. Then</p>
+<div class="math notranslate nohighlight" id="equation-risk-five-vertex-single">
+<span class="eqno">(76)<a class="headerlink" href="#equation-risk-five-vertex-single" title="Link to this equation"></a></span>\[a_0(5,D)=\frac{600}
+ {Z_D(2D+1)(2D+2)(2D+3)(2D+4)}
+ \sum_{j=0}^{D-1}W_{D,j}\Psi_j.\]</div>
+<p>Every <span class="math notranslate nohighlight">\(\Psi_j\)</span> is strictly positive, with <span class="math notranslate nohighlight">\(\Psi_0=1\)</span>.
+All denominators in the formula are nonzero on the stated domain.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Put <span class="math notranslate nohighlight">\(g(t)=-(1-t)\log(1-t)/t\)</span> and
+<span class="math notranslate nohighlight">\(\phi_r(j)=[t^j]g(t)^r/(1-t)\)</span>. Besides the three formulas in
+<a class="reference internal" href="skeleton_risk_vertex.html"><span class="doc">Tetrahedron vertex risk</span></a>, differentiating
+<span class="math notranslate nohighlight">\(\binom\alpha{j+4}\)</span> four times at <span class="math notranslate nohighlight">\(\alpha=3\)</span> gives</p>
+<div class="math notranslate nohighlight">
+\[\phi_4(j)=\frac{24\left(
+ -H^3+\tfrac{11}2H^2-6H+1
+ +(3H-\tfrac{11}2)H_2-2H_3\right)}
+ {n(n+1)(n+2)(n+3)}.\]</div>
+<p>For sequences, let <span class="math notranslate nohighlight">\(*\)</span> denote ordinary convolution and let
+<span class="math notranslate nohighlight">\(g_k=[t^k]g(t)\)</span>. Expand the additive kernel to the fourth power.
+Terms in which one of <span class="math notranslate nohighlight">\(g(x),g(y)\)</span> is absent combine by
+convolution. The result is</p>
+<div class="math notranslate nohighlight" id="equation-risk-five-vertex-quartic-convolutions">
+<span class="eqno">(77)<a class="headerlink" href="#equation-risk-five-vertex-quartic-convolutions" title="Link to this equation"></a></span>\[[x^jy^j]\frac{(g(x)+g(y)-g(xy))^4}{(1-x)(1-y)}
+ =-\phi_4(j)+8\phi_1(j)\phi_3(j)+6\phi_2(j)^2
+  -24\bigl(g*(\phi_1\phi_2)\bigr)_j
+  +12\bigl(g^2*\phi_1^2\bigr)_j.\]</div>
+<p>Here <span class="math notranslate nohighlight">\(g^2\)</span> denotes the coefficient sequence of the square of the
+series, while the products of <span class="math notranslate nohighlight">\(\phi\)</span> sequences are pointwise.
+In particular, the coefficient <span class="math notranslate nohighlight">\(-24\)</span> includes both the
+<span class="math notranslate nohighlight">\(g(x)^2g(y)g(xy)\)</span> term and its symmetric counterpart.</p>
+<p>The two remaining convolutions reduce to finite harmonic sums. Since</p>
+<div class="math notranslate nohighlight">
+\[g_0=1,\quad g_k=-\frac1{k(k+1)},\qquad
+[t^0]g^2=1,\quad
+[t^k]g^2=\frac{4H_{k-1}-6}{k(k+1)(k+2)}\quad(k\geq1),\]</div>
+<p>their contribution, with <span class="math notranslate nohighlight">\(n=j+1\)</span>, is</p>
+<div class="math notranslate nohighlight">
+\[-24\bigl(g*(\phi_1\phi_2)\bigr)_j
+ +12\bigl(g^2*\phi_1^2\bigr)_j
+ =-\frac{48(1-H)}{n^2(n+1)}+\frac{12}{n^2}
+  +\sum_{k=1}^{n-1}\bigl(R_H(k,n)H_{k-1}+R_0(k,n)\bigr),\]</div>
+<p>where</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}p(k,n)&amp;=\frac1{k^2(k+1)(n-k)(n-k+1)},\\
+q(k,n)&amp;=\frac1{k(k+1)(k+2)(n-k)^2},\\
+R_H(k,n)&amp;=48(q(k,n)-p(k,n)),\\
+R_0(k,n)&amp;=48p(k,n)-72q(k,n).\end{split}\]</div>
+<p>Partial fractions use only the seven denominators
+<span class="math notranslate nohighlight">\(k,k^2,k+1,k+2,n-k,(n-k)^2,n-k+1\)</span>. The sums without
+<span class="math notranslate nohighlight">\(H_{k-1}\)</span> are immediate harmonic numbers. For the remaining
+sums, put <span class="math notranslate nohighlight">\(T=(H^2-H_2)/2\)</span>; their respective values are</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\sum_{k=1}^{n-1}\frac{H_{k-1}}k&amp;=T,\\
+\sum_{k=1}^{n-1}\frac{H_{k-1}}{k^2}&amp;=A,\\
+\sum_{k=1}^{n-1}\frac{H_{k-1}}{k+1}
+  &amp;=T+H/n-1+1/n,\\
+\sum_{k=1}^{n-1}\frac{H_{k-1}}{k+2}
+  &amp;=T+H\left(1/n+1/(n+1)\right)+1/(n(n+1))
+    -7/4+1/(2n)+3/(2(n+1)),\\
+\sum_{k=1}^{n-1}\frac{H_{k-1}}{n-k}&amp;=H^2-H_2,\\
+\sum_{k=1}^{n-1}\frac{H_{k-1}}{(n-k)^2}&amp;=A+HH_2-H_3,\\
+\sum_{k=1}^{n-1}\frac{H_{k-1}}{n-k+1}&amp;=H^2-H_2+2H/n-H.\end{split}\]</div>
+<p>These identities follow by changing the order of the finite sums;
+for example, the penultimate sum is
+<span class="math notranslate nohighlight">\(\sum_{i+r\leq n-1}1/(ir^2)\)</span>, and partial fractions at
+<span class="math notranslate nohighlight">\(i+r=s\)</span> give <span class="math notranslate nohighlight">\(2A+\sum_{s\leq n-1}H_{s-1}^{(2)}/s\)</span>
+<span class="math notranslate nohighlight">\({}=A+HH_2-H_3\)</span>. The formulas also hold when <span class="math notranslate nohighlight">\(n=1\)</span>
+and the sums are empty. Substitution and collection give exactly
+<a class="reference internal" href="#equation-risk-five-vertex-diagonal">(75)</a>.</p>
+<p>The binomial-transform diagonalization now gives</p>
+<div class="math notranslate nohighlight">
+\[a_0(5,D)=\frac{25(D-1)!(D+1)!}{(5)_{2D}}
+ \sum_j W_{D,j}\Psi_j.\]</div>
+<p>Use <span class="math notranslate nohighlight">\((D-1)!(D+1)!Z_D=(2D)!\)</span> to obtain
+<a class="reference internal" href="#equation-risk-five-vertex-single">(76)</a>. Positivity follows from the general
+argument below.</p>
+</div>
+</section>
+<section id="positive-diagonals-for-every-vertex-count">
+<h2>Positive diagonals for every vertex count<a class="headerlink" href="#positive-diagonals-for-every-vertex-count" title="Link to this heading"></a></h2>
+<div class="proof proposition admonition" id="prop-risk-positive-transformed-kernel">
+<p class="admonition-title"><span class="caption-number">Proposition 6 </span> (Outside-kernel powers remain positive after transformation)</p>
+<section class="proposition-content" id="proof-content">
+<p>For every integer <span class="math notranslate nohighlight">\(q\geq1\)</span> and <span class="math notranslate nohighlight">\(j\geq0\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[[x^jy^j]\frac{(g(x)+g(y)-g(xy))^q}{(1-x)(1-y)}&gt;0.\]</div>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Let <span class="math notranslate nohighlight">\(T_1,\ldots,T_q\)</span> be independent exponential random variables
+of mean one, and define the homogeneous polynomial</p>
+<div class="math notranslate nohighlight">
+\[Q_h(T)=\sum_{\alpha_1+\cdots+\alpha_q=h}
+  \prod_{r=1}^q\frac{T_r^{\alpha_r}}{(\alpha_r+1)!}.\]</div>
+<p>Since <span class="math notranslate nohighlight">\(\mathbb E[T_r^k]=k!\)</span>, multiplication of the outside
+kernel <span class="math notranslate nohighlight">\(F\)</span> gives</p>
+<div class="math notranslate nohighlight">
+\[[x^hy^l]F(x,y)^q=\mathbb E[Q_h(T)Q_l(T)].\]</div>
+<p>The signed binomial transform in each index therefore identifies the
+diagonal in the proposition with</p>
+<div class="math notranslate nohighlight">
+\[\mathbb E\!\left[
+ \left(\sum_{h=0}^j(-1)^h\binom jh Q_h(T)\right)^2\right].\]</div>
+<p>The polynomial inside the square is nonzero: its highest homogeneous
+part is <span class="math notranslate nohighlight">\((-1)^jQ_j\)</span>, including the case <span class="math notranslate nohighlight">\(j=0\)</span>.
+Exponential density is strictly positive on the positive orthant, so
+the expectation is strictly positive. This proves positivity without
+requiring each term of a collected harmonic expression to be positive.</p>
+</div>
+</section>
+<section id="the-leading-asymptotic-constant">
+<h2>The leading asymptotic constant<a class="headerlink" href="#the-leading-asymptotic-constant" title="Link to this heading"></a></h2>
+<div class="proof corollary admonition" id="cor-risk-five-vertex-asymptotic">
+<p class="admonition-title"><span class="caption-number">Corollary 14 </span> (Five-vertex vertex asymptotic)</p>
+<section class="corollary-content" id="proof-content">
+<p>As <span class="math notranslate nohighlight">\(D\to\infty\)</span>,</p>
+<div class="math notranslate nohighlight" id="equation-risk-five-vertex-asymptotic">
+<span class="eqno">(78)<a class="headerlink" href="#equation-risk-five-vertex-asymptotic" title="Link to this equation"></a></span>\[a_0(5,D)=\frac{7200(\zeta(2)-\zeta(3))}{D^6}
+  +O\!\left(\frac{\log D}{D^7}\right).\]</div>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. The Euler sum <span class="math notranslate nohighlight">\(A_j\)</span> tends to <span class="math notranslate nohighlight">\(\zeta(3)\)</span>. Indeed,
+monotone convergence and the power series for the logarithm give</p>
+<div class="math notranslate nohighlight">
+\[\sum_{k=1}^\infty\frac{H_{k-1}}{k^2}
+ =\frac12\int_0^1\frac{\log^2(1-t)}t\,dt
+ =\frac12\int_0^1\frac{\log^2t}{1-t}\,dt
+ =\zeta(3).\]</div>
+<p>Moreover, for <span class="math notranslate nohighlight">\(j\geq1\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[0\leq\zeta(2)-H_j^{(2)}\leq1/j,\qquad
+0\leq\zeta(3)-A_j\leq(2+\log j)/j.\]</div>
+<p>The second inequality follows from
+<span class="math notranslate nohighlight">\(H_{k-1}\leq1+\log k\)</span> and comparison with the decreasing
+function <span class="math notranslate nohighlight">\((1+\log x)/x^2\)</span>. The coefficient of <span class="math notranslate nohighlight">\(H_2\)</span>
+in <a class="reference internal" href="#equation-risk-five-vertex-diagonal">(75)</a> differs from
+<span class="math notranslate nohighlight">\(48/(n(n+2))\)</span> by</p>
+<div class="math notranslate nohighlight">
+\[-\frac{12(2n^3+3n^2-2n-12)}
+       {n^2(n+1)(n+2)^2(n+3)}=O(n^{-3}).\]</div>
+<p>All the other terms apart from <span class="math notranslate nohighlight">\(-48A/(n(n+2))\)</span> are
+<span class="math notranslate nohighlight">\(O(\log n/n^3)\)</span>; the cubic harmonic term is
+<span class="math notranslate nohighlight">\(O(\log^3n/n^4)=O(\log n/n^3)\)</span>.
+Consequently</p>
+<div class="math notranslate nohighlight">
+\[\Psi_j=\frac{48(\zeta(2)-\zeta(3))}{(j+1)(j+3)}
+  +O\!\left(\frac{\log(j+2)}{(j+1)^3}\right).\]</div>
+<p>Let <span class="math notranslate nohighlight">\(J\)</span> have probabilities <span class="math notranslate nohighlight">\(W_{D,j}/Z_D\)</span>. The mean,
+variance and small-index bound proved in <a class="reference internal" href="skeleton_risk_vertex.html"><span class="doc">Tetrahedron vertex risk</span></a>
+apply unchanged:</p>
+<div class="math notranslate nohighlight">
+\[\mathbb E[J]=\frac{D^2-1}{2D},\qquad
+\operatorname{Var}(J)=O(D),\qquad
+\mathbb P(J\leq\lfloor D/4\rfloor)\leq4\,2^{-D/12}
+\quad(D\geq12).\]</div>
+<p>On the complementary event, the remainder is uniformly
+<span class="math notranslate nohighlight">\(O(\log D/D^3)\)</span>. The sequence <span class="math notranslate nohighlight">\(\Psi_j\)</span> is bounded,
+so the omitted event contributes an exponentially small amount.
+Taylor expansion of <span class="math notranslate nohighlight">\(1/((x+1)(x+3))\)</span> about the mean, with
+second derivative <span class="math notranslate nohighlight">\(O(D^{-4})\)</span> and variance <span class="math notranslate nohighlight">\(O(D)\)</span>, gives</p>
+<div class="math notranslate nohighlight">
+\[\mathbb E[\Psi_J]
+ =\frac{192(\zeta(2)-\zeta(3))}{D^2}
+   +O(\log D/D^3).\]</div>
+<p>Finally, <a class="reference internal" href="#equation-risk-five-vertex-single">(76)</a> is
+<span class="math notranslate nohighlight">\(600\mathbb E[\Psi_J]/\prod_{r=1}^4(2D+r)\)</span>.
+Expanding this rational factor proves the assertion.</p>
+</div>
+</section>
+<section id="reproduction-and-limits">
+<h2>Reproduction and limits<a class="headerlink" href="#reproduction-and-limits" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">tools.risk_research.vertex_five.five_vertex_coefficient</span></code> evaluates
+<a class="reference internal" href="#equation-risk-five-vertex-single">(76)</a> using exact rational arithmetic, four harmonic
+states, a binomial weight and an accumulator. The number of rational states
+is fixed, while their bit lengths increase with <span class="math notranslate nohighlight">\(D\)</span>. Floating-point
+evaluation of the ungrouped weight can lose precision through cancellation;
+the exact evaluator avoids that loss.</p>
+<p>The tests compare the new expression with the original scalar kernel sum
+at degrees 1 through 20, independent Gram propagation at degrees 1 through
+5, and direct signed binomial transforms of <span class="math notranslate nohighlight">\(F^4\)</span>. After the candidate
+was frozen, a separate integer-polynomial <span class="math notranslate nohighlight">\(F^4\)</span> computation at degrees
+193, 227 and 251 agreed exactly. The committed holdout file records the
+candidate and oracle source hashes. These checks support the implementation;
+the algebraic and asymptotic arguments above establish the mathematical
+identities.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="skeleton_risk_tetrahedron_comparison.html" class="btn btn-neutral float-left" title="Tetrahedron risk comparison at every degree" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="skeleton_risk_five_vertex_recurrence.html" class="btn btn-neutral float-right" title="Five-vertex vertex degree recurrence" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: feat/risk-vertex-joint-growth
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/index.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="skeleton_risk_five_vertex.html">feat/risk-vertex-joint-growth</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
