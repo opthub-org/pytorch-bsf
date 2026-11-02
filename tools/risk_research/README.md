@@ -28,8 +28,11 @@ This verifier supports only `skeleton-risk-general-vertex-error-v1`,
 `skeleton-risk-refined-vertex-error-v1` and
 `skeleton-risk-large-vertex-constant-v1`. It recovers the recorded terms,
 degree, precision, relative target and optional Arb calculations, regenerates
-into temporary storage, and compares the complete record including source
-hashes and JSON scalar types. It never writes the supplied record. Unknown
+into temporary storage in a captured subprocess from the same source checkout,
+and compares the complete record including source hashes and JSON scalar
+types. Each replay has a 60-second limit and leaves the parent process's
+streams alone. Replay does not require a clean Git checkout; the saved
+fingerprints must match the current sources. It never writes the supplied record. Unknown
 schemas, duplicate keys, extra fields, changed options or sources, and
 nonfinite values fail.
 Arb records require the recorded python-flint version and reproducible ball
@@ -45,6 +48,8 @@ whose import locations must belong to that checkout. It sets the relative
 `PYTHONPATH=.` and disables bytecode writes, checks imports before launching
 the command, and verifies HEAD, tree and tracked/untracked status afterward,
 including failed commands and timeouts. Keep outputs outside the checkout.
+Only explicit `-m module` and `-c code` commands are supported; script paths
+and Python path flags are rejected so the import search paths agree.
 The helper detects source changes; it is not a sandbox for untrusted code.
 
 ## Install the symbolic environment

@@ -6,12 +6,12 @@ proof or provide a universal verifier for every research output.
 """
 
 import argparse
-import io
 import json
+import os
+import subprocess
+import sys
 import tempfile
-from contextlib import redirect_stdout
 from fractions import Fraction
-from importlib import import_module
 from pathlib import Path
 
 SCHEMAS = {
@@ -72,6 +72,46 @@ def _generation_arguments(record: dict[str, object], module_name: str) -> list[s
     return arguments + _target_arguments(record)
 
 
+def _regenerate(module_name: str, arguments: list[str], output: Path) -> None:
+    # Execute the origin check and the generator in the same process. Capturing
+    # child output avoids changing this process's global streams during replay.
+    root = Path(__file__).resolve().parents[2]
+    source = """
+import importlib
+import sys
+from pathlib import Path
+module = importlib.import_module(sys.argv[1])
+origin = Path(module.__file__).resolve()
+if not origin.is_relative_to(Path.cwd().resolve()) or origin != Path(sys.argv[2]).resolve():
+    raise RuntimeError('saved-record generator import escaped its source checkout')
+raise SystemExit(module.main(sys.argv[3:]))
+"""
+    command = [
+        sys.executable,
+        "-c",
+        source,
+        "tools.risk_research." + module_name,
+        str(root / "tools" / "risk_research" / (module_name + ".py")),
+        *arguments,
+        "--output",
+        str(output),
+    ]
+    try:
+        result = subprocess.run(
+            command,
+            cwd=root,
+            env={**os.environ, "PYTHONPATH": ".", "PYTHONDONTWRITEBYTECODE": "1"},
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise ValueError("saved enclosure regeneration timed out") from error
+    if result.returncode:
+        raise ValueError("saved enclosure could not be regenerated: " + result.stderr.strip())
+
+
 def verify_record(record: object) -> None:
     """Regenerate a supported enclosure without changing the saved record."""
     if type(record) is not dict or type(record.get("schema")) is not str or record["schema"] not in SCHEMAS:
@@ -79,14 +119,9 @@ def verify_record(record: object) -> None:
     supplied = canonical_json(record)
     module_name = SCHEMAS[record["schema"]]
     arguments = _generation_arguments(record, module_name)
-    module = import_module("tools.risk_research." + module_name)
     with tempfile.TemporaryDirectory(prefix="bsf-record-replay-") as directory:
         output = Path(directory) / "regenerated.json"
-        with redirect_stdout(io.StringIO()):
-            try:
-                module.main([*arguments, "--output", str(output)])
-            except SystemExit as error:
-                raise ValueError("saved enclosure could not be regenerated") from error
+        _regenerate(module_name, arguments, output)
         expected = json.loads(output.read_text(encoding="utf-8"))
     if supplied != canonical_json(expected):
         raise ValueError("saved enclosure differs from its recorded options, source or recomputation")

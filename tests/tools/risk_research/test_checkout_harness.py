@@ -135,3 +135,22 @@ def test_nested_path_is_not_a_checkout_root(checkout):
     nested.mkdir()
     with pytest.raises(ValueError, match="repository root"):
         checkout_state(nested)
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [[], ["-c"], ["-m", "../outside"], ["-I", "-c", "pass"], ["-P", "-c", "pass"], ["-S", "-c", "pass"]],
+)
+def test_only_explicit_module_or_code_modes_are_supported(checkout, arguments):
+    with pytest.raises(ValueError, match="-m or -c"):
+        run_python(checkout, arguments, modules=("probe",))
+
+
+def test_external_script_cannot_change_the_checked_import_search_path(checkout, tmp_path):
+    external = tmp_path / "external"
+    external.mkdir()
+    (external / "probe.py").write_text("VALUE = 'external import'\n", encoding="utf-8")
+    script = external / "check.py"
+    script.write_text("import probe; print(probe.VALUE)\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="-m or -c"):
+        run_python(checkout, [str(script)], modules=("probe",))

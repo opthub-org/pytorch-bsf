@@ -36,6 +36,21 @@ def checkout_state(checkout: Path) -> CheckoutState:
     return CheckoutState(git("rev-parse", "HEAD"), git("rev-parse", "HEAD^{tree}"), git("status", "--porcelain", "-uall"))
 
 
+def _module_name(name: object) -> bool:
+    return type(name) is str and all(part.isidentifier() and not keyword.iskeyword(part) for part in name.split("."))
+
+
+def _validate_arguments(arguments: list[str]) -> None:
+    if (
+        type(arguments) is not list
+        or len(arguments) < 2
+        or any(type(value) is not str for value in arguments)
+        or arguments[0] not in ("-m", "-c")
+        or (arguments[0] == "-m" and not _module_name(arguments[1]))
+    ):
+        raise ValueError("validation supports only explicit -m or -c commands without Python path flags")
+
+
 def run_python(
     checkout: Path,
     arguments: list[str],
@@ -51,17 +66,14 @@ def run_python(
 
     ``PYTHONPATH=.`` is deliberately relative: a nested child that changes its
     checkout must not keep importing this checkout through an absolute path.
-    A nonzero return code is returned normally; timeout and source changes raise.
+    Only ``-m module`` and ``-c code`` modes are supported so their initial
+    search path agrees with the import preflight. Python path flags and script
+    filenames are rejected. A nonzero return code is returned normally;
+    timeout and source changes raise.
     """
-    if (
-        type(modules) is not tuple
-        or not modules
-        or any(
-            type(name) is not str or any(not part.isidentifier() or keyword.iskeyword(part) for part in name.split("."))
-            for name in modules
-        )
-    ):
+    if type(modules) is not tuple or not modules or any(not _module_name(name) for name in modules):
         raise ValueError("modules must be a nonempty tuple of valid dotted module names")
+    _validate_arguments(arguments)
     checkout = checkout.resolve()
     before = checkout_state(checkout)
     if before.status:

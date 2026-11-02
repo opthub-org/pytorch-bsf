@@ -3,6 +3,9 @@
 import json
 import os
 import subprocess
+import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
@@ -41,6 +44,7 @@ def test_nondefault_generation_round_trips_through_plain_verify_without_writes(g
 @pytest.mark.parametrize("mutation", ["extra", "source", "options", "float", "bool", "nan"])
 def test_altered_record_or_options_are_rejected_and_preserved(generated, mutation):
     output, record = generated
+    sources = {path: path.read_bytes() for path in Path(saved_records.__file__).parent.glob("*.py")}
     if mutation == "extra":
         record["unexpected"] = 1
     elif mutation == "source":
@@ -55,6 +59,7 @@ def test_altered_record_or_options_are_rejected_and_preserved(generated, mutatio
     with pytest.raises(SystemExit) as error:
         saved_records.main(["--verify", str(output)])
     assert error.value.code == 2 and output.read_bytes() == before
+    assert all(path.read_bytes() == content for path, content in sources.items())
 
 
 @pytest.mark.parametrize("record", [None, [], {}, {"schema": []}, {"schema": "unknown"}])
@@ -109,22 +114,42 @@ def test_duplicate_json_keys_are_rejected_without_changing_record(generated, lin
     assert error.value.code == 2 and output.read_bytes() == before
 
 
-def test_native_flint_precision_and_backend_record_round_trip(tmp_path):
+@pytest.mark.parametrize(
+    "module,arguments",
+    [
+        (
+            "vertex_general_asymptotic",
+            ["--vertices", "5", "--degree", "257", "--constant-terms", "17", "--bits", "47", "--with-arb"],
+        ),
+        (
+            "vertex_refined_asymptotic",
+            ["--vertices", "5", "--degree", "257", "--constant-terms", "17", "--bits", "47", "--with-arb"],
+        ),
+        ("vertex_large_dimension", ["--vertices", "1026", "--bits", "47", "--with-arb", "--integral-check"]),
+    ],
+)
+def test_native_flint_precision_and_backend_record_round_trip(tmp_path, module, arguments):
     executable = os.environ.get("BSF_FLINT_PYTHON")
     if not executable:
         pytest.skip("set BSF_FLINT_PYTHON for native Arb replay regressions")
     source = """
-import sys
+import hashlib,json,sys
+from importlib import import_module
 from pathlib import Path
-from tools.risk_research import vertex_refined_asymptotic as module, saved_records
-output=Path(sys.argv[1])
-module.main(['--vertices','5','--degree','257','--constant-terms','17','--bits','47','--with-arb','--output',str(output)])
+from tools.risk_research import saved_records
+module=import_module('tools.risk_research.'+sys.argv[1])
+output=Path(sys.argv[2])
+sources=lambda:{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in Path(module.__file__).parent.glob('*.py')}
+source_before=sources()
+module.main([*json.loads(sys.argv[3]),'--output',str(output)])
 before=output.read_bytes()
 saved_records.main(['--verify',str(output)])
-assert output.read_bytes()==before
+assert output.read_bytes()==before and sources()==source_before
+record=json.loads(before)
+assert record['bits']==47 and 'python_flint' in record
 """
     result = subprocess.run(
-        [executable, "-c", source, str(tmp_path / "arb.json")],
+        [executable, "-c", source, module, str(tmp_path / "arb.json"), json.dumps(arguments)],
         cwd=ROOT,
         env={**os.environ, "PYTHONPATH": ".", "PYTHONDONTWRITEBYTECODE": "1"},
         capture_output=True,
@@ -132,3 +157,48 @@ assert output.read_bytes()==before
         timeout=60,
     )
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_replay_from_another_directory_does_not_change_input_or_sources(generated, tmp_path, monkeypatch):
+    output, record = generated
+    before = output.read_bytes()
+    sources = {path: path.read_bytes() for path in Path(saved_records.__file__).parent.glob("*.py")}
+    monkeypatch.chdir(tmp_path)
+    assert saved_records.main(["--verify", output.name]) == 0
+    assert output.read_bytes() == before
+    assert all(path.read_bytes() == content for path, content in sources.items())
+
+
+def test_concurrent_replays_leave_process_stdout_and_input_unchanged(generated, monkeypatch):
+    output, record = generated
+    before = output.read_bytes()
+    original_stdout, original_run = sys.stdout, subprocess.run
+    overlap = threading.Barrier(2)
+
+    def overlapping_run(*arguments, **keywords):
+        overlap.wait(timeout=15)
+        assert sys.stdout is original_stdout
+        result = original_run(*arguments, **keywords)
+        assert sys.stdout is original_stdout
+        return result
+
+    monkeypatch.setattr(subprocess, "run", overlapping_run)
+    with ThreadPoolExecutor(max_workers=2) as workers:
+        futures = [workers.submit(saved_records.verify_record, record) for _ in range(2)]
+        for future in futures:
+            future.result(timeout=30)
+    assert sys.stdout is original_stdout and output.read_bytes() == before
+
+
+def test_replay_timeout_is_bounded_and_preserves_input(generated, monkeypatch):
+    output, record = generated
+    before = output.read_bytes()
+
+    def timeout(command, **keywords):
+        assert keywords["timeout"] == 60
+        raise subprocess.TimeoutExpired(command, keywords["timeout"])
+
+    monkeypatch.setattr(subprocess, "run", timeout)
+    with pytest.raises(ValueError, match="timed out"):
+        saved_records.verify_record(record)
+    assert output.read_bytes() == before
