@@ -288,8 +288,10 @@ raw source bytes before replacing output. Failed generation preserves
 an existing output, and verification preserves its input.
 Generation rejects output paths resolving to any evaluator or proof
 source, including symbolic-link aliases, before calculation.
-The check is repeated after calculation, immediately before calling
-the atomic writer.</p>
+After calculation, the output’s parent directory is resolved and pinned,
+and the source check is repeated on that destination before writing.
+The final name stays unresolved, retaining atomic replacement of a leaf
+symbolic link while preserving its target.</p>
 <p>Optional <code class="docutils literal notranslate"><span class="pre">--with-arb</span> <span class="pre">--integral-check</span></code> restores the scale and calls
 the existing positive-integral implementation without using the refined
 error bound. Arb precision is restored and saved balls round outward.
