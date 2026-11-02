@@ -153,6 +153,12 @@ def verify_record(record: object) -> None:
     """Verify strict scalar types and all data by recorded-option replay."""
     if type(record) is not dict or record.get("schema") != SCHEMA:
         raise ValueError("unsupported refined large-vertex enclosure schema")
+    vertices, bits = record.get("vertices"), record.get("bits")
+    with_arb, integral_check = record.get("with_arb"), record.get("integral_check")
+    if type(vertices) is not int or type(bits) is not int:
+        raise ValueError("recorded vertices and bits must be integers")
+    if type(with_arb) is not bool or type(integral_check) is not bool:
+        raise ValueError("recorded backend flags must be booleans")
     supplied = canonical_json(record)
     target = None
     if "relative_error_target" in record:
@@ -166,11 +172,11 @@ def verify_record(record: object) -> None:
         except (ValueError, ZeroDivisionError) as error:
             raise ValueError("invalid recorded relative error target") from error
     expected = build_record(
-        record.get("vertices"),
-        bits=record.get("bits"),
+        vertices,
+        bits=bits,
         target=target,
-        with_arb=record.get("with_arb"),
-        integral_check=record.get("integral_check"),
+        with_arb=with_arb,
+        integral_check=integral_check,
     )
     if supplied != canonical_json(expected):
         raise ValueError("saved enclosure differs from its recorded options, source or recomputation")
