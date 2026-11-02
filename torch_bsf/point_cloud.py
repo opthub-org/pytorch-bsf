@@ -168,65 +168,118 @@ class _Polynomial:
             else [math.prod(_multinomial(d, factor) for d, factor in zip(cell.degree, a, strict=True)) for a in indices],
             dtype=torch.float64,
         )
+        self.max_power = max(cell.degree, default=0)
+        self._columns = torch.arange(cell.width)
+        # Per derivative multi-index (``axes``), built on first use: the clamped powers and scaled factors of
+        # the monomial terms, or for high degrees the lookups into the recursive basis of each factor.
+        self._terms: dict[tuple[int, ...], tuple[torch.Tensor, torch.Tensor]] = {}
+        self._lookups: dict[tuple[int, ...], list[tuple[slice, int, torch.Tensor, int]] | None] = {}
 
-    def derivative(self, t: torch.Tensor, axes: tuple[int, ...] = ()) -> torch.Tensor:
+    def derivative(
+        self, t: torch.Tensor, axes: tuple[int, ...] = (), memo: dict[Any, torch.Tensor] | None = None
+    ) -> torch.Tensor:
+        """The partial derivative along ``axes`` at ``t``.
+
+        ``memo`` caches tables computed from ``t`` alone (powers of the coordinates or factor bases), so that
+        several derivatives at the same ``t`` share them; pass the same dictionary only with the same ``t``.
+        """
         if self.high:
-            return self._high_derivative(t, axes)
-        powers = self.powers.clone()
-        factors = self.factors.clone()
-        for axis in axes:
-            factors *= powers[:, axis].clamp_min(0)
-            powers[:, axis] -= 1
-        basis = t[:, None, :].pow(powers.clamp_min(0)[None, :, :]).prod(2) * factors
+            return self._high_derivative(t, axes, {} if memo is None else memo)
+        terms = self._terms.get(axes)
+        if terms is None:
+            powers = self.powers.clone()
+            factors = self.factors.clone()
+            for axis in axes:
+                factors *= powers[:, axis].clamp_min(0)
+                powers[:, axis] -= 1
+            terms = self._terms[axes] = (powers.clamp_min(0), factors)
+        powers, factors = terms
+        if memo is None:
+            monomials = t[:, None, :].pow(powers[None, :, :])
+        else:
+            table = memo.get("powers")
+            if table is None:
+                # table[n, i, k] = t[n, i] ** k, the same values as raising t to each term's powers directly.
+                table = memo["powers"] = t[:, :, None].pow(torch.arange(self.max_power + 1))
+            monomials = table[:, self._columns, powers]
+        basis = monomials.prod(2) * factors
         return basis @ self.coefficients
 
-    def _high_derivative(self, t: torch.Tensor, axes: tuple[int, ...]) -> torch.Tensor:
+    def _high_derivative(self, t: torch.Tensor, axes: tuple[int, ...], memo: dict[Any, torch.Tensor]) -> torch.Tensor:
         # The derivative of a product basis function is the product of the derivatives of its factors.
+        if axes not in self._lookups:
+            self._lookups[axes] = self._high_lookups(axes)
+        lookups = self._lookups[axes]
+        if lookups is None:
+            return torch.zeros((len(t), self.coefficients.shape[1]), dtype=t.dtype)
+        derivative = torch.ones((len(t), len(self.powers)), dtype=t.dtype)
+        for block, degree, indices, scale in lookups:
+            key = ("basis", block.start, degree)
+            padded = memo.get(key)
+            if padded is None:
+                basis = _recursive_basis(t[:, block.start : block.stop], degree)
+                padded = memo[key] = torch.cat((torch.zeros_like(basis[:, :1]), basis), 1)
+            derivative = derivative * (padded[:, indices] * scale)
+        return derivative @ self.coefficients
+
+    def _high_lookups(self, axes: tuple[int, ...]) -> list[tuple[slice, int, torch.Tensor, int]] | None:
+        """Per factor: its block, derivative degree, 1-based basis positions of the terms (0 for none) and scale.
+
+        ``None`` if the derivative vanishes because some factor is differentiated more often than its degree.
+        """
         powers = self.powers.clone()
         for axis in axes:
             powers[:, axis] -= 1
-        derivative = torch.ones((len(t), len(powers)), dtype=t.dtype)
+        lookups = []
         for block, full in zip(_blocks(self.dimensions), self.degrees, strict=True):
             degree = full - sum(axis in block for axis in axes)
             if degree < 0:
-                return torch.zeros((len(t), self.coefficients.shape[1]), dtype=t.dtype)
+                return None
             positions = {alpha: i + 1 for i, alpha in enumerate(_simplex_indices(len(block), degree))}
             indices = torch.tensor([positions.get(tuple(row), 0) for row in powers[:, block.start : block.stop].tolist()])
-            basis = _recursive_basis(t[:, block.start : block.stop], degree)
-            padded = torch.cat((torch.zeros_like(basis[:, :1]), basis), 1)
-            derivative = derivative * (padded[:, indices] * math.prod(range(degree + 1, full + 1)))
-        return derivative @ self.coefficients
+            lookups.append((slice(block.start, block.stop), degree, indices, math.prod(range(degree + 1, full + 1))))
+        return lookups
 
     def geometry(self, t: torch.Tensor, y: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        residual = self.derivative(t) - y
+        memo: dict[Any, torch.Tensor] = {}
+        residual = self.derivative(t, (), memo) - y
         width = t.shape[1]
-        jacobian = torch.stack([self.derivative(t, (i,)) for i in range(width)], dim=2)
+        jacobian = torch.stack([self.derivative(t, (i,), memo) for i in range(width)], dim=2)
         gradient = torch.einsum("no,noi->ni", residual, jacobian)
         hessian = torch.einsum("noi,noj->nij", jacobian, jacobian)
         for i in range(width):
             for j in range(i, width):
-                term = (residual * self.derivative(t, (i, j))).sum(1)
+                term = (residual * self.derivative(t, (i, j), memo)).sum(1)
                 hessian[:, i, j] += term
                 if i != j:
                     hessian[:, j, i] += term
         return residual.square().sum(1), gradient, hessian
 
 
-def _line_search(poly: _Polynomial, t: torch.Tensor, direction: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+def _line_search(
+    poly: _Polynomial, t: torch.Tensor, direction: torch.Tensor, y: torch.Tensor, error: torch.Tensor
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Backtrack from ``t`` along ``direction``; return the best rows and their squared errors.
+
+    ``error`` holds the squared errors at ``t``, as returned by :meth:`_Polynomial.geometry`. Each row stops at
+    its first improving step, or once the steps no longer move it, and only the rows still searching are
+    evaluated; every row is computed independently of the others.
+    """
     best = t.clone()
-    error = (poly.derivative(t) - y).square().sum(1)
-    pending = torch.ones(len(t), dtype=torch.bool)
+    error = error.clone()
+    rows = torch.arange(len(t))
     step = 1.0
     for _ in range(25):
-        candidate = _project_factors(t + step * direction, poly.dimensions)
-        candidate_error = (poly.derivative(candidate) - y).square().sum(1)
-        improved = pending & torch.isfinite(candidate_error) & (candidate_error < error)
-        best[improved], error[improved] = candidate[improved], candidate_error[improved]
-        pending &= ~improved & ((candidate - t).abs().amax(1) > 1e-15)
-        if not pending.any():
+        start = t[rows]
+        candidate = _project_factors(start + step * direction[rows], poly.dimensions)
+        candidate_error = (poly.derivative(candidate) - y[rows]).square().sum(1)
+        improved = torch.isfinite(candidate_error) & (candidate_error < error[rows])
+        best[rows[improved]], error[rows[improved]] = candidate[improved], candidate_error[improved]
+        rows = rows[~improved & ((candidate - start).abs().amax(1) > 1e-15)]
+        if not len(rows):
             break
         step *= 0.5
-    return best
+    return best, error
 
 
 def _parameters(
@@ -236,7 +289,7 @@ def _parameters(
     # Eliminate the final barycentric coordinate of each factor, enforcing a unit sum per factor.
     tangent = torch.block_diag(*(torch.cat((torch.eye(a), -torch.ones(1, a))).to(torch.float64) for a in poly.dimensions))
     for _ in range(max_iter):
-        _, gradient, hessian = poly.geometry(t, y)
+        error, gradient, hessian = poly.geometry(t, y)
         if not torch.isfinite(gradient).all() or not torch.isfinite(hessian).all():
             raise ArithmeticError("Non-finite parameter derivatives.")
         if (_project_factors(t - gradient, poly.dimensions) - t).abs().max().item() <= tolerance:
@@ -244,11 +297,11 @@ def _parameters(
         reduced = tangent.T @ hessian @ tangent
         rhs = gradient @ tangent
         delta = -(torch.linalg.pinv(reduced, hermitian=True) @ rhs[:, :, None]).squeeze(2) @ tangent.T
-        newton = _line_search(poly, t, delta, y)
+        newton, newton_error = _line_search(poly, t, delta, y, error)
         # Indefinite/singular Hessians and active boundaries need a descent fallback.
         scale = hessian.abs().sum(2).amax(1).clamp_min(1e-12)
-        descent = _line_search(poly, t, -gradient / scale[:, None], y)
-        use_newton = (poly.derivative(newton) - y).square().sum(1) < (poly.derivative(descent) - y).square().sum(1)
+        descent, descent_error = _line_search(poly, t, -gradient / scale[:, None], y, error)
+        use_newton = newton_error < descent_error
         t = torch.where(use_newton[:, None], newton, descent)
     _, gradient, _ = poly.geometry(t, y)
     return t, bool((_project_factors(t - gradient, poly.dimensions) - t).abs().max() <= tolerance)
@@ -266,8 +319,9 @@ def _parameter_stationary(model: BezierModel, y: torch.Tensor, t: torch.Tensor, 
     if not t.shape[1]:
         return True
     poly = _Polynomial(model)
-    residual = poly.derivative(t) - y
-    gradient = torch.stack([(residual * poly.derivative(t, (i,))).sum(1) for i in range(t.shape[1])], 1)
+    memo: dict[Any, torch.Tensor] = {}
+    residual = poly.derivative(t, (), memo) - y
+    gradient = torch.stack([(residual * poly.derivative(t, (i,), memo)).sum(1) for i in range(t.shape[1])], 1)
     projected = _project_factors(t - gradient, poly.dimensions)
     return bool(torch.isfinite(gradient).all() and (projected - t).abs().max() <= tolerance)
 
@@ -429,11 +483,20 @@ def fit_point_cloud(
 
 
 def _nondominated(y: torch.Tensor, face: tuple[int, ...]) -> torch.Tensor:
-    selected = y[:, face]
-    keep = torch.ones(len(y), dtype=torch.bool)
-    # Linear auxiliary memory rather than an N x N x M dominance tensor.
-    for i, point in enumerate(selected):
-        keep[i] = not bool(((selected <= point).all(1) & (selected < point).any(1)).any())
+    selected = y[:, face].T.contiguous()  # (m, n): one row per objective
+    n = selected.shape[1]
+    keep = torch.empty(n, dtype=torch.bool)
+    # Compare a block of points with all points at once, one objective at a time; the block size bounds the
+    # auxiliary (block, n) masks to about 2**22 entries rather than an N x N x M dominance tensor.
+    step = max(1, 2**22 // max(1, n))
+    for start in range(0, n, step):
+        point = selected[:, start : start + step, None]
+        weak = torch.ones((point.shape[1], n), dtype=torch.bool)
+        strict = torch.zeros((point.shape[1], n), dtype=torch.bool)
+        for objective, value in zip(selected, point, strict=True):
+            weak &= objective <= value
+            strict |= objective < value
+        keep[start : start + step] = ~(weak & strict).any(1)
     return y[keep]
 
 

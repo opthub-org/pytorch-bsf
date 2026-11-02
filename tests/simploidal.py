@@ -4,7 +4,7 @@ import sys
 from itertools import product
 from math import comb, factorial, prod
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pytest
@@ -795,6 +795,70 @@ def test_rank_is_exact():
     assert _rank(m, 2) == 2
     assert _rank(torch.tensor([[2, 0], [0, 2]]), 2) == 0
     assert _rank(torch.zeros(0, 3, dtype=torch.long), None) == 0
+
+
+def _reference_rank(matrix: torch.Tensor, modulus: int | None) -> int:
+    """The dense row elimination of ``_rank`` before #630."""
+    from math import gcd
+
+    def reduce(row: list[int]) -> list[int]:
+        if modulus is not None:
+            return [x % modulus for x in row]
+        g = gcd(*row)
+        return [x // g for x in row] if g > 1 else row
+
+    rows = [r for r in (reduce(r) for r in matrix.tolist()) if any(r)]
+    rank = 0
+    while rows:
+        pivot = rows.pop()
+        c = next(k for k, x in enumerate(pivot) if x)
+        rows = [r if not r[c] else reduce([pivot[c] * x - r[c] * y for x, y in zip(r, pivot, strict=True)]) for r in rows]
+        rows = [r for r in rows if any(r)]
+        rank += 1
+    return rank
+
+
+@given(st.integers(0, 7), st.integers(0, 7), st.integers(0, 3), st.integers(0, 2**32 - 1))
+@example(6, 6, 3, 0)
+def test_sparse_rank_matches_the_dense_reference(n_rows, n_columns, low_rank, seed):
+    """The sparse elimination of #630 gives the exact ranks of the dense elimination, over Q and Z/2."""
+    from torch_bsf._kernels.sets import _rank, _sparse_rank
+
+    generator = torch.Generator().manual_seed(seed)
+    matrix = torch.randint(-3, 4, (n_rows, n_columns), generator=generator)
+    matrix[torch.rand(n_rows, n_columns, generator=generator) < 0.5] = 0  # sparse
+    if low_rank and n_rows and n_columns:
+        # A product of thin factors has rank at most low_rank, with dependent rows over Q.
+        left = torch.randint(-3, 4, (n_rows, low_rank), generator=generator)
+        matrix = left @ torch.randint(-3, 4, (low_rank, n_columns), generator=generator)
+    for modulus in (None, 2, 3):
+        expected = _reference_rank(matrix, modulus)
+        assert _rank(matrix, modulus) == expected
+        assert _rank(matrix.T, modulus) == expected
+        columns = [{r: int(x) for r, x in enumerate(column) if x} for column in matrix.T.tolist()]
+        assert _sparse_rank(columns, modulus) == expected
+
+
+@pytest.mark.parametrize("name, build, betti_q, betti_z2", HOMOLOGY_CASES, ids=[c[0] for c in HOMOLOGY_CASES])
+def test_sparse_boundary_columns_match_the_dense_matrix(name, build, betti_q, betti_z2):
+    S = build()
+    for k in range(S.dim + 2):
+        dense = S.boundary_matrix(k)
+        n_rows, columns = S._boundary_columns(k)
+        assert n_rows == dense.shape[0]
+        assert columns == [{r: int(x) for r, x in enumerate(column) if x} for column in dense.T.tolist()]
+
+
+@pytest.mark.parametrize(("dim", "k"), [(1, 6), (2, 5), (3, 3)])
+def test_betti_numbers_of_triangulated_simplices_match_the_dense_reference(dim, k):
+    from torch_bsf.interpolation import _simplicial_set, lattice_mesh
+
+    S, _ = _simplicial_set(lattice_mesh(dim, k).simplices.tolist())
+    fields: list[tuple[Literal["Q", "Z2"], int | None]] = [("Q", None), ("Z2", 2)]
+    for field, modulus in fields:
+        ranks = [_reference_rank(S.boundary_matrix(i), modulus) for i in range(S.dim + 2)]
+        expected = [len(S.simploids(i)) - ranks[i] - ranks[i + 1] for i in range(S.dim + 1)]
+        assert S.betti_numbers(field) == expected == [1] + [0] * dim  # a triangulated simplex is contractible
 
 
 # ---------------------------------------------------------------------------

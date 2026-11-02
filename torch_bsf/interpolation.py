@@ -65,6 +65,10 @@ _DEGREE = 3
 _ROUNDING = 1  # lengths differing by this many units of rounding (times d) are equal
 
 
+# The default batch of SimplicialMesh.locate keeps each (batch, n_simplices, d + 1) float64 array within this size.
+_LOCATE_ARRAY_BYTES = 2**24
+
+
 class _Tagged(NamedTuple):
     """A simplex of newest-vertex bisection; its refinement edge is ``vertices[0] vertices[tag]``."""
 
@@ -836,7 +840,7 @@ class SimplicialMesh:
             result[indices, cell] = values
         return result
 
-    def locate(self, x: Any, *, tol: float = 1e-8, batch_size: int = 1024) -> Points:
+    def locate(self, x: Any, *, tol: float = 1e-8, batch_size: int | None = None) -> Points:
         """Find the simplex containing each point and its barycentric coordinates there.
 
         Every simplex is tested (brute force). A point on a shared face is assigned to one of the simplices
@@ -852,10 +856,13 @@ class SimplicialMesh:
             mesh onto its boundary.
         batch_size
             Number of points tested at a time, bounding temporary float64 storage by
-            ``O(batch_size * n_simplices * (d + 1))``. Exact arithmetic for cancellation-prone pairs additionally
-            caches ``O(d**2)`` rational coefficients per affected simplex, whose integer sizes depend on the
-            input exponents. Those pairs are processed sequentially without an array of rational coordinates.
-            Differentiable queries additionally retain symbolic expression caches and autograd state.
+            ``O(batch_size * n_simplices * (d + 1))``. By default it is chosen from the number of simplices so
+            that each temporary array of shape ``(batch_size, n_simplices, d + 1)`` takes at most 16 MiB
+            (about a dozen such arrays are alive at once), and at least one point is tested at a time. Exact
+            arithmetic for cancellation-prone pairs additionally caches ``O(d**2)`` rational coefficients per
+            affected simplex, whose integer sizes depend on the input exponents. Those pairs are processed
+            sequentially without an array of rational coordinates. Differentiable queries additionally retain
+            symbolic expression caches and autograd state.
 
         Returns
         -------
@@ -870,6 +877,8 @@ class SimplicialMesh:
         if not math.isfinite(float(tol)) or tol < 0:
             raise ValueError(f"tol must be finite and nonnegative, but {tol} is given.")
         p = self._check_points(x)
+        if batch_size is None:
+            batch_size = _LOCATE_ARRAY_BYTES // (8 * max(1, self.n_simplices) * (self.dimension + 1))
         ids, coordinates = [], []
         for chunk in torch.split(p, max(1, batch_size)):
             lam = self.barycentric(chunk)
@@ -1175,11 +1184,8 @@ def refine(
     return refined
 
 
-def _gradient_at(v: int, x: torch.Tensor, f: torch.Tensor, ring: list[list[int]], max_rings: int) -> torch.Tensor:
-    """Weighted least-squares gradient of the data at vertex ``v``."""
-    d = x.shape[1]
-    iu = torch.triu_indices(d, d)
-    n_quadratic = d + iu.shape[1]
+def _neighbourhood(v: int, ring: list[list[int]], max_rings: int, n_quadratic: int) -> tuple[list[int], bool]:
+    """The neighbours of vertex ``v`` used by its gradient fit, and whether they suffice for the quadratic fit."""
     near = set(ring[v])
     for _ in range(max_rings - 1):
         near |= {w for u in near for w in ring[u]}
@@ -1188,37 +1194,47 @@ def _gradient_at(v: int, x: torch.Tensor, f: torch.Tensor, ring: list[list[int]]
             break
     quadratic = len(near) >= n_quadratic + 2
     # The one-ring of a vertex of a non-degenerate simplex spans R^d, for the linear fallback.
-    rows = torch.tensor(sorted(near) if quadratic else ring[v], dtype=torch.long)
+    return (sorted(near) if quadratic else ring[v]), quadratic
+
+
+def _gradients_at(v: torch.Tensor, rows: torch.Tensor, x: torch.Tensor, f: torch.Tensor, quadratic: bool) -> torch.Tensor:
+    """Weighted least-squares gradients of the data at the vertices ``v`` (b,) from their neighbours ``rows`` (b, k).
+
+    Every vertex of the batch has the same number ``k`` of neighbours and the same kind of fit, so that the
+    fits are solved together by one batched least-squares call; each fit is independent of the others.
+    """
+    d = x.shape[1]
+    iu = torch.triu_indices(d, d)
     # The fit is solved in the coordinates q = H^{-1} offsets, H = diag(extent of each axis), with the rows
     # weighted by 1 / |q|: each weighted linear row is the unit vector q / |q| and its right-hand side the slope
     # (f_w - f_v) / |q|. They are computed from the mantissas and exponents of the offsets, so that nothing
     # overflows or underflows on the way however the axes and the neighbours differ in scale, even where the
     # offsets themselves overflow, between vertices two rings apart near opposite ends of the float64 range.
-    mantissa, exponent = _split_difference(x[rows], x[v])
+    mantissa, exponent = _split_difference(x[rows], x[v][:, None])  # (b, k, d)
     exponent = torch.where(mantissa == 0, -(2**20), exponent)  # zeros never set the extent
-    extent_exponent = exponent.amax(dim=0)  # H_j = extent_mantissa_j * 2**extent_exponent_j
-    extent_mantissa = torch.where(exponent == extent_exponent, mantissa.abs(), 0.0).amax(dim=0)
+    extent_exponent = exponent.amax(dim=1, keepdim=True)  # H_j = extent_mantissa_j * 2**extent_exponent_j
+    extent_mantissa = torch.where(exponent == extent_exponent, mantissa.abs(), 0.0).amax(dim=1, keepdim=True)
     exponent = torch.where(mantissa == 0, -(2**20), exponent - extent_exponent)
-    row_exponent = exponent.amax(dim=1, keepdim=True)  # q_k = 2**row_exponent_k * p_k, at most 0
+    row_exponent = exponent.amax(dim=2, keepdim=True)  # q_k = 2**row_exponent_k * p_k, at most 0
     p = torch.where(mantissa == 0, 0.0, _times_power_of_two(mantissa / extent_mantissa, exponent - row_exponent))
-    length = p.norm(dim=1, keepdim=True)  # in [1/2, 2 sqrt(d)]
+    length = p.norm(dim=2, keepdim=True)  # in [1/2, 2 sqrt(d)]
     unit = p / length
     if quadratic:
         q = _times_power_of_two(p, row_exponent)  # entries of q are at most 1 in magnitude
-        design = torch.cat([unit, unit[:, iu[0]] * q[:, iu[1]]], dim=1)
+        design = torch.cat([unit, unit[:, :, iu[0]] * q[:, :, iu[1]]], dim=2)
     else:
         design = unit
     # Slopes as mantissa * 2**exponent, scaled by one power of two per output so that the largest is near one.
-    slope_mantissa, slope_exponent = _split_difference(f[rows], f[v])
+    slope_mantissa, slope_exponent = _split_difference(f[rows], f[v][:, None])  # (b, k, n_outputs)
     slope_mantissa = slope_mantissa / length
     slope_exponent = torch.where(slope_mantissa == 0, -(2**20), slope_exponent - row_exponent)
-    top = slope_exponent.amax(dim=0)  # (n_outputs,)
+    top = slope_exponent.amax(dim=1, keepdim=True)  # (b, 1, n_outputs)
     top = torch.where(top < -(2**19), 0, top)  # data constant on the neighbourhood
     rhs = _times_power_of_two(slope_mantissa, slope_exponent - top)
     solution: torch.Tensor = torch.linalg.lstsq(design, rhs, driver="gelsd").solution
     # The linear coefficients are the gradient times H, divided by 2**top.
-    shift = top[None, :] - extent_exponent[:, None]
-    return _times_power_of_two(solution[:d] / extent_mantissa[:, None], shift)
+    shift = top - extent_exponent.transpose(1, 2)
+    return _times_power_of_two(solution[:, :d] / extent_mantissa.transpose(1, 2), shift)
 
 
 def estimate_gradients(mesh: SimplicialMesh, values: Any, *, max_rings: int = 4) -> torch.Tensor:
@@ -1265,9 +1281,19 @@ def estimate_gradients(mesh: SimplicialMesh, values: Any, *, max_rings: int = 4)
         raise ValueError("max_rings must be an integer >= 2.")
     f = mesh._check_values(values)
     ring = mesh.neighbors()
-    out = torch.zeros(mesh.n_vertices, mesh.dimension, f.shape[1], dtype=torch.float64)
+    d = mesh.dimension
+    n_quadratic = d + d * (d + 1) // 2
+    out = torch.zeros(mesh.n_vertices, d, f.shape[1], dtype=torch.float64)
+    # Fits with the same number of neighbours and the same kind are solved together.
+    groups: dict[tuple[bool, int], tuple[list[int], list[list[int]]]] = {}
     for v in torch.unique(mesh.simplices).tolist():
-        out[v] = _gradient_at(v, mesh.vertices, f, ring, max_rings)
+        rows, quadratic = _neighbourhood(v, ring, max_rings, n_quadratic)
+        vertices, neighbours = groups.setdefault((quadratic, len(rows)), ([], []))
+        vertices.append(v)
+        neighbours.append(rows)
+    for (quadratic, _), (vertices, neighbours) in groups.items():
+        v = torch.tensor(vertices, dtype=torch.long)
+        out[v] = _gradients_at(v, torch.tensor(neighbours, dtype=torch.long), mesh.vertices, f, quadratic)
     return out
 
 
@@ -1985,7 +2011,7 @@ class MacroInterpolant:
         self.mesh.space.validate(points)
         return self._transfer(points)
 
-    def locate(self, x: Any, *, tol: float = 1e-8, batch_size: int = 1024) -> Points:
+    def locate(self, x: Any, *, tol: float = 1e-8, batch_size: int | None = None) -> Points:
         """Find the piece containing each point and its barycentric coordinates there.
 
         The points are located in :attr:`mesh` by :meth:`SimplicialMesh.locate`, and then in the pieces of their
@@ -1998,7 +2024,8 @@ class MacroInterpolant:
         tol
             Tolerance on the barycentric coordinates, as in :meth:`SimplicialMesh.locate`.
         batch_size
-            Number of points located at a time, as in :meth:`SimplicialMesh.locate`.
+            Number of points located at a time, as in :meth:`SimplicialMesh.locate`, which also chooses the
+            default.
 
         Returns
         -------
@@ -2012,7 +2039,7 @@ class MacroInterpolant:
         """
         return self.transfer(self.mesh.locate(x, tol=tol, batch_size=batch_size))
 
-    def __call__(self, x: Any, *, tol: float = 1e-8, batch_size: int = 1024) -> torch.Tensor:
+    def __call__(self, x: Any, *, tol: float = 1e-8, batch_size: int | None = None) -> torch.Tensor:
         """Evaluate the interpolant at points ``x``.
 
         Parameters
