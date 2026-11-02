@@ -1866,12 +1866,18 @@ active positive-dimensional faces, so the dimension and shape optima agree.
   at each fixed :math:`M\geq4` by a positive integral and a convergent
   series with certified truncation errors. The convolution lengths still
   grow with the degree; these results do not give a bounded-length
-  classical-special-function expression or a limit uniform in growing
-  :math:`M`.
+  classical-special-function expression. These fixed-:math:`M` limits
+  alone do not justify replacing :math:`M` by a growing sequence.
   :prf:ref:`thm-risk-general-vertex-explicit-error` adds a computable
   bound :math:`R_M(1+\log D)^{M-2}/D^{M+2}` for every
   :math:`M\geq4,D\geq256`. Its relative error tends to zero at
-  each fixed :math:`M`; this still does not give a uniform growing-M limit.
+  each fixed :math:`M`.
+  :prf:ref:`thm-risk-joint-vertex-growth` now controls the full dependence
+  on :math:`M` and proves a simultaneous regime: for
+  :math:`D\geq2^{1024}` and the explicit growing range
+  :math:`4\leq M\leq h(D)`, relative error is at most :math:`D^{-3/4}`.
+  Its conservative start and range are part of the theorem; wider
+  simultaneous regimes remain to be investigated.
 - **The full comparison beyond the classified degrees.**
   :prf:ref:`prop-skeleton-wins` classifies every :math:`M` at
   :math:`D\leq8`, and :prf:ref:`thm-risk-comparisons-nine-twenty`
