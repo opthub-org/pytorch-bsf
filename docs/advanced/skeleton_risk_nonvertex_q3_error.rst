@@ -253,3 +253,10 @@ held-out integer-kernel values. Optional native FLINT/Arb checks evaluate
 the original positive double sum and known zeta constant separately.
 These finite checks validate the implementation; the displayed
 inequalities prove the infinite degree tail.
+
+The CLI rejects outputs resolving to evaluator or proof sources, including
+symlink aliases, before calculation and immediately before replacement.
+Large rational integers and JSON integer parameters use local bounded
+decimal chunks; parameter fields remain JSON numbers. Replay uses the
+same local decoder, and no process-wide integer conversion limit is changed.
+Ordinary decimal or rational ``--relative-target`` syntax remains supported.

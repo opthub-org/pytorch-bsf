@@ -8,15 +8,64 @@ See ``docs/advanced/skeleton_risk_nonvertex_q3_error.rst`` for the proof.
 import argparse
 import hashlib
 import json
+import os
+import tempfile
 from fractions import Fraction
 from math import comb, factorial, prod
 from pathlib import Path
 
-from .exact import atomic_json, fraction_record
-
 SCHEMA = "skeleton-risk-nonvertex-q3-error-v1"
 HASH_POLICY = "sha256-crlf-to-lf-v1"
 PROOF = "docs/advanced/skeleton_risk_nonvertex_q3_error.rst"
+
+
+def _decimal(value: int) -> str:
+    """Encode an integer in bounded chunks without altering process limits."""
+    if value == 0:
+        return "0"
+    sign, value = ("-", -value) if value < 0 else ("", value)
+    parts = []
+    while value:
+        value, remainder = divmod(value, 10**500)
+        parts.append(f"{remainder:0500d}" if value else str(remainder))
+    return sign + "".join(reversed(parts))
+
+
+def _decimal_integer(text: str) -> int:
+    """Read decimal chunks, retaining ordinary signed CLI integer syntax."""
+    text = text.strip()
+    sign = -1 if text.startswith("-") else 1
+    if text.startswith(("-", "+")):
+        text = text[1:]
+    if not all(part and all("0" <= digit <= "9" for digit in part) for part in text.split("_")):
+        raise ValueError("invalid decimal integer")
+    digits, result = text.replace("_", ""), 0
+    for start in range(0, len(digits), 500):
+        part = digits[start : start + 500]
+        result = result * 10 ** len(part) + int(part)
+    return sign * result
+
+
+def fraction_record(value: Fraction) -> dict[str, str]:
+    """Encode rational integers locally, including endpoints beyond 4300 digits."""
+    return {"numerator": _decimal(value.numerator), "denominator": _decimal(value.denominator)}
+
+
+def atomic_json(path: Path, value: object) -> None:
+    """Atomically write deterministic JSON, keeping large parameters numeric."""
+    text = _canonical(value) + "\n"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent, delete=False) as stream:
+            temporary = Path(stream.name)
+            stream.write(text)
+            stream.flush()
+            os.fsync(stream.fileno())
+        temporary.replace(path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 def _integer(value: object, minimum: int, name: str) -> int:
@@ -155,7 +204,29 @@ def certificate(face_size: int, degree: int, terms: int = 64, target: Fraction |
 
 
 def _canonical(record: object) -> str:
-    return json.dumps(record, sort_keys=True, allow_nan=False, separators=(",", ":"))
+    active: set[int] = set()
+
+    def encode(value: object) -> str:
+        if type(value) is int:
+            return _decimal(value)
+        if value is None or type(value) in (str, bool, float):
+            return json.dumps(value, allow_nan=False)
+        if not isinstance(value, (dict, list)):
+            raise TypeError("unsupported JSON value")
+        identity = id(value)
+        if identity in active:
+            raise ValueError("circular JSON value")
+        active.add(identity)
+        try:
+            if isinstance(value, dict):
+                if any(type(key) is not str for key in value):
+                    raise ValueError("JSON object keys must be strings")
+                return "{" + ",".join(json.dumps(key) + ":" + encode(value[key]) for key in sorted(value)) + "}"
+            return "[" + ",".join(encode(item) for item in value) + "]"
+        finally:
+            active.remove(identity)
+
+    return encode(record)
 
 
 def _unique(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -183,7 +254,7 @@ def _record_parameters(record: object) -> tuple[int, int, int, Fraction | None]:
         ):
             raise ValueError("invalid recorded relative target")
         try:
-            target = Fraction(int(value["numerator"]), int(value["denominator"]))
+            target = Fraction(_decimal_integer(value["numerator"]), _decimal_integer(value["denominator"]))
         except (ValueError, ZeroDivisionError) as cause:
             raise ValueError("invalid recorded relative target") from cause
     return face_size, degree, terms, target
@@ -199,24 +270,36 @@ def verify_certificate(record: object) -> None:
 def _target_argument(text: str) -> Fraction:
     try:
         return Fraction(text)
-    except (ValueError, ZeroDivisionError) as error:
-        raise argparse.ArgumentTypeError("relative target must be a rational number") from error
+    except (ValueError, ZeroDivisionError):
+        try:
+            numerator, denominator = text.split("/")
+            return Fraction(_decimal_integer(numerator), _decimal_integer(denominator))
+        except (ValueError, ZeroDivisionError) as error:
+            raise argparse.ArgumentTypeError("relative target must be a rational number") from error
+
+
+def _protect_output(path: Path | None, sources: dict[str, bytes]) -> None:
+    if path is not None:
+        root = Path(__file__).resolve().parents[2]
+        if path.resolve() in {(root / name).resolve() for name in sources}:
+            raise ValueError("output must not overwrite evaluator or proof sources")
 
 
 def main(argv: list[str] | None = None) -> int:
     """Save a certificate, optionally verifying the complete previous record."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--face-size", type=int)
-    parser.add_argument("--degree", type=int)
-    parser.add_argument("--constant-terms", type=int)
+    parser.add_argument("--face-size", type=_decimal_integer)
+    parser.add_argument("--degree", type=_decimal_integer)
+    parser.add_argument("--constant-terms", type=_decimal_integer)
     parser.add_argument("--relative-target", type=_target_argument)
     parser.add_argument("--verify", type=Path)
     parser.add_argument("--output", type=Path)
     arguments = parser.parse_args(argv)
     sources = _sources()
     try:
+        _protect_output(arguments.output, sources)
         if arguments.verify is not None:
-            previous = json.loads(arguments.verify.read_bytes(), object_pairs_hook=_unique)
+            previous = json.loads(arguments.verify.read_bytes(), object_pairs_hook=_unique, parse_int=_decimal_integer)
             saved = _record_parameters(previous)
             supplied = (arguments.face_size, arguments.degree, arguments.constant_terms, arguments.relative_target)
             if any(value is not None and value != recorded for value, recorded in zip(supplied, saved, strict=True)):
@@ -230,6 +313,7 @@ def main(argv: list[str] | None = None) -> int:
             report = certificate(arguments.face_size, arguments.degree, terms, arguments.relative_target)
         if _sources() != sources:
             raise RuntimeError("nonvertex q3 error sources changed during calculation")
+        _protect_output(arguments.output, sources)
         if arguments.output is not None:
             atomic_json(arguments.output, report)
         else:

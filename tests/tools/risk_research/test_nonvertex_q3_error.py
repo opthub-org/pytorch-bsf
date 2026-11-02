@@ -19,6 +19,16 @@ from tools.risk_research.codimension_three_exact import harmonic_diagonals
 ROOT = Path(__file__).resolve().parents[3]
 
 
+def _large_integer(text):
+    sign = -1 if text.startswith("-") else 1
+    text = text.removeprefix("-")
+    value = 0
+    for start in range(0, len(text), 400):
+        part = text[start : start + 400]
+        value = value * 10 ** len(part) + int(part)
+    return sign * value
+
+
 def _fraction(value):
     return Fraction(int(value["numerator"]), int(value["denominator"]))
 
@@ -132,6 +142,219 @@ def test_large_degree_evaluation_does_not_build_degree_sized_tables():
         lower, upper = error.coefficient_enclosure(size, degree, terms=2)
         assert 0 < lower < upper
         assert error.relative_error_bound(size, degree) <= error.dyadic_tail_bound(size, 256)
+
+
+def test_large_degree_certificate_and_saved_replay_preserve_integer_limit(tmp_path):
+    limit = sys.get_int_max_str_digits()
+    try:
+        degree = 1 << 5000
+        expected = error.coefficient_enclosure(2, degree, terms=2)
+        record = error.certificate(2, degree, terms=2)
+        enclosure = record["coefficient_enclosure"]
+        assert isinstance(enclosure, dict)
+        for name, actual in zip(("lower", "upper"), expected, strict=True):
+            value = enclosure[name]
+            assert Fraction(_large_integer(value["numerator"]), _large_integer(value["denominator"])) == actual
+        error.verify_certificate(record)
+        output = tmp_path / "large-record.json"
+        # This decimal input avoids calling a large integer formatter in the test.
+        decimal_degree = "1" + "0" * 1500
+        assert (
+            error.main(["--face-size", "2", "--degree", decimal_degree, "--constant-terms", "2", "--output", str(output)]) == 0
+        )
+        assert error.main(["--verify", str(output)]) == 0
+        saved = json.loads(output.read_text(), parse_int=_large_integer)
+        assert type(saved["degree"]) is int and saved["degree"] == 10**1500
+    finally:
+        assert sys.get_int_max_str_digits() == limit
+
+
+def test_json_integer_parameters_and_tiny_targets_round_trip_beyond_digit_limit(tmp_path):
+    limit = sys.get_int_max_str_digits()
+    try:
+        output = tmp_path / "huge-parameter.json"
+        decimal_degree = "1" + "0" * 5000
+        assert (
+            error.main(["--face-size", "2", "--degree", decimal_degree, "--constant-terms", "2", "--output", str(output)]) == 0
+        )
+        record = json.loads(output.read_text(), parse_int=_large_integer)
+        assert type(record["degree"]) is int and record["degree"] == 10**5000
+        error.verify_certificate(record)
+        assert error.main(["--verify", str(output)]) == 0
+        target = Fraction(1, 10**4500)
+        record = error.certificate(2, 4, terms=2, target=target)
+        tail = record["all_tail"]
+        assert isinstance(tail, dict)
+        assert type(tail["from_degree"]) is int
+        assert tail["from_degree"] >= 10**4500
+        error.verify_certificate(record)
+        target_text = "1/1" + "0" * 4500
+        assert (
+            error.main(
+                [
+                    "--face-size",
+                    "2",
+                    "--degree",
+                    "4",
+                    "--constant-terms",
+                    "2",
+                    "--relative-target",
+                    target_text,
+                    "--output",
+                    str(output),
+                ]
+            )
+            == 0
+        )
+        assert error.main(["--verify", str(output)]) == 0
+    finally:
+        assert sys.get_int_max_str_digits() == limit
+
+
+@pytest.mark.parametrize("value", [0, 1, -1, 10**499, 10**500 - 1, 10**500, -(10**1500 + 17)])
+def test_chunked_integer_codec_including_signed_chunk_boundaries(value):
+    limit = sys.get_int_max_str_digits()
+    text = error._decimal(value)
+    assert _large_integer(text) == value
+    assert error._decimal_integer(text) == value
+    assert sys.get_int_max_str_digits() == limit
+
+
+@pytest.mark.parametrize("text,value", [(" +1_024 ", 1024), ("-0007", -7), ("00", 0)])
+def test_chunked_cli_integer_parser_retains_ordinary_signed_syntax(text, value):
+    assert error._decimal_integer(text) == value
+
+
+@pytest.mark.parametrize("text", ["", "+", "-", "1__0", "_1", "1_", "1 0", "1.0", "bad"])
+def test_chunked_integer_parser_rejects_invalid_syntax(text):
+    with pytest.raises(ValueError):
+        error._decimal_integer(text)
+
+
+@pytest.mark.parametrize("text", ["0.01", "1e-2", "+1/100", " 1 / 100 "])
+def test_relative_target_retains_fraction_decimal_and_exponent_syntax(text):
+    assert error._target_argument(text) == Fraction(1, 100)
+
+
+def test_local_json_codec_preserves_types_and_matches_standard_json_when_bounded():
+    record = {"a": [None, True, False, 1, 1.0, -2, 0.25, "\u03b4\n"], "b": {"c": "value"}}
+    assert error._canonical(record) == json.dumps(record, sort_keys=True, allow_nan=False, separators=(",", ":"))
+    assert error._canonical({"value": 1}) != error._canonical({"value": 1.0})
+    assert error._canonical({"value": 1}) != error._canonical({"value": True})
+    circular: list[object] = []
+    circular.append(circular)
+    for invalid in [float("nan"), float("inf"), circular, {1: "invalid key"}]:
+        with pytest.raises(ValueError):
+            error._canonical(invalid)
+    with pytest.raises(TypeError):
+        error._canonical(object())
+
+
+def test_saved_replay_under_minimum_integer_limit_without_parent_state_changes(tmp_path):
+    limit = sys.get_int_max_str_digits()
+    script = r"""
+import sys
+from pathlib import Path
+from tools.risk_research import nonvertex_q3_error as error
+assert sys.get_int_max_str_digits()==640
+output=Path(sys.argv[1])
+arguments=['--face-size','2','--degree','1'+'0'*1000,'--constant-terms','2']
+assert error.main([*arguments,'--relative-target','0.01','--output',str(output)])==0
+assert error.main(['--verify',str(output)])==0
+assert sys.get_int_max_str_digits()==640
+"""
+    result = subprocess.run(
+        [sys.executable, "-X", "int_max_str_digits=640", "-c", script, str(tmp_path / "minimum-limit.json")],
+        cwd=ROOT,
+        env={**os.environ, "PYTHONPATH": ".", "PYTHONDONTWRITEBYTECODE": "1"},
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert sys.get_int_max_str_digits() == limit
+
+
+@pytest.mark.parametrize("failure", ["serialize", "create", "flush", "replace"])
+def test_local_atomic_writer_failures_preserve_old_output_and_remove_temporary(tmp_path, monkeypatch, failure):
+    output = tmp_path / "previous.json"
+    output.write_bytes(b"preserve existing result")
+
+    def fail(*args, **kwargs):
+        raise OSError("injected atomic output failure")
+
+    if failure == "create":
+        monkeypatch.setattr(error.tempfile, "NamedTemporaryFile", fail)
+    elif failure == "flush":
+        monkeypatch.setattr(error.os, "fsync", fail)
+    elif failure == "replace":
+        monkeypatch.setattr(Path, "replace", fail)
+    with pytest.raises((OSError, ValueError)):
+        error.atomic_json(output, {"value": float("nan")} if failure == "serialize" else {"value": 1})
+    assert output.read_bytes() == b"preserve existing result"
+    assert list(tmp_path.iterdir()) == [output]
+
+
+@pytest.mark.parametrize("source_name", list(error._sources()))
+@pytest.mark.parametrize("use_alias", [False, True])
+@pytest.mark.parametrize("verify_mode", [False, True])
+def test_source_destinations_are_rejected_before_computation_and_write(
+    tmp_path, monkeypatch, source_name, use_alias, verify_mode
+):
+    saved = tmp_path / "saved.json"
+    if verify_mode:
+        assert error.main(["--face-size", "2", "--degree", "20", "--output", str(saved)]) == 0
+    sources = error._sources()
+    source = ROOT / source_name
+    destination = source
+    if use_alias:
+        destination = tmp_path / "source-alias"
+        try:
+            destination.symlink_to(source)
+        except (OSError, NotImplementedError):
+            pytest.skip("platform cannot create a test symlink")
+    computed, writes = [], []
+    original = error.certificate
+
+    def tracking_certificate(*args, **kwargs):
+        computed.append(True)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(error, "certificate", tracking_certificate)
+    # Even on an unfixed implementation this sink cannot modify a source.
+    monkeypatch.setattr(error, "atomic_json", lambda path, record: writes.append(path))
+    arguments = ["--verify", str(saved)] if verify_mode else ["--face-size", "2", "--degree", "20"]
+    with pytest.raises(SystemExit) as failure:
+        error.main([*arguments, "--output", str(destination)])
+    assert failure.value.code == 2
+    assert computed == writes == []
+    assert error._sources() == sources
+
+
+def test_source_alias_retargeted_during_calculation_is_rejected_before_write(tmp_path, monkeypatch):
+    previous = tmp_path / "previous.json"
+    previous.write_text("preserve this result")
+    alias = tmp_path / "alias"
+    source = Path(error.__file__).resolve()
+    try:
+        alias.symlink_to(previous)
+    except (OSError, NotImplementedError):
+        pytest.skip("platform cannot create a test symlink")
+    sources, writes = error._sources(), []
+    original = error.certificate
+
+    def retargeting_certificate(*args, **kwargs):
+        result = original(*args, **kwargs)
+        alias.unlink()
+        alias.symlink_to(source)
+        return result
+
+    monkeypatch.setattr(error, "certificate", retargeting_certificate)
+    monkeypatch.setattr(error, "atomic_json", lambda path, record: writes.append(path))
+    with pytest.raises(SystemExit):
+        error.main(["--face-size", "2", "--degree", "20", "--output", str(alias)])
+    assert writes == [] and error._sources() == sources
+    assert previous.read_text() == "preserve this result"
 
 
 @pytest.mark.parametrize("size", [True, False, 1, 0, -1, 2.0, "2", None])
