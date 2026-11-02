@@ -576,11 +576,13 @@ def test_plot_simploid_2d_surface_color_aliases(require_matplotlib, kwargs):
 def test_plot_simploid_3d_surface_face_color_aliases(require_matplotlib, alias):
     """Face colors given under any alias are honored by 3D surfaces without TypeError."""
     import matplotlib.pyplot as plt
+    import numpy as np
     from matplotlib.colors import to_rgba
 
     ax = plot_bezier_simploid(BezierSimploid.randn((1, 1), 2, 3), num=4, show_control_points=False, **{alias: "y"})
     (surface,) = _collections(ax, "Poly3DCollection")
-    face_rgb = surface.get_facecolor()[:, :3]
+    # matplotlib 3.6 returns a tuple of RGBA arrays here, later versions an (n, 4) array.
+    face_rgb = np.asarray(surface.get_facecolor())[:, :3]
     # Shading changes the brightness, not the hue: no blue channel for yellow.
     assert (face_rgb[:, 2] < 0.05).all() and (face_rgb[:, 0] > 0).all()
     assert to_rgba("y")[2] == 0

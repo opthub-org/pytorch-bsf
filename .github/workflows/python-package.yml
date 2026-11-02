@@ -89,9 +89,9 @@ jobs:
         echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
     - name: Install the lowest direct dependencies
       run: |
-        # lightning and mlflow are extras, but their lower bounds are checked as well
-        uv pip install --resolution lowest-direct '.[lightning,mlflow]'
-        # Keep the resolved versions while adding the optional dependencies and test tools
+        # The extras are optional, but their lower bounds are checked as well
+        uv pip install --resolution lowest-direct '.[lightning,mlflow,sparse,sklearn,plot]'
+        # Keep the resolved versions while adding the test tools
         uv pip freeze | grep -v '^pytorch-bsf' > lowest-constraints.txt
         uv pip install '.[all]' pytest pytest-cov pytest-randomly hypothesis -c lowest-constraints.txt
         uv pip list

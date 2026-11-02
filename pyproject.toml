@@ -58,21 +58,18 @@ mlflow = [
   "mlflow>=3.11.1,<4",
 ]
 sparse = [
-  "scipy",
+  "scipy>=1.9.2,<2",
 ]
 sklearn = [
-  "scikit-learn",
+  "scikit-learn>=1.1.3,<2",
 ]
 plot = [
-  "matplotlib",
-  "scipy",
+  "matplotlib>=3.6,<4",
+  "scipy>=1.9.2,<2",
 ]
+# Every integration; refers to the extras above so that their ranges are declared only once.
 all = [
-  "lightning>=2.4,<3",
-  "mlflow>=3.11.1,<4",
-  "scipy",
-  "scikit-learn",
-  "matplotlib",
+  "pytorch-bsf[lightning,mlflow,sparse,sklearn,plot]",
 ]
 develop = [
   "pre-commit",
