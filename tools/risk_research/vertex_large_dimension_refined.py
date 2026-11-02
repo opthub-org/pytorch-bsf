@@ -212,9 +212,10 @@ def main(argv: list[str] | None = None) -> int:
             with_arb=arguments.with_arb,
             integral_check=arguments.integral_check,
         )
-        if arguments.output.resolve() in {path.resolve() for path in _source_paths().values()}:
+        output = arguments.output.parent.resolve() / arguments.output.name
+        if output.resolve() in {path.resolve() for path in _source_paths().values()}:
             raise ValueError("output must not replace an evaluator or proof source")
-        atomic_json(arguments.output, record)
+        atomic_json(output, record)
     except (OSError, ValueError, TypeError, ModuleNotFoundError, RuntimeError) as error:
         parser.error(str(error))
     print(json.dumps(record, indent=2, allow_nan=False))

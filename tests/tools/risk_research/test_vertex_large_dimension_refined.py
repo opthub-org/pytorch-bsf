@@ -338,6 +338,66 @@ def test_output_parent_retargeted_during_computation_is_rejected(name, tmp_path,
         assert previous.read_bytes() == b"previous output\n"
 
 
+@pytest.mark.parametrize(
+    "name",
+    [
+        "tools/risk_research/vertex_large_dimension_refined.py",
+        "tools/risk_research/vertex_large_dimension.py",
+        "tools/risk_research/exact.py",
+        "tools/risk_research/saved_records.py",
+        "docs/advanced/skeleton_risk_vertex_large_dimension_refined.rst",
+    ],
+)
+def test_output_parent_retargeted_at_writer_entry_stays_in_checked_directory(name, tmp_path, monkeypatch):
+    source = ROOT / name
+    before = source.read_bytes()
+    safe = tmp_path / "safe-output-directory"
+    safe.mkdir()
+    previous = safe / source.name
+    previous.write_bytes(b"previous output\n")
+    alias = tmp_path / "retargetable-directory"
+    try:
+        alias.symlink_to(safe, target_is_directory=True)
+    except (OSError, NotImplementedError) as link_error:
+        pytest.skip(f"symbolic links are unavailable: {link_error}")
+    original_write = refined.atomic_json
+    expected = safe.resolve() / source.name
+    writes = []
+
+    def retarget_at_writer_entry(path, record):
+        alias.unlink()
+        alias.symlink_to(source.parent, target_is_directory=True)
+        # Assert before the real writer so the old implementation fails safely.
+        assert path == expected
+        assert path.resolve() == expected
+        writes.append(path)
+        original_write(path, record)
+
+    monkeypatch.setattr(refined, "atomic_json", retarget_at_writer_entry)
+    try:
+        assert refined.main(["--vertices", "602", "--bits", "32", "--output", str(alias / source.name)]) == 0
+        assert writes == [expected]
+        assert alias.resolve() == source.parent.resolve()
+        record = json.loads(previous.read_bytes())
+        assert record["vertices"] == 602 and record["bits"] == 32
+    finally:
+        assert source.read_bytes() == before
+
+
+def test_atomic_output_replaces_a_leaf_symlink_and_preserves_its_target(tmp_path):
+    target = tmp_path / "target.json"
+    target.write_bytes(b"preserve symlink target")
+    output = tmp_path / "output.json"
+    try:
+        output.symlink_to(target)
+    except (OSError, NotImplementedError) as link_error:
+        pytest.skip(f"symbolic links are unavailable: {link_error}")
+    assert refined.main(["--vertices", "602", "--bits", "32", "--output", str(output)]) == 0
+    assert not output.is_symlink()
+    assert json.loads(output.read_bytes())["vertices"] == 602
+    assert target.read_bytes() == b"preserve symlink target"
+
+
 def test_concurrent_source_changes_and_backend_failures_preserve_output(tmp_path, monkeypatch):
     output = tmp_path / "record.json"
     output.write_bytes(b"previous\n")
