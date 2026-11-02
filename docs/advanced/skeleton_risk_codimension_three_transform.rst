@@ -165,7 +165,9 @@ complete JSON record with scalar types preserved.  Duplicate keys,
 nonfinite numbers and changed fields are rejected.  Failed calculation
 or verification preserves an existing output.  The resolved output is
 checked against proof/evaluator sources and the saved input before
-calculation and again immediately before the atomic write.  Decimal
+calculation and again immediately before the atomic write.  The writer uses
+the validated canonical parent with the original leaf name, so retargeting
+the original parent alias cannot redirect it.  Decimal
 serialization does not change Python's process-wide integer-string limit.
 
 Tests use arbitrary diagonal basis vectors to check the transform's

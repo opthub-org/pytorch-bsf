@@ -217,11 +217,12 @@ def main(argv: list[str] | None = None) -> int:
                 raise ValueError("saved transform record differs from exact recomputation")
         if _raw_sources() != sources:
             raise RuntimeError("transform sources changed during calculation")
-        if arguments.output.resolve() in {(root / name).resolve() for name in sources}:
+        output = arguments.output.parent.resolve() / arguments.output.name
+        if output.resolve() in {(root / name).resolve() for name in sources}:
             raise ValueError("output must not overwrite evaluator or proof sources")
-        if arguments.verify is not None and arguments.output.resolve() == arguments.verify.resolve():
+        if arguments.verify is not None and output.resolve() == arguments.verify.resolve():
             raise ValueError("verification output must differ from its saved input")
-        atomic_json(arguments.output, report)
+        atomic_json(output, report)
     except (OSError, ValueError, RuntimeError) as error:
         parser.error(str(error))
     print(json.dumps({"output": str(arguments.output), "face_size": arguments.face_size, "degree": arguments.degree}))

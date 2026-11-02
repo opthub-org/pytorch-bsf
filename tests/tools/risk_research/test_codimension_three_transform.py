@@ -16,6 +16,39 @@ from tools.risk_research.codimension_three_exact import angular_mode_ratio, codi
 ROOT = Path(__file__).resolve().parents[3]
 
 
+@pytest.mark.parametrize("source_name", list(transform._raw_sources()))
+def test_output_parent_is_pinned_before_atomic_writer_entry(tmp_path, monkeypatch, source_name):
+    protected = ROOT / source_name
+    original_bytes = protected.read_bytes()
+    safe = tmp_path / "safe"
+    safe.mkdir()
+    destination = safe / protected.name
+    destination.write_bytes(b"keep destination")
+    alias = tmp_path / "alias"
+    try:
+        alias.symlink_to(safe, target_is_directory=True)
+    except (OSError, NotImplementedError) as link_error:
+        pytest.skip(f"directory symlinks unavailable: {link_error}")
+    writer = transform.atomic_json
+
+    def retarget_at_writer_entry(path, record):
+        alias.unlink()
+        alias.symlink_to(protected.parent, target_is_directory=True)
+        # Assert before the real writer: the old implementation fails safely
+        # here without any possibility of replacing a real source file.
+        assert path == destination
+        assert path.resolve() == destination
+        writer(path, record)
+
+    monkeypatch.setattr(transform, "atomic_json", retarget_at_writer_entry)
+    try:
+        assert transform.main(["--face-size", "2", "--degree", "4", "--output", str(alias / protected.name)]) == 0
+        assert destination.read_bytes() != b"keep destination"
+        assert protected.read_bytes() == original_bytes
+    finally:
+        alias.unlink()
+
+
 @pytest.mark.parametrize(("first", "second"), [(0, 9), (1, 24), (16, 35), (17, 17), (17, 64), (33, 19), (65, 67)])
 def test_integer_polynomial_multiplier_matches_direct_coefficients(first, second):
     left = [(-1) ** index * (index**2 + 1) for index in range(first)]
