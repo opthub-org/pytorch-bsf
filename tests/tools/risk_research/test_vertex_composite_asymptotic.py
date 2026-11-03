@@ -1,7 +1,10 @@
 """Contracts for growing-domain and fully computable center certificates."""
 
+import importlib.util
 import io
 import json
+import os
+import subprocess
 import sys
 from contextlib import redirect_stdout
 from fractions import Fraction
@@ -11,8 +14,8 @@ from typing import Any
 import pytest
 
 from tools.risk_research import vertex_composite_asymptotic as composite
+from tools.risk_research.checkout_harness import checkout_state, run_python
 from tools.risk_research.vertex_joint_growth_refined import maximum_vertices as old_ceiling
-from tools.risk_research.vertex_large_dimension import integral_normalized_ball
 from tools.risk_research.vertex_refined_asymptotic import error_constants
 
 
@@ -21,7 +24,8 @@ def _fraction(value: dict[str, str]) -> Fraction:
 
 
 def _copy(record: dict[str, Any]) -> dict[str, Any]:
-    return json.loads(composite._canonical(record), parse_int=composite._parse_integer)
+    copied: dict[str, Any] = json.loads(composite._canonical(record), parse_int=composite._parse_integer)
+    return copied
 
 
 @pytest.mark.parametrize(
@@ -190,7 +194,8 @@ def test_replay_rejects_changed_nested_fields(change: str) -> None:
 
 
 def test_empty_and_nonobject_records_are_rejected() -> None:
-    for value in (None, [], {}, "record"):
+    values: tuple[object, ...] = (None, [], {}, "record")
+    for value in values:
         with pytest.raises(ValueError):
             composite.verify_record(value)
 
@@ -319,17 +324,84 @@ def test_parent_alias_is_pinned_before_calculation(tmp_path: Path, monkeypatch: 
     assert (first / "saved.json").exists() and not (second / "saved.json").exists()
 
 
+@pytest.fixture
+def native_python() -> str:
+    executable = os.environ.get("BSF_FLINT_PYTHON") or os.environ.get("BSF_SAGE_PYTHON")
+    if executable is None:
+        if importlib.util.find_spec("flint") is None:
+            pytest.skip("optional python-flint is unavailable")
+        executable = sys.executable
+    return executable
+
+
+@pytest.fixture
+def native_checkout(tmp_path: Path) -> Path:
+    """Copy only the source closure into a clean independent Git fixture."""
+    checkout = tmp_path / "native-checkout"
+    checkout.mkdir()
+    for name, data in composite._sources().items():
+        target = checkout / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+    subprocess.run(["git", "init", "-q", str(checkout)], check=True, capture_output=True)
+    subprocess.run(["git", "add", "."], cwd=checkout, check=True, capture_output=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "core.hooksPath=/dev/null",
+            "-c",
+            "commit.gpgsign=false",
+            "-c",
+            "user.name=Test",
+            "-c",
+            "user.email=test@example.invalid",
+            "commit",
+            "-qm",
+            "test fixture",
+        ],
+        cwd=checkout,
+        check=True,
+        capture_output=True,
+    )
+    return checkout
+
+
 @pytest.mark.parametrize("vertices", [163, 271, 619])
-def test_original_native_integral_is_inside_center_and_constant_budget(vertices: int) -> None:
-    flint = pytest.importorskip("flint")
-    record = composite.build_record(vertices, 100_000, bits=47)
-    lower = _fraction(record["center"]["normalized_lower"])
-    upper = _fraction(record["center"]["normalized_upper"])
-    radius = _fraction(record["constant_error_relative_to_exact_center"])
-    before = flint.ctx.prec
-    original = integral_normalized_ball(vertices, bits=83)
-    assert flint.ctx.prec == before
-    with flint.ctx.workprec(100):
-        lo = flint.arb(flint.fmpq((lower * (1 - radius)).numerator, (lower * (1 - radius)).denominator))
-        hi = flint.arb(flint.fmpq((upper * (1 + radius)).numerator, (upper * (1 + radius)).denominator))
-        assert original.lower() > lo and original.upper() < hi
+def test_original_native_integral_is_inside_center_and_constant_budget(
+    vertices: int, native_python: str, native_checkout: Path
+) -> None:
+    script = f"""
+from fractions import Fraction
+from pathlib import Path
+import flint
+from tools.risk_research import vertex_composite_asymptotic as composite
+from tools.risk_research.vertex_large_dimension import integral_normalized_ball
+assert Path(composite.__file__).resolve().is_relative_to(Path.cwd())
+def fraction(value):
+    return Fraction(int(value['numerator']),int(value['denominator']))
+record=composite.build_record({vertices},100000,bits=47)
+lower=fraction(record['center']['normalized_lower'])
+upper=fraction(record['center']['normalized_upper'])
+radius=fraction(record['constant_error_relative_to_exact_center'])
+flint.ctx.prec=73
+original=integral_normalized_ball({vertices},bits=83)
+assert flint.ctx.prec==73
+with flint.ctx.workprec(100):
+    lo=flint.arb(flint.fmpq((lower*(1-radius)).numerator,(lower*(1-radius)).denominator))
+    hi=flint.arb(flint.fmpq((upper*(1+radius)).numerator,(upper*(1+radius)).denominator))
+    assert original.lower()>lo and original.upper()<hi
+assert flint.ctx.prec==73
+"""
+    before = checkout_state(native_checkout)
+    result = run_python(
+        native_checkout,
+        ["-c", script],
+        modules=("tools.risk_research.vertex_composite_asymptotic",),
+        executable=native_python,
+        expected_head=before.head,
+        expected_tree=before.tree,
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert checkout_state(native_checkout) == before
