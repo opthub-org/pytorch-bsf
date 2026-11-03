@@ -191,6 +191,62 @@ def test_changed_coefficient_and_source_are_rejected() -> None:
             mzv.verify_record(record)
 
 
+def _virtual_sources(change: str) -> tuple[dict[str, bytes], dict[str, bytes]]:
+    original = {name: raw.replace(b"\r\n", b"\n") for name, raw in mzv._sources().items()}
+    changed = dict(original)
+    name = next(iter(changed))
+    if change == "line-endings":
+        changed[name] = original[name].replace(b"\n", b"\r\n")
+        assert changed[name].replace(b"\r\n", b"\n") == original[name]
+    else:
+        changed[name] += b"\n# virtual concurrent source edit\n"
+    assert changed != original
+    return original, changed
+
+
+@pytest.mark.parametrize("change", ["content", "line-endings"])
+def test_builder_rejects_inflight_raw_source_change(change: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    original, changed = _virtual_sources(change)
+    snapshots = iter((original, changed))
+    monkeypatch.setattr(mzv, "_sources", lambda: next(snapshots))
+    with pytest.raises(RuntimeError, match="source changed during calculation"):
+        mzv.build_record(3, 7)
+
+
+@pytest.mark.parametrize("change", ["content", "line-endings"])
+@pytest.mark.parametrize("guard", ["builder", "cli"])
+def test_cli_source_guards_preserve_existing_output(
+    change: str,
+    guard: str,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    original, changed = _virtual_sources(change)
+    # The builder reads twice inside the CLI's own before/after reads.
+    sequence = (original, original, changed) if guard == "builder" else (original, changed, changed, changed)
+    snapshots = iter(sequence)
+    monkeypatch.setattr(mzv, "_sources", lambda: next(snapshots))
+    path = tmp_path / "record.json"
+    before = b"preserve this existing record\n"
+    path.write_bytes(before)
+    with pytest.raises(SystemExit) as error:
+        mzv.main(["--constant-index", "3", "--terms", "7", "--output", str(path)])
+    assert error.value.code == 2
+    assert "source changed during calculation" in capsys.readouterr().err
+    assert path.read_bytes() == before
+
+
+def test_stable_line_endings_are_portable_between_generation_and_verification(monkeypatch: pytest.MonkeyPatch) -> None:
+    original, changed = _virtual_sources("line-endings")
+    monkeypatch.setattr(mzv, "_sources", lambda: original)
+    record = mzv.build_record(3, 7)
+    before = mzv.canonical_json(record)
+    monkeypatch.setattr(mzv, "_sources", lambda: changed)
+    mzv.verify_record(record)
+    assert mzv.canonical_json(record) == before
+
+
 def test_cli_duplicate_keys_and_option_collisions_preserve_files(tmp_path: Path) -> None:
     path = tmp_path / "record.json"
     path.write_text('{"schema":"a","schema":"b"}')

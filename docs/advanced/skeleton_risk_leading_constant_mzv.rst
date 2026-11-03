@@ -206,14 +206,115 @@ speed or accuracy advantage over the original defining series is claimed.
 The finite symbolic expression, its numerical truncation uncertainty,
 and the original independent evaluation are distinct objects.
 
-For each fixed index there are finitely many rational operations, but
-the expression and integer bit lengths can grow substantially. Selected
-symbolic steps consume explicit work units, with a default limit of
-200,000 and an operational maximum of 1,000,000. Exceeding that limit
-raises a controlled error without returning a partial expression. This
-does not restrict the mathematical theorem to those indices that fit
-the default budget, nor does a work unit bound CPU time or memory.
-The tool makes no minimality or polynomial bit-complexity claim.
+Expression size, arithmetic count and integer bits
+--------------------------------------------------
+
+These are three separate costs. The following bounds concern the
+symbolic coefficient construction, before numerical MZV truncation,
+and disregard the implementation's operational cutoff.
+
+**Expression size.** Let :math:`F_0=0`, :math:`F_1=1` and
+:math:`F_{j+2}=F_{j+1}+F_j`. There are :math:`F_{m+1}` words over
+:math:`\{1,2\}` of weight :math:`m`, including the empty word at weight
+zero. Hence there are
+
+.. math::
+
+   \sum_{m=0}^{q-3}F_{m+1}=F_q-1
+
+possible nonconstant terms :math:`\zeta(2,w)`, and at most :math:`F_q`
+terms after allowing the rational unit. Every index tuple has length
+at most :math:`q-2`. This bounds the number and lengths of the stored
+words, not their linear independence or the bits needed for coefficients.
+
+**Arithmetic operations.** Put :math:`Q=q+1`. Count an integer or
+rational addition, subtraction, multiplication or division as one
+operation, including negation, and evaluate factorials, binomial
+coefficients and nonnegative integer powers by elementary products and
+divisions. Loop control, work-counter bookkeeping, dictionary operations,
+tuple construction, sorting and GCD normalization are outside this
+arithmetic model. A deliberately
+loose bound for the symbolic construction is
+
+.. math::
+
+   A_q=128Q^8 2^q.
+
+Here is a loop count that also accounts for recomputation in the current
+implementation. ``_initial`` has at most :math:`Q^3` choices of
+``left``, ``a`` and ``b``. Each ``_ones_product`` enumerates at most
+:math:`2^q` words, and each initial kernel has at most :math:`2Q`
+partial-fraction entries. ``_phi_polynomial`` uses at most :math:`Q^2`
+inner iterations and is recomputed for each ``a`` on the right side.
+Together these cost at most :math:`64Q^6 2^q` arithmetic operations.
+Throughout ``_transform``, pole shifts remain below :math:`q` and pole
+orders remain at most two. Thus kernels and antiderivatives each have
+at most :math:`2Q` entries. There is one child per recursive call,
+at most :math:`Q` levels per initial word, and at most :math:`Q` terms
+to merge per level. Telescoping and division by the next harmonic index,
+including the two-factor partial fractions, therefore cost at most
+:math:`64Q^5 2^q` for all initial words and the final accumulation.
+The sum is below :math:`A_q`. This is a unit-cost algebraic bound,
+not a count of Python instructions, GCD steps or elapsed seconds.
+
+**Integer bits.** A separate bound follows by tracking numerator and
+denominator lengths. All integer inputs to the coefficient arithmetic,
+including the factorial and binomial values, fit within
+:math:`B_0=4Q^2` bits. For example, :math:`q!\leq q^q` and
+:math:`\binom{q}{j}\leq2^q`. If both rational operands have numerator
+and denominator lengths at most :math:`B`, unreduced addition or
+subtraction has lengths at most :math:`2B+1`; multiplication and
+division need at most :math:`2B`. Reduction cannot increase these
+lengths. Iterating :math:`B\mapsto2B+1` therefore gives the explicit
+coarse bound
+
+.. math::
+
+   B_q=(4Q^2+1)2^{A_q}-1
+
+for coefficient numerators and denominators, including intermediate
+rational results in this model. It is intentionally enormous. It is
+an existence bound, not a polynomial bit-complexity claim or a bound on
+Python's internal temporary buffers, CPU time or peak resident memory.
+The term-count bound alone gives no such bit or memory guarantee.
+
+Small-index observations can be reproduced independently of these
+coarse all-index bounds:
+
+.. doctest::
+
+   >>> rows = []
+   >>> for q in range(3, 11):
+   ...     expression = leading_constant_expression(q)
+   ...     rows.append((q, len(expression),
+   ...                  max(abs(c.numerator).bit_length() for c in expression.values()),
+   ...                  max(c.denominator.bit_length() for c in expression.values())))
+   >>> rows
+   [(3, 1, 3, 1), (4, 2, 6, 1), (5, 4, 10, 1), (6, 7, 14, 1), (7, 12, 19, 1), (8, 20, 24, 2), (9, 33, 29, 3), (10, 54, 34, 4)]
+
+Each row reports ``(q, terms, maximum numerator bits, maximum denominator
+bits)`` for the final nonzero coefficients. These finite observations
+do not bound intermediate coefficients or establish a growth law.
+
+Numerical truncation is an additional cost. With prefix length
+:math:`K`, ``_harmonic_values`` collects at most :math:`QF_q` distinct
+suffixes and performs one division and one addition for each nonempty
+suffix at each of :math:`K` steps. The powers in these constructed words
+are at most two. This gives at most :math:`3KQF_q` arithmetic operations
+for that update loop when the possible squaring is included. Tail
+formation and interval accumulation add further operations. The bound
+:math:`B_q` above covers symbolic coefficients only; numerical prefix
+denominators and their arithmetic also depend on :math:`K`.
+
+Selected symbolic and numerical steps consume ``_Budget`` work units,
+with a default limit of 200,000 and an operational maximum of 1,000,000.
+This counter charges selected loops and some word lengths; it omits
+other arithmetic, factorial/binomial internals, GCD work and integer
+bit costs. It is neither :math:`A_q` nor an elapsed-time or memory
+budget. Exceeding the work limit raises a controlled error without
+returning a partial expression. The mathematical theorem is not
+restricted to the indices that fit that operational budget, and the
+tool makes no efficiency or minimal-basis claim.
 
 Records and verification scope
 ------------------------------
