@@ -409,6 +409,16 @@ exact reference for the proved vertex reduction, not a completed closed form.
 The experiment and scan reports record `peak_rss_bytes` where OS resource
 accounting is available, and JSON `null` otherwise (including Windows).
 
+## Finite convergent MZV expressions for every fixed leading constant
+
+`leading_constant_mzv` constructs `c_q`, for every fixed `q>=3`, as a finite
+rational combination of the unit and convergent `zeta(2,w)` values with
+remaining entries one or two and weight at most `q-1`. Rational telescoping
+reduces harmonic-word depth and proves termination without divergent sums.
+The standard-library compiler has explicit operational work limits; its
+signed rational MZV intervals can be broad and claim no numerical speedup.
+See [the proof](../../docs/advanced/skeleton_risk_leading_constant_mzv.rst).
+
 ## Leading constants at large vertex counts
 
 `vertex_large_dimension` proves an explicit large-M approximation to
