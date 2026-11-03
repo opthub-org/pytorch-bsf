@@ -191,6 +191,20 @@ adaptively selected training rows. See :doc:`advanced/active_learning`.
    :members:
    :show-inheritance:
 
+adaptive_curve
+--------------
+
+``fit_adaptive_curve`` obtains responses from a scalar-parameter evaluator
+within one response-row budget. It returns actual BSF charts, original-input
+routing, measured values and provisional gap evidence. The proposed input
+chart components do not certify the topology of the embedded image. SciPy is
+required only when fitting; install the ``adaptive`` extra. See
+:doc:`advanced/adaptive_curves` for costs, grid protocols and prediction support.
+
+.. automodule:: torch_bsf.adaptive_curve
+   :members:
+   :show-inheritance:
+
 optimization
 ------------
 

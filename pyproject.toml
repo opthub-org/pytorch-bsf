@@ -48,6 +48,9 @@ dependencies = [
 Homepage = "https://github.com/opthub-org/pytorch-bsf"
 
 [project.optional-dependencies]
+adaptive = [
+  "scipy>=1.9.2,<2",
+]
 # Optional execution adapter; the numerical core does not require Lightning.
 lightning = [
   "lightning>=2.4,<3",
@@ -69,7 +72,7 @@ plot = [
 ]
 # Every integration; refers to the extras above so that their ranges are declared only once.
 all = [
-  "pytorch-bsf[lightning,mlflow,sparse,sklearn,plot]",
+  "pytorch-bsf[adaptive,lightning,mlflow,sparse,sklearn,plot]",
 ]
 develop = [
   "pre-commit",

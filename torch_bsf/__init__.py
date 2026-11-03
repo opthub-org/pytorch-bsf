@@ -8,6 +8,7 @@ except PackageNotFoundError:
     # Package is not installed (e.g., running from source without pip install)
     __version__ = "unknown"
 
+from torch_bsf.adaptive_curve import AdaptiveCurveResult, CurveGap, CurveInterval, fit_adaptive_curve
 from torch_bsf.core import BezierModel, BezierSpace, FixedControls, Points, QuadraticPenalty, Samples
 from torch_bsf.ensemble import Ensemble
 from torch_bsf.fitting import fit, fit_skeleton_regression
@@ -39,6 +40,10 @@ from torch_bsf.results import (
 )
 
 __all__ = [
+    "fit_adaptive_curve",
+    "AdaptiveCurveResult",
+    "CurveGap",
+    "CurveInterval",
     "BezierSpace",
     "BezierModel",
     "Points",

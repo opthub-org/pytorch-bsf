@@ -37,6 +37,9 @@ Choose a guide by the question you need to answer
    * - Reference evaluations are expensive.
      - :doc:`advanced/active_learning`
      - Errors on a fixed external validation set
+   * - A queryable scalar parameter may contain abrupt response changes.
+     - :doc:`advanced/adaptive_curves`
+     - Provisional brackets, prediction support and actual response costs
    * - A measurement budget must be split among vertices, edges and faces.
      - :doc:`advanced/skeleton_sampling`
      - Rows per face and each face's least-squares rank
@@ -136,6 +139,7 @@ choose them when your domain, objective or execution environment requires it.
    advanced/regularization
    advanced/fixed_controls
    advanced/active_learning
+   advanced/adaptive_curves
 
 Start with the geometric simploid guide before interpolation or subdivision.
 Exact subdivision changes charts while preserving the represented function;
