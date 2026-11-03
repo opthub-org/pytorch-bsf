@@ -73,6 +73,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_error.html">Finite-degree errors for every fixed nonvertex q4 face size</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_refined.html">A logarithmic finite-degree remainder for nonvertex q4 risks</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_general_error.html">Finite-degree errors at every fixed nonvertex codimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_growing_faces.html">Uniform errors for growing nonvertex faces</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_mzv_dyadic.html">Dyadic enclosures for multiple zeta values</a></li>
@@ -209,7 +210,7 @@ the following increments of its eight components:</p>
 \right)^{\mathsf T}.\]</div>
 <p>Thus <span class="math notranslate nohighlight">\(T(j+1)=S(j)T(j)\)</span>. Write the known diagonal weight as
 <span class="math notranslate nohighlight">\(\Psi_j=b(j)T(j)\)</span>; the eight rational entries of <span class="math notranslate nohighlight">\(b\)</span> are
-exactly <a class="reference internal" href="skeleton_risk_five_vertex.html#equation-risk-five-vertex-diagonal">(120)</a> in this ordering.</p>
+exactly <a class="reference internal" href="skeleton_risk_five_vertex.html#equation-risk-five-vertex-diagonal">(122)</a> in this ordering.</p>
 </section>
 <section id="normalization-to-the-largest-shift">
 <h2>Normalization to the largest shift<a class="headerlink" href="#normalization-to-the-largest-shift" title="Link to this heading"></a></h2>
@@ -225,7 +226,7 @@ weight for degree <span class="math notranslate nohighlight">\(D+i\)</span>, div
 supports: <span class="math notranslate nohighlight">\(U_m\)</span> vanishes at the extra upper indices.</p>
 <p>Put <span class="math notranslate nohighlight">\(A(j)=(N-j)(N+2-j)\)</span>. A row certificate <span class="math notranslate nohighlight">\(c(j)\)</span> must satisfy</p>
 <div class="math notranslate nohighlight" id="equation-risk-five-vertex-certificate-row">
-<span class="eqno">(124)<a class="headerlink" href="#equation-risk-five-vertex-certificate-row" title="Link to this equation"></a></span>\[\frac{A(j)}{(j+1)^2}c(j+1)S(j)-c(j)=P(j)b(j).\]</div>
+<span class="eqno">(126)<a class="headerlink" href="#equation-risk-five-vertex-certificate-row" title="Link to this equation"></a></span>\[\frac{A(j)}{(j+1)^2}c(j+1)S(j)-c(j)=P(j)b(j).\]</div>
 <p>Multiplication by <span class="math notranslate nohighlight">\(w_{N,j}T(j)\)</span> then gives a telescoping difference.</p>
 </section>
 <section id="eight-polynomial-equations">
@@ -240,7 +241,7 @@ E_{\mathrm H}(j)&amp;=(j+1)^3(j+2)^2(j+3).\end{split}\]</div>
 \mathrm M,\mathrm M,\mathrm H)\)</span>. Let
 <span class="math notranslate nohighlight">\(\Omega_i=\operatorname{lcm}(E_i(j),E_i(j+1))\)</span>.
 After the previous <span class="math notranslate nohighlight">\(Q_l\)</span> are known, equation <span class="math notranslate nohighlight">\(i\)</span> of
-<a class="reference internal" href="#equation-risk-five-vertex-certificate-row">(124)</a> becomes</p>
+<a class="reference internal" href="#equation-risk-five-vertex-certificate-row">(126)</a> becomes</p>
 <div class="math notranslate nohighlight">
 \[\mathcal L_iQ_i=\Omega_i\left(Pb_i
    -A\sum_{l&lt;i}\frac{Q_l(j+1)}{E_l(j+1)}S_{li}(j)\right).\]</div>
@@ -261,7 +262,7 @@ Triangular polynomial reduction therefore leaves at most
 kernel. Its vector supplies <span class="math notranslate nohighlight">\(\lambda_0,\ldots,\lambda_{17}\)</span>.
 The verifier reconstructs the resulting eight <span class="math notranslate nohighlight">\(Q_i\)</span>, checks all
 polynomial remainders are zero, and separately substitutes the rational
-row into <a class="reference internal" href="#equation-risk-five-vertex-certificate-row">(124)</a>. The certificate degrees
+row into <a class="reference internal" href="#equation-risk-five-vertex-certificate-row">(126)</a>. The certificate degrees
 are <span class="math notranslate nohighlight">\((32,34,33,33,34,35,36,35)\)</span>.</p>
 </section>
 <section id="domain-boundaries-and-scalar-coefficients">

@@ -73,6 +73,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_error.html">Finite-degree errors for every fixed nonvertex q4 face size</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_refined.html">A logarithmic finite-degree remainder for nonvertex q4 risks</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_general_error.html">Finite-degree errors at every fixed nonvertex codimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_growing_faces.html">Uniform errors for growing nonvertex faces</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_mzv_dyadic.html">Dyadic enclosures for multiple zeta values</a></li>
@@ -383,7 +384,7 @@ of distinct control IDs would lose cross terms.</p>
 <p>Use the product uniform probability measure <span class="math notranslate nohighlight">\(U_s\)</span> on each chart.
 The local and assembled Gram matrices are</p>
 <div class="math notranslate nohighlight" id="equation-assembled-risk-grams">
-<span class="eqno">(127)<a class="headerlink" href="#equation-assembled-risk-grams" title="Link to this equation"></a></span>\[Q_s=\int\beta_s\beta_s^\top\,dU_s,\qquad
+<span class="eqno">(129)<a class="headerlink" href="#equation-assembled-risk-grams" title="Link to this equation"></a></span>\[Q_s=\int\beta_s\beta_s^\top\,dU_s,\qquad
 G_s=A_s^\top Q_s A_s=\int\phi_s\phi_s^\top\,dU_s.\]</div>
 <p>Every entry follows directly from Dirichlet moments:</p>
 <div class="math notranslate nohighlight">
@@ -423,7 +424,7 @@ polynomials are linearly independent. Order the global controls by their
 owning cell’s dimension, and define the <span class="math notranslate nohighlight">\(p\times p\)</span> matrix <span class="math notranslate nohighlight">\(C\)</span>
 by the blocks</p>
 <div class="math notranslate nohighlight" id="equation-assembled-risk-propagation">
-<span class="eqno">(128)<a class="headerlink" href="#equation-assembled-risk-propagation" title="Link to this equation"></a></span>\[C[T_s,B_s]=H_s^{-1}G_s[T_s,B_s],\qquad
+<span class="eqno">(130)<a class="headerlink" href="#equation-assembled-risk-propagation" title="Link to this equation"></a></span>\[C[T_s,B_s]=H_s^{-1}G_s[T_s,B_s],\qquad
 C[T_s,j]=0\quad(j\notin B_s),\qquad
 P=(I+C)^{-1}=\sum_{\ell=0}^{d}(-C)^\ell.\]</div>
 <p>Indeed, every nonzero block has a strictly higher row dimension than
@@ -431,8 +432,8 @@ column dimension, so
 <span class="math notranslate nohighlight">\(C^{d+1}=0\)</span>. No inverse of a global Gram matrix is needed.
 Write <span class="math notranslate nohighlight">\(E_s=P[:,T_s]\)</span> and define the nonnegative cell coefficients</p>
 <div class="math notranslate nohighlight" id="equation-assembled-risk-traces">
-<span class="eqno">(129)<a class="headerlink" href="#equation-assembled-risk-traces" title="Link to this equation"></a></span>\[c_s(\mu)=\operatorname{tr}\bigl(H_s^{-1}E_s^\top G_\mu E_s\bigr).\]</div>
-<p>Equations <a class="reference internal" href="#equation-assembled-risk-grams">(127)</a>–<a class="reference internal" href="#equation-assembled-risk-traces">(129)</a> are a
+<span class="eqno">(131)<a class="headerlink" href="#equation-assembled-risk-traces" title="Link to this equation"></a></span>\[c_s(\mu)=\operatorname{tr}\bigl(H_s^{-1}E_s^\top G_\mu E_s\bigr).\]</div>
+<p>Equations <a class="reference internal" href="#equation-assembled-risk-grams">(129)</a>–<a class="reference internal" href="#equation-assembled-risk-traces">(131)</a> are a
 finite expression for every compatible degree and finite simploidal set.
 They require only local proper-block solves and a finite polynomial in
 <span class="math notranslate nohighlight">\(C\)</span>. Rational evaluation weights give rational coefficients.
@@ -446,7 +447,7 @@ the identifications and the evaluation measure are part of the answer.</p>
 <span class="math notranslate nohighlight">\(n_s/N\to q_s&gt;0\)</span> for every active cell. Then <span class="math notranslate nohighlight">\(R_N\)</span> is finite
 for all sufficiently large <span class="math notranslate nohighlight">\(N\)</span>, and</p>
 <div class="math notranslate nohighlight" id="equation-assembled-risk-limit">
-<span class="eqno">(130)<a class="headerlink" href="#equation-assembled-risk-limit" title="Link to this equation"></a></span>\[\lim_{N\to\infty}\frac{NR_N}{\sigma^2L}
+<span class="eqno">(132)<a class="headerlink" href="#equation-assembled-risk-limit" title="Link to this equation"></a></span>\[\lim_{N\to\infty}\frac{NR_N}{\sigma^2L}
 =\sum_{s\in\mathcal A}\frac{c_s(\mu)}{q_s}.\]</div>
 </section>
 </div><div class="proof admonition" id="proof">
@@ -457,7 +458,7 @@ equation is</p>
 \[e_{T_s}=\eta_s-\hat H_s^{-1}\hat G_s[T_s,B_s]e_{B_s},\qquad
 \eta_s=(Z_{s,T}^\top Z_{s,T})^{-1}Z_{s,T}^\top\varepsilon_s.\]</div>
 <p>Hence <span class="math notranslate nohighlight">\(e=\hat P\eta=\sum_s\hat E_s\eta_s\)</span>, using the same finite
-polynomial as <a class="reference internal" href="#equation-assembled-risk-propagation">(128)</a>. Conditional on all
+polynomial as <a class="reference internal" href="#equation-assembled-risk-propagation">(130)</a>. Conditional on all
 design rows, the innovations are independent, and each output column
 of <span class="math notranslate nohighlight">\(\eta_s\)</span> has covariance <span class="math notranslate nohighlight">\(\sigma^2\hat H_s^{-1}/n_s\)</span>.
 Therefore, exactly,</p>
@@ -479,7 +480,7 @@ polynomials and are bounded. The finite propagation polynomial bounds
 <span class="math notranslate nohighlight">\(N/n_s\)</span> is bounded. Hölder’s inequality and the inverse-moment lemma
 give a uniform second-moment bound, exactly as in
 <a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-risk">Theorem 7</a>. This proves finiteness and uniform
-integrability, and hence <a class="reference internal" href="#equation-assembled-risk-limit">(130)</a>.</p>
+integrability, and hence <a class="reference internal" href="#equation-assembled-risk-limit">(132)</a>.</p>
 </div>
 </section>
 <section id="optimal-allocation-and-all-at-once-comparison">
@@ -490,7 +491,7 @@ positive evaluation weight on every maximal cell. Each global control
 occurs in at least one maximal chart, and every local Bernstein basis is
 linearly independent, so their assembled Gram sum is positive definite.</p>
 <div class="proof corollary admonition" id="cor-skeleton-assembled-allocation">
-<p class="admonition-title"><span class="caption-number">Corollary 17 </span> (Cell and grouped allocations)</p>
+<p class="admonition-title"><span class="caption-number">Corollary 18 </span> (Cell and grouped allocations)</p>
 <section class="corollary-content" id="proof-content">
 <p>When <span class="math notranslate nohighlight">\(G_\mu\)</span> is positive definite, the optimal individual-cell
 allocation and normalized risk are</p>
@@ -501,13 +502,13 @@ C_{\rm cell}^*=\left(\sum_s\sqrt{c_s}\right)^2.\]</div>
 <span class="math notranslate nohighlight">\(\mathcal A_g\)</span> and require an equal split within each group.
 With <span class="math notranslate nohighlight">\(K_g=|\mathcal A_g|\)</span> and total group fraction <span class="math notranslate nohighlight">\(\rho_g\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-assembled-risk-grouped">
-<span class="eqno">(131)<a class="headerlink" href="#equation-assembled-risk-grouped" title="Link to this equation"></a></span>\[a_g=K_g\sum_{s\in\mathcal A_g}c_s,\qquad
+<span class="eqno">(133)<a class="headerlink" href="#equation-assembled-risk-grouped" title="Link to this equation"></a></span>\[a_g=K_g\sum_{s\in\mathcal A_g}c_s,\qquad
 C(\rho)=\sum_g\frac{a_g}{\rho_g},\qquad
 \rho_g^*=\frac{\sqrt{a_g}}{\sum_h\sqrt{a_h}},\qquad
 C_{\rm group}^*=\left(\sum_g\sqrt{a_g}\right)^2\geq C_{\rm cell}^*.\]</div>
 </section>
 </div><div class="proof admonition" id="proof">
-<p>Proof. Substitute <span class="math notranslate nohighlight">\(q_s=\rho_g/K_g\)</span> in <a class="reference internal" href="#equation-assembled-risk-limit">(130)</a>.
+<p>Proof. Substitute <span class="math notranslate nohighlight">\(q_s=\rho_g/K_g\)</span> in <a class="reference internal" href="#equation-assembled-risk-limit">(132)</a>.
 Cauchy-Schwarz gives both minima as in <a class="reference internal" href="skeleton_risk_theory.html#thm-skeleton-ratio">Theorem 8</a>.
 Individual-cell allocations include the group-constrained ones.</p>
 </div>
@@ -530,7 +531,7 @@ Neither limiting prescription justifies leaving active cells unfitted, or
 a simultaneous limit with vanishing fractions. The estimator still needs
 their controls, even when the evaluation measure cannot see them.</p>
 <div class="proof corollary admonition" id="cor-skeleton-assembled-aao">
-<p class="admonition-title"><span class="caption-number">Corollary 18 </span> (Global all-at-once fitting)</p>
+<p class="admonition-title"><span class="caption-number">Corollary 19 </span> (Global all-at-once fitting)</p>
 <section class="corollary-content" id="proof-content">
 <p>Fit all <span class="math notranslate nohighlight">\(p\)</span> proper controls jointly, with deterministic chart counts
 <span class="math notranslate nohighlight">\(n_s/N\to v_s&gt;0\)</span> on a fixed collection <span class="math notranslate nohighlight">\(\mathcal D\)</span> of
@@ -578,7 +579,7 @@ which is a face of a chart <span class="math notranslate nohighlight">\(x\)</spa
 <span class="math notranslate nohighlight">\(F_{s,x}=\prod_i I_i\)</span>, and put
 <span class="math notranslate nohighlight">\(M_i=d_{x,i}+1\)</span>, <span class="math notranslate nohighlight">\(r_i=|I_i|-1\)</span>. Define</p>
 <div class="math notranslate nohighlight" id="equation-assembled-risk-incidence">
-<span class="eqno">(132)<a class="headerlink" href="#equation-assembled-risk-incidence" title="Link to this equation"></a></span>\[\lambda_{s,x}
+<span class="eqno">(134)<a class="headerlink" href="#equation-assembled-risk-incidence" title="Link to this equation"></a></span>\[\lambda_{s,x}
  =\prod_i\frac{a_{r_i}(M_i,D_{x,i})}
                    {\binom{M_i}{r_i+1}^2},\qquad
 c_s(\mu)=\sum_{x:\,s\preceq x}w_x\lambda_{s,x}.\]</div>
@@ -603,13 +604,13 @@ reorders <span class="math notranslate nohighlight">\(H_s\)</span>, leaving the 
 <p>The product face trace is <span class="math notranslate nohighlight">\(\lambda_{s,x}\)</span> by
 <a class="reference internal" href="skeleton_risk_theory.html#equation-skeleton-product-face-trace">(3)</a>. Finally, the evaluation metric is a
 weighted sum of chart metrics, and the trace is linear in that metric.
-Summing the local contributions proves <a class="reference internal" href="#equation-assembled-risk-incidence">(132)</a>.</p>
+Summing the local contributions proves <a class="reference internal" href="#equation-assembled-risk-incidence">(134)</a>.</p>
 </div>
 <p>This is stronger than adding independently fitted cell risks: a shared
 source is sampled and fitted once, and its single coefficient adds all
 incident evaluation weights before the allocation is optimized.</p>
 <div class="proof corollary admonition" id="cor-skeleton-pure-incidence">
-<p class="admonition-title"><span class="caption-number">Corollary 19 </span> (The face vector of a pure simplicial complex)</p>
+<p class="admonition-title"><span class="caption-number">Corollary 20 </span> (The face vector of a pure simplicial complex)</p>
 <section class="corollary-content" id="proof-content">
 <p>Suppose a regular simplicial complex is pure of dimension <span class="math notranslate nohighlight">\(M-1\)</span>,
 every simplex has the same degree <span class="math notranslate nohighlight">\(D\)</span>, and evaluation is supported
@@ -617,7 +618,7 @@ on its maximal simplices. Their weights may be arbitrary, summing to
 one. Let <span class="math notranslate nohighlight">\(K_m\)</span> be the number of global <span class="math notranslate nohighlight">\(m\)</span>-faces and
 <span class="math notranslate nohighlight">\(f_m=\binom M{m+1}\)</span>. For active dimensions,</p>
 <div class="math notranslate nohighlight" id="equation-assembled-risk-face-vector">
-<span class="eqno">(133)<a class="headerlink" href="#equation-assembled-risk-face-vector" title="Link to this equation"></a></span>\[\begin{split}d_w(s)&amp;=\sum_{x:\,s\preceq x}w_x,\qquad
+<span class="eqno">(135)<a class="headerlink" href="#equation-assembled-risk-face-vector" title="Link to this equation"></a></span>\[\begin{split}d_w(s)&amp;=\sum_{x:\,s\preceq x}w_x,\qquad
 c_s=\frac{a_m(M,D)}{f_m^2}d_w(s)\quad(\dim s=m),\\
 A_m&amp;=\frac{K_m}{f_m}a_m(M,D).\end{split}\]</div>
 <p>Thus the dimension-grouped risk and its optimum depend only on the
@@ -633,7 +634,7 @@ Substitution into <span class="math notranslate nohighlight">\(A_m=K_m\sum_{\dim
 <p>For example, an arbitrary pure regular triangular complex of degree two,
 with <span class="math notranslate nohighlight">\(V\)</span> vertices and <span class="math notranslate nohighlight">\(E\)</span> edges, has</p>
 <div class="math notranslate nohighlight" id="equation-assembled-risk-triangle-mesh">
-<span class="eqno">(134)<a class="headerlink" href="#equation-assembled-risk-triangle-mesh" title="Link to this equation"></a></span>\[c_v=d_w(v)/24,\qquad c_e=d_w(e)/3,\qquad
+<span class="eqno">(136)<a class="headerlink" href="#equation-assembled-risk-triangle-mesh" title="Link to this equation"></a></span>\[c_v=d_w(v)/24,\qquad c_e=d_w(e)/3,\qquad
 (A_0,A_1,A_2)=(V/8,E,0).\]</div>
 <p>The triangle coefficients are <span class="math notranslate nohighlight">\(a_0=3/8\)</span>, <span class="math notranslate nohighlight">\(a_1=3\)</span>.
 There are <span class="math notranslate nohighlight">\(p=V+E\)</span> global controls. If the evaluation Gram matrix is
@@ -660,7 +661,7 @@ the global vertex of that corner, with repetitions retained, and write
 <p>On any finite simploidal set with all factor degrees one, the vertex
 coefficient is</p>
 <div class="math notranslate nohighlight" id="equation-assembled-risk-linear-corners">
-<span class="eqno">(135)<a class="headerlink" href="#equation-assembled-risk-linear-corners" title="Link to this equation"></a></span>\[c_v(\mu)=\sum_x
+<span class="eqno">(137)<a class="headerlink" href="#equation-assembled-risk-linear-corners" title="Link to this equation"></a></span>\[c_v(\mu)=\sum_x
   \frac{w_x}{\prod_iM_i(M_i+1)}
   \sum_{a,b\in\mathcal F_{x,v}}
            2^{|\{i:a_i=b_i\}|}.\]</div>
@@ -669,7 +670,7 @@ usual values. With <span class="math notranslate nohighlight">\(V\)</span> globa
 active, so <span class="math notranslate nohighlight">\(A_0=V\sum_vc_v\)</span>. The individually optimal normalized
 risk satisfies</p>
 <div class="math notranslate nohighlight" id="equation-assembled-risk-linear-bound">
-<span class="eqno">(136)<a class="headerlink" href="#equation-assembled-risk-linear-bound" title="Link to this equation"></a></span>\[C_{\rm cell}^*=
+<span class="eqno">(138)<a class="headerlink" href="#equation-assembled-risk-linear-bound" title="Link to this equation"></a></span>\[C_{\rm cell}^*=
   \left(\sum_v\sqrt{c_v}\right)^2
      \leq A_0\leq V=p.\]</div>
 <p>The first expression is interpreted as an infimum if some coefficients
@@ -689,9 +690,9 @@ Uniform simplex moments give</p>
 \[E\,[t_{i,a_i}t_{i,b_i}]
    =\frac{1+\mathbf1_{a_i=b_i}}{M_i(M_i+1)}.\]</div>
 <p>Squaring the assembled basis function and using independence of the
-factors proves <a class="reference internal" href="#equation-assembled-risk-linear-corners">(135)</a>, including every
+factors proves <a class="reference internal" href="#equation-assembled-risk-linear-corners">(137)</a>, including every
 cross term between identified corners. Cauchy–Schwarz gives the first
-inequality in <a class="reference internal" href="#equation-assembled-risk-linear-bound">(136)</a>. The nonnegative
+inequality in <a class="reference internal" href="#equation-assembled-risk-linear-bound">(138)</a>. The nonnegative
 assembled functions form a partition of unity on each chart; hence
 <span class="math notranslate nohighlight">\(\sum_v\phi_{x,v}^2\leq1\)</span>, proving the second inequality after
 integration. If a positive-weight chart has two distinct corner
@@ -722,7 +723,7 @@ j_D=\frac{(-1)^{D-1}}{D(D+1)(D+2)},\qquad
    =\frac{2}{(D+1)(D+1+(-1)^D)}.\]</div>
 <p>The assembled coefficients have the closed forms</p>
 <div class="math notranslate nohighlight" id="equation-assembled-risk-graph-coefficients">
-<span class="eqno">(137)<a class="headerlink" href="#equation-assembled-risk-graph-coefficients" title="Link to this equation"></a></span>\[\begin{split}c_v=w_v+
+<span class="eqno">(139)<a class="headerlink" href="#equation-assembled-risk-graph-coefficients" title="Link to this equation"></a></span>\[\begin{split}c_v=w_v+
    \sum_{\substack{e\ni v\\e\text{ is not a loop}}}w_eh_{D_e}
    +\sum_{\substack{e\text{ is a loop}\\\text{at }v}}w_e\ell_{D_e},
 \qquad
@@ -740,7 +741,7 @@ contribute to the vertex coefficients.</p>
 <p>Whenever all active coefficients are positive, the individual-cell
 optimum is the square of the sum of their square roots. The general
 qualifications for zero coefficients remain those in
-<a class="reference internal" href="#cor-skeleton-assembled-allocation">Corollary 17</a>.</p>
+<a class="reference internal" href="#cor-skeleton-assembled-allocation">Corollary 18</a>.</p>
 </section>
 </div><div class="proof admonition" id="proof">
 <p>Proof. On an edge of degree <span class="math notranslate nohighlight">\(D\)</span>, write the endpoint propagation
@@ -777,7 +778,7 @@ numbers, identified in <a class="reference external" href="https://oeis.org/A000
 The identity above proves the pattern independently of the sequence
 identification.</p>
 <div class="proof corollary admonition" id="cor-skeleton-graph-dimension">
-<p class="admonition-title"><span class="caption-number">Corollary 20 </span> (Graph allocations by dimension)</p>
+<p class="admonition-title"><span class="caption-number">Corollary 21 </span> (Graph allocations by dimension)</p>
 <section class="corollary-content" id="proof-content">
 <p>Suppose the graph is loop-free, has <span class="math notranslate nohighlight">\(V\)</span> vertices and <span class="math notranslate nohighlight">\(E\)</span>
 edges, has no isolated vertices, and every edge has the same degree
@@ -818,7 +819,7 @@ C_{\rm dimension}^*=\frac{11}{4}+\sqrt6&gt;5.\]</div>
 <p>Thus even the individual optimum loses to the matching all-at-once risk
 <span class="math notranslate nohighlight">\(p=5\)</span> on this graph, although a single quadratic segment wins.</p>
 <div class="proof corollary admonition" id="cor-skeleton-loop-comparison">
-<p class="admonition-title"><span class="caption-number">Corollary 21 </span> (Complete comparison for a single loop)</p>
+<p class="admonition-title"><span class="caption-number">Corollary 22 </span> (Complete comparison for a single loop)</p>
 <section class="corollary-content" id="proof-content">
 <p>For a single degree-<span class="math notranslate nohighlight">\(D\)</span> loop, evaluated uniformly on its edge,</p>
 <div class="math notranslate nohighlight">

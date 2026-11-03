@@ -87,6 +87,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_error.html">Finite-degree errors for every fixed nonvertex q4 face size</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_refined.html">A logarithmic finite-degree remainder for nonvertex q4 risks</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_general_error.html">Finite-degree errors at every fixed nonvertex codimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_growing_faces.html">Uniform errors for growing nonvertex faces</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_mzv_dyadic.html">Dyadic enclosures for multiple zeta values</a></li>
@@ -252,8 +253,8 @@ five-vertex vertex operator, with initial values and no exceptional integers.</p
 <tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(M=4\)</span> or <span class="math notranslate nohighlight">\(M=5\)</span>, <span class="math notranslate nohighlight">\(m=0\)</span>, every degree</p></td>
 <td><p><a class="reference internal" href="skeleton_risk_vertex.html#thm-risk-tetrahedron-vertex-single">Theorem 36</a> and
 <a class="reference internal" href="skeleton_risk_five_vertex.html#thm-risk-five-vertex-single">Theorem 63</a>: one positive harmonic sum;
-<a class="reference internal" href="skeleton_risk_vertex.html#cor-risk-tetrahedron-vertex-asymptotic">Corollary 14</a> and
-<a class="reference internal" href="skeleton_risk_five_vertex.html#cor-risk-five-vertex-asymptotic">Corollary 16</a>: the leading constants.
+<a class="reference internal" href="skeleton_risk_vertex.html#cor-risk-tetrahedron-vertex-asymptotic">Corollary 15</a> and
+<a class="reference internal" href="skeleton_risk_five_vertex.html#cor-risk-five-vertex-asymptotic">Corollary 17</a>: the leading constants.
 <a class="reference internal" href="skeleton_risk_vertex_asymptotics.html#thm-risk-vertex-two-term-error">Theorem 56</a> also gives the tetrahedron
 next term and an explicit error bound for <span class="math notranslate nohighlight">\(D\geq256\)</span>.
 <a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html#thm-risk-five-vertex-explicit-error">Theorem 65</a> gives a five-vertex
@@ -287,11 +288,11 @@ large <span class="math notranslate nohighlight">\(M\)</span>.</p></td>
 </tr>
 <tr class="row-even"><td><p>Any finite simploidal set, with compatible positive factor degrees</p></td>
 <td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-assembled-risk">Theorem 68</a>: global propagation and weighted risk;
-<a class="reference internal" href="simploidal_risk.html#cor-skeleton-assembled-allocation">Corollary 17</a>: cell and grouped optima.</p></td>
+<a class="reference internal" href="simploidal_risk.html#cor-skeleton-assembled-allocation">Corollary 18</a>: cell and grouped optima.</p></td>
 </tr>
 <tr class="row-odd"><td><p>Regular glued complexes, with any compatible positive factor degrees</p></td>
 <td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-regular-incidence">Theorem 69</a>: scalar weighted face incidences;
-<a class="reference internal" href="simploidal_risk.html#cor-skeleton-pure-incidence">Corollary 19</a>: pure simplicial face-vector formula.</p></td>
+<a class="reference internal" href="simploidal_risk.html#cor-skeleton-pure-incidence">Corollary 20</a>: pure simplicial face-vector formula.</p></td>
 </tr>
 <tr class="row-even"><td><p>Any finite simploidal set, with all factor degrees one</p></td>
 <td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-linear-assembled">Theorem 70</a>: explicit corner-collision formula
@@ -299,7 +300,7 @@ and comparison with matching all-at-once fitting.</p></td>
 </tr>
 <tr class="row-odd"><td><p>Every one-dimensional set, with any positive edge degrees</p></td>
 <td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-graph-risk">Theorem 71</a>: closed coefficients including loops;
-<a class="reference internal" href="simploidal_risk.html#cor-skeleton-loop-comparison">Corollary 21</a>: complete single-loop comparison.</p></td>
+<a class="reference internal" href="simploidal_risk.html#cor-skeleton-loop-comparison">Corollary 22</a>: complete single-loop comparison.</p></td>
 </tr>
 </tbody>
 </table>
@@ -1724,7 +1725,7 @@ leading large-degree constant. Its length still grows with <span class="math not
 order-ten degree recurrence with initial values and no exceptional integers.
 <a class="reference internal" href="skeleton_risk_five_vertex.html#thm-risk-five-vertex-single">Theorem 63</a> similarly evaluates the
 five-vertex vertex coefficient with four harmonic states and one sum
-of length <span class="math notranslate nohighlight">\(D\)</span>, and <a class="reference internal" href="skeleton_risk_five_vertex.html#cor-risk-five-vertex-asymptotic">Corollary 16</a>
+of length <span class="math notranslate nohighlight">\(D\)</span>, and <a class="reference internal" href="skeleton_risk_five_vertex.html#cor-risk-five-vertex-asymptotic">Corollary 17</a>
 gives its leading constant. A bounded-length classical-special-function
 evaluation is still open in these dimensions.
 <a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html#thm-risk-five-vertex-recurrence">Theorem 64</a> now supplies the

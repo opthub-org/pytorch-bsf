@@ -73,6 +73,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_error.html">Finite-degree errors for every fixed nonvertex q4 face size</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_refined.html">A logarithmic finite-degree remainder for nonvertex q4 risks</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_general_error.html">Finite-degree errors at every fixed nonvertex codimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_growing_faces.html">Uniform errors for growing nonvertex faces</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_mzv_dyadic.html">Dyadic enclosures for multiple zeta values</a></li>
@@ -177,7 +178,7 @@ factors are omitted.</p>
 <section class="theorem-content" id="proof-content">
 <p>For every pair of integers <span class="math notranslate nohighlight">\(M\geq4\)</span> and <span class="math notranslate nohighlight">\(D\geq8M^2\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-risk-quadratic-degree-region">
-<span class="eqno">(118)<a class="headerlink" href="#equation-risk-quadratic-degree-region" title="Link to this equation"></a></span>\[R_{\rm all}(M,D)-R_{\rm ind}(M,D)
+<span class="eqno">(120)<a class="headerlink" href="#equation-risk-quadratic-degree-region" title="Link to this equation"></a></span>\[R_{\rm all}(M,D)-R_{\rm ind}(M,D)
  &gt;\frac{239}{3200}\frac{M}{(M-2)!}D^{M-2}&gt;0.\]</div>
 <p>This is a simultaneous sufficient region. It does not identify the
 crossover or classify the remaining finite degrees at a given <span class="math notranslate nohighlight">\(M\)</span>.</p>
@@ -207,14 +208,14 @@ summable generating series of <a class="reference internal" href="skeleton_risk_
 <span class="math notranslate nohighlight">\(G(x,y)^q\)</span>, where <span class="math notranslate nohighlight">\(\|G\|_1=4\)</span>; its absolute value is at most
 <span class="math notranslate nohighlight">\(4^q\)</span>. Therefore, for <span class="math notranslate nohighlight">\(D\geq s\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-risk-quadratic-direct-coefficient-majorant">
-<span class="eqno">(119)<a class="headerlink" href="#equation-risk-quadratic-direct-coefficient-majorant" title="Link to this equation"></a></span>\[a_{s-1}(M,D)
+<span class="eqno">(121)<a class="headerlink" href="#equation-risk-quadratic-direct-coefficient-majorant" title="Link to this equation"></a></span>\[a_{s-1}(M,D)
  \leq\binom Ms^2\frac{(M-1)!\,2^{M-s}}{((s-1)!)^2}
                     D^{2s-M-1}.\]</div>
 <p>Here <span class="math notranslate nohighlight">\((2D+s)_q\geq(2D)^q\)</span>,
 <span class="math notranslate nohighlight">\((s)_q=(M-1)!/(s-1)!\)</span>, and
 <span class="math notranslate nohighlight">\(\binom{D-1}{s-1}\leq D^{s-1}/(s-1)!\)</span>.
 At <span class="math notranslate nohighlight">\(s=1\)</span>, exactly the same displayed bound follows from the vertex
-majorant <a class="reference internal" href="skeleton_risk_fixed_vertex_tail.html#equation-risk-fixed-vertex-coarse-vertex">(115)</a>. On an inactive face
+majorant <a class="reference internal" href="skeleton_risk_fixed_vertex_tail.html#equation-risk-fixed-vertex-coarse-vertex">(117)</a>. On an inactive face
 <span class="math notranslate nohighlight">\(D&lt;s\)</span>, its actual coefficient and its implementation majorant are
 both zero. This avoids the repeated Cauchy–Schwarz factors in the older
 recursive constants. The facet will use its sharper logarithmic estimate
@@ -228,7 +229,7 @@ instead of this direct bound.</p>
 p=\frac{M(M-1)}D\leq\frac18,\qquad
 X=\sum_{s=1}^{M-1}\sqrt{a_{s-1}(M,D)}.\]</div>
 <p>For every nonfacet, put <span class="math notranslate nohighlight">\(q=M-s\geq2\)</span>. Dividing
-<a class="reference internal" href="#equation-risk-quadratic-direct-coefficient-majorant">(119)</a> by <span class="math notranslate nohighlight">\(b_0\)</span> gives</p>
+<a class="reference internal" href="#equation-risk-quadratic-direct-coefficient-majorant">(121)</a> by <span class="math notranslate nohighlight">\(b_0\)</span> gives</p>
 <div class="math notranslate nohighlight">
 \[\sqrt{a_{s-1}/b_0}
  \leq\binom Mq\frac{(M-1)!}{(M-q-1)!}
@@ -241,7 +242,7 @@ X=\sum_{s=1}^{M-1}\sqrt{a_{s-1}(M,D)}.\]</div>
   \leq\sum_{q=2}^{\infty}\frac{x^q}{q!}
   \leq\frac{x^2}{2(1-x/3)}
   \leq\frac{p^2}{1-p/2}\leq\frac{2p}{15}.\]</div>
-<p>For the facet, <a class="reference internal" href="skeleton_risk_fixed_vertex_tail.html#equation-risk-fixed-vertex-nonvertex-bound">(117)</a> is replaced by the
+<p>For the facet, <a class="reference internal" href="skeleton_risk_fixed_vertex_tail.html#equation-risk-fixed-vertex-nonvertex-bound">(119)</a> is replaced by the
 sharper facet estimate in <a class="reference internal" href="skeleton_risk_fixed_vertex_tail.html"><span class="doc">An explicit winning degree tail at every fixed vertex count</span></a>:</p>
 <div class="math notranslate nohighlight">
 \[\sqrt{a_{M-2}/b_0}
@@ -276,7 +277,7 @@ The positive elementary-symmetric expansion in
   \leq2T+T^2
   &lt;\left(\frac9{10}+\frac{81}{400}p\right)p
   \leq\frac{2961}{3200}p.\]</div>
-<p>Subtracting proves <a class="reference internal" href="#equation-risk-quadratic-degree-region">(118)</a>. All estimates are
+<p>Subtracting proves <a class="reference internal" href="#equation-risk-quadratic-degree-region">(120)</a>. All estimates are
 simultaneous in <span class="math notranslate nohighlight">\(M,D\)</span>; no fixed-dimension asymptotic remainder or
 finite scan has been substituted into a growing-dimension limit.</p>
 </section>

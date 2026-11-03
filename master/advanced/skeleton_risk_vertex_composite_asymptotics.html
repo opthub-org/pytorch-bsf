@@ -73,6 +73,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_error.html">Finite-degree errors for every fixed nonvertex q4 face size</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_refined.html">A logarithmic finite-degree remainder for nonvertex q4 risks</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_general_error.html">Finite-degree errors at every fixed nonvertex codimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_growing_faces.html">Uniform errors for growing nonvertex faces</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_mzv_dyadic.html">Dyadic enclosures for multiple zeta values</a></li>
@@ -188,7 +189,7 @@ h_{**}(D)=1+\max\left(3,
                 \left\lfloor\frac{N-4\ell}{8\ell}\right\rfloor\right).\]</div>
 <p>For every integer <span class="math notranslate nohighlight">\(4\leq M\leq h_{**}(D)\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-risk-composite-joint-domain-error">
-<span class="eqno">(106)<a class="headerlink" href="#equation-risk-composite-joint-domain-error" title="Link to this equation"></a></span>\[\left|\frac{D^{M+1}a_0(M,D)}{C_M}-1\right|
+<span class="eqno">(108)<a class="headerlink" href="#equation-risk-composite-joint-domain-error" title="Link to this equation"></a></span>\[\left|\frac{D^{M+1}a_0(M,D)}{C_M}-1\right|
   \leq2^{-g(q)}D^{-3/4},\]</div>
 <p>with <span class="math notranslate nohighlight">\(g(q)=0\)</span> for <span class="math notranslate nohighlight">\(3\leq q\leq160\)</span>, and
 <span class="math notranslate nohighlight">\(g(q)=\lfloor q/3\rfloor+2-\lceil\log_2q\rceil\)</span> for
@@ -304,7 +305,7 @@ radius is conservative because division by <span class="math notranslate nohighl
 could only decrease it. The small-<span class="math notranslate nohighlight">\(M\)</span> fallback can be wide and
 is not an improvement over the exact-series evaluator there.</p>
 <div class="proof corollary admonition" id="cor-risk-composite-vertex-center">
-<p class="admonition-title"><span class="caption-number">Corollary 15 </span> (A computable composite center)</p>
+<p class="admonition-title"><span class="caption-number">Corollary 16 </span> (A computable composite center)</p>
 <section class="corollary-content" id="proof-content">
 <p>Throughout the new joint domain, let <span class="math notranslate nohighlight">\(t_M=T_M/S_M\)</span>, and let
 <span class="math notranslate nohighlight">\([t_-,t_+]\)</span> be any positive rational enclosure of <span class="math notranslate nohighlight">\(t_M\)</span>.
@@ -316,7 +317,7 @@ b_M^*=(1+u_M)(1+r_M)-1.\]</div>
 <p>If <span class="math notranslate nohighlight">\(\delta\)</span> bounds the degree error relative to <span class="math notranslate nohighlight">\(C_M\)</span>,
 then</p>
 <div class="math notranslate nohighlight" id="equation-risk-composite-computable-center">
-<span class="eqno">(107)<a class="headerlink" href="#equation-risk-composite-computable-center" title="Link to this equation"></a></span>\[\left|\frac{D^{M+1}a_0(M,D)}{S_M\widehat t}-1\right|
+<span class="eqno">(109)<a class="headerlink" href="#equation-risk-composite-computable-center" title="Link to this equation"></a></span>\[\left|\frac{D^{M+1}a_0(M,D)}{S_M\widehat t}-1\right|
    \leq b_M^*+(1+b_M^*)\delta.\]</div>
 <p>The exact center <span class="math notranslate nohighlight">\(T_M\)</span> instead has radius
 <span class="math notranslate nohighlight">\(r_M+(1+r_M)\delta\)</span>.</p>
