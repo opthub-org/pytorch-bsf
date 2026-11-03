@@ -5,6 +5,7 @@ import json
 import os
 import subprocess
 import sys
+from dataclasses import replace
 from fractions import Fraction
 from pathlib import Path
 
@@ -22,7 +23,7 @@ def _fraction(value):
     return Fraction(int(value["numerator"]), int(value["denominator"]))
 
 
-@pytest.mark.parametrize("size,outside", [(2, 2), (3, 4), (4, 5)])
+@pytest.mark.parametrize("size,outside", [(2, 2), (3, 4), (4, 5), (6, 2)])
 def test_two_errors_meet_true_value_accuracy_and_original_constant_overlap(size, outside):
     record = compose.certificate(size, outside, DEGREE, Fraction(1, 100), 190000, 180000)
     interval = record["coefficient_enclosure"]
@@ -53,6 +54,13 @@ def test_two_errors_meet_true_value_accuracy_and_original_constant_overlap(size,
     leading = record["leading_constant"]
     assert isinstance(leading, dict)
     assert max(old_lower, _fraction(leading["lower"])) <= min(old_upper, _fraction(leading["upper"]))
+    # The original positive-series finite-D enclosure also checks the
+    # normalization by D**(s-q-2). The cases include both positive and
+    # negative powers; harmonic-center identities alone cannot detect a
+    # common erroneous rescaling. This is overlap consistency, not a
+    # computation of the huge-D exact coefficient or an oracle nesting claim.
+    finite_lower, finite_upper = compose.nonvertex_general_error.coefficient_enclosure(size, outside, DEGREE, terms=37)
+    assert max(finite_lower, lower) <= min(finite_upper, upper)
     work = record["numeric_work_units"]
     assert type(work) is int and 0 < work <= 180000
     compose.verify_certificate(record)
@@ -176,6 +184,58 @@ def test_whole_composition_head_tree_status_guard(monkeypatch):
     monkeypatch.setattr(compose, "checkout_state", snapshot)
     with pytest.raises(RuntimeError, match="HEAD, tree or checkout status"):
         compose.certificate(3, 2, 1, Fraction(1, 100))
+
+
+@pytest.mark.parametrize("entry", ["verify", "cli"])
+@pytest.mark.parametrize("change", ["raw_source", "checkout"])
+@pytest.mark.parametrize("refused", [False, True])
+def test_outer_transaction_rejects_changes_before_stable_nested_work(entry, change, refused, monkeypatch, tmp_path, capsys):
+    record = compose.certificate(3, 2, 1, Fraction(1, 91), 180000, 170000)
+    if refused:
+        # This otherwise well-typed replay request now has an active face at
+        # a degree where the real analytic bound cannot meet its target.
+        # The outer change must be reported even when nested work refuses.
+        record["degree"] = 3
+    source, output = tmp_path / "input.json", tmp_path / "existing-output.json"
+    source.write_text(json.dumps(record))
+    output.write_bytes(b"preserve this existing output\n")
+    original_input, original_output = source.read_bytes(), output.read_bytes()
+    sources = compose._sources()
+    changed_sources = {**sources, compose.PROOF: sources[compose.PROOF].replace(b"\n", b"\r\n")}
+    # The line-ending change retains the normalized fingerprint. Regenerating
+    # the typed record alone cannot replace the raw outer transaction guard.
+    assert changed_sources != sources
+    assert changed_sources[compose.PROOF].replace(b"\r\n", b"\n") == sources[compose.PROOF]
+    checkout = compose.checkout_state(ROOT)
+    changed_checkout = replace(checkout, head="0" * 40, tree="1" * 40, status=checkout.status + "?? changed\n")
+    active = False
+
+    def current_sources():
+        return dict(changed_sources if active and change == "raw_source" else sources)
+
+    def current_checkout(*args):
+        return changed_checkout if active and change == "checkout" else checkout
+
+    nested_name = "certificate" if entry == "verify" else "verify_certificate"
+    nested = getattr(compose, nested_name)
+
+    def start_nested(*args, **kwargs):
+        nonlocal active
+        active = True
+        return nested(*args, **kwargs)
+
+    monkeypatch.setattr(compose, "_sources", current_sources)
+    monkeypatch.setattr(compose, "checkout_state", current_checkout)
+    monkeypatch.setattr(compose, nested_name, start_nested)
+    if entry == "verify":
+        with pytest.raises(RuntimeError, match="sources, HEAD, tree or checkout status changed during verification"):
+            compose.verify_certificate(record)
+    else:
+        with pytest.raises(SystemExit) as error:
+            compose.main(["--verify", str(source), "--output", str(output)])
+        assert error.value.code != 0
+        assert "sources, HEAD, tree or checkout status changed during the transaction" in capsys.readouterr().err
+    assert source.read_bytes() == original_input and output.read_bytes() == original_output
 
 
 @pytest.mark.parametrize("field", ["degree", "numeric_work_limit", "approximation", "source_sha256", "extra"])
