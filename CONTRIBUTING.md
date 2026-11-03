@@ -834,10 +834,11 @@ branch and is not the producer-commit check.
 
 The publisher runs no candidate code. The producer YAML must exactly match
 the trusted `.github/pages-build-template.yml` on the publisher's default
-branch checkout. To update it, first land the trusted template in a separate
-reviewed PR, then copy it to `.github/workflows/sphinx-pages-build.yml`.
-It authenticates the repository, workflow, run attempt, source commit and
-artifact before checking regular files, paths, byte digests and size limits.
+branch checkout. It authenticates the repository, workflow, run attempt, source
+commit and artifact before checking regular files, paths, byte digests and size
+limits. A head whose producer YAML does not match gets no **GHPages publish**
+check, so one PR cannot change both files and still meet the merge requirement.
+See [Updating GHPages action pins](#updating-ghpages-action-pins).
 
 The trusted `.github/pages-legacy-owners.json` census binds existing version
 URL roots to their full branch or tag refs at its recorded `gh-pages` commit.
@@ -882,6 +883,58 @@ new release tags include the new producer. Release Please explicitly dispatches
 that producer for a newly created stable tag because `GITHUB_TOKEN`-created
 tags do not start push workflows. Ordinary user-created stable tag pushes use
 the producer's push trigger. Do not re-enable the legacy writer.
+
+#### Updating GHPages action pins
+
+Update one action pin in the producer at a time, with two PRs in this order.
+Land both before starting the next update: the producer must match the template
+byte for byte, so a template that combines two updates matches neither update's
+PR on its own.
+
+1. **Template PR.** Change the `uses:` line in
+   `.github/pages-build-template.yml` and nothing else in that file. Take the line
+   byte for byte from the Dependabot PR, or use the release you chose for a manual
+   update. Reviewers confirm that the SHA belongs to the release named in the
+   comment with `gh api repos/<owner>/<repo>/commits/<tag> --jq .sha`, and that
+   **GHPages build** succeeded on a head carrying the new pin. A Dependabot PR's
+   head provides that run; for a manual update, push a temporary branch. The head's
+   producer YAML still matches the default-branch template, so publication
+   succeeds. The PyTest check allows the two files to differ only in the SHA and
+   version comment of pinned actions.
+2. **Workflow PR.** Bring `.github/workflows/sphinx-pages-build.yml` to the same
+   line. For a Dependabot PR, comment `@dependabot rebase`. For a manual update,
+   copy the line on a branch that contains the merged template. Merge once the
+   producer-commit **GHPages publish** check succeeds.
+
+Keep the gap between the two PRs short. Until the Workflow PR lands, pushes that
+carry the old pin, including `master`, are rejected and publish nothing. After it
+lands, merge `master` into other open branches to regain a **GHPages publish**
+check; for a Dependabot PR, comment `@dependabot rebase` instead.
+
+The publisher compares a tag's producer YAML with the template when the build
+completes, and a tag's YAML never changes. A tag whose pin differs from the
+template at that moment can therefore never publish. Before merging the Template
+PR, confirm that no tag build is in progress. Once it has landed, do not tag a
+commit that predates the Workflow PR, and do not merge a Release Please PR until
+the Workflow PR has landed, because merging one creates such a tag.
+
+Neither Dependabot nor the security remediation automation can edit the template,
+so their pin updates can only be the Workflow PR. Until the template lands, such a
+PR passes PyTest but has no **GHPages publish** check and must not be merged.
+GitHub does not enforce this rule yet
+([#682](https://github.com/opthub-org/pytorch-bsf/issues/682)), so look for the
+missing check before merging. If a Workflow PR lands first, every head that
+contains it is rejected, including `master` and any Template PR based on it.
+Revert the Workflow PR on `master`, then start again from step 1.
+
+Once a Template PR has landed, a revert or a corrected Template PR does not match
+the template either, so it cannot get a **GHPages publish** check. If the new pin
+turns out to be unusable, a maintainer merges that one PR without the check and
+records the reason in it. Do not use this exception for anything else.
+
+This procedure covers action pins only. Other producer changes have no sequence
+of PRs that passes all required checks yet
+([#683](https://github.com/opthub-org/pytorch-bsf/issues/683)).
 
 ---
 
