@@ -71,6 +71,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_exact.html">Positive diagonal formulas for nonvertex risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q3_error.html">Finite-degree errors for every nonvertex q3 face</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_error.html">Finite-degree errors for every fixed nonvertex q4 face size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_refined.html">A logarithmic finite-degree remainder for nonvertex q4 risks</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_leading_constant_mzv.html">Finite MZV constructions for leading constants</a></li>
@@ -180,16 +181,16 @@ B_L=[z^L]P_{s,D}(z).\end{split}\]</div>
 <p>Despite its rational presentation, <span class="math notranslate nohighlight">\(P_{s,D}\)</span> is a polynomial:
 every exponent <span class="math notranslate nohighlight">\(T-2j\)</span> is at least <span class="math notranslate nohighlight">\(3s-1&gt;0\)</span>.</p>
 <div class="proof theorem admonition" id="thm-risk-q3-homogeneous-transform">
-<p class="admonition-title"><span class="caption-number">Theorem 39 </span> (A homogeneous transform for all angular modes)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 40 </span> (A homogeneous transform for all angular modes)</p>
 <section class="theorem-content" id="proof-content">
 <p>For every integer <span class="math notranslate nohighlight">\(s\geq2,D\geq s\)</span> and <span class="math notranslate nohighlight">\(0\leq L\leq N\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-risk-q3-transformed-average">
-<span class="eqno">(78)<a class="headerlink" href="#equation-risk-q3-transformed-average" title="Link to this equation"></a></span>\[\frac{B_L}{\binom TL^2}
+<span class="eqno">(83)<a class="headerlink" href="#equation-risk-q3-transformed-average" title="Link to this equation"></a></span>\[\frac{B_L}{\binom TL^2}
  =\frac{\displaystyle\sum_{j=0}^L
               \binom Lj\binom{T-L}j\delta_3(j)}{\binom TL}.\]</div>
 <p>Consequently the exact coefficient is</p>
 <div class="math notranslate nohighlight" id="equation-risk-q3-transform-coefficient">
-<span class="eqno">(79)<a class="headerlink" href="#equation-risk-q3-transform-coefficient" title="Link to this equation"></a></span>\[a_{s-1}(s+3,D)=
+<span class="eqno">(84)<a class="headerlink" href="#equation-risk-q3-transform-coefficient" title="Link to this equation"></a></span>\[a_{s-1}(s+3,D)=
  \binom{s+3}s^2\frac{s(s+1)(s+2)}
           {(2D+s)(2D+s+1)(2D+s+2)}
  \sum_{L=0}^N\binom{N-L+s-2}{s-2}
@@ -204,12 +205,12 @@ every exponent <span class="math notranslate nohighlight">\(T-2j\)</span> is at 
 <p>Expanding <span class="math notranslate nohighlight">\(z^j(1+z)^{T-2j}\)</span> shows that <span class="math notranslate nohighlight">\(B_L\)</span> is the
 sum of the right side times <span class="math notranslate nohighlight">\(\delta_3(j)\)</span>.  Terms with
 <span class="math notranslate nohighlight">\(j&gt;L\)</span> cannot contribute.  Division by <span class="math notranslate nohighlight">\(\binom TL^2\)</span>
-proves <a class="reference internal" href="#equation-risk-q3-transformed-average">(78)</a>.  In the existing positive
+proves <a class="reference internal" href="#equation-risk-q3-transformed-average">(83)</a>.  In the existing positive
 nonvertex formula reindex the angular degree as <span class="math notranslate nohighlight">\(k=N-L\)</span>.
 Its other upper binomial index is <span class="math notranslate nohighlight">\(T-L\)</span>, its normalizer is
 <span class="math notranslate nohighlight">\(\binom TL\)</span>, and its multiplicity is
 <span class="math notranslate nohighlight">\(\binom{N-L+s-2}{s-2}\)</span>.  This gives
-<a class="reference internal" href="#equation-risk-q3-transform-coefficient">(79)</a>.  All binomials and denominators
+<a class="reference internal" href="#equation-risk-q3-transform-coefficient">(84)</a>.  All binomials and denominators
 are positive on this domain, including <span class="math notranslate nohighlight">\(L=N=0\)</span>.  The inactive
 prefix contains no source bubbles and is returned separately.</p>
 </div>
@@ -226,7 +227,7 @@ part of the construction.</p>
 <p>For <span class="math notranslate nohighlight">\(n\geq2\)</span>, split after <span class="math notranslate nohighlight">\(m=\lfloor n/2\rfloor\)</span> entries
 into <span class="math notranslate nohighlight">\(C^{\rm lo},C^{\rm hi}\)</span>.  Direct separation of the terms gives</p>
 <div class="math notranslate nohighlight" id="equation-risk-q3-transform-divide-conquer">
-<span class="eqno">(80)<a class="headerlink" href="#equation-risk-q3-transform-divide-conquer" title="Link to this equation"></a></span>\[R(C)=b^{n-m}R(C^{\rm lo})+z^mR(C^{\rm hi}),\qquad
+<span class="eqno">(85)<a class="headerlink" href="#equation-risk-q3-transform-divide-conquer" title="Link to this equation"></a></span>\[R(C)=b^{n-m}R(C^{\rm lo})+z^mR(C^{\rm hi}),\qquad
 R((C_0))=C_0.\]</div>
 <p>The powers <span class="math notranslate nohighlight">\(b^r=(1+z)^{2r}\)</span> are cached by their integer exponent.
 At a given recursion level there are at most two distinct list lengths,
@@ -234,7 +235,7 @@ so all cached powers together have <span class="math notranslate nohighlight">\(
 <p>The implementation first sets
 <span class="math notranslate nohighlight">\(Q=\operatorname{lcm}_{0\leq j\leq N}
 \operatorname{denominator}(\delta_3(j))\)</span> and uses the integers
-<span class="math notranslate nohighlight">\(C_j=Qc_j\)</span>.  It evaluates <a class="reference internal" href="#equation-risk-q3-transform-divide-conquer">(80)</a>
+<span class="math notranslate nohighlight">\(C_j=Qc_j\)</span>.  It evaluates <a class="reference internal" href="#equation-risk-q3-transform-divide-conquer">(85)</a>
 and then multiplies by <span class="math notranslate nohighlight">\((1+z)^{3s-1}\)</span>.  The first <span class="math notranslate nohighlight">\(N+1\)</span>
 coefficients are exactly <span class="math notranslate nohighlight">\(QB_L\)</span>.  The required input binomial
 weights have the nonsingular update</p>
