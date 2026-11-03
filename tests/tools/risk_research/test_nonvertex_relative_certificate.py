@@ -187,9 +187,11 @@ def test_whole_composition_head_tree_status_guard(monkeypatch):
 
 
 @pytest.mark.parametrize("entry", ["verify", "cli"])
-@pytest.mark.parametrize("change", ["raw_source", "checkout"])
+@pytest.mark.parametrize("change,initial_ending", [("raw_source", "LF"), ("raw_source", "CRLF"), ("checkout", None)])
 @pytest.mark.parametrize("refused", [False, True])
-def test_outer_transaction_rejects_changes_before_stable_nested_work(entry, change, refused, monkeypatch, tmp_path, capsys):
+def test_outer_transaction_rejects_changes_before_stable_nested_work(
+    entry, change, initial_ending, refused, monkeypatch, tmp_path, capsys
+):
     record = compose.certificate(3, 2, 1, Fraction(1, 91), 180000, 170000)
     if refused:
         # This otherwise well-typed replay request now has an active face at
@@ -201,11 +203,18 @@ def test_outer_transaction_rejects_changes_before_stable_nested_work(entry, chan
     output.write_bytes(b"preserve this existing output\n")
     original_input, original_output = source.read_bytes(), output.read_bytes()
     sources = compose._sources()
-    changed_sources = {**sources, compose.PROOF: sources[compose.PROOF].replace(b"\n", b"\r\n")}
-    # The line-ending change retains the normalized fingerprint. Regenerating
-    # the typed record alone cannot replace the raw outer transaction guard.
-    assert changed_sources != sources
-    assert changed_sources[compose.PROOF].replace(b"\r\n", b"\n") == sources[compose.PROOF]
+    changed_sources = sources
+    if change == "raw_source":
+        canonical = sources[compose.PROOF].replace(b"\r\n", b"\n")
+        crlf = canonical.replace(b"\n", b"\r\n")
+        baseline, alternate = (canonical, crlf) if initial_ending == "LF" else (crlf, canonical)
+        sources = {**sources, compose.PROOF: baseline}
+        changed_sources = {**sources, compose.PROOF: alternate}
+        # Both directions retain the normalized fingerprint without doubling
+        # carriage returns when the real checkout already uses CRLF.
+        # Typed-record regeneration cannot replace the raw outer guard.
+        assert changed_sources != sources
+        assert alternate.replace(b"\r\n", b"\n") == baseline.replace(b"\r\n", b"\n") == canonical
     checkout = compose.checkout_state(ROOT)
     changed_checkout = replace(checkout, head="0" * 40, tree="1" * 40, status=checkout.status + "?? changed\n")
     active = False
