@@ -133,7 +133,7 @@ telescope of :doc:`skeleton_risk_c5_closed_form` to weight five.
    :math:`C_7=7^2\,6!\,2^{-4}c_6=2205c_6`, proving the consequence.
 
 Rational evaluation and saved records
-------------------------------------
+-------------------------------------
 
 The evaluator reuses the positive Euler-transformed ordinary zeta
 intervals proved in :doc:`skeleton_risk_c5_closed_form`. Their tail after
