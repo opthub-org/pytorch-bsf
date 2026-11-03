@@ -1,0 +1,425 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Adaptive parameterized curves &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Single and assembled domains" href="simploidal.html" />
+    <link rel="prev" title="Explicit ensembles and active learning" href="active_learning.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_family.html">Uniform construction for codimension two</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three.html">Boundary transfer and a codimension-three edge bound</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_exact.html">Positive diagonal formulas for nonvertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q3_error.html">Finite-degree errors for every nonvertex q3 face</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_error.html">Finite-degree errors for every fixed nonvertex q4 face size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_refined.html">A logarithmic finite-degree remainder for nonvertex q4 risks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_leading_constant_mzv.html">Finite MZV constructions for leading constants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c5_closed_form.html">A classical closed form for the codimension-four constant</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c6_closed_form.html">A classical leading constant for seven vertices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c7_closed_form.html">A classical leading constant for eight vertices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_transform.html">A fast exact transform for codimension three</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension.html">The vertex leading constant at large vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension_refined.html">A sharper elementary large-vertex guarantee</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension_second_order.html">A first correction with a quadratic large-vertex remainder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_refined_asymptotics.html">Single-log vertex errors for every fixed M at least five</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth.html">A simultaneous vertex-count and degree regime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth_refined.html">A broader simultaneous vertex-count and degree regime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_composite_asymptotics.html">Computable vertex centers and a single-log growing domain</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html">An all-degree sufficient region for large vertex counts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_fixed_vertex_tail.html">An explicit winning degree tail at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_quadratic_degree_tail.html">A quadratic sufficient degree region, uniform in vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html">Five-vertex vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_comparison.html">Five-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_six_vertex_comparison.html">Six-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Adaptive parameterized curves</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#a-connected-guess-can-become-two-charts">A connected guess can become two charts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#costs-and-initialization">Costs and initialization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#resolution-and-prediction-support">Resolution and prediction support</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#model-selection-and-limits">Model selection and limits</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Adaptive parameterized curves</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/adaptive_curves.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="adaptive-parameterized-curves">
+<h1>Adaptive parameterized curves<a class="headerlink" href="#adaptive-parameterized-curves" title="Link to this heading"></a></h1>
+<p>Use <a class="reference internal" href="../api.html#torch_bsf.adaptive_curve.fit_adaptive_curve" title="torch_bsf.adaptive_curve.fit_adaptive_curve"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_adaptive_curve()</span></code></a> when a scalar parameter
+can be queried and the response may change sharply. For example, the parameter
+may be a temperature rendered into a text prompt, with a vector embedding as
+the response. The parameter bounds are known; the locations of possible gaps
+are unknown. This interface obtains responses itself. For selection from an
+existing candidate pool, see <a class="reference internal" href="active_learning.html"><span class="doc">Explicit ensembles and active learning</span></a>.</p>
+<p>Install SciPy 1.9.2 or later with <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">'pytorch-bsf[adaptive]'</span></code>.
+Ordinary imports and prediction from an existing result do not require SciPy.
+Fitting computes on CPU in float64 and does not retain gradients. The callback
+receives an independent tensor of shape <code class="docutils literal notranslate"><span class="pre">(n,</span> <span class="pre">1)</span></code> and returns finite responses
+of shape <code class="docutils literal notranslate"><span class="pre">(n,</span> <span class="pre">d)</span></code>, including <code class="docutils literal notranslate"><span class="pre">(n,</span> <span class="pre">1)</span></code> for scalar responses.</p>
+<section id="a-connected-guess-can-become-two-charts">
+<h2>A connected guess can become two charts<a class="headerlink" href="#a-connected-guess-can-become-two-charts" title="Link to this heading"></a></h2>
+<p>The policy starts with nine uniformly spaced parameter anchors, unless a
+smaller budget limits that initialization. It reserves global exploration
+and revisits retained cut proposals. Scalar queries use local interpolation
+errors; vector queries combine coverage with explicit boundary localization.
+Sided continuation and genuinely nested
+observations supply empirical gap evidence. Vector responses additionally use
+directions estimated without either candidate-bracket endpoint and a private
+central query jitter. These checks are not confidence intervals.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">torch_bsf</span><span class="w"> </span><span class="kn">import</span> <span class="n">fit_adaptive_curve</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">evaluate</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="p">(</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="mf">0.413</span><span class="p">)</span><span class="o">.</span><span class="n">double</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">fit_adaptive_curve</span><span class="p">(</span><span class="n">evaluate</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="n">budget</span><span class="o">=</span><span class="mi">64</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span><span class="o">.</span><span class="n">cost</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">gaps</span><span class="p">)</span>
+<span class="go">(64, 1)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span><span class="o">.</span><span class="n">domain</span><span class="o">.</span><span class="n">betti_numbers</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+<span class="go">2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">gap</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">gaps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">bool</span><span class="p">(</span><span class="n">gap</span><span class="o">.</span><span class="n">left</span> <span class="o">&lt;=</span> <span class="mf">0.413</span> <span class="o">&lt;=</span> <span class="n">gap</span><span class="o">.</span><span class="n">right</span><span class="p">)</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">midpoint</span> <span class="o">=</span> <span class="p">[[(</span><span class="n">gap</span><span class="o">.</span><span class="n">left</span> <span class="o">+</span> <span class="n">gap</span><span class="o">.</span><span class="n">right</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">]]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">bool</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">midpoint</span><span class="p">))</span><span class="o">.</span><span class="n">all</span><span class="p">())</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<p>Each chart contains connected polynomial pieces with shared endpoint controls.
+The returned <code class="docutils literal notranslate"><span class="pre">model</span></code> is an actual <a class="reference internal" href="../api.html#torch_bsf.core.BezierModel" title="torch_bsf.core.BezierModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">BezierModel</span></code></a> on the
+returned <a class="reference internal" href="../api.html#torch_bsf.geometry.SimploidalSet" title="torch_bsf.geometry.SimploidalSet"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimploidalSet</span></code></a>. Distinct charts have
+separate controls even if their output curves touch or intersect. This records
+the proposed topology of the parameter charts; it does not recover or certify
+the topology of the embedding image. This API covers one parameter, not
+unparameterized point clouds or multi-parameter surfaces.</p>
+<p>To plot the initial single-simplex fit, final charts and acquisition order,
+run <a class="reference download internal" download="" href="../_downloads/81b76b811adc7916147a10cead341578/adaptive_curve.py"><code class="xref download docutils literal notranslate"><span class="pre">the</span> <span class="pre">standalone</span> <span class="pre">example</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="s1">'pytorch-bsf[adaptive,plot]'</span>
+<span class="n">python</span> <span class="n">examples</span><span class="o">/</span><span class="n">adaptive_curve</span><span class="o">.</span><span class="n">py</span> <span class="o">--</span><span class="n">output</span> <span class="n">build</span><span class="o">/</span><span class="n">adaptive_curve</span><span class="o">.</span><span class="n">html</span>
+</pre></div>
+</div>
+<p>The generated HTML embeds its figure and reports learning and display-only
+response rows separately. The example uses a known synthetic vector curve;
+it does not establish comparative benchmark performance.</p>
+</section>
+<section id="costs-and-initialization">
+<h2>Costs and initialization<a class="headerlink" href="#costs-and-initialization" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">cost</span></code> counts actual response rows requested from the evaluator. All initial
+measurements, exploration, localization, audits and stochastic repeats share
+the same budget. A deterministic repeated canonical input uses a cache and
+costs no additional response. <code class="docutils literal notranslate"><span class="pre">proposed_rows</span></code> also counts those cache hits.
+<code class="docutils literal notranslate"><span class="pre">counts</span></code> records independent repeats at each unique input; <code class="docutils literal notranslate"><span class="pre">values</span></code> stores
+their means. A callback failure or invalid response still incurs its requested
+rows; the propagated exception includes a note with the charged count.</p>
+<p>An application can provide nonempty <code class="docutils literal notranslate"><span class="pre">initial_inputs</span></code> of shape <code class="docutils literal notranslate"><span class="pre">(n,</span> <span class="pre">1)</span></code>. Their
+responses are obtained and charged before the policy adds any missing uniform
+anchors. An initial design that already includes the nine anchors does not
+query them twice. This makes a declared comparison design reproducible without
+accepting uncharged responses. The default nine-anchor run is a different
+protocol from a comparison using sixteen charged initial points.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">deterministic=False</span></code>, initial repeat measurements and later replicates
+estimate pooled vector noise. The caller owns the callback’s noise generator.
+<code class="docutils literal notranslate"><span class="pre">seed</span></code> controls only the policy’s private vector-query jitter. Scalar query
+locations use the scalar evidence policy without jitter. Neither path seeds
+the global random generator. Supported seeds are integers from zero through
+<code class="docutils literal notranslate"><span class="pre">2**64</span> <span class="pre">-</span> <span class="pre">1</span></code>; an invalid seed is rejected before obtaining initial responses.</p>
+</section>
+<section id="resolution-and-prediction-support">
+<h2>Resolution and prediction support<a class="headerlink" href="#resolution-and-prediction-support" title="Link to this heading"></a></h2>
+<p>For a known formatted-string protocol, pass its query-grid step explicitly,
+for example <code class="docutils literal notranslate"><span class="pre">resolution=1e-6</span></code> for six decimal places. Queries snap to the
+zero-aligned grid inside the bounds. The step is supplied by the application;
+the learner does not infer the formatting rule. Distinct strings can have
+different embeddings even when their numeric parameters are close.</p>
+<p><code class="docutils literal notranslate"><span class="pre">location_tolerance</span></code> is a maximum proposed bracket width, enlarged to at
+least one declared grid step. Its default is twice the domain width divided
+by 256, with a positive float64 lower limit. Smaller targets require more
+localization work. They do not guarantee
+that every feature will be found. <code class="docutils literal notranslate"><span class="pre">status</span></code> distinguishes budget exhaustion,
+an exhausted declared grid, floating-point exhaustion and insufficient
+observations; budget exhaustion is not convergence.</p>
+<p><code class="docutils literal notranslate"><span class="pre">result.predict</span></code> accepts original coordinates of shape <code class="docutils literal notranslate"><span class="pre">(n,</span> <span class="pre">1)</span></code>. It returns
+NaNs strictly inside excluded brackets and finite values at their observed
+endpoints. It does not silently fill gaps with nearest observations. A declared
+grid affects query coordinates, not surrogate prediction coordinates. When
+the first or last grid key lies inside the raw bounds, its endpoint value
+extends to that raw bound. Check support as well as prediction error on an
+independent validation sample, and retain all methods’ excluded regions when
+comparing their errors.</p>
+<p>The compiled model itself accepts barycentric <a class="reference internal" href="../api.html#torch_bsf.core.Points" title="torch_bsf.core.Points"><code class="xref py py-class docutils literal notranslate"><span class="pre">Points</span></code></a>.
+<code class="docutils literal notranslate"><span class="pre">intervals</span></code> supplies the original parameter bounds and compiled cell IDs.
+Preserve that routing metadata together with any saved model; a model archive
+alone does not retain the application’s original scalar coordinates.</p>
+</section>
+<section id="model-selection-and-limits">
+<h2>Model selection and limits<a class="headerlink" href="#model-selection-and-limits" title="Link to this heading"></a></h2>
+<p>Predictor selection uses observed responses only. It compares conditioned
+polynomial regression, continuous piecewise polynomials, interpolation and a
+shared-weight rational candidate using input-volume-weighted validation
+errors. Scalar shape-preserving interpolation is excluded from vector fits
+because its coordinatewise decisions do not preserve rotations.</p>
+<p>For extreme response magnitudes, predictor losses and operator conversions
+use a common power-of-two response scale. Diagnostics retain normalized
+scores and their scale alongside physical squared-error scores, which can
+underflow or overflow. Gap, acquisition and noise diagnostics use physical
+response units and remain subject to the range of float64. An unrepresentable
+pooled noise variance raises a numerical error rather than supplying an
+infinite noise estimate to a solver.</p>
+<p>When the empirical noise estimate is zero or unavailable, scalar responses
+can additionally use stationary RBF and Matérn kernel predictors selected by
+observed cross-validation. A jointly
+estimated constant or linear mean is included in the deleted-row calculation.
+Cached Cholesky solves avoid cancellation in high-condition mean predictions.
+These are conditional diagnostics for the acquired design, not unbiased
+end-to-end generalization estimates. The original chart predictor remains
+available when its score is better or kernel conversion fails.</p>
+<p>For vector responses with proposed gaps and a zero or unavailable empirical
+noise estimate, shared continuous piecewise polynomials and component offsets
+can reduce the variance of
+independent chart fits. The input charts remain disconnected. Diagnostics in
+<code class="docutils literal notranslate"><span class="pre">spline_pooling</span></code> distinguish selected and fallback models and compare actual
+BSF endpoint contrasts with observed endpoint contrasts; a component count
+alone does not establish faithful output geometry.</p>
+<p>These vector charts can also use a shared stationary kernel with a random
+intercept for each inferred chart. A finite input-volume-weighted
+cross-validation search chooses the kernel, mean and regularization. If the
+best regularization reaches the upper end of its initial grid, a bounded
+expansion checks larger values. One convex weight combines the selected
+kernel predictor with the shared C0 predictor, using their signed deleted-row
+residuals at the same interior observations. This is a conditional selection
+score; it does not validate the complete adaptive pipeline.</p>
+<p>The mixture must retain an endpoint change in the observed direction beyond
+the empirical detector threshold. Otherwise, or if numerical conversion
+fails, the existing predictor remains available. <code class="docutils literal notranslate"><span class="pre">stacked_gap_prediction</span></code>
+records the selected model, weight, conditional scores and conversion checks.
+This extra step obtains no evaluator responses and does not change the
+query locations or proposed gap brackets.</p>
+<p>The rational candidate follows the <a class="reference external" href="https://doi.org/10.1137/16M1106122">AAA algorithm</a>. It rejects detected real poles in the
+chart. Rational and kernel operators convert to polynomial pieces without
+querying the evaluator. Finite checks at observed, support and additional model-only
+points can reject that conversion and retain the polynomial fallback. These
+checks are empirical, not a certified uniform approximation bound. Export
+from the resulting polynomial pieces to Bernstein controls preserves the
+polynomial, subject to floating-point rounding. Conversion diagnostics remain
+in <code class="docutils literal notranslate"><span class="pre">diagnostics['capacity']</span></code> and <code class="docutils literal notranslate"><span class="pre">diagnostics['kernel_prediction']</span></code>.</p>
+<p>For vector Matérn mixtures, conversion starts at the fitted kernel’s known
+support coordinates. This avoids fitting a single polynomial across kernel
+breakpoints. Subsequent subdivision has a finite depth and a limit of 1024
+pieces. These bounds differ from starting subdivision on the whole interval;
+the scalar conversion policy is separate. Even with fewer pieces, the
+resulting dense Bernstein coefficients can occupy more storage than the
+observations. Inspect model size as well as query cost and predictive error.</p>
+<p>A narrow unobserved pulse, a grid alias, a continuous cusp or deterministic
+roughness can be mistaken for a gap or remain undiscovered. Proposed cuts can
+be revoked as measurements arrive. Independent prediction error, support,
+query cost and bracket width answer different questions; none by itself
+establishes true topology. This interface makes no general superiority claim
+over other adaptive approximation methods.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="active_learning.html" class="btn btn-neutral float-left" title="Explicit ensembles and active learning" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="simploidal.html" class="btn btn-neutral float-right" title="Single and assembled domains" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: feat/phase10-c7-reduction
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/index.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="adaptive_curves.html">feat/phase10-c7-reduction</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
