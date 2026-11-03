@@ -222,12 +222,52 @@ def test_raw_source_guard_rejects_even_a_line_ending_change(monkeypatch: pytest.
         composite.build_record(5, 384, bits=47)
 
 
-def test_source_fingerprints_are_portable_between_lf_and_crlf(monkeypatch: pytest.MonkeyPatch) -> None:
-    original = composite._sources()
+@pytest.mark.parametrize("initial_ending", ["lf", "crlf"])
+def test_source_fingerprints_are_portable_between_lf_and_crlf(initial_ending: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    normalized = {name: data.replace(b"\r\n", b"\n") for name, data in composite._sources().items()}
+    original = (
+        normalized if initial_ending == "lf" else {name: data.replace(b"\n", b"\r\n") for name, data in normalized.items()}
+    )
+    monkeypatch.setattr(composite, "_sources", lambda: original)
     first = composite.build_record(5, 384, bits=47)
-    monkeypatch.setattr(composite, "_sources", lambda: {name: data.replace(b"\n", b"\r\n") for name, data in original.items()})
+    before = composite._canonical(first)
+    monkeypatch.setattr(
+        composite, "_sources", lambda: {name: data.replace(b"\n", b"\r\n") for name, data in normalized.items()}
+    )
     second = composite.build_record(5, 384, bits=47)
     assert first == second
+    composite.verify_record(first)
+    assert composite._canonical(first) == before
+
+
+@pytest.mark.parametrize("change", ["content", "line_ending"])
+def test_cli_outer_source_guard_preserves_existing_output(
+    change: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    original = {name: data.replace(b"\r\n", b"\n") for name, data in composite._sources().items()}
+    if change == "content":
+        changed = {**original, composite.PROOF: original[composite.PROOF] + b"changed content\n"}
+    else:
+        changed = {name: data.replace(b"\n", b"\r\n") for name, data in original.items()}
+        assert {name: data.replace(b"\r\n", b"\n") for name, data in changed.items()} == original
+    assert changed != original
+    calls: list[dict[str, bytes]] = []
+
+    def sources() -> dict[str, bytes]:
+        snapshot = original if not calls else changed
+        calls.append(snapshot)
+        return snapshot
+
+    monkeypatch.setattr(composite, "_sources", sources)
+    output = tmp_path / "record.json"
+    sentinel = b"existing output\x00\r\n"
+    output.write_bytes(sentinel)
+    with pytest.raises(SystemExit) as error:
+        composite.main(["--vertices", "5", "--degree-floor-exponent", "384", "--bits", "47", "--output", str(output)])
+    assert error.value.code == 2
+    assert "sources changed before output" in capsys.readouterr().err
+    assert calls == [original, changed, changed, changed]
+    assert output.read_bytes() == sentinel
 
 
 def test_cli_generation_replay_and_input_preservation(tmp_path: Path) -> None:
