@@ -18,7 +18,8 @@ from tools.pages_build import freeze, package, source_name
 # must be a single ASCII version token, so that it cannot hide a YAML line break.
 # The optional CR keeps CRLF checkouts on windows-latest matching.
 ACTION_PIN = re.compile(rb"^( *(?:- )?uses: ([\w./-]+)@)([0-9a-f]{40}) # v?[0-9][\w.+-]*(\r?)$", re.MULTILINE)
-CHECKOUT_PIN = re.compile(rb"(?<=actions/checkout@)[0-9a-f]{40} # v[\d.]+")
+CHECKOUT_PIN = re.compile(rb"(?<=actions/checkout@)[0-9a-f]{40} # v?[0-9][\w.+-]*")
+CHECKOUT_USES = re.compile(rb"(?<=uses: )actions/checkout@[^\r\n]*")
 RUN_BLOCK_WITH_PIN_TEXT = b"      - run: |\n          uses: evil/action@%s # v1\n"
 
 
@@ -39,9 +40,17 @@ def _assert_fully_pinned_and_only_pins_differ(workflow: bytes, template: bytes) 
         # so the masked pins must be exactly the steps that the YAML parser sees.
         jobs = yaml.safe_load(definition)["jobs"].values()
         uses = [step["uses"] for job in jobs for step in job["steps"] if "uses" in step]
-        pins = [f"{pin[2].decode()}@{pin[3].decode()}" for pin in ACTION_PIN.finditer(definition)]
+        pins = [f"{match[2].decode()}@{match[3].decode()}" for match in ACTION_PIN.finditer(definition)]
         assert uses
         assert pins == uses
+        # Any other text naming the key, such as a duplicate key or a comment, is not a checked pin.
+        assert definition.count(b"uses") == len(uses)
+
+
+def _replace_once(pattern: re.Pattern[bytes], replacement: bytes, definition: bytes) -> bytes:
+    changed, count = pattern.subn(lambda _: replacement, definition)
+    assert count == 1
+    return changed
 
 
 @pytest.fixture
@@ -252,8 +261,7 @@ def test_workflow_keeps_complete_build_readonly_and_outside_publish_lock(templat
 @pytest.mark.parametrize("line_ending", [b"\n", b"\r\n"])
 def test_pin_bump_on_either_side_is_tolerated(template, line_ending, version):
     template = template.replace(b"\r\n", b"\n").replace(b"\n", line_ending)
-    bumped, count = CHECKOUT_PIN.subn(b"a" * 40 + b" # " + version, template)
-    assert count == 1
+    bumped = _replace_once(CHECKOUT_PIN, b"a" * 40 + b" # " + version, template)
     assert bumped != template
     _assert_fully_pinned_and_only_pins_differ(template, bumped)
     _assert_fully_pinned_and_only_pins_differ(bumped, template)
@@ -286,6 +294,12 @@ def test_pin_text_on_a_run_line_is_not_masked(template):
         b"v4",
         b"main",
         b"<pin>",
+        b"v4 # v4",
+        b"main # v4",
+        b"<pin> # v4",
+        b"a" * 39 + b" # v4",
+        b"a" * 41 + b" # v4",
+        b"A" * 40 + b" # v4",
         b"a" * 39,
         b"a" * 41,
         b"A" * 40,
@@ -303,26 +317,26 @@ def test_pin_text_on_a_run_line_is_not_masked(template):
     ],
 )
 def test_mutable_or_malformed_pin_is_rejected(template, pin):
-    changed, count = CHECKOUT_PIN.subn(pin, template)
-    assert count == 1
+    changed = _replace_once(CHECKOUT_PIN, pin, template)
     with pytest.raises(AssertionError):
         _assert_fully_pinned_and_only_pins_differ(changed, template)
     with pytest.raises(AssertionError):
         _assert_fully_pinned_and_only_pins_differ(template, changed)
 
 
+# Each real step here is one the mask cannot match, which frees a place for the run block's pin.
 @pytest.mark.parametrize(
-    "step",
+    "checkout_uses",
     [
         None,
         b"actions/checkout@%s" % (b"c" * 40),
         b'"actions/checkout@%s"' % (b"c" * 40),
-        b"act\xd0\xbeons/checkout@%s # v1" % (b"c" * 40),
+        b"non-ascii-\xc3\xa9/checkout@%s # v1" % (b"c" * 40),
     ],
 )
-def test_masked_pin_in_a_run_block_must_be_a_real_step(template, step):
-    if step is not None:
-        template = re.sub(rb"(?<=uses: )actions/checkout@[^\r\n]*", step, template, count=1)
+def test_masked_pin_in_a_run_block_must_be_a_real_step(template, checkout_uses):
+    if checkout_uses is not None:
+        template = _replace_once(CHECKOUT_USES, checkout_uses, template)
     left = template + RUN_BLOCK_WITH_PIN_TEXT % (b"a" * 40)
     right = template + RUN_BLOCK_WITH_PIN_TEXT % (b"b" * 40)
     with pytest.raises(AssertionError):
@@ -330,9 +344,23 @@ def test_masked_pin_in_a_run_block_must_be_a_real_step(template, step):
 
 
 def test_masked_pin_in_a_run_block_cannot_stand_in_for_a_mutable_pin(template):
-    changed, count = CHECKOUT_PIN.subn(b"v4", template)
-    assert count == 1
-    changed += RUN_BLOCK_WITH_PIN_TEXT % (b"a" * 40)
+    changed = _replace_once(CHECKOUT_PIN, b"v4", template) + RUN_BLOCK_WITH_PIN_TEXT % (b"a" * 40)
+    with pytest.raises(AssertionError):
+        _assert_fully_pinned_and_only_pins_differ(changed, changed)
+
+
+def test_run_block_repeating_a_quoted_step_is_rejected(template):
+    sha = b"c" * 40
+    quoted = _replace_once(CHECKOUT_USES, b'"actions/checkout@%s"' % sha, template)
+    block = b"      - run: |\n          uses: actions/checkout@%s # %s\n"
+    with pytest.raises(AssertionError):
+        _assert_fully_pinned_and_only_pins_differ(quoted + block % (sha, b"v1"), quoted + block % (sha, b"v2"))
+
+
+def test_mutable_duplicate_uses_key_is_rejected(template):
+    pin = re.search(rb"uses: (actions/checkout@[^\r\n]*)", template)
+    assert pin is not None
+    changed = _replace_once(CHECKOUT_USES, b"evil/action@v4\n        " + pin[0], template)
     with pytest.raises(AssertionError):
         _assert_fully_pinned_and_only_pins_differ(changed, changed)
 
@@ -345,8 +373,7 @@ def test_definition_without_actions_is_rejected():
 
 @pytest.mark.parametrize("spelling", [b'"uses":', b"uses :"])
 def test_mutable_pin_in_both_files_is_rejected_for_any_uses_spelling(template, spelling):
-    changed, count = re.subn(rb"uses: actions/checkout@[^\n]*", spelling + b" actions/checkout@v4", template)
-    assert count == 1
+    changed = _replace_once(re.compile(rb"uses: actions/checkout@[^\r\n]*"), spelling + b" actions/checkout@v4", template)
     with pytest.raises(AssertionError):
         _assert_fully_pinned_and_only_pins_differ(changed, changed)
 

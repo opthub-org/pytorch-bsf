@@ -895,7 +895,9 @@ PR on its own.
    `.github/pages-build-template.yml` and nothing else in that file. Take the line
    byte for byte from the Dependabot PR, or use the release you chose for a manual
    update. Reviewers confirm that the SHA belongs to the release named in the
-   comment with `gh api repos/<owner>/<repo>/commits/<tag> --jq .sha`. The head's
+   comment with `gh api repos/<owner>/<repo>/commits/<tag> --jq .sha`, and that
+   **GHPages build** succeeded on a head carrying the new pin. A Dependabot PR's
+   head provides that run; for a manual update, push a temporary branch. The head's
    producer YAML still matches the default-branch template, so publication
    succeeds. The PyTest check allows the two files to differ only in the SHA and
    version comment of pinned actions.
@@ -913,7 +915,8 @@ The publisher compares a tag's producer YAML with the template when the build
 completes, and a tag's YAML never changes. A tag whose pin differs from the
 template at that moment can therefore never publish. Before merging the Template
 PR, confirm that no tag build is in progress. Once it has landed, do not tag a
-commit that predates the Workflow PR.
+commit that predates the Workflow PR, and do not merge a Release Please PR until
+the Workflow PR has landed, because merging one creates such a tag.
 
 Neither Dependabot nor the security remediation automation can edit the template,
 so their pin updates can only be the Workflow PR. Until the template lands, such a
@@ -923,6 +926,11 @@ GitHub does not enforce this rule yet
 missing check before merging. If a Workflow PR lands first, every head that
 contains it is rejected, including `master` and any Template PR based on it.
 Revert the Workflow PR on `master`, then start again from step 1.
+
+Once a Template PR has landed, a revert or a corrected Template PR does not match
+the template either, so it cannot get a **GHPages publish** check. If the new pin
+turns out to be unusable, a maintainer merges that one PR without the check and
+records the reason in it. Do not use this exception for anything else.
 
 This procedure covers action pins only. Other producer changes have no sequence
 of PRs that passes all required checks yet
