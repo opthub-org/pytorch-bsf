@@ -2,6 +2,7 @@
 
 import copy
 import importlib.util
+import json
 import os
 import subprocess
 import sys
@@ -65,6 +66,22 @@ def test_original_scalar_coefficients(size, outside, degree):
     actual = _scalar_risk_sum(size + outside, degree, size)
     lower, upper = error.coefficient_enclosure(size, outside, degree, terms=17)
     assert lower <= actual <= upper
+
+
+def test_post_freeze_original_integer_kernel_holdouts():
+    fixture = json.loads((ROOT / "tools/risk_research/examples/nonvertex_general_error_holdouts.json").read_text())
+    assert fixture["method"] == "original_integer_outside_kernel_scalar_sum"
+    assert [(row["face_size"], row["outside"], row["degree"]) for row in fixture["cases"]] == [
+        (2, 5, 41),
+        (3, 7, 31),
+        (5, 8, 23),
+        (9, 2, 19),
+        (4, 3, 37),
+    ]
+    for row in fixture["cases"]:
+        exact = Fraction(int(row["coefficient"]["numerator"]), int(row["coefficient"]["denominator"]))
+        lower, upper = error.coefficient_enclosure(row["face_size"], row["outside"], row["degree"], terms=29)
+        assert lower <= exact <= upper
 
 
 @pytest.mark.parametrize("size,outside", [(2, 2), (3, 2), (9, 2), (2, 3), (3, 5), (9, 8)])

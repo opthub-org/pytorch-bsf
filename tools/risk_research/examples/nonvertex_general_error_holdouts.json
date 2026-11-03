@@ -1,0 +1,75 @@
+{
+  "method": "original_integer_outside_kernel_scalar_sum",
+  "source_head": "67b020f3fd2dd1ebf6f4ac5d9e9c9a2cc06876d0",
+  "source_tree": "17f9d7ab320a6d9e6f055fd2d3267fa04ca21146",
+  "freeze_sha256": "d721b209b6254db5a8bbc0c3cfa2f7c43ad07e356cbe221ed4627895c0420204",
+  "selection_sha256": "105eace61dda72ba6ff516c94439768a41322d8df0106cb9a1821583f6dbc450",
+  "cases": [
+    {
+      "face_size": 2,
+      "outside": 5,
+      "degree": 41,
+      "coefficient": {
+        "numerator": "1513166191699335554990401170441076505965204100714411618946591046109766272369287",
+        "denominator": "779939390213667188218309979500462251135156155051694188339092880598498508800000000"
+      },
+      "enclosed": true,
+      "kernel_backend": "flint",
+      "kernel_power": 5,
+      "kernel_maximum": 39
+    },
+    {
+      "face_size": 3,
+      "outside": 7,
+      "degree": 31,
+      "coefficient": {
+        "numerator": "5926469750388048694646801595018849444976107719752470527813503",
+        "denominator": "4657149144443603049812454645496690319493014141843812224000000"
+      },
+      "enclosed": true,
+      "kernel_backend": "flint",
+      "kernel_power": 7,
+      "kernel_maximum": 28
+    },
+    {
+      "face_size": 5,
+      "outside": 8,
+      "degree": 23,
+      "coefficient": {
+        "numerator": "387119129664577686060140768987238126839534411",
+        "denominator": "6261027029710079209101491496556032000000"
+      },
+      "enclosed": true,
+      "kernel_backend": "flint",
+      "kernel_power": 8,
+      "kernel_maximum": 18
+    },
+    {
+      "face_size": 9,
+      "outside": 2,
+      "degree": 19,
+      "coefficient": {
+        "numerator": "6789465425749017291251",
+        "denominator": "1966324716824832"
+      },
+      "enclosed": true,
+      "kernel_backend": "flint",
+      "kernel_power": 2,
+      "kernel_maximum": 10
+    },
+    {
+      "face_size": 4,
+      "outside": 3,
+      "degree": 37,
+      "coefficient": {
+        "numerator": "13401994842022518097346616897776471244195416842927542983",
+        "denominator": "18142831360012324161945365983020386177256812601600000"
+      },
+      "enclosed": true,
+      "kernel_backend": "flint",
+      "kernel_power": 3,
+      "kernel_maximum": 33
+    }
+  ],
+  "scope": "Post-freeze finite validation cases, not an all-degree proof."
+}
