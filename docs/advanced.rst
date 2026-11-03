@@ -104,6 +104,7 @@ choose them when your domain, objective or execution environment requires it.
    advanced/skeleton_risk_nonvertex_q4_error
    advanced/skeleton_risk_nonvertex_q4_refined
    advanced/skeleton_risk_nonvertex_general_error
+   advanced/skeleton_risk_nonvertex_growing_faces
    advanced/skeleton_risk_nonvertex_relative_certificate
    advanced/skeleton_risk_vertex
    advanced/skeleton_risk_vertex_general
