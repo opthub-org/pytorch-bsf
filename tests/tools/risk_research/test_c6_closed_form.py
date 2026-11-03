@@ -1,5 +1,6 @@
 """Check the c6 finite telescope, classical reduction and strict records."""
 
+import hashlib
 import importlib.util
 import json
 import os
@@ -207,6 +208,37 @@ def test_protected_sources_and_mid_calculation_edit_preserve_output(tmp_path, mo
     with pytest.raises(SystemExit):
         closed.main(["--output", str(out)])
     assert out.read_text() == "keep"
+
+
+@pytest.mark.parametrize("operation", ["build", "verify"])
+@pytest.mark.parametrize("change", ["content", "line-endings"])
+def test_direct_record_operations_reject_raw_source_changes(monkeypatch, operation, change):
+    record = closed.build_record(7)
+    before = {name: raw.replace(b"\r\n", b"\n") for name, raw in closed._sources().items()}
+    if change == "line-endings":
+        after = {name: raw.replace(b"\n", b"\r\n") for name, raw in before.items()}
+        for snapshot in (before, after):
+            hashes = {name: hashlib.sha256(raw.replace(b"\r\n", b"\n")).hexdigest() for name, raw in snapshot.items()}
+            assert hashes == record["source_sha256"]
+    else:
+        after = dict(before)
+        first = next(iter(after))
+        after[first] += b"\n# virtual source change\n"
+    assert before != after
+    calls = 0
+
+    def fake_sources():
+        nonlocal calls
+        calls += 1
+        return before if calls == 1 else after
+
+    monkeypatch.setattr(closed, "_sources", fake_sources)
+    with pytest.raises(RuntimeError, match="a closed-form source changed during calculation"):
+        if operation == "build":
+            closed.build_record(7)
+        else:
+            closed.verify_record(record)
+    assert calls == 2
 
 
 def test_canonical_parent_is_used_even_after_alias_retargets(tmp_path, monkeypatch):
