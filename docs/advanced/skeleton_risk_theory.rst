@@ -111,6 +111,56 @@ explicit evaluations. The conditions in each row are part of the result.
      - :prf:ref:`thm-skeleton-graph-risk`: closed coefficients including loops;
        :prf:ref:`cor-skeleton-loop-comparison`: complete single-loop comparison.
 
+A route from the inputs to a certified value
+-----------------------------------------------
+
+The following map separates exact finite coefficients, leading constants
+and finite-degree approximation. Here s is the number of vertices of a
+nonvertex source face, q is its outside codimension and :math:`M=s+q`.
+The constant needed for that face is :math:`c_{q+1}`; the constant-index
+convention used in the MZV chapters should not be confused with this q.
+
+.. list-table:: Inputs, mathematical quantity and research evaluator
+   :header-rows: 1
+   :widths: 16 22 30 32
+
+   * - Inputs
+     - Quantity
+     - Result
+     - Evaluator and scope
+   * - :math:`M,D,m`
+     - Exact :math:`a_m(M,D)`
+     - :prf:ref:`thm-skeleton-scalar-sum`
+     - ``exact`` and the original scalar/Gram oracles; finite sums at any active face.
+   * - Fixed constant index :math:`j\geq3`
+     - :math:`c_j`
+     - :doc:`skeleton_risk_leading_constant_mzv` and :doc:`skeleton_risk_mzv_dyadic`
+     - ``leading_constant_mzv`` gives a finite MZV expression; ``mzv_dyadic`` gives a rational absolute-width enclosure.
+   * - :math:`s,q\geq2,D\geq1`
+     - Leading term and its finite-D relative error
+     - :prf:ref:`thm-risk-nonvertex-general-finite-error`
+     - ``nonvertex_general_error``; a conservative vanishing bound and sufficient all-tail thresholds for every fixed pair.
+   * - Fixed :math:`q\geq2`, :math:`D\geq16`
+     - Uniform error for :math:`2\leq s\leq\lfloor D^{1/4}\rfloor`
+     - :prf:ref:`thm-risk-nonvertex-growing-faces`
+     - ``nonvertex_growing_faces``; an explicit rational all-tail certificate, with fixed outside codimension.
+   * - :math:`s,q,D,0<\varepsilon<1`
+     - Positive finite-D interval and true-value relative accuracy
+     - :prf:ref:`thm-risk-nonvertex-relative-certificate`
+     - ``nonvertex_relative_certificate``; one fixed-D success contract combining the two errors, or an explicit refusal.
+
+The final row follows the path
+:math:`(s,q)\longmapsto c_{q+1}\longmapsto A_{s,q}` followed by a
+finite-D coefficient interval. The approximation is its harmonic center,
+with the true coefficient in the relative-error denominator. Inactive
+faces instead return an exact zero with no relative-error claim. The
+bounds concern coefficients of sample-size-asymptotic risk under the
+stated design and noise assumptions. They do not estimate finite-sample
+risk, prove a growing-q limit, or guarantee every input fits the disclosed
+operational budgets. Sharper separate q3/q4 bounds remain available.
+See :doc:`skeleton_risk_nonvertex_relative_certificate` and the research
+README for complete generation and replay commands.
+
 The proofs are self-contained apart from the cited small-ball inequality.
 Statements certified by a finite computation are labeled computer-assisted.
 The final section lists the ranges where further simplification or a
@@ -1849,6 +1899,14 @@ active positive-dimensional faces, so the dimension and shape optima agree.
   :math:`O(D^{-1/2})` in codimension at least three and
   :math:`O(\log D/\sqrt D)` in codimension two; the sharper separate
   low-codimension results remain available.
+  :prf:ref:`thm-risk-nonvertex-growing-faces` also supplies uniform
+  convergence when the source size grows at most as :math:`D^{1/4}`
+  with q fixed. :prf:ref:`thm-risk-nonvertex-relative-certificate`
+  composes the numerical constant interval and analytic finite-D error
+  into a requested true-value relative accuracy whenever the conservative
+  bound and operational budgets permit. Growing-q uniform estimates,
+  sharper general errors and practical or minimal thresholds remain
+  separate questions.
   The remaining shortening question concerns sums with degree-independent
   length or smaller certified states, rather than the existence of an
   exact codimension-three evaluation or its fixed-codimension leading term.
