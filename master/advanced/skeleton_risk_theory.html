@@ -64,6 +64,7 @@
 <li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Theory of the skeleton risk</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#a-route-from-the-inputs-to-a-certified-value">A route from the inputs to a certified value</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#setting">Setting</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#the-asymptotic-risk">The asymptotic risk</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#products-of-simplices">Products of simplices</a></li>
@@ -88,6 +89,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_refined.html">A logarithmic finite-degree remainder for nonvertex q4 risks</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_general_error.html">Finite-degree errors at every fixed nonvertex codimension</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_growing_faces.html">Uniform errors for growing nonvertex faces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_relative_certificate.html">One certificate for a requested finite-degree relative accuracy</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_mzv_dyadic.html">Dyadic enclosures for multiple zeta values</a></li>
@@ -244,26 +246,26 @@ and <a class="reference internal" href="#thm-skeleton-triangle-vertex-risk">Theo
 <td><p><a class="reference internal" href="skeleton_risk_extensions.html#thm-risk-fixed-dimension-holonomic">Theorem 19</a>: a polynomial-coefficient
 recurrence exists; explicit tetrahedron edge operators and a
 codimension-two harmonic reduction are in <a class="reference internal" href="skeleton_risk_extensions.html"><span class="doc">Further evaluations of the skeleton risk</span></a>.
-<a class="reference internal" href="skeleton_risk_vertex_recurrence.html#thm-risk-tetrahedron-vertex-recurrence">Theorem 52</a> gives an order-ten
+<a class="reference internal" href="skeleton_risk_vertex_recurrence.html#thm-risk-tetrahedron-vertex-recurrence">Theorem 53</a> gives an order-ten
 vertex operator, and <a class="reference internal" href="codimension_two_states.html"><span class="doc">Quadratic codimension-two multiplicities</span></a> gives an order-eight
 six-vertex tetrahedral-face operator.
-<a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html#thm-risk-five-vertex-recurrence">Theorem 64</a> supplies an order-seventeen
+<a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html#thm-risk-five-vertex-recurrence">Theorem 65</a> supplies an order-seventeen
 five-vertex vertex operator, with initial values and no exceptional integers.</p></td>
 </tr>
 <tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(M=4\)</span> or <span class="math notranslate nohighlight">\(M=5\)</span>, <span class="math notranslate nohighlight">\(m=0\)</span>, every degree</p></td>
-<td><p><a class="reference internal" href="skeleton_risk_vertex.html#thm-risk-tetrahedron-vertex-single">Theorem 36</a> and
-<a class="reference internal" href="skeleton_risk_five_vertex.html#thm-risk-five-vertex-single">Theorem 63</a>: one positive harmonic sum;
+<td><p><a class="reference internal" href="skeleton_risk_vertex.html#thm-risk-tetrahedron-vertex-single">Theorem 37</a> and
+<a class="reference internal" href="skeleton_risk_five_vertex.html#thm-risk-five-vertex-single">Theorem 64</a>: one positive harmonic sum;
 <a class="reference internal" href="skeleton_risk_vertex.html#cor-risk-tetrahedron-vertex-asymptotic">Corollary 15</a> and
 <a class="reference internal" href="skeleton_risk_five_vertex.html#cor-risk-five-vertex-asymptotic">Corollary 17</a>: the leading constants.
-<a class="reference internal" href="skeleton_risk_vertex_asymptotics.html#thm-risk-vertex-two-term-error">Theorem 56</a> also gives the tetrahedron
+<a class="reference internal" href="skeleton_risk_vertex_asymptotics.html#thm-risk-vertex-two-term-error">Theorem 57</a> also gives the tetrahedron
 next term and an explicit error bound for <span class="math notranslate nohighlight">\(D\geq256\)</span>.
-<a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html#thm-risk-five-vertex-explicit-error">Theorem 65</a> gives a five-vertex
+<a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html#thm-risk-five-vertex-explicit-error">Theorem 66</a> gives a five-vertex
 leading-term error bound on the same domain.</p></td>
 </tr>
 <tr class="row-even"><td><p>Every <span class="math notranslate nohighlight">\(M\geq2\)</span>, <span class="math notranslate nohighlight">\(m=0\)</span>, every degree</p></td>
-<td><p><a class="reference internal" href="skeleton_risk_vertex_general.html#thm-risk-general-vertex-construction">Theorem 37</a>: rational univariate
+<td><p><a class="reference internal" href="skeleton_risk_vertex_general.html#thm-risk-general-vertex-construction">Theorem 38</a>: rational univariate
 convolutions. For each fixed <span class="math notranslate nohighlight">\(M\geq4\)</span>,
-<a class="reference internal" href="skeleton_risk_vertex_general.html#thm-risk-general-vertex-asymptotic">Theorem 38</a> gives a positive
+<a class="reference internal" href="skeleton_risk_vertex_general.html#thm-risk-general-vertex-asymptotic">Theorem 39</a> gives a positive
 constant <span class="math notranslate nohighlight">\(C_M\)</span> with <span class="math notranslate nohighlight">\(a_0(M,D)\sim C_M/D^{M+1}\)</span>;
 the constant has certified rational truncation bounds.</p></td>
 </tr>
@@ -276,9 +278,9 @@ degree-length angular sum.</p></td>
 <tr class="row-even"><td><p>Risk comparison</p></td>
 <td><p>Curves win at every degree; <a class="reference internal" href="#prop-skeleton-wins">Proposition 5</a> classifies
 all vertex counts for <span class="math notranslate nohighlight">\(D\leq8\)</span>, and
-<a class="reference internal" href="skeleton_risk_comparisons.html#thm-risk-comparisons-nine-twenty">Theorem 57</a> extends this through
-<span class="math notranslate nohighlight">\(D=20\)</span>. <a class="reference internal" href="skeleton_risk_comparisons.html#thm-risk-comparisons-twentyone-thirty">Theorem 58</a> covers
-degrees 21 through 30; <a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html#thm-risk-tetrahedron-comparison">Theorem 62</a> classifies
+<a class="reference internal" href="skeleton_risk_comparisons.html#thm-risk-comparisons-nine-twenty">Theorem 58</a> extends this through
+<span class="math notranslate nohighlight">\(D=20\)</span>. <a class="reference internal" href="skeleton_risk_comparisons.html#thm-risk-comparisons-twentyone-thirty">Theorem 59</a> covers
+degrees 21 through 30; <a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html#thm-risk-tetrahedron-comparison">Theorem 63</a> classifies
 every degree at <span class="math notranslate nohighlight">\(M=4\)</span>. Every fixed degree wins for sufficiently
 large <span class="math notranslate nohighlight">\(M\)</span>.</p></td>
 </tr>
@@ -287,27 +289,89 @@ large <span class="math notranslate nohighlight">\(M\)</span>.</p></td>
 <a class="reference internal" href="#cor-skeleton-product-shape-ratio">Corollary 2</a>: optimal allocation by face shape.</p></td>
 </tr>
 <tr class="row-even"><td><p>Any finite simploidal set, with compatible positive factor degrees</p></td>
-<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-assembled-risk">Theorem 68</a>: global propagation and weighted risk;
+<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-assembled-risk">Theorem 69</a>: global propagation and weighted risk;
 <a class="reference internal" href="simploidal_risk.html#cor-skeleton-assembled-allocation">Corollary 18</a>: cell and grouped optima.</p></td>
 </tr>
 <tr class="row-odd"><td><p>Regular glued complexes, with any compatible positive factor degrees</p></td>
-<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-regular-incidence">Theorem 69</a>: scalar weighted face incidences;
+<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-regular-incidence">Theorem 70</a>: scalar weighted face incidences;
 <a class="reference internal" href="simploidal_risk.html#cor-skeleton-pure-incidence">Corollary 20</a>: pure simplicial face-vector formula.</p></td>
 </tr>
 <tr class="row-even"><td><p>Any finite simploidal set, with all factor degrees one</p></td>
-<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-linear-assembled">Theorem 70</a>: explicit corner-collision formula
+<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-linear-assembled">Theorem 71</a>: explicit corner-collision formula
 and comparison with matching all-at-once fitting.</p></td>
 </tr>
 <tr class="row-odd"><td><p>Every one-dimensional set, with any positive edge degrees</p></td>
-<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-graph-risk">Theorem 71</a>: closed coefficients including loops;
+<td><p><a class="reference internal" href="simploidal_risk.html#thm-skeleton-graph-risk">Theorem 72</a>: closed coefficients including loops;
 <a class="reference internal" href="simploidal_risk.html#cor-skeleton-loop-comparison">Corollary 22</a>: complete single-loop comparison.</p></td>
 </tr>
 </tbody>
 </table>
+<section id="a-route-from-the-inputs-to-a-certified-value">
+<h2>A route from the inputs to a certified value<a class="headerlink" href="#a-route-from-the-inputs-to-a-certified-value" title="Link to this heading"></a></h2>
+<p>The following map separates exact finite coefficients, leading constants
+and finite-degree approximation. Here s is the number of vertices of a
+nonvertex source face, q is its outside codimension and <span class="math notranslate nohighlight">\(M=s+q\)</span>.
+The constant needed for that face is <span class="math notranslate nohighlight">\(c_{q+1}\)</span>; the constant-index
+convention used in the MZV chapters should not be confused with this q.</p>
+<table class="docutils align-default" id="id5">
+<caption><span class="caption-number">Table 12 </span><span class="caption-text">Inputs, mathematical quantity and research evaluator</span><a class="headerlink" href="#id5" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 16.0%" />
+<col style="width: 22.0%" />
+<col style="width: 30.0%" />
+<col style="width: 32.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Inputs</p></th>
+<th class="head"><p>Quantity</p></th>
+<th class="head"><p>Result</p></th>
+<th class="head"><p>Evaluator and scope</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(M,D,m\)</span></p></td>
+<td><p>Exact <span class="math notranslate nohighlight">\(a_m(M,D)\)</span></p></td>
+<td><p><a class="reference internal" href="#thm-skeleton-scalar-sum">Theorem 11</a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">exact</span></code> and the original scalar/Gram oracles; finite sums at any active face.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Fixed constant index <span class="math notranslate nohighlight">\(j\geq3\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(c_j\)</span></p></td>
+<td><p><a class="reference internal" href="skeleton_risk_leading_constant_mzv.html"><span class="doc">Finite MZV constructions for leading constants</span></a> and <a class="reference internal" href="skeleton_risk_mzv_dyadic.html"><span class="doc">Dyadic enclosures for multiple zeta values</span></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">leading_constant_mzv</span></code> gives a finite MZV expression; <code class="docutils literal notranslate"><span class="pre">mzv_dyadic</span></code> gives a rational absolute-width enclosure.</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(s,q\geq2,D\geq1\)</span></p></td>
+<td><p>Leading term and its finite-D relative error</p></td>
+<td><p><a class="reference internal" href="skeleton_risk_nonvertex_general_error.html#thm-risk-nonvertex-general-finite-error">Theorem 34</a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">nonvertex_general_error</span></code>; a conservative vanishing bound and sufficient all-tail thresholds for every fixed pair.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Fixed <span class="math notranslate nohighlight">\(q\geq2\)</span>, <span class="math notranslate nohighlight">\(D\geq16\)</span></p></td>
+<td><p>Uniform error for <span class="math notranslate nohighlight">\(2\leq s\leq\lfloor D^{1/4}\rfloor\)</span></p></td>
+<td><p><a class="reference internal" href="skeleton_risk_nonvertex_growing_faces.html#thm-risk-nonvertex-growing-faces">Corollary 14</a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">nonvertex_growing_faces</span></code>; an explicit rational all-tail certificate, with fixed outside codimension.</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(s,q,D,0&lt;\varepsilon&lt;1\)</span></p></td>
+<td><p>Positive finite-D interval and true-value relative accuracy</p></td>
+<td><p><a class="reference internal" href="skeleton_risk_nonvertex_relative_certificate.html#thm-risk-nonvertex-relative-certificate">Theorem 35</a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">nonvertex_relative_certificate</span></code>; one fixed-D success contract combining the two errors, or an explicit refusal.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The final row follows the path
+<span class="math notranslate nohighlight">\((s,q)\longmapsto c_{q+1}\longmapsto A_{s,q}\)</span> followed by a
+finite-D coefficient interval. The approximation is its harmonic center,
+with the true coefficient in the relative-error denominator. Inactive
+faces instead return an exact zero with no relative-error claim. The
+bounds concern coefficients of sample-size-asymptotic risk under the
+stated design and noise assumptions. They do not estimate finite-sample
+risk, prove a growing-q limit, or guarantee every input fits the disclosed
+operational budgets. Sharper separate q3/q4 bounds remain available.
+See <a class="reference internal" href="skeleton_risk_nonvertex_relative_certificate.html"><span class="doc">One certificate for a requested finite-degree relative accuracy</span></a> and the research
+README for complete generation and replay commands.</p>
 <p>The proofs are self-contained apart from the cited small-ball inequality.
 Statements certified by a finite computation are labeled computer-assisted.
 The final section lists the ranges where further simplification or a
 complete risk comparison is still open.</p>
+</section>
 <section id="setting">
 <h2>Setting<a class="headerlink" href="#setting" title="Link to this heading"></a></h2>
 <p>Let the simplex have <span class="math notranslate nohighlight">\(M\geq2\)</span> vertices
@@ -1705,6 +1769,14 @@ with computable all-tail thresholds. Its conservative rates are
 <span class="math notranslate nohighlight">\(O(D^{-1/2})\)</span> in codimension at least three and
 <span class="math notranslate nohighlight">\(O(\log D/\sqrt D)\)</span> in codimension two; the sharper separate
 low-codimension results remain available.
+<a class="reference internal" href="skeleton_risk_nonvertex_growing_faces.html#thm-risk-nonvertex-growing-faces">Corollary 14</a> also supplies uniform
+convergence when the source size grows at most as <span class="math notranslate nohighlight">\(D^{1/4}\)</span>
+with q fixed. <a class="reference internal" href="skeleton_risk_nonvertex_relative_certificate.html#thm-risk-nonvertex-relative-certificate">Theorem 35</a>
+composes the numerical constant interval and analytic finite-D error
+into a requested true-value relative accuracy whenever the conservative
+bound and operational budgets permit. Growing-q uniform estimates,
+sharper general errors and practical or minimal thresholds remain
+separate questions.
 The remaining shortening question concerns sums with degree-independent
 length or smaller certified states, rather than the existence of an
 exact codimension-three evaluation or its fixed-codimension leading term.</p></li>
@@ -1718,32 +1790,32 @@ fixed-degree dimension polynomials do not supply that general
 evaluation. <a class="reference internal" href="skeleton_risk_extensions.html#thm-risk-fixed-dimension-holonomic">Theorem 19</a> proves that
 a degree recurrence exists at every fixed dimension, while
 <a class="reference internal" href="skeleton_risk_extensions.html#thm-risk-vertex-boundary-pair">Theorem 23</a> reduces its remaining kernel
-complexity. <a class="reference internal" href="skeleton_risk_vertex.html#thm-risk-tetrahedron-vertex-single">Theorem 36</a> now evaluates
+complexity. <a class="reference internal" href="skeleton_risk_vertex.html#thm-risk-tetrahedron-vertex-single">Theorem 37</a> now evaluates
 the tetrahedron vertex by one positive harmonic-binomial sum, with its
 leading large-degree constant. Its length still grows with <span class="math notranslate nohighlight">\(D\)</span>;
-<a class="reference internal" href="skeleton_risk_vertex_recurrence.html#thm-risk-tetrahedron-vertex-recurrence">Theorem 52</a> now supplies an explicit
+<a class="reference internal" href="skeleton_risk_vertex_recurrence.html#thm-risk-tetrahedron-vertex-recurrence">Theorem 53</a> now supplies an explicit
 order-ten degree recurrence with initial values and no exceptional integers.
-<a class="reference internal" href="skeleton_risk_five_vertex.html#thm-risk-five-vertex-single">Theorem 63</a> similarly evaluates the
+<a class="reference internal" href="skeleton_risk_five_vertex.html#thm-risk-five-vertex-single">Theorem 64</a> similarly evaluates the
 five-vertex vertex coefficient with four harmonic states and one sum
 of length <span class="math notranslate nohighlight">\(D\)</span>, and <a class="reference internal" href="skeleton_risk_five_vertex.html#cor-risk-five-vertex-asymptotic">Corollary 17</a>
 gives its leading constant. A bounded-length classical-special-function
 evaluation is still open in these dimensions.
-<a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html#thm-risk-five-vertex-recurrence">Theorem 64</a> now supplies the
+<a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html#thm-risk-five-vertex-recurrence">Theorem 65</a> now supplies the
 five-vertex order-seventeen operator as well, with all initial values
 and no positive integer exceptions.
-<a class="reference internal" href="skeleton_risk_vertex_general.html#thm-risk-general-vertex-construction">Theorem 37</a> now supplies rational
+<a class="reference internal" href="skeleton_risk_vertex_general.html#thm-risk-general-vertex-construction">Theorem 38</a> now supplies rational
 univariate convolutions for every vertex count, and
-<a class="reference internal" href="skeleton_risk_vertex_general.html#thm-risk-general-vertex-asymptotic">Theorem 38</a> gives the leading constant
+<a class="reference internal" href="skeleton_risk_vertex_general.html#thm-risk-general-vertex-asymptotic">Theorem 39</a> gives the leading constant
 at each fixed <span class="math notranslate nohighlight">\(M\geq4\)</span> by a positive integral and a convergent
 series with certified truncation errors. The convolution lengths still
 grow with the degree; these results do not give a bounded-length
 classical-special-function expression. These fixed-<span class="math notranslate nohighlight">\(M\)</span> limits
 alone do not justify replacing <span class="math notranslate nohighlight">\(M\)</span> by a growing sequence.
-<a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html#thm-risk-general-vertex-explicit-error">Theorem 50</a> adds a computable
+<a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html#thm-risk-general-vertex-explicit-error">Theorem 51</a> adds a computable
 bound <span class="math notranslate nohighlight">\(R_M(1+\log D)^{M-2}/D^{M+2}\)</span> for every
 <span class="math notranslate nohighlight">\(M\geq4,D\geq256\)</span>. Its relative error tends to zero at
 each fixed <span class="math notranslate nohighlight">\(M\)</span>.
-<a class="reference internal" href="skeleton_risk_vertex_joint_growth.html#thm-risk-joint-vertex-growth">Theorem 53</a> now controls the full dependence
+<a class="reference internal" href="skeleton_risk_vertex_joint_growth.html#thm-risk-joint-vertex-growth">Theorem 54</a> now controls the full dependence
 on <span class="math notranslate nohighlight">\(M\)</span> and proves a simultaneous regime: for
 <span class="math notranslate nohighlight">\(D\geq2^{1024}\)</span> and the explicit growing range
 <span class="math notranslate nohighlight">\(4\leq M\leq h(D)\)</span>, relative error is at most <span class="math notranslate nohighlight">\(D^{-3/4}\)</span>.
@@ -1751,39 +1823,39 @@ Its conservative start and range are part of the theorem; wider
 simultaneous regimes remain to be investigated.</p></li>
 <li><p><strong>The full comparison beyond the classified degrees.</strong>
 <a class="reference internal" href="#prop-skeleton-wins">Proposition 5</a> classifies every <span class="math notranslate nohighlight">\(M\)</span> at
-<span class="math notranslate nohighlight">\(D\leq8\)</span>, and <a class="reference internal" href="skeleton_risk_comparisons.html#thm-risk-comparisons-nine-twenty">Theorem 57</a>
+<span class="math notranslate nohighlight">\(D\leq8\)</span>, and <a class="reference internal" href="skeleton_risk_comparisons.html#thm-risk-comparisons-nine-twenty">Theorem 58</a>
 classifies every <span class="math notranslate nohighlight">\(M\)</span> at <span class="math notranslate nohighlight">\(9\leq D\leq20\)</span>.
-<a class="reference internal" href="skeleton_risk_comparisons.html#thm-risk-comparisons-twentyone-thirty">Theorem 58</a> extends this through degree thirty.
+<a class="reference internal" href="skeleton_risk_comparisons.html#thm-risk-comparisons-twentyone-thirty">Theorem 59</a> extends this through degree thirty.
 For <span class="math notranslate nohighlight">\(D\geq31\)</span>, determine the exact set of
 winning vertex counts, including any small-dimensional exceptions,
 and the growth of the eventual crossover as <span class="math notranslate nohighlight">\(D\to\infty\)</span>.
 <a class="reference internal" href="#cor-skeleton-large-dimension">Corollary 9</a> proves eventual winning for
 each fixed degree; it gives no exact crossover law.
-<a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html#thm-risk-uniform-dimension-tail">Theorem 59</a> now gives a sufficient linear
+<a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html#thm-risk-uniform-dimension-tail">Theorem 60</a> now gives a sufficient linear
 region valid simultaneously for all positive degrees: <span class="math notranslate nohighlight">\(M\geq9720D\)</span>
 implies <span class="math notranslate nohighlight">\(R_{\mathrm{ind}}&lt;(4/5)R_{\mathrm{all}}\)</span>. The constant
 is conservative and is not an exact crossover.
-<a class="reference internal" href="skeleton_risk_fixed_vertex_tail.html#thm-risk-fixed-vertex-degree-tail">Theorem 60</a> supplies the other direction:
+<a class="reference internal" href="skeleton_risk_fixed_vertex_tail.html#thm-risk-fixed-vertex-degree-tail">Theorem 61</a> supplies the other direction:
 for every fixed <span class="math notranslate nohighlight">\(M\geq4\)</span> it constructs an explicit <span class="math notranslate nohighlight">\(H(M)\)</span>
 and proves strict victory for every <span class="math notranslate nohighlight">\(D\geq H(M)\)</span>. Its conservative
 threshold does not classify the remaining finite prefix. Closed formulas
 for a fixed dimension also require a separate inequality analysis
 before they yield a classification over all degrees.
-At <span class="math notranslate nohighlight">\(M=4\)</span>, <a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html#thm-risk-tetrahedron-comparison">Theorem 62</a> now supplies
+At <span class="math notranslate nohighlight">\(M=4\)</span>, <a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html#thm-risk-tetrahedron-comparison">Theorem 63</a> now supplies
 this separate analysis and completes the comparison at every degree.
-At <span class="math notranslate nohighlight">\(M=5\)</span>, <a class="reference internal" href="skeleton_risk_five_vertex_comparison.html#thm-risk-five-vertex-comparison">Theorem 66</a> also completes
+At <span class="math notranslate nohighlight">\(M=5\)</span>, <a class="reference internal" href="skeleton_risk_five_vertex_comparison.html#thm-risk-five-vertex-comparison">Theorem 67</a> also completes
 every degree: inductive fitting wins at <span class="math notranslate nohighlight">\(D=1,2\)</span> and <span class="math notranslate nohighlight">\(D\geq12\)</span>,
 while all-at-once fitting wins exactly at <span class="math notranslate nohighlight">\(3\leq D\leq11\)</span>.
-At <span class="math notranslate nohighlight">\(M=6\)</span>, <a class="reference internal" href="skeleton_risk_six_vertex_comparison.html#thm-risk-six-vertex-comparison">Theorem 67</a> completes
+At <span class="math notranslate nohighlight">\(M=6\)</span>, <a class="reference internal" href="skeleton_risk_six_vertex_comparison.html#thm-risk-six-vertex-comparison">Theorem 68</a> completes
 every degree: inductive fitting wins at <span class="math notranslate nohighlight">\(D=1,2\)</span> and <span class="math notranslate nohighlight">\(D\geq17\)</span>,
 while all-at-once fitting wins exactly at <span class="math notranslate nohighlight">\(3\leq D\leq16\)</span>.</p></li>
 <li><p><strong>Higher-degree self-identifications in higher dimensions.</strong>
-<a class="reference internal" href="simploidal_risk.html#thm-skeleton-regular-incidence">Theorem 69</a> removes assembled matrices on
-regular complexes, and <a class="reference internal" href="simploidal_risk.html#thm-skeleton-linear-assembled">Theorem 70</a> and
-<a class="reference internal" href="simploidal_risk.html#thm-skeleton-graph-risk">Theorem 71</a> handle arbitrary identifications at
+<a class="reference internal" href="simploidal_risk.html#thm-skeleton-regular-incidence">Theorem 70</a> removes assembled matrices on
+regular complexes, and <a class="reference internal" href="simploidal_risk.html#thm-skeleton-linear-assembled">Theorem 71</a> and
+<a class="reference internal" href="simploidal_risk.html#thm-skeleton-graph-risk">Theorem 72</a> handle arbitrary identifications at
 linear factor degrees and in dimension one, respectively. Outside
 those ranges, the general finite formula
-<a class="reference internal" href="simploidal_risk.html#thm-skeleton-assembled-risk">Theorem 68</a> remains available. Further
+<a class="reference internal" href="simploidal_risk.html#thm-skeleton-assembled-risk">Theorem 69</a> remains available. Further
 evaluation must retain the cross terms between distinct occurrences
 of an identified face and the pullbacks from collapsed faces.</p></li>
 </ul>
