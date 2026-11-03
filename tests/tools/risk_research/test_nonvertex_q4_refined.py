@@ -266,6 +266,98 @@ def test_changed_nested_target_and_source_hash_are_rejected():
         error.verify_certificate(record)
 
 
+def _simulate_inflight_source_change(monkeypatch, stage, change):
+    sources = error._sources()
+    proof = sources[error.PROOF]
+    replacement = proof.replace(b"\n", b"\r\n") if change == "line_endings" else proof + b"\nvirtual source change\n"
+    assert replacement != proof
+    if change == "line_endings":
+        assert replacement.replace(b"\r\n", b"\n") == proof
+    changed = {**sources, error.PROOF: replacement}
+    state = {"changed": False}
+    evaluator = getattr(error, stage)
+
+    def evaluate(*args, **kwargs):
+        result = evaluator(*args, **kwargs)
+        state["changed"] = True
+        return result
+
+    monkeypatch.setattr(error, "_sources", lambda: changed if state["changed"] else sources)
+    monkeypatch.setattr(error, stage, evaluate)
+    return state
+
+
+@pytest.mark.parametrize("operation", ["certificate", "verify_certificate"])
+@pytest.mark.parametrize(
+    "stage,target",
+    [
+        ("leading_constant_enclosure", None),
+        ("leading_constant_enclosure", Fraction(1, 100)),
+        ("relative_error_threshold", Fraction(1, 100)),
+    ],
+)
+@pytest.mark.parametrize("change", ["content", "line_endings"])
+def test_direct_api_rejects_inflight_raw_source_changes(operation, stage, target, change, monkeypatch):
+    record = error.certificate(2, 8, terms=7, target=target)
+    state = _simulate_inflight_source_change(monkeypatch, stage, change)
+    with pytest.raises(RuntimeError, match="sources changed during calculation"):
+        if operation == "certificate":
+            error.certificate(2, 8, terms=7, target=target)
+        else:
+            error.verify_certificate(record)
+    assert state["changed"]
+
+
+@pytest.mark.parametrize("replay", [False, True])
+@pytest.mark.parametrize("stage", ["leading_constant_enclosure", "relative_error_threshold"])
+@pytest.mark.parametrize("change", ["content", "line_endings"])
+def test_cli_inflight_raw_source_changes_preserve_previous_output(replay, stage, change, tmp_path, monkeypatch):
+    saved, output = tmp_path / "saved.json", tmp_path / "old.json"
+    error.atomic_json(saved, error.certificate(2, 8, terms=7, target=Fraction(1, 100)))
+    saved_bytes = saved.read_bytes()
+    output.write_bytes(b"keep previous certificate")
+    state = _simulate_inflight_source_change(monkeypatch, stage, change)
+    arguments = (
+        ["--verify", str(saved)]
+        if replay
+        else ["--face-size", "2", "--degree", "8", "--constant-terms", "7", "--relative-target", "1/100"]
+    )
+    with pytest.raises(SystemExit) as failure:
+        error.main([*arguments, "--output", str(output)])
+    assert failure.value.code == 2 and state["changed"]
+    assert output.read_bytes() == b"keep previous certificate"
+    assert saved.read_bytes() == saved_bytes
+
+
+def test_stable_crlf_sources_keep_normalized_hashes(monkeypatch):
+    sources = error._sources()
+    original = error.certificate(2, 8, terms=7)
+    monkeypatch.setattr(error, "_sources", lambda: {name: source.replace(b"\n", b"\r\n") for name, source in sources.items()})
+    changed = error.certificate(2, 8, terms=7)
+    assert changed == original
+    error.verify_certificate(original)
+
+
+def test_cli_outer_source_guard_preserves_output_after_api_returns(tmp_path, monkeypatch):
+    output = tmp_path / "old.json"
+    output.write_bytes(b"keep")
+    sources = error._sources()
+    state = {"changed": False}
+    evaluator = error.certificate
+
+    def evaluate(*args, **kwargs):
+        result = evaluator(*args, **kwargs)
+        state["changed"] = True
+        return result
+
+    monkeypatch.setattr(error, "_sources", lambda: {**sources, "changed": b"x"} if state["changed"] else sources)
+    monkeypatch.setattr(error, "certificate", evaluate)
+    with pytest.raises(SystemExit) as failure:
+        error.main(["--face-size", "2", "--degree", "8", "--output", str(output)])
+    assert failure.value.code == 2 and state["changed"]
+    assert output.read_bytes() == b"keep"
+
+
 def test_duplicate_keys_and_concurrent_source_change_preserve_output(tmp_path, monkeypatch):
     path, output = tmp_path / "bad.json", tmp_path / "old.json"
     path.write_text('{"schema":"a","schema":"b"}')

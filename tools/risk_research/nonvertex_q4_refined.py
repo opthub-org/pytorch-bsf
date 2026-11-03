@@ -122,6 +122,7 @@ def _sources() -> dict[str, bytes]:
 
 def certificate(face_size: int, degree: int, terms: int = 64, target: Fraction | None = None) -> dict[str, object]:
     """Specialize the proved logarithmic bound with source-bound exact intervals."""
+    raw_sources = _sources()
     leading = leading_constant_enclosure(face_size, terms)
     interval = coefficient_enclosure(face_size, degree, terms)
     report: dict[str, object] = {
@@ -142,7 +143,7 @@ def certificate(face_size: int, degree: int, terms: int = 64, target: Fraction |
         "relative_error_bound": fraction_record(relative_error_bound(face_size, degree)),
         "source_hash_policy": HASH_POLICY,
         "source_sha256": {
-            name: hashlib.sha256(source.replace(b"\r\n", b"\n")).hexdigest() for name, source in _sources().items()
+            name: hashlib.sha256(source.replace(b"\r\n", b"\n")).hexdigest() for name, source in raw_sources.items()
         },
     }
     if target is not None:
@@ -153,6 +154,8 @@ def certificate(face_size: int, degree: int, terms: int = 64, target: Fraction |
             "relative_error_bound": fraction_record(dyadic_tail_bound(face_size, threshold.bit_length() - 1)),
             "requested_degree_in_tail": degree >= threshold,
         }
+    if _sources() != raw_sources:
+        raise RuntimeError("nonvertex q4 refined sources changed during calculation")
     return report
 
 
