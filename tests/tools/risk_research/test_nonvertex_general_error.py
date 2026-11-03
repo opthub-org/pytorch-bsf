@@ -127,10 +127,62 @@ def test_strict_types_and_ranges(bad):
         error.certificate(2, 5, 8, work_limit=bad)
 
 
-@pytest.mark.parametrize("target", [0, 0.01, True, Fraction(0), Fraction(-1), "1/100"])
-def test_target_requires_positive_exact_fraction(target):
-    with pytest.raises(ValueError, match="target"):
-        error.relative_error_threshold(2, 5, target)
+@pytest.mark.parametrize("target", [0, 0.01, True, False, Fraction(0), Fraction(-1), "1/100"])
+def test_target_requires_positive_exact_fraction(target, monkeypatch):
+    monkeypatch.setattr(error, "leading_constant_enclosure", lambda *a, **k: pytest.fail("leading interval before refusal"))
+    monkeypatch.setattr(error, "coefficient_enclosure", lambda *a, **k: pytest.fail("coefficient interval before refusal"))
+    monkeypatch.setattr(error, "diagonal_majorant", lambda *a, **k: pytest.fail("majorant before refusal"))
+    for action in (
+        lambda: error.relative_error_threshold(2, 5, target),
+        lambda: error.certificate(2, 5, 8, terms=1, target=target),
+    ):
+        with pytest.raises(ValueError, match="target"):
+            action()
+
+
+@pytest.mark.parametrize(
+    ("target", "work_limit"),
+    [
+        (Fraction(1 << 79), 79),
+        (Fraction(1, 1 << 79), 79),
+        (Fraction(1 << 7), 78),
+        (Fraction(1, 1 << 7), 78),
+    ],
+)
+def test_target_budget_refusal_precedes_interval_work(target, work_limit, monkeypatch):
+    monkeypatch.setattr(error, "leading_constant_enclosure", lambda *a, **k: pytest.fail("leading interval before refusal"))
+    monkeypatch.setattr(error, "coefficient_enclosure", lambda *a, **k: pytest.fail("coefficient interval before refusal"))
+    monkeypatch.setattr(error, "diagonal_majorant", lambda *a, **k: pytest.fail("majorant before refusal"))
+    for action in (
+        lambda: error.relative_error_threshold(2, 2, target, work_limit=work_limit),
+        lambda: error.certificate(2, 2, 8, terms=1, target=target, work_limit=work_limit),
+    ):
+        with pytest.raises(ValueError, match="^selected work exceeds work_limit$"):
+            action()
+
+
+@pytest.mark.parametrize("work_limit", [79, 80])
+def test_exact_target_work_limit_boundary_allows_intervals(work_limit, monkeypatch):
+    # The 8-bit target costs 3**3 + 2 + 2 + 8*(2 + abs(2-2-2) + 2) = 79.
+    # Certificate inputs alone cost 64, so the target sets this boundary.
+    calls = []
+
+    def leading_interval(*arguments, **keywords):
+        calls.append("leading")
+        return Fraction(1), Fraction(2)
+
+    def coefficient_interval(*arguments, **keywords):
+        calls.append("coefficient")
+        return Fraction(0), Fraction(3)
+
+    monkeypatch.setattr(error, "leading_constant_enclosure", leading_interval)
+    monkeypatch.setattr(error, "coefficient_enclosure", coefficient_interval)
+    record = error.certificate(2, 2, 8, terms=1, target=Fraction(128), work_limit=work_limit)
+    assert calls == ["leading", "coefficient"]
+    assert record["relative_target"] == {"numerator": "128", "denominator": "1"}
+    tail = record["all_tail"]
+    assert isinstance(tail, dict)
+    assert tail["from_degree"] == 4
 
 
 def test_resource_refusal_precedes_large_integer_or_constant_work(monkeypatch):

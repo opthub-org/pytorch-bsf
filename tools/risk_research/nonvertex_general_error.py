@@ -105,13 +105,17 @@ def dyadic_tail_bound(face_size: int, outside: int, exponent: int, *, work_limit
     return _dyadic_bound(face_size, outside, exponent, majorant, logarithmic)
 
 
-def relative_error_threshold(face_size: int, outside: int, target: Fraction, *, work_limit: int = DEFAULT_WORK_LIMIT) -> int:
-    """Return a sufficient all-tail degree, or reject its selected work."""
+def _validate_target(face_size: int, outside: int, target: Fraction, *, work_limit: int) -> None:
     if type(target) is not Fraction or target <= 0:
         raise ValueError("target must be a positive Fraction")
     _budget(
         face_size, outside, bits=max(target.numerator.bit_length(), target.denominator.bit_length()), work_limit=work_limit
     )
+
+
+def relative_error_threshold(face_size: int, outside: int, target: Fraction, *, work_limit: int = DEFAULT_WORK_LIMIT) -> int:
+    """Return a sufficient all-tail degree, or reject its selected work."""
+    _validate_target(face_size, outside, target, work_limit=work_limit)
     majorant, logarithmic = diagonal_majorant(outside, work_limit=work_limit)
     exponent = max(2, (2 * face_size - 3).bit_length())
     while True:
@@ -188,6 +192,8 @@ def certificate(
     sources = _sources()
     _integer(degree, 1, "degree")
     selected = _budget(face_size, outside, terms, degree.bit_length(), work_limit)
+    if target is not None:
+        _validate_target(face_size, outside, target, work_limit=work_limit)
     leading = leading_constant_enclosure(face_size, outside, terms, work_limit=work_limit)
     interval = coefficient_enclosure(face_size, outside, degree, terms, work_limit=work_limit)
     majorant, logarithmic = diagonal_majorant(outside, work_limit=work_limit)
