@@ -148,13 +148,65 @@ def test_resource_refusal_precedes_large_integer_or_constant_work(monkeypatch):
             action()
 
 
+@pytest.mark.parametrize("work_limit", [500, 942])
+def test_aggregate_work_limit_refuses_before_constant_work(monkeypatch, work_limit):
+    # Every individual input is below the limit, but their combined
+    # selected work is 6**3 + 6**2*20 + 2 + 5 = 943.
+    monkeypatch.setattr(error, "nonvertex_leading_constant_enclosure", lambda *a: pytest.fail("constant work before refusal"))
+    with pytest.raises(ValueError, match="^selected work exceeds work_limit$"):
+        error.leading_constant_enclosure(2, 5, 20, work_limit=work_limit)
+
+
+@pytest.mark.parametrize("work_limit", [943, 944])
+def test_exact_work_limit_boundary_allows_constant_work(monkeypatch, work_limit):
+    calls = []
+
+    def constant_interval(*arguments):
+        calls.append(arguments)
+        return Fraction(1), Fraction(2)
+
+    monkeypatch.setattr(error, "nonvertex_leading_constant_enclosure", constant_interval)
+    assert error.leading_constant_enclosure(2, 5, 20, work_limit=work_limit) == (1, 2)
+    assert calls == [(2, 5, 20)]
+
+
+def test_aggregate_work_limit_cli_refusal_preserves_previous_output(tmp_path, monkeypatch):
+    monkeypatch.setattr(error, "nonvertex_leading_constant_enclosure", lambda *a: pytest.fail("constant work before refusal"))
+    output = tmp_path / "record.json"
+    output.write_bytes(b"keep")
+    with pytest.raises(SystemExit):
+        error.main(
+            [
+                "--face-size",
+                "2",
+                "--outside",
+                "5",
+                "--degree",
+                "8",
+                "--constant-terms",
+                "20",
+                "--work-limit",
+                "500",
+                "--output",
+                str(output),
+            ]
+        )
+    assert output.read_bytes() == b"keep"
+
+
 def test_huge_degree_needs_no_degree_table_or_global_digit_limit_change(monkeypatch):
     monkeypatch.setattr("tools.risk_research.vertex_general.transformed_diagonals", lambda *a: pytest.fail("degree table"))
     before = sys.get_int_max_str_digits()
     degree = 2**15000
     record = error.certificate(2, 5, degree, terms=3)
     assert record["degree"] == degree and record["active"] is True
-    assert len(record["coefficient_enclosure"]["upper"]["denominator"]) > 4300
+    enclosure = record["coefficient_enclosure"]
+    assert isinstance(enclosure, dict)
+    upper = enclosure["upper"]
+    assert isinstance(upper, dict)
+    denominator = upper["denominator"]
+    assert isinstance(denominator, str)
+    assert len(denominator) > 4300
     assert sys.get_int_max_str_digits() == before
 
 
