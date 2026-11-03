@@ -68,7 +68,9 @@ def test_saved_record_restores_nondefault_options_and_preserves_input():
     assert record == before
     assert record["work_limit"] == 180000
     assert record["observations_include_intermediates"] is False
-    assert record["observed_final_coefficients"]["denominators_divide_factorial_power"] is True
+    observed = record["observed_final_coefficients"]
+    assert isinstance(observed, dict)
+    assert observed["denominators_divide_factorial_power"] is True
 
 
 @pytest.mark.parametrize("field", ["bounds", "observed_final_coefficients", "mzv_terms", "scope", "constant_index"])
@@ -81,7 +83,9 @@ def test_record_tampering_is_rejected(field):
 
 def test_record_type_aliases_and_extra_fields_are_rejected():
     record = height.build_record(3)
-    record["observed_final_coefficients"]["denominators_divide_factorial_power"] = 1
+    observed = record["observed_final_coefficients"]
+    assert isinstance(observed, dict)
+    observed["denominators_divide_factorial_power"] = 1
     with pytest.raises(ValueError, match="differs"):
         height.verify_record(record)
     record = height.build_record(3)
@@ -113,7 +117,35 @@ def test_direct_operations_reject_raw_source_changes(monkeypatch, operation, cha
     monkeypatch.setattr(height, "_sources", sources)
     with pytest.raises(RuntimeError, match="source changed during calculation"):
         height.build_record(5) if operation == "build" else height.verify_record(record)
-    assert calls == 2
+    assert calls == (2 if operation == "build" else 4)
+
+
+@pytest.mark.parametrize("change", ["content", "line-endings"])
+def test_direct_verifier_guards_the_full_canonical_comparison(monkeypatch, change):
+    record = height.build_record(5, 10000)
+    before = {name: raw.replace(b"\r\n", b"\n") for name, raw in height._sources().items()}
+    after = {name: raw.replace(b"\n", b"\r\n") for name, raw in before.items()}
+    if change == "content":
+        after[next(iter(after))] += b"# virtual source change\n"
+    canonical = height.canonical_json
+    changed = False
+    calls = 0
+
+    def sources():
+        nonlocal calls
+        calls += 1
+        return after if changed else before
+
+    def encode(value):
+        nonlocal changed
+        changed = True
+        return canonical(value)
+
+    monkeypatch.setattr(height, "_sources", sources)
+    monkeypatch.setattr(height, "canonical_json", encode)
+    with pytest.raises(RuntimeError, match="source changed during calculation"):
+        height.verify_record(record)
+    assert changed and calls == 4
 
 
 @pytest.mark.parametrize("change", ["content", "line-endings"])

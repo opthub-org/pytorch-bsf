@@ -114,7 +114,11 @@ def verify_record(record: object) -> None:
         raise ValueError("unsupported leading-constant height record")
     index = _integer(record.get("constant_index"), 3, "constant index")
     limit = _integer(record.get("work_limit"), 1, "work limit")
-    if canonical_json(record) != canonical_json(build_record(index, limit)):
+    sources = _sources()
+    equal = canonical_json(record) == canonical_json(build_record(index, limit))
+    if _sources() != sources:
+        raise RuntimeError("a height-bound construction or proof source changed during calculation")
+    if not equal:
         raise ValueError("saved record differs from exact recomputation or sources")
 
 
