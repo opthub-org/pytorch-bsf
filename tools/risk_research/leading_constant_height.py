@@ -138,6 +138,8 @@ def main(argv: list[str] | None = None) -> int:
             if any(value is not None for value in (args.constant_index, args.work_limit, args.output)):
                 raise ValueError("--verify cannot be combined with generation options")
             verify_record(json.loads(args.verify.read_text(encoding="utf-8"), object_pairs_hook=_unique_object))
+            if _sources() != sources:
+                raise RuntimeError("a height-bound construction or proof source changed during calculation")
             print("verified leading-constant height record")
             return 0
         if args.output is None:

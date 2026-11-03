@@ -117,7 +117,8 @@ def test_direct_operations_reject_raw_source_changes(monkeypatch, operation, cha
 
 
 @pytest.mark.parametrize("change", ["content", "line-endings"])
-def test_outer_cli_guard_is_independent_and_preserves_output(tmp_path, monkeypatch, change):
+@pytest.mark.parametrize("operation", ["generate", "verify"])
+def test_outer_cli_guard_is_independent_and_preserves_output(tmp_path, monkeypatch, change, operation):
     record = height.build_record(5)
     before = {name: raw.replace(b"\r\n", b"\n") for name, raw in height._sources().items()}
     after = {name: raw.replace(b"\n", b"\r\n") for name, raw in before.items()}
@@ -132,11 +133,14 @@ def test_outer_cli_guard_is_independent_and_preserves_output(tmp_path, monkeypat
 
     monkeypatch.setattr(height, "_sources", sources)
     monkeypatch.setattr(height, "build_record", lambda *args: record)
+    monkeypatch.setattr(height, "verify_record", lambda *args: None)
     output = tmp_path / "record.json"
-    output.write_text("keep")
+    output.write_text(json.dumps(record) if operation == "verify" else "keep")
+    old_output = output.read_bytes()
     with pytest.raises(SystemExit):
-        height.main(["--output", str(output)])
-    assert output.read_text() == "keep"
+        height.main(["--verify" if operation == "verify" else "--output", str(output)])
+    assert output.read_bytes() == old_output
+    assert calls == 2
 
 
 def test_work_budget_failure_preserves_existing_output(tmp_path):
