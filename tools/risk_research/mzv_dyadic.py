@@ -185,9 +185,9 @@ def _sources() -> dict[str, bytes]:
     }
 
 
-def _record(expression: dict[Word, Fraction], bits: int, budget: _Budget) -> dict[str, object]:
+def _record(expression: dict[Word, Fraction], bits: int, budget: _Budget) -> tuple[dict[str, object], Interval]:
     (lower, upper), terms = _precision(expression, bits, budget)
-    return {
+    record: dict[str, object] = {
         "schema": SCHEMA,
         "proof_status": "proved_dyadic_mzv_enclosure",
         "proof": PROOF,
@@ -202,6 +202,7 @@ def _record(expression: dict[Word, Fraction], bits: int, budget: _Budget) -> dic
         "target_absolute_width": _fraction(Fraction(1, 2**bits)),
         "scope": "exact MZV or fixed-index leading constant; no finite-degree risk or relative-error claim",
     }
+    return record, (lower, upper)
 
 
 def _finish(record: dict[str, object], sources: dict[str, bytes]) -> dict[str, object]:
@@ -218,7 +219,7 @@ def build_record(indices: Word = (2,), bits: int = 32, work_limit: int = DEFAULT
     """Build a complete, source-bound record for one admissible MZV."""
     sources = _sources()
     _word(indices)
-    record = _record({indices: Fraction(1)}, bits, _budget(work_limit))
+    record, _ = _record({indices: Fraction(1)}, bits, _budget(work_limit))
     record.update(kind="multiple_zeta", indices=list(indices))
     return _finish(record, sources)
 
@@ -227,12 +228,8 @@ def build_constant_record(index: int = 7, bits: int = 32, work_limit: int = DEFA
     """Build a complete record for a constructed, signed c_index expression."""
     sources, budget = _sources(), _budget(work_limit)
     expression = _construct(index, budget)
-    record = _record(expression, bits, budget)
+    record, (lower, upper) = _record(expression, bits, budget)
     scale = Fraction((index + 1) ** 2 * factorial(index), 2 ** (index - 2))
-    interval = record["value"]
-    assert isinstance(interval, dict)
-    lower = Fraction(int(interval["lower"]["numerator"]), int(interval["lower"]["denominator"]))
-    upper = Fraction(int(interval["upper"]["numerator"]), int(interval["upper"]["denominator"]))
     record.update(
         kind="leading_constant",
         constant_index=index,

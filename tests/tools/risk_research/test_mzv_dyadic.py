@@ -334,3 +334,17 @@ assert ctx.prec==before
         timeout=60,
     )
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_large_rational_record_scaling_does_not_reparse_decimal_strings(monkeypatch):
+    # The exact endpoints can have >4300 decimal digits at accepted precision.
+    # Keep arithmetic cheap while exercising the full serializer/scaling path.
+    lower = Fraction(2**20000 + 1, 2**20000)
+    upper = lower + Fraction(1, 2**20001)
+    monkeypatch.setattr(dyadic, "_precision", lambda *args: ((lower, upper), 1))
+    record = dyadic.build_constant_record(5, 13)
+    assert len(record["value"]["lower"]["numerator"]) > 4300
+    scale = Fraction(6**2 * 120, 8)
+    assert record["vertex_leading_constant"]["lower"] == original._fraction(scale * lower)
+    assert record["vertex_leading_constant"]["upper"] == original._fraction(scale * upper)
+    dyadic.verify_record(record)
