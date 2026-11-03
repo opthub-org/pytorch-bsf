@@ -77,6 +77,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_leading_constant_mzv.html">Finite MZV constructions for leading constants</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c5_closed_form.html">A classical closed form for the codimension-four constant</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c6_closed_form.html">A classical leading constant for seven vertices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c7_closed_form.html">A classical leading constant for eight vertices</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_transform.html">A fast exact transform for codimension three</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension.html">The vertex leading constant at large vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension_refined.html">A sharper elementary large-vertex guarantee</a></li>
@@ -174,7 +175,7 @@ coefficient. Finite-sample risks and the separate comparison region
 <section id="a-larger-domain-from-the-single-log-error">
 <h2>A larger domain from the single-log error<a class="headerlink" href="#a-larger-domain-from-the-single-log-error" title="Link to this heading"></a></h2>
 <div class="proof theorem admonition" id="thm-risk-composite-joint-domain">
-<p class="admonition-title"><span class="caption-number">Theorem 50 </span> (A single-log growing-vertex approximation)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 51 </span> (A single-log growing-vertex approximation)</p>
 <section class="theorem-content" id="proof-content">
 <p>For every integer <span class="math notranslate nohighlight">\(D\geq2^{256}\)</span>, put</p>
 <div class="math notranslate nohighlight">
@@ -184,7 +185,7 @@ h_{**}(D)=1+\max\left(3,
                 \left\lfloor\frac{N-4\ell}{8\ell}\right\rfloor\right).\]</div>
 <p>For every integer <span class="math notranslate nohighlight">\(4\leq M\leq h_{**}(D)\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-risk-composite-joint-domain-error">
-<span class="eqno">(102)<a class="headerlink" href="#equation-risk-composite-joint-domain-error" title="Link to this equation"></a></span>\[\left|\frac{D^{M+1}a_0(M,D)}{C_M}-1\right|
+<span class="eqno">(103)<a class="headerlink" href="#equation-risk-composite-joint-domain-error" title="Link to this equation"></a></span>\[\left|\frac{D^{M+1}a_0(M,D)}{C_M}-1\right|
   \leq2^{-g(q)}D^{-3/4},\]</div>
 <p>with <span class="math notranslate nohighlight">\(g(q)=0\)</span> for <span class="math notranslate nohighlight">\(3\leq q\leq160\)</span>, and
 <span class="math notranslate nohighlight">\(g(q)=\lfloor q/3\rfloor+2-\lceil\log_2q\rceil\)</span> for
@@ -312,7 +313,7 @@ b_M^*=(1+u_M)(1+r_M)-1.\]</div>
 <p>If <span class="math notranslate nohighlight">\(\delta\)</span> bounds the degree error relative to <span class="math notranslate nohighlight">\(C_M\)</span>,
 then</p>
 <div class="math notranslate nohighlight" id="equation-risk-composite-computable-center">
-<span class="eqno">(103)<a class="headerlink" href="#equation-risk-composite-computable-center" title="Link to this equation"></a></span>\[\left|\frac{D^{M+1}a_0(M,D)}{S_M\widehat t}-1\right|
+<span class="eqno">(104)<a class="headerlink" href="#equation-risk-composite-computable-center" title="Link to this equation"></a></span>\[\left|\frac{D^{M+1}a_0(M,D)}{S_M\widehat t}-1\right|
    \leq b_M^*+(1+b_M^*)\delta.\]</div>
 <p>The exact center <span class="math notranslate nohighlight">\(T_M\)</span> instead has radius
 <span class="math notranslate nohighlight">\(r_M+(1+r_M)\delta\)</span>.</p>

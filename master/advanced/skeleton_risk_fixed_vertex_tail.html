@@ -77,6 +77,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_leading_constant_mzv.html">Finite MZV constructions for leading constants</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c5_closed_form.html">A classical closed form for the codimension-four constant</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c6_closed_form.html">A classical leading constant for seven vertices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c7_closed_form.html">A classical leading constant for eight vertices</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_transform.html">A fast exact transform for codimension three</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension.html">The vertex leading constant at large vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension_refined.html">A sharper elementary large-vertex guarantee</a></li>
@@ -170,7 +171,7 @@
 <p>Inactive coefficients are zero. The common positive noise and output
 factors cancel. The result concerns asymptotic statistical risk.</p>
 <div class="proof theorem admonition" id="thm-risk-fixed-vertex-degree-tail">
-<p class="admonition-title"><span class="caption-number">Theorem 55 </span> (Constructive eventual victory at every fixed vertex count)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 56 </span> (Constructive eventual victory at every fixed vertex count)</p>
 <section class="theorem-content" id="proof-content">
 <p>For every integer <span class="math notranslate nohighlight">\(M\geq4\)</span>, the construction below returns an
 explicit integer <span class="math notranslate nohighlight">\(H(M)\geq M\)</span> such that, for every integer
@@ -201,20 +202,20 @@ these coefficients, so <span class="math notranslate nohighlight">\(0&lt;\delta_
 The positive binomial weights in that chapter sum to <span class="math notranslate nohighlight">\(Z_D\)</span>.
 Consequently, at <span class="math notranslate nohighlight">\(q=M-1\)</span>, for every <span class="math notranslate nohighlight">\(D\geq1\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-risk-fixed-vertex-coarse-vertex">
-<span class="eqno">(111)<a class="headerlink" href="#equation-risk-fixed-vertex-coarse-vertex" title="Link to this equation"></a></span>\[a_0(M,D)\leq V_M D^{-(M-1)},\qquad
+<span class="eqno">(112)<a class="headerlink" href="#equation-risk-fixed-vertex-coarse-vertex" title="Link to this equation"></a></span>\[a_0(M,D)\leq V_M D^{-(M-1)},\qquad
 V_M=M^2(M-1)!2^{M-1}.\]</div>
 <p>This coarse estimate is used only to prove a winning region; the sharper
 vertex asymptotic and its explicit error remain available separately.</p>
 <p><strong>Nonvertex faces with at least two outside coordinates.</strong> For
 <span class="math notranslate nohighlight">\(s\geq2\)</span>, define rational constants</p>
 <div class="math notranslate nohighlight" id="equation-risk-fixed-vertex-transfer-constants">
-<span class="eqno">(112)<a class="headerlink" href="#equation-risk-fixed-vertex-transfer-constants" title="Link to this equation"></a></span>\[\begin{split}A_{s,0}&amp;=\frac1{(s-1)!},\\
+<span class="eqno">(113)<a class="headerlink" href="#equation-risk-fixed-vertex-transfer-constants" title="Link to this equation"></a></span>\[\begin{split}A_{s,0}&amp;=\frac1{(s-1)!},\\
 A_{s,q}&amp;=(2^q-1)\sum_{r=0}^{q-1}\binom qr
     \frac{(s+q-1)!}{2^{q-r}(s+r-1)!}A_{s,r},\\
 C_{s,q}&amp;=\binom{s+q}s^2A_{s,q}.\end{split}\]</div>
 <p>For every <span class="math notranslate nohighlight">\(q\geq0,D\geq s\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-risk-fixed-vertex-nonvertex-bound">
-<span class="eqno">(113)<a class="headerlink" href="#equation-risk-fixed-vertex-nonvertex-bound" title="Link to this equation"></a></span>\[a_{s-1}(s+q,D)\leq C_{s,q}D^{s-q-1}.\]</div>
+<span class="eqno">(114)<a class="headerlink" href="#equation-risk-fixed-vertex-nonvertex-bound" title="Link to this equation"></a></span>\[a_{s-1}(s+q,D)\leq C_{s,q}D^{s-q-1}.\]</div>
 <p>At <span class="math notranslate nohighlight">\(q=0\)</span> this is
 <span class="math notranslate nohighlight">\(\binom{D-1}{s-1}\leq D^{s-1}/(s-1)!\)</span>.
 For the induction step, apply the boundary-transfer inequality in

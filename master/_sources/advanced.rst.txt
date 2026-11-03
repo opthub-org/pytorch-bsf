@@ -108,6 +108,7 @@ choose them when your domain, objective or execution environment requires it.
    advanced/skeleton_risk_leading_constant_mzv
    advanced/skeleton_risk_c5_closed_form
    advanced/skeleton_risk_c6_closed_form
+   advanced/skeleton_risk_c7_closed_form
    advanced/skeleton_risk_codimension_three_transform
    advanced/skeleton_risk_vertex_large_dimension
    advanced/skeleton_risk_vertex_large_dimension_refined
