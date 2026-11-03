@@ -1843,6 +1843,12 @@ active positive-dimensional faces, so the dimension and shape optima agree.
   positive harmonic double sum at every source size in codimension three.
   :prf:ref:`thm-risk-nonvertex-fixed-codimension-asymptotic` also determines
   the leading term for every fixed source size and codimension at least two.
+  :prf:ref:`thm-risk-nonvertex-general-finite-error` additionally gives
+  an explicit vanishing finite-degree error for every such fixed pair,
+  with computable all-tail thresholds. Its conservative rates are
+  :math:`O(D^{-1/2})` in codimension at least three and
+  :math:`O(\log D/\sqrt D)` in codimension two; the sharper separate
+  low-codimension results remain available.
   The remaining shortening question concerns sums with degree-independent
   length or smaller certified states, rather than the existence of an
   exact codimension-three evaluation or its fixed-codimension leading term.
