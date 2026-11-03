@@ -471,6 +471,17 @@ See [the proof](../../docs/advanced/skeleton_risk_c5_closed_form.rst).
 These are leading constants; no finite-degree remainder or joint limit is
 claimed by this evaluator. Saved records restore both nondefault parameters.
 
+## A classical expression for the sixth leading constant
+
+`c6_closed_form` proves
+`c6=600*zeta(2)+2520*zeta(3)+13980*zeta(4)-4320*zeta(2)*zeta(3)-10080*zeta(5)`
+from an exact finite harmonic telescope and convergent low-weight identities.
+The seven-vertex leading constant is `C7=2205*c6`. Its rational evaluator
+encloses the signed expression, including the zeta product, and saved records
+restore nondefault parameters. This concerns leading constants, separately
+from the seven-vertex comparison at every degree.
+See [the proof](../../docs/advanced/skeleton_risk_c6_closed_form.rst).
+
 ## Further vertex evaluations and explicit errors
 
 `vertex_general.vertex_coefficient(M,D)` constructs every vertex coefficient
