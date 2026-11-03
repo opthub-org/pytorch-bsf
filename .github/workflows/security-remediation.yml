@@ -138,7 +138,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/security-codex"
           cp control/.github/security/config.toml "$RUNNER_TEMP/security-codex/config.toml"
       - name: Generate a security repair
-        uses: openai/codex-action@c05cfd74ad95c626cdf05c6685e62becc3bf7813 # reviewed 2026-10-30
+        uses: openai/codex-action@13e9c17417b29e9a276f73ec6ed7fb574137d3c3 # reviewed 2026-10-30
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           working-directory: candidate
@@ -252,7 +252,7 @@ jobs:
           --task "$RUNNER_TEMP/security/task.json" --output "$RUNNER_TEMP/security/prompt.md"
       - name: Review the exact candidate commit
         id: review
-        uses: openai/codex-action@c05cfd74ad95c626cdf05c6685e62becc3bf7813 # reviewed 2026-10-30
+        uses: openai/codex-action@13e9c17417b29e9a276f73ec6ed7fb574137d3c3 # reviewed 2026-10-30
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           working-directory: candidate
