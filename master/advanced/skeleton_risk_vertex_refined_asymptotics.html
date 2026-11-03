@@ -76,6 +76,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_leading_constant_mzv.html">Finite MZV constructions for leading constants</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c5_closed_form.html">A classical closed form for the codimension-four constant</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c6_closed_form.html">A classical leading constant for seven vertices</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_transform.html">A fast exact transform for codimension three</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension.html">The vertex leading constant at large vertex count</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension_refined.html">A sharper elementary large-vertex guarantee</a></li>
@@ -92,6 +93,7 @@
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth.html">A simultaneous vertex-count and degree regime</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth_refined.html">A broader simultaneous vertex-count and degree regime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_composite_asymptotics.html">Computable vertex centers and a single-log growing domain</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
 <li class="toctree-l3"><a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html">An all-degree sufficient region for large vertex counts</a></li>
@@ -191,7 +193,7 @@ T_r&amp;=A_r(1+I_{r-2,r-1}),\\
    =2^{r+1}F_rS_k+5\,2^kG_kA_r.\]</div>
 <p>Set <span class="math notranslate nohighlight">\(q=M-1\geq4\)</span> and</p>
 <div class="math notranslate nohighlight" id="equation-risk-refined-vertex-error-constants">
-<span class="eqno">(95)<a class="headerlink" href="#equation-risk-refined-vertex-error-constants" title="Link to this equation"></a></span>\[\begin{split}J_q&amp;=2qA_{q-1},\\
+<span class="eqno">(96)<a class="headerlink" href="#equation-risk-refined-vertex-error-constants" title="Link to this equation"></a></span>\[\begin{split}J_q&amp;=2qA_{q-1},\\
 \widetilde K_q
    &amp;=2B_q+A_q+q\widetilde U_{q-1}
      +\sum_{k=2}^{q-2}\binom qk\widetilde V_{k,q-k}
@@ -201,11 +203,11 @@ T_r&amp;=A_r(1+I_{r-2,r-1}),\\
        \left(96\widetilde K_q+(273+q(q+1))J_q\right).\end{split}\]</div>
 <p>All these constants are positive computable rational numbers.</p>
 <div class="proof theorem admonition" id="thm-risk-refined-vertex-explicit-error">
-<p class="admonition-title"><span class="caption-number">Theorem 45 </span> (Single-log vertex error for every fixed M at least five)</p>
+<p class="admonition-title"><span class="caption-number">Theorem 46 </span> (Single-log vertex error for every fixed M at least five)</p>
 <section class="theorem-content" id="proof-content">
 <p>For every pair of integers <span class="math notranslate nohighlight">\(M\geq5,D\geq256\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-risk-refined-vertex-explicit-error">
-<span class="eqno">(96)<a class="headerlink" href="#equation-risk-refined-vertex-explicit-error" title="Link to this equation"></a></span>\[\left|a_0(M,D)-\frac{C_M}{D^{M+1}}\right|
+<span class="eqno">(97)<a class="headerlink" href="#equation-risk-refined-vertex-explicit-error" title="Link to this equation"></a></span>\[\left|a_0(M,D)-\frac{C_M}{D^{M+1}}\right|
    \leq\widetilde R_M\frac{1+\log D}{D^{M+2}}.\]</div>
 <p>This is an explicit finite-degree bound for each fixed <span class="math notranslate nohighlight">\(M\)</span>.
 It does not assert uniform convergence when <span class="math notranslate nohighlight">\(M\)</span> grows with
@@ -288,14 +290,14 @@ The added <span class="math notranslate nohighlight">\(8(1+q^2+J_q)\)</span> cov
 <span class="math notranslate nohighlight">\(\delta_q(0)=1\)</span>, <span class="math notranslate nohighlight">\(\delta_q(1)=(q^2-3q+4)/4\)</span> and
 <span class="math notranslate nohighlight">\(0&lt;c_q\leq J_q\)</span>. Thus for every <span class="math notranslate nohighlight">\(n\geq0\)</span>,</p>
 <div class="math notranslate nohighlight" id="equation-risk-refined-diagonal-explicit-error">
-<span class="eqno">(97)<a class="headerlink" href="#equation-risk-refined-diagonal-explicit-error" title="Link to this equation"></a></span>\[\left|\delta_q(n)-\frac{c_q}{(n+1)^2}\right|
+<span class="eqno">(98)<a class="headerlink" href="#equation-risk-refined-diagonal-explicit-error" title="Link to this equation"></a></span>\[\left|\delta_q(n)-\frac{c_q}{(n+1)^2}\right|
    \leq\widetilde K_q\frac{L(n+1)}{(n+1)^3}.\]</div>
 </section>
 <section id="averaging-and-normalization">
 <h2>Averaging and normalization<a class="headerlink" href="#averaging-and-normalization" title="Link to this heading"></a></h2>
 <p>Apply the hypergeometric averaging proof of
 <a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html"><span class="doc">Explicit vertex errors at every fixed vertex count</span></a> to
-<a class="reference internal" href="#equation-risk-refined-diagonal-explicit-error">(97)</a>. Only the diagonal error
+<a class="reference internal" href="#equation-risk-refined-diagonal-explicit-error">(98)</a>. Only the diagonal error
 changes. Its logarithmic factor is now <span class="math notranslate nohighlight">\(L(D)\)</span>.
 The central event, Taylor remainder and small-index tail give</p>
 <div class="math notranslate nohighlight">
@@ -306,8 +308,8 @@ The central event, Taylor remainder and small-index tail give</p>
 <p>For <span class="math notranslate nohighlight">\(D\geq256\)</span>, <span class="math notranslate nohighlight">\(D^3\,4\,2^{-D/12}\leq32\)</span>.
 Multiplying the exact prefactor, including its normalization error
 <span class="math notranslate nohighlight">\(q(q+1)J_q/D^3\)</span>, gives
-<a class="reference internal" href="#equation-risk-refined-vertex-explicit-error">(96)</a> with precisely the constant
-<a class="reference internal" href="#equation-risk-refined-vertex-error-constants">(95)</a>.</p>
+<a class="reference internal" href="#equation-risk-refined-vertex-explicit-error">(97)</a> with precisely the constant
+<a class="reference internal" href="#equation-risk-refined-vertex-error-constants">(96)</a>.</p>
 </section>
 <section id="certified-intervals-and-a-six-vertex-improvement">
 <h2>Certified intervals and a six-vertex improvement<a class="headerlink" href="#certified-intervals-and-a-six-vertex-improvement" title="Link to this heading"></a></h2>
