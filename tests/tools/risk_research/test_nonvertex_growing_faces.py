@@ -150,6 +150,24 @@ def test_raw_source_transaction_ignores_hash_normalization_only_for_record(monke
         growing.certificate(2, 16)
 
 
+def test_outer_verifier_detects_raw_change_accepted_by_inner_builder(monkeypatch):
+    record = growing.certificate(2, 16)
+    original = growing._sources()
+    changed_sources = {**original, growing.PROOF: original[growing.PROOF].replace(b"\n", b"\r\n")}
+    calls = 0
+
+    def changed():
+        nonlocal calls
+        calls += 1
+        return original if calls == 1 else changed_sources
+
+    monkeypatch.setattr(growing, "_sources", changed)
+    with pytest.raises(RuntimeError, match="sources changed during verification"):
+        growing.verify_certificate(record)
+    # The inner builder saw stable CRLF bytes and reproduced the normalized
+    # record. The matched error identifies the outer transaction's rejection.
+
+
 def test_cli_stdlib_saved_options_and_preserve_output(tmp_path):
     output = tmp_path / "saved.json"
     command = [sys.executable, "-S", "-m", "tools.risk_research.nonvertex_growing_faces"]
