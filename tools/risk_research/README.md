@@ -419,6 +419,22 @@ The standard-library compiler has explicit operational work limits; its
 signed rational MZV intervals can be broad and claim no numerical speedup.
 See [the proof](../../docs/advanced/skeleton_risk_leading_constant_mzv.rst).
 
+## Coefficient heights in the general finite construction
+
+`leading_constant_height` proves that every stored symbolic rational
+denominator divides `(q!)**(5*(q+1))`. With `b=q.bit_length()`, numerator
+and denominator bits are bounded by `5*q*(q+1)*b+8*(q+1)*(b+1)+2`.
+The bound covers intermediate coefficient results, while saved observations
+report final coefficients separately. Expression size can still grow
+exponentially; numerical MZV prefixes, runtime and native internal buffers
+are separate costs. The compiler and its selected-work limit are unchanged.
+See [the proof](../../docs/advanced/skeleton_risk_leading_constant_height.rst).
+
+```console
+python -m tools.risk_research.leading_constant_height --constant-index 8 --work-limit 180000 --output .research/skeleton-risk/height.json
+python -m tools.risk_research.leading_constant_height --verify .research/skeleton-risk/height.json
+```
+
 ## Leading constants at large vertex counts
 
 `vertex_large_dimension` proves an explicit large-M approximation to
