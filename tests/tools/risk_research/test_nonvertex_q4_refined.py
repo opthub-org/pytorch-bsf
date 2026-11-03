@@ -267,7 +267,7 @@ def test_changed_nested_target_and_source_hash_are_rejected():
 
 
 def _simulate_inflight_source_change(monkeypatch, stage, change):
-    sources = error._sources()
+    sources = {name: source.replace(b"\r\n", b"\n") for name, source in error._sources().items()}
     proof = sources[error.PROOF]
     replacement = proof.replace(b"\n", b"\r\n") if change == "line_endings" else proof + b"\nvirtual source change\n"
     assert replacement != proof
@@ -329,10 +329,15 @@ def test_cli_inflight_raw_source_changes_preserve_previous_output(replay, stage,
     assert saved.read_bytes() == saved_bytes
 
 
-def test_stable_crlf_sources_keep_normalized_hashes(monkeypatch):
-    sources = error._sources()
+@pytest.mark.parametrize("starting_line_ending", [b"\n", b"\r\n"])
+def test_stable_crlf_sources_keep_normalized_hashes(starting_line_ending, monkeypatch):
+    sources = {
+        name: source.replace(b"\r\n", b"\n").replace(b"\n", starting_line_ending) for name, source in error._sources().items()
+    }
+    monkeypatch.setattr(error, "_sources", lambda: sources)
     original = error.certificate(2, 8, terms=7)
-    monkeypatch.setattr(error, "_sources", lambda: {name: source.replace(b"\n", b"\r\n") for name, source in sources.items()})
+    crlf_sources = {name: source.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n") for name, source in sources.items()}
+    monkeypatch.setattr(error, "_sources", lambda: crlf_sources)
     changed = error.certificate(2, 8, terms=7)
     assert changed == original
     error.verify_certificate(original)
