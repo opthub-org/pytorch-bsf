@@ -838,27 +838,7 @@ branch checkout. It authenticates the repository, workflow, run attempt, source
 commit and artifact before checking regular files, paths, byte digests and size
 limits. A head whose producer YAML does not match gets no **GHPages publish**
 check, so one PR cannot change both files and still meet the merge requirement.
-
-Update an action pin in the producer with two PRs, in this order. Dependabot
-only edits `.github/workflows/`, so its PR can only be the second one. Until the
-template lands, it has no **GHPages publish** check and must not be merged.
-
-1. **Template PR.** Copy the changed `uses:` lines byte for byte into
-   `.github/pages-build-template.yml` and change nothing else in that file. The
-   head's producer YAML still matches the default-branch template, so publication
-   succeeds. The PyTest check tolerates a difference between the two files only
-   in the immutable SHA and version comment of pinned actions.
-2. **Workflow PR.** Merge `master`, or comment `@dependabot rebase` on the
-   Dependabot PR, so that `.github/workflows/sphinx-pages-build.yml` matches the
-   template byte for byte, then merge it once the producer-commit
-   **GHPages publish** check succeeds. Keep the gap between the two PRs short.
-   Pushes that still carry the old pin, including `master`, are rejected and
-   publish nothing until this PR lands, so do not cut a release in that window.
-3. **Other open branches.** Merge `master` into them to regain a matching
-   producer YAML and a **GHPages publish** check.
-
-This procedure covers action pins only. Any other change to the producer makes
-the PyTest check fail until the two files agree.
+See [Updating GHPages action pins](#updating-ghpages-action-pins).
 
 The trusted `.github/pages-legacy-owners.json` census binds existing version
 URL roots to their full branch or tag refs at its recorded `gh-pages` commit.
@@ -903,6 +883,45 @@ new release tags include the new producer. Release Please explicitly dispatches
 that producer for a newly created stable tag because `GITHUB_TOKEN`-created
 tags do not start push workflows. Ordinary user-created stable tag pushes use
 the producer's push trigger. Do not re-enable the legacy writer.
+
+#### Updating GHPages action pins
+
+Update one action pin in the producer at a time, with two PRs in this order.
+Land both before starting the next update: the producer must match the template
+byte for byte, so a template that combines two updates matches neither update's
+PR on its own.
+
+1. **Template PR.** Change the `uses:` line in
+   `.github/pages-build-template.yml` and nothing else in that file. Take the line
+   byte for byte from the Dependabot PR, or use the release you chose for a manual
+   update. Reviewers confirm that the SHA belongs to the release named in the
+   comment with `gh api repos/<owner>/<repo>/commits/<tag> --jq .sha`. The head's
+   producer YAML still matches the default-branch template, so publication
+   succeeds. The PyTest check allows the two files to differ only in the SHA and
+   version comment of pinned actions.
+2. **Workflow PR.** Bring `.github/workflows/sphinx-pages-build.yml` to the same
+   line. For a Dependabot PR, comment `@dependabot rebase`. For a manual update,
+   copy the line on a branch that contains the merged template. Merge once the
+   producer-commit **GHPages publish** check succeeds.
+
+Keep the gap between the two PRs short. Until the Workflow PR lands, pushes that
+carry the old pin, including `master`, are rejected and publish nothing. A tag
+keeps its producer YAML forever, so a tag cut in that window can never publish;
+do not cut a release then. After the Workflow PR lands, merge `master` into other
+open branches to regain a **GHPages publish** check.
+
+Dependabot and the security remediation automation only edit
+`.github/workflows/`, so their PRs can only be the Workflow PR. Until the template
+lands, such a PR passes PyTest but has no **GHPages publish** check and must not
+be merged. GitHub does not enforce this rule yet
+([#682](https://github.com/opthub-org/pytorch-bsf/issues/682)), so check for the
+missing check before merging. If a Workflow PR lands first, every publication is
+rejected, and a Template PR cannot get its check either. Revert the Workflow PR
+on `master`, then start again from step 1.
+
+This procedure covers action pins only. Other producer changes have no sequence
+of PRs that passes all required checks yet
+([#683](https://github.com/opthub-org/pytorch-bsf/issues/683)).
 
 ---
 
