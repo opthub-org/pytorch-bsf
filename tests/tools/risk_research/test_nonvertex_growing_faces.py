@@ -150,10 +150,16 @@ def test_raw_source_transaction_ignores_hash_normalization_only_for_record(monke
         growing.certificate(2, 16)
 
 
-def test_outer_verifier_detects_raw_change_accepted_by_inner_builder(monkeypatch):
+@pytest.mark.parametrize("initial_line_ending", ["lf", "crlf"])
+def test_outer_verifier_detects_raw_change_accepted_by_inner_builder(monkeypatch, initial_line_ending):
+    sources = growing._sources()
+    proof_lf = sources[growing.PROOF].replace(b"\r\n", b"\n")
+    proof_crlf = proof_lf.replace(b"\n", b"\r\n")
+    before, after = (proof_lf, proof_crlf) if initial_line_ending == "lf" else (proof_crlf, proof_lf)
+    original = {**sources, growing.PROOF: before}
+    changed_sources = {**sources, growing.PROOF: after}
+    monkeypatch.setattr(growing, "_sources", lambda: original)
     record = growing.certificate(2, 16)
-    original = growing._sources()
-    changed_sources = {**original, growing.PROOF: original[growing.PROOF].replace(b"\n", b"\r\n")}
     calls = 0
 
     def changed():
@@ -164,7 +170,7 @@ def test_outer_verifier_detects_raw_change_accepted_by_inner_builder(monkeypatch
     monkeypatch.setattr(growing, "_sources", changed)
     with pytest.raises(RuntimeError, match="sources changed during verification"):
         growing.verify_certificate(record)
-    # The inner builder saw stable CRLF bytes and reproduced the normalized
+    # The inner builder saw stable alternate bytes and reproduced the normalized
     # record. The matched error identifies the outer transaction's rejection.
 
 
