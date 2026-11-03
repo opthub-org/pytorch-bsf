@@ -1,0 +1,429 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dyadic enclosures for multiple zeta values &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Finite MZV constructions for leading constants" href="skeleton_risk_leading_constant_mzv.html" />
+    <link rel="prev" title="Vertex coefficients at every fixed vertex count" href="skeleton_risk_vertex_general.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_family.html">Uniform construction for codimension two</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three.html">Boundary transfer and a codimension-three edge bound</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_exact.html">Positive diagonal formulas for nonvertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q3_error.html">Finite-degree errors for every nonvertex q3 face</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_error.html">Finite-degree errors for every fixed nonvertex q4 face size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_refined.html">A logarithmic finite-degree remainder for nonvertex q4 risks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_general_error.html">Finite-degree errors at every fixed nonvertex codimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Dyadic enclosures for multiple zeta values</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#a-half-interval-identity">A half-interval identity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#a-rational-geometric-tail">A rational geometric tail</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#target-widths-and-signed-constants">Target widths and signed constants</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#implementation-and-bounded-resources">Implementation and bounded resources</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_leading_constant_mzv.html">Finite MZV constructions for leading constants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_leading_constant_height.html">Coefficient heights in the finite MZV construction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c5_closed_form.html">A classical closed form for the codimension-four constant</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c6_closed_form.html">A classical leading constant for seven vertices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c7_closed_form.html">A classical leading constant for eight vertices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_transform.html">A fast exact transform for codimension three</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension.html">The vertex leading constant at large vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension_refined.html">A sharper elementary large-vertex guarantee</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension_second_order.html">A first correction with a quadratic large-vertex remainder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_refined_asymptotics.html">Single-log vertex errors for every fixed M at least five</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth.html">A simultaneous vertex-count and degree regime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth_refined.html">A broader simultaneous vertex-count and degree regime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_composite_asymptotics.html">Computable vertex centers and a single-log growing domain</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html">An all-degree sufficient region for large vertex counts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_fixed_vertex_tail.html">An explicit winning degree tail at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_quadratic_degree_tail.html">A quadratic sufficient degree region, uniform in vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html">Five-vertex vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_comparison.html">Five-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_six_vertex_comparison.html">Six-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adaptive_curves.html">Adaptive parameterized curves</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Dyadic enclosures for multiple zeta values</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/skeleton_risk_mzv_dyadic.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="dyadic-enclosures-for-multiple-zeta-values">
+<h1>Dyadic enclosures for multiple zeta values<a class="headerlink" href="#dyadic-enclosures-for-multiple-zeta-values" title="Link to this heading"></a></h1>
+<p>This chapter supplies a rational numerical evaluator for the finite
+expressions in <a class="reference internal" href="skeleton_risk_leading_constant_mzv.html"><span class="doc">Finite MZV constructions for leading constants</span></a>. It retains the
+strict descending-index convention. It does not change the expression
+compiler, sampling assumptions, finite-degree risk, or production API.</p>
+<section id="a-half-interval-identity">
+<h2>A half-interval identity<a class="headerlink" href="#a-half-interval-identity" title="Link to this heading"></a></h2>
+<p>For any positive index tuple <span class="math notranslate nohighlight">\(v=(s_1,\ldots,s_d)\)</span>, including a first
+index equal to one, put</p>
+<div class="math notranslate nohighlight">
+\[L_v(z)=\sum_{n_1&gt;\cdots&gt;n_d\geq1}
+         \frac{z^{n_1}}{n_1^{s_1}\cdots n_d^{s_d}},\qquad
+L_\varnothing(z)=1.\]</div>
+<p>Encode the tuple by the binary word
+<span class="math notranslate nohighlight">\(w(v)=0^{s_1-1}1\cdots0^{s_d-1}1\)</span>. The word is read from the
+outermost to innermost integral. Write
+<span class="math notranslate nohighlight">\(\omega_0(t)=dt/t\)</span>, <span class="math notranslate nohighlight">\(\omega_1(t)=dt/(1-t)\)</span>.
+For a word ending in one, its integral over
+<span class="math notranslate nohighlight">\(z&gt;t_1&gt;\cdots&gt;t_W&gt;0\)</span> is <span class="math notranslate nohighlight">\(L_v(z)\)</span>.
+This convention agrees with Definition 2.1, Lemma 2.2 and Proposition 2.3
+on printed pages 45–47 of <a class="reference external" href="https://www.henrikbachmann.com/uploads/7/7/6/3/77634444/mzv_2025_lecture_notes_v24.pdf">Bachmann’s lecture notes, version 24</a>.
+The following proof also derives the representation used here.</p>
+<div class="proof theorem admonition" id="thm-risk-mzv-dyadic-split">
+<p class="admonition-title"><span class="caption-number">Theorem 39 </span> (Dyadic split for every admissible MZV)</p>
+<section class="theorem-content" id="proof-content">
+<p>Let <span class="math notranslate nohighlight">\(v\)</span> be any nonempty positive integer tuple with
+<span class="math notranslate nohighlight">\(s_1\geq2\)</span>, and let <span class="math notranslate nohighlight">\(w=w(v)\)</span> have length <span class="math notranslate nohighlight">\(W\)</span>.
+For each cut <span class="math notranslate nohighlight">\(w=p_j r_j\)</span>, <span class="math notranslate nohighlight">\(|p_j|=j\)</span>, let
+<span class="math notranslate nohighlight">\(p_j^*\)</span> be the reversed complement of <span class="math notranslate nohighlight">\(p_j\)</span>.
+Decode each nonempty word ending in one back to its index tuple.
+Then</p>
+<div class="math notranslate nohighlight">
+\[\zeta(v)=\sum_{j=0}^{W} L_{p_j^*}(1/2)L_{r_j}(1/2).\]</div>
+<p>Empty factors denote one. Every nonempty factor is an absolutely
+convergent multiple polylogarithm at one half, even if its first
+index is one.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. In <span class="math notranslate nohighlight">\(|z|&lt;1\)</span>, the defining series is absolutely convergent:
+ignoring all denominators bounds the coefficient at <span class="math notranslate nohighlight">\(z^n\)</span>
+by <span class="math notranslate nohighlight">\(\binom{n-1}{d-1}\)</span>, whose generating function is
+<span class="math notranslate nohighlight">\(z^d/(1-z)^d\)</span>. Termwise differentiation gives
+<span class="math notranslate nohighlight">\(L_{a,u}'(z)=L_{a-1,u}(z)/z\)</span> for <span class="math notranslate nohighlight">\(a&gt;1\)</span>.
+At <span class="math notranslate nohighlight">\(a=1\)</span>, summing <span class="math notranslate nohighlight">\(\sum_{n&gt;m}z^{n-1}\)</span> gives
+<span class="math notranslate nohighlight">\(L_{1,u}'(z)=L_u(z)/(1-z)\)</span>, including empty <span class="math notranslate nohighlight">\(u\)</span>.
+The zero initial value of every nonempty tuple proves the stated
+iterated-integral formula by induction on the binary word length.
+At <span class="math notranslate nohighlight">\(z=1\)</span>, monotone convergence and the convergent MZV sum
+identify the integral with <span class="math notranslate nohighlight">\(\zeta(v)\)</span>; convergence also follows
+from the harmonic majorant in
+<a class="reference internal" href="skeleton_risk_leading_constant_mzv.html"><span class="doc">Finite MZV constructions for leading constants</span></a>.</p>
+<p>Partition the integration simplex by the number <span class="math notranslate nohighlight">\(j\)</span> of its
+variables above <span class="math notranslate nohighlight">\(1/2\)</span>. The boundaries where a variable equals
+<span class="math notranslate nohighlight">\(1/2\)</span> have measure zero. The integrand is nonnegative, so
+Tonelli and the already finite total integral justify this partition
+and factorization. The lower variables give <span class="math notranslate nohighlight">\(L_{r_j}(1/2)\)</span>.
+Substitute <span class="math notranslate nohighlight">\(u_i=1-t_{j+1-i}\)</span> in the upper variables: their order
+reverses and each zero/one differential form becomes the other one.
+They therefore give <span class="math notranslate nohighlight">\(L_{p_j^*}(1/2)\)</span>.
+The original word starts in zero and ends in one. Thus every nonempty
+reflected prefix and every nonempty suffix ends in one and has the
+required convergent series. This also covers both endpoint cuts.</p>
+</div>
+</section>
+<section id="a-rational-geometric-tail">
+<h2>A rational geometric tail<a class="headerlink" href="#a-rational-geometric-tail" title="Link to this heading"></a></h2>
+<div class="proof theorem admonition" id="thm-risk-mzv-dyadic-tail">
+<p class="admonition-title"><span class="caption-number">Theorem 40 </span> (Polylogarithm tail at one half)</p>
+<section class="theorem-content" id="proof-content">
+<p>For every positive tuple <span class="math notranslate nohighlight">\(v=(a,u)\)</span> of depth <span class="math notranslate nohighlight">\(d\geq1\)</span>
+and every integer <span class="math notranslate nohighlight">\(T\geq1\)</span>, define</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}P_T(v)&amp;=\sum_{n=1}^T\frac{H_{n-1}(u)}{2^n n^a},\\
+E_T(v)&amp;=\frac{1}{2^T(T+1)^a}
+              \sum_{k=0}^{\min(d-1,T)}\binom Tk.\end{split}\]</div>
+<p>Here the harmonic word uses strict descending indices and the empty
+harmonic word is one. Then</p>
+<div class="math notranslate nohighlight">
+\[P_T(v)\leq L_v(1/2)
+  \leq\min\{1,P_T(v)+E_T(v)\}.\]</div>
+<p>For the empty word use the exact interval <span class="math notranslate nohighlight">\([1,1]\)</span> and zero tail.
+For each fixed tuple, the error is a polynomial in <span class="math notranslate nohighlight">\(T\)</span> times
+<span class="math notranslate nohighlight">\(2^{-T}\)</span>. No numerical logarithm or floating-point rounding
+enters this bound.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. For each outer index <span class="math notranslate nohighlight">\(n\)</span>, there are
+<span class="math notranslate nohighlight">\(\binom{n-1}{d-1}\)</span> strict inner chains. Their reciprocal products
+are at most one. In the omitted tail, <span class="math notranslate nohighlight">\(n^{-a}\leq(T+1)^{-a}\)</span>.
+The exact binomial identity</p>
+<div class="math notranslate nohighlight">
+\[\sum_{n&gt;T}\frac{\binom{n-1}{d-1}}{2^n}
+  =\frac1{2^T}\sum_{k=0}^{\min(d-1,T)}\binom Tk\]</div>
+<p>now proves the error bound. To see the identity without assuming an
+infinite rearrangement, put its proposed right-hand side equal to
+<span class="math notranslate nohighlight">\(Q_T\)</span>. Pascal’s formula gives
+<span class="math notranslate nohighlight">\(Q_T-Q_{T+1}=2^{-T-1}\binom T{d-1}\)</span>. For fixed <span class="math notranslate nohighlight">\(d\)</span>,
+<span class="math notranslate nohighlight">\(Q_T\to0\)</span>; summing this difference to a finite upper endpoint
+and taking the limit proves the identity. The full counting sum is
+one, proving <span class="math notranslate nohighlight">\(L_v(1/2)\leq1\)</span>. All omitted terms are positive.</p>
+</div>
+</section>
+<section id="target-widths-and-signed-constants">
+<h2>Target widths and signed constants<a class="headerlink" href="#target-widths-and-signed-constants" title="Link to this heading"></a></h2>
+<p>For a finite rational expression
+<span class="math notranslate nohighlight">\(X=c_\varnothing+\sum_v c_v\zeta(v)\)</span>, apply the dyadic identity
+to every nonconstant word. Let <span class="math notranslate nohighlight">\([l_u,h_u]\subseteq[0,1]\)</span> be the
+polylogarithm intervals. Products use <span class="math notranslate nohighlight">\([l_ul_v,h_uh_v]\)</span>.
+Since</p>
+<div class="math notranslate nohighlight">
+\[h_uh_v-l_ul_v
+    =(h_u-l_u)h_v+l_u(h_v-l_v)
+    \leq E_T(u)+E_T(v),\]</div>
+<p>a computable upper bound for the final interval width is</p>
+<div class="math notranslate nohighlight">
+\[B_T(X)=\sum_v|c_v|\sum_{j=0}^{|w(v)|}
+                      (E_T(p_j^*)+E_T(r_j)).\]</div>
+<p>Signs select the proper endpoints of each MZV interval. In particular,
+the absolute coefficient sum, rather than the signed sum, controls
+cancellation. For every fixed finite expression, <span class="math notranslate nohighlight">\(B_T(X)\to0\)</span>.
+Testing <span class="math notranslate nohighlight">\(T=1,2,4,8,\ldots\)</span> therefore terminates for every requested
+absolute width <span class="math notranslate nohighlight">\(2^{-b}\)</span>, <span class="math notranslate nohighlight">\(b\geq1\)</span>, if operational limits are
+removed. Every accepted implementation result has actual rational width
+at most its target. This is an absolute-width guarantee; no relative
+accuracy is inferred near zero.</p>
+<p>The method applies to every admissible MZV, hence to every fixed
+<span class="math notranslate nohighlight">\(c_q\)</span>, <span class="math notranslate nohighlight">\(q\geq3\)</span>, from the existing compiler. It does not
+require a classical-zeta reduction or a minimal basis. Multiplication by
+<span class="math notranslate nohighlight">\((q+1)^2q!/2^{q-2}\)</span> gives the vertex leading-constant interval;
+its width is scaled by that same positive factor. The requested width
+in constant mode concerns <span class="math notranslate nohighlight">\(c_q\)</span>, not the scaled vertex constant.
+No finite-degree risk error or joint-limit assertion follows from this
+numerical theorem.</p>
+</section>
+<section id="implementation-and-bounded-resources">
+<h2>Implementation and bounded resources<a class="headerlink" href="#implementation-and-bounded-resources" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">tools.risk_research.mzv_dyadic</span></code> exposes fixed-cutoff
+<code class="docutils literal notranslate"><span class="pre">polylog_enclosure</span></code> and <code class="docutils literal notranslate"><span class="pre">mzv_enclosure</span></code> and target-width
+<code class="docutils literal notranslate"><span class="pre">mzv_precision_enclosure</span></code> and <code class="docutils literal notranslate"><span class="pre">constant_enclosure</span></code>. Its exact
+harmonic table is updated in decreasing depth, so every suffix is still
+<span class="math notranslate nohighlight">\(H_{n-1}\)</span> during a strict-chain update. Polylogarithm contributions
+are accumulated before that update. Equal suffixes are shared.</p>
+<p>For the resulting set of nonempty suffixes <span class="math notranslate nohighlight">\(S\)</span>, one cutoff uses
+<span class="math notranslate nohighlight">\(O(T\sum_{v\in S}(|v|+\mathrm{wt}(v)))\)</span> selected arithmetic units,
+plus word-splitting, cutoff selection and expression construction.
+There are at most <span class="math notranslate nohighlight">\(W+1\)</span> cuts for a word of weight <span class="math notranslate nohighlight">\(W\)</span>;
+constructing all decoded cuts costs <span class="math notranslate nohighlight">\(O((W+1)^2)\)</span> entries.
+The implementation charges for these selected operations and rejects
+work beyond the requested limit (default 200,000, maximum 1,000,000).
+It checks predicted numerical table work before entering its loops.
+The work counter is not a CPU/RSS or bit-complexity bound, nor does it
+count every Python instruction. The mathematical arbitrary-precision
+termination theorem is distinct from this bounded implementation, which
+can refuse large indices, weights, precisions or cutoffs.</p>
+<p><code class="docutils literal notranslate"><span class="pre">build_record</span></code> saves a direct MZV; <code class="docutils literal notranslate"><span class="pre">build_constant_record</span></code> saves a
+compiled <span class="math notranslate nohighlight">\(c_q\)</span> expression and its vertex scaling. Both preserve
+all options, selected cutoff/work, exact endpoints/width, convention,
+and canonical source/proof hashes. <code class="docutils literal notranslate"><span class="pre">verify_record</span></code> restores the
+options and compares the whole strict JSON object. Raw source bytes
+are checked before and after each generation, including direct API
+calls; the independent CLI also checks around the builder. LF/CRLF
+canonical hashes are portable, while a raw change during a calculation
+is rejected. Generation cannot replace a bound evaluator or proof.
+All numerical functions require only the Python standard library.</p>
+<p>These are analytical error and termination results. Finite tests,
+comparisons with the previous harmonic-tail evaluator, independent
+original constant series/integrals, and measured resource comparisons
+validate the implementation separately; they do not establish the
+all-index theorem or a universal wall-time speedup.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="skeleton_risk_vertex_general.html" class="btn btn-neutral float-left" title="Vertex coefficients at every fixed vertex count" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="skeleton_risk_leading_constant_mzv.html" class="btn btn-neutral float-right" title="Finite MZV constructions for leading constants" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: ci/681-pages-pin-update
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/index.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="skeleton_risk_mzv_dyadic.html">ci/681-pages-pin-update</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
