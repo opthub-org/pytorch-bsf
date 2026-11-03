@@ -44,13 +44,14 @@ def test_split_includes_both_boundaries_and_reverses_reflected_prefix():
 
 @pytest.mark.parametrize("word", [(2,), (2, 1), (2, 2), (2, 1, 1), (3, 2), (2, 1, 2)])
 def test_dyadic_enclosures_nest_and_refine_original_definition_intervals(word):
-    previous = None
+    previous: tuple[Fraction, Fraction] | None = None
     for terms in (1, 2, 5, 17, 37):
         lo, hi = dyadic.mzv_enclosure(word, terms)
         assert 0 <= lo < hi
         if previous is not None:
             assert previous[0] <= lo <= hi <= previous[1]
         previous = lo, hi
+    assert previous is not None
     old = original.mzv_enclosure(word, 73)
     assert old[0] < previous[0] < previous[1] < old[1]
     assert previous[1] - previous[0] < old[1] - old[0]
@@ -71,8 +72,10 @@ def test_signed_compiled_constant_has_absolute_width_and_original_overlap(index)
     assert old[0] <= lo <= hi <= old[1]
     record = dyadic.build_constant_record(index, 25)
     scale = _fraction(record["vertex_scale"])
-    assert _fraction(record["vertex_leading_constant"]["lower"]) == scale * lo
-    assert _fraction(record["vertex_leading_constant"]["upper"]) == scale * hi
+    scaled = record["vertex_leading_constant"]
+    assert isinstance(scaled, dict)
+    assert _fraction(scaled["lower"]) == scale * lo
+    assert _fraction(scaled["upper"]) == scale * hi
     assert _fraction(record["width"]) == hi - lo
 
 
@@ -80,7 +83,7 @@ def test_signed_endpoint_selection_handles_cancellation(monkeypatch):
     values = {(2,): (Fraction(1, 2), Fraction(3, 4)), (1,): (Fraction(1, 3), Fraction(2, 3)), (): (Fraction(1), Fraction(1))}
     monkeypatch.setattr(dyadic, "_polylogs", lambda *args: values)
     expression = {(): Fraction(7), (2,): Fraction(-5), (3,): Fraction(2)}
-    cuts = {(2,): (((2,), ()),), (3,): (((1,), (1,)),)}
+    cuts: dict[dyadic.Word, tuple[tuple[dyadic.Word, dyadic.Word], ...]] = {(2,): (((2,), ()),), (3,): (((1,), (1,)),)}
     lo, hi = dyadic._enclose(expression, cuts, 1, original._budget(1000))
     for x in values[(2,)]:
         for y in values[(1,)]:
@@ -204,20 +207,29 @@ def test_direct_operations_reject_mid_calculation_raw_source_changes(monkeypatch
         return before if calls == 1 else after
 
     monkeypatch.setattr(dyadic, "_sources", sources)
-    with pytest.raises(RuntimeError, match="source changed during calculation"):
+    with pytest.raises(RuntimeError, match="source changed during"):
         if mode.startswith("verify"):
             dyadic.verify_record(record)
         elif mode == "constant":
             dyadic.build_constant_record(5, 7)
         else:
             dyadic.build_record((2, 1), 7)
-    assert calls == 2
+    assert calls == (4 if mode.startswith("verify") else 2)
 
 
-def test_outer_cli_guard_is_independent_of_builder_guard(tmp_path, monkeypatch):
+@pytest.mark.parametrize("mode", ["generate", "verify"])
+@pytest.mark.parametrize("change", ["content", "line-endings"])
+def test_outer_cli_guard_is_independent_of_inner_transaction(tmp_path, monkeypatch, mode, change):
     record = dyadic.build_record((2, 1), 7)
-    before = dyadic._sources()
-    after = {**before, "virtual": b"source change"}
+    before = {name: raw.replace(b"\r\n", b"\n") for name, raw in dyadic._sources().items()}
+    after = {name: raw.replace(b"\n", b"\r\n") for name, raw in before.items()}
+    if change == "content":
+        after = {**before, "virtual": b"source change"}
+    else:
+        assert {name: hashlib.sha256(raw.replace(b"\r\n", b"\n")).hexdigest() for name, raw in after.items()} == record[
+            "source_sha256"
+        ]
+    assert before != after
     calls = 0
 
     def sources():
@@ -227,11 +239,17 @@ def test_outer_cli_guard_is_independent_of_builder_guard(tmp_path, monkeypatch):
 
     monkeypatch.setattr(dyadic, "_sources", sources)
     monkeypatch.setattr(dyadic, "build_record", lambda *args: record)
+    monkeypatch.setattr(dyadic, "verify_record", lambda *args: None)
+    saved = tmp_path / "saved.json"
+    saved.write_text(json.dumps(record))
+    saved_bytes = saved.read_bytes()
     out = tmp_path / "keep.json"
     out.write_text("keep")
+    args = ["--output", str(out)] if mode == "generate" else ["--verify", str(saved)]
     with pytest.raises(SystemExit):
-        dyadic.main(["--output", str(out)])
+        dyadic.main(args)
     assert out.read_text() == "keep"
+    assert saved.read_bytes() == saved_bytes
     assert calls == 2
 
 
@@ -343,8 +361,56 @@ def test_large_rational_record_scaling_does_not_reparse_decimal_strings(monkeypa
     upper = lower + Fraction(1, 2**20001)
     monkeypatch.setattr(dyadic, "_precision", lambda *args: ((lower, upper), 1))
     record = dyadic.build_constant_record(5, 13)
-    assert len(record["value"]["lower"]["numerator"]) > 4300
+    value = record["value"]
+    assert isinstance(value, dict)
+    lower_record = value["lower"]
+    assert isinstance(lower_record, dict)
+    numerator = lower_record["numerator"]
+    assert isinstance(numerator, str) and len(numerator) > 4300
     scale = Fraction(6**2 * 120, 8)
-    assert record["vertex_leading_constant"]["lower"] == original._fraction(scale * lower)
-    assert record["vertex_leading_constant"]["upper"] == original._fraction(scale * upper)
+    scaled = record["vertex_leading_constant"]
+    assert isinstance(scaled, dict)
+    assert scaled["lower"] == original._fraction(scale * lower)
+    assert scaled["upper"] == original._fraction(scale * upper)
     dyadic.verify_record(record)
+
+
+@pytest.mark.parametrize("constant", [False, True])
+@pytest.mark.parametrize("mismatch", [False, True])
+@pytest.mark.parametrize("change", ["content", "line-endings"])
+def test_direct_verifier_guards_canonical_comparison_after_stable_builder(monkeypatch, constant, mismatch, change):
+    record = dyadic.build_constant_record(5, 7) if constant else dyadic.build_record((2, 1), 7)
+    if mismatch:
+        record["extra"] = True
+    before = {name: raw.replace(b"\r\n", b"\n") for name, raw in dyadic._sources().items()}
+    after = {name: raw.replace(b"\n", b"\r\n") for name, raw in before.items()}
+    if change == "content":
+        after = {**before, "virtual": b"source change"}
+    else:
+        assert {name: hashlib.sha256(raw.replace(b"\r\n", b"\n")).hexdigest() for name, raw in after.items()} == record[
+            "source_sha256"
+        ]
+    assert before != after
+    changed = False
+    snapshots = []
+    comparisons = 0
+    canonical = dyadic.canonical_json
+
+    def sources():
+        snapshots.append(changed)
+        return after if changed else before
+
+    def compare(value):
+        nonlocal changed, comparisons
+        comparisons += 1
+        changed = True
+        return canonical(value)
+
+    monkeypatch.setattr(dyadic, "_sources", sources)
+    monkeypatch.setattr(dyadic, "canonical_json", compare)
+    with pytest.raises(RuntimeError, match="source changed during verification"):
+        dyadic.verify_record(record)
+    # The inner builder's two snapshots were stable. Only the verifier's
+    # transaction can detect the edit made during the later comparison.
+    assert snapshots == [False, False, False, True]
+    assert comparisons == 2

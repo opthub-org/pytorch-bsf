@@ -241,7 +241,8 @@ def build_constant_record(index: int = 7, bits: int = 32, work_limit: int = DEFA
 
 
 def verify_record(record: object) -> None:
-    """Restore every generation option and compare the entire strictly typed record."""
+    """Restore all options and guard raw sources through the whole typed comparison."""
+    sources = _sources()
     if type(record) is not dict or record.get("schema") != SCHEMA:
         raise ValueError("unsupported dyadic MZV record")
     bits = _integer(record.get("bits"), 1, "bits")
@@ -256,7 +257,10 @@ def verify_record(record: object) -> None:
         expected = build_constant_record(index, bits, work_limit)
     else:
         raise ValueError("unsupported dyadic MZV record kind")
-    if canonical_json(record) != canonical_json(expected):
+    matches = canonical_json(record) == canonical_json(expected)
+    if _sources() != sources:
+        raise RuntimeError("a dyadic evaluator or proof source changed during verification")
+    if not matches:
         raise ValueError("saved record differs from exact recomputation or sources")
 
 
@@ -292,6 +296,8 @@ def main(argv: list[str] | None = None) -> int:
             ):
                 raise ValueError("--verify cannot be combined with generation options")
             verify_record(json.loads(args.verify.read_text(encoding="utf-8"), object_pairs_hook=_unique_object))
+            if _sources() != sources:
+                raise RuntimeError("a dyadic evaluator or proof source changed during verification")
             print("verified dyadic MZV record")
             return 0
         if args.output is None:
