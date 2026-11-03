@@ -26,6 +26,7 @@ def _fraction(value):
 def test_two_errors_meet_true_value_accuracy_and_original_constant_overlap(size, outside):
     record = compose.certificate(size, outside, DEGREE, Fraction(1, 100), 190000, 180000)
     interval = record["coefficient_enclosure"]
+    assert isinstance(interval, dict)
     lower, upper = _fraction(interval["lower"]), _fraction(interval["upper"])
     estimate = _fraction(record["approximation"])
     certified = _fraction(record["certified_relative_error"])
@@ -41,14 +42,19 @@ def test_two_errors_meet_true_value_accuracy_and_original_constant_overlap(size,
     assert certified == (delta + error) / (1 + delta * error)
     assert delta <= _fraction(record["constant_relative_allowance"])
     constant = record["constant_interval"]
+    assert isinstance(constant, dict)
+    bits = record["precision_bits"]
+    assert type(bits) is int
     assert _fraction(constant["lower"]) >= outside + 1
-    assert _fraction(constant["upper"]) - _fraction(constant["lower"]) <= Fraction(1, 2 ** record["precision_bits"])
+    assert _fraction(constant["upper"]) - _fraction(constant["lower"]) <= Fraction(1, 2**bits)
     # This original positive-series interval has an independent truncation
     # argument. Overlap is a check, not proof of nesting in a broad oracle.
     old_lower, old_upper = nonvertex_leading_constant_enclosure(size, outside, 37)
     leading = record["leading_constant"]
+    assert isinstance(leading, dict)
     assert max(old_lower, _fraction(leading["lower"])) <= min(old_upper, _fraction(leading["upper"]))
-    assert 0 < record["numeric_work_units"] <= 180000
+    work = record["numeric_work_units"]
+    assert type(work) is int and 0 < work <= 180000
     compose.verify_certificate(record)
 
 
@@ -70,7 +76,9 @@ def test_inactive_face_is_exact_zero_before_analytic_or_mzv_work(size, outside, 
     record = compose.certificate(size, outside, degree, Fraction(1, 100), 190000, 180000)
     assert record["status"] == "exact_zero_inactive_face" and record["active"] is False
     assert _fraction(record["approximation"]) == 0
-    assert all(_fraction(value) == 0 for value in record["coefficient_enclosure"].values())
+    interval = record["coefficient_enclosure"]
+    assert isinstance(interval, dict)
+    assert all(_fraction(value) == 0 for value in interval.values())
     assert record["certified_relative_error"] is None and record["analytic_relative_error"] is None
     assert record["constant_interval"] is None and record["numeric_work_units"] == 0
     compose.verify_certificate(record)
@@ -88,9 +96,12 @@ def test_invalid_target_rejected_before_component_construction(target, monkeypat
 
 @pytest.mark.parametrize("bad", [True, False, None, 1.5, "3", 0, -1])
 def test_strict_input_and_resource_types(bad):
-    for args in ((bad, 2, DEGREE), (2, bad, DEGREE), (2, 2, bad)):
-        with pytest.raises(ValueError):
-            compose.certificate(*args, Fraction(1, 100))
+    with pytest.raises(ValueError):
+        compose.certificate(bad, 2, DEGREE, Fraction(1, 100))
+    with pytest.raises(ValueError):
+        compose.certificate(2, bad, DEGREE, Fraction(1, 100))
+    with pytest.raises(ValueError):
+        compose.certificate(2, 2, bad, Fraction(1, 100))
     for kwargs in ({"analytic_work_limit": bad}, {"numeric_work_limit": bad}):
         with pytest.raises(ValueError):
             compose.certificate(2, 2, DEGREE, Fraction(1, 100), **kwargs)
