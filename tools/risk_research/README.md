@@ -659,6 +659,18 @@ source sizes two and three have a one-percent sufficient tail from `2**30`.
 The leading-constant interval and finite-degree error remain separate.
 See [the proof](../../docs/advanced/skeleton_risk_nonvertex_q4_refined.rst).
 
+## Explicit finite-degree errors at every fixed nonvertex codimension
+
+`nonvertex_general_error` proves a computable relative-error bound for
+every fixed source size `s>=2` and outside codimension `q>=2`.
+The rate is `O(D**(-1/2))` for `q>=3`, and `O(log(D)/sqrt(D))` for the
+critical `q=2`. Exact rational dyadic thresholds cover every later degree;
+the leading-constant interval remains a separate numerical uncertainty.
+This conservative general theorem retains the existing sharper q3/q4
+results and makes q5 a special case, without another codimension-specific
+proof. It is not uniform when the source size or codimension grows.
+See [the proof](../../docs/advanced/skeleton_risk_nonvertex_general_error.rst).
+
 ## A sufficient linear vertex threshold at every degree
 
 For every integer `D>=1` and `M>=9720*D`, optimal inductive asymptotic
