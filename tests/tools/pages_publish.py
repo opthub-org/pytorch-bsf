@@ -185,6 +185,38 @@ class AuthenticationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "trusted read-only"):
             pages.authenticate_run(api, {"workflow_run": api.run})
 
+    @staticmethod
+    def _publish_to(api, event, target):
+        return pages.publish(api, event, lambda: target)
+
+    def test_two_step_pin_update_publishes_only_exact_matches(self):
+        old = b"- uses: actions/checkout@" + b"1" * 40 + b" # v1\n"
+        new = b"- uses: actions/checkout@" + b"2" * 40 + b" # v2\n"
+        # (stage, default-branch template, producer YAML at the pushed head, publication accepted)
+        stages = [
+            ("before the update", old, old, True),
+            ("template PR head, before its merge", old, old, True),
+            ("workflow-only or combined PR head before the template lands", old, new, False),
+            ("master or unsynced branch after the template lands", new, old, False),
+            ("workflow PR head after the template lands", new, new, True),
+            ("master after both PRs land", new, new, True),
+        ]
+        for stage, template, producer, accepted in stages:
+            with self.subTest(stage=stage), patch.object(pages, "trusted_workflow", return_value=template):
+                api, target = API(), MemoryPages()
+                api.definition = producer
+                event = {"workflow_run": copy.deepcopy(api.run)}
+                if accepted:
+                    self._publish_to(api, event, target)
+                    self.assertTrue(target.pushed)
+                    self.assertEqual(api.calls[-1][2]["conclusion"], "success")
+                else:
+                    with self.assertRaisesRegex(ValueError, "trusted read-only"):
+                        self._publish_to(api, event, target)
+                    self.assertFalse(target.prepared)
+                    # Rejected before any check is written: the head has no publish evidence.
+                    self.assertFalse(any(method != "GET" for _, method, _ in api.calls))
+
     def _authenticate_paths(self, paths, workflow_path=pages.WORKFLOW_PATH):
         api = API()
         event = {"workflow_run": copy.deepcopy(api.run)}

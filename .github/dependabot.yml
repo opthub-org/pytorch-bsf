@@ -17,6 +17,8 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+  # Bumps in sphinx-pages-build.yml need its trusted template to land first, in a separate PR.
+  # See the GHPages action pin procedure in CONTRIBUTING.md; rebase the bump once it has landed.
   - package-ecosystem: "github-actions" # Keep immutable action pins current
     directory: "/"
     schedule:

@@ -834,10 +834,31 @@ branch and is not the producer-commit check.
 
 The publisher runs no candidate code. The producer YAML must exactly match
 the trusted `.github/pages-build-template.yml` on the publisher's default
-branch checkout. To update it, first land the trusted template in a separate
-reviewed PR, then copy it to `.github/workflows/sphinx-pages-build.yml`.
-It authenticates the repository, workflow, run attempt, source commit and
-artifact before checking regular files, paths, byte digests and size limits.
+branch checkout. It authenticates the repository, workflow, run attempt, source
+commit and artifact before checking regular files, paths, byte digests and size
+limits. A head whose producer YAML does not match gets no **GHPages publish**
+check, so one PR cannot change both files and still meet the merge requirement.
+
+Update an action pin in the producer with two PRs, in this order. Dependabot
+only edits `.github/workflows/`, so its PR can only be the second one. Until the
+template lands, it has no **GHPages publish** check and must not be merged.
+
+1. **Template PR.** Copy the changed `uses:` lines byte for byte into
+   `.github/pages-build-template.yml` and change nothing else in that file. The
+   head's producer YAML still matches the default-branch template, so publication
+   succeeds. The PyTest check tolerates a difference between the two files only
+   in the immutable SHA and version comment of pinned actions.
+2. **Workflow PR.** Merge `master`, or comment `@dependabot rebase` on the
+   Dependabot PR, so that `.github/workflows/sphinx-pages-build.yml` matches the
+   template byte for byte, then merge it once the producer-commit
+   **GHPages publish** check succeeds. Keep the gap between the two PRs short.
+   Pushes that still carry the old pin, including `master`, are rejected and
+   publish nothing until this PR lands, so do not cut a release in that window.
+3. **Other open branches.** Merge `master` into them to regain a matching
+   producer YAML and a **GHPages publish** check.
+
+This procedure covers action pins only. Any other change to the producer makes
+the PyTest check fail until the two files agree.
 
 The trusted `.github/pages-legacy-owners.json` census binds existing version
 URL roots to their full branch or tag refs at its recorded `gh-pages` commit.

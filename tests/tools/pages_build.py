@@ -3,6 +3,7 @@
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -11,6 +12,14 @@ from unittest.mock import patch
 import pytest
 
 from tools.pages_build import freeze, package, source_name
+
+ACTION_PIN = re.compile(rb"^( *(?:- )?uses: [\w./-]+@)[0-9a-f]{40}(?: #[^\r\n]*)?$", re.MULTILINE)
+PINNED_SHA = re.compile(rb"(?<=actions/checkout@)[0-9a-f]{40} # v[\d.]+")
+
+
+def _without_action_pins(workflow: bytes) -> bytes:
+    """Mask only the SHA and version comment of immutable ``uses:`` pins."""
+    return ACTION_PIN.sub(rb"\1<pin>", workflow)
 
 
 @pytest.mark.parametrize("ref", ["refs/heads/master", "refs/heads/fix/topic", "refs/tags/v1.2.3"])
@@ -202,7 +211,11 @@ def test_cli_records_event_provenance_and_preserves_existing_output(tmp_path):
 def test_workflow_keeps_complete_build_readonly_and_outside_publish_lock():
     root = Path(__file__).resolve().parents[2]
     raw = (root / ".github/workflows/sphinx-pages-build.yml").read_bytes()
-    assert raw == (root / ".github/pages-build-template.yml").read_bytes()
+    template = (root / ".github/pages-build-template.yml").read_bytes()
+    # Pins differ while a two-step update is in flight; the publisher still requires an exact match.
+    assert _without_action_pins(raw) == _without_action_pins(template)
+    for definition in (raw, template):
+        assert definition.count(b"uses:") == len(ACTION_PIN.findall(definition)) > 0
     workflow = raw.decode()
     assert "sphinx-multiversion docs/ docs/_build" in workflow
     assert "contents: read" in workflow
@@ -210,6 +223,49 @@ def test_workflow_keeps_complete_build_readonly_and_outside_publish_lock():
     assert "concurrency:" not in workflow
     assert "secrets." not in workflow
     assert "include-hidden-files: true" in workflow
+
+
+def test_action_pin_mask_tolerates_only_the_immutable_pin():
+    template = (Path(__file__).resolve().parents[2] / ".github/pages-build-template.yml").read_bytes()
+    bumped, count = PINNED_SHA.subn(b"a" * 40 + b" # v99.0.0", template)
+    assert count == 1
+    assert bumped != template
+    assert _without_action_pins(bumped) == _without_action_pins(template)
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        (b"actions/checkout@", b"attacker/checkout@"),
+        (b"contents: read", b"contents: write"),
+        (b"timeout-minutes: 40", b"timeout-minutes: 41"),
+        (b"      - uses: actions/checkout@", b"      - run: curl example.invalid\n      - uses: actions/checkout@"),
+    ],
+)
+def test_action_pin_mask_keeps_every_other_difference(old, new):
+    template = (Path(__file__).resolve().parents[2] / ".github/pages-build-template.yml").read_bytes()
+    assert old in template
+    assert _without_action_pins(template.replace(old, new, 1)) != _without_action_pins(template)
+
+
+@pytest.mark.parametrize(
+    "pin",
+    [
+        b"v4",
+        b"main",
+        b"a" * 39,
+        b"a" * 41,
+        b"A" * 40,
+        b"a" * 40 + b"\r",
+        b"a" * 40 + b"  # v4",
+        b"a" * 40 + b"\n        if: always()",
+    ],
+)
+def test_action_pin_mask_rejects_mutable_or_malformed_pins(pin):
+    template = (Path(__file__).resolve().parents[2] / ".github/pages-build-template.yml").read_bytes()
+    changed, count = PINNED_SHA.subn(pin, template)
+    assert count == 1
+    assert _without_action_pins(changed) != _without_action_pins(template)
 
 
 def test_security_postmerge_dispatch_uses_the_new_readonly_producer():
