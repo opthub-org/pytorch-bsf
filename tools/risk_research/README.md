@@ -700,6 +700,16 @@ degree. This improves the vertex-approximation domain, separately from
 the quadratic sufficient region for comparing total risks.
 See [the proof](../../docs/advanced/skeleton_risk_vertex_joint_growth_refined.rst).
 
+## A composite vertex approximation and a wider degree regime
+
+`vertex_composite_asymptotic` combines a computable large-vertex center,
+its analytic error and finite-degree error, including their cross terms.
+For `M>=258` it uses the first corrected center; smaller counts retain
+the appropriate existing bounds. A separate uniform-degree proof lowers
+the dyadic start to exponent256 and enlarges the permitted vertex count
+using denominator8, retaining the `D**(-3/4)` relative-error rate.
+See [the proof](../../docs/advanced/skeleton_risk_vertex_composite_asymptotics.rst).
+
 ## A quadratic degree region uniform in the vertex count
 
 The [quadratic-region proof](../../docs/advanced/skeleton_risk_quadratic_degree_tail.rst)
