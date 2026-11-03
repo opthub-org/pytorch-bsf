@@ -1,0 +1,402 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>A fast exact transform for codimension three &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="The vertex leading constant at large vertex count" href="skeleton_risk_vertex_large_dimension.html" />
+    <link rel="prev" title="A classical leading constant for eight vertices" href="skeleton_risk_c7_closed_form.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_family.html">Uniform construction for codimension two</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three.html">Boundary transfer and a codimension-three edge bound</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_exact.html">Positive diagonal formulas for nonvertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q3_error.html">Finite-degree errors for every nonvertex q3 face</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_error.html">Finite-degree errors for every fixed nonvertex q4 face size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_refined.html">A logarithmic finite-degree remainder for nonvertex q4 risks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_general_error.html">Finite-degree errors at every fixed nonvertex codimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_growing_faces.html">Uniform errors for growing nonvertex faces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_mzv_dyadic.html">Dyadic enclosures for multiple zeta values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_leading_constant_mzv.html">Finite MZV constructions for leading constants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_leading_constant_height.html">Coefficient heights in the finite MZV construction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c5_closed_form.html">A classical closed form for the codimension-four constant</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c6_closed_form.html">A classical leading constant for seven vertices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c7_closed_form.html">A classical leading constant for eight vertices</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">A fast exact transform for codimension three</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#the-coefficient-identity">The coefficient identity</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#divide-and-conquer-over-integers">Divide and conquer over integers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#reproduction-and-limits">Reproduction and limits</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension.html">The vertex leading constant at large vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension_refined.html">A sharper elementary large-vertex guarantee</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension_second_order.html">A first correction with a quadratic large-vertex remainder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_refined_asymptotics.html">Single-log vertex errors for every fixed M at least five</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth.html">A simultaneous vertex-count and degree regime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth_refined.html">A broader simultaneous vertex-count and degree regime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_composite_asymptotics.html">Computable vertex centers and a single-log growing domain</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html">An all-degree sufficient region for large vertex counts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_fixed_vertex_tail.html">An explicit winning degree tail at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_quadratic_degree_tail.html">A quadratic sufficient degree region, uniform in vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html">Five-vertex vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_comparison.html">Five-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_six_vertex_comparison.html">Six-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adaptive_curves.html">Adaptive parameterized curves</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">A fast exact transform for codimension three</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/skeleton_risk_codimension_three_transform.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="a-fast-exact-transform-for-codimension-three">
+<h1>A fast exact transform for codimension three<a class="headerlink" href="#a-fast-exact-transform-for-codimension-three" title="Link to this heading"></a></h1>
+<p>The positive double sum in <a class="reference internal" href="skeleton_risk_codimension_three_exact.html"><span class="doc">Positive diagonal formulas for nonvertex risk</span></a>
+can be evaluated by a single homogeneous polynomial transform and one
+angular sum.  This chapter keeps its uniform-simplex design, evaluation
+and noise assumptions.  It applies to every nonvertex source size
+<span class="math notranslate nohighlight">\(s\geq2\)</span>, including the five-vertex edge and six-vertex triangle.
+It improves the exact arithmetic operation count; it does not claim a
+fixed-dimensional degree state, a minimal recurrence, or a bounded-length
+classical special-function expression.</p>
+<section id="the-coefficient-identity">
+<h2>The coefficient identity<a class="headerlink" href="#the-coefficient-identity" title="Link to this heading"></a></h2>
+<p>For <span class="math notranslate nohighlight">\(D\geq s\)</span>, put <span class="math notranslate nohighlight">\(N=D-s\)</span> and
+<span class="math notranslate nohighlight">\(T=2D+s-1=2N+3s-1\)</span>.  Use the explicit positive harmonic diagonals
+<span class="math notranslate nohighlight">\(\delta_3(j)\)</span> in <a class="reference internal" href="skeleton_risk_codimension_three_exact.html#equation-risk-nonvertex-q3-harmonic-diagonal">(52)</a> and define</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}F_N(u)&amp;=\sum_{j=0}^N c_ju^j,\qquad
+c_j=\binom T{2j}\binom{2j}j\delta_3(j),\\
+P_{s,D}(z)&amp;=(1+z)^T F_N\!\left(\frac z{(1+z)^2}\right),\qquad
+B_L=[z^L]P_{s,D}(z).\end{split}\]</div>
+<p>Despite its rational presentation, <span class="math notranslate nohighlight">\(P_{s,D}\)</span> is a polynomial:
+every exponent <span class="math notranslate nohighlight">\(T-2j\)</span> is at least <span class="math notranslate nohighlight">\(3s-1&gt;0\)</span>.</p>
+<div class="proof theorem admonition" id="thm-risk-q3-homogeneous-transform">
+<p class="admonition-title"><span class="caption-number">Theorem 46 </span> (A homogeneous transform for all angular modes)</p>
+<section class="theorem-content" id="proof-content">
+<p>For every integer <span class="math notranslate nohighlight">\(s\geq2,D\geq s\)</span> and <span class="math notranslate nohighlight">\(0\leq L\leq N\)</span>,</p>
+<div class="math notranslate nohighlight" id="equation-risk-q3-transformed-average">
+<span class="eqno">(90)<a class="headerlink" href="#equation-risk-q3-transformed-average" title="Link to this equation"></a></span>\[\frac{B_L}{\binom TL^2}
+ =\frac{\displaystyle\sum_{j=0}^L
+              \binom Lj\binom{T-L}j\delta_3(j)}{\binom TL}.\]</div>
+<p>Consequently the exact coefficient is</p>
+<div class="math notranslate nohighlight" id="equation-risk-q3-transform-coefficient">
+<span class="eqno">(91)<a class="headerlink" href="#equation-risk-q3-transform-coefficient" title="Link to this equation"></a></span>\[a_{s-1}(s+3,D)=
+ \binom{s+3}s^2\frac{s(s+1)(s+2)}
+          {(2D+s)(2D+s+1)(2D+s+2)}
+ \sum_{L=0}^N\binom{N-L+s-2}{s-2}
+                 \frac{B_L}{\binom TL^2}.\]</div>
+<p>The coefficient is zero for the inactive positive degrees <span class="math notranslate nohighlight">\(D&lt;s\)</span>.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. For <span class="math notranslate nohighlight">\(0\leq j\leq L\leq N\)</span>, comparison of factorials gives</p>
+<div class="math notranslate nohighlight">
+\[\binom TL\binom Lj\binom{T-L}j
+ =\binom T{2j}\binom{2j}j\binom{T-2j}{L-j}.\]</div>
+<p>Expanding <span class="math notranslate nohighlight">\(z^j(1+z)^{T-2j}\)</span> shows that <span class="math notranslate nohighlight">\(B_L\)</span> is the
+sum of the right side times <span class="math notranslate nohighlight">\(\delta_3(j)\)</span>.  Terms with
+<span class="math notranslate nohighlight">\(j&gt;L\)</span> cannot contribute.  Division by <span class="math notranslate nohighlight">\(\binom TL^2\)</span>
+proves <a class="reference internal" href="#equation-risk-q3-transformed-average">(90)</a>.  In the existing positive
+nonvertex formula reindex the angular degree as <span class="math notranslate nohighlight">\(k=N-L\)</span>.
+Its other upper binomial index is <span class="math notranslate nohighlight">\(T-L\)</span>, its normalizer is
+<span class="math notranslate nohighlight">\(\binom TL\)</span>, and its multiplicity is
+<span class="math notranslate nohighlight">\(\binom{N-L+s-2}{s-2}\)</span>.  This gives
+<a class="reference internal" href="#equation-risk-q3-transform-coefficient">(91)</a>.  All binomials and denominators
+are positive on this domain, including <span class="math notranslate nohighlight">\(L=N=0\)</span>.  The inactive
+prefix contains no source bubbles and is returned separately.</p>
+</div>
+<p>The final sum has <span class="math notranslate nohighlight">\(N+1\)</span> terms.  Writing a polynomial coefficient
+does not by itself shorten its evaluation; the following algorithm is
+part of the construction.</p>
+</section>
+<section id="divide-and-conquer-over-integers">
+<h2>Divide and conquer over integers<a class="headerlink" href="#divide-and-conquer-over-integers" title="Link to this heading"></a></h2>
+<p>Set <span class="math notranslate nohighlight">\(b(z)=(1+z)^2\)</span>.  For a coefficient list
+<span class="math notranslate nohighlight">\(C=(C_0,\ldots,C_{n-1})\)</span>, define</p>
+<div class="math notranslate nohighlight">
+\[R(C)=\sum_{j=0}^{n-1} C_j z^j b(z)^{n-1-j}.\]</div>
+<p>For <span class="math notranslate nohighlight">\(n\geq2\)</span>, split after <span class="math notranslate nohighlight">\(m=\lfloor n/2\rfloor\)</span> entries
+into <span class="math notranslate nohighlight">\(C^{\rm lo},C^{\rm hi}\)</span>.  Direct separation of the terms gives</p>
+<div class="math notranslate nohighlight" id="equation-risk-q3-transform-divide-conquer">
+<span class="eqno">(92)<a class="headerlink" href="#equation-risk-q3-transform-divide-conquer" title="Link to this equation"></a></span>\[R(C)=b^{n-m}R(C^{\rm lo})+z^mR(C^{\rm hi}),\qquad
+R((C_0))=C_0.\]</div>
+<p>The powers <span class="math notranslate nohighlight">\(b^r=(1+z)^{2r}\)</span> are cached by their integer exponent.
+At a given recursion level there are at most two distinct list lengths,
+so all cached powers together have <span class="math notranslate nohighlight">\(O(n)\)</span> coefficients.</p>
+<p>The implementation first sets
+<span class="math notranslate nohighlight">\(Q=\operatorname{lcm}_{0\leq j\leq N}
+\operatorname{denominator}(\delta_3(j))\)</span> and uses the integers
+<span class="math notranslate nohighlight">\(C_j=Qc_j\)</span>.  It evaluates <a class="reference internal" href="#equation-risk-q3-transform-divide-conquer">(92)</a>
+and then multiplies by <span class="math notranslate nohighlight">\((1+z)^{3s-1}\)</span>.  The first <span class="math notranslate nohighlight">\(N+1\)</span>
+coefficients are exactly <span class="math notranslate nohighlight">\(QB_L\)</span>.  The required input binomial
+weights have the nonsingular update</p>
+<div class="math notranslate nohighlight">
+\[w_0=1,\qquad
+w_{j+1}=w_j\frac{(T-2j)(T-2j-1)}{(j+1)^2},\qquad
+w_j=\binom T{2j}\binom{2j}j.\]</div>
+<p>Each quotient is an integer; its numerator is formed before exact
+division.  Harmonic diagonals and the normalizers <span class="math notranslate nohighlight">\(\binom TL\)</span>
+also use their established nonsingular updates.</p>
+<p>For fixed <span class="math notranslate nohighlight">\(s\)</span>, the old triangular sum has exactly
+<span class="math notranslate nohighlight">\((N+1)(N+2)/2\)</span> rational-weight terms.  If dense degree-<span class="math notranslate nohighlight">\(n\)</span>
+integer multiplication costs <span class="math notranslate nohighlight">\(\mathsf M(n)\)</span>, the homogeneous
+evaluation uses <span class="math notranslate nohighlight">\(O(\mathsf M(N+1)\log(N+2))\)</span> integer operations
+plus <span class="math notranslate nohighlight">\(O(N+1)\)</span> fraction operations.  The supplied balanced Karatsuba
+multiplier gives the stronger bound
+<span class="math notranslate nohighlight">\(O((N+1)^{\log_2 3})\)</span> integer operations for the transform, since
+both recursive levels have exponent strictly larger than one.  This is
+a subquadratic arithmetic count, not a constant number of operations.
+The arrays and the cached powers contain <span class="math notranslate nohighlight">\(O(N+1)\)</span> integer entries
+at peak for fixed <span class="math notranslate nohighlight">\(s\)</span>; integer storage in bytes grows with precision.</p>
+<p>Bit lengths are not constant.  The displayed harmonic formula shows that
+every diagonal denominator divides <span class="math notranslate nohighlight">\(((N+3)!)^2\)</span>.  Thus <span class="math notranslate nohighlight">\(Q\)</span>
+has <span class="math notranslate nohighlight">\(O(N\log(N+2))\)</span> bits.  The transform weights and binomial
+coefficients add <span class="math notranslate nohighlight">\(O(T)\)</span> bits.  Finally every angular denominator
+divides <span class="math notranslate nohighlight">\(Q(T!)^2\)</span>, so the sum can be accumulated with integer
+bit lengths <span class="math notranslate nohighlight">\(O(D\log(D+2))\)</span> at fixed <span class="math notranslate nohighlight">\(s\)</span>.  Karatsuba uses
+subtraction internally, but only on integers; no floating-point
+cancellation or precision choice enters the algorithm.  The mathematical
+coefficient identity retains positive weights and the slower positive
+double sum remains available as a separate reference.</p>
+</section>
+<section id="reproduction-and-limits">
+<h2>Reproduction and limits<a class="headerlink" href="#reproduction-and-limits" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">tools.risk_research.codimension_three_transform</span></code> is an optional
+standard-library checkout tool.  <code class="docutils literal notranslate"><span class="pre">mode_averages(s,D)</span></code> returns its
+averages in increasing radial length <span class="math notranslate nohighlight">\(L\)</span>, and <code class="docutils literal notranslate"><span class="pre">coefficient(s,D)</span></code>
+returns the exact fraction.  The two first target families use <span class="math notranslate nohighlight">\(s=2\)</span>
+and <span class="math notranslate nohighlight">\(s=3\)</span>; the proof and implementation allow every <span class="math notranslate nohighlight">\(s\geq2\)</span>.
+No sampling or production fitting API is changed.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>tools.risk_research.codimension_three_transform<span class="w"> </span>--face-size<span class="w"> </span><span class="m">2</span><span class="w"> </span>--degree<span class="w"> </span><span class="m">128</span><span class="w"> </span>--output<span class="w"> </span>.research/skeleton-risk/q3-edge-transform.json
+<span class="gp">$ </span>.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>tools.risk_research.codimension_three_transform<span class="w"> </span>--face-size<span class="w"> </span><span class="m">3</span><span class="w"> </span>--degree<span class="w"> </span><span class="m">128</span><span class="w"> </span>--output<span class="w"> </span>.research/skeleton-risk/q3-triangle-transform.json
+<span class="gp">$ </span>.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>tools.risk_research.codimension_three_transform<span class="w"> </span>--face-size<span class="w"> </span><span class="m">2</span><span class="w"> </span>--degree<span class="w"> </span><span class="m">128</span><span class="w"> </span>--verify<span class="w"> </span>.research/skeleton-risk/q3-edge-transform.json<span class="w"> </span>--output<span class="w"> </span>.research/skeleton-risk/q3-edge-transform-rechecked.json
+</pre></div>
+</div>
+<p>Records contain canonical decimal fractions and fingerprints of the
+evaluator, its relevant source modules and this proof.  They use
+CRLF-to-LF normalized hashes, while before/after source checks compare
+raw bytes.  Verification recomputes the exact value and compares the
+complete JSON record with scalar types preserved.  Duplicate keys,
+nonfinite numbers and changed fields are rejected.  Failed calculation
+or verification preserves an existing output.  The resolved output is
+checked against proof/evaluator sources and the saved input before
+calculation and again immediately before the atomic write.  The writer uses
+the validated canonical parent with the original leaf name, so retargeting
+the original parent alias cannot redirect it.  Decimal
+serialization does not change Python’s process-wide integer-string limit.</p>
+<p>Tests use arbitrary diagonal basis vectors to check the transform’s
+coefficient identity, the pre-existing double sum to check complete mode
+arrays, and original scalar/Gram formulas to check risk normalization.
+Larger frozen original-kernel values and post-construction holdouts are
+additional finite checks.  The all-degree statement follows from the
+factorial identity and divide-and-conquer proof, rather than those finite
+comparisons.  No finite-degree asymptotic remainder or simultaneous
+parameter limit is asserted here.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="skeleton_risk_c7_closed_form.html" class="btn btn-neutral float-left" title="A classical leading constant for eight vertices" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="skeleton_risk_vertex_large_dimension.html" class="btn btn-neutral float-right" title="The vertex leading constant at large vertex count" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: feat/final-polish-growing-faces
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/index.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="skeleton_risk_codimension_three_transform.html">feat/final-polish-growing-faces</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
