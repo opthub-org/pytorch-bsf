@@ -123,8 +123,12 @@ def test_exact_selected_work_boundary():
 def test_record_roundtrip_and_exact_json_types():
     record = growing.certificate(7, (1 << 91) + 17, Fraction(1, 37), 190_000)
     growing.verify_certificate(record)
-    assert _fraction(record["all_tail"]["relative_error_bound"]) <= Fraction(1, 37)
-    assert record["maximum_face_size"] ** 4 <= record["degree"]
+    all_tail = record["all_tail"]
+    assert isinstance(all_tail, dict)
+    assert _fraction(all_tail["relative_error_bound"]) <= Fraction(1, 37)
+    maximum_face_size, degree = record["maximum_face_size"], record["degree"]
+    assert type(maximum_face_size) is int and type(degree) is int
+    assert maximum_face_size**4 <= degree
     for key, value in (("outside", True), ("extra", 1), ("maximum_face_size", 2), ("source_hash_policy", "different")):
         altered = copy.deepcopy(record)
         altered[key] = value
