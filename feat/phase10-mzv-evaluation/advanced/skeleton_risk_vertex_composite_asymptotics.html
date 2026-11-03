@@ -1,0 +1,464 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Computable vertex centers and a single-log growing domain &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Quantitative tetrahedron vertex asymptotics" href="skeleton_risk_vertex_asymptotics.html" />
+    <link rel="prev" title="A broader simultaneous vertex-count and degree regime" href="skeleton_risk_vertex_joint_growth_refined.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_family.html">Uniform construction for codimension two</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three.html">Boundary transfer and a codimension-three edge bound</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_exact.html">Positive diagonal formulas for nonvertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q3_error.html">Finite-degree errors for every nonvertex q3 face</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_error.html">Finite-degree errors for every fixed nonvertex q4 face size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_refined.html">A logarithmic finite-degree remainder for nonvertex q4 risks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_mzv_dyadic.html">Dyadic enclosures for multiple zeta values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_leading_constant_mzv.html">Finite MZV constructions for leading constants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c5_closed_form.html">A classical closed form for the codimension-four constant</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c6_closed_form.html">A classical leading constant for seven vertices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_transform.html">A fast exact transform for codimension three</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension.html">The vertex leading constant at large vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension_refined.html">A sharper elementary large-vertex guarantee</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension_second_order.html">A first correction with a quadratic large-vertex remainder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_refined_asymptotics.html">Single-log vertex errors for every fixed M at least five</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth.html">A simultaneous vertex-count and degree regime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth_refined.html">A broader simultaneous vertex-count and degree regime</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Computable vertex centers and a single-log growing domain</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#a-larger-domain-from-the-single-log-error">A larger domain from the single-log error</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#centers-that-contain-no-unknown-leading-constant">Centers that contain no unknown leading constant</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#compressed-certificates-and-independent-checks">Compressed certificates and independent checks</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html">An all-degree sufficient region for large vertex counts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_fixed_vertex_tail.html">An explicit winning degree tail at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_quadratic_degree_tail.html">A quadratic sufficient degree region, uniform in vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html">Five-vertex vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_comparison.html">Five-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_six_vertex_comparison.html">Six-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adaptive_curves.html">Adaptive parameterized curves</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Computable vertex centers and a single-log growing domain</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/skeleton_risk_vertex_composite_asymptotics.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="computable-vertex-centers-and-a-single-log-growing-domain">
+<h1>Computable vertex centers and a single-log growing domain<a class="headerlink" href="#computable-vertex-centers-and-a-single-log-growing-domain" title="Link to this heading"></a></h1>
+<p>Keep the uniform-simplex assumptions and normalization of
+<a class="reference internal" href="skeleton_risk_vertex_general.html"><span class="doc">Vertex coefficients at every fixed vertex count</span></a>. Write <span class="math notranslate nohighlight">\(q=M-1\)</span>,
+<span class="math notranslate nohighlight">\(n=M-2\)</span>, <span class="math notranslate nohighlight">\(L=\log2\)</span>, and</p>
+<div class="math notranslate nohighlight">
+\[S_M=M^2q!(2L)^q,\qquad
+b_M=\frac{\sqrt q}{4\sqrt{\pi L(L-1/2)}},\qquad B_M=S_Mb_M.\]</div>
+<p>The results below concern the sample-size-asymptotic vertex risk
+coefficient. Finite-sample risks and the separate comparison region
+<span class="math notranslate nohighlight">\(D\geq8M^2\)</span> are not their subject.</p>
+<section id="a-larger-domain-from-the-single-log-error">
+<h2>A larger domain from the single-log error<a class="headerlink" href="#a-larger-domain-from-the-single-log-error" title="Link to this heading"></a></h2>
+<div class="proof theorem admonition" id="thm-risk-composite-joint-domain">
+<p class="admonition-title"><span class="caption-number">Theorem 52 </span> (A single-log growing-vertex approximation)</p>
+<section class="theorem-content" id="proof-content">
+<p>For every integer <span class="math notranslate nohighlight">\(D\geq2^{256}\)</span>, put</p>
+<div class="math notranslate nohighlight">
+\[N=\lfloor\log_2D\rfloor,\qquad
+\ell=\lceil\log_2(N+2)\rceil,\qquad
+h_{**}(D)=1+\max\left(3,
+                \left\lfloor\frac{N-4\ell}{8\ell}\right\rfloor\right).\]</div>
+<p>For every integer <span class="math notranslate nohighlight">\(4\leq M\leq h_{**}(D)\)</span>,</p>
+<div class="math notranslate nohighlight" id="equation-risk-composite-joint-domain-error">
+<span class="eqno">(102)<a class="headerlink" href="#equation-risk-composite-joint-domain-error" title="Link to this equation"></a></span>\[\left|\frac{D^{M+1}a_0(M,D)}{C_M}-1\right|
+  \leq2^{-g(q)}D^{-3/4},\]</div>
+<p>with <span class="math notranslate nohighlight">\(g(q)=0\)</span> for <span class="math notranslate nohighlight">\(3\leq q\leq160\)</span>, and
+<span class="math notranslate nohighlight">\(g(q)=\lfloor q/3\rfloor+2-\lceil\log_2q\rceil\)</span> for
+<span class="math notranslate nohighlight">\(q\geq161\)</span>.</p>
+</section>
+</div><p>This domain strictly contains the one in
+<a class="reference internal" href="skeleton_risk_vertex_joint_growth_refined.html"><span class="doc">A broader simultaneous vertex-count and degree regime</span></a>. At <span class="math notranslate nohighlight">\(N=256\)</span>
+it includes <span class="math notranslate nohighlight">\(M=4\)</span>; at <span class="math notranslate nohighlight">\(N=1024\)</span> its vertex ceiling is 12,
+compared with the previous ceiling 8. Its growth is asymptotic to
+<span class="math notranslate nohighlight">\(\log D/(8\log\log D)\)</span>, rather than the previous denominator 12.
+The degree start is still astronomical. The ceiling can decrease when
+<span class="math notranslate nohighlight">\(\ell\)</span> jumps, so no monotonicity of the ceiling is asserted.</p>
+<div class="proof admonition" id="proof">
+<p>Proof. <strong>Retain all dependence on the vertex count in the single-log bound.</strong>
+For <span class="math notranslate nohighlight">\(q\geq4\)</span>, use the explicit constants of
+<a class="reference internal" href="skeleton_risk_vertex_refined_asymptotics.html"><span class="doc">Single-log vertex errors for every fixed M at least five</span></a>. To avoid confusing
+their <span class="math notranslate nohighlight">\(B_r,G_r\)</span> with the leading term <span class="math notranslate nohighlight">\(B_M\)</span>, call their
+elementary bounds <span class="math notranslate nohighlight">\(P_r,G_r,A_r,F_r\)</span> here. The bounds already
+proved in <a class="reference internal" href="skeleton_risk_vertex_joint_growth.html"><span class="doc">A simultaneous vertex-count and degree regime</span></a> give, for
+<span class="math notranslate nohighlight">\(1\leq r\leq q\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[P_r\leq q^{2r},\quad G_r\leq(4q^2)^r,\quad
+A_r\leq(2q^2)^r,\quad F_r\leq(10q^2)^r.\]</div>
+<p>For every positive integer <span class="math notranslate nohighlight">\(p\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[I_{p,p+1}=\sum_{j=0}^p\frac{p!}{(p-j)!p^{j+1}}
+    \leq\frac{p+1}{p}\leq2.\]</div>
+<p>Each summand is at most <span class="math notranslate nohighlight">\(1/p\)</span>. Thus the first moments in
+the single-log proof satisfy <span class="math notranslate nohighlight">\(S_k\leq3G_k\)</span> and
+<span class="math notranslate nohighlight">\(T_r\leq3A_r\)</span>. In its diagonal constant, the two terms in
+<span class="math notranslate nohighlight">\(q\widetilde U_{q-1}\)</span> are bounded by
+<span class="math notranslate nohighlight">\((20q^2)^q\)</span> and <span class="math notranslate nohighlight">\((6q^2)^q\)</span>: for the latter use
+<span class="math notranslate nohighlight">\(56+3^{q-2}\leq3^q\)</span> for <span class="math notranslate nohighlight">\(q\geq4\)</span>.
+Its two positive binomial sums are bounded by
+<span class="math notranslate nohighlight">\(6(24q^2)^q\)</span> and <span class="math notranslate nohighlight">\(5(10q^2)^q\)</span>, respectively.
+The first follows by extending the sum to both endpoints and
+expanding <span class="math notranslate nohighlight">\(6(4+20)^qq^{2q}\)</span>; the second uses
+<span class="math notranslate nohighlight">\(5(8+2)^qq^{2q}\)</span>.
+Also <span class="math notranslate nohighlight">\(2P_q+A_q\leq3(2q^2)^q\)</span>,
+<span class="math notranslate nohighlight">\(J_q\leq(2q^2)^q\)</span>, and
+<span class="math notranslate nohighlight">\(8(1+q^2+J_q)\leq16(2q^2)^q\)</span>.
+Consequently</p>
+<div class="math notranslate nohighlight">
+\[\widetilde K_q\leq32(24q^2)^q\leq(96q^2)^q.\]</div>
+<p>The last step uses <span class="math notranslate nohighlight">\(32\leq4^q\)</span> for <span class="math notranslate nohighlight">\(q\geq4\)</span>.
+Divide the explicit <span class="math notranslate nohighlight">\(\widetilde R_M\)</span> by
+<span class="math notranslate nohighlight">\(C_{\rm arc}=M^2q!q/4\)</span>. Exactly as in the earlier budget
+proof, <span class="math notranslate nohighlight">\(273+q(q+1)\leq32q^2\)</span>,
+<span class="math notranslate nohighlight">\(96\leq5^q\)</span>, and <span class="math notranslate nohighlight">\(32q^2\leq16^q\)</span> imply</p>
+<div class="math notranslate nohighlight">
+\[\frac{\widetilde R_M}{C_{\rm arc}}
+ \leq96(96q^2)^q+32q^2(2q^2)^q
+ \leq(512q^2)^q.\]</div>
+<p>The refined large-vertex lower bound from the preceding joint chapter
+gives <span class="math notranslate nohighlight">\(C_{\rm arc}/C_M\leq2^{-g(q)}\)</span>, without a gap at
+<span class="math notranslate nohighlight">\(q=160,161\)</span>. Hence for every <span class="math notranslate nohighlight">\(M\geq5,D\geq256\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[\left|\frac{D^{M+1}a_0(M,D)}{C_M}-1\right|
+ \leq 2^{-g(q)}(512q^2)^q\frac{1+\log D}{D}.\]</div>
+<p>This is an inequality with explicit dependence on both parameters,
+rather than substitution into a fixed-<span class="math notranslate nohighlight">\(M\)</span> limit.</p>
+<p><strong>Spend two logarithmic factors per outside coordinate.</strong>
+If <span class="math notranslate nohighlight">\(q\geq4\)</span> is allowed by the new ceiling, then
+<span class="math notranslate nohighlight">\(8\ell q+4\ell\leq N\)</span>, and <span class="math notranslate nohighlight">\(\ell\geq9\)</span>.
+Therefore <span class="math notranslate nohighlight">\(512q^2\leq8N^2/\ell^2\leq(N+2)^2\)</span>, while
+<span class="math notranslate nohighlight">\(1+\log D&lt;N+2\leq2^\ell\)</span>. The last error bound is at most</p>
+<div class="math notranslate nohighlight">
+\[2^{-g(q)}\frac{2^{(2q+1)\ell}}D
+    \leq2^{-g(q)}\frac{2^{N/4}}D
+    \leq2^{-g(q)}D^{-3/4}.\]</div>
+<p><strong>Cover the critical four-vertex case separately.</strong>
+For <span class="math notranslate nohighlight">\(q=3\)</span>, keep the previous squared-log estimate. Its explicit
+arc budget satisfies <span class="math notranslate nohighlight">\((512\cdot9)^3&lt;2^{37}\)</span>. Thus the error
+is at most <span class="math notranslate nohighlight">\(2^{37+2\ell}/D\)</span>.
+For <span class="math notranslate nohighlight">\(N\geq256\)</span>, <span class="math notranslate nohighlight">\(\ell\leq N/32+2\)</span>.
+Indeed this holds directly at <span class="math notranslate nohighlight">\(\ell=9\)</span>; at <span class="math notranslate nohighlight">\(\ell\geq10\)</span>
+use <span class="math notranslate nohighlight">\(N\geq2^{\ell-1}-1\geq32(\ell-2)\)</span>, with the last
+inequality following by induction from <span class="math notranslate nohighlight">\(\ell=10\)</span>.
+Consequently <span class="math notranslate nohighlight">\(37+2\ell\leq41+N/16\leq N/4\)</span>.
+This proves the same degree error for <span class="math notranslate nohighlight">\(M=4\)</span>.</p>
+<p><strong>Inclusion and strict improvement.</strong>
+An old admissible <span class="math notranslate nohighlight">\(q\leq\lfloor N/(12\ell)\rfloor\)</span> with
+<span class="math notranslate nohighlight">\(q\leq3\)</span> is automatically allowed. If <span class="math notranslate nohighlight">\(q\geq4\)</span>, then
+<span class="math notranslate nohighlight">\(N\geq48\ell\)</span>, and in particular
+<span class="math notranslate nohighlight">\(N/(12\ell)\leq(N-4\ell)/(8\ell)\)</span>.
+This proves inclusion at every old pair, including ceiling jumps.
+The pairs <span class="math notranslate nohighlight">\((M,D)=(4,2^{256})\)</span> and <span class="math notranslate nohighlight">\((12,2^{1024})\)</span>
+show strict enlargement. Finally <span class="math notranslate nohighlight">\(\ell\sim\log_2N\)</span>
+gives the stated asymptotic ceiling.</p>
+</div>
+</section>
+<section id="centers-that-contain-no-unknown-leading-constant">
+<h2>Centers that contain no unknown leading constant<a class="headerlink" href="#centers-that-contain-no-unknown-leading-constant" title="Link to this heading"></a></h2>
+<p>Use the explicit coefficient <span class="math notranslate nohighlight">\(\beta\)</span> in
+<a class="reference internal" href="skeleton_risk_vertex_large_dimension_second_order.html"><span class="doc">A first correction with a quadratic large-vertex remainder</span></a>. Define</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}T_M=\begin{cases}
+   B_M,&amp;4\leq M&lt;258,\\
+   B_M(1+\beta/(M-2)),&amp;M\geq258.
+\end{cases}\end{split}\]</div>
+<p>For <span class="math notranslate nohighlight">\(4\leq M&lt;162\)</span>, use the elementary local radius from
+<a class="reference internal" href="skeleton_risk_vertex_large_dimension.html"><span class="doc">The vertex leading constant at large vertex count</span></a>:</p>
+<div class="math notranslate nohighlight">
+\[r_M=\left(1+\frac1{2n}\right)
+    \left(\frac{21}{n}+4\sqrt n(79/80)^{n-2}
+                 +\frac{16}{3\sqrt n}(64/65)^n\right)+\frac1{2n}.\]</div>
+<p>An outward rational enclosure of its square roots is used by the tool.
+For <span class="math notranslate nohighlight">\(162\leq M&lt;258\)</span>, put <span class="math notranslate nohighlight">\(r_M=6/n\)</span>; for
+<span class="math notranslate nohighlight">\(M\geq258\)</span>, put <span class="math notranslate nohighlight">\(r_M=84/n^2\)</span>.
+The three existing theorems prove
+<span class="math notranslate nohighlight">\(|C_M/T_M-1|\leq r_M\)</span> on their respective ranges. The last
+radius is conservative because division by <span class="math notranslate nohighlight">\(1+\beta/n&gt;1\)</span>
+could only decrease it. The small-<span class="math notranslate nohighlight">\(M\)</span> fallback can be wide and
+is not an improvement over the exact-series evaluator there.</p>
+<div class="proof corollary admonition" id="cor-risk-composite-vertex-center">
+<p class="admonition-title"><span class="caption-number">Corollary 15 </span> (A computable composite center)</p>
+<section class="corollary-content" id="proof-content">
+<p>Throughout the new joint domain, let <span class="math notranslate nohighlight">\(t_M=T_M/S_M\)</span>, and let
+<span class="math notranslate nohighlight">\([t_-,t_+]\)</span> be any positive rational enclosure of <span class="math notranslate nohighlight">\(t_M\)</span>.
+Put</p>
+<div class="math notranslate nohighlight">
+\[\widehat t=(t_-+t_+)/2,\qquad
+u_M=\frac{t_+-t_-}{t_++t_-},\qquad
+b_M^*=(1+u_M)(1+r_M)-1.\]</div>
+<p>If <span class="math notranslate nohighlight">\(\delta\)</span> bounds the degree error relative to <span class="math notranslate nohighlight">\(C_M\)</span>,
+then</p>
+<div class="math notranslate nohighlight" id="equation-risk-composite-computable-center">
+<span class="eqno">(103)<a class="headerlink" href="#equation-risk-composite-computable-center" title="Link to this equation"></a></span>\[\left|\frac{D^{M+1}a_0(M,D)}{S_M\widehat t}-1\right|
+   \leq b_M^*+(1+b_M^*)\delta.\]</div>
+<p>The exact center <span class="math notranslate nohighlight">\(T_M\)</span> instead has radius
+<span class="math notranslate nohighlight">\(r_M+(1+r_M)\delta\)</span>.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Factor the displayed quotient into the degree ratio
+<span class="math notranslate nohighlight">\(D^{M+1}a_0/C_M\)</span>, the constant ratio <span class="math notranslate nohighlight">\(C_M/T_M\)</span>,
+and the elementary-evaluation ratio <span class="math notranslate nohighlight">\(t_M/\widehat t\)</span>.
+Their errors are bounded by <span class="math notranslate nohighlight">\(\delta,r_M,u_M\)</span>.
+Expansion of the product and the triangle inequality give
+<span class="math notranslate nohighlight">\((1+\delta)(1+r_M)(1+u_M)-1\)</span>.
+This proves the formula, including every cross term, without requiring
+a small radius in the first finite range. In particular no unknown
+value <span class="math notranslate nohighlight">\(C_M\)</span> remains in the approximation center.</p>
+</div>
+</section>
+<section id="compressed-certificates-and-independent-checks">
+<h2>Compressed certificates and independent checks<a class="headerlink" href="#compressed-certificates-and-independent-checks" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">tools.risk_research.vertex_composite_asymptotic</span></code> evaluates
+<span class="math notranslate nohighlight">\([t_-,t_+]\)</span> with the existing rational logarithm, arctangent and
+integer-square-root enclosures. It retains <span class="math notranslate nohighlight">\(S_M\)</span> symbolically;
+neither <span class="math notranslate nohighlight">\(q!\)</span>, <span class="math notranslate nohighlight">\(2^N\)</span> nor a risk table is constructed.
+For a full block <span class="math notranslate nohighlight">\(2^N\leq D&lt;2^{N+1}\)</span> it uses</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}E=\begin{cases}
+    N-37-2\ell,&amp;q=3,\\
+    N-(2q+1)\ell+g(q),&amp;q\geq4,
+  \end{cases}\qquad \delta=2^{-E}.\end{split}\]</div>
+<p>The certificate records a rational base plus a rational multiple of
+<span class="math notranslate nohighlight">\(2^{-E}\)</span> rather than materializing this denominator. A target is
+checked by exact integer comparison with a bounded shift. Thus even
+an exponent with thousands of decimal digits does not cause a shift
+by that value. The target concerns the stated block, not every later
+block across ceiling jumps.</p>
+<p>The separate constant, degree, elementary-evaluation and combined
+budgets are saved, along with their center, denominator convention,
+full domain witnesses and source/proof fingerprints. Verification
+restores every recorded option and recomputes the entire record. It
+rejects duplicate/unknown keys, changed types, bounds or sources.
+Integer text conversion uses bounded chunks without modifying a
+process-wide digit limit.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>tools.risk_research.vertex_composite_asymptotic<span class="w"> </span>--vertices<span class="w"> </span><span class="m">258</span><span class="w"> </span>--degree-floor-exponent<span class="w"> </span><span class="m">40000</span><span class="w"> </span>--bits<span class="w"> </span><span class="m">47</span><span class="w"> </span>--relative-target<span class="w"> </span><span class="m">1</span>/100<span class="w"> </span>--output<span class="w"> </span>.research/skeleton-risk/composite258.json
+<span class="gp">$ </span>.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>tools.risk_research.vertex_composite_asymptotic<span class="w"> </span>--verify<span class="w"> </span>.research/skeleton-risk/composite258.json
+</pre></div>
+</div>
+<p>Source/output aliases are rejected before calculation and again at
+the resolved parent plus original leaf before atomic replacement.
+Failures retain existing output. The directory is caller-controlled;
+this is not a sandbox against replacement of that canonical directory
+inode by another process.</p>
+<p>Independent finite checks compare the newly majorized single-log
+constants with their original exact formulas, the centers with the
+original positive integral, and feasible coefficients with the original
+scalar or transformed formulas. Huge-degree certificates check exact
+compressed inequalities. These checks support the implementation;
+the proof above supplies the full growing domain.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="skeleton_risk_vertex_joint_growth_refined.html" class="btn btn-neutral float-left" title="A broader simultaneous vertex-count and degree regime" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="skeleton_risk_vertex_asymptotics.html" class="btn btn-neutral float-right" title="Quantitative tetrahedron vertex asymptotics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: feat/phase10-mzv-evaluation
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/index.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="skeleton_risk_vertex_composite_asymptotics.html">feat/phase10-mzv-evaluation</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
