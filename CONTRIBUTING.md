@@ -905,19 +905,24 @@ PR on its own.
    producer-commit **GHPages publish** check succeeds.
 
 Keep the gap between the two PRs short. Until the Workflow PR lands, pushes that
-carry the old pin, including `master`, are rejected and publish nothing. A tag
-keeps its producer YAML forever, so a tag cut in that window can never publish;
-do not cut a release then. After the Workflow PR lands, merge `master` into other
-open branches to regain a **GHPages publish** check.
+carry the old pin, including `master`, are rejected and publish nothing. After it
+lands, merge `master` into other open branches to regain a **GHPages publish**
+check; for a Dependabot PR, comment `@dependabot rebase` instead.
 
-Dependabot and the security remediation automation only edit
-`.github/workflows/`, so their PRs can only be the Workflow PR. Until the template
-lands, such a PR passes PyTest but has no **GHPages publish** check and must not
-be merged. GitHub does not enforce this rule yet
-([#682](https://github.com/opthub-org/pytorch-bsf/issues/682)), so check for the
-missing check before merging. If a Workflow PR lands first, every publication is
-rejected, and a Template PR cannot get its check either. Revert the Workflow PR
-on `master`, then start again from step 1.
+The publisher compares a tag's producer YAML with the template when the build
+completes, and a tag's YAML never changes. A tag whose pin differs from the
+template at that moment can therefore never publish. Before merging the Template
+PR, confirm that no tag build is in progress. Once it has landed, do not tag a
+commit that predates the Workflow PR.
+
+Neither Dependabot nor the security remediation automation can edit the template,
+so their pin updates can only be the Workflow PR. Until the template lands, such a
+PR passes PyTest but has no **GHPages publish** check and must not be merged.
+GitHub does not enforce this rule yet
+([#682](https://github.com/opthub-org/pytorch-bsf/issues/682)), so look for the
+missing check before merging. If a Workflow PR lands first, every head that
+contains it is rejected, including `master` and any Template PR based on it.
+Revert the Workflow PR on `master`, then start again from step 1.
 
 This procedure covers action pins only. Other producer changes have no sequence
 of PRs that passes all required checks yet
