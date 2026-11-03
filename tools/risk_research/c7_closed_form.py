@@ -17,6 +17,7 @@ from .saved_records import _unique_object, canonical_json
 SCHEMA = "skeleton-risk-c7-closed-form-v1"
 PROOF = "docs/advanced/skeleton_risk_c7_closed_form.rst"
 HASH_POLICY = "sha256-crlf-to-lf-v1"
+MAX_TERMS = 4096
 ZETA_COEFFICIENTS = ((2, -3920), (3, -18900), (4, -75250), (5, -189000), (6, 211680))
 ZETA_MONOMIAL_COEFFICIENTS = (
     ((2, 3), -78960),
@@ -43,6 +44,8 @@ MZV_COEFFICIENTS = (
 def c7_enclosure(terms: int = 64) -> tuple[Fraction, Fraction]:
     """Enclose c7 with signed rational ordinary-zeta monomials."""
     _integer(terms, 1, "terms")
+    if terms > MAX_TERMS:
+        raise ValueError(f"terms must be <= {MAX_TERMS}")
     values = {order: zeta_enclosure(order, terms) for order in range(2, 7)}
     lower, upper = Fraction(0), Fraction(0)
     for order, coefficient in ZETA_COEFFICIENTS:
@@ -108,7 +111,11 @@ def verify_record(record: object) -> None:
     if type(record) is not dict or record.get("schema") != SCHEMA:
         raise ValueError("unsupported c7 closed-form record")
     terms = _integer(record.get("terms"), 1, "terms")
-    if canonical_json(record) != canonical_json(build_record(terms)):
+    sources = _sources()
+    matches = canonical_json(record) == canonical_json(build_record(terms))
+    if _sources() != sources:
+        raise RuntimeError("a closed-form source changed during calculation")
+    if not matches:
         raise ValueError("saved record differs from exact recomputation or sources")
 
 

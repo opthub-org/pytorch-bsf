@@ -154,6 +154,60 @@ def test_invalid_terms_are_rejected(value):
         closed.build_record(value)
 
 
+@pytest.mark.parametrize("terms", [4097, 10**60])
+@pytest.mark.parametrize("operation", ["evaluate", "build", "verify", "generate-cli", "verify-cli"])
+def test_terms_above_operational_limit_fail_before_zeta_helper(tmp_path, monkeypatch, terms, operation):
+    calls = []
+
+    def forbidden_helper(order, count):
+        calls.append((order, count))
+        raise AssertionError("out-of-range terms reached the zeta helper")
+
+    monkeypatch.setattr(closed, "zeta_enclosure", forbidden_helper)
+    record = {"schema": closed.SCHEMA, "terms": terms}
+    out = tmp_path / "keep.json"
+    out.write_text(json.dumps(record) if operation == "verify-cli" else "keep")
+    original = out.read_bytes()
+    if operation in ("generate-cli", "verify-cli"):
+        options = ["--verify", str(out)] if operation == "verify-cli" else ["--terms", str(terms), "--output", str(out)]
+        with pytest.raises(SystemExit) as raised:
+            closed.main(options)
+        assert raised.value.code == 2
+    else:
+        with pytest.raises(ValueError, match="terms must be <= 4096"):
+            if operation == "evaluate":
+                closed.c7_enclosure(terms)
+            elif operation == "build":
+                closed.build_record(terms)
+            else:
+                closed.verify_record(record)
+    assert calls == []
+    assert out.read_bytes() == original
+
+
+def test_operational_limit_boundary_with_bounded_zeta_helper(tmp_path, monkeypatch):
+    calls = []
+
+    def bounded_helper(order, terms):
+        assert terms == 4096 == closed.MAX_TERMS
+        calls.append(order)
+        return (Fraction(10), Fraction(11)) if order == 6 else (Fraction(1), Fraction(2))
+
+    monkeypatch.setattr(closed, "zeta_enclosure", bounded_helper)
+    lower, upper = closed.c7_enclosure(4096)
+    assert 0 < lower < upper
+    record = closed.build_record(4096)
+    assert record["terms"] == 4096
+    closed.verify_record(record)
+    out = tmp_path / "boundary.json"
+    assert closed.main(["--terms", "4096", "--output", str(out)]) == 0
+    before = out.read_bytes()
+    assert json.loads(before)["terms"] == 4096
+    assert closed.main(["--verify", str(out)]) == 0
+    assert out.read_bytes() == before
+    assert set(calls) == set(range(2, 7))
+
+
 def test_nondefault_record_round_trip_and_conflicting_options(tmp_path):
     out = tmp_path / "record.json"
     assert closed.main(["--terms", "19", "--output", str(out)]) == 0
@@ -220,20 +274,49 @@ def _source_snapshots(change):
 def test_direct_operations_reject_raw_source_changes(monkeypatch, operation, change):
     record = closed.build_record(7)
     before, after = _source_snapshots(change)
-    calls = 0
+    current = before
+    enclosure = closed.c7_enclosure
 
-    def fake_sources():
-        nonlocal calls
-        calls += 1
-        return before if calls == 1 else after
+    def changed_enclosure(terms):
+        nonlocal current
+        result = enclosure(terms)
+        current = after
+        return result
 
-    monkeypatch.setattr(closed, "_sources", fake_sources)
+    monkeypatch.setattr(closed, "_sources", lambda: current)
+    monkeypatch.setattr(closed, "c7_enclosure", changed_enclosure)
     with pytest.raises(RuntimeError, match="a closed-form source changed during calculation"):
         if operation == "build":
             closed.build_record(7)
         else:
             closed.verify_record(record)
-    assert calls == 2
+    assert current is after
+
+
+@pytest.mark.parametrize("change", ["content", "line-endings"])
+@pytest.mark.parametrize("mismatch", [False, True])
+def test_verification_transaction_detects_change_during_canonical_comparison(monkeypatch, change, mismatch):
+    before, after = _source_snapshots(change)
+    current = before
+    monkeypatch.setattr(closed, "_sources", lambda: current)
+    record = closed.build_record(7)
+    if mismatch:
+        record["vertices"] = 9
+    canonical = closed.canonical_json
+    changed = False
+
+    def changing_canonical(value):
+        nonlocal current, changed
+        result = canonical(value)
+        if not changed:
+            current = after
+            changed = True
+        return result
+
+    monkeypatch.setattr(closed, "canonical_json", changing_canonical)
+    with pytest.raises(RuntimeError, match="a closed-form source changed during calculation"):
+        closed.verify_record(record)
+    assert changed and current is after
 
 
 @pytest.mark.parametrize("operation", ["generate", "verify"])
@@ -247,20 +330,43 @@ def test_cli_inflight_changes_preserve_files(tmp_path, monkeypatch, capsys, oper
     out = tmp_path / "keep.json"
     out.write_text(json.dumps(record) if operation == "verify" else "keep")
     original = out.read_bytes()
-    calls = 0
+    current = before
 
-    def fake_sources():
-        nonlocal calls
-        calls += 1
-        return before if calls <= (2 if guard == "inner" else 1) else after
+    monkeypatch.setattr(closed, "_sources", lambda: current)
+    if guard == "inner":
+        enclosure = closed.c7_enclosure
 
-    monkeypatch.setattr(closed, "_sources", fake_sources)
+        def changed_enclosure(terms):
+            nonlocal current
+            result = enclosure(terms)
+            current = after
+            return result
+
+        monkeypatch.setattr(closed, "c7_enclosure", changed_enclosure)
+    elif operation == "verify":
+        verifier = closed.verify_record
+
+        def changed_verifier(value):
+            nonlocal current
+            current = after
+            verifier(value)
+
+        monkeypatch.setattr(closed, "verify_record", changed_verifier)
+    else:
+        builder = closed.build_record
+
+        def changed_builder(terms):
+            nonlocal current
+            current = after
+            return builder(terms)
+
+        monkeypatch.setattr(closed, "build_record", changed_builder)
     options = ["--verify", str(out)] if operation == "verify" else ["--terms", "7", "--output", str(out)]
     with pytest.raises(SystemExit) as raised:
         closed.main(options)
     assert raised.value.code == 2
     assert "a closed-form source changed during calculation" in capsys.readouterr().err
-    assert calls == (3 if guard == "inner" else 4)
+    assert current is after
     assert out.read_bytes() == original
 
 

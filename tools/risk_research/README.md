@@ -489,6 +489,10 @@ ordinary zeta values of orders two through six and their products, using
 finite coefficient algebra, convergent products and duality. The
 eight-vertex leading constant is `C8=10080*c7`. Signed rational intervals
 and strict saved-record verification include every monomial and source.
+This evaluator accepts `1 <= terms <= MAX_TERMS=4096` and rejects larger
+cutoffs before the zeta helper, including during record verification.
+The operational cutoff is separate from the all-positive-cutoff tail
+theorem and is not a CPU-time or memory guarantee.
 This completes a fixed-weight simplification; it makes no minimal-basis,
 finite-degree-error or automatic next-index claim.
 See [the proof](../../docs/advanced/skeleton_risk_c7_closed_form.rst).

@@ -27,7 +27,7 @@ only convergent identities of weight at most six.
    an all-degree comparison or a minimal classical-zeta basis.
 
 The finite-MZV coefficient calculation
--------------------------------------
+--------------------------------------
 
 Use strict descending indices
 :math:`\zeta(k_1,\ldots,k_r)=\sum_{n_1>\cdots>n_r\geq1}
@@ -153,6 +153,13 @@ c7 interval with the nonnegative half-line.
 For these fixed orders and monomials the rational-operation count is
 linear in N; integer lengths grow. This does not assert a uniform
 complexity bound for arbitrary zeta weight.
+
+The mathematical tail bound holds for every integer :math:`N\geq1`.
+The evaluator separately accepts only :math:`1\leq N\leq4096`
+(``MAX_TERMS=4096``). Direct evaluation, record generation and record
+verification reject larger cutoffs before invoking the ordinary-zeta
+helper. This operational cutoff is not a CPU-time or memory guarantee;
+it does not restrict the all-N mathematical identity.
 
 .. code-block:: console
 
