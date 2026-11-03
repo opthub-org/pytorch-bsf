@@ -409,6 +409,18 @@ exact reference for the proved vertex reduction, not a completed closed form.
 The experiment and scan reports record `peak_rss_bytes` where OS resource
 accounting is available, and JSON `null` otherwise (including Windows).
 
+## Certified dyadic evaluation of convergent MZVs
+
+`mzv_dyadic` splits the convergent iterated integral at one half and
+encloses each resulting multiple polylogarithm by exact rational prefixes
+and geometric tails. The proof covers every admissible descending-index
+MZV and every finite signed combination. Target-width selection terminates
+mathematically; the evaluator can reject work exceeding its disclosed
+operational limit. The same method evaluates all fixed-index `c_q`
+expressions from the existing compiler. Requested width concerns `c_q`;
+the scaled vertex-constant width is reported separately.
+See [the proof](../../docs/advanced/skeleton_risk_mzv_dyadic.rst).
+
 ## Finite convergent MZV expressions for every fixed leading constant
 
 `leading_constant_mzv` constructs `c_q`, for every fixed `q>=3`, as a finite
