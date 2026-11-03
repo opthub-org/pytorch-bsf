@@ -629,6 +629,15 @@ See [the proof](../../docs/advanced/skeleton_risk_nonvertex_q4_error.rst).
 The saved record verifies its own nondefault parameters and exact fields.
 It does not substitute fixed-source limits into growing source sizes.
 
+## Sharper finite-degree errors in codimension four
+
+`nonvertex_q4_refined` derives q4 diagonal and difference bounds directly
+from its transformed sequences. For every fixed source size it improves
+the finite-degree relative error to `O(log(D)/D)`, with explicit constants;
+source sizes two and three have a one-percent sufficient tail from `2**30`.
+The leading-constant interval and finite-degree error remain separate.
+See [the proof](../../docs/advanced/skeleton_risk_nonvertex_q4_refined.rst).
+
 ## A sufficient linear vertex threshold at every degree
 
 For every integer `D>=1` and `M>=9720*D`, optimal inductive asymptotic
