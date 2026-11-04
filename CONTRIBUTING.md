@@ -838,7 +838,9 @@ branch checkout. It authenticates the repository, workflow, run attempt, source
 commit and artifact before checking regular files, paths, byte digests and size
 limits. A head whose producer YAML does not match gets no **GHPages publish**
 check, so one PR cannot change both files and still meet the merge requirement.
-See [Updating GHPages action pins](#updating-ghpages-action-pins).
+See [Updating GHPages action pins](#updating-ghpages-action-pins) for pin updates and
+[Changing the GHPages producer beyond action pins](#changing-the-ghpages-producer-beyond-action-pins)
+for other producer changes.
 
 The **pages-producer** check flags such a change before it merges. A commit passes
 if its producer YAML equals the producer YAML on `master`, or equals both the
@@ -947,9 +949,72 @@ the template either, so it cannot get a **GHPages publish** check. If the new pi
 turns out to be unusable, a maintainer merges that one PR without the check and
 records the reason in it. Do not use this exception for anything else.
 
-This procedure covers action pins only. Other producer changes have no sequence
-of PRs that passes all required checks yet
-([#683](https://github.com/opthub-org/pytorch-bsf/issues/683)).
+This procedure covers action pins only. For other producer changes, see
+[Changing the GHPages producer beyond action pins](#changing-the-ghpages-producer-beyond-action-pins).
+
+#### Changing the GHPages producer beyond action pins
+
+Any other change to the producer, such as its steps, permissions or timeouts, has
+no sequence of PRs that passes every check. PyTest requires the template and the
+producer to differ in nothing but pins, while the publisher compares a head's
+producer with the template on `master`. Such a change therefore lands in one PR, as
+an exception that a maintainer approves. The ruleset does not enforce that approval,
+so GitHub still offers the merge button. The security automation cannot edit the
+template, and agents must not approve or merge such a PR on their own.
+
+Start only when no pin update is in progress: after `git fetch origin`, the command
+in step 1 below must print the same ID twice for `origin/master`. The PR changes
+`.github/pages-build-template.yml` and `.github/workflows/sphinx-pages-build.yml`
+identically, plus only the changes to `tools/pages_build.py`,
+`tests/tools/pages_build.py` or documentation that the producer change needs. Some
+changes do need a test edit, because those tests name exact lines such as the
+timeout. Publisher code, its tests, the publisher workflow and
+`.github/pages-legacy-owners.json` go in a separate PR.
+
+| Check on that PR | Requirement |
+| --- | --- |
+| **GHPages build** | Must succeed, which shows that the new YAML builds |
+| **pages-producer** | Expected to fail |
+| **GHPages publish** | Expected to be missing |
+| Every other check, and the review | Must pass as usual |
+
+These results look the same for a PR whose files do not match, so before merging,
+the maintainer does the following:
+
+1. Confirm that the files match on the head. PyTest allows pins to differ, so it does
+   not show this. This command must print the same ID twice:
+
+   ```bash
+   git rev-parse <sha>:.github/pages-build-template.yml <sha>:.github/workflows/sphinx-pages-build.yml
+   ```
+
+2. Review the diff as a change to the trust boundary, because once merged the template
+   is what the publisher trusts. Confirm that the only permission is `contents: read`,
+   that no secret is used in any spelling, that no trigger is added,
+   that `persist-credentials: false` stays, and that the artifact stays inert data.
+   Verify every new or changed `uses:` line with
+   `gh api repos/<owner>/<repo>/commits/<tag> --jq .sha`. For an action whose owner
+   is new to this file, confirm that it is the intended publisher. Confirm that any
+   test edit only follows the new YAML and loosens no trust-boundary assertion.
+3. Record the approval in the PR: why the change is needed, the approved head SHA, the
+   **GHPages build** run for that SHA, any new action owner, and that the exception
+   covers only **pages-producer** and **GHPages publish**.
+4. Run `git fetch origin`, repeat the command in step 1 for `origin/master`, and
+   confirm that `git merge-base --is-ancestor origin/master <sha>` succeeds, because a
+   clean merge with a newer `master` can still leave the files different. If it fails,
+   merge `master` into the PR and redo these steps for the new head SHA.
+5. Confirm that no tag build is in progress, then merge with
+   `gh pr merge <PR> --match-head-commit <sha>`. Afterward, do not tag a commit that
+   predates the merge: a tag's YAML never changes, so it can no longer match the
+   template.
+
+After merging, confirm that the merge commit gets a successful **GHPages publish**
+check, and update other open branches as described in
+[Updating GHPages action pins](#updating-ghpages-action-pins). To undo the change,
+follow the same steps in one new PR.
+
+The publisher's check does not change: a producer that differs from the template on
+the default branch is still rejected.
 
 ---
 

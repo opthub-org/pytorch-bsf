@@ -106,6 +106,7 @@ def test_script_reports_a_rejected_head_and_passes_an_accepted_one(root: Path) -
     assert rejected.returncode == 1
     assert rejected.stdout.startswith(f"::error file={PRODUCER}::")
     assert "Updating GHPages action pins" in rejected.stdout
+    assert "Changing the GHPages producer beyond action pins" in rejected.stdout
     accepted = run_script(root, "HEAD")
     assert accepted.returncode == 0
     assert accepted.stdout == ""
