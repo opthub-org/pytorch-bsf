@@ -32,7 +32,7 @@ jobs:
     # Includes vulnerability-alerts:read on GitHub without requesting any writes.
     permissions: read-all # zizmor: ignore[excessive-permissions] -- Read-only observation includes vulnerability-alerts; no secrets or writes.
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: master
           persist-credentials: false
@@ -73,7 +73,7 @@ jobs:
       digest: ${{ steps.plan.outputs.digest }}
     steps:
       # Only trusted master code runs with a write token. No workflow_run artifact is consumed.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: master
           persist-credentials: false
@@ -108,12 +108,12 @@ jobs:
     env:
       SECURITY_TASK_SHA256: ${{ needs.plan.outputs.digest }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.plan.outputs.base }}
           path: control
           persist-credentials: false
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.plan.outputs.head }}
           path: candidate
@@ -179,12 +179,12 @@ jobs:
     env:
       SECURITY_TASK_SHA256: ${{ needs.plan.outputs.digest }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.plan.outputs.base }}
           path: control
           persist-credentials: false
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.plan.outputs.base }}
           path: candidate
@@ -225,12 +225,12 @@ jobs:
     outputs:
       verdict: ${{ steps.review.outputs.final-message }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.plan.outputs.base }}
           path: control
           persist-credentials: false
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.plan.outputs.head }}
           path: candidate
@@ -280,7 +280,7 @@ jobs:
     env:
       SECURITY_TASK_SHA256: ${{ needs.plan.outputs.digest }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.plan.outputs.base }}
           persist-credentials: false
@@ -312,7 +312,7 @@ jobs:
       contents: read
       issues: write
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.plan.outputs.base }}
           persist-credentials: false
