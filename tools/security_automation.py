@@ -30,6 +30,7 @@ WORKFLOWS = [
     "security-policy.yml",
     "sphinx-pages-build.yml",
 ]
+PAGES_PRODUCER = ".github/workflows/sphinx-pages-build.yml"
 MAX_ATTEMPTS = 3
 RECOVERY_COOLDOWN = 3600
 MAX_PATCH_BYTES = 750_000
@@ -588,9 +589,12 @@ def choose_pr_mode(api: GitHub, task: Json, root: Path) -> bool:
         return False
     failed, pending, runs = ci_state(api, task["head"], root)
     task["ci_failures"] = failed
-    if "pages-producer" in failed:
+    moves_producer = any(row["filename"] == PAGES_PRODUCER for row in compare.get("files", []))
+    if "pages-producer" in failed and moves_producer:
         # Only a maintainer can land the template, so an AI repair could only undo the pin update.
-        task["blocked"] = "This producer change needs a maintainer's Template PR; see CONTRIBUTING.md."
+        task["blocked"] = (
+            "pages-producer failed on a producer change; it needs a maintainer's Template PR. See CONTRIBUTING.md."
+        )
         return False
     if not failed and pending:
         retry_missing_ci(api, task, runs)

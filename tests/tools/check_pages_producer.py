@@ -117,4 +117,4 @@ def test_script_reports_an_unreadable_base_apart_from_a_rejection(root: Path) ->
     result = run_script(root, "missing-revision")
 
     assert result.returncode == 2
-    assert result.stdout.startswith("::error::Cannot read the GHPages producer or template")
+    assert result.stdout.startswith("::error::Cannot read the GHPages producer or template: fatal:")

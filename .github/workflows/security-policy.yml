@@ -42,7 +42,7 @@ jobs:
           python-version: '3.13'
       - name: Reject a producer change that the template on master does not trust
         run: |
-          git fetch --quiet --depth=1 --no-tags origin master
+          git fetch --quiet --depth=1 --no-tags origin refs/heads/master
           python tools/check_pages_producer.py FETCH_HEAD
 
   secret-scan:

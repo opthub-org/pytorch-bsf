@@ -1,4 +1,4 @@
-"""Fail a commit whose GHPages producer would stop publication once merged.
+"""Fail a commit whose GHPages producer the default branch does not trust.
 
 The publisher rejects a producer that differs from the default branch's template, so
 landing such a change stops all publication. This is an early signal for pull requests.
@@ -21,7 +21,7 @@ def blob_id(root: Path, revision: str, path: str) -> str:
 
 
 def producer_is_untrusted(root: Path, base: str, head: str = "HEAD") -> bool:
-    """Return whether ``head`` has a producer that ``base`` neither has nor trusts.
+    """Return whether ``head`` moves the producer away from what both templates allow.
 
     A head that keeps the base's producer passes even if the base's template differs. Otherwise,
     every unrelated pull request would fail between a Template PR and its Workflow PR. A head
@@ -49,7 +49,8 @@ def main() -> int:
         return 0
     print(
         f"::error file={PRODUCER}::The producer differs from the producer and the template on the default "
-        "branch, or the template moves with it. Merging this stops all documentation publication. "
+        "branch, or the template moves with it. This head gets no GHPages publish check, and a producer that "
+        "lands ahead of the template stops all documentation publication. "
         "If this branch leaves both files alone, it is behind: merge the default branch and run this again. "
         "Otherwise, follow 'Updating GHPages action pins' in CONTRIBUTING.md."
     )

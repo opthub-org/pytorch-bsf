@@ -928,8 +928,8 @@ the Workflow PR has landed, because merging one creates such a tag.
 Neither Dependabot nor the security remediation automation can edit the template,
 so their pin updates can only be the Workflow PR. Until the template lands, such a
 PR passes PyTest but fails **pages-producer**, has no **GHPages publish** check and
-must not be merged. The security automation stops at that failure and does not try a
-repair. The `master` ruleset does not require these checks, so GitHub still offers
+must not be merged. The security automation stops at that failure on such a PR and
+does not try a repair. The `master` ruleset does not require these checks, so GitHub still offers
 the merge button. If a Workflow PR lands first, every head that
 contains it is rejected, including `master` and any Template PR based on it.
 Revert the Workflow PR on `master`, then start again from step 1.
