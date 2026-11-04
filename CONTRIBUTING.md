@@ -909,14 +909,22 @@ PR on its own.
    succeeds. The PyTest check allows the two files to differ only in the SHA and
    version comment of pinned actions.
 2. **Workflow PR.** Bring `.github/workflows/sphinx-pages-build.yml` to the same
-   line. For a Dependabot PR, comment `@dependabot rebase`. For a manual update,
-   copy the line on a branch that contains the merged template. Merge once the
-   producer-commit **GHPages publish** check succeeds.
+   line. For a Dependabot PR, comment `@dependabot rebase`. If Dependabot does not
+   respond within about 20 minutes, run `gh pr update-branch <PR>` instead. This
+   merges `master` without rewriting Dependabot's commit, but Dependabot may then
+   stop updating that branch. The new head's runs also have you as their actor, so
+   they do not exercise Dependabot's upload context in
+   [Codecov authentication and upload verification](#codecov-authentication-and-upload-verification).
+   Say so in the PR, and check the upload on the next Dependabot PR. For a manual
+   update, copy the line on a branch that contains the merged template. However you
+   update the branch, merge only once the new head's producer-commit
+   **GHPages publish** check succeeds.
 
 Keep the gap between the two PRs short. Until the Workflow PR lands, pushes that
 carry the old pin, including `master`, are rejected and publish nothing. After it
 lands, merge `master` into other open branches to regain a **GHPages publish**
-check; for a Dependabot PR, comment `@dependabot rebase` instead.
+check; for a Dependabot PR, comment `@dependabot rebase` instead, with the fallback
+in step 2 if it does not respond.
 
 The publisher compares a tag's producer YAML with the template when the build
 completes, and a tag's YAML never changes. A tag whose pin differs from the
