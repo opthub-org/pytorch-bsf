@@ -1,0 +1,393 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Uniform errors for growing nonvertex faces &mdash; PyTorch-BSF 0.24.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=a9084e48"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="One certificate for a requested finite-degree relative accuracy" href="skeleton_risk_nonvertex_relative_certificate.html" />
+    <link rel="prev" title="Finite-degree errors at every fixed nonvertex codimension" href="skeleton_risk_nonvertex_general_error.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_family.html">Uniform construction for codimension two</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three.html">Boundary transfer and a codimension-three edge bound</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_exact.html">Positive diagonal formulas for nonvertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q3_error.html">Finite-degree errors for every nonvertex q3 face</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_error.html">Finite-degree errors for every fixed nonvertex q4 face size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_refined.html">A logarithmic finite-degree remainder for nonvertex q4 risks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_general_error.html">Finite-degree errors at every fixed nonvertex codimension</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Uniform errors for growing nonvertex faces</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#more-general-envelopes">More general envelopes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#exact-rational-all-tail-certificates">Exact rational all-tail certificates</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_relative_certificate.html">One certificate for a requested finite-degree relative accuracy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_mzv_dyadic.html">Dyadic enclosures for multiple zeta values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_leading_constant_mzv.html">Finite MZV constructions for leading constants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_leading_constant_height.html">Coefficient heights in the finite MZV construction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c5_closed_form.html">A classical closed form for the codimension-four constant</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c6_closed_form.html">A classical leading constant for seven vertices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c7_closed_form.html">A classical leading constant for eight vertices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_transform.html">A fast exact transform for codimension three</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension.html">The vertex leading constant at large vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension_refined.html">A sharper elementary large-vertex guarantee</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension_second_order.html">A first correction with a quadratic large-vertex remainder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_refined_asymptotics.html">Single-log vertex errors for every fixed M at least five</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth.html">A simultaneous vertex-count and degree regime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth_refined.html">A broader simultaneous vertex-count and degree regime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_composite_asymptotics.html">Computable vertex centers and a single-log growing domain</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html">An all-degree sufficient region for large vertex counts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_fixed_vertex_tail.html">An explicit winning degree tail at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_quadratic_degree_tail.html">A quadratic sufficient degree region, uniform in vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html">Five-vertex vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_comparison.html">Five-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_six_vertex_comparison.html">Six-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adaptive_curves.html">Adaptive parameterized curves</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Uniform errors for growing nonvertex faces</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/skeleton_risk_nonvertex_growing_faces.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="uniform-errors-for-growing-nonvertex-faces">
+<h1>Uniform errors for growing nonvertex faces<a class="headerlink" href="#uniform-errors-for-growing-nonvertex-faces" title="Link to this heading"></a></h1>
+<p>Retain the uniform-simplex design, evaluation and noise assumptions of
+<a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a>. Write s for the number of vertices of the
+source face, q for its outside codimension and <span class="math notranslate nohighlight">\(M=s+q\)</span>.
+The quantity below is a coefficient of sample-size-asymptotic risk;
+it is not a finite-sample risk bound. The positive leading constant
+<span class="math notranslate nohighlight">\(A_{s,q}\)</span> and explicit rational <span class="math notranslate nohighlight">\(Q_q\)</span> are those of
+<a class="reference internal" href="skeleton_risk_nonvertex_general_error.html"><span class="doc">Finite-degree errors at every fixed nonvertex codimension</span></a>.</p>
+<p>The earlier theorem keeps s,q fixed when describing its asymptotic
+scope. Its displayed finite-degree inequality, however, holds at
+<strong>every</strong> integer <span class="math notranslate nohighlight">\(s,q\geq2\)</span> whenever
+<span class="math notranslate nohighlight">\(D\geq\max(4,2(s-1))\)</span>. All dependence on s is explicit.
+This chapter derives a uniform moving range from that inequality.
+No interchange of a fixed-s limit and a supremum is used.</p>
+<div class="proof corollary admonition" id="thm-risk-nonvertex-growing-faces">
+<p class="admonition-title"><span class="caption-number">Corollary 14 </span> (A growing-face range at every fixed codimension)</p>
+<section class="corollary-content" id="proof-content">
+<p>Put <span class="math notranslate nohighlight">\(L(D)=1+\log D\)</span> and <span class="math notranslate nohighlight">\(H(D)=\lfloor D^{1/4}\rfloor\)</span>.
+For every integer <span class="math notranslate nohighlight">\(q\geq2\)</span> and <span class="math notranslate nohighlight">\(D\geq16\)</span>,</p>
+<div class="math notranslate nohighlight" id="equation-risk-nonvertex-growing-faces">
+<span class="eqno">(73)<a class="headerlink" href="#equation-risk-nonvertex-growing-faces" title="Link to this equation"></a></span>\[\begin{split}\sup_{2\leq s\leq H(D)}
+ \left|\frac{a_{s-1}(s+q,D)}{A_{s,q}D^{s-q-2}}-1\right|
+\leq\begin{cases}
+ 88L(D)/\sqrt D,&amp;q=2,\\
+ \bigl((39/2)Q_q+q(q+1)/4\bigr)/\sqrt D,&amp;q\geq3.
+\end{cases}\end{split}\]</div>
+<p>In particular this error tends uniformly to zero over the stated
+face range when q is fixed. The constants need not be sharp.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. The elementary bound <span class="math notranslate nohighlight">\(L(D)\leq2D^{1/4}\)</span> holds for D&gt;=1:
+set <span class="math notranslate nohighlight">\(u=\log D\)</span> and maximize <span class="math notranslate nohighlight">\((1+u)e^{-u/4}\)</span> on
+u&gt;=0. Its maximum is <span class="math notranslate nohighlight">\(4e^{-3/4}&lt;2\)</span>, because
+<span class="math notranslate nohighlight">\(e^{3/4}&gt;1+3/4+(3/4)^2/2&gt;2\)</span>.
+Set <span class="math notranslate nohighlight">\(x=D^{1/4}\geq2\)</span> and <span class="math notranslate nohighlight">\(H=H(D)\leq x\)</span>.
+Then <span class="math notranslate nohighlight">\(2(s-1)\leq2H\leq2x\leq x^4=D\)</span>.
+Thus the full range lies in the earlier theorem’s domain.</p>
+<p>At q&gt;=3 its numerator beyond the square-root term satisfies</p>
+<div class="math notranslate nohighlight">
+\[2+(s-2)L(D)+(s-1)(s-2)
+ \leq2+HL(D)+H^2\leq2+3\sqrt D\leq5\sqrt D.\]</div>
+<p>Also <span class="math notranslate nohighlight">\(H\leq\sqrt D\)</span> and <span class="math notranslate nohighlight">\(\sqrt D\geq1\)</span> give</p>
+<div class="math notranslate nohighlight">
+\[\frac{q(2s+q-1)}{4D}
+ \leq\frac{q(q+1)}{4\sqrt D}.\]</div>
+<p>Insert these inequalities into
+<a class="reference internal" href="skeleton_risk_nonvertex_general_error.html#equation-risk-nonvertex-general-finite-error">(71)</a>. The Q coefficient is
+<span class="math notranslate nohighlight">\(29/2+5=39/2\)</span>.</p>
+<p>At q2, <span class="math notranslate nohighlight">\(Q_2=4\)</span>, and that same earlier upper bound is</p>
+<div class="math notranslate nohighlight">
+\[\frac{58L}{\sqrt D}+\frac{s+1/2}D
+  +\frac{8(L+1)}D
+  +\frac{4(s-2)L^2}D
+  +\frac{4(s-1)(s-2)L}D.\]</div>
+<p>Its last four terms are bounded respectively by
+<span class="math notranslate nohighlight">\((3/2)L/\sqrt D\)</span>, <span class="math notranslate nohighlight">\(16L/\sqrt D\)</span>,
+<span class="math notranslate nohighlight">\(8L/\sqrt D\)</span>, and <span class="math notranslate nohighlight">\(4L/\sqrt D\)</span>.
+For the third use <span class="math notranslate nohighlight">\(HL\leq2H D^{1/4}\leq2\sqrt D\)</span>;
+for the last use <span class="math notranslate nohighlight">\(H^2\leq\sqrt D\)</span>.
+The sum of constants is <span class="math notranslate nohighlight">\(58+3/2+16+8+4=175/2\leq88\)</span>.
+Each bound is independent of s, proving the supremum claim.</p>
+</div>
+<section id="more-general-envelopes">
+<h2>More general envelopes<a class="headerlink" href="#more-general-envelopes" title="Link to this heading"></a></h2>
+<p>The original explicit inequality also implies the following qualitative
+statements for integer envelopes <span class="math notranslate nohighlight">\(h(D)\geq2\)</span> eventually:
+at any fixed q&gt;=3, <span class="math notranslate nohighlight">\(h(D)=o(\sqrt D)\)</span> suffices for uniform
+convergence over <span class="math notranslate nohighlight">\(2\leq s\leq h(D)\)</span>; at q2,
+<span class="math notranslate nohighlight">\(h(D)=o(\sqrt{D/\log D})\)</span> suffices.
+Indeed the extra terms are bounded by fixed-q constants times
+<span class="math notranslate nohighlight">\(h/D+hL/D+h^2/D\)</span> in the first case, and
+<span class="math notranslate nohighlight">\(h/D+L/D+hL^2/D+h^2L/D\)</span> in the second.
+All tend to zero under the respective hypotheses; the earlier theorem’s
+domain also holds eventually. No effective threshold search for an
+arbitrary h is asserted. The evaluator below uses only the concrete
+fourth-root envelope. Growth of q together with D, an optimal face
+range, and minimal constants or starting degrees are outside this result.</p>
+</section>
+<section id="exact-rational-all-tail-certificates">
+<h2>Exact rational all-tail certificates<a class="headerlink" href="#exact-rational-all-tail-certificates" title="Link to this heading"></a></h2>
+<p>For <span class="math notranslate nohighlight">\(k\geq4\)</span>, let <span class="math notranslate nohighlight">\(\rho_k=2^{k/2}\)</span> at even k and
+<span class="math notranslate nohighlight">\(\rho_k=(4/3)2^{\lfloor k/2\rfloor}\)</span> at odd k.
+The odd choice is a lower bound for <span class="math notranslate nohighlight">\(\sqrt{2^k}\)</span> because
+<span class="math notranslate nohighlight">\((4/3)^2&lt;2\)</span>. The preceding corollary gives</p>
+<div class="math notranslate nohighlight" id="equation-risk-nonvertex-growing-dyadic">
+<span class="eqno">(74)<a class="headerlink" href="#equation-risk-nonvertex-growing-dyadic" title="Link to this equation"></a></span>\[\begin{split}\sup_{D\geq2^k}\ \sup_{2\leq s\leq\lfloor D^{1/4}\rfloor}
+ \left|\frac{a_{s-1}(s+q,D)}{A_{s,q}D^{s-q-2}}-1\right|
+\leq E_q(k):=\begin{cases}
+   88(k+1)/\rho_k,&amp;q=2,\\
+   \bigl((39/2)Q_q+q(q+1)/4\bigr)/\rho_k,&amp;q\geq3.
+   \end{cases}\end{split}\]</div>
+<p>For q2, <span class="math notranslate nohighlight">\(L(D)/\sqrt D\)</span> decreases on D&gt;=16, since its
+derivative has the sign of <span class="math notranslate nohighlight">\(1-\log D\)</span>.
+At <span class="math notranslate nohighlight">\(D=2^k\)</span>, <span class="math notranslate nohighlight">\(L(2^k)\leq k+1\)</span> uses <span class="math notranslate nohighlight">\(\log2&lt;1\)</span>.
+The q&gt;=3 envelope decreases directly. In particular <strong>the face limit
+keeps growing at every future degree</strong>; it is not frozen at
+<span class="math notranslate nohighlight">\(\lfloor (2^k)^{1/4}\rfloor\)</span>.
+Both rational envelopes decrease for k&gt;=4 and tend to zero.
+For q2 the even-to-odd ratio is <span class="math notranslate nohighlight">\(3(k+2)/(4(k+1))&lt;1\)</span>, and
+the odd-to-even ratio is <span class="math notranslate nohighlight">\(2(k+2)/(3(k+1))&lt;1\)</span>.
+Consequently exact search terminates mathematically for every fixed q
+and every positive rational error target. It returns a sufficient
+dyadic threshold, not a minimal degree threshold.</p>
+<p>The standard-library evaluator computes H with nested integer square
+roots, without a face-sized or degree-sized table. For a single degree
+it uses E at the containing dyadic block; this may be looser than the
+analytic bound. Its source-bound schema is
+<code class="docutils literal notranslate"><span class="pre">skeleton-risk-nonvertex-growing-faces-v1</span></code>. Each record stores its
+q,D, exact face limit, rational bound, optional target and tail,
+work limit, and normalized SHA256 hashes of the evaluator, proof and
+all dependencies of the earlier finite-degree theorem.
+The builder and verifier compare raw source bytes at both ends;
+the CLI also checks the saved input bytes during replay.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-S<span class="w"> </span>-m<span class="w"> </span>tools.risk_research.nonvertex_growing_faces<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--outside<span class="w"> </span><span class="m">5</span><span class="w"> </span>--degree<span class="w"> </span><span class="m">18446744073709551635</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--relative-target<span class="w"> </span><span class="m">1</span>/37<span class="w"> </span>--work-limit<span class="w"> </span><span class="m">190000</span><span class="w"> </span>--output<span class="w"> </span>/tmp/growing.json
+python<span class="w"> </span>-S<span class="w"> </span>-m<span class="w"> </span>tools.risk_research.nonvertex_growing_faces<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--verify<span class="w"> </span>/tmp/growing.json
+</pre></div>
+</div>
+<p>The selected-input counter is
+<span class="math notranslate nohighlight">\((q+1)^3+q+2+(2q+2)(b_D+b_\epsilon)\)</span>; it is checked
+before constructing Q or large dyadic powers. Here b_D is the supplied
+degree’s bit length (or the current trial exponent plus one), and
+b_epsilon is the maximum numerator/denominator bit length, or zero
+without a target. A record with a target stores the maximum counter
+over its requested degree and successful threshold search.
+An explicit limit up to 1,000,000 may be selected. Resource refusal
+raises an error and preserves an existing output file; it does not
+contradict mathematical stopping. The counter is not a bound on CPU,
+RSS, cumulative arithmetic work, or rational bit complexity.
+These records bound normalized degree error only. Leading-constant
+numerical error remains separate, and production APIs are unchanged.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="skeleton_risk_nonvertex_general_error.html" class="btn btn-neutral float-left" title="Finite-degree errors at every fixed nonvertex codimension" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="skeleton_risk_nonvertex_relative_certificate.html" class="btn btn-neutral float-right" title="One certificate for a requested finite-degree relative accuracy" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: ci/682-detect-premature-producer
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/index.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="skeleton_risk_nonvertex_growing_faces.html">ci/682-detect-premature-producer</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
