@@ -86,6 +86,17 @@ class CheckEvidenceTests(unittest.TestCase):
                 self.assertIn(f"build ({classifier.rsplit(' ', 1)[-1]})", expected)
         self.assertTrue({"coverage / coverage", "codecov/patch", "optional-deps (no-mlflow)"} <= expected)
 
+    def test_pages_producer_check_is_mandatory_on_every_trigger(self):
+        self.assertIn("pages-producer", security.expected_checks(ROOT))
+        workflow = (ROOT / ".github/workflows/security-policy.yml").read_text()
+        job = re.split(r"\n  [\w-]+:\n", workflow.split("\n  pages-producer:\n", 1)[1], maxsplit=1)[0]
+        self.assertIn("git fetch --quiet --depth=1 --no-tags origin master", job)
+        self.assertIn("python tools/check_pages_producer.py FETCH_HEAD", job)
+        self.assertIn("persist-credentials: false", job)
+        # The automation dispatches this workflow, and a skipped check is never merge evidence.
+        self.assertNotIn("continue-on-error", job)
+        self.assertNotIn("\n    if:", job)
+
     def test_secret_scan_is_mandatory_and_walks_the_full_history(self):
         self.assertIn("secret-scan", security.expected_checks(ROOT))
         workflow = (ROOT / ".github/workflows/security-policy.yml").read_text()

@@ -28,6 +28,23 @@ jobs:
           python -m pip install zizmor==1.31.1
           zizmor --min-severity medium .github/workflows
 
+  pages-producer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Reject a producer change that the template on master does not trust
+        run: |
+          git fetch --quiet --depth=1 --no-tags origin master
+          python tools/check_pages_producer.py FETCH_HEAD
+
   secret-scan:
     runs-on: ubuntu-latest
     timeout-minutes: 15

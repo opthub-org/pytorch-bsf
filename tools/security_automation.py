@@ -291,6 +291,7 @@ def expected_checks(root: Path) -> set[str]:
         "coverage / coverage",
         "build-mlflow",
         "security-policy",
+        "pages-producer",
         "secret-scan",
         *(f"build ({version})" for version in versions),
         *(f"build ({platform}-latest)" for platform in ("ubuntu", "macos", "windows")),
