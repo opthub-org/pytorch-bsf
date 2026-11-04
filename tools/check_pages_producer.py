@@ -52,7 +52,8 @@ def main() -> int:
         "branch, or the template moves with it. This head gets no GHPages publish check, and a producer that "
         "lands ahead of the template stops all documentation publication. "
         "If this branch leaves both files alone, it is behind: merge the default branch and run this again. "
-        "Otherwise, follow 'Updating GHPages action pins' in CONTRIBUTING.md."
+        "Otherwise, follow 'Updating GHPages action pins' in CONTRIBUTING.md, or "
+        "'Changing the GHPages producer beyond action pins' for any other change."
     )
     return 1
 
