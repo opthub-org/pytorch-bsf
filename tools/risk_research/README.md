@@ -11,6 +11,54 @@ Run commands from the repository root. Use the project's development Python
 environment for the exact runner, SymPy, and tests. Use the separate SageMath
 environment for Ore algebra. No Mathematica installation is needed.
 
+## Choose a proved quantity and its evaluator
+
+For nonvertex faces, `s` is the number of source-face vertices, `q` is
+outside codimension, and `M=s+q`. The constant index is `j=q+1`.
+These quantities are coefficients of sample-size-asymptotic risk under
+uniform-simplex design/evaluation and the documented noise assumptions.
+
+| Inputs | Quantity | Theorem / evaluator | Guarantee and boundary |
+| --- | --- | --- | --- |
+| `M,D,m` | Exact finite coefficient | Scalar-sum theorem; `exact` and original scalar/Gram oracles | Finite expressions for all active faces |
+| Fixed `j>=3`, absolute bits | Leading constant `c_j` | Finite MZV representation; `mzv_dyadic` | Rational absolute-width interval; operational refusals possible |
+| `s,q>=2,D` | Leading-term analytic error | General nonvertex finite-error theorem; `nonvertex_general_error` | Vanishing error and sufficient all-tail thresholds at each fixed pair |
+| Fixed `q>=2,D>=16` | Error uniform in `2<=s<=floor(D**(1/4))` | Growing-face corollary; `nonvertex_growing_faces` | Explicit rational tail; does not grow q |
+| `s,q,D,epsilon` | Finite-D interval and relative-accuracy approximation | [Composition theorem](../../docs/advanced/skeleton_risk_nonvertex_relative_certificate.rst); `nonvertex_relative_certificate` | One fixed-D success certificate, exact inactive zero, or an explicit refusal |
+
+The complete route is `s,q -> c_(q+1) -> A_(s,q) -> [L,U]`.
+The final approximation is `2*L*U/(L+U)` and its certified error is
+`(U-L)/(U+L)`, with the **true coefficient** as denominator. The constant
+interval is clamped to the proved `c_(q+1)>=q+1` lower bound. Precision
+is chosen before a single dyadic evaluation; construction, cutoff search
+and evaluation share one additive numeric budget. The analytic selected
+input budget is separate. Neither is a CPU, RSS or total bit-complexity cap.
+
+For example, save a nondefault one-percent certificate and replay all its
+recorded options using only the standard library:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 python -S -m tools.risk_research.nonvertex_relative_certificate \
+  --face-size 3 --outside 4 --degree 1208925819614629174706193 \
+  --relative-target 1/100 --analytic-work-limit 190000 \
+  --numeric-work-limit 180000 --output /tmp/nonvertex-relative.json
+PYTHONDONTWRITEBYTECODE=1 python -S -m tools.risk_research.nonvertex_relative_certificate \
+  --verify /tmp/nonvertex-relative.json
+```
+
+This module has its own strict `--verify` command, rather than extending
+the three historical schemas in `saved_records`. Replay compares the
+complete typed record and source union and checks the input's raw bytes,
+HEAD, tree and complete checkout status through verification. Use the
+clean-checkout harness below for frozen experiments and keep outputs
+outside that checkout. When the conservative analytic bound is at least
+the target, the command exits nonzero and preserves any existing output;
+this does not assert an excessive actual coefficient error. An inactive
+`D<s` face returns exact zero with null relative-error fields, after
+validating all inputs but without evaluating constants. This entry does
+not search all-tail thresholds or automatically select sharper q3/q4
+methods. Finite-sample risk and uniform growth of q remain outside its scope.
+
 ## Replay saved enclosures and isolate validation checkouts
 
 The general vertex error, refined vertex error and large-vertex constant
