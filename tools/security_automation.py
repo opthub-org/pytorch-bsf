@@ -588,6 +588,10 @@ def choose_pr_mode(api: GitHub, task: Json, root: Path) -> bool:
         return False
     failed, pending, runs = ci_state(api, task["head"], root)
     task["ci_failures"] = failed
+    if "pages-producer" in failed:
+        # Only a maintainer can land the template, so an AI repair could only undo the pin update.
+        task["blocked"] = "This producer change needs a maintainer's Template PR; see CONTRIBUTING.md."
+        return False
     if not failed and pending:
         retry_missing_ci(api, task, runs)
         return False
