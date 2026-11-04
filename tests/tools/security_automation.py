@@ -86,6 +86,20 @@ class CheckEvidenceTests(unittest.TestCase):
                 self.assertIn(f"build ({classifier.rsplit(' ', 1)[-1]})", expected)
         self.assertTrue({"coverage / coverage", "codecov/patch", "optional-deps (no-mlflow)"} <= expected)
 
+    def test_pages_producer_check_is_mandatory_on_every_trigger(self):
+        self.assertIn("pages-producer", security.expected_checks(ROOT))
+        workflow = (ROOT / ".github/workflows/security-policy.yml").read_text()
+        triggers = workflow.split("\njobs:\n", 1)[0]
+        # The automation dispatches this workflow, and a skipped check is never merge evidence.
+        self.assertIn("\n  pull_request:\n  workflow_dispatch:\n", triggers)
+        job = re.split(r"\n  [\w-]+:\n", workflow.split("\n  pages-producer:\n", 1)[1], maxsplit=1)[0]
+        self.assertRegex(job, r"(?m)^\s+git fetch --quiet --depth=1 --no-tags origin refs/heads/master$")
+        self.assertRegex(job, r"(?m)^\s+python tools/check_pages_producer\.py FETCH_HEAD$")
+        self.assertIn("persist-credentials: false", job)
+        self.assertRegex(job, r"(?m)^    permissions:\n      contents: read$")
+        self.assertNotIn("continue-on-error", job)
+        self.assertNotRegex(job, r"(?m)^\s*(- )?if:")
+
     def test_secret_scan_is_mandatory_and_walks_the_full_history(self):
         self.assertIn("secret-scan", security.expected_checks(ROOT))
         workflow = (ROOT / ".github/workflows/security-policy.yml").read_text()
@@ -389,6 +403,26 @@ class PlanningTests(unittest.TestCase):
             patch.object(security, "review_threads", return_value=[]),
         ):
             self.assertTrue(security.choose_pr_mode(self.api, task, ROOT))
+        self.assertEqual(task["mode"], "fix")
+
+    def test_premature_producer_change_blocks_without_spending_a_repair(self):
+        task = {"pr": 123, "base": "b" * 40}
+        compare = {"merge_base_commit": {"sha": task["base"]}, "files": [{"filename": security.PAGES_PRODUCER}]}
+        self.api.get.side_effect = [pull_request(), compare]
+        # The failed job also fails its workflow, so both names are reported.
+        with patch.object(security, "ci_state", return_value=(["pages-producer", "security-policy.yml"], [], {})):
+            self.assertFalse(security.choose_pr_mode(self.api, task, ROOT))
+        self.assertRegex(str(task["blocked"]), "Template PR")
+        self.assertNotIn("mode", task)
+        self.api.write.assert_not_called()
+
+    def test_pages_producer_failure_without_a_producer_change_is_not_blamed_on_the_template(self):
+        task = {"pr": 123, "base": "b" * 40}
+        compare = {"merge_base_commit": {"sha": task["base"]}, "files": [{"filename": "README.md"}]}
+        self.api.get.side_effect = [pull_request(), compare]
+        with patch.object(security, "ci_state", return_value=(["pages-producer"], [], {})):
+            self.assertTrue(security.choose_pr_mode(self.api, task, ROOT))
+        self.assertEqual(task["blocked"], "")
         self.assertEqual(task["mode"], "fix")
 
     def test_missing_ci_is_explicitly_dispatched_without_a_pat(self):

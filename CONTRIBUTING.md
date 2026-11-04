@@ -840,6 +840,13 @@ limits. A head whose producer YAML does not match gets no **GHPages publish**
 check, so one PR cannot change both files and still meet the merge requirement.
 See [Updating GHPages action pins](#updating-ghpages-action-pins).
 
+The **pages-producer** check flags such a change before it merges. A commit passes
+if its producer YAML equals the producer YAML on `master`, or equals both the
+template on `master` and the commit's own template. A PR's run checks the merge with
+`master`, so a PR that leaves the producer alone passes, even between a Template PR
+and its Workflow PR. A dispatched or re-run job checks a fixed commit, so it can fail
+on a branch behind `master` until `master` is merged into it.
+
 The trusted `.github/pages-legacy-owners.json` census binds existing version
 URL roots to their full branch or tag refs at its recorded `gh-pages` commit.
 Its separate `reserved_owners` section reserves the bootstrap PR's own planned
@@ -920,10 +927,10 @@ the Workflow PR has landed, because merging one creates such a tag.
 
 Neither Dependabot nor the security remediation automation can edit the template,
 so their pin updates can only be the Workflow PR. Until the template lands, such a
-PR passes PyTest but has no **GHPages publish** check and must not be merged.
-GitHub does not enforce this rule yet
-([#682](https://github.com/opthub-org/pytorch-bsf/issues/682)), so look for the
-missing check before merging. If a Workflow PR lands first, every head that
+PR passes PyTest but fails **pages-producer**, has no **GHPages publish** check and
+must not be merged. The security automation stops at that failure on such a PR and
+does not try a repair. The `master` ruleset does not require these checks, so GitHub still offers
+the merge button. If a Workflow PR lands first, every head that
 contains it is rejected, including `master` and any Template PR based on it.
 Revert the Workflow PR on `master`, then start again from step 1.
 
@@ -960,7 +967,7 @@ pytorch-bsf/
 │   │   ├── sphinx-pages-publish.yml  # Trusted, serialized per-ref publication
 │   │   ├── sphinx-pages.yml          # Inert legacy identifier; keep manually disabled
 │   │   ├── codeql-analysis.yml       # Security scanning
-│   │   ├── security-policy.yml       # Security automation tests, zizmor and the Betterleaks secret scan
+│   │   ├── security-policy.yml       # Security automation tests, zizmor, the GHPages producer check and the Betterleaks secret scan
 │   │   └── python-package-conda.yml  # End-to-end tests in a Conda environment
 │   ├── ISSUE_TEMPLATE/
 │   │   ├── bug_report.yml            # Bug report form

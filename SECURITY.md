@@ -41,7 +41,9 @@ budget. The automation:
 5. Requires every expected test/matrix job, documentation and distribution checks,
    CodeQL, and `codecov/patch` to succeed on the current head. Missing, pending,
    skipped, or neutral required checks cannot authorize a merge. A failed check
-   returns the patch to the repair loop.
+   returns the patch to the repair loop, except that **pages-producer** failing on a
+   producer change stops the task as blocked, because only a maintainer can land the
+   template.
    Test runners have no repository secrets or OIDC permission. Coverage is passed
    as report data to the protected `security-coverage.yml` workflow on a fresh
    runner; only that runner receives Codecov authentication. It checks out trusted
