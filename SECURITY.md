@@ -194,7 +194,7 @@ permissions once it reaches `master`.
 
 It merges only a same-repository PR whose commits Dependabot authored and GitHub
 signed, and which edits dependency manifests or only updates existing action pins in
-workflows. A change request from a user with write access, or anything else, stops the
+workflows. Any other change, or a change request from a user with write access, stops the
 merge. Anyone can review a public repository, so other reviews do not count. Every open PR
 has one triage comment with the review state, the decision, the reason, what would
 make it mergeable, and the deadline. A stopped PR is assigned to the maintainer, who

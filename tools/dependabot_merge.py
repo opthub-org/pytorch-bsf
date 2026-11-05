@@ -39,7 +39,7 @@ SHORT_SHA_CHARS = 10
 MERGEABLE_STATES = {"clean", "has_hooks"}
 # GitHub reports these while it recomputes mergeability, which a sibling merge can trigger.
 UNCOMPUTED_STATES = {"unknown", None}
-COMMAND_PERMISSIONS = {"admin", "write"}  # The endpoint reports the maintain role as write.
+WRITE_PERMISSIONS = {"admin", "write"}  # The endpoint reports the maintain role as write.
 # 403: not permitted. 422: invalid merge. Other errors may be transient and fail the job instead.
 MERGE_REFUSALS = {403, 422}
 # 405: not mergeable, as when the base just moved. 409: the head moved. The next evaluation sees the new state.
@@ -49,7 +49,6 @@ OPERATIONAL_ERRORS = (OSError, RuntimeError, http.client.HTTPException, Attribut
 DEPENDENCY_FILES = {
     "pyproject.toml",
     "uv.lock",
-    "environment.yml",
     "docs/requirements.txt",
     ".pre-commit-config.yaml",
     "Dockerfile",
@@ -57,6 +56,7 @@ DEPENDENCY_FILES = {
 WORKFLOW_PATH = re.compile(r"\.github/workflows/[^/]+\.ya?ml")
 # Stricter than security.ACTION_PIN, which runs on whole files: a line must not smuggle a second YAML line in its comment.
 PIN_LINE = re.compile(r"([ \t]*(?:- )?uses:[ \t]+\w[\w./-]*@)[0-9a-f]{40}(?:[ \t]+#[^\x00-\x1f\x7f-\x9f\u2028\u2029]*)?")
+# A near-miss hold still stops the merge, because its author meant to stop it; only the exact command releases one.
 HOLD_COMMAND = re.compile(r"/dependabot[-_ ]?hold\b:?(.*)", re.IGNORECASE)
 HOLD_ARGUMENTS = re.compile(r"until=(\d{4}-\d{2}-\d{2})\s+(\S.*)")
 RELEASE_COMMAND = re.compile(r"/dependabot-release", re.IGNORECASE)
@@ -101,7 +101,7 @@ def parse_time(value: str) -> dt.datetime:
     return dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
 
 
-def active_hold(comments: list[Json], can_command: Callable[[str], bool], now: dt.datetime) -> Hold | None:
+def active_hold(comments: list[Json], has_write_access: Callable[[str], bool], now: dt.datetime) -> Hold | None:
     """Return the latest authorized hold, which its expiry or a later release command ends.
 
     A malformed hold still stops the merge for the decision window, because its author meant to stop it.
@@ -115,7 +115,7 @@ def active_hold(comments: list[Json], can_command: Callable[[str], bool], now: d
         if not released and command is None:
             continue
         author = _login(comment)
-        if author is None or not can_command(author):
+        if author is None or not has_write_access(author):
             continue
         hold = None if command is None else _parse_hold(command[1], author, parse_time(comment["created_at"]))
     return hold if hold is not None and now <= hold.until else None
@@ -141,7 +141,8 @@ def _parse_hold(arguments: str, author: str, created: dt.datetime) -> Hold:
         return invalid_hold
     if not created.date() <= day <= (created + MAX_HOLD).date():
         return invalid_hold
-    return Hold(author, match[2][:MAX_REASON_CHARS], _end_of_day(day))
+    # An unclosed HTML comment in the reason would hide the rest of the triage comment.
+    return Hold(author, match[2][:MAX_REASON_CHARS].replace("<", "&lt;"), _end_of_day(day))
 
 
 def _end_of_day(day: dt.date) -> dt.datetime:
@@ -207,7 +208,7 @@ def _run_updates_pins(run: list[str]) -> bool:
     return all(old and new and old[1] == new[1] for old, new in zip(removed, added, strict=True))
 
 
-def review_state(reviews: list[Json], can_command: Callable[[str], bool]) -> tuple[list[str], list[str]]:
+def review_state(reviews: list[Json], has_write_access: Callable[[str], bool]) -> tuple[list[str], list[str]]:
     """Return who approved and who requested changes, from each authorized user's latest verdict.
 
     Anyone can review a public repository, so a review without write access must not stop a security update.
@@ -217,16 +218,14 @@ def review_state(reviews: list[Json], can_command: Callable[[str], bool]) -> tup
         login = _login(review)
         if login is not None and review["state"] != "COMMENTED":
             latest[login] = review["state"]
-    approved = sorted(user for user, state in latest.items() if state == "APPROVED" and can_command(user))
-    changes = sorted(user for user, state in latest.items() if state == "CHANGES_REQUESTED" and can_command(user))
+    approved = sorted(user for user, state in latest.items() if state == "APPROVED" and has_write_access(user))
+    changes = sorted(user for user, state in latest.items() if state == "CHANGES_REQUESTED" and has_write_access(user))
     return approved, changes
 
 
 def decide(evidence: Evidence, now: dt.datetime) -> Decision:
     """Choose the next action from the current evidence; every path but the last refuses to merge."""
     review = _review_line(evidence)
-    window = _decision_deadline(evidence.created)
-    ci_deadline = evidence.head_committed + CI_GRACE
     if evidence.hold is not None:
         return Decision(
             "hold",
@@ -239,45 +238,41 @@ def decide(evidence: Evidence, now: dt.datetime) -> Decision:
     blocker = _blocker(evidence, now)
     if blocker is not None:
         reason, mergeable_when = blocker
-        return Decision("stop", review, "The automation will not merge this head.", reason, mergeable_when, window)
-    paused = "Automatic merging is paused, so this head will not merge."
-    resume = "Unset the variable `DEPENDABOT_MERGE_ENABLED` or set it to `true`, or merge it by hand."
+        outcome = "The automation will not merge this head."
+        return Decision("stop", review, outcome, reason, mergeable_when, _decision_deadline(evidence.created))
+
+    def wait(promise: str, reason: str, deadline: str, action: str | None = None) -> Decision:
+        if evidence.enabled:
+            return Decision("wait", review, promise, reason, action or "No action is needed.", deadline)
+        resume = "Unset the variable `DEPENDABOT_MERGE_ENABLED` or set it to `true`, or merge it by hand."
+        paused = "Automatic merging is paused, so this head will not merge."
+        return Decision("wait", review, paused, reason, f"{action} {resume}" if action else resume, deadline)
+
     if evidence.merge_state == "dirty":
-        return Decision(
-            "wait",
-            review,
-            "It merges a new head once the conflict is gone." if evidence.enabled else paused,
+        return wait(
+            "It merges a new head once the conflict is gone.",
             "The PR conflicts with `master`.",
-            "Dependabot normally rebases it by itself. If it does not, comment `@dependabot rebase`.",
             f"{_minute(evidence.head_committed + REBASE_GRACE)}. A remaining conflict then stops the merge.",
+            "Dependabot normally rebases it by itself. If it does not, comment `@dependabot rebase`.",
         )
     if evidence.pending:
-        return Decision(
-            "wait",
-            review,
-            "It merges this head once every check succeeds." if evidence.enabled else paused,
+        return wait(
+            "It merges this head once every check succeeds.",
             f"Waiting for {_names(evidence.pending)}.",
-            "No action is needed." if evidence.enabled else resume,
-            f"{_minute(ci_deadline)}. Unfinished checks then stop the merge.",
+            f"{_minute(evidence.head_committed + CI_GRACE)}. Unfinished checks then stop the merge.",
         )
     if evidence.merge_state not in MERGEABLE_STATES:
-        settled = evidence.head_committed + (DECISION_WINDOW if evidence.merge_state in UNCOMPUTED_STATES else CI_GRACE)
-        return Decision(
-            "wait",
-            review,
-            "It merges this head once GitHub reports it as mergeable." if evidence.enabled else paused,
+        limit = _merge_state_limit(evidence.merge_state)
+        return wait(
+            "It merges this head once GitHub reports it as mergeable.",
             f"GitHub reports the merge state as `{evidence.merge_state}`.",
-            "No action is needed." if evidence.enabled else resume,
-            f"{_minute(settled)}. This state then stops the merge.",
+            f"{_minute(evidence.head_committed + limit)}. This state then stops the merge.",
         )
     if not evidence.enabled:
-        return Decision(
-            "stop",
-            review,
-            paused,
+        return wait(
+            "",
             "The repository variable `DEPENDABOT_MERGE_ENABLED` has paused automatic merging.",
-            resume,
-            window,
+            "None while paused. Merging resumes when the variable is cleared.",
         )
     return Decision(
         "merge",
@@ -287,6 +282,10 @@ def decide(evidence: Evidence, now: dt.datetime) -> Decision:
         "No action is needed.",
         "None.",
     )
+
+
+def _merge_state_limit(state: str | None) -> dt.timedelta:
+    return DECISION_WINDOW if state in UNCOMPUTED_STATES else CI_GRACE
 
 
 def _blocker(evidence: Evidence, now: dt.datetime) -> tuple[str, str] | None:
@@ -300,13 +299,13 @@ def _blocker(evidence: Evidence, now: dt.datetime) -> tuple[str, str] | None:
         return f"These checks failed: {_names(evidence.failed)}.", _failure_remedy(evidence.failed)
     if evidence.merge_state == "dirty" and age > REBASE_GRACE:
         return "The PR still conflicts with `master`.", "Comment `@dependabot rebase`, or close this PR."
-    if evidence.pending and age > CI_GRACE:
+    # A head that already conflicts starts no checks, so its pending checks wait for the rebase too.
+    if evidence.pending and evidence.merge_state != "dirty" and age > CI_GRACE:
         return (
             f"CI is still incomplete after {_hours(CI_GRACE)} hours: {_names(evidence.pending)}.",
             "Comment `@dependabot rebase`. An old base may not run the current checks.",
         )
-    limit = DECISION_WINDOW if evidence.merge_state in UNCOMPUTED_STATES else CI_GRACE
-    if evidence.merge_state not in MERGEABLE_STATES | {"dirty"} and age > limit:
+    if evidence.merge_state not in MERGEABLE_STATES | {"dirty"} and age > _merge_state_limit(evidence.merge_state):
         return (
             f"GitHub still reports the merge state as `{evidence.merge_state}`.",
             "Resolve what GitHub reports on the PR, or merge it by hand.",
@@ -406,82 +405,89 @@ def escalate(api: security.GitHub, pr: Json, comments: list[Json], now: dt.datet
         api.write(f"issues/{number}/comments", {"body": body})
 
 
-def merge(api: security.GitHub, pr: Json, decision: Decision, now: dt.datetime) -> Decision:
+def merge(api: security.GitHub, pr: Json, decision: Decision, head_committed: dt.datetime, now: dt.datetime) -> Decision:
     """Merge exactly the evaluated head, and turn a refusal into a triage decision."""
-    created = parse_time(pr["created_at"])
-    window = _decision_deadline(created)
+    deadline = _decision_deadline(parse_time(pr["created_at"]))
     try:
         result = api.write(f"pulls/{pr['number']}/merge", {"sha": pr["head"]["sha"], "merge_method": "squash"}, "PUT")
     except security.GitHubError as error:
-        if error.code in MERGE_RETRIES and now <= created + DECISION_WINDOW:
+        if error.code in MERGE_RETRIES and now <= head_committed + DECISION_WINDOW:
             return Decision(
                 "wait",
                 decision.review,
                 "The next evaluation tries again.",
                 f"GitHub declined this merge attempt with HTTP status {error.code}.",
                 "No action is needed.",
-                window,
+                deadline,
             )
         if error.code not in MERGE_REFUSALS | MERGE_RETRIES:
             raise
         reason = f"GitHub refused the merge with HTTP status {error.code}."
+        remedy = (
+            "Comment `@dependabot rebase`, or merge it by hand."
+            if error.code in MERGE_RETRIES
+            else "Check the token's permissions, or merge it by hand."
+        )
     else:
         if result.get("merged"):
             return Decision("merged", decision.review, "Merged this head.", decision.reason, "Already merged.", "None.")
         reason = "GitHub answered the merge request without merging."
-    return Decision(
-        "stop",
-        decision.review,
-        "GitHub refused the merge of this head.",
-        reason,
-        "Check the token's permissions, or merge it by hand.",
-        window,
-    )
+        remedy = "Merge it by hand."
+    return Decision("stop", decision.review, "GitHub refused the merge of this head.", reason, remedy, deadline)
 
 
-def command_authorizer(api: security.GitHub) -> Callable[[str], bool]:
-    """Check repository permission, because `author_association` also admits members without write access."""
+def write_access_checker(api: security.GitHub) -> Callable[[str], bool]:
+    """Check repository permission, because `author_association` also admits members without write access.
+
+    GitHub answers 404 for a login it cannot resolve, which has no access; other errors must not read as "no access".
+    """
     known: dict[str, bool] = {}
 
-    def can_command(login: str) -> bool:
+    def has_write_access(login: str) -> bool:
         if login not in known:
-            permission = api.get(f"collaborators/{quote(login, safe='')}/permission")["permission"]
-            known[login] = permission in COMMAND_PERMISSIONS
+            try:
+                permission = api.get(f"collaborators/{quote(login, safe='')}/permission")["permission"]
+            except security.GitHubError as error:
+                if error.code != 404:
+                    raise
+                permission = "none"
+            known[login] = permission in WRITE_PERMISSIONS
         return known[login]
 
-    return can_command
+    return has_write_access
 
 
 def evaluate(
     api: security.GitHub,
     number: int,
     root: Path,
-    can_command: Callable[[str], bool],
+    has_write_access: Callable[[str], bool],
     enabled: bool,
     now: dt.datetime,
-) -> tuple[Json, list[Json], Decision]:
+) -> tuple[Json, list[Json], dt.datetime, Decision]:
     pr = api.get(f"pulls/{number}")
     comments = api.pages(f"issues/{number}/comments")
     commits = api.pages(f"pulls/{number}/commits")
     files = api.pages(f"pulls/{number}/files")
-    approved, changes = review_state(api.pages(f"pulls/{number}/reviews"), can_command)
+    approved, changes = review_state(api.pages(f"pulls/{number}/reviews"), has_write_access)
     # A Dependabot PR's read-only token cannot post checks, so unlike security.merge this does not re-authenticate them.
     failed, pending, _ = security.ci_state(api, pr["head"]["sha"], root)
     # GitHub reports no push time for a head, so the latest commit date starts the CI clock.
-    head_committed = max((parse_time(row["commit"]["committer"]["date"]) for row in commits), default=None)
+    created = parse_time(pr["created_at"])
+    head_committed = max((parse_time(row["commit"]["committer"]["date"]) for row in commits), default=created)
     evidence = Evidence(
-        created=parse_time(pr["created_at"]),
-        head_committed=head_committed or parse_time(pr["created_at"]),
+        created=created,
+        head_committed=head_committed,
         merge_state=pr.get("mergeable_state"),
         problem=provenance_problem(pr, commits, api.repo) or change_problem(files),
-        hold=active_hold(comments, can_command, now),
+        hold=active_hold(comments, has_write_access, now),
         approved_by=approved,
         changes_requested_by=changes,
         failed=failed,
         pending=pending,
         enabled=enabled,
     )
-    return pr, comments, decide(evidence, now)
+    return pr, comments, head_committed, decide(evidence, now)
 
 
 def ensure_post_merge(api: security.GitHub) -> None:
@@ -503,15 +509,15 @@ def ensure_post_merge(api: security.GitHub) -> None:
 def reconcile(api: security.GitHub, root: Path, enabled: bool, now: dt.datetime) -> list[str]:
     """Evaluate every open Dependabot PR; one PR's error never blocks another's decision."""
     errors = []
-    can_command = command_authorizer(api)
+    has_write_access = write_access_checker(api)
     for row in api.pages("pulls?state=open&base=master"):
         number = row["number"]
         try:
             if _login(row) != AUTHOR:
                 continue
-            pr, comments, decision = evaluate(api, number, root, can_command, enabled, now)
+            pr, comments, head_committed, decision = evaluate(api, number, root, has_write_access, enabled, now)
             if decision.action == "merge":
-                decision = merge(api, pr, decision, now)
+                decision = merge(api, pr, decision, head_committed, now)
             upsert_triage(api, number, comments, render(decision, pr["head"]["sha"]))
             if decision.action == "stop":
                 escalate(api, pr, comments, now)

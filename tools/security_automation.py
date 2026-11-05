@@ -45,6 +45,7 @@ PROTECTED = (
     "tests/tools",
     ".github/workflows/codeql-analysis.yml",
     ".github/workflows/dependabot-merge.yml",
+    ".github/dependabot.yml",
     ".github/workflows/sphinx-pages.yml",
     ".github/workflows/sphinx-pages-publish.yml",
     ".github/pages-build-template.yml",

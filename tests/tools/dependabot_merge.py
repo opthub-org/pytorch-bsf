@@ -68,7 +68,8 @@ def decide(now=NOW, **evidence):
     return merge.decide(make_evidence(**evidence), now)
 
 
-ALLOW = lambda login: True  # noqa: E731
+def allow(login):
+    return True
 
 
 class DecisionTests(unittest.TestCase):
@@ -98,7 +99,6 @@ class DecisionTests(unittest.TestCase):
             ({"failed": ["lint"]}, "/dependabot-hold"),
             ({"problem": "bad"}, "@dependabot recreate"),
             ({"changes_requested_by": ["alice"]}, "Dismiss the review"),
-            ({"enabled": False}, "DEPENDABOT_MERGE_ENABLED"),
         ):
             with self.subTest(evidence=evidence):
                 self.assertIn(phrase, decide(**evidence).mergeable_when)
@@ -115,14 +115,14 @@ class DecisionTests(unittest.TestCase):
     def test_computed_unmergeable_state_waits_and_then_escalates(self):
         for state in ("blocked", "unstable", "behind"):
             with self.subTest(state=state):
-                self.assertEqual(decide(merge_state=state).action, "wait")
+                self.assertEqual(decide(merge_state=state, now=CREATED + merge.CI_GRACE).action, "wait")
                 late = decide(merge_state=state, now=CREATED + merge.CI_GRACE + dt.timedelta(seconds=1))
                 self.assertEqual(late.action, "stop")
 
     def test_uncomputed_state_does_not_escalate_until_the_decision_window(self):
         for state in ("unknown", None):
             with self.subTest(state=state):
-                self.assertEqual(decide(merge_state=state, now=CREATED + dt.timedelta(days=1)).action, "wait")
+                self.assertEqual(decide(merge_state=state, now=CREATED + merge.DECISION_WINDOW).action, "wait")
                 late = decide(merge_state=state, now=CREATED + merge.DECISION_WINDOW + dt.timedelta(seconds=1))
                 self.assertEqual(late.action, "stop")
 
@@ -148,15 +148,42 @@ class DecisionTests(unittest.TestCase):
 
     def test_disabled_automation_keeps_triage_without_merging(self):
         decision = decide(enabled=False)
-        self.assertEqual(decision.action, "stop")
+        self.assertEqual(decision.action, "wait")
+        self.assertIn("paused", decision.outcome)
         self.assertIn("DEPENDABOT_MERGE_ENABLED", decision.reason)
+        self.assertIn("DEPENDABOT_MERGE_ENABLED", decision.mergeable_when)
+        self.assertIn("None while paused", decision.deadline)
 
-    def test_paused_triage_never_promises_a_merge(self):
+    def test_paused_triage_never_promises_a_merge_and_says_how_to_resume(self):
         for evidence in ({"pending": ["lint"]}, {"merge_state": "blocked"}, {"merge_state": "dirty"}):
             with self.subTest(evidence=evidence):
                 decision = decide(enabled=False, **evidence)
                 self.assertEqual(decision.action, "wait")
                 self.assertIn("paused", decision.outcome)
+                self.assertIn("DEPENDABOT_MERGE_ENABLED", decision.mergeable_when)
+        self.assertIn("@dependabot rebase", decide(enabled=False, merge_state="dirty").mergeable_when)
+
+    def test_waiting_deadlines_name_the_time_their_own_limit_ends(self):
+        for evidence, deadline in (
+            ({"merge_state": "unknown"}, "2026-11-12 11:00 UTC. This state then stops the merge."),
+            ({"merge_state": None}, "2026-11-12 11:00 UTC. This state then stops the merge."),
+            ({"merge_state": "blocked"}, "2026-11-05 13:00 UTC. This state then stops the merge."),
+            ({"merge_state": "dirty"}, "2026-11-06 11:00 UTC. A remaining conflict then stops the merge."),
+            ({"pending": ["a"]}, "2026-11-05 13:00 UTC. Unfinished checks then stop the merge."),
+        ):
+            with self.subTest(evidence=evidence):
+                self.assertEqual(decide(**evidence).deadline, deadline)
+
+    def test_conflict_with_pending_checks_waits_for_the_rebase(self):
+        evidence = {"merge_state": "dirty", "pending": ["build"]}
+        self.assertEqual(decide(now=CREATED + merge.CI_GRACE + dt.timedelta(seconds=1), **evidence).action, "wait")
+        self.assertEqual(decide(now=CREATED + merge.REBASE_GRACE + dt.timedelta(seconds=1), **evidence).action, "stop")
+
+    def test_late_stops_say_what_would_make_them_mergeable(self):
+        late = dt.timedelta(days=8)
+        self.assertIn("@dependabot rebase", decide(pending=["a"], now=CREATED + late).mergeable_when)
+        self.assertIn("@dependabot rebase", decide(merge_state="dirty", now=CREATED + late).mergeable_when)
+        self.assertIn("merge it by hand", decide(merge_state="blocked", now=CREATED + late).mergeable_when)
 
     def test_long_check_lists_are_shortened(self):
         names = [f"check-{index}" for index in range(merge.MAX_LISTED_CHECKS + 1)]
@@ -197,6 +224,7 @@ class ProvenanceTests(unittest.TestCase):
             "foreign": [commit(), commit(author="maintainer")],
             "unsigned": [commit(verified=False)],
             "spoofed author signed by someone else": [commit(committer="maintainer")],
+            "verification unknown": [commit(verified=None)],
             "no linked author": [{**commit(), "author": None}],
             "no linked committer": [{**commit(), "committer": None}],
             "none": [],
@@ -212,7 +240,7 @@ class ChangeTests(unittest.TestCase):
     def test_dependency_files_and_pin_updates_pass(self):
         files = [
             {"filename": name, "status": "modified", "patch": "+anything"}
-            for name in ("pyproject.toml", "uv.lock", "Dockerfile", ".pre-commit-config.yaml", "environment.yml")
+            for name in ("pyproject.toml", "uv.lock", "Dockerfile", ".pre-commit-config.yaml")
         ]
         files.append({"filename": "docs/requirements.txt", "status": "modified"})
         files.append(self.workflow(f"@@ -1 +1 @@\n{PIN_OLD}\n{PIN_NEW}"))
@@ -236,9 +264,18 @@ class ChangeTests(unittest.TestCase):
         for name, text in {"no dash": bare, "subpath": no_comment, "two pins": f"{bare}\n{bare}"}.items():
             with self.subTest(name=name):
                 self.assertIsNone(merge.change_problem([self.workflow(text)]))
+        yaml_row = {"filename": ".github/workflows/ci.yaml", "status": "modified", "patch": bare}
+        self.assertIsNone(merge.change_problem([yaml_row]))
 
     def test_other_paths_are_rejected(self):
-        for path in ("tools/x.py", "torch_bsf/__init__.py", "docs/Dockerfile", ".github/dependabot.yml", "a/pyproject.toml"):
+        for path in (
+            "environment.yml",
+            "tools/x.py",
+            "torch_bsf/__init__.py",
+            "docs/Dockerfile",
+            ".github/dependabot.yml",
+            "a/pyproject.toml",
+        ):
             with self.subTest(path=path):
                 self.assertIsNotNone(merge.change_problem([{"filename": path, "status": "modified", "patch": "+x"}]))
 
@@ -261,6 +298,9 @@ class ChangeTests(unittest.TestCase):
             "short hex ref": f"{PIN_OLD}\n+      - uses: actions/cache@deadbeef",
             "39 hex digits": f"{PIN_OLD}\n+      - uses: actions/cache@{NEW_SHA[:39]}",
             "step moved between jobs": f"@@ -10,3 +10,2 @@\n   lint:\n{PIN_OLD}\n@@ -50,2 +49,3 @@\n   publish:\n{PIN_NEW}",
+            "reordered steps": (
+                f"-  - uses: a/a@{OLD_SHA}\n-  - uses: b/b@{OLD_SHA}\n+  - uses: b/b@{NEW_SHA}\n+  - uses: a/a@{NEW_SHA}"
+            ),
             "step moved past context": f"{PIN_OLD}\n       - run: x\n{PIN_NEW}",
             "no changes": "@@ -1 +1 @@",
         }.items():
@@ -290,7 +330,7 @@ class ReviewTests(unittest.TestCase):
             {"state": "DISMISSED", "user": {"login": "dave"}},
             {"state": "COMMENTED", "user": {"login": "bot"}},
         ]
-        self.assertEqual(merge.review_state(reviews, ALLOW), (["bob", "carol"], ["alice"]))
+        self.assertEqual(merge.review_state(reviews, allow), (["bob", "carol"], ["alice"]))
 
     def test_reviews_without_write_access_do_not_count(self):
         reviews: list[security.Json] = [
@@ -302,7 +342,7 @@ class ReviewTests(unittest.TestCase):
 
 
 class HoldTests(unittest.TestCase):
-    def hold(self, *comments, now=NOW, allowed=ALLOW):
+    def hold(self, *comments, now=NOW, allowed=allow):
         return merge.active_hold(list(comments), allowed, now)
 
     def test_authorized_hold_applies_through_the_end_of_its_day(self):
@@ -313,7 +353,9 @@ class HoldTests(unittest.TestCase):
         self.assertIsNone(self.hold(comment(body), now=dt.datetime(2026, 11, 8, tzinfo=dt.UTC)))
 
     def test_unauthorized_users_cannot_hold_or_release(self):
-        deny_stranger = lambda login: login != "stranger"  # noqa: E731
+        def deny_stranger(login):
+            return login != "stranger"
+
         self.assertIsNone(self.hold(comment("/dependabot-hold until=2026-11-07 r", login="stranger"), allowed=deny_stranger))
         held = self.hold(
             comment("/dependabot-hold until=2026-11-07 r"),
@@ -363,6 +405,9 @@ class HoldTests(unittest.TestCase):
         self.assertEqual(self.hold(comment("/dependabot-hold until=2026-12-05 r")).reason, "r")
         self.assertIn("invalid", self.hold(comment("/dependabot-hold until=2026-12-06 r")).reason)
 
+    def test_reason_cannot_hide_the_rest_of_the_triage_comment(self):
+        self.assertEqual(self.hold(comment("/dependabot-hold until=2026-11-07 <!-- hide")).reason, "&lt;!-- hide")
+
     def test_hold_may_end_on_the_day_of_its_comment(self):
         self.assertEqual(self.hold(comment("/dependabot-hold until=2026-11-05 r")).reason, "r")
 
@@ -397,17 +442,25 @@ class AuthorizerTests(unittest.TestCase):
         api = Mock()
         permissions = {"collaborators/w/permission": "write", "collaborators/a/permission": "admin"}
         api.get.side_effect = lambda path: {"permission": permissions.get(path, "read")}
-        can_command = merge.command_authorizer(api)
+        can_command = merge.write_access_checker(api)
         self.assertTrue(can_command("w"))
         self.assertTrue(can_command("a"))
         self.assertFalse(can_command("r"))
         self.assertFalse(can_command("r"))
         self.assertEqual(api.get.call_count, 3)
 
+    def test_unresolvable_login_has_no_access_but_other_errors_propagate(self):
+        api = Mock()
+        api.get.side_effect = security.GitHubError("missing", 404)
+        self.assertFalse(merge.write_access_checker(api)("Copilot"))
+        api.get.side_effect = security.GitHubError("down", 502)
+        with self.assertRaises(security.GitHubError):
+            merge.write_access_checker(api)("alice")
+
     def test_login_is_quoted(self):
         api = Mock()
         api.get.return_value = {"permission": "read"}
-        merge.command_authorizer(api)("dependabot[bot]/x")
+        merge.write_access_checker(api)("dependabot[bot]/x")
         api.get.assert_called_once_with("collaborators/dependabot%5Bbot%5D%2Fx/permission")
 
 
@@ -630,20 +683,23 @@ class ReconcileTests(unittest.TestCase):
                 self.assertEqual(self.run_once(), [])
                 self.assertIn(f"HTTP status {code}", self.triage())
                 self.assertIn("2026-11-12 UTC. A maintainer decides", self.triage())
+                self.assertIn("token's permissions", self.triage())
                 self.assertEqual(len(self.writes("issues/7/assignees")), 1)
 
-    def test_moved_head_or_base_retries_without_notifying_until_overdue(self):
+    def test_moved_head_or_base_retries_without_notifying_until_the_head_is_old(self):
         for code in (405, 409):
             with self.subTest(code=code):
                 self.fail_merge(code)
-                self.pr["created_at"] = "2026-11-05T11:00:00Z"
+                self.pr["created_at"] = "2026-10-01T00:00:00Z"
+                self.pages["pulls/7/commits"] = [commit(date="2026-10-29T12:00:00Z")]
                 self.assertEqual(self.run_once(), [])
                 self.assertIn("tries again", self.triage())
                 self.assertEqual(self.writes("issues/7/assignees"), [])
                 self.fail_merge(code)
-                self.pr["created_at"] = "2026-10-01T00:00:00Z"
+                self.pages["pulls/7/commits"] = [commit(date="2026-10-29T11:59:59Z")]
                 self.assertEqual(self.run_once(), [])
                 self.assertIn(f"HTTP status {code}", self.triage())
+                self.assertIn("@dependabot rebase", self.triage())
                 self.assertEqual(len(self.writes("issues/7/assignees")), 1)
 
     def test_unconfirmed_merge_is_not_reported_as_merged(self):
@@ -652,15 +708,32 @@ class ReconcileTests(unittest.TestCase):
         self.assertIn("without merging", self.triage())
 
     def test_transient_merge_error_is_reported_without_a_triage_verdict(self):
-        def write(path, data, method="POST"):
-            if path == "pulls/7/merge":
-                raise security.GitHubError("down", 502)
-            return {}
-
-        self.api.write.side_effect = write
+        self.fail_merge(502)
         errors = self.run_once()
         self.assertIn("#7", errors[0])
         self.assertEqual(self.writes("issues/7/comments"), [])
+
+    def test_deleted_accounts_do_not_stop_triage(self):
+        self.comments.extend([{**comment("x"), "user": None}, comment(None, ident=2)])
+        self.pages["pulls/7/reviews"] = [{"state": "APPROVED", "user": None}]
+        self.pages["pulls?state=open&base=master"].append({"number": 9, "user": None})
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(len(self.writes("issues/7/comments")), 1)
+        self.assertEqual(self.writes("pulls/9/merge"), [])
+
+    def test_a_pr_error_does_not_stop_post_merge_workflows(self):
+        self.pages["pulls?state=open&base=master"] = [make_pr(number=6)]
+        self.master_pulls.append({"number": 3, "user": {"login": "dependabot[bot]"}})
+        self.pr["merged_by"] = {"login": security.BOT}
+
+        def pages(path, key=None):
+            if path == "issues/6/comments":
+                raise security.GitHubError("down", 502)
+            return self.pages.get(path, [])
+
+        self.api.pages.side_effect = pages
+        self.assertEqual(len(self.run_once()), 1)
+        self.assertEqual(len(self.api.write.call_args_list), len(security.POST_MERGE))
 
     def test_one_pr_error_does_not_block_another(self):
         self.pages["pulls?state=open&base=master"] = [make_pr(number=6), make_pr(number=7)]
@@ -689,9 +762,12 @@ class ReconcileTests(unittest.TestCase):
                 self.assertEqual(len(self.writes("pulls/7/merge")), 1)
 
     def test_disabled_controller_does_not_merge(self):
+        self.pr["created_at"] = "2026-10-01T00:00:00Z"
         self.run_once(enabled=False)
         self.assertEqual(self.writes("pulls/7/merge"), [])
         self.assertIn("paused", self.triage())
+        self.assertEqual(self.writes("issues/7/assignees"), [])
+        self.assertEqual(len(self.writes("issues/7/comments")), 1)
 
     def test_reconcile_starts_post_merge_workflows_and_reports_their_failure(self):
         self.master_pulls.append({"number": 3, "user": {"login": merge.AUTHOR}})
@@ -725,6 +801,19 @@ class PostMergeTests(unittest.TestCase):
         self.assertEqual(len(started), len(security.POST_MERGE) - 1)
         self.assertNotIn(f"actions/workflows/{present}/dispatches", started)
         self.assertEqual(api.write.call_args.args[1]["ref"], "master")
+
+    def test_missing_users_dispatch_nothing(self):
+        for author_row, pull in (
+            ({"number": 3, "user": None}, {}),
+            ({"number": 3, "user": {"login": merge.AUTHOR}}, {"merged_by": None}),
+        ):
+            with self.subTest(author_row=author_row, pull=pull):
+                api = Mock()
+                sha = "e" * 40
+                responses = {"commits/master": {"sha": sha}, f"commits/{sha}/pulls": [author_row], "pulls/3": pull}
+                api.get.side_effect = responses.__getitem__
+                merge.ensure_post_merge(api)
+                api.write.assert_not_called()
 
     def test_human_merge_or_other_commit_dispatches_nothing(self):
         for author, merged_by in ((merge.AUTHOR, "maintainer"), ("maintainer", security.BOT)):
@@ -770,7 +859,7 @@ class ConfigurationTests(unittest.TestCase):
         self.workflow = (ROOT / ".github/workflows/dependabot-merge.yml").read_text()
 
     def test_repair_automation_cannot_edit_this_workflow_or_controller(self):
-        for path in (".github/workflows/dependabot-merge.yml", "tools/dependabot_merge.py"):
+        for path in (".github/workflows/dependabot-merge.yml", ".github/dependabot.yml", "tools/dependabot_merge.py"):
             with self.subTest(path=path), self.assertRaisesRegex(ValueError, "require maintainer review"):
                 security.validate_path(path)
 
