@@ -1063,6 +1063,29 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(self.writes("pulls/7/merge"), [])
         self.assertIn(expected, self.triage())
 
+    def use_merge_states(self, *states):
+        reads = iter(states)
+
+        def get(path):
+            return {**self.pr, "mergeable_state": next(reads)} if path == "pulls/7" else self.get(path)
+
+        self.api.get.side_effect = get
+        sleep = patch.object(merge.time, "sleep")
+        self.addCleanup(sleep.stop)
+        return sleep.start()
+
+    def test_an_uncomputed_merge_state_is_read_again_before_deciding(self):
+        sleep = self.use_merge_states("unknown", None, "clean")
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(len(self.writes("pulls/7/merge")), 1)
+        self.assertEqual(sleep.call_count, 2)
+        sleep.assert_called_with(merge.UNCOMPUTED_DELAY_SECONDS)
+
+    def test_a_state_that_stays_uncomputed_waits_after_a_bounded_number_of_reads(self):
+        sleep = self.use_merge_states(*["unknown"] * (merge.UNCOMPUTED_REREADS + 1))
+        self.assert_blocked("GitHub reports the merge state as `unknown`.")
+        self.assertEqual(sleep.call_count, merge.UNCOMPUTED_REREADS)
+
     def test_ready_pr_merges_exactly_the_evaluated_head_and_reports_it(self):
         self.assertEqual(self.run_once(), [])
         self.ci_state.assert_called_once_with(self.api, "c" * 40, FIXTURE_ROOT)
@@ -1516,7 +1539,23 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_every_trigger_needed_for_immediate_and_recovered_runs_is_present(self):
         self.assertIn("types: [requested, completed]", self.workflow)
-        self.assertRegex(self.workflow, r"schedule:\n(?:\s+#.*\n)*\s+- cron: '\*/15 \* \* \* \*'")
+        self.assertRegex(self.workflow, r"check_run:\n\s+types: \[completed\]\n")
+        self.assertRegex(self.workflow, r"issue_comment:\n\s+types: \[created, edited, deleted\]\n")
+        self.assertRegex(self.workflow, r"schedule:\n(?:\s+#.*\n)*\s+- cron: '7,22,37,52 \* \* \* \*'")
+
+    def test_a_skipped_run_cannot_replace_a_pending_evaluation(self):
+        # GitHub cancels a pending run that a newer run in its group replaces, even when the newer one skips its job.
+        group = re.search(r"concurrency:\n  group: >-\n((?:    .*\n)+)", self.workflow)
+        condition = re.search(r"    if: >-\n((?:      .*\n)+)", self.workflow)
+        assert group is not None and condition is not None
+        expected = " ".join(condition[1].split())
+        self.assertEqual(
+            " ".join(group[1].split()),
+            f"${{{{ ({expected}) && 'dependabot-merge' || format('dependabot-merge-skipped-{{0}}', github.run_id) }}}}",
+        )
+        for event in ("check_run.app.slug == 'codecov'", "issue.user.login == 'dependabot[bot]'", "'/dependabot'"):
+            with self.subTest(event=event):
+                self.assertIn(event, expected)
 
     def test_every_required_workflow_triggers_the_controller(self):
         listed = re.search(r"workflows:\n((?:\s+- .*\n)+)", self.workflow)
@@ -1540,7 +1579,6 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_job_settings_that_only_github_can_exercise_stay_in_place(self):
         for line in (
-            "group: dependabot-merge",
             "cancel-in-progress: false",
             "workflow_dispatch:",
             "github.repository == 'opthub-org/pytorch-bsf'",

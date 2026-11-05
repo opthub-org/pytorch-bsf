@@ -11,16 +11,37 @@ on:
       - GHPages build
       - GHPages publisher
     types: [requested, completed]
+  # Codecov reports codecov/patch as a check run, which starts no workflow_run.
+  check_run:
+    types: [completed]
+  # Hold and release commands. Comments that the controller writes with GITHUB_TOKEN start no run.
+  issue_comment:
+    types: [created, edited, deleted]
   schedule:
-    # Recovers a missed event, and sees codecov/patch and hold commands, which start no workflow.
-    - cron: '*/15 * * * *'
+    # Recovers a dropped event and moves past deadlines. GitHub delays or drops these runs, often for hours,
+    # and most at the start of an hour, so this avoids minute 0.
+    - cron: '7,22,37,52 * * * *'
   workflow_dispatch:
 
 permissions: {}
 
-# Each run re-reads all state, so keeping only the newest pending run loses nothing.
+# Each run re-reads all state, so keeping only the newest pending run loses nothing. A run whose job is skipped
+# gets its own group, because a pending run that a newer one replaces is cancelled even if the newer one skips.
+# The condition must match the job's `if`.
 concurrency:
-  group: dependabot-merge
+  group: >-
+    ${{ (github.repository == 'opthub-org/pytorch-bsf' &&
+    github.ref == 'refs/heads/master' &&
+    (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ||
+    (github.event_name == 'workflow_run' &&
+    (github.event.workflow_run.name == 'GHPages publisher' ||
+    startsWith(github.event.workflow_run.head_branch, 'dependabot/'))) ||
+    (github.event_name == 'check_run' && github.event.check_run.app.slug == 'codecov' &&
+    startsWith(github.event.check_run.check_suite.head_branch, 'dependabot/')) ||
+    (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
+    github.event.issue.user.login == 'dependabot[bot]' &&
+    contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association) &&
+    contains(github.event.comment.body, '/dependabot')))) && 'dependabot-merge' || format('dependabot-merge-skipped-{0}', github.run_id) }}
   cancel-in-progress: false
 
 jobs:
@@ -30,9 +51,16 @@ jobs:
     if: >-
       github.repository == 'opthub-org/pytorch-bsf' &&
       github.ref == 'refs/heads/master' &&
-      (github.event_name != 'workflow_run' ||
-      github.event.workflow_run.name == 'GHPages publisher' ||
-      startsWith(github.event.workflow_run.head_branch, 'dependabot/'))
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' &&
+      (github.event.workflow_run.name == 'GHPages publisher' ||
+      startsWith(github.event.workflow_run.head_branch, 'dependabot/'))) ||
+      (github.event_name == 'check_run' && github.event.check_run.app.slug == 'codecov' &&
+      startsWith(github.event.check_run.check_suite.head_branch, 'dependabot/')) ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
+      github.event.issue.user.login == 'dependabot[bot]' &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association) &&
+      contains(github.event.comment.body, '/dependabot')))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

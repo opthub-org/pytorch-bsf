@@ -11,6 +11,7 @@ import itertools
 import json
 import os
 import re
+import time
 import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -58,6 +59,9 @@ SHORT_SHA_CHARS = 10
 MERGEABLE_STATES = {"clean", "has_hooks"}
 # GitHub reports these while it recomputes mergeability, which a sibling merge can trigger.
 UNCOMPUTED_STATES = {"unknown", None}
+# GitHub computes the state within seconds, and no event reports it, so a wait could last until a scheduled run.
+UNCOMPUTED_REREADS = 3
+UNCOMPUTED_DELAY_SECONDS = 5
 WRITE_PERMISSIONS = {"admin", "write"}  # The endpoint reports the maintain role as write.
 # 403: not permitted. 422: invalid merge. Other errors may be transient and fail the job instead.
 MERGE_REFUSALS = {403, 422}
@@ -684,6 +688,17 @@ def write_access_checker(api: security.GitHub) -> Callable[[str], bool]:
     return has_write_access
 
 
+def read_pull(api: security.GitHub, number: int) -> Json:
+    """Return the PR, read again a few times while GitHub has not computed its merge state."""
+    pr: Json = api.get(f"pulls/{number}")
+    for _ in range(UNCOMPUTED_REREADS):
+        if pr.get("mergeable_state") not in UNCOMPUTED_STATES:
+            break
+        time.sleep(UNCOMPUTED_DELAY_SECONDS)
+        pr = api.get(f"pulls/{number}")
+    return pr
+
+
 def evaluate(
     api: security.GitHub,
     number: int,
@@ -692,7 +707,7 @@ def evaluate(
     enabled: bool,
     now: dt.datetime,
 ) -> tuple[Json, list[Json], Evidence, Decision]:
-    pr = api.get(f"pulls/{number}")
+    pr = read_pull(api, number)
     comments = api.pages(f"issues/{number}/comments")
     commits = api.pages(f"pulls/{number}/commits")
     files = api.pages(f"pulls/{number}/files")
