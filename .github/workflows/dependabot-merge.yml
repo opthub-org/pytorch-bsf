@@ -25,9 +25,13 @@ concurrency:
 
 jobs:
   reconcile:
+    # The ref check keeps a dispatch from running another branch's controller with these permissions.
+    # The publisher always runs on master, but it reports the `GHPages publish` check of the PR head.
     if: >-
       github.repository == 'opthub-org/pytorch-bsf' &&
+      github.ref == 'refs/heads/master' &&
       (github.event_name != 'workflow_run' ||
+      github.event.workflow_run.name == 'GHPages publisher' ||
       startsWith(github.event.workflow_run.head_branch, 'dependabot/'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -39,7 +43,7 @@ jobs:
       pull-requests: write
       statuses: read
     steps:
-      # For workflow_run and schedule this SHA is the trusted default-branch commit, never a PR head.
+      # The job runs only on master, so this SHA is the trusted default-branch commit, never a PR head.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}

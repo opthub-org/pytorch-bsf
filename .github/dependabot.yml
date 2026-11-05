@@ -10,8 +10,8 @@ updates:
   - package-ecosystem: "pip" # See documentation for possible values
     directory: "/" # Location of package manifests
     # Leave a range alone while it still admits the new release; only update it when a
-    # release falls outside it (e.g. a new major version). The lower bounds are kept at
-    # the oldest versions tested in CI. (`widen` is not accepted for the pip ecosystem.)
+    # release falls outside it (e.g. a new major version). (`widen` is not accepted for
+    # the pip ecosystem.)
     versioning-strategy: increase-if-necessary
     schedule:
       interval: "weekly"
