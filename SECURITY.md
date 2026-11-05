@@ -187,15 +187,31 @@ running, and anyone who needs the old behavior can downgrade at their own risk.
 
 CI cannot detect a malicious release. To reduce that risk, `cooldown` in
 `.github/dependabot.yml` delays version updates by three days, so that a bad release
-can be withdrawn first. Security updates skip the delay. The controller also looks up
-what each pip and GitHub Actions update installs in the GitHub Advisory Database,
-including its malware advisories, on every evaluation. A known advisory stops the merge
-and is named in the triage comment, and a failed lookup merges nothing. For a SHA pin,
-or an update that names no version, any advisory on the package stops the merge. The
-database has no data for pre-commit hooks or Docker images, so these merge without
-this check. A problem reported only elsewhere, such as an upstream issue, reaches
-neither the cooldown nor this check unless a registry withdraws the release or a
-maintainer holds the PR. The remaining exposure is accepted: action pins also update in privileged workflows, including this one, the
+can be withdrawn first. Security updates skip the delay. Dependabot's Python updater
+skips yanked releases; this is not confirmed for the other ecosystems.
+
+The controller also looks up the version that each commit's Dependabot metadata names,
+on every evaluation of a PR with verified commits: pip packages in
+[OSV](https://osv.dev), and GitHub Actions in the GitHub Advisory Database, including
+malware advisories in both. A known advisory stops the merge, and the triage comment
+names it unless a hold or an earlier stop reason takes precedence. A failed lookup
+merges nothing, and a pip or Actions commit without that metadata stops the merge, as
+does an ecosystem with no classification here. When the metadata names a commit SHA, no
+version or anything else that cannot be compared, any advisory on the package stops the
+merge, and a maintainer must check its affected range.
+
+These checks do not cover:
+
+- pre-commit hooks and Docker images, which have no advisory source here;
+- transitive dependencies, or actions nested in a composite action;
+- other versions that a pip range allows, because only the named version is looked up;
+- unreviewed GitHub advisories for actions, which carry no package data;
+- an advisory published after the merge, which Dependabot alerts report instead;
+- a problem reported only elsewhere, such as in an upstream issue, unless a registry
+  withdraws the release or a maintainer holds the PR.
+
+The remaining exposure is accepted: action pins also update in privileged workflows,
+including this one, the
 security automation and PyPI publishing, and a malicious action runs with their
 permissions once it reaches `master`.
 

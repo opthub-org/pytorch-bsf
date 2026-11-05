@@ -2,11 +2,13 @@
 
 import datetime as dt
 import http.client
+import json
 import os
 import re
 import unittest
+import urllib.error
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from tools import dependabot_merge as merge
 from tools import security_automation as security
@@ -51,12 +53,12 @@ Signed-off-by: dependabot[bot] <support@github.com>
 """
 
 
-def commit(author="dependabot[bot]", committer="web-flow", verified=True, date="2026-11-05T11:00:00Z"):
+def commit(author="dependabot[bot]", committer="web-flow", verified=True, date="2026-11-05T11:00:00Z", message=METADATA):
     return {
         "sha": "d" * 40,
         "author": {"login": author},
         "committer": {"login": committer},
-        "commit": {"message": METADATA, "verification": {"verified": verified}, "committer": {"date": date}},
+        "commit": {"message": message, "verification": {"verified": verified}, "committer": {"date": date}},
     }
 
 
@@ -77,6 +79,7 @@ def make_evidence(**overrides):
         "pending": [],
         "enabled": True,
         "advisories": [],
+        "package_advisories": [],
     }
     return merge.Evidence(**{**values, **overrides})
 
@@ -335,21 +338,41 @@ class ChangeTests(unittest.TestCase):
                     self.assertIsNotNone(merge.change_problem([self.workflow(f"{PIN_OLD}\n{line}")]))
 
 
+def metadata(*entries):
+    lines = []
+    for name, version in entries:
+        lines.append(f"- dependency-name: {name}")
+        if version is not None:
+            lines.append(f"  dependency-version: {version}")
+    return "---\nupdated-dependencies:\n" + "\n".join(lines) + "\n...\n"
+
+
+PIP = make_pr(head={"repo": {"full_name": REPO}, "ref": "dependabot/pip/x", "sha": "c" * 40})
+ACTIONS = make_pr(head={"repo": {"full_name": REPO}, "ref": "dependabot/github_actions/x", "sha": "c" * 40})
+
+
+class OsvFake:
+    """Answer like OSV: names are normalized, and only named versions have advisories."""
+
+    def __init__(self, advisories=None):
+        self.advisories = advisories or {}
+        self.bodies = []
+
+    def __call__(self, body):
+        self.bodies.append(body)
+        name = re.sub(r"[-_.]+", "-", body["package"]["name"]).lower()
+        key = (name, body.get("version"))
+        rows = [{"id": ident} for ident in self.advisories.get(key, [])]
+        return {"vulns": rows} if rows else {}
+
+
 class AdvisoryTests(unittest.TestCase):
-    def api(self, rows=None):
-        api = Mock()
-        api.request.side_effect = lambda path: rows.get(path, []) if rows else []
-        return api
-
-    def lookup(self, api, name="x", version="2.0.0", branch="dependabot/pip/x-2.0.0"):
-        row = commit()
-        row["commit"]["message"] = (
-            f"---\nupdated-dependencies:\n- dependency-name: {name}\n  dependency-version: {version}\n..."
-        )
-        return merge.known_advisories(api, make_pr(head={"ref": branch, "sha": "c" * 40}), [row])
-
-    def queries(self, api):
-        return [call.args[0] for call in api.request.call_args_list]
+    def osv(self, advisories=None):
+        fake = OsvFake(advisories)
+        patcher = patch.object(merge, "_osv_query", fake)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        return fake
 
     def test_real_metadata_is_parsed(self):
         self.assertEqual(merge.updated_dependencies(METADATA), [("x", "2.0.0")])
@@ -357,73 +380,150 @@ class AdvisoryTests(unittest.TestCase):
         self.assertEqual(merge.updated_dependencies(two), [("a", None), ("b", "2")])
         self.assertEqual(merge.updated_dependencies("no metadata"), [])
 
+    def test_parser_stops_at_the_terminator_and_tolerates_a_missing_one(self):
+        after = "updated-dependencies:\n- dependency-name: a\n...\n- dependency-name: b\n"
+        self.assertEqual(merge.updated_dependencies(after), [("a", None)])
+        orphan = "updated-dependencies:\n  dependency-version: 1\n- dependency-name: a"
+        self.assertEqual(merge.updated_dependencies(orphan), [("a", None)])
+
     def test_quoted_release_notes_cannot_replace_the_last_block(self):
         fake = "updated-dependencies:\n- dependency-name: harmless\n  dependency-version: 1\n...\n"
         self.assertEqual(merge.updated_dependencies(fake + METADATA), [("x", "2.0.0")])
 
-    def test_both_advisory_types_and_exact_version_are_queried(self):
-        api = self.api()
-        self.assertEqual(self.lookup(api), [])
+    def test_lowercase_metadata_finds_an_advisory_filed_under_a_canonical_name(self):
+        self.osv({("pyyaml", "5.3.1"): ["GHSA-a"]})
+        found = merge.known_advisories(Mock(), PIP, [commit(message=metadata(("pyyaml", "5.3.1")))])
+        self.assertEqual(found, (["GHSA-a"], []))
+
+    def test_every_dependency_of_every_commit_is_looked_up(self):
+        self.osv({("b", "2"): ["GHSA-b"], ("c", "3"): ["GHSA-c"]})
+        commits = [commit(message=metadata(("a", "1"), ("b", "2"))), commit(message=metadata(("c", "3")))]
+        self.assertEqual(merge.known_advisories(Mock(), PIP, commits)[0], ["GHSA-b", "GHSA-c"])
+
+    def test_values_that_cannot_be_compared_ask_about_the_whole_package(self):
+        for version in (None, "''", "null", "1!8.0.0", "abc1234", "a" * 40, "13e9c17417b29e9a276f73ec6ed7fb574137d3c3"):
+            with self.subTest(version=version):
+                fake = self.osv({("x", None): ["GHSA-a"]})
+                found = merge.known_advisories(Mock(), PIP, [commit(message=metadata(("x", version)))])
+                self.assertEqual(found, ([], ["GHSA-a"]))
+                self.assertEqual(fake.bodies, [{"package": {"name": "x", "ecosystem": "PyPI"}}])
+
+    def test_version_shapes_are_compared_by_version(self):
+        for version, sent in (
+            ("2.0.0", "2.0.0"),
+            ("v35", "35"),
+            ("2.0.0rc1", "2.0.0rc1"),
+            ("1.0.post2", "1.0.post2"),
+            ("3.1.dev4", "3.1.dev4"),
+        ):
+            with self.subTest(version=version):
+                fake = self.osv()
+                merge.known_advisories(Mock(), PIP, [commit(message=metadata(("x", version)))])
+                self.assertEqual(fake.bodies[0]["version"], sent)
+
+    def test_osv_pages_are_followed_and_withdrawn_entries_ignored(self):
+        pages = [{"vulns": [{"id": "A"}], "next_page_token": "t"}, {"vulns": [{"id": "B"}, {"id": "C", "withdrawn": "2026"}]}]
+        tokens = []
+
+        def query(body):
+            tokens.append(body.get("page_token"))
+            return pages[len(tokens) - 1]
+
+        with patch.object(merge, "_osv_query", query):
+            self.assertEqual(merge._pip_advisories(Mock(), "x", "1"), {"A", "B"})
+        self.assertEqual(tokens, [None, "t"])
+
+    def test_endless_osv_pages_fail_instead_of_passing(self):
+        with patch.object(merge, "_osv_query", return_value={"next_page_token": "t"}), self.assertRaises(ValueError):
+            merge._pip_advisories(Mock(), "x", "1")
+
+    def test_osv_request_and_malformed_response(self):
+        response = MagicMock()
+        response.__enter__.return_value.read.return_value = b'{"vulns": []}'
+        with patch("urllib.request.urlopen", return_value=response) as opened:
+            self.assertEqual(merge._osv_query({"package": {"name": "x"}}), {"vulns": []})
+        request = opened.call_args.args[0]
+        self.assertEqual(request.full_url, "https://api.osv.dev/v1/query")
+        self.assertEqual(json.loads(request.data), {"package": {"name": "x"}})
+        self.assertNotIn("Authorization", request.headers)
+        response.__enter__.return_value.read.return_value = b"[]"
+        with patch("urllib.request.urlopen", return_value=response), self.assertRaises(ValueError):
+            merge._osv_query({})
+
+    def test_actions_ask_github_for_both_types_and_spellings(self):
+        api = Mock()
+        api.request.return_value = []
+        merge.known_advisories(api, ACTIONS, [commit(message=metadata(("Owner/act", "45.0.7")))])
+        queries = {call.args[0] for call in api.request.call_args_list}
         self.assertEqual(
-            sorted(self.queries(api)),
-            [
-                "/advisories?ecosystem=pip&type=malware&affects=x%402.0.0&per_page=100",
-                "/advisories?ecosystem=pip&type=reviewed&affects=x%402.0.0&per_page=100",
-            ],
-        )
-
-    def test_a_listed_advisory_is_reported_and_a_withdrawn_one_is_not(self):
-        path = "/advisories?ecosystem=pip&type=malware&affects=x%402.0.0&per_page=100"
-        api = self.api(
+            queries,
             {
-                path: [
-                    {"ghsa_id": "GHSA-b"},
-                    {"ghsa_id": "GHSA-a", "withdrawn_at": None},
-                    {"ghsa_id": "GHSA-c", "withdrawn_at": "2026-01-01"},
-                ]
-            }
-        )
-        self.assertEqual(self.lookup(api), ["GHSA-a", "GHSA-b"])
-
-    def test_both_spellings_of_a_name_are_queried(self):
-        api = self.api()
-        self.lookup(api, name="Pillow")
-        self.assertEqual(len(self.queries(api)), 4)
-        self.assertTrue(any("affects=pillow%40" in query for query in self.queries(api)))
-        self.assertTrue(any("affects=Pillow%40" in query for query in self.queries(api)))
-
-    def test_action_uses_the_database_name_and_a_sha_pin_asks_about_the_package(self):
-        api = self.api()
-        self.lookup(api, name="tj-actions/changed-files", version="a" * 40, branch="dependabot/github_actions/tj-actions/x")
-        self.assertIn(
-            "/advisories?ecosystem=actions&type=reviewed&affects=tj-actions%2Fchanged-files&per_page=100",
-            self.queries(api),
+                f"/advisories?type={kind}&ecosystem=actions&affects={name}%2Fact%4045.0.7&per_page=100"
+                for kind in ("reviewed", "malware")
+                for name in ("Owner", "owner")
+            },
         )
 
-    def test_a_version_tag_is_not_treated_as_a_sha(self):
-        api = self.api()
-        self.lookup(api, version="a" * 39)
-        self.assertIn(f"affects=x%40{'a' * 39}", self.queries(api)[0])
+    def test_withdrawn_github_advisory_is_ignored(self):
+        api = Mock()
+        api.request.return_value = [{"ghsa_id": "A", "withdrawn_at": None}, {"ghsa_id": "B", "withdrawn_at": "2026"}]
+        self.assertEqual(merge._action_advisories(api, "a/b", "1"), {"A"})
+
+    def test_sha_action_asks_about_the_package(self):
+        api = Mock()
+        api.request.return_value = [{"ghsa_id": "A"}]
+        found = merge.known_advisories(api, ACTIONS, [commit(message=metadata(("a/b", "c" * 40)))])
+        self.assertEqual(found, ([], ["A"]))
+        self.assertIn("affects=a%2Fb&", api.request.call_args.args[0])
+
+    def test_malformed_github_response_fails_instead_of_passing(self):
+        for payload in ({}, None, {"message": "x"}):
+            with self.subTest(payload=payload):
+                api = Mock()
+                api.request.return_value = payload
+                with self.assertRaises(ValueError):
+                    merge._action_advisories(api, "a/b", "1")
 
     def test_ecosystems_without_data_are_not_queried_and_need_no_metadata(self):
         for segment in ("docker", "pre_commit"):
             with self.subTest(segment=segment):
-                api = self.api()
-                self.assertEqual(self.lookup(api, branch=f"dependabot/{segment}/x"), [])
+                pr = make_pr(head={"repo": {"full_name": REPO}, "ref": f"dependabot/{segment}/x", "sha": "c" * 40})
+                api = Mock()
+                self.assertEqual(merge.known_advisories(api, pr, [commit()]), ([], []))
                 api.request.assert_not_called()
-                row = {**commit(), "commit": {"message": "bump"}}
-                self.assertIsNone(merge.metadata_problem(make_pr(head={"ref": f"dependabot/{segment}/x"}), [row]))
+                self.assertIsNone(merge.metadata_problem(pr, [commit(message="bump")]))
 
-    def test_missing_metadata_is_a_problem_where_data_exists(self):
-        row = {**commit(), "commit": {"message": "bump"}}
-        self.assertIn("does not say", str(merge.metadata_problem(make_pr(head={"ref": "dependabot/pip/x"}), [row])))
-        self.assertIsNone(merge.metadata_problem(make_pr(head={"ref": "dependabot/pip/x"}), [commit()]))
+    def test_unknown_ecosystem_stops(self):
+        for segment in ("uv", "npm_and_yarn", "Pip", "group-all"):
+            with self.subTest(segment=segment):
+                pr = make_pr(head={"repo": {"full_name": REPO}, "ref": f"dependabot/{segment}/x", "sha": "c" * 40})
+                self.assertIn(f"`{segment}`", str(merge.metadata_problem(pr, [commit()])))
 
-    def test_advisory_stops_ahead_of_ci_and_says_how_to_resolve_it(self):
-        decision = decide(advisories=["GHSA-a"], pending=["lint"])
+    def test_missing_or_nameless_metadata_in_any_commit_is_a_problem(self):
+        bad = commit(message="bump")
+        null = commit(message=None)
+        nameless = commit(message=metadata(("''", "1")))
+        for commits in ([bad], [null], [nameless], [commit(), bad], [bad, commit()]):
+            with self.subTest(commits=commits):
+                self.assertIn("does not say", str(merge.metadata_problem(PIP, commits)))
+        self.assertIsNone(merge.metadata_problem(PIP, [commit()]))
+
+    def test_advisory_stops_ahead_of_ci_and_lists_every_id(self):
+        ids = [f"GHSA-{index}" for index in range(12)]
+        for evidence in ({"pending": ["lint"]}, {"failed": ["lint"]}, {"merge_state": "dirty"}):
+            with self.subTest(evidence=evidence):
+                decision = decide(advisories=ids, **evidence)
+                self.assertEqual(decision.action, "stop")
+                self.assertIn("`GHSA-11`", decision.reason)
+                self.assertIn("unaffected version", decision.mergeable_when)
+
+    def test_package_wide_match_does_not_promise_that_a_newer_version_helps(self):
+        decision = decide(package_advisories=["GHSA-a"])
         self.assertEqual(decision.action, "stop")
-        self.assertIn("GHSA-a", decision.reason)
-        self.assertIn("unaffected version", decision.mergeable_when)
+        self.assertIn("no comparable version", decision.reason)
+        self.assertIn("`GHSA-a`", decision.reason)
+        self.assertIn("affected ranges", decision.mergeable_when)
+        self.assertNotIn("unaffected version", decision.mergeable_when)
 
     def test_hold_still_outranks_an_advisory(self):
         hold = merge.Hold("alice", "why", NOW)
@@ -597,7 +697,9 @@ class ReconcileTests(unittest.TestCase):
         self.api.pages.side_effect = lambda path, key=None: self.pages.get(path, [])
         self.api.get.side_effect = self.get
         self.api.write.return_value = {"merged": True}
-        self.api.request.return_value = []
+        osv = patch.object(merge, "_osv_query", return_value={})
+        self.osv_query = osv.start()
+        self.addCleanup(osv.stop)
         ci = patch.object(security, "ci_state", return_value=([], [], {}))
         self.ci_state = ci.start()
         self.addCleanup(ci.stop)
@@ -656,28 +758,36 @@ class ReconcileTests(unittest.TestCase):
                     self.assert_blocked(expected)
 
     def test_known_advisory_stops_the_merge_and_notifies(self):
-        self.api.request.return_value = [{"ghsa_id": "GHSA-a"}]
+        self.osv_query.return_value = {"vulns": [{"id": "GHSA-a"}]}
         self.assert_blocked("GHSA-a")
         self.assertEqual(len(self.writes("issues/7/assignees")), 1)
 
+    def test_package_wide_match_is_wired_into_the_evaluation(self):
+        self.pages["pulls/7/commits"] = [commit(message=metadata(("x", None)))]
+        self.osv_query.return_value = {"vulns": [{"id": "GHSA-a"}]}
+        self.assert_blocked("no comparable version")
+
     def test_withdrawn_advisory_lets_the_next_evaluation_merge(self):
-        self.api.request.return_value = [{"ghsa_id": "GHSA-a", "withdrawn_at": "2026-11-05T00:00:00Z"}]
+        self.osv_query.return_value = {"vulns": [{"id": "GHSA-a", "withdrawn": "2026-11-05T00:00:00Z"}]}
         self.run_once()
         self.assertEqual(len(self.writes("pulls/7/merge")), 1)
 
     def test_failed_advisory_lookup_merges_nothing_and_fails_the_job(self):
-        self.api.request.side_effect = security.GitHubError("down", 502)
-        errors = self.run_once()
-        self.assertIn("#7", errors[0])
-        self.assertEqual(self.writes("pulls/7/merge"), [])
+        for error in (urllib.error.URLError("down"), TimeoutError("slow"), ValueError("bad json"), KeyError("id")):
+            with self.subTest(error=error):
+                self.osv_query.side_effect = error
+                self.api.write.reset_mock()
+                errors = self.run_once()
+                self.assertIn("#7", errors[0])
+                self.assertEqual(self.writes("pulls/7/merge"), [])
 
     def test_unverified_commit_is_not_looked_up(self):
         self.pages["pulls/7/commits"] = [commit(verified=False)]
         self.assert_blocked("signed by GitHub")
-        self.api.request.assert_not_called()
+        self.osv_query.assert_not_called()
 
     def test_commit_without_metadata_stops_with_triage(self):
-        self.pages["pulls/7/commits"] = [{**commit(), "commit": {**commit()["commit"], "message": "bump"}}]
+        self.pages["pulls/7/commits"] = [commit(message="bump")]
         self.assert_blocked("does not say")
 
     def test_merge_state_is_wired_into_the_evaluation(self):
@@ -1042,6 +1152,12 @@ class ConfigurationTests(unittest.TestCase):
         ):
             with self.subTest(line=line):
                 self.assertIn(line, self.workflow)
+
+    def test_every_configured_ecosystem_is_classified_for_advisories(self):
+        configured = set(re.findall(r'package-ecosystem: "([^"]+)"', (ROOT / ".github/dependabot.yml").read_text()))
+        self.assertEqual(configured, {"pip", "pre-commit", "github-actions", "docker"})
+        self.assertEqual(set(merge.ADVISORY_LOOKUPS), {"pip", "github_actions"})
+        self.assertEqual(merge.NO_ADVISORY_DATA, {"pre_commit", "docker"})
 
     def test_every_ecosystem_has_a_three_day_cooldown(self):
         config = (ROOT / ".github/dependabot.yml").read_text()
