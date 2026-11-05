@@ -179,12 +179,12 @@ PRs follow the policy below.
 
 ## Dependabot auto-merge
 
-The **Dependabot merge** workflow merges every Dependabot PR once all checks of
-its exact head succeed and no known advisory stops it, including major updates in
-every ecosystem. No person or AI
-reviews it first. The maintainer accepts that a compatible-looking update may break a
-release: a release that does not work is safer than vulnerable software that keeps
-running, and anyone who needs the old behavior can downgrade at their own risk.
+The **Dependabot merge** workflow merges every Dependabot PR once all checks of its
+exact head succeed and no known advisory stops it, including major updates in every
+ecosystem. No person or AI reviews it first. The maintainer accepts that a
+compatible-looking update may break a release: a release that does not work is safer
+than vulnerable software that keeps running, and anyone who needs the old behavior can
+downgrade at their own risk.
 
 CI cannot detect a malicious release. To reduce that risk, `cooldown` in
 `.github/dependabot.yml` delays version updates by three days, so that a bad release
@@ -196,11 +196,13 @@ on every evaluation of a PR with verified commits: pip packages in
 [OSV](https://osv.dev), and GitHub Actions in the GitHub Advisory Database, including
 malware advisories in both. A known advisory stops the merge, and the triage comment
 names it unless a hold or an earlier stop reason takes precedence. A failed lookup
-merges nothing: the job fails, and the triage comment stays as it was until a later run
-succeeds. A pip or Actions commit without that metadata stops the merge, as
-does an ecosystem with no classification here. When the metadata names a commit SHA, no
-version or anything else that cannot be compared, any advisory on the package stops the
-merge, and a maintainer must check its affected range.
+merges nothing and fails the job. Unless a hold or another stop reason takes precedence,
+the triage comment says that the lookup failed. A pip or Actions commit whose metadata
+is missing or names a dependency in an unexpected form stops the merge, as does an
+ecosystem with no classification here. When the metadata names a commit SHA, no version
+or anything else that cannot be compared, any advisory on the package stops the merge,
+and a maintainer must check its affected range. An action tag with fewer than three
+numbers, such as `v3`, counts as not comparable, because it can move to any 3.x release.
 
 Neither the cooldown nor the advisory lookup catches:
 
@@ -208,7 +210,8 @@ Neither the cooldown nor the advisory lookup catches:
   days, including an unnoticed malicious release, which merges once CI passes;
 - a problem reported only elsewhere, such as in an upstream issue, unless a registry
   withdraws the release or a maintainer holds the PR;
-- pre-commit hooks and Docker images, which have no advisory source here;
+- known advisories on pre-commit hooks and Docker images, which have no advisory source
+  here;
 - transitive dependencies, or actions nested in a composite action;
 - other versions that a pip range allows, because only the named version is looked up;
 - unreviewed GitHub advisories for actions, which carry no package data;
@@ -227,8 +230,9 @@ merge. Anyone can review a public repository, so other reviews do not count. Eve
 has one triage comment with the review state, the decision, the reason, what would
 make it mergeable, and the deadline. A stopped PR is assigned to the maintainer, who
 gets one more comment if the decision becomes overdue after seven days. Measured from
-the head's latest commit, unfinished checks and blocked merge states stop the merge after
-two hours, a conflict that Dependabot has not rebased after a day, and a merge state that
+the head's latest commit, unfinished checks, blocked merge states and a failed advisory
+lookup stop the merge after two hours, so one failed lookup can stop an older head at
+once, until a later lookup succeeds; a conflict that Dependabot has not rebased after a day, and a merge state that
 GitHub has not computed after seven days.
 
 To keep a PR from merging, comment on it, with the command on the first line. A review
