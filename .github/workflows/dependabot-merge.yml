@@ -11,16 +11,14 @@ on:
       - GHPages build
       - GHPages publisher
     types: [requested, completed]
-  # Codecov reports codecov/patch as a check run, which starts no workflow_run.
-  check_run:
-    types: [completed]
-  # Hold and release commands. Comments that the controller writes with GITHUB_TOKEN start no run.
-  issue_comment:
-    types: [created, edited, deleted]
+    # No run at all for other branches. The publisher runs on master, but it reports the `GHPages publish` check of
+    # the PR head. codecov/patch and comments start no run: the controller waits for codecov/patch within a run, and
+    # reads hold commands before every merge.
+    branches: ['dependabot/**', master]
   schedule:
-    # Recovers a dropped event and moves past deadlines. GitHub delays or drops these runs, often for hours,
-    # and most at the start of an hour, so this avoids minute 0.
-    - cron: '7,22,37,52 * * * *'
+    # Moves past deadlines and recovers a dropped event. GitHub delays or drops these runs, often for hours, and most
+    # at the start of an hour.
+    - cron: '37 * * * *'
   workflow_dispatch:
 
 permissions: {}
@@ -32,35 +30,20 @@ concurrency:
   group: >-
     ${{ (github.repository == 'opthub-org/pytorch-bsf' &&
     github.ref == 'refs/heads/master' &&
-    (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ||
-    (github.event_name == 'workflow_run' &&
-    (github.event.workflow_run.name == 'GHPages publisher' ||
-    startsWith(github.event.workflow_run.head_branch, 'dependabot/'))) ||
-    (github.event_name == 'check_run' && github.event.check_run.app.slug == 'codecov' &&
-    startsWith(github.event.check_run.check_suite.head_branch, 'dependabot/')) ||
-    (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
-    github.event.issue.user.login == 'dependabot[bot]' &&
-    contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association) &&
-    contains(github.event.comment.body, '/dependabot')))) && 'dependabot-merge' || format('dependabot-merge-skipped-{0}', github.run_id) }}
+    (github.event_name != 'workflow_run' ||
+    github.event.workflow_run.name == 'GHPages publisher' ||
+    startsWith(github.event.workflow_run.head_branch, 'dependabot/'))) && 'dependabot-merge' || format('dependabot-merge-skipped-{0}', github.run_id) }}
   cancel-in-progress: false
 
 jobs:
   reconcile:
     # The ref check keeps a dispatch from running another branch's controller with these permissions.
-    # The publisher always runs on master, but it reports the `GHPages publish` check of the PR head.
     if: >-
       github.repository == 'opthub-org/pytorch-bsf' &&
       github.ref == 'refs/heads/master' &&
-      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'workflow_run' &&
-      (github.event.workflow_run.name == 'GHPages publisher' ||
-      startsWith(github.event.workflow_run.head_branch, 'dependabot/'))) ||
-      (github.event_name == 'check_run' && github.event.check_run.app.slug == 'codecov' &&
-      startsWith(github.event.check_run.check_suite.head_branch, 'dependabot/')) ||
-      (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
-      github.event.issue.user.login == 'dependabot[bot]' &&
-      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association) &&
-      contains(github.event.comment.body, '/dependabot')))
+      (github.event_name != 'workflow_run' ||
+      github.event.workflow_run.name == 'GHPages publisher' ||
+      startsWith(github.event.workflow_run.head_branch, 'dependabot/'))
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

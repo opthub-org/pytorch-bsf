@@ -250,20 +250,22 @@ body does not count:
 ```
 
 The hold ends after that date in UTC, at most 30 days ahead, or when someone comments
-`/dependabot-release`. Only a user with write access can use these commands. Posting,
-editing or deleting one starts a run. A malformed hold, such as one with a past date,
+`/dependabot-release`. Only a user with write access can use these commands. A comment
+starts no run, but every run reads the commands before it merges anything, so a hold
+takes effect before the next merge. A malformed hold, such as one with a past date,
 stops the merge for seven days.
 
 A run starts when a workflow that reports a required check starts or finishes on a
-Dependabot branch, when Codecov completes a check on one, when someone with write access
-posts, edits or deletes a command on a Dependabot PR, and on a schedule. Each run
-evaluates every open Dependabot PR, so a merge or triage comment usually follows its
-trigger within minutes. Nothing else starts a run: a deadline passing, a hold expiring, a
-review, or an advisory published while a PR waits takes effect at the next run. The
-schedule asks for a run every 15 minutes, but GitHub delays and drops scheduled runs. From
-2026-11-01 to 2026-11-05, a workflow here scheduled every five minutes ran only 25 times,
-2.5 to 7.3 hours apart. Such changes can therefore take hours, and GitHub guarantees no
-upper bound. To apply them at once, run the workflow by hand.
+Dependabot branch or on `master`, and on a schedule. Other branches start no run. Codecov
+reports `codecov/patch` without starting a run, so a run waits up to five minutes for it
+when no other check is unfinished. Each run evaluates every open Dependabot PR, so a
+merge or triage comment usually follows CI within minutes. A deadline passing, a hold
+expiring or being released, a review, or an advisory published while a PR waits takes
+effect only at the next run. The schedule asks for a run every hour, but GitHub delays and
+drops scheduled runs. From 2026-11-01 to 2026-11-05, a workflow here scheduled every five
+minutes and once a day had only 25 scheduled runs, 2.5 to 7.3 hours apart. These changes
+can therefore take hours, and GitHub guarantees no upper bound. To apply them at once,
+run the workflow by hand.
 
 Set the repository Actions variable **DEPENDABOT_MERGE_ENABLED** to `false` to stop
 merging while triage continues. Any value other than an empty one or `true`, in any case,

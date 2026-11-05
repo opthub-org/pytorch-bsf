@@ -1063,7 +1063,7 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(self.writes("pulls/7/merge"), [])
         self.assertIn(expected, self.triage())
 
-    def use_merge_states(self, *states):
+    def stub_merge_states_and_sleep(self, *states):
         reads = iter(states)
 
         def get(path):
@@ -1075,16 +1075,55 @@ class ReconcileTests(unittest.TestCase):
         return sleep.start()
 
     def test_an_uncomputed_merge_state_is_read_again_before_deciding(self):
-        sleep = self.use_merge_states("unknown", None, "clean")
+        sleep = self.stub_merge_states_and_sleep("unknown", None, "clean")
         self.assertEqual(self.run_once(), [])
         self.assertEqual(len(self.writes("pulls/7/merge")), 1)
         self.assertEqual(sleep.call_count, 2)
         sleep.assert_called_with(merge.UNCOMPUTED_DELAY_SECONDS)
 
     def test_a_state_that_stays_uncomputed_waits_after_a_bounded_number_of_reads(self):
-        sleep = self.use_merge_states(*["unknown"] * (merge.UNCOMPUTED_REREADS + 1))
+        sleep = self.stub_merge_states_and_sleep(*["unknown"] * (merge.UNCOMPUTED_REREADS + 1))
         self.assert_blocked("GitHub reports the merge state as `unknown`.")
         self.assertEqual(sleep.call_count, merge.UNCOMPUTED_REREADS)
+
+    def stub_clock(self, *readings):
+        sleep = patch.object(merge.time, "sleep")
+        monotonic = patch.object(merge.time, "monotonic", side_effect=readings)
+        self.addCleanup(sleep.stop)
+        self.addCleanup(monotonic.stop)
+        monotonic.start()
+        return sleep.start()
+
+    def test_a_run_waits_for_codecov_when_only_its_checks_are_unfinished(self):
+        sleep = self.stub_clock(0.0, 1.0)
+        self.ci_state.side_effect = [([], ["codecov/patch"], {}), ([], [], {})]
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(len(self.writes("pulls/7/merge")), 1)
+        sleep.assert_called_once_with(merge.CODECOV_POLL_SECONDS)
+
+    def test_a_run_does_not_wait_for_codecov_while_other_checks_are_unfinished_or_failed(self):
+        states: list[tuple[list[str], list[str], dict[str, security.Json]]] = [
+            ([], ["codecov/patch", "lint"], {}),
+            (["lint"], ["codecov/patch"], {}),
+        ]
+        for state in states:
+            with self.subTest(state=state):
+                self.api.write.reset_mock()
+                self.ci_state.reset_mock()
+                self.ci_state.return_value = state
+                sleep = self.stub_clock(0.0, 1.0)
+                self.assertEqual(self.run_once(), [])
+                self.assertEqual(self.writes("pulls/7/merge"), [])
+                self.assertEqual(self.ci_state.call_count, 1)
+                sleep.assert_not_called()
+
+    def test_the_codecov_wait_ends_at_the_shared_deadline(self):
+        wait = merge.CODECOV_WAIT_SECONDS
+        sleep = self.stub_clock(0.0, wait - 1, wait)
+        self.ci_state.return_value = ([], ["codecov/patch"], {})
+        self.assert_blocked("`codecov/patch`")
+        self.assertEqual(sleep.call_count, 1)
+        self.assertEqual(self.ci_state.call_count, 2)
 
     def test_ready_pr_merges_exactly_the_evaluated_head_and_reports_it(self):
         self.assertEqual(self.run_once(), [])
@@ -1539,9 +1578,12 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_every_trigger_needed_for_immediate_and_recovered_runs_is_present(self):
         self.assertIn("types: [requested, completed]", self.workflow)
-        self.assertRegex(self.workflow, r"check_run:\n\s+types: \[completed\]\n")
-        self.assertRegex(self.workflow, r"issue_comment:\n\s+types: \[created, edited, deleted\]\n")
-        self.assertRegex(self.workflow, r"schedule:\n(?:\s+#.*\n)*\s+- cron: '7,22,37,52 \* \* \* \*'")
+        self.assertRegex(self.workflow, r"schedule:\n(?:\s+#.*\n)*\s+- cron: '37 \* \* \* \*'")
+
+    def test_other_branches_start_no_run(self):
+        self.assertRegex(
+            self.workflow, r"types: \[requested, completed\]\n(?:\s+#.*\n)*    branches: \['dependabot/\*\*', master\]\n"
+        )
 
     def test_a_skipped_run_cannot_replace_a_pending_evaluation(self):
         # GitHub cancels a pending run that a newer run in its group replaces, even when the newer one skips its job.
@@ -1549,13 +1591,8 @@ class ConfigurationTests(unittest.TestCase):
         condition = re.search(r"    if: >-\n((?:      .*\n)+)", self.workflow)
         assert group is not None and condition is not None
         expected = " ".join(condition[1].split())
-        self.assertEqual(
-            " ".join(group[1].split()),
-            f"${{{{ ({expected}) && 'dependabot-merge' || format('dependabot-merge-skipped-{{0}}', github.run_id) }}}}",
-        )
-        for event in ("check_run.app.slug == 'codecov'", "issue.user.login == 'dependabot[bot]'", "'/dependabot'"):
-            with self.subTest(event=event):
-                self.assertIn(event, expected)
+        skipped = "format('dependabot-merge-skipped-{0}', github.run_id)"
+        self.assertEqual(" ".join(group[1].split()), "${{ (" + expected + ") && 'dependabot-merge' || " + skipped + " }}")
 
     def test_every_required_workflow_triggers_the_controller(self):
         listed = re.search(r"workflows:\n((?:\s+- .*\n)+)", self.workflow)

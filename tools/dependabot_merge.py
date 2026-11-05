@@ -62,6 +62,11 @@ UNCOMPUTED_STATES = {"unknown", None}
 # GitHub computes the state within seconds, and no event reports it, so a wait could last until a scheduled run.
 UNCOMPUTED_REREADS = 3
 UNCOMPUTED_DELAY_SECONDS = 5
+# Codecov reports codecov/patch shortly after the coverage upload, and that report starts no run, so a run waits for it
+# when nothing else is unfinished. The wait is shared by all PRs of a run, which keeps it within the job timeout.
+CODECOV_PREFIX = "codecov/"
+CODECOV_WAIT_SECONDS = 300
+CODECOV_POLL_SECONDS = 20
 WRITE_PERMISSIONS = {"admin", "write"}  # The endpoint reports the maintain role as write.
 # 403: not permitted. 422: invalid merge. Other errors may be transient and fail the job instead.
 MERGE_REFUSALS = {403, 422}
@@ -706,6 +711,7 @@ def evaluate(
     has_write_access: Callable[[str], bool],
     enabled: bool,
     now: dt.datetime,
+    codecov_deadline: float = 0.0,
 ) -> tuple[Json, list[Json], Evidence, Decision]:
     pr = read_pull(api, number)
     comments = api.pages(f"issues/{number}/comments")
@@ -714,6 +720,15 @@ def evaluate(
     approved, changes = review_state(api.pages(f"pulls/{number}/reviews"), has_write_access)
     # A Dependabot PR's read-only token cannot post checks, so unlike security.merge this does not re-authenticate them.
     failed, pending, _ = security.ci_state(api, pr["head"]["sha"], root)
+    # Until codecov_deadline on time.monotonic(), wait while only Codecov's checks are unfinished.
+    while (
+        not failed
+        and pending
+        and all(name.startswith(CODECOV_PREFIX) for name in pending)
+        and time.monotonic() < codecov_deadline
+    ):
+        time.sleep(CODECOV_POLL_SECONDS)
+        failed, pending, _ = security.ci_state(api, pr["head"]["sha"], root)
     problem = provenance_problem(pr, commits, api.repo) or change_problem(files) or metadata_problem(pr, commits)
     version_advisories: list[str] = []
     package_advisories: list[str] = []
@@ -766,12 +781,13 @@ def reconcile(api: security.GitHub, root: Path, enabled: bool, now: dt.datetime)
     """Evaluate every open Dependabot PR; one PR's error never blocks another's decision."""
     errors = []
     has_write_access = write_access_checker(api)
+    codecov_deadline = time.monotonic() + CODECOV_WAIT_SECONDS
     for row in api.pages("pulls?state=open&base=master"):
         number = row["number"]
         try:
             if _login(row) != AUTHOR:
                 continue
-            pr, comments, evidence, decision = evaluate(api, number, root, has_write_access, enabled, now)
+            pr, comments, evidence, decision = evaluate(api, number, root, has_write_access, enabled, now, codecov_deadline)
             if decision.action == "merge":
                 decision = merge(api, pr, decision, evidence.head_committed, now)
             upsert_triage(api, number, comments, render(decision, pr["head"]["sha"]))
