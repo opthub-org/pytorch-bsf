@@ -476,12 +476,20 @@ class AdvisoryTests(unittest.TestCase):
         self.assertEqual(merge.updated_dependencies(orphan), [("a", None)])
 
     def test_a_block_with_other_text_after_it_or_no_end_names_nothing(self):
-        quoted = "---\nupdated-dependencies:\n- dependency-name: x\n  dependency-version: 2.0.0\n...\n"
-        for tail in ("\nMore release notes.\n", "Fixed in 2.0: a bug\n", "See:foo\n", "Note: see the changelog\n", "...\n"):
+        quoted = metadata_block(("x", "2.0.0"))
+        for tail in (
+            "\nMore release notes.\n",
+            "Fixed in 2.0: a bug\n",
+            "See:foo\n",
+            "Note: see the changelog\n",
+            "...\n",
+            "Signed-off-by:x\n",
+        ):
             with self.subTest(tail=tail):
                 self.assertEqual(merge.updated_dependencies(quoted + tail), [])
         self.assertEqual(merge.updated_dependencies(quoted.removesuffix("...\n")), [])
-        trailers = f"{quoted}\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: a <a@b>\n"
+        sign_off = "Signed-off-by: dependabot[bot] <support@github.com>"
+        trailers = f"{quoted}\n{sign_off}\nCo-authored-by: a <a@b>\nCo-Authored-By: b <b@c>\n"
         self.assertEqual(merge.updated_dependencies(trailers), [("x", "2.0.0")])
 
     def test_a_block_must_start_on_its_own_lines(self):
@@ -491,12 +499,20 @@ class AdvisoryTests(unittest.TestCase):
             "updated-dependencies:\n",
             "notes\nupdated-dependencies:\n",
             "---\n> updated-dependencies:\n",
+            "---\n  updated-dependencies:\n",
+            "  ---\nupdated-dependencies:\n",
         ):
             with self.subTest(head=head):
                 self.assertEqual(merge.updated_dependencies(head + body), [])
 
+    def test_an_indented_entry_is_not_read_and_an_earlier_end_does_not_close_a_block(self):
+        self.assertEqual(merge.updated_dependencies("---\nupdated-dependencies:\n  - dependency-name: x\n...\n"), [])
+        self.assertEqual(merge.updated_dependencies("...\n---\nupdated-dependencies:\n- dependency-name: x\n"), [])
+        indented = "---\nupdated-dependencies:\n- dependency-name: x\n    dependency-version: 2\n...\n"
+        self.assertEqual(merge.updated_dependencies(indented), [("x", None)])
+
     def test_quoted_release_notes_cannot_replace_the_last_block(self):
-        fake = "---\nupdated-dependencies:\n- dependency-name: harmless\n  dependency-version: 1\n...\n"
+        fake = metadata_block(("harmless", "1"))
         self.assertEqual(merge.updated_dependencies(fake + METADATA), [("x", "2.0.0")])
 
     def test_lowercase_metadata_finds_an_advisory_filed_under_a_canonical_name(self):
@@ -543,6 +559,11 @@ class AdvisoryTests(unittest.TestCase):
             ("1.0b2", "1.0b2"),
             ("1.0alpha1", "1.0alpha1"),
             ("1.0beta2", "1.0beta2"),
+            ("1.0.a1", "1.0.a1"),
+            ("1.0a.1", "1.0a.1"),
+            ("1.0.rc.1", "1.0.rc.1"),
+            ("1.0.post.2", "1.0.post.2"),
+            ("3.1.dev.4", "3.1.dev.4"),
             ("1.0.post2", "1.0.post2"),
             ("3.1.dev4", "3.1.dev4"),
             ("41.0.0a1.post1.dev2", "41.0.0a1.post1.dev2"),
@@ -1137,23 +1158,22 @@ class ReconcileTests(unittest.TestCase):
         self.assertIn("advisory lookup", errors[0])
         self.assertEqual(self.writes("pulls/7/merge"), [])
 
-    def test_failed_lookup_fails_the_job_when_something_else_explains_the_pr(self):
-        def hold():
-            self.comments.append(comment("/dependabot-hold until=2026-11-07 r"))
+    def assert_lookup_failure_shows_only_in_the_job(self):
+        self.fail_lookup()
+        self.assert_failed_job_and_no_merge(self.run_once())
+        self.assertNotIn("lookup failed", self.triage())
 
-        def conflict():
-            self.pr["mergeable_state"] = "dirty"
+    def test_failed_lookup_shows_only_in_the_job_during_a_hold(self):
+        self.comments.append(comment("/dependabot-hold until=2026-11-07 r"))
+        self.assert_lookup_failure_shows_only_in_the_job()
 
-        def failed_check():
-            self.ci_state.return_value = (["lint"], [], {})
+    def test_failed_lookup_shows_only_in_the_job_during_a_conflict(self):
+        self.pr["mergeable_state"] = "dirty"
+        self.assert_lookup_failure_shows_only_in_the_job()
 
-        for label, arrange in (("hold", hold), ("conflict", conflict), ("failed check", failed_check)):
-            with self.subTest(label):
-                self.setUp()
-                arrange()
-                self.fail_lookup()
-                self.assert_failed_job_and_no_merge(self.run_once())
-                self.assertNotIn("lookup failed", self.triage())
+    def test_failed_lookup_shows_only_in_the_job_after_a_failed_check(self):
+        self.ci_state.return_value = (["lint"], [], {})
+        self.assert_lookup_failure_shows_only_in_the_job()
 
     def test_failed_lookup_fails_the_job_while_paused_and_still_looks_up(self):
         self.fail_lookup()

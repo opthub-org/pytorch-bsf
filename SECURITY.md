@@ -216,6 +216,9 @@ Neither the cooldown nor the advisory lookup catches:
 - transitive dependencies, or actions nested in a composite action;
 - other versions that a pip range allows, because only the named version is looked up;
 - unreviewed GitHub advisories for actions, which carry no package data;
+- a commit without Dependabot's metadata whose quoted text ends in a block of the same
+  shape, because the text alone cannot prove who wrote it; the lookup then uses the quoted
+  names;
 - action advisories filed under a name other than `owner/repo[/path]`, such as a URL or
   an `@scope/name`;
 - an advisory published after the merge. Dependabot alerts report this for pip packages

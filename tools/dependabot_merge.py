@@ -38,6 +38,7 @@ MAX_HOLD = dt.timedelta(days=30)
 MAX_REASON_CHARS = 300
 MAX_LISTED_CHECKS = 8
 OSV_URL = "https://api.osv.dev/v1/query"
+# Only bounds a server that keeps returning page tokens; going past it fails the lookup.
 OSV_MAX_PAGES = 20
 GITHUB_ADVISORY_TYPES = ("reviewed", "malware")
 GITHUB_PAGE_SIZE = 100
@@ -232,19 +233,22 @@ def _run_updates_pins(run: list[str]) -> bool:
 def updated_dependencies(message: str) -> list[tuple[str, str | None]]:
     """Read Dependabot's metadata from a commit message, as (name, version) pairs.
 
-    Only the last block counts, and only if it is on its own lines, closed and followed by nothing but sign-offs. Text
-    quoted before the real block cannot replace it. If Dependabot wrote no block, quoted text usually names nothing, but
-    a quoted block at the very end still counts: text alone cannot prove that the block is Dependabot's.
+    Only the last block counts, and only directly after a `---` line, closed, and followed by nothing but sign-off or
+    co-author trailers. Text quoted before the real block cannot replace it. If Dependabot wrote no block, quoted text
+    usually names nothing, but a quoted block at the very end still counts: text alone cannot prove whose block it is.
     """
     lines = message.split("\n")
     starts = [index for index, line in enumerate(lines) if line == "updated-dependencies:"]
-    if not starts or starts[-1] == 0 or lines[starts[-1] - 1] != "---" or "..." not in lines[starts[-1] :]:
+    if not starts:
         return []
-    end = lines.index("...", starts[-1])
+    start = starts[-1]
+    if start == 0 or lines[start - 1] != "---" or "..." not in lines[start:]:
+        return []
+    end = lines.index("...", start)
     if any(line and not METADATA_TRAILER.fullmatch(line) for line in lines[end + 1 :]):
         return []
     entries: list[tuple[str, str | None]] = []
-    for line in lines[starts[-1] + 1 : end]:
+    for line in lines[start + 1 : end]:
         if line.startswith("- dependency-name:"):
             entries.append((line.removeprefix("- dependency-name:").strip(" '\""), None))
         elif line.startswith("  dependency-version:") and entries:
@@ -471,7 +475,7 @@ def decide(evidence: Evidence, now: dt.datetime) -> Decision:
         "merge",
         review,
         "Merging this head now.",
-        "Every required check succeeded.",
+        "Every required check succeeded, and no known advisory stops it.",
         "No action is needed.",
         "None.",
     )
