@@ -192,12 +192,13 @@ can be withdrawn first. Security updates skip the delay. Dependabot's Python upd
 skips yanked releases; this is not confirmed for the other ecosystems.
 
 The controller also looks up the version that each commit's Dependabot metadata names,
-on every evaluation of a PR with verified commits: pip packages in
-[OSV](https://osv.dev), and GitHub Actions in the GitHub Advisory Database, including
+on every evaluation of a PR that passes the provenance, change and metadata checks:
+pip packages in [OSV](https://osv.dev), and GitHub Actions in the GitHub Advisory Database, including
 malware advisories in both. A known advisory stops the merge, and the triage comment
 names it unless a hold or an earlier stop reason takes precedence. A failed lookup
-merges nothing and fails the job. Unless a hold or another stop reason takes precedence,
-the triage comment says that the lookup failed. A pip or Actions commit whose metadata
+merges nothing and fails the job. The triage comment says that the lookup failed, unless
+a hold, another stop reason, a conflict or a pause comes first; then only the failed job
+shows it. A pip or Actions commit whose metadata
 is missing or names a dependency in an unexpected form stops the merge, as does an
 ecosystem with no classification here. When the metadata names a commit SHA, no version
 or anything else that cannot be compared, any advisory on the package stops the merge,
@@ -215,6 +216,8 @@ Neither the cooldown nor the advisory lookup catches:
 - transitive dependencies, or actions nested in a composite action;
 - other versions that a pip range allows, because only the named version is looked up;
 - unreviewed GitHub advisories for actions, which carry no package data;
+- action advisories filed under a name other than `owner/repo[/path]`, such as a URL
+  (2 of 69 package entries when this was checked);
 - an advisory published after the merge. Dependabot alerts report this for pip packages
   only: GitHub creates no alerts for SHA-pinned actions, and none for pre-commit hooks
   or Docker images, so nothing here reports it for those.
@@ -231,9 +234,10 @@ has one triage comment with the review state, the decision, the reason, what wou
 make it mergeable, and the deadline. A stopped PR is assigned to the maintainer, who
 gets one more comment if the decision becomes overdue after seven days. Measured from
 the head's latest commit, unfinished checks, blocked merge states and a failed advisory
-lookup stop the merge after two hours, so one failed lookup can stop an older head at
-once, until a later lookup succeeds; a conflict that Dependabot has not rebased after a day, and a merge state that
-GitHub has not computed after seven days.
+lookup stop the merge after two hours, a conflict that Dependabot has not rebased after a
+day, and a merge state that GitHub has not computed after seven days. No failure time is
+stored, so one failed lookup can stop an older head at once, unless it conflicts or
+merging is paused; a later successful lookup clears the stop.
 
 To keep a PR from merging, comment on it, with the command on the first line. A review
 body does not count:

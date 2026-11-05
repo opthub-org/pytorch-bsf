@@ -118,6 +118,8 @@ class DecisionTests(unittest.TestCase):
         paused = decide(lookup_error="ValueError: x", enabled=False, now=old)
         self.assertEqual(paused.action, "wait")
         self.assertIn("paused", paused.outcome)
+        self.assertIn("DEPENDABOT_MERGE_ENABLED", paused.reason)
+        self.assertIn("None while paused", paused.deadline)
 
     def test_failed_lookup_never_merges_and_does_not_hide_other_decisions(self):
         self.assertEqual(decide(lookup_error="ValueError: x", failed=["lint"]).reason, decide(failed=["lint"]).reason)
@@ -459,10 +461,8 @@ class AdvisoryTests(unittest.TestCase):
         self.assertEqual(merge.updated_dependencies(two), [("a", None), ("b", "2")])
         self.assertEqual(merge.updated_dependencies("no metadata"), [])
 
-    def test_parser_stops_at_the_terminator_and_tolerates_a_missing_one(self):
-        after = "updated-dependencies:\n- dependency-name: a\n...\n- dependency-name: b\n"
-        self.assertEqual(merge.updated_dependencies(after), [("a", None)])
-        orphan = "updated-dependencies:\n  dependency-version: 1\n- dependency-name: a"
+    def test_parser_ignores_a_version_before_any_name(self):
+        orphan = "updated-dependencies:\n  dependency-version: 1\n- dependency-name: a\n...\n"
         self.assertEqual(merge.updated_dependencies(orphan), [("a", None)])
 
     def test_quoted_release_notes_cannot_replace_the_last_block(self):
@@ -511,6 +511,8 @@ class AdvisoryTests(unittest.TestCase):
             ("2.0.0RC1", "2.0.0RC1"),
             ("1.0a1", "1.0a1"),
             ("1.0b2", "1.0b2"),
+            ("1.0alpha1", "1.0alpha1"),
+            ("1.0beta2", "1.0beta2"),
             ("1.0.post2", "1.0.post2"),
             ("3.1.dev4", "3.1.dev4"),
             ("41.0.0a1.post1.dev2", "41.0.0a1.post1.dev2"),
@@ -553,6 +555,8 @@ class AdvisoryTests(unittest.TestCase):
         self.assertEqual(json.loads(request.data), {"package": {"name": "x"}})
         self.assertNotIn("Authorization", request.headers)
         self.assertEqual(opened.call_args.kwargs["timeout"], 60)
+        self.assertEqual(request.headers["Content-type"], "application/json")
+        self.assertEqual(request.headers["User-agent"], "pytorch-bsf-dependabot-merge")
 
     def test_only_a_real_osv_answer_reads_as_no_advisories(self):
         response = osv_response(b"{}")
@@ -611,6 +615,15 @@ class AdvisoryTests(unittest.TestCase):
             with self.subTest(exact=exact):
                 self.assertEqual(self.actions("github/codeql-action", exact, filed)[0], (["GHSA-a"], []))
 
+    def test_mixed_case_action_finds_an_advisory_filed_in_lowercase(self):
+        self.assertEqual(self.actions("Azure/x", "1.0.0", [("GHSA-a", "azure/x", "1.0.0")])[0], (["GHSA-a"], []))
+
+    def test_rows_without_package_data_do_not_fail_the_lookup(self):
+        api = Mock()
+        rows = [{"ghsa_id": "GHSA-a", "vulnerabilities": None}, {"ghsa_id": "GHSA-b"}]
+        api.request.side_effect = lambda path: rows if ENCODED_AT not in path else []
+        self.assertEqual(merge._action_advisories(api, "a/b", "1.0.0"), set())
+
     def test_lowercase_action_finds_an_advisory_filed_in_mixed_case(self):
         filed = [("GHSA-a", "Azure/setup-kubectl", "0.0.1")]
         self.assertEqual(self.actions("azure/setup-kubectl", "0.0.1", filed)[0], (["GHSA-a"], []))
@@ -653,6 +666,13 @@ class AdvisoryTests(unittest.TestCase):
         asked = {parse_qs(urlsplit(call.args[0]).query)["affects"][0] for call in api.request.call_args_list}
         self.assertEqual(asked, {"a/b", "a/b/c", "a/b@1.0.0", "a/b/c@1.0.0"})
 
+    def test_a_block_with_other_text_after_it_or_no_end_names_nothing(self):
+        quoted = "---\nupdated-dependencies:\n- dependency-name: x\n  dependency-version: 2.0.0\n...\n"
+        self.assertEqual(merge.updated_dependencies(f"{quoted}\nMore release notes.\n"), [])
+        self.assertEqual(merge.updated_dependencies(quoted.removesuffix("...\n")), [])
+        trailers = f"{quoted}\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: a <a@b>\n"
+        self.assertEqual(merge.updated_dependencies(trailers), [("x", "2.0.0")])
+
     def test_withdrawn_github_advisory_is_ignored(self):
         api = Mock()
         api.request.return_value = [{"ghsa_id": "A", "withdrawn_at": None}, {"ghsa_id": "B", "withdrawn_at": "2026"}]
@@ -663,7 +683,7 @@ class AdvisoryTests(unittest.TestCase):
             ("object", {}),
             ("null", None),
             ("error", {"message": "x"}),
-            ("full page", [{"ghsa_id": "A"}] * 100),
+            ("full page", [{"ghsa_id": "A"}] * merge.GITHUB_PAGE_SIZE),
         ):
             with self.subTest(label):
                 api = Mock()
@@ -708,6 +728,10 @@ class AdvisoryTests(unittest.TestCase):
                 with self.subTest(name=name):
                     message = metadata_block((name, "1.0.0"))
                     self.assertIn("does not name its dependencies", str(merge.metadata_problem(pr, [commit(message=message)])))
+        for good_first in (True, False):
+            pair = (("good", "1.0.0"), ("bad # c", "1.0.0"))
+            message = metadata_block(*(pair if good_first else pair[::-1]))
+            self.assertIn("does not name its dependencies", str(merge.metadata_problem(PIP, [commit(message=message)])))
         for pr, name in (
             (PIP, "pyyaml"),
             (PIP, "PyYAML[extra]"),

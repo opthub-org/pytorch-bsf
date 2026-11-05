@@ -29,7 +29,7 @@ BRANCH_PREFIX = "dependabot/"
 MAINTAINER = "NaokiHamada"
 TRIAGE_MARKER = "<!-- dependabot-triage:v1 -->"
 OVERDUE_MARKER = "<!-- dependabot-overdue:v1 -->"
-# Bounds both unfinished checks and merge states that GitHub has computed, measured from the latest commit.
+# Bounds unfinished checks, merge states that GitHub has computed and failed advisory lookups, from the latest commit.
 CI_GRACE = dt.timedelta(hours=2)
 # Dependabot rebases a conflict by itself, and a rebase restarts the clock, so a merged sibling need not notify anyone.
 REBASE_GRACE = dt.timedelta(days=1)
@@ -42,14 +42,16 @@ OSV_MAX_PAGES = 20
 GITHUB_ADVISORY_TYPES = ("reviewed", "malware")
 GITHUB_PAGE_SIZE = 100
 ADVISORY_ID = re.compile(r"[A-Za-z0-9._:-]+")
-# GitHub answers nothing and OSV an incomplete list for a version they cannot parse, so only PEP 440 shapes are compared
-# by version. Anything else asks about the whole package, which can only stop more merges: that includes a pip suffix
-# directly after a single number, like `44rc1`.
+# GitHub answers nothing and OSV an incomplete list for a version they cannot parse, so only this subset of PEP 440 is
+# compared by version. Anything else asks about the whole package, which can only stop more merges. That includes valid
+# versions like `44rc1`: leaving them out is a conservative choice, not a limit of OSV.
 _VERSION_SUFFIX = r"(?:\.?(?:a|b|rc|alpha|beta)\.?\d+)?(?:\.?post\.?\d+)?(?:\.?dev\.?\d+)?"
 PIP_COMPARABLE = re.compile(rf"v?\d+(?:(?:\.\d+)+{_VERSION_SUFFIX})?", re.IGNORECASE | re.ASCII)
 # A tag like `v3` moves: it can be any 3.x release, while GitHub compares it as 3.0.0 and misses advisories above that.
 ACTION_COMPARABLE = re.compile(rf"v?\d+(?:\.\d+){{2,}}{_VERSION_SUFFIX}", re.IGNORECASE | re.ASCII)
 PIP_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*(?:\[[^\]]*\])?")
+# A commit trailer, the only text that may follow Dependabot's metadata.
+TRAILER = re.compile(r"[A-Za-z-]+: .*")
 ACTION_NAME = re.compile(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)+")
 SHORT_SHA_CHARS = 10
 MERGEABLE_STATES = {"clean", "has_hooks"}
@@ -230,15 +232,18 @@ def _run_updates_pins(run: list[str]) -> bool:
 def updated_dependencies(message: str) -> list[tuple[str, str | None]]:
     """Read Dependabot's metadata from a commit message, as (name, version) pairs.
 
-    Only the last block counts: it follows the release notes, so text quoted before it cannot replace it.
+    Only a closed last block followed by nothing but trailers counts, so text quoted from release notes cannot name a
+    version: it either comes before the real block, or leaves other text after it when Dependabot writes no block.
     """
     _, found, block = message.rpartition("updated-dependencies:\n")
+    lines = block.split("\n")
+    if not found or "..." not in lines:
+        return []
+    end = lines.index("...")
+    if not all(not line or TRAILER.fullmatch(line) for line in lines[end + 1 :]):
+        return []
     entries: list[tuple[str, str | None]] = []
-    if not found:
-        return entries
-    for line in block.split("\n"):
-        if line == "...":
-            break
+    for line in lines[:end]:
         if line.startswith("- dependency-name:"):
             entries.append((line.removeprefix("- dependency-name:").strip(" '\""), None))
         elif line.startswith("  dependency-version:") and entries:
@@ -479,11 +484,11 @@ def _advisory_blocker(evidence: Evidence) -> tuple[str, str]:
     reasons = []
     remedy = "Wait for Dependabot to propose an unaffected version, or review the advisories and merge it by hand."
     if evidence.version_advisories:
-        reasons.append(f"Known advisories affect a version this PR names: {_names(evidence.version_advisories, None)}.")
+        reasons.append(f"Known advisories affect a version this PR names: {_names(evidence.version_advisories, limit=None)}.")
     if evidence.package_advisories:
         reasons.append(
             "A dependency in this PR has no comparable version, and advisories exist for that package: "
-            f"{_names(evidence.package_advisories, None)}."
+            f"{_names(evidence.package_advisories, limit=None)}."
         )
         # Waiting may not clear these: a SHA or a moving tag gets no query by version.
         remedy = "Check the affected ranges of these advisories and merge it by hand."
@@ -517,7 +522,8 @@ def _blocker(evidence: Evidence, now: dt.datetime) -> tuple[str, str] | None:
             f"GitHub still reports the merge state as `{evidence.merge_state}`.",
             "Resolve what GitHub reports on the PR, or merge it by hand.",
         )
-    # No failure time is stored, so this clock runs from the head: one failure can stop an older head at once.
+    # No failure time is stored, so this clock runs from the head: one failure can stop an older head at once. A conflict
+    # or a pause already keeps the head from merging, so a passing outage there does not assign the maintainer.
     if evidence.lookup_error is not None and evidence.enabled and evidence.merge_state != "dirty" and age > CI_GRACE:
         return (
             f"The advisory lookup failed, and this head is more than {_hours(CI_GRACE)} hours old.",
@@ -688,10 +694,10 @@ def evaluate(
     # A Dependabot PR's read-only token cannot post checks, so unlike security.merge this does not re-authenticate them.
     failed, pending, _ = security.ci_state(api, pr["head"]["sha"], root)
     problem = provenance_problem(pr, commits, api.repo) or change_problem(files) or metadata_problem(pr, commits)
-    # Only a verified Dependabot commit may name what to look up.
     version_advisories: list[str] = []
     package_advisories: list[str] = []
     lookup_error = None
+    # Only a verified Dependabot commit may name what to look up.
     if problem is None:
         try:
             version_advisories, package_advisories = known_advisories(api, pr, commits)
