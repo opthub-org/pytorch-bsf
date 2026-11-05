@@ -187,8 +187,15 @@ running, and anyone who needs the old behavior can downgrade at their own risk.
 
 CI cannot detect a malicious release. To reduce that risk, `cooldown` in
 `.github/dependabot.yml` delays version updates by three days, so that a bad release
-can be withdrawn first. Security updates skip the delay. The remaining exposure is
-accepted: action pins also update in privileged workflows, including this one, the
+can be withdrawn first. Security updates skip the delay. The controller also looks up
+what each pip and GitHub Actions update installs in the GitHub Advisory Database,
+including its malware advisories, on every evaluation. A known advisory stops the merge
+and is named in the triage comment, and a failed lookup merges nothing. For a SHA pin,
+or an update that names no version, any advisory on the package stops the merge. The
+database has no data for pre-commit hooks or Docker images, so these merge without
+this check. A problem reported only elsewhere, such as an upstream issue, reaches
+neither the cooldown nor this check unless a registry withdraws the release or a
+maintainer holds the PR. The remaining exposure is accepted: action pins also update in privileged workflows, including this one, the
 security automation and PyPI publishing, and a malicious action runs with their
 permissions once it reaches `master`.
 

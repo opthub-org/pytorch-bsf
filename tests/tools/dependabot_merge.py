@@ -35,12 +35,28 @@ def make_pr(number=1, **overrides):
     return pr
 
 
+METADATA = """build(deps): bump x from 1 to 2
+
+Release notes.
+
+---
+updated-dependencies:
+- dependency-name: x
+  dependency-version: 2.0.0
+  dependency-type: direct:production
+  update-type: version-update:semver-major
+...
+
+Signed-off-by: dependabot[bot] <support@github.com>
+"""
+
+
 def commit(author="dependabot[bot]", committer="web-flow", verified=True, date="2026-11-05T11:00:00Z"):
     return {
         "sha": "d" * 40,
         "author": {"login": author},
         "committer": {"login": committer},
-        "commit": {"verification": {"verified": verified}, "committer": {"date": date}},
+        "commit": {"message": METADATA, "verification": {"verified": verified}, "committer": {"date": date}},
     }
 
 
@@ -60,6 +76,7 @@ def make_evidence(**overrides):
         "failed": [],
         "pending": [],
         "enabled": True,
+        "advisories": [],
     }
     return merge.Evidence(**{**values, **overrides})
 
@@ -318,6 +335,101 @@ class ChangeTests(unittest.TestCase):
                     self.assertIsNotNone(merge.change_problem([self.workflow(f"{PIN_OLD}\n{line}")]))
 
 
+class AdvisoryTests(unittest.TestCase):
+    def api(self, rows=None):
+        api = Mock()
+        api.request.side_effect = lambda path: rows.get(path, []) if rows else []
+        return api
+
+    def lookup(self, api, name="x", version="2.0.0", branch="dependabot/pip/x-2.0.0"):
+        row = commit()
+        row["commit"]["message"] = (
+            f"---\nupdated-dependencies:\n- dependency-name: {name}\n  dependency-version: {version}\n..."
+        )
+        return merge.known_advisories(api, make_pr(head={"ref": branch, "sha": "c" * 40}), [row])
+
+    def queries(self, api):
+        return [call.args[0] for call in api.request.call_args_list]
+
+    def test_real_metadata_is_parsed(self):
+        self.assertEqual(merge.updated_dependencies(METADATA), [("x", "2.0.0")])
+        two = "updated-dependencies:\n- dependency-name: a\n- dependency-name: 'b'\n  dependency-version: \"2\"\n...\n"
+        self.assertEqual(merge.updated_dependencies(two), [("a", None), ("b", "2")])
+        self.assertEqual(merge.updated_dependencies("no metadata"), [])
+
+    def test_quoted_release_notes_cannot_replace_the_last_block(self):
+        fake = "updated-dependencies:\n- dependency-name: harmless\n  dependency-version: 1\n...\n"
+        self.assertEqual(merge.updated_dependencies(fake + METADATA), [("x", "2.0.0")])
+
+    def test_both_advisory_types_and_exact_version_are_queried(self):
+        api = self.api()
+        self.assertEqual(self.lookup(api), [])
+        self.assertEqual(
+            sorted(self.queries(api)),
+            [
+                "/advisories?ecosystem=pip&type=malware&affects=x%402.0.0&per_page=100",
+                "/advisories?ecosystem=pip&type=reviewed&affects=x%402.0.0&per_page=100",
+            ],
+        )
+
+    def test_a_listed_advisory_is_reported_and_a_withdrawn_one_is_not(self):
+        path = "/advisories?ecosystem=pip&type=malware&affects=x%402.0.0&per_page=100"
+        api = self.api(
+            {
+                path: [
+                    {"ghsa_id": "GHSA-b"},
+                    {"ghsa_id": "GHSA-a", "withdrawn_at": None},
+                    {"ghsa_id": "GHSA-c", "withdrawn_at": "2026-01-01"},
+                ]
+            }
+        )
+        self.assertEqual(self.lookup(api), ["GHSA-a", "GHSA-b"])
+
+    def test_both_spellings_of_a_name_are_queried(self):
+        api = self.api()
+        self.lookup(api, name="Pillow")
+        self.assertEqual(len(self.queries(api)), 4)
+        self.assertTrue(any("affects=pillow%40" in query for query in self.queries(api)))
+        self.assertTrue(any("affects=Pillow%40" in query for query in self.queries(api)))
+
+    def test_action_uses_the_database_name_and_a_sha_pin_asks_about_the_package(self):
+        api = self.api()
+        self.lookup(api, name="tj-actions/changed-files", version="a" * 40, branch="dependabot/github_actions/tj-actions/x")
+        self.assertIn(
+            "/advisories?ecosystem=actions&type=reviewed&affects=tj-actions%2Fchanged-files&per_page=100",
+            self.queries(api),
+        )
+
+    def test_a_version_tag_is_not_treated_as_a_sha(self):
+        api = self.api()
+        self.lookup(api, version="a" * 39)
+        self.assertIn(f"affects=x%40{'a' * 39}", self.queries(api)[0])
+
+    def test_ecosystems_without_data_are_not_queried_and_need_no_metadata(self):
+        for segment in ("docker", "pre_commit"):
+            with self.subTest(segment=segment):
+                api = self.api()
+                self.assertEqual(self.lookup(api, branch=f"dependabot/{segment}/x"), [])
+                api.request.assert_not_called()
+                row = {**commit(), "commit": {"message": "bump"}}
+                self.assertIsNone(merge.metadata_problem(make_pr(head={"ref": f"dependabot/{segment}/x"}), [row]))
+
+    def test_missing_metadata_is_a_problem_where_data_exists(self):
+        row = {**commit(), "commit": {"message": "bump"}}
+        self.assertIn("does not say", str(merge.metadata_problem(make_pr(head={"ref": "dependabot/pip/x"}), [row])))
+        self.assertIsNone(merge.metadata_problem(make_pr(head={"ref": "dependabot/pip/x"}), [commit()]))
+
+    def test_advisory_stops_ahead_of_ci_and_says_how_to_resolve_it(self):
+        decision = decide(advisories=["GHSA-a"], pending=["lint"])
+        self.assertEqual(decision.action, "stop")
+        self.assertIn("GHSA-a", decision.reason)
+        self.assertIn("unaffected version", decision.mergeable_when)
+
+    def test_hold_still_outranks_an_advisory(self):
+        hold = merge.Hold("alice", "why", NOW)
+        self.assertEqual(decide(advisories=["GHSA-a"], hold=hold).action, "hold")
+
+
 class ReviewTests(unittest.TestCase):
     def test_latest_verdict_of_each_user_counts(self):
         reviews = [
@@ -485,6 +597,7 @@ class ReconcileTests(unittest.TestCase):
         self.api.pages.side_effect = lambda path, key=None: self.pages.get(path, [])
         self.api.get.side_effect = self.get
         self.api.write.return_value = {"merged": True}
+        self.api.request.return_value = []
         ci = patch.object(security, "ci_state", return_value=([], [], {}))
         self.ci_state = ci.start()
         self.addCleanup(ci.stop)
@@ -541,6 +654,31 @@ class ReconcileTests(unittest.TestCase):
                 self.api.write.reset_mock()
                 with patch.dict(self.pages, {path: value}):
                     self.assert_blocked(expected)
+
+    def test_known_advisory_stops_the_merge_and_notifies(self):
+        self.api.request.return_value = [{"ghsa_id": "GHSA-a"}]
+        self.assert_blocked("GHSA-a")
+        self.assertEqual(len(self.writes("issues/7/assignees")), 1)
+
+    def test_withdrawn_advisory_lets_the_next_evaluation_merge(self):
+        self.api.request.return_value = [{"ghsa_id": "GHSA-a", "withdrawn_at": "2026-11-05T00:00:00Z"}]
+        self.run_once()
+        self.assertEqual(len(self.writes("pulls/7/merge")), 1)
+
+    def test_failed_advisory_lookup_merges_nothing_and_fails_the_job(self):
+        self.api.request.side_effect = security.GitHubError("down", 502)
+        errors = self.run_once()
+        self.assertIn("#7", errors[0])
+        self.assertEqual(self.writes("pulls/7/merge"), [])
+
+    def test_unverified_commit_is_not_looked_up(self):
+        self.pages["pulls/7/commits"] = [commit(verified=False)]
+        self.assert_blocked("signed by GitHub")
+        self.api.request.assert_not_called()
+
+    def test_commit_without_metadata_stops_with_triage(self):
+        self.pages["pulls/7/commits"] = [{**commit(), "commit": {**commit()["commit"], "message": "bump"}}]
+        self.assert_blocked("does not say")
 
     def test_merge_state_is_wired_into_the_evaluation(self):
         self.pr["mergeable_state"] = "blocked"
