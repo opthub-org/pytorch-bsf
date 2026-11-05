@@ -505,11 +505,15 @@ class AdvisoryTests(unittest.TestCase):
             with self.subTest(head=head):
                 self.assertEqual(merge.updated_dependencies(head + body), [])
 
-    def test_an_indented_entry_is_not_read_and_an_earlier_end_does_not_close_a_block(self):
+    def test_an_indented_name_is_not_read(self):
         self.assertEqual(merge.updated_dependencies("---\nupdated-dependencies:\n  - dependency-name: x\n...\n"), [])
+
+    def test_an_end_before_the_block_does_not_close_it(self):
         self.assertEqual(merge.updated_dependencies("...\n---\nupdated-dependencies:\n- dependency-name: x\n"), [])
-        indented = "---\nupdated-dependencies:\n- dependency-name: x\n    dependency-version: 2\n...\n"
-        self.assertEqual(merge.updated_dependencies(indented), [("x", None)])
+
+    def test_an_over_indented_version_is_ignored(self):
+        over_indented = "---\nupdated-dependencies:\n- dependency-name: x\n    dependency-version: 2\n...\n"
+        self.assertEqual(merge.updated_dependencies(over_indented), [("x", None)])
 
     def test_quoted_release_notes_cannot_replace_the_last_block(self):
         fake = metadata_block(("harmless", "1"))
@@ -1125,7 +1129,8 @@ class ReconcileTests(unittest.TestCase):
         self.assert_blocked("does not name its dependencies")
 
     def use_action_pr(self):
-        self.pr["head"]["ref"] = "dependabot/github_actions/x"
+        # A real branch: its later parts can name another ecosystem.
+        self.pr["head"]["ref"] = "dependabot/github_actions/docker/build-push-action-6.0.0"
         self.pages["pulls/7/commits"] = [commit(message=metadata_block(("actions/cache", "6.1.0")))]
 
     def test_action_advisory_is_wired_into_the_evaluation(self):

@@ -1,4 +1,4 @@
-"""Merge verified Dependabot PRs after full CI and an advisory lookup, and explain every other PR in a triage comment.
+"""Merge verified Dependabot PRs once CI and any advisory lookup pass, and explain every other PR in a triage comment.
 
 The controller is level-triggered: each run re-evaluates all open Dependabot PRs from GitHub's current state, so a missed
 event only delays the next decision. It reads PR metadata as data and never checks out or executes PR code.
@@ -475,7 +475,7 @@ def decide(evidence: Evidence, now: dt.datetime) -> Decision:
         "merge",
         review,
         "Merging this head now.",
-        "Every required check succeeded, and no known advisory stops it.",
+        "Every required check succeeded, and nothing else stopped this merge.",
         "No action is needed.",
         "None.",
     )
