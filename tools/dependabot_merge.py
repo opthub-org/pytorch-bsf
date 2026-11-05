@@ -1,4 +1,4 @@
-"""Merge verified Dependabot PRs after full CI, and explain every other PR in a triage comment.
+"""Merge verified Dependabot PRs after full CI and an advisory lookup, and explain every other PR in a triage comment.
 
 The controller is level-triggered: each run re-evaluates all open Dependabot PRs from GitHub's current state, so a missed
 event only delays the next decision. It reads PR metadata as data and never checks out or executes PR code.
@@ -37,13 +37,14 @@ DECISION_WINDOW = dt.timedelta(days=7)
 MAX_HOLD = dt.timedelta(days=30)
 MAX_REASON_CHARS = 300
 MAX_LISTED_CHECKS = 8
-# Branch segments of Dependabot ecosystems whose updates no advisory source covers. Any other unknown segment stops.
-NO_ADVISORY_DATA = {"docker", "pre_commit"}
 OSV_URL = "https://api.osv.dev/v1/query"
 OSV_MAX_PAGES = 20
 GITHUB_ADVISORY_TYPES = ("reviewed", "malware")
-# Both sources answer "no advisories" for a version they cannot parse, so only this shape is compared by version.
-COMPARABLE_VERSION = re.compile(r"v?\d+(?:\.\d+)*(?:\.?(?:a|b|rc|alpha|beta|post|dev)\.?\d+)*", re.IGNORECASE)
+GITHUB_PAGE_SIZE = 100
+ADVISORY_ID = re.compile(r"[A-Za-z0-9._:-]+")
+# GitHub answers nothing and OSV an incomplete list for a version they cannot parse, so only this shape is compared by
+# version. GitHub also answers nothing for a suffix directly after a single number, like `44rc1`, so that needs a dot.
+COMPARABLE_VERSION = re.compile(r"v?\d+(?:(?:\.\d+)+(?:\.?(?:a|b|rc|alpha|beta|post|dev)\.?\d+)*)?", re.IGNORECASE)
 SHORT_SHA_CHARS = 10
 MERGEABLE_STATES = {"clean", "has_hooks"}
 # GitHub reports these while it recomputes mergeability, which a sibling merge can trigger.
@@ -94,7 +95,7 @@ class Evidence:
     failed: list[str]
     pending: list[str]
     enabled: bool
-    advisories: list[str]
+    version_advisories: list[str]
     package_advisories: list[str]
 
 
@@ -249,15 +250,22 @@ def _ecosystem_segment(pr: Json) -> str:
 def metadata_problem(pr: Json, commits: list[Json]) -> str | None:
     """Require a known ecosystem and the metadata that the advisory lookup reads."""
     segment = _ecosystem_segment(pr)
-    if segment in NO_ADVISORY_DATA:
-        return None
     if segment not in ADVISORY_LOOKUPS:
         return f"The automation has no advisory lookup for the ecosystem `{segment}`."
+    if ADVISORY_LOOKUPS[segment] is None:
+        return None
     for commit in commits:
         dependencies = _commit_dependencies(commit)
         if not dependencies or not all(name for name, _ in dependencies):
             return f"Commit `{commit['sha'][:SHORT_SHA_CHARS]}` does not say which versions it installs."
     return None
+
+
+def _advisory_id(value: str) -> str:
+    """Refuse an identifier that could add text to the triage comment; the failed lookup then merges nothing."""
+    if not isinstance(value, str) or ADVISORY_ID.fullmatch(value) is None:
+        raise ValueError("An advisory source returned a malformed identifier")
+    return value
 
 
 def _osv_query(body: Json) -> Json:
@@ -268,66 +276,94 @@ def _osv_query(body: Json) -> Json:
     )
     with urllib.request.urlopen(request, timeout=60) as response:
         payload = json.loads(response.read())
-    if not isinstance(payload, dict):
+    # OSV answers `{}` when it knows of nothing, so any other object without results must not read as an empty answer.
+    if not isinstance(payload, dict) or set(payload) - {"vulns", "next_page_token"}:
+        raise ValueError("OSV returned a malformed response")
+    if not isinstance(payload.get("vulns", []), list):
         raise ValueError("OSV returned a malformed response")
     return payload
 
 
-def _pip_advisories(api: security.GitHub, name: str, version: str | None) -> set[str]:
+def _pip_advisories(name: str, version: str | None) -> set[str]:
     """Ask OSV, which normalizes PyPI names; GitHub's API misses `PyYAML` advisories for Dependabot's `pyyaml`."""
-    body: Json = {"package": {"name": name, "ecosystem": "PyPI"}}
+    # Dependabot keeps extras in the name, and OSV knows of nothing for `pyyaml[extra]`.
+    body: Json = {"package": {"name": name.partition("[")[0], "ecosystem": "PyPI"}}
     if version is not None:
         body["version"] = version
     found: set[str] = set()
     for _ in range(OSV_MAX_PAGES):
-        payload = _osv_query(body)  # OSV answers `{}` when it knows of nothing.
-        found.update(row["id"] for row in payload.get("vulns", []) if not row.get("withdrawn"))
+        payload = _osv_query(body)
+        found.update(_advisory_id(row["id"]) for row in payload.get("vulns", []) if not row.get("withdrawn"))
         if not payload.get("next_page_token"):
             return found
         body["page_token"] = payload["next_page_token"]
     raise ValueError("OSV returned too many pages")
 
 
+def _github_action_rows(api: security.GitHub, affects: str) -> list[Json]:
+    """Return the live advisories for one query; a full page raises, because the rest of the list would be unread."""
+    result: list[Json] = []
+    for kind in GITHUB_ADVISORY_TYPES:
+        query = urlencode({"type": kind, "ecosystem": "actions", "affects": affects, "per_page": GITHUB_PAGE_SIZE})
+        rows = api.request(f"/advisories?{query}")
+        if not isinstance(rows, list) or len(rows) >= GITHUB_PAGE_SIZE:
+            raise ValueError("GitHub returned a malformed or oversized advisory list")
+        result.extend(row for row in rows if row.get("withdrawn_at") is None)
+    return result
+
+
 def _action_advisories(api: security.GitHub, name: str, version: str | None) -> set[str]:
     """Ask GitHub, because OSV finds no advisory for an affected action at a version like `45.0.7`.
 
-    The first page is enough: any row stops the merge, and the triage comment is not a complete report.
+    GitHub files advisories under the repository, while Dependabot names `github/codeql-action/init`. A query without a
+    version ignores case, but one with a version matches literally: `azure/x@1` misses an advisory on `Azure/x`. So the
+    query without a version finds the filed spellings, and each is then asked about the named version.
     """
+    repository = "/".join(name.split("/")[:2])
+    package_rows = _github_action_rows(api, repository)
+    if name != repository:
+        package_rows += _github_action_rows(api, name)
+    if version is None:
+        return {_advisory_id(row["ghsa_id"]) for row in package_rows}
+    spellings = {name, repository}
+    for row in package_rows:
+        for vulnerability in row.get("vulnerabilities") or []:
+            filed = vulnerability["package"]["name"]
+            if filed.lower() == repository.lower() or filed.lower().startswith(f"{repository.lower()}/"):
+                spellings.add(filed)
     found: set[str] = set()
-    target = "" if version is None else f"@{version}"
-    for spelling in {name, name.lower()}:
-        for kind in GITHUB_ADVISORY_TYPES:
-            query = urlencode({"type": kind, "ecosystem": "actions", "affects": spelling + target, "per_page": 100})
-            rows = api.request(f"/advisories?{query}")
-            if not isinstance(rows, list):
-                raise ValueError("GitHub returned a malformed advisory list")
-            found.update(row["ghsa_id"] for row in rows if row.get("withdrawn_at") is None)
+    for spelling in spellings:
+        found.update(_advisory_id(row["ghsa_id"]) for row in _github_action_rows(api, f"{spelling}@{version}"))
     return found
 
 
-ADVISORY_LOOKUPS: dict[str, Callable[[security.GitHub, str, str | None], set[str]]] = {
-    "pip": _pip_advisories,
+# Keys are branch segments of Dependabot ecosystems. None means no advisory source; an unlisted segment stops the merge.
+ADVISORY_LOOKUPS: dict[str, Callable[[security.GitHub, str, str | None], set[str]] | None] = {
+    "pip": lambda _api, name, version: _pip_advisories(name, version),
     "github_actions": _action_advisories,
+    "docker": None,
+    "pre_commit": None,
 }
 
 
 def known_advisories(api: security.GitHub, pr: Json, commits: list[Json]) -> tuple[list[str], list[str]]:
     """Return advisories on the named versions, and on packages whose version cannot be compared.
 
-    A failed lookup raises, so nothing merges.
+    A failed lookup, or an unlisted ecosystem, raises, so nothing merges.
     """
-    lookup = ADVISORY_LOOKUPS.get(_ecosystem_segment(pr))
-    versioned: set[str] = set()
-    whole_package: set[str] = set()
+    lookup = ADVISORY_LOOKUPS[_ecosystem_segment(pr)]
     if lookup is None:
         return [], []
+    on_version: set[str] = set()
+    on_package: set[str] = set()
     for commit in commits:
         for name, version in _commit_dependencies(commit):
             if version is not None and COMPARABLE_VERSION.fullmatch(version):
-                versioned |= lookup(api, name, version.removeprefix("v").removeprefix("V"))
+                # The sources list versions without the `v` of a tag.
+                on_version |= lookup(api, name, version.removeprefix("v").removeprefix("V"))
             else:
-                whole_package |= lookup(api, name, None)
-    return sorted(versioned), sorted(whole_package - versioned)
+                on_package |= lookup(api, name, None)
+    return sorted(on_version), sorted(on_package - on_version)
 
 
 def review_state(reviews: list[Json], has_write_access: Callable[[str], bool]) -> tuple[list[str], list[str]]:
@@ -410,6 +446,22 @@ def _merge_state_limit(state: str | None) -> dt.timedelta:
     return DECISION_WINDOW if state in UNCOMPUTED_STATES else CI_GRACE
 
 
+def _advisory_blocker(evidence: Evidence) -> tuple[str, str]:
+    reasons = []
+    if evidence.version_advisories:
+        reasons.append(f"Known advisories affect the version this PR names: {_all_names(evidence.version_advisories)}.")
+    if evidence.package_advisories:
+        reasons.append(
+            "This PR names no comparable version, and advisories exist for the package: "
+            f"{_all_names(evidence.package_advisories)}."
+        )
+        # A newer version cannot clear these, because the query has no version to compare.
+        return " ".join(reasons), "Check the affected ranges of these advisories and merge it by hand."
+    return " ".join(
+        reasons
+    ), "Wait for Dependabot to propose an unaffected version, or review the advisories and merge it by hand."
+
+
 def _blocker(evidence: Evidence, now: dt.datetime) -> tuple[str, str] | None:
     """Return why a maintainer must act and what would make the PR mergeable, or None if nothing stops it."""
     age = now - evidence.head_committed
@@ -417,17 +469,8 @@ def _blocker(evidence: Evidence, now: dt.datetime) -> tuple[str, str] | None:
         return "A reviewer requested changes.", "Dismiss the review, or have the reviewer approve this PR."
     if evidence.problem is not None:
         return evidence.problem, "Comment `@dependabot recreate`, or review and merge it by hand."
-    if evidence.advisories:
-        return (
-            f"Known advisories affect the version this PR names: {_all_names(evidence.advisories)}.",
-            "Wait for Dependabot to propose an unaffected version, or review the advisories and merge it by hand.",
-        )
-    if evidence.package_advisories:
-        return (
-            "This PR names no comparable version, and advisories exist for the package: "
-            f"{_all_names(evidence.package_advisories)}.",
-            "Check the affected ranges of these advisories and merge it by hand.",
-        )
+    if evidence.version_advisories or evidence.package_advisories:
+        return _advisory_blocker(evidence)
     if evidence.failed:
         return f"These checks failed: {_names(evidence.failed)}.", _failure_remedy(evidence.failed)
     if evidence.merge_state == "dirty" and age > REBASE_GRACE:
@@ -482,7 +525,7 @@ def _names(names: list[str]) -> str:
 
 
 def _all_names(names: list[str]) -> str:
-    """List every name: a maintainer must review each advisory before merging by hand."""
+    """List every name found, without the limit on checks, because a maintainer reviews them before merging by hand."""
     return ", ".join(f"`{name}`" for name in names)
 
 
@@ -612,7 +655,7 @@ def evaluate(
     failed, pending, _ = security.ci_state(api, pr["head"]["sha"], root)
     problem = provenance_problem(pr, commits, api.repo) or change_problem(files) or metadata_problem(pr, commits)
     # Only a verified Dependabot commit may name what to look up.
-    advisories, package_advisories = known_advisories(api, pr, commits) if problem is None else ([], [])
+    version_advisories, package_advisories = known_advisories(api, pr, commits) if problem is None else ([], [])
     # GitHub reports no push time for a head, so the latest commit date starts the CI clock.
     created = parse_time(pr["created_at"])
     head_committed = max((parse_time(row["commit"]["committer"]["date"]) for row in commits), default=created)
@@ -627,7 +670,7 @@ def evaluate(
         failed=failed,
         pending=pending,
         enabled=enabled,
-        advisories=advisories,
+        version_advisories=version_advisories,
         package_advisories=package_advisories,
     )
     return pr, comments, head_committed, decide(evidence, now)

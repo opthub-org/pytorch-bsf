@@ -180,7 +180,8 @@ PRs follow the policy below.
 ## Dependabot auto-merge
 
 The **Dependabot merge** workflow merges every Dependabot PR once all checks of
-its exact head succeed, including major updates in every ecosystem. No person or AI
+its exact head succeed and no known advisory stops it, including major updates in
+every ecosystem. No person or AI
 reviews it first. The maintainer accepts that a compatible-looking update may break a
 release: a release that does not work is safer than vulnerable software that keeps
 running, and anyone who needs the old behavior can downgrade at their own risk.
@@ -195,25 +196,29 @@ on every evaluation of a PR with verified commits: pip packages in
 [OSV](https://osv.dev), and GitHub Actions in the GitHub Advisory Database, including
 malware advisories in both. A known advisory stops the merge, and the triage comment
 names it unless a hold or an earlier stop reason takes precedence. A failed lookup
-merges nothing, and a pip or Actions commit without that metadata stops the merge, as
+merges nothing: the job fails, and the triage comment stays as it was until a later run
+succeeds. A pip or Actions commit without that metadata stops the merge, as
 does an ecosystem with no classification here. When the metadata names a commit SHA, no
 version or anything else that cannot be compared, any advisory on the package stops the
 merge, and a maintainer must check its affected range.
 
-These checks do not cover:
+Neither the cooldown nor the advisory lookup catches:
 
+- a bad release that nobody has reported and no registry has withdrawn within the three
+  days, including an unnoticed malicious release, which merges once CI passes;
+- a problem reported only elsewhere, such as in an upstream issue, unless a registry
+  withdraws the release or a maintainer holds the PR;
 - pre-commit hooks and Docker images, which have no advisory source here;
 - transitive dependencies, or actions nested in a composite action;
 - other versions that a pip range allows, because only the named version is looked up;
 - unreviewed GitHub advisories for actions, which carry no package data;
-- an advisory published after the merge, which Dependabot alerts report instead;
-- a problem reported only elsewhere, such as in an upstream issue, unless a registry
-  withdraws the release or a maintainer holds the PR.
+- an advisory published after the merge. Dependabot alerts report this for pip packages
+  only: GitHub creates no alerts for SHA-pinned actions, and none for pre-commit hooks
+  or Docker images, so nothing here reports it for those.
 
 The remaining exposure is accepted: action pins also update in privileged workflows,
-including this one, the
-security automation and PyPI publishing, and a malicious action runs with their
-permissions once it reaches `master`.
+including this one, the security automation and PyPI publishing, and a malicious action
+runs with their permissions once it reaches `master`.
 
 It merges only a same-repository PR whose commits Dependabot authored and GitHub
 signed, and which edits dependency manifests or only updates existing action pins in
