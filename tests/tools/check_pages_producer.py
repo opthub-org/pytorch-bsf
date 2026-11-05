@@ -132,7 +132,7 @@ def test_script_reports_an_unreadable_base_apart_from_a_rejection(root: Path) ->
 
 
 def test_script_reports_an_empty_base_apart_from_a_rejection(root: Path) -> None:
-    # The index holds a producer that HEAD's template does not trust, so reading it would reject.
+    # The index holds another producer, so reading it as the base would pass HEAD without checking master.
     commit(root, OLD, OLD)
     (root / PRODUCER).write_bytes(NEW)
     git(root, "add", PRODUCER)

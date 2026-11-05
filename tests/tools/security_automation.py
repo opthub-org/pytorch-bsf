@@ -1179,8 +1179,8 @@ class PublicationIntegrationTests(GitFixture):
 class DurableRecoveryTests(unittest.TestCase):
     def test_candidate_tests_have_no_oidc_or_coverage_credentials(self):
         workflow = (ROOT / ".github/workflows/python-package.yml").read_text()
-        build = workflow.split("\n  build:\n", 1)[1].split("\n  coverage:\n", 1)[0]
-        lowest = workflow.split("\n  lowest:\n", 1)[1].split("\n  optional-deps:\n", 1)[0]
+        build = workflow_job(workflow, "build")
+        lowest = workflow_job(workflow, "lowest")
         for candidate in (build, lowest):
             self.assertNotIn("id-token:", candidate)
             self.assertNotIn("secrets.", candidate)
@@ -1188,7 +1188,7 @@ class DurableRecoveryTests(unittest.TestCase):
             self.assertIn("actions/upload-artifact@", candidate)
         self.assertIn("pytest-cov", lowest)
         self.assertIn("--cov-report=xml:lowest-coverage.xml", lowest)
-        coverage = workflow.split("\n  coverage:\n", 1)[1].split("\n  distribution:\n", 1)[0]
+        coverage = workflow_job(workflow, "coverage")
         self.assertIn("uses: ./.github/workflows/security-coverage.yml", coverage)
         self.assertIn("needs: [python-support, lowest, build]", coverage)
 
