@@ -174,11 +174,54 @@ additional GitHub App/PAT access and provider-specific revocation integrations;
 they are not fetched or forwarded to the AI. Complex workflow migrations and
 changes to the automation's trust boundary require maintainer intervention.
 Existing Dependabot security updates remain enabled. The repair pipeline may
-open its own PR when Dependabot's patch is insufficient or unavailable; ordinary
-version-update PRs are not auto-merged by this policy.
+open its own PR when Dependabot's patch is insufficient or unavailable. Dependabot
+PRs follow the policy below.
+
+## Dependabot auto-merge
+
+The **Dependabot merge** workflow merges every Dependabot PR once all checks of
+its exact head succeed, including major updates in every ecosystem. No person or AI
+reviews it first. The maintainer accepts that a compatible-looking update may break a
+release: a release that does not work is safer than vulnerable software that keeps
+running, and anyone who needs the old behavior can downgrade at their own risk.
+
+CI cannot detect a malicious release. To reduce that risk, `cooldown` in
+`.github/dependabot.yml` delays version updates by three days, so that a bad release
+can be withdrawn first. Security updates skip the delay. The remaining exposure is
+accepted: action pins also update in privileged workflows, including this one, the
+security automation and PyPI publishing, and a malicious action runs with their
+permissions once it reaches `master`.
+
+It merges only a same-repository PR whose commits Dependabot authored and GitHub
+signed, and which edits dependency manifests or only updates existing action pins in
+workflows. Any other change, or a change request from a user with write access, stops the
+merge. Anyone can review a public repository, so other reviews do not count. Every open PR
+has one triage comment with the review state, the decision, the reason, what would
+make it mergeable, and the deadline. A stopped PR is assigned to the maintainer, who
+gets one more comment if the decision becomes overdue after seven days. Measured from
+the head's latest commit, unfinished checks and blocked merge states stop the merge after
+two hours, a conflict that Dependabot has not rebased after a day, and a merge state that
+GitHub has not computed after seven days.
+
+To keep a PR from merging, comment on it, with the command on the first line. A review
+body does not count:
+
+```text
+/dependabot-hold until=YYYY-MM-DD <reason>
+```
+
+The hold ends after that date in UTC, at most 30 days ahead, or when someone comments
+`/dependabot-release`. Only a user with write access can use these commands, and a run
+may take about 15 minutes to read them. A malformed hold, such as one with a past date,
+stops the merge for seven days.
+
+Set the repository Actions variable **DEPENDABOT_MERGE_ENABLED** to `false` to stop
+merging while triage continues. Any value other than an empty one or `true`, in any case,
+also stops it.
 
 The controller tests run without API access:
 
 ```bash
 python -m unittest discover -s tests/tools -p security_automation.py -v
+python -m unittest discover -s tests/tools -p dependabot_merge.py -v
 ```

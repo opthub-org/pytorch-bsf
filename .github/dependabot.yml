@@ -3,27 +3,37 @@
 # Please see the documentation for all configuration options:
 # https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
 
+# `cooldown` delays version updates so that a bad release can be withdrawn before auto-merge takes it;
+# see "Dependabot auto-merge" in SECURITY.md.
 version: 2
 updates:
   - package-ecosystem: "pip" # See documentation for possible values
     directory: "/" # Location of package manifests
     # Leave a range alone while it still admits the new release; only update it when a
-    # release falls outside it (e.g. a new major version). The lower bounds are kept at
-    # the oldest versions tested in CI. (`widen` is not accepted for the pip ecosystem.)
+    # release falls outside it (e.g. a new major version). (`widen` is not accepted for
+    # the pip ecosystem.)
     versioning-strategy: increase-if-necessary
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 3
   - package-ecosystem: "pre-commit" # Bumps `rev` of the hooks in .pre-commit-config.yaml (Ruff, numpydoc, typos, Betterleaks)
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 3
   # Bumps in sphinx-pages-build.yml need its trusted template to land first, in a separate PR.
   # See "Updating GHPages action pins" in CONTRIBUTING.md; rebase the bump once it has landed.
   - package-ecosystem: "github-actions" # Keep immutable action pins current
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 3
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 3

@@ -1,0 +1,58 @@
+name: Dependabot merge
+
+on:
+  workflow_run: # zizmor: ignore[dangerous-triggers] -- Runs only master's controller; PR metadata is data, never executed.
+    workflows:
+      - PyTest
+      - Conda
+      - CodeQL
+      - Security policy
+      - Release configuration
+      - GHPages build
+      - GHPages publisher
+    types: [requested, completed]
+  schedule:
+    # Recovers a missed event, and sees codecov/patch and hold commands, which start no workflow.
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+# Each run re-reads all state, so keeping only the newest pending run loses nothing.
+concurrency:
+  group: dependabot-merge
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    # The ref check keeps a dispatch from running another branch's controller with these permissions.
+    # The publisher always runs on master, but it reports the `GHPages publish` check of the PR head.
+    if: >-
+      github.repository == 'opthub-org/pytorch-bsf' &&
+      github.ref == 'refs/heads/master' &&
+      (github.event_name != 'workflow_run' ||
+      github.event.workflow_run.name == 'GHPages publisher' ||
+      startsWith(github.event.workflow_run.head_branch, 'dependabot/'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+      checks: read
+      contents: write
+      issues: write
+      pull-requests: write
+      statuses: read
+    steps:
+      # The job runs only on master, so this SHA is the trusted default-branch commit, never a PR head.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Merge or triage open Dependabot PRs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPENDABOT_MERGE_ENABLED: ${{ vars.DEPENDABOT_MERGE_ENABLED }}
+        run: python -m tools.dependabot_merge

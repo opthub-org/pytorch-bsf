@@ -32,15 +32,16 @@ pytorch-bsf is a library installed alongside other packages, so `[project].depen
 - **Lower bound**: the oldest version that passes the tests. The `lowest` job of `.github/workflows/python-package.yml` installs every lower bound on Python 3.11 (`uv pip install --resolution lowest-direct '.[lightning,mlflow,sparse,sklearn,plot]'`, so the bounds of every optional extra are checked too) and runs pytest, so a bound that does not work fails CI. Raise a lower bound only when the code needs a newer feature or a bug fix, and say why in the PR.
 - **Upper bound**: below the next major version (`<3`). Widen it after checking that the new major version works.
 - **Extras**: every package in `[project.optional-dependencies]` has the same kind of range. The `all` extra refers to the other extras (`pytorch-bsf[lightning,mlflow,...]`) instead of repeating their ranges.
-- **Dependabot** uses `versioning-strategy: increase-if-necessary` for pip: it leaves a range alone while it admits a new release and opens a PR when a release falls outside it. Review any proposed lower-bound change against the policy above. It also checks pre-commit hooks, GitHub Actions and the Docker base image weekly.
+- **Dependabot** uses `versioning-strategy: increase-if-necessary` for pip: it leaves a range alone while it admits a new release and opens a PR when a release falls outside it. It also checks pre-commit hooks, GitHub Actions and the Docker base image weekly. As a deliberate exception to the two rules above, passing updates merge automatically, including lower-bound changes and new major versions, with CI as the only check; see [Dependabot auto-merge](SECURITY.md#dependabot-auto-merge). Dependabot does not update `environment.yml`, so a merged range change leaves it behind until someone syncs it.
 - Declare only packages that `torch_bsf` imports. Do not pin transitive dependencies to work around a bug in another package; if one is unavoidable, add a comment with the upstream issue.
 - Keep `environment.yml` in sync with `pyproject.toml`, including the optional `scipy`, `scikit-learn` and `matplotlib` (as `matplotlib-base`), so that the Conda CI and the Docker image run their tests.
 
 ### Python lifecycle updates
 
 Security alerts have a separate [automatic repair and merge policy](SECURITY.md).
-It covers Dependabot, CodeQL, and a daily source security audit, with independent
-AI review and exact-head CI gates before merging.
+It covers Dependabot alerts, CodeQL, and a daily source security audit, with independent
+AI review and exact-head CI gates before merging its own PRs. Dependabot's own PRs follow
+[Dependabot auto-merge](SECURITY.md#dependabot-auto-merge), without that review.
 
 The **Dependency lifecycle** workflow runs every Monday at 04:23 UTC (13:23 JST),
 and can also be run from Actions with **Run workflow**. After this workflow is
@@ -472,7 +473,7 @@ proof that Codecov accepted a report.
   repository secret; the Codecov action identifies the fork and prefixes its
   upload branch. Keep `pull_request` as the trigger when testing contributor code.
 
-For an Action upgrade, verify the actual upload as well as the CI result:
+For an Action upgrade merged by a person, including a Dependabot PR merged by hand, verify the actual upload as well as the CI result. ([Dependabot auto-merge](SECURITY.md#dependabot-auto-merge) relies on the required `coverage / coverage` and `codecov/patch` checks instead, with no Codex review.) The steps are:
 
 1. Record the PR head SHA and check its full-integration `build` and `lowest`
    coverage exports. For Dependabot, verify that the workflow's original actor is
@@ -825,7 +826,8 @@ only the triggering ref's pages and byte digests to **GHPages publish**.
 Only the trusted default-branch publisher holds the shared `gh-pages` lock;
 the dependency installation and construction of different refs can overlap.
 
-Require the producer-commit **GHPages publish** check as well as **build**,
+Unless [Dependabot auto-merge](SECURITY.md#dependabot-auto-merge) merges the PR with
+its own gate, require the producer-commit **GHPages publish** check as well as **build**,
 all existing PyTest/Conda/platform/lowest-dependency checks, Codecov's accepted
 two-report upload, same-head Codex review, zero unresolved review threads and
 a clean merge state. Missing, queued, pending or stale publication evidence
@@ -917,8 +919,10 @@ PR on its own.
    stop updating that branch. The new head's runs also have you as their actor, so
    they do not exercise Dependabot's upload context in
    [Codecov authentication and upload verification](#codecov-authentication-and-upload-verification).
-   Say so in the PR, and check the upload on the next Dependabot PR. For a manual
-   update, copy the line on a branch that contains the merged template. However you
+   Say so in the PR, and check the upload on the next Dependabot PR. The merge commit
+   also stops [Dependabot auto-merge](SECURITY.md#dependabot-auto-merge), so merge this
+   head by hand. For a manual update, copy the line on a branch that contains the
+   merged template. However you
    update the branch, merge only once the new head's producer-commit
    **GHPages publish** check succeeds.
 
@@ -1040,7 +1044,8 @@ pytorch-bsf/
 │   │   ├── sphinx-pages-publish.yml  # Trusted, serialized per-ref publication
 │   │   ├── sphinx-pages.yml          # Inert legacy identifier; keep manually disabled
 │   │   ├── codeql-analysis.yml       # Security scanning
-│   │   ├── security-policy.yml       # Security automation tests, zizmor, the GHPages producer check and the Betterleaks secret scan
+│   │   ├── security-policy.yml       # Security automation and Dependabot merge tests, zizmor, the GHPages producer check and the Betterleaks secret scan
+│   │   ├── dependabot-merge.yml      # Merges passing Dependabot PRs and writes their triage comments
 │   │   └── python-package-conda.yml  # End-to-end tests in a Conda environment
 │   ├── ISSUE_TEMPLATE/
 │   │   ├── bug_report.yml            # Bug report form
@@ -1048,7 +1053,7 @@ pytorch-bsf/
 │   │   ├── documentation.yml         # Documentation form
 │   │   └── config.yml                # Disables blank issues
 │   ├── CODEOWNERS                    # Code ownership settings
-│   └── dependabot.yml                # Automated dependency updates (pip and pre-commit hooks)
+│   └── dependabot.yml                # Automated dependency updates (pip, pre-commit hooks, Actions and Docker)
 ├── torch_bsf/                        # Main package
 │   ├── __init__.py                   # Public API exports (BezierSpace, BezierModel, fit, minimize, …)
 │   ├── __main__.py                   # CLI entry point (python -m torch_bsf)
