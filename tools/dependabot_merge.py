@@ -63,7 +63,7 @@ UNCOMPUTED_STATES = {"unknown", None}
 UNCOMPUTED_REREADS = 3
 UNCOMPUTED_DELAY_SECONDS = 5
 # Codecov reports codecov/patch shortly after the coverage upload, and that report starts no run, so a run waits for it
-# when nothing else is unfinished. The wait is shared by all PRs of a run, which keeps it within the job timeout.
+# when nothing else stops the merge. All PRs of a run share one wait, which fits in the job timeout.
 CODECOV_PREFIX = "codecov/"
 CODECOV_WAIT_SECONDS = 300
 CODECOV_POLL_SECONDS = 20
@@ -711,7 +711,6 @@ def evaluate(
     has_write_access: Callable[[str], bool],
     enabled: bool,
     now: dt.datetime,
-    codecov_deadline: float = 0.0,
 ) -> tuple[Json, list[Json], Evidence, Decision]:
     pr = read_pull(api, number)
     comments = api.pages(f"issues/{number}/comments")
@@ -720,15 +719,6 @@ def evaluate(
     approved, changes = review_state(api.pages(f"pulls/{number}/reviews"), has_write_access)
     # A Dependabot PR's read-only token cannot post checks, so unlike security.merge this does not re-authenticate them.
     failed, pending, _ = security.ci_state(api, pr["head"]["sha"], root)
-    # Until codecov_deadline on time.monotonic(), wait while only Codecov's checks are unfinished.
-    while (
-        not failed
-        and pending
-        and all(name.startswith(CODECOV_PREFIX) for name in pending)
-        and time.monotonic() < codecov_deadline
-    ):
-        time.sleep(CODECOV_POLL_SECONDS)
-        failed, pending, _ = security.ci_state(api, pr["head"]["sha"], root)
     problem = provenance_problem(pr, commits, api.repo) or change_problem(files) or metadata_problem(pr, commits)
     version_advisories: list[str] = []
     package_advisories: list[str] = []
@@ -761,6 +751,25 @@ def evaluate(
     return pr, comments, evidence, decide(evidence, now)
 
 
+def _only_codecov_unfinished(failed: list[str], pending: list[str]) -> bool:
+    return not failed and bool(pending) and all(name.startswith(CODECOV_PREFIX) for name in pending)
+
+
+def wait_for_codecov(api: security.GitHub, sha: str, root: Path, deadline: float) -> bool:
+    """Poll the checks until Codecov's are no longer the only unfinished ones, or until deadline on time.monotonic().
+
+    Return whether it slept, in which case every other input of the decision is stale and must be read again.
+    """
+    slept = False
+    while time.monotonic() < deadline:
+        time.sleep(CODECOV_POLL_SECONDS)
+        slept = True
+        failed, pending, _ = security.ci_state(api, sha, root)
+        if not _only_codecov_unfinished(failed, pending):
+            break
+    return slept
+
+
 def ensure_post_merge(api: security.GitHub) -> None:
     """Start the master workflows that a GITHUB_TOKEN merge does not trigger, until each has a run."""
     sha = api.get("commits/master")["sha"]
@@ -781,13 +790,25 @@ def reconcile(api: security.GitHub, root: Path, enabled: bool, now: dt.datetime)
     """Evaluate every open Dependabot PR; one PR's error never blocks another's decision."""
     errors = []
     has_write_access = write_access_checker(api)
-    codecov_deadline = time.monotonic() + CODECOV_WAIT_SECONDS
+    started = time.monotonic()
+    codecov_deadline = started + CODECOV_WAIT_SECONDS
     for row in api.pages("pulls?state=open&base=master"):
         number = row["number"]
         try:
             if _login(row) != AUTHOR:
                 continue
-            pr, comments, evidence, decision = evaluate(api, number, root, has_write_access, enabled, now, codecov_deadline)
+            pr, comments, evidence, decision = evaluate(api, number, root, has_write_access, enabled, now)
+            # Wait only when Codecov alone keeps this PR from merging, then evaluate it again from scratch, so that
+            # a hold, a review or a merge state that changed during the wait counts.
+            if (
+                decision.action == "wait"
+                and evidence.enabled
+                and _only_codecov_unfinished(evidence.failed, evidence.pending)
+                and wait_for_codecov(api, pr["head"]["sha"], root, codecov_deadline)
+            ):
+                now += dt.timedelta(seconds=time.monotonic() - started)
+                started = time.monotonic()
+                pr, comments, evidence, decision = evaluate(api, number, root, has_write_access, enabled, now)
             if decision.action == "merge":
                 decision = merge(api, pr, decision, evidence.head_committed, now)
             upsert_triage(api, number, comments, render(decision, pr["head"]["sha"]))
