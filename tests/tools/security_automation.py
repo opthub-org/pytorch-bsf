@@ -43,6 +43,11 @@ def api_mock():
     return api
 
 
+def workflow_job(workflow, name):
+    """Return the body of a top-level job, up to the next job."""
+    return re.split(r"\n  [\w-]+:\n", workflow.split(f"\n  {name}:\n", 1)[1], maxsplit=1)[0]
+
+
 def check(name, state="success", ident=1):
     return {"name": name, "id": ident, "status": "completed" if state != "pending" else "in_progress", "conclusion": state}
 
@@ -92,7 +97,7 @@ class CheckEvidenceTests(unittest.TestCase):
         triggers = workflow.split("\njobs:\n", 1)[0]
         # The automation dispatches this workflow, and a skipped check is never merge evidence.
         self.assertIn("\n  pull_request:\n  workflow_dispatch:\n", triggers)
-        job = re.split(r"\n  [\w-]+:\n", workflow.split("\n  pages-producer:\n", 1)[1], maxsplit=1)[0]
+        job = workflow_job(workflow, "pages-producer")
         self.assertRegex(job, r"(?m)^\s+git fetch --quiet --depth=1 --no-tags origin refs/heads/master$")
         self.assertRegex(job, r"(?m)^\s+python tools/check_pages_producer\.py FETCH_HEAD$")
         self.assertIn("persist-credentials: false", job)
@@ -105,7 +110,7 @@ class CheckEvidenceTests(unittest.TestCase):
         workflow = (ROOT / ".github/workflows/security-policy.yml").read_text()
         triggers = workflow.split("\njobs:\n", 1)[0]
         self.assertIn("  push:\n    branches: [master]\n  pull_request:\n", triggers)
-        job = re.split(r"\n  [\w-]+:\n", workflow.split("\n  secret-scan:\n", 1)[1], maxsplit=1)[0]
+        job = workflow_job(workflow, "secret-scan")
         self.assertIn("fetch-depth: 0", job)
         self.assertIn("git rev-list --min-parents=3 --count HEAD", job)
         self.assertRegex(job, r"(?m)^\s+pre-commit run betterleaks-history --hook-stage manual$")
@@ -424,6 +429,38 @@ class PlanningTests(unittest.TestCase):
             self.assertTrue(security.choose_pr_mode(self.api, task, ROOT))
         self.assertEqual(task["blocked"], "")
         self.assertEqual(task["mode"], "fix")
+
+    def test_producer_block_clears_while_ci_on_a_new_head_is_pending(self):
+        task = {"pr": 123, "base": "b" * 40}
+        compare = {"merge_base_commit": {"sha": task["base"]}, "files": [{"filename": security.PAGES_PRODUCER}]}
+        self.api.get.side_effect = [
+            pull_request(),
+            compare,
+            pull_request(head={**pull_request()["head"], "sha": "n" * 40}),
+            compare,
+        ]
+        with patch.object(security, "ci_state", return_value=(["pages-producer"], [], {})):
+            self.assertFalse(security.choose_pr_mode(self.api, task, ROOT))
+        self.assertRegex(str(task["blocked"]), "Template PR")
+        # A pending CI run sets no reason of its own, so the old one must not survive.
+        with (
+            patch.object(security, "ci_state", return_value=([], ["pages-producer"], {})),
+            patch.object(security, "retry_missing_ci") as retry,
+        ):
+            self.assertFalse(security.choose_pr_mode(self.api, task, ROOT))
+        retry.assert_called_once()
+        self.assertEqual(task["blocked"], "")
+        self.assertNotIn("producer_blocked", task)
+
+    def test_pending_ci_keeps_a_block_set_by_another_step(self):
+        task = {"pr": 123, "base": "b" * 40, "blocked": "CI did not register after three explicit dispatches."}
+        self.api.get.side_effect = [pull_request(), {"merge_base_commit": {"sha": task["base"]}}]
+        with (
+            patch.object(security, "ci_state", return_value=([], ["lint"], {})),
+            patch.object(security, "retry_missing_ci"),
+        ):
+            self.assertFalse(security.choose_pr_mode(self.api, task, ROOT))
+        self.assertEqual(task["blocked"], "CI did not register after three explicit dispatches.")
 
     def test_missing_ci_is_explicitly_dispatched_without_a_pat(self):
         task = {"pr": 123, "base": "b" * 40}

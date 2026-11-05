@@ -585,6 +585,9 @@ def choose_pr_mode(api: GitHub, task: Json, root: Path) -> bool:
     if not trusted_pr(pr, api.repo):
         raise ValueError("Refusing to operate on a pull request outside the automation trust boundary")
     task.update({"head": pr["head"]["sha"], "branch": pr["head"]["ref"]})
+    # Re-derive this block on every run, so a new head with pending CI does not keep the old reason.
+    if task.pop("producer_blocked", False):
+        task["blocked"] = ""
     compare = api.get(f"compare/{task['base']}...{task['head']}")
     if compare["merge_base_commit"]["sha"] != task["base"]:
         api.write(f"pulls/{pr['number']}/update-branch", {"expected_head_sha": task["head"]}, "PUT")
@@ -594,6 +597,7 @@ def choose_pr_mode(api: GitHub, task: Json, root: Path) -> bool:
     moves_producer = any(row["filename"] == PAGES_PRODUCER for row in compare.get("files", []))
     if "pages-producer" in failed and moves_producer:
         # Only a maintainer can land the template, so an AI repair could only undo the pin update.
+        task["producer_blocked"] = True
         task["blocked"] = (
             "pages-producer failed on a producer change; it needs a maintainer's Template PR. See CONTRIBUTING.md."
         )
