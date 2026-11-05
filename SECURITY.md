@@ -174,8 +174,39 @@ additional GitHub App/PAT access and provider-specific revocation integrations;
 they are not fetched or forwarded to the AI. Complex workflow migrations and
 changes to the automation's trust boundary require maintainer intervention.
 Existing Dependabot security updates remain enabled. The repair pipeline may
-open its own PR when Dependabot's patch is insufficient or unavailable; ordinary
-version-update PRs are not auto-merged by this policy.
+open its own PR when Dependabot's patch is insufficient or unavailable. Dependabot
+PRs follow the policy below.
+
+## Dependabot auto-merge
+
+The **Dependabot merge** workflow merges every Dependabot PR once all checks of
+its exact head succeed, including major updates in every ecosystem. The maintainer
+accepts that a compatible-looking update may break a release: a release that does
+not work is safer than vulnerable software that keeps running, and anyone who needs
+the old behavior can downgrade at their own risk.
+
+CI cannot detect a malicious release. To reduce that risk, `cooldown` in
+`.github/dependabot.yml` delays version updates by three days, so that a bad release
+can be withdrawn first.
+
+It merges only a same-repository PR whose commits Dependabot signed, and which
+changes dependency manifests or only the action pins of workflows. Anything else stops.
+Every open PR has one triage comment with the review state, the decision, the reason,
+what would make it mergeable, and the deadline. A stopped PR is assigned to the
+maintainer, who is notified again if the decision becomes overdue after seven days.
+
+To keep a PR from merging, comment on it:
+
+```text
+/dependabot-hold until=YYYY-MM-DD <reason>
+```
+
+The hold ends after that date, at most 30 days ahead, or when someone comments
+`/dependabot-release`. Only an owner, member or collaborator can use these commands,
+and a run may take about 15 minutes to read them. A malformed hold still stops the merge.
+
+Set the repository Actions variable **DEPENDABOT_MERGE_ENABLED** to `false` to stop
+merging while triage continues.
 
 The controller tests run without API access:
 

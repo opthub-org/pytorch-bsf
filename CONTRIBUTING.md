@@ -32,7 +32,7 @@ pytorch-bsf is a library installed alongside other packages, so `[project].depen
 - **Lower bound**: the oldest version that passes the tests. The `lowest` job of `.github/workflows/python-package.yml` installs every lower bound on Python 3.11 (`uv pip install --resolution lowest-direct '.[lightning,mlflow,sparse,sklearn,plot]'`, so the bounds of every optional extra are checked too) and runs pytest, so a bound that does not work fails CI. Raise a lower bound only when the code needs a newer feature or a bug fix, and say why in the PR.
 - **Upper bound**: below the next major version (`<3`). Widen it after checking that the new major version works.
 - **Extras**: every package in `[project.optional-dependencies]` has the same kind of range. The `all` extra refers to the other extras (`pytorch-bsf[lightning,mlflow,...]`) instead of repeating their ranges.
-- **Dependabot** uses `versioning-strategy: increase-if-necessary` for pip: it leaves a range alone while it admits a new release and opens a PR when a release falls outside it. Review any proposed lower-bound change against the policy above. It also checks pre-commit hooks, GitHub Actions and the Docker base image weekly.
+- **Dependabot** uses `versioning-strategy: increase-if-necessary` for pip: it leaves a range alone while it admits a new release and opens a PR when a release falls outside it. It also checks pre-commit hooks, GitHub Actions and the Docker base image weekly. Passing updates merge automatically, including lower-bound changes and new major versions; see [Dependabot auto-merge](SECURITY.md#dependabot-auto-merge).
 - Declare only packages that `torch_bsf` imports. Do not pin transitive dependencies to work around a bug in another package; if one is unavoidable, add a comment with the upstream issue.
 - Keep `environment.yml` in sync with `pyproject.toml`, including the optional `scipy`, `scikit-learn` and `matplotlib` (as `matplotlib-base`), so that the Conda CI and the Docker image run their tests.
 
@@ -1041,6 +1041,7 @@ pytorch-bsf/
 │   │   ├── sphinx-pages.yml          # Inert legacy identifier; keep manually disabled
 │   │   ├── codeql-analysis.yml       # Security scanning
 │   │   ├── security-policy.yml       # Security automation tests, zizmor, the GHPages producer check and the Betterleaks secret scan
+│   │   ├── dependabot-merge.yml      # Merges passing Dependabot PRs and writes their triage comments
 │   │   └── python-package-conda.yml  # End-to-end tests in a Conda environment
 │   ├── ISSUE_TEMPLATE/
 │   │   ├── bug_report.yml            # Bug report form
@@ -1048,7 +1049,7 @@ pytorch-bsf/
 │   │   ├── documentation.yml         # Documentation form
 │   │   └── config.yml                # Disables blank issues
 │   ├── CODEOWNERS                    # Code ownership settings
-│   └── dependabot.yml                # Automated dependency updates (pip and pre-commit hooks)
+│   └── dependabot.yml                # Automated dependency updates (pip, pre-commit hooks, Actions and Docker)
 ├── torch_bsf/                        # Main package
 │   ├── __init__.py                   # Public API exports (BezierSpace, BezierModel, fit, minimize, …)
 │   ├── __main__.py                   # CLI entry point (python -m torch_bsf)
