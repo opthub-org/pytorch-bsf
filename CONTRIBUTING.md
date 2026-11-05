@@ -472,7 +472,7 @@ proof that Codecov accepted a report.
   repository secret; the Codecov action identifies the fork and prefixes its
   upload branch. Keep `pull_request` as the trigger when testing contributor code.
 
-For an Action upgrade by a person, verify the actual upload as well as the CI result. [Dependabot auto-merge](SECURITY.md#dependabot-auto-merge) relies on the required `coverage / coverage` check instead, and needs no Codex review:
+For an Action upgrade merged by a person, including a Dependabot PR merged by hand, verify the actual upload as well as the CI result. [Dependabot auto-merge](SECURITY.md#dependabot-auto-merge) relies on the required `coverage / coverage` check instead, and needs no Codex review:
 
 1. Record the PR head SHA and check its full-integration `build` and `lowest`
    coverage exports. For Dependabot, verify that the workflow's original actor is
@@ -920,8 +920,7 @@ PR on its own.
    [Codecov authentication and upload verification](#codecov-authentication-and-upload-verification).
    Say so in the PR, and check the upload on the next Dependabot PR. The merge commit
    also stops [Dependabot auto-merge](SECURITY.md#dependabot-auto-merge), so merge this
-   head by hand. For a manual
-   update, copy the line on a branch that contains the merged template. However you
+   head by hand. For a manual update, copy the line on a branch that contains the merged template. However you
    update the branch, merge only once the new head's producer-commit
    **GHPages publish** check succeeds.
 

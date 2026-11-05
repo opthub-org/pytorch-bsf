@@ -6,10 +6,12 @@ event only delays the next decision. It reads PR metadata as data and never chec
 
 import argparse
 import datetime as dt
+import http.client
+import itertools
 import os
 import re
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 from urllib.parse import quote
@@ -25,17 +27,25 @@ BRANCH_PREFIX = "dependabot/"
 MAINTAINER = "NaokiHamada"
 TRIAGE_MARKER = "<!-- dependabot-triage:v1 -->"
 OVERDUE_MARKER = "<!-- dependabot-overdue:v1 -->"
+# Bounds both unfinished checks and merge states that GitHub has computed, measured from the latest commit.
 CI_GRACE = dt.timedelta(hours=2)
+# Dependabot rebases a conflict by itself, and a rebase restarts the clock, so a merged sibling need not notify anyone.
+REBASE_GRACE = dt.timedelta(days=1)
 DECISION_WINDOW = dt.timedelta(days=7)
 MAX_HOLD = dt.timedelta(days=30)
 MAX_REASON_CHARS = 300
 MAX_LISTED_CHECKS = 8
 SHORT_SHA_CHARS = 10
 MERGEABLE_STATES = {"clean", "has_hooks"}
+# GitHub reports these while it recomputes mergeability, which a sibling merge can trigger.
+UNCOMPUTED_STATES = {"unknown", None}
 COMMAND_PERMISSIONS = {"admin", "write"}  # The endpoint reports the maintain role as write.
-# 403: not permitted. 405: not mergeable. 409: the head moved. 422: invalid merge. Other errors may be transient.
-MERGE_REFUSALS = {403, 405, 409, 422}
-OPERATIONAL_ERRORS = (OSError, RuntimeError, AttributeError, KeyError, TypeError, ValueError)
+# 403: not permitted. 422: invalid merge. Other errors may be transient and fail the job instead.
+MERGE_REFUSALS = {403, 422}
+# 405: not mergeable, as when the base just moved. 409: the head moved. The next evaluation sees the new state.
+MERGE_RETRIES = {405, 409}
+# A malformed payload or a failed request for one PR must not stop the others; main() still fails the job.
+OPERATIONAL_ERRORS = (OSError, RuntimeError, http.client.HTTPException, AttributeError, KeyError, TypeError, ValueError)
 DEPENDENCY_FILES = {
     "pyproject.toml",
     "uv.lock",
@@ -46,8 +56,8 @@ DEPENDENCY_FILES = {
 }
 WORKFLOW_PATH = re.compile(r"\.github/workflows/[^/]+\.ya?ml")
 # Stricter than security.ACTION_PIN, which runs on whole files: a line must not smuggle a second YAML line in its comment.
-PIN_LINE = re.compile(r"([ \t]*(?:- )?uses:[ \t]+\w[\w./-]*@)[0-9a-f]{40}(?:[ \t]+#[^\x00-\x1f\x7f-\x9f  ]*)?")
-HOLD_COMMAND = re.compile(r"/dependabot-hold\b:?(.*)", re.IGNORECASE)
+PIN_LINE = re.compile(r"([ \t]*(?:- )?uses:[ \t]+\w[\w./-]*@)[0-9a-f]{40}(?:[ \t]+#[^\x00-\x1f\x7f-\x9f\u2028\u2029]*)?")
+HOLD_COMMAND = re.compile(r"/dependabot[-_ ]?hold\b:?(.*)", re.IGNORECASE)
 HOLD_ARGUMENTS = re.compile(r"until=(\d{4}-\d{2}-\d{2})\s+(\S.*)")
 RELEASE_COMMAND = re.compile(r"/dependabot-release", re.IGNORECASE)
 
@@ -67,14 +77,14 @@ class Evidence:
 
     created: dt.datetime
     head_committed: dt.datetime
-    merge_state: str | None = "clean"
-    problem: str | None = None
-    hold: Hold | None = None
-    approved_by: list[str] = field(default_factory=list)
-    changes_requested_by: list[str] = field(default_factory=list)
-    failed: list[str] = field(default_factory=list)
-    pending: list[str] = field(default_factory=list)
-    enabled: bool = True
+    merge_state: str | None
+    problem: str | None
+    hold: Hold | None
+    approved_by: list[str]
+    changes_requested_by: list[str]
+    failed: list[str]
+    pending: list[str]
+    enabled: bool
 
 
 @dataclass(frozen=True)
@@ -99,16 +109,21 @@ def active_hold(comments: list[Json], can_command: Callable[[str], bool], now: d
     hold = None
     for comment in comments:
         lines = (comment["body"] or "").strip().splitlines()
-        first = lines[0].strip() if lines else ""
+        first = lines[0].strip().strip("`") if lines else ""
         released = RELEASE_COMMAND.fullmatch(first) is not None
         command = HOLD_COMMAND.fullmatch(first)
         if not released and command is None:
             continue
-        author = comment["user"]["login"]
-        if not can_command(author):
+        author = _login(comment)
+        if author is None or not can_command(author):
             continue
         hold = None if command is None else _parse_hold(command[1], author, parse_time(comment["created_at"]))
     return hold if hold is not None and now <= hold.until else None
+
+
+def _login(row: Json) -> str | None:
+    """Read the author's login; GitHub reports no user for a deleted account."""
+    return (row.get("user") or {}).get("login")
 
 
 def _parse_hold(arguments: str, author: str, created: dt.datetime) -> Hold:
@@ -174,30 +189,43 @@ def change_problem(files: list[Json]) -> str | None:
 def _only_updates_pins(patch: str | None) -> bool:
     if patch is None:
         return False
-    lines = patch.split("\n")
-    removed = [PIN_LINE.fullmatch(line[1:]) for line in lines if line.startswith("-")]
-    added = [PIN_LINE.fullmatch(line[1:]) for line in lines if line.startswith("+")]
-    if not added or len(removed) != len(added):
+    # Split on newlines only: a line must stay whole for PIN_LINE to reject a control character in it.
+    runs = [list(run) for changed, run in itertools.groupby(patch.split("\n"), _is_change) if changed]
+    return bool(runs) and all(_run_updates_pins(run) for run in runs)
+
+
+def _is_change(line: str) -> bool:
+    return line.startswith(("+", "-"))
+
+
+def _run_updates_pins(run: list[str]) -> bool:
+    """Check one contiguous change: pairing in order forbids adding, removing, swapping or moving a step."""
+    removed = [PIN_LINE.fullmatch(line[1:]) for line in run if line.startswith("-")]
+    added = [PIN_LINE.fullmatch(line[1:]) for line in run if line.startswith("+")]
+    if len(removed) != len(added):
         return False
-    # Pairing in order keeps the indentation and the action, so a step cannot be added, removed or swapped.
     return all(old and new and old[1] == new[1] for old, new in zip(removed, added, strict=True))
 
 
-def review_state(reviews: list[Json]) -> tuple[list[str], list[str]]:
-    """Return who approved and who requested changes, from each user's latest review that has a verdict."""
+def review_state(reviews: list[Json], can_command: Callable[[str], bool]) -> tuple[list[str], list[str]]:
+    """Return who approved and who requested changes, from each authorized user's latest verdict.
+
+    Anyone can review a public repository, so a review without write access must not stop a security update.
+    """
     latest = {}
     for review in reviews:
-        if review["state"] != "COMMENTED":
-            latest[review["user"]["login"]] = review["state"]
-    approved = sorted(user for user, state in latest.items() if state == "APPROVED")
-    changes = sorted(user for user, state in latest.items() if state == "CHANGES_REQUESTED")
+        login = _login(review)
+        if login is not None and review["state"] != "COMMENTED":
+            latest[login] = review["state"]
+    approved = sorted(user for user, state in latest.items() if state == "APPROVED" and can_command(user))
+    changes = sorted(user for user, state in latest.items() if state == "CHANGES_REQUESTED" and can_command(user))
     return approved, changes
 
 
 def decide(evidence: Evidence, now: dt.datetime) -> Decision:
     """Choose the next action from the current evidence; every path but the last refuses to merge."""
     review = _review_line(evidence)
-    window = f"{_day(evidence.created + DECISION_WINDOW)}. A maintainer decides by this date."
+    window = _decision_deadline(evidence.created)
     ci_deadline = evidence.head_committed + CI_GRACE
     if evidence.hold is not None:
         return Decision(
@@ -208,34 +236,47 @@ def decide(evidence: Evidence, now: dt.datetime) -> Decision:
             "Comment `/dependabot-release`, or wait for the deadline.",
             f"{_day(evidence.hold.until)}. Automatic merging resumes after this date.",
         )
-    blocker = _blocker(evidence, now > ci_deadline)
+    blocker = _blocker(evidence, now)
     if blocker is not None:
-        return Decision("stop", review, "The automation will not merge this head.", *blocker, window)
+        reason, mergeable_when = blocker
+        return Decision("stop", review, "The automation will not merge this head.", reason, mergeable_when, window)
+    paused = "Automatic merging is paused, so this head will not merge."
+    resume = "Unset the variable `DEPENDABOT_MERGE_ENABLED` or set it to `true`, or merge it by hand."
+    if evidence.merge_state == "dirty":
+        return Decision(
+            "wait",
+            review,
+            "It merges a new head once the conflict is gone." if evidence.enabled else paused,
+            "The PR conflicts with `master`.",
+            "Dependabot normally rebases it by itself. If it does not, comment `@dependabot rebase`.",
+            f"{_minute(evidence.head_committed + REBASE_GRACE)}. A remaining conflict then stops the merge.",
+        )
     if evidence.pending:
         return Decision(
             "wait",
             review,
-            "It merges this head once every check succeeds.",
+            "It merges this head once every check succeeds." if evidence.enabled else paused,
             f"Waiting for {_names(evidence.pending)}.",
-            "No action is needed.",
+            "No action is needed." if evidence.enabled else resume,
             f"{_minute(ci_deadline)}. Unfinished checks then stop the merge.",
         )
     if evidence.merge_state not in MERGEABLE_STATES:
+        settled = evidence.head_committed + (DECISION_WINDOW if evidence.merge_state in UNCOMPUTED_STATES else CI_GRACE)
         return Decision(
             "wait",
             review,
-            "It merges this head once GitHub reports it as mergeable.",
+            "It merges this head once GitHub reports it as mergeable." if evidence.enabled else paused,
             f"GitHub reports the merge state as `{evidence.merge_state}`.",
-            "No action is needed.",
-            f"{_minute(ci_deadline)}. This state then stops the merge.",
+            "No action is needed." if evidence.enabled else resume,
+            f"{_minute(settled)}. This state then stops the merge.",
         )
     if not evidence.enabled:
         return Decision(
             "stop",
             review,
-            "Automatic merging is paused; this head is ready.",
+            paused,
             "The repository variable `DEPENDABOT_MERGE_ENABLED` has paused automatic merging.",
-            "Unset the variable or set it to `true`, or merge it by hand.",
+            resume,
             window,
         )
     return Decision(
@@ -248,25 +289,24 @@ def decide(evidence: Evidence, now: dt.datetime) -> Decision:
     )
 
 
-def _blocker(evidence: Evidence, ci_overdue: bool) -> tuple[str, str] | None:
+def _blocker(evidence: Evidence, now: dt.datetime) -> tuple[str, str] | None:
     """Return why a maintainer must act and what would make the PR mergeable, or None if nothing stops it."""
+    age = now - evidence.head_committed
     if evidence.changes_requested_by:
         return "A reviewer requested changes.", "Dismiss the review, or have the reviewer approve this PR."
     if evidence.problem is not None:
         return evidence.problem, "Comment `@dependabot recreate`, or review and merge it by hand."
     if evidence.failed:
         return f"These checks failed: {_names(evidence.failed)}.", _failure_remedy(evidence.failed)
-    if evidence.merge_state == "dirty":
-        return (
-            "The PR conflicts with `master`.",
-            "Dependabot normally rebases it by itself. If it does not, comment `@dependabot rebase`.",
-        )
-    if ci_overdue and evidence.pending:
+    if evidence.merge_state == "dirty" and age > REBASE_GRACE:
+        return "The PR still conflicts with `master`.", "Comment `@dependabot rebase`, or close this PR."
+    if evidence.pending and age > CI_GRACE:
         return (
             f"CI is still incomplete after {_hours(CI_GRACE)} hours: {_names(evidence.pending)}.",
             "Comment `@dependabot rebase`. An old base may not run the current checks.",
         )
-    if ci_overdue and evidence.merge_state not in MERGEABLE_STATES:
+    limit = DECISION_WINDOW if evidence.merge_state in UNCOMPUTED_STATES else CI_GRACE
+    if evidence.merge_state not in MERGEABLE_STATES | {"dirty"} and age > limit:
         return (
             f"GitHub still reports the merge state as `{evidence.merge_state}`.",
             "Resolve what GitHub reports on the PR, or merge it by hand.",
@@ -285,13 +325,17 @@ def _review_line(evidence: Evidence) -> str:
 def _failure_remedy(failed: list[str]) -> str:
     if "pages-producer" in failed:
         return (
-            'Land the template first, as "Updating GHPages action pins" in CONTRIBUTING.md describes, '
-            "then comment `@dependabot rebase`."
+            "If this PR updates a pin in `sphinx-pages-build.yml`, land the template first, as "
+            '"Updating GHPages action pins" in CONTRIBUTING.md describes. Then comment `@dependabot rebase`.'
         )
     return (
         "Fix the cause on `master` and comment `@dependabot rebase`, or rerun the failed jobs if they are flaky. "
         "If this version must wait, comment `/dependabot-hold until=YYYY-MM-DD <reason>`."
     )
+
+
+def _decision_deadline(created: dt.datetime) -> str:
+    return f"{_day(created + DECISION_WINDOW)}. A maintainer decides by this date."
 
 
 def _mentions(users: list[str]) -> str:
@@ -335,7 +379,7 @@ def render(decision: Decision, sha: str) -> str:
 
 def _own_comment(comments: list[Json], marker: str) -> Json | None:
     for comment in comments:
-        if comment["user"]["login"] == security.BOT and (comment["body"] or "").startswith(marker):
+        if _login(comment) == security.BOT and (comment["body"] or "").startswith(marker):
             return comment
     return None
 
@@ -362,26 +406,36 @@ def escalate(api: security.GitHub, pr: Json, comments: list[Json], now: dt.datet
         api.write(f"issues/{number}/comments", {"body": body})
 
 
-def merge(api: security.GitHub, pr: Json, decision: Decision) -> Decision:
+def merge(api: security.GitHub, pr: Json, decision: Decision, now: dt.datetime) -> Decision:
     """Merge exactly the evaluated head, and turn a refusal into a triage decision."""
+    created = parse_time(pr["created_at"])
+    window = _decision_deadline(created)
     try:
         result = api.write(f"pulls/{pr['number']}/merge", {"sha": pr["head"]["sha"], "merge_method": "squash"}, "PUT")
     except security.GitHubError as error:
-        if error.code not in MERGE_REFUSALS:
+        if error.code in MERGE_RETRIES and now <= created + DECISION_WINDOW:
+            return Decision(
+                "wait",
+                decision.review,
+                "The next evaluation tries again.",
+                f"GitHub declined this merge attempt with HTTP status {error.code}.",
+                "No action is needed.",
+                window,
+            )
+        if error.code not in MERGE_REFUSALS | MERGE_RETRIES:
             raise
         reason = f"GitHub refused the merge with HTTP status {error.code}."
     else:
         if result.get("merged"):
             return Decision("merged", decision.review, "Merged this head.", decision.reason, "Already merged.", "None.")
         reason = "GitHub answered the merge request without merging."
-    deadline = parse_time(pr["created_at"]) + DECISION_WINDOW
     return Decision(
         "stop",
         decision.review,
         "GitHub refused the merge of this head.",
         reason,
-        "If the head moved, the next evaluation handles it. Otherwise check the token's permissions, or merge it by hand.",
-        f"{_day(deadline)}. A maintainer decides by this date.",
+        "Check the token's permissions, or merge it by hand.",
+        window,
     )
 
 
@@ -410,7 +464,8 @@ def evaluate(
     comments = api.pages(f"issues/{number}/comments")
     commits = api.pages(f"pulls/{number}/commits")
     files = api.pages(f"pulls/{number}/files")
-    approved, changes = review_state(api.pages(f"pulls/{number}/reviews"))
+    approved, changes = review_state(api.pages(f"pulls/{number}/reviews"), can_command)
+    # A Dependabot PR's read-only token cannot post checks, so unlike security.merge this does not re-authenticate them.
     failed, pending, _ = security.ci_state(api, pr["head"]["sha"], root)
     # GitHub reports no push time for a head, so the latest commit date starts the CI clock.
     head_committed = max((parse_time(row["commit"]["committer"]["date"]) for row in commits), default=None)
@@ -433,7 +488,7 @@ def ensure_post_merge(api: security.GitHub) -> None:
     """Start the master workflows that a GITHUB_TOKEN merge does not trigger, until each has a run."""
     sha = api.get("commits/master")["sha"]
     pulls = api.get(f"commits/{sha}/pulls")
-    if not any(row["user"]["login"] == AUTHOR for row in pulls):
+    if not any(_login(row) == AUTHOR for row in pulls):
         return
     merged_by = [(api.get(f"pulls/{row['number']}").get("merged_by") or {}).get("login") for row in pulls]
     if security.BOT not in merged_by:
@@ -452,11 +507,11 @@ def reconcile(api: security.GitHub, root: Path, enabled: bool, now: dt.datetime)
     for row in api.pages("pulls?state=open&base=master"):
         number = row["number"]
         try:
-            if (row.get("user") or {}).get("login") != AUTHOR:
+            if _login(row) != AUTHOR:
                 continue
             pr, comments, decision = evaluate(api, number, root, can_command, enabled, now)
             if decision.action == "merge":
-                decision = merge(api, pr, decision)
+                decision = merge(api, pr, decision, now)
             upsert_triage(api, number, comments, render(decision, pr["head"]["sha"]))
             if decision.action == "stop":
                 escalate(api, pr, comments, now)
@@ -470,7 +525,7 @@ def reconcile(api: security.GitHub, root: Path, enabled: bool, now: dt.datetime)
 
 
 def merging_enabled(value: str | None) -> bool:
-    """Merge only when the variable is unset, empty or `true`: an emergency stop must not depend on its spelling."""
+    """Merge only when the variable is unset, empty or `true` in any case: a stop must not depend on its spelling."""
     return (value or "").strip().lower() in {"", "true"}
 
 
