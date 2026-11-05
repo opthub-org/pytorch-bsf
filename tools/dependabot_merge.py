@@ -49,10 +49,10 @@ _VERSION_SUFFIX = r"(?:\.?(?:a|b|rc|alpha|beta)\.?\d+)?(?:\.?post\.?\d+)?(?:\.?d
 PIP_COMPARABLE = re.compile(rf"v?\d+(?:(?:\.\d+)+{_VERSION_SUFFIX})?", re.IGNORECASE | re.ASCII)
 # A tag like `v3` moves: it can be any 3.x release, while GitHub compares it as 3.0.0 and misses advisories above that.
 ACTION_COMPARABLE = re.compile(rf"v?\d+(?:\.\d+){{2,}}{_VERSION_SUFFIX}", re.IGNORECASE | re.ASCII)
-PIP_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*(?:\[[^\]]*\])?")
-# A commit trailer, the only text that may follow Dependabot's metadata.
-TRAILER = re.compile(r"[A-Za-z-]+: .*")
+PIP_NAME = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?(?:\[[^\]]*\])?")
 ACTION_NAME = re.compile(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)+")
+# The only lines that may follow Dependabot's metadata, which ends every message it writes.
+METADATA_TRAILER = re.compile(r"(?:Signed-off-by|Co-authored-by): .*", re.IGNORECASE)
 SHORT_SHA_CHARS = 10
 MERGEABLE_STATES = {"clean", "has_hooks"}
 # GitHub reports these while it recomputes mergeability, which a sibling merge can trigger.
@@ -232,18 +232,19 @@ def _run_updates_pins(run: list[str]) -> bool:
 def updated_dependencies(message: str) -> list[tuple[str, str | None]]:
     """Read Dependabot's metadata from a commit message, as (name, version) pairs.
 
-    Only a closed last block followed by nothing but trailers counts, so text quoted from release notes cannot name a
-    version: it either comes before the real block, or leaves other text after it when Dependabot writes no block.
+    Only the last block counts, and only if it is on its own lines, closed and followed by nothing but sign-offs. Text
+    quoted before the real block cannot replace it. If Dependabot wrote no block, quoted text usually names nothing, but
+    a quoted block at the very end still counts: text alone cannot prove that the block is Dependabot's.
     """
-    _, found, block = message.rpartition("updated-dependencies:\n")
-    lines = block.split("\n")
-    if not found or "..." not in lines:
+    lines = message.split("\n")
+    starts = [index for index, line in enumerate(lines) if line == "updated-dependencies:"]
+    if not starts or starts[-1] == 0 or lines[starts[-1] - 1] != "---" or "..." not in lines[starts[-1] :]:
         return []
-    end = lines.index("...")
-    if not all(not line or TRAILER.fullmatch(line) for line in lines[end + 1 :]):
+    end = lines.index("...", starts[-1])
+    if any(line and not METADATA_TRAILER.fullmatch(line) for line in lines[end + 1 :]):
         return []
     entries: list[tuple[str, str | None]] = []
-    for line in lines[:end]:
+    for line in lines[starts[-1] + 1 : end]:
         if line.startswith("- dependency-name:"):
             entries.append((line.removeprefix("- dependency-name:").strip(" '\""), None))
         elif line.startswith("  dependency-version:") and entries:
@@ -440,7 +441,8 @@ def decide(evidence: Evidence, now: dt.datetime) -> Decision:
             "Dependabot normally rebases it by itself. If it does not, comment `@dependabot rebase`.",
         )
     if evidence.lookup_error is not None and evidence.enabled:
-        # Without a verdict on the advisories this head must not merge, but an outage needs no maintainer yet.
+        # Without a verdict on the advisories this head must not merge, but an outage needs no maintainer yet. While
+        # paused, the pause is the reason to show, so this falls through to it.
         return wait(
             "It merges this head once the advisory lookup succeeds and every other gate passes.",
             "The advisory lookup failed, so the automation cannot tell whether a known advisory affects this PR.",
