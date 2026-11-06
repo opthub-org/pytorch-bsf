@@ -378,11 +378,15 @@ commit SHA and the engine version, so a Dependabot PR that moves only one of the
 fails the **Release configuration** check. The automation then stops that PR and
 assigns it to the maintainer instead of merging it. To update both:
 
-1. On a new branch, change the `googleapis/release-please-action` pin in both steps
-   of `.github/workflows/release-please-action.yml`, and the SHA that `test.cjs` expects.
+1. On a new branch, change the `googleapis/release-please-action` pin and its
+   `# vX.Y.Z` comment in both steps of `.github/workflows/release-please-action.yml`,
+   and the SHA that `test.cjs` expects.
 2. Set `release-please` in `tests/tools/release-please-fixture/package.json` and the
    version that `test.cjs` asserts to the engine in the upstream Action's
-   `package-lock.json` at that commit, and update the versions named above.
+   `package-lock.json` at that commit. Also update the other places that name the
+   Action or engine version: the `$schema` URL in `release-please-config.json`, the
+   header comment of `test.cjs`, the `_comment` of `releasable.json`, and this guide
+   (the Action link under "PR review and merge" and the paragraph before this section).
 3. Refresh the lockfile with
    `npm install --prefix tests/tools/release-please-fixture --ignore-scripts --no-audit --no-fund`
    and check that the engine's dependencies match the upstream lockfile.
@@ -392,10 +396,11 @@ assigns it to the maintainer instead of merging it. To update both:
 
 `overrides` raises `minimatch` under `@google-automations/git-file-utils` to `^11.0.1`,
 for [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249), while
-engine 17.6.0 requires `^10.2.4`. That package calls only `new Minimatch(glob).match()`,
-which 11.x keeps, and the fixture's in-memory repository has no glob lookup, so
-minimatch never runs in the check. Remove the entry once the engine accepts a
-patched version itself (`npm ls minimatch --prefix tests/tools/release-please-fixture`).
+`@google-automations/git-file-utils` 3.2.1, which engine 17.6.0 uses, requires `^10.2.4`.
+That package calls only `new Minimatch(glob).match()`, which 11.x keeps, and the
+fixture's in-memory repository has no glob lookup, so minimatch never runs in the
+check. Remove the entry once the engine's version of that package accepts a patched
+minimatch itself (`npm ls minimatch --prefix tests/tools/release-please-fixture`).
 `glob@7` keeps its own `minimatch@3`, which the advisory does not affect.
 
 #### PyPI Trusted Publishing and provenance
