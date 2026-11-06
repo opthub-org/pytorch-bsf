@@ -22,6 +22,7 @@ Json = dict[str, Any]
 STATE_TITLE = "Security automation status"
 STATE_MARKER = "security-automation-state:v1"
 BRANCH_PREFIX = "automation/security/"
+CODECOV_PATCH = "codecov/patch"
 WORKFLOWS = [
     "python-package.yml",
     "python-package-conda.yml",
@@ -320,9 +321,6 @@ def check_evidence(checks: list[Json], statuses: list[Json], expected: set[str])
         name for name, state in states.items() if state not in {"success", "neutral", "skipped"} and name not in pending
     )
     return failed, pending
-
-
-CODECOV_PATCH = "codecov/patch"
 
 
 def ci_state(api: GitHub, sha: str, root: Path) -> tuple[list[str], list[str], dict[str, Json]]:

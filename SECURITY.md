@@ -259,13 +259,14 @@ A run evaluates the PRs when a workflow that reports a required check starts or 
 on a Dependabot branch, when the GHPages publisher runs, and on a schedule. Runs of other
 workflows on `master` skip, and other branches start no run. Codecov reports
 `codecov/patch` without starting a run, so when only that check keeps a PR from merging,
-a run waits about five minutes for it and then evaluates the PR again from scratch. Each
+a run waits for it and then evaluates the PR again from scratch. The wait ends five
+minutes after the run started, a limit that all PRs of the run share. Each
 run evaluates every open Dependabot PR, so a merge or triage comment usually follows CI
 within minutes.
 
 Some changes take effect only at the next run: a deadline passing, a hold expiring or
 being released, a review, an advisory published while a PR waits, and a `codecov/patch`
-result that takes longer than five minutes. The schedule asks for a run every hour, but
+result that arrives after that wait. The schedule asks for a run every hour, but
 GitHub delays and drops scheduled runs. From 2026-11-01 to 2026-11-05, a workflow here
 scheduled every five minutes and once a day had only 25 scheduled runs, 2.5 to 7.3 hours
 apart. These changes can therefore take hours, and GitHub guarantees no upper bound. To

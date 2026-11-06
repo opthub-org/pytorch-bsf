@@ -3,6 +3,7 @@
 import datetime as dt
 import http.client
 import json
+import math
 import os
 import re
 import unittest
@@ -1100,6 +1101,13 @@ class ReconcileTests(unittest.TestCase):
         monotonic.start()
         return sleep.start()
 
+    CODECOV_POLLS = math.ceil(merge.CODECOV_WAIT_SECONDS / merge.CODECOV_POLL_SECONDS)  # Polls in a full wait.
+
+    def add_second_pr(self):
+        self.pages["pulls?state=open&base=master"] = [make_pr(number=7), make_pr(number=9)]
+        for path in ("commits", "files", "reviews"):
+            self.pages[f"pulls/9/{path}"] = self.pages[f"pulls/7/{path}"]
+
     def codecov_then(self, *after):
         """Report codecov/patch as the only unfinished check, and GitHub's matching `unstable` state, then these states."""
         self.pr["mergeable_state"] = "unstable"
@@ -1216,25 +1224,42 @@ class ReconcileTests(unittest.TestCase):
         self.assert_blocked(f"CI is still incomplete after {merge._hours(merge.CI_GRACE)} hours")
 
     def test_a_later_wait_moves_the_clock_only_by_its_own_length(self):
-        self.pages["pulls?state=open&base=master"] = [make_pr(number=7), make_pr(number=9)]
-        for path in ("commits", "files", "reviews"):
-            self.pages[f"pulls/9/{path}"] = self.pages[f"pulls/7/{path}"]
+        self.add_second_pr()
         self.stub_clock()
         codecov: tuple[list[str], list[str], dict[str, security.Json]] = ([], ["codecov/patch"], {})
         done: tuple[list[str], list[str], dict[str, security.Json]] = ([], [], {})
-        polls = merge.CODECOV_WAIT_SECONDS // merge.CODECOV_POLL_SECONDS - 1
-        # PR 7 waits one poll and merges; PR 9 waits until the deadline.
-        self.ci_state.side_effect = [codecov, done, done, codecov, *[codecov] * polls, codecov]
+        self.ci_state.side_effect = [
+            *(codecov, done, done),  # PR 7: evaluation, one poll, evaluation; it merges.
+            codecov,  # PR 9: evaluation, one poll into the run.
+            *[codecov] * (self.CODECOV_POLLS - 1),  # PR 9: polls until the shared deadline.
+            codecov,  # PR 9: evaluation after the wait.
+        ]
         with patch.object(merge, "decide", wraps=merge.decide) as decide:
             self.assertEqual(self.run_once(), [])
-        seconds = [(call.args[1] - NOW).total_seconds() for call in decide.call_args_list if call.args[0].pending != []]
-        poll = merge.CODECOV_POLL_SECONDS
-        self.assertEqual(seconds[0], 0)
-        self.assertEqual(seconds[-1], merge.CODECOV_WAIT_SECONDS)
-        self.assertIn(poll, [(call.args[1] - NOW).total_seconds() for call in decide.call_args_list])
+        # Only decisions with codecov/patch unfinished: the wait gates' hypothetical decisions clear it, and so does
+        # PR 7's last evaluation.
+        seconds = [(call.args[1] - NOW).total_seconds() for call in decide.call_args_list if call.args[0].pending]
+        self.assertEqual(seconds, [0, merge.CODECOV_POLL_SECONDS, merge.CODECOV_WAIT_SECONDS])
+
+    def test_a_pr_already_stopped_does_not_wait(self):
+        self.pages["pulls/7/commits"] = [commit(date="2026-11-05T09:00:00Z")]  # Older than the CI deadline.
+        sleep = self.stub_clock()
+        self.ci_state.return_value = ([], ["codecov/patch"], {})
+        self.assert_blocked(f"CI is still incomplete after {merge._hours(merge.CI_GRACE)} hours")
+        sleep.assert_not_called()
+
+    def test_the_overdue_notice_uses_the_clock_after_the_wait(self):
+        # Seven days less a minute before the run, so only the moved clock makes the decision overdue.
+        self.pr["created_at"] = "2026-10-29T12:01:00Z"
+        self.pages["pulls/7/commits"] = [commit(date="2026-11-05T10:01:00Z")]
+        self.stub_clock()
+        self.ci_state.return_value = ([], ["codecov/patch"], {})
+        self.run_once()
+        bodies = [call.args[1]["body"] for call in self.writes("issues/7/comments")]
+        self.assertTrue(any(merge.OVERDUE_MARKER in body for body in bodies))
 
     def test_the_codecov_wait_ends_at_its_deadline(self):
-        polls = -(-merge.CODECOV_WAIT_SECONDS // merge.CODECOV_POLL_SECONDS)
+        polls = self.CODECOV_POLLS
         sleep = self.stub_clock()
         self.ci_state.return_value = ([], ["codecov/patch"], {})
         self.assert_blocked("`codecov/patch`")
@@ -1242,10 +1267,8 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(self.ci_state.call_count, polls + 2)
 
     def test_all_prs_of_a_run_share_one_codecov_wait(self):
-        self.pages["pulls?state=open&base=master"] = [make_pr(number=7), make_pr(number=9)]
-        for path in ("commits", "files", "reviews"):
-            self.pages[f"pulls/9/{path}"] = self.pages[f"pulls/7/{path}"]
-        polls = -(-merge.CODECOV_WAIT_SECONDS // merge.CODECOV_POLL_SECONDS)
+        self.add_second_pr()
+        polls = self.CODECOV_POLLS
         sleep = self.stub_clock()
         self.ci_state.return_value = ([], ["codecov/patch"], {})
         self.assertEqual(self.run_once(), [])

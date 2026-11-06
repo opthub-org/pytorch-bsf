@@ -692,10 +692,11 @@ def write_access_checker(api: security.GitHub) -> Callable[[str], bool]:
     return has_write_access
 
 
-def read_pull(api: security.GitHub, number: int, settling: frozenset[str] = frozenset()) -> Json:
+def read_pull(api: security.GitHub, number: int, *, settling: frozenset[str] = frozenset()) -> Json:
     """Return the PR, read again a few times while GitHub has not computed its merge state.
 
-    States in settling are read again too, as `unstable` may still show a check that has just finished.
+    States in settling are read again too, as `unstable` may still show a check that has just finished. A closed or
+    merged PR is not read again.
     """
     pr: Json = api.get(f"pulls/{number}")
     for _ in range(UNCOMPUTED_REREADS):
@@ -713,9 +714,10 @@ def evaluate(
     has_write_access: Callable[[str], bool],
     enabled: bool,
     now: dt.datetime,
+    *,
     settling: frozenset[str] = frozenset(),
 ) -> tuple[Json, list[Json], Evidence, Decision]:
-    pr = read_pull(api, number, settling)
+    pr = read_pull(api, number, settling=settling)
     comments = api.pages(f"issues/{number}/comments")
     commits = api.pages(f"pulls/{number}/commits")
     files = api.pages(f"pulls/{number}/files")
@@ -767,7 +769,7 @@ def _codecov_alone_stops(evidence: Evidence, now: dt.datetime) -> bool:
 
 
 def wait_for_codecov(api: security.GitHub, sha: str, root: Path, deadline: float) -> bool:
-    """Poll the checks until Codecov's are no longer the only unfinished ones, or until deadline on time.monotonic().
+    """Poll the checks until codecov/patch is no longer the only unfinished one, or until deadline on time.monotonic().
 
     Return whether it slept, in which case every other input of the decision is stale and must be read again.
     """
@@ -820,12 +822,13 @@ def evaluate_after_codecov(
     wait counts.
     """
     result = evaluate(api, number, root, has_write_access, enabled, clock.now)
-    pr, _, evidence, _ = result
-    if _codecov_alone_stops(evidence, clock.now):
+    pr, _, evidence, decision = result
+    # A PR already stopped, for example by the CI deadline, gains nothing from the wait.
+    if decision.action == "wait" and _codecov_alone_stops(evidence, clock.now):
         slept = wait_for_codecov(api, pr["head"]["sha"], root, clock.codecov_deadline)
         if slept:
             clock.advance()
-            result = evaluate(api, number, root, has_write_access, enabled, clock.now, frozenset({"unstable"}))
+            result = evaluate(api, number, root, has_write_access, enabled, clock.now, settling=frozenset({"unstable"}))
     return result
 
 
