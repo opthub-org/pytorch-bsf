@@ -148,6 +148,22 @@
     {
       "message": "fix(): empty scope",
       "version": null
+    },
+    {
+      "message": "ci!: drop\r\n\r\nbody",
+      "version": "0.25.0"
+    },
+    {
+      "message": "chore: x\r\n\r\nBREAKING CHANGE: y",
+      "version": "0.25.0"
+    },
+    {
+      "message": "chore: x\ffeat: form feed",
+      "version": null
+    },
+    {
+      "message": "chore: x feat: line separator",
+      "version": null
     }
   ]
 }

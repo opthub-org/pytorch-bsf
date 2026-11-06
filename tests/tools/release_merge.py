@@ -93,8 +93,8 @@ def evidence(**overrides):
         "draft": False,
         "head_committed": NOW - dt.timedelta(hours=1),
         "last_change": NOW - dt.timedelta(hours=1),
-        "unreleased": [],
-        "newest_unreleased": None,
+        "release_pr": None,
+        "master_landed": None,
         "merge_state": "clean",
         "failed": [],
         "pending": [],
@@ -125,17 +125,25 @@ class DecisionTests(unittest.TestCase):
         # release-please rewrites the head daily for the date in the changelog; that does not restart the day.
         self.assertEqual(decide(last_change=NOW - release.QUIET, head_committed=NOW).action, "merge")
 
-    def test_releasable_commits_missing_from_the_head_wait_and_then_stop(self):
+    def test_a_head_behind_master_waits_for_the_release_pr_job_and_then_stops(self):
         since = NOW - dt.timedelta(minutes=10)
-        waiting = decide(urgent=["fix(deps): x"], unreleased=["fix(deps): y (#9)"], newest_unreleased=since)
+        waiting = decide(urgent=["fix(deps): x"], release_pr="pending", master_landed=since)
         self.assertEqual(waiting.action, "wait")
-        self.assertIn("`fix(deps): y (#9)`", waiting.reason)
+        self.assertIn("has not finished", waiting.reason)
         self.assertIn(merge.format_minute(since + merge.CI_GRACE), waiting.mergeable_when)
         deadline = since + merge.CI_GRACE
-        self.assertEqual(decide(now=deadline, unreleased=["feat: z"], newest_unreleased=since).action, "wait")
-        late = decide(now=deadline + dt.timedelta(seconds=1), unreleased=["feat: z"], newest_unreleased=since)
+        self.assertEqual(decide(now=deadline, release_pr="pending", master_landed=since).action, "wait")
+        late = decide(now=deadline + dt.timedelta(seconds=1), release_pr="pending", master_landed=since)
         self.assertEqual(late.action, "stop")
-        self.assertIn("release-pr", late.mergeable_when)
+        self.assertIn("Re-run the Release workflow", late.mergeable_when)
+
+    def test_a_failed_release_pr_job_stops_at_once_and_its_success_lets_the_release_merge(self):
+        since = NOW - dt.timedelta(minutes=10)
+        failed = decide(urgent=["fix(deps): x"], release_pr="failure", master_landed=since)
+        self.assertEqual(failed.action, "stop")
+        self.assertIn("ended `failure`", failed.reason)
+        self.assertIn(release.APP_SETUP, failed.mergeable_when)
+        self.assertEqual(decide(urgent=["fix(deps): x"], release_pr="success", master_landed=since).action, "merge")
 
     def test_stops_and_holds_come_before_any_merge(self):
         cases: dict[str, list[dict[str, object]]] = {
@@ -278,6 +286,8 @@ class CommitTests(unittest.TestCase):
         # A merge commit's body carries the PR title, which release-please reads too.
         merged = commit_row("Merge pull request #9 from a/b\n\nfix(deps): bump x (#9)\n  fix(deps): indented")
         self.assertEqual(release.urgent(merged), ["fix(deps): bump x (#9)"])
+        # Every header counts, not only the first.
+        self.assertEqual(release.urgent(commit_row("ci: x (#5)\n\nfix(deps): bump y")), ["fix(deps): bump y"])
 
     def test_releasable_commits_match_the_release_please_engine(self):
         # test.cjs runs the engine on the same cases, so the two cannot drift apart.
@@ -488,36 +498,58 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(self.run_once(), [])
         self.assertEqual(len(self.writes("pulls/563/merge")), 1)
 
-    def test_a_merge_commit_that_brings_in_nothing_releasable_does_not_hold_the_release(self):
-        self.master_ahead = {
-            "total_commits": 2,
-            "commits": [
-                commit_row("ci: tweak", "2026-11-06T11:00:00Z"),
-                commit_row("Merge pull request #9 from a/b\n\nci: tweak", "2026-11-06T11:50:00Z", parents=2),
-            ],
-        }
+    def release_run_on_master(self, *jobs, status="completed"):
+        self.master_state = ([], [], {release.RELEASE_WORKFLOW: {**run(status=status), "id": 77}})
+        self.pages["actions/runs/77/jobs"] = list(jobs)
+
+    def test_a_head_behind_master_merges_only_after_the_release_pr_job_succeeds_on_master(self):
+        # Whatever the commits ahead say, only release-please's own run on master's head shows the head is current.
+        self.master_ahead = subjects("ci: tweak (#7)", date="2026-11-06T11:50:00Z")
+        cases = [
+            ("no run", None, "Waiting for release-please."),
+            ("running", ("in_progress",), "Waiting for release-please."),
+            ("no job", (), "Waiting for release-please."),
+            ("job running", ({"name": "release-pr", "status": "in_progress", "conclusion": None},), "Waiting"),
+            ("other job", ({"name": "github-release", "status": "completed", "conclusion": "success"},), "Waiting"),
+            ("failed", ({"name": "release-pr", "status": "completed", "conclusion": "failure"},), "ended `failure`"),
+            ("skipped", ({"name": "release-pr", "status": "completed", "conclusion": "skipped"},), "ended `skipped`"),
+        ]
+        for label, jobs, text in cases:
+            with self.subTest(label):
+                self.api.write.reset_mock()
+                self.master_state = ([], [], {})
+                if jobs == ("in_progress",):
+                    self.release_run_on_master(status="in_progress")
+                elif jobs is not None:
+                    self.release_run_on_master(*jobs)
+                self.assertEqual(self.run_once(), [])
+                self.assertEqual(self.writes("pulls/563/merge"), [])
+                self.assertIn(text, self.status())
+        self.api.write.reset_mock()
+        self.release_run_on_master(
+            {"name": "release-pr", "status": "completed", "conclusion": "failure"},
+            {"name": "release-pr", "status": "completed", "conclusion": "success"},  # A re-run of the job.
+        )
         self.assertEqual(self.run_once(), [])
         self.assertEqual(len(self.writes("pulls/563/merge")), 1)
 
-    def test_later_commits_that_release_nothing_do_not_postpone_the_stop(self):
-        # A broken release-pr job must still be reported while build(deps) and ci commits keep landing.
+    def test_an_unfinished_release_pr_job_stops_two_hours_after_master_landed(self):
         self.master_ahead = {
-            "total_commits": 3,
+            "total_commits": 2,
             "commits": [
                 commit_row("fix(deps): bump y (#6)", "2026-11-06T09:00:00Z"),
-                commit_row("build(deps): bump actions/cache (#7)", "2026-11-06T10:30:00Z"),
-                commit_row("ci: tweak (#8)", "2026-11-06T11:50:00Z"),
+                commit_row("ci: tweak (#8)", "2026-11-06T09:50:00Z"),
             ],
         }
         self.assertEqual(self.run_once(), [])
         self.assertEqual(self.writes("pulls/563/merge"), [])
         self.assertIn("Not merging this head.", self.status())
-        self.assertIn("`fix(deps): bump y (#6)`", self.status())
+        self.assertIn("Re-run the Release workflow", self.status())
 
     def test_a_merge_commit_dates_the_old_branch_commits_it_brings_in(self):
         old_branch_commit = commit_row("docs(x): written on a branch days ago", "2026-11-01T00:00:00Z")
         merge_commit = commit_row("Merge pull request #9 from x/y", "2026-11-06T11:30:00Z", parents=2)
-        # Before release-please adds the commit, the controller waits for it instead of stopping at once.
+        # Before release-please adds the commit, the controller waits from the merge instead of stopping at once.
         self.master_ahead = {"total_commits": 2, "commits": [old_branch_commit, merge_commit]}
         self.assertEqual(self.run_once(), [])
         self.assertIn("Waiting for release-please.", self.status())
@@ -530,27 +562,12 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(self.writes("pulls/563/merge"), [])
         self.assertIn("No new releasable commit until 2026-11-07 11:30 UTC", self.status())
 
-    def test_a_head_behind_releasable_commits_on_master_waits_but_other_commits_do_not_hold_it(self):
-        self.master_ahead = {
-            "total_commits": 3,
-            "commits": [
-                commit_row("fix(deps): bump y (#6)", "2026-11-06T11:20:00Z"),
-                commit_row("ci: tweak (#7)", "2026-11-06T11:40:00Z"),
-                commit_row("fix(deps): bump z (#8)", "2026-11-06T11:50:00Z"),
-            ],
-        }
-        self.assertEqual(self.run_once(), [])
-        self.assertEqual(self.writes("pulls/563/merge"), [])
-        self.assertIn("Waiting for release-please.", self.status())
-        self.assertIn("`fix(deps): bump z (#8)`", self.status())
-        self.assertNotIn("ci: tweak", self.status())
-        self.assertIn("2026-11-06 13:50 UTC", self.status())
-        self.master_ahead = subjects("ci: tweak (#7)", "build(deps): bump x (#9)")
-        self.api.write.reset_mock()
+    def test_a_head_with_every_commit_of_master_reads_no_release_run(self):
         self.assertEqual(self.run_once(), [])
         self.assertEqual(len(self.writes("pulls/563/merge")), 1)
         reads = [call.args[0] for call in self.api.get.call_args_list]
         self.assertIn(f"compare/{SHA}...master?per_page=100&page=1", reads)
+        self.assertFalse([call for call in self.api.pages.call_args_list if call.args[0].endswith("/jobs")])
 
     def test_ci_waiting_for_approval_stops_at_once_and_starts_nothing(self):
         # Runs started by release-please's GITHUB_TOKEN pushes wait for approval and never count as required checks.

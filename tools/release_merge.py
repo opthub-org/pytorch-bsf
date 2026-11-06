@@ -41,10 +41,14 @@ DOCUMENTATION_CHECKS = frozenset({"build", pages_publish.CHECK_NAME})
 MASTER_EXCLUDED_CHECKS = DOCUMENTATION_CHECKS | {security.CODECOV_PATCH}
 # The release workflow comes first, so that a failure to start the others cannot hold back the release.
 RELEASE_WORKFLOW = "release-please-action.yml"
+# The job of RELEASE_WORKFLOW that opens and updates the release PR.
+RELEASE_PR_JOB = "release-pr"
 POST_MERGE = [RELEASE_WORKFLOW, *(workflow for workflow in security.POST_MERGE if workflow != RELEASE_WORKFLOW)]
 QUIET = dt.timedelta(days=1)
-# A conventional commit header. release-please reads one from the subject and from each unindented body line, such
-# as the PR title in a merge commit's body. tests/tools/release-please-fixture/releasable.json pins how it reads them.
+# How release-please reads a commit, approximately: it only sets when a release merges, never what it holds, which
+# the `release-pr` job decides. A conventional header is read from the subject and from each unindented body line,
+# such as the PR title in a merge commit's body. tests/tools/release-please-fixture/releasable.json pins the cases.
+LINE_BREAK = re.compile(r"\r?\n")
 HEADER = re.compile(r"(?P<type>[\w-]+)(?:\((?P<scope>[^)]+)\))?(?P<breaking>!)?:")
 # The types that release-please's python strategy shows in the changelog, and so releases; read case-insensitively.
 RELEASED_TYPES = frozenset({"feat", "fix", "perf", "revert", "deps", "docs"})
@@ -71,10 +75,11 @@ class Evidence:
     # When the release last gained a releasable change on `master`. release-please rewrites the head daily for the
     # date in the changelog, so the head's own time does not show whether the release is still changing.
     last_change: dt.datetime
-    # Releasable commits on `master` that the head lacks, and the newest time a commit missing from the head landed
-    # on `master`, or None when no releasable commit is missing.
-    unreleased: list[str]
-    newest_unreleased: dt.datetime | None
+    # How the `release-pr` job ended on `master`'s head: None when the PR's head already has every commit of `master`,
+    # "pending" while it has not finished, or the job's conclusion. Only its success shows that release-please has
+    # seen every commit of `master`, so that the PR's head is not stale. When `master`'s head landed, if it is ahead.
+    release_pr: str | None
+    master_landed: dt.datetime | None
     merge_state: str | None
     failed: list[str]
     pending: list[str]
@@ -185,16 +190,20 @@ def compare_commits(api: security.GitHub, base: str, head: str) -> list[Json]:
     return commits
 
 
+def lines(row: Json) -> list[str]:
+    """Return the commit message's lines, split only where release-please splits them."""
+    return LINE_BREAK.split(str(row["commit"]["message"]))
+
+
 def subject(row: Json) -> str:
-    return str(row["commit"]["message"]).split("\n", 1)[0]
+    return lines(row)[0]
 
 
-def headers(row: Json) -> list[tuple[str, re.Match[str]]]:
+def headers(row: Json) -> list[re.Match[str]]:
     """Return each conventional header that release-please reads in the commit: the subject's first, then the body's."""
-    lines = str(row["commit"]["message"]).splitlines() or [""]
+    subject_line, *body = lines(row)
     # HEADER matches at the start of a line, so indented body lines, which release-please ignores, never match.
-    candidates = [lines[0].lstrip(), *lines[1:]]
-    return [(line, match) for line in candidates if (match := HEADER.match(line))]
+    return [match for line in [subject_line.lstrip(), *body] if (match := HEADER.match(line))]
 
 
 def releasable(row: Json) -> bool:
@@ -202,10 +211,9 @@ def releasable(row: Json) -> bool:
 
     It releases a header of a released type, and a subject header that breaks compatibility, with `!` or a footer.
     """
-    found = headers(row)
-    if any(match["type"].lower() in RELEASED_TYPES for _, match in found):
+    if any(match["type"].lower() in RELEASED_TYPES for match in headers(row)):
         return True
-    subject_header = found[0][1] if found and found[0][0] == subject(row).lstrip() else None
+    subject_header = HEADER.match(subject(row).lstrip())
     return subject_header is not None and (
         subject_header["breaking"] is not None or BREAKING.search(row["commit"]["message"]) is not None
     )
@@ -214,8 +222,8 @@ def releasable(row: Json) -> bool:
 def urgent(row: Json) -> list[str]:
     """Return the commit's headers that make the release urgent."""
     return [
-        line
-        for line, match in headers(row)
+        match.string
+        for match in headers(row)
         if match["type"].lower() in URGENT_TYPES and (match["scope"] or "").lower() in URGENT_SCOPES
     ]
 
@@ -272,24 +280,35 @@ def decide(evidence: Evidence, now: dt.datetime) -> Decision:
 
 
 def _waiting(evidence: Evidence, now: dt.datetime) -> Decision | None:
-    if evidence.newest_unreleased is not None:
-        # The merge would ship these commits outside the release, and release-please lists only later commits.
-        update_deadline = evidence.newest_unreleased + merge.CI_GRACE
+    if evidence.release_pr not in {None, "success"}:
+        # A stale head would ship `master`'s newer commits outside the release, and release-please lists only later
+        # commits in the next one. Its own run decides what the release holds, so no commit is parsed here.
+        assert evidence.master_landed is not None  # evaluate() sets both when `master` is ahead.
+        update_deadline = evidence.master_landed + merge.CI_GRACE
+        if evidence.release_pr != "pending":
+            return Decision(
+                "stop",
+                "Not merging this head.",
+                f"The `release-pr` job of the Release workflow ended `{evidence.release_pr}` on the head of `master`, "
+                "so this PR may lack commits of `master`.",
+                f"Fix the job ({APP_SETUP} if the App token failed) and re-run it, or merge the PR by hand.",
+            )
         reason = (
-            f"`master` has releasable commits that this PR does not include yet: {merge.format_names(evidence.unreleased)}."
+            "The `release-pr` job of the Release workflow has not finished on the head of `master`, so this PR may lack "
+            "commits of `master`."
         )
         if now > update_deadline:
             return Decision(
                 "stop",
                 "Not merging this head.",
                 reason,
-                "Check the `release-pr` job of the Release workflow and re-run it, or merge the PR by hand.",
+                "Re-run the Release workflow on `master`, or merge the PR by hand.",
             )
         return Decision(
             "wait",
             "Waiting for release-please.",
             reason,
-            f"The `release-pr` job updates the PR by {merge.format_minute(update_deadline)}.",
+            f"The `release-pr` job finishes by {merge.format_minute(update_deadline)}.",
         )
     ci_deadline = evidence.head_committed + merge.CI_GRACE
     if evidence.pending:
@@ -375,15 +394,27 @@ def notify_stop(api: security.GitHub, pr: Json, comments: list[Json]) -> None:
         api.write(f"issues/{pr['number']}/comments", {"body": body})
 
 
-def master_failures(api: security.GitHub, root: Path) -> list[str]:
-    """Return the failed CI of `master`'s head, ignoring checks that say nothing about the code a release ships.
+def master_failures(api: security.GitHub, root: Path) -> tuple[list[str], dict[str, Json]]:
+    """Return the failed CI of `master`'s head, ignoring checks that say nothing about the code a release ships, and
+    the latest run of each workflow file on it.
 
     Other checks also land on that commit, such as GitHub's own Dependabot update jobs, and they do not count.
     """
-    failed = security.ci_state(api, api.get("commits/master")["sha"], root, workflows=WORKFLOWS)[0]
+    failed, _, runs = security.ci_state(api, api.get("commits/master")["sha"], root, workflows=WORKFLOWS)
     # ci_state reports every failed check on the commit, whatever is expected, so the filter has to be here.
     counted = (security.expected_checks(root) - MASTER_EXCLUDED_CHECKS) | set(WORKFLOWS)
-    return [name for name in failed if name in counted]
+    return [name for name in failed if name in counted], runs
+
+
+def release_pr_state(api: security.GitHub, runs: dict[str, Json]) -> str:
+    """Return "pending" until the `release-pr` job of the latest Release run on `master`'s head ends, then how."""
+    run = runs.get(RELEASE_WORKFLOW)
+    if run is None:
+        return "pending"
+    jobs = [job for job in api.pages(f"actions/runs/{run['id']}/jobs", "jobs") if job["name"] == RELEASE_PR_JOB]
+    if not jobs or jobs[-1]["status"] != "completed":
+        return "pending"
+    return str(jobs[-1]["conclusion"])
 
 
 def awaiting_approval(runs: dict[str, Json]) -> list[str]:
@@ -409,8 +440,8 @@ def evaluate(
     problem = release_problem(pr, commits, files, api.repo, authors) or (None if head else "The head commit is not listed.")
     head_committed = committed(head[0]) if head else merge.parse_time(pr["created_at"])
     last_change = head_committed
-    unreleased: list[Json] = []
-    newest_unreleased: dt.datetime | None = None
+    release_pr: str | None = None
+    master_landed: dt.datetime | None = None
     failed: list[str] = []
     pending: list[str] = []
     master_failed: list[str] = []
@@ -418,7 +449,7 @@ def evaluate(
     urgent_headers: list[str] = []
     if problem is None:
         failed, pending, runs = security.ci_state(api, sha, root, workflows=WORKFLOWS, excluded_checks=DOCUMENTATION_CHECKS)
-        master_failed = master_failures(api, root)
+        master_failed, master_runs = master_failures(api, root)
         version = previous_version(files)
         assert version is not None  # release_problem rejects a PR without it.
         try:
@@ -431,15 +462,17 @@ def evaluate(
             urgent_headers = [line for row in in_release for line in urgent(row)]
             last_change = landed(in_release) or head_committed
             ahead = compare_commits(api, sha, "master")
-            unreleased = [row for row in ahead if releasable(row)]
-            newest_unreleased = landed(ahead) if unreleased else None
+            if ahead:
+                release_pr = release_pr_state(api, master_runs)
+                # The head of `master` commits at landing time, after every commit it brings in.
+                master_landed = max(committed(row) for row in ahead)
     evidence = Evidence(
         problem,
         pr["draft"],
         head_committed,
         last_change,
-        [subject(row) for row in unreleased],
-        newest_unreleased,
+        release_pr,
+        master_landed,
         pr.get("mergeable_state"),
         failed,
         pending,

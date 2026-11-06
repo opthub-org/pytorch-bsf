@@ -300,24 +300,29 @@ that is distributed, so they alone create no release PR.
 
 The release PR merges once the checks of its exact head succeed and:
 
-- the release contains a commit whose subject starts with `fix` or `feat` and the scope
-  `deps`, `deps-dev` (which Dependabot writes for what it considers development
-  dependencies) or `security`, with or without `!`; such a release merges at once; or
+- the release contains a commit with a conventional header (see below) of type `fix` or
+  `feat` and the scope `deps`, `deps-dev` (which Dependabot writes for what it considers
+  development dependencies) or `security`, with or without `!`; such a release merges at
+  once; or
 - a day has passed since the newest releasable commit in the release landed on `master`,
   which gathers a series of changes into one release. The head's own time does not
   count, because release-please rewrites the head each day for the date in the
   changelog. A squash or rebase merge lands at its own time; commits brought in by a
   merge commit land when the merge commit does.
 
-A commit is releasable when its subject or an unindented body line, such as the PR title
-in a merge commit's body, is a conventional header of a type that release-please
-releases (`feat`, `fix`, `perf`, `revert`, `deps` or `docs`, in any case), or when its
-subject is a conventional header that breaks compatibility (`!` or a `BREAKING CHANGE:`
-footer); `tests/tools/release-please-fixture/releasable.json` pins this against
-release-please. The urgent scopes above are read from the same headers.
-When `master` has releasable commits that the head lacks, the controller waits for
-release-please to add them, because a merge would ship them without a changelog entry,
-and release-please lists only commits after the release.
+A conventional header is read from the subject and from each unindented body line, such
+as the PR title in a merge commit's body. A commit is releasable when one of its headers
+has a type that release-please releases (`feat`, `fix`, `perf`, `revert`, `deps` or
+`docs`, in any case), or when its subject header breaks compatibility (`!` or a
+`BREAKING CHANGE` footer); `tests/tools/release-please-fixture/releasable.json` pins
+these cases against release-please. This reading only approximates release-please, so
+it sets when a release merges, never what it holds.
+
+When `master` has commits that the head lacks, the controller waits until the
+`release-pr` job of the Release workflow has succeeded on the head of `master`, because
+a stale head would ship releasable commits without a changelog entry, and release-please
+lists only commits after the release. That run, not the controller, decides which
+commits the release needs, so no commit message is parsed for this.
 
 The controller merges only release-please's own PR for `master`: opened by
 `github-actions[bot]` or the release App's bot from
@@ -350,9 +355,9 @@ controller stops the merge, and mentions the maintainer once for each stopped he
   and those were tested only in their own PRs. Only the CI workflows and their expected
   checks count, not the documentation checks, `codecov/patch` or other checks on that
   commit, such as GitHub's own Dependabot update jobs;
-- releasable commits on `master` that the head still lacks two hours after the newest
-  of them landed (a merge commit lands the commits it brings in), for example because
-  the `release-pr` job failed;
+- a `release-pr` job on the head of `master` that did not succeed, or that has not
+  finished two hours after that head landed, while the release head lacks commits of
+  `master`;
 - checks still unfinished two hours after the head's commit;
 - a merge state other than mergeable two hours after the head's commit, or seven days
   while GitHub has not computed it. A conflict usually clears when release-please
