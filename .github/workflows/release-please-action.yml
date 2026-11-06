@@ -8,12 +8,15 @@ on:
 
 permissions: {}
 
-# Runs never overlap and start in the order of the pushes, and each reads `master` when it runs, so a run for an older
-# commit cannot update the release PR after the run for a newer one. The release controller trusts a `release-pr`
-# success on `master`'s head because of this. Only the newest waiting run is kept; one that a newer run replaces is
-# always for an older commit, and the newer run creates any release it would have created.
+# Runs on `master` never overlap and start in the order of the pushes, and each reads `master` when it runs, so a run
+# for an older commit cannot update the release PR after the run for a newer one. The release controller trusts a
+# `release-pr` success on `master`'s head because of this. Only the newest waiting run is kept; one that a newer run
+# replaces is for an older commit, and the newer run creates any release it would have created. The ref keeps a
+# dispatch on another branch, whose jobs all skip, out of the group. Re-running an older run while a newer one waits
+# cancels the newer one, so re-run the latest run instead. Every job has a timeout, so that a run holds the group for
+# about an hour at most, well within the two hours the release controller waits for `release-pr`.
 concurrency:
-  group: release
+  group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -23,6 +26,7 @@ jobs:
       contents: write
       pull-requests: write
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       release_created: ${{ steps.release-please.outputs.release_created }}
       tag_name: ${{ steps.release-please.outputs.tag_name }}
@@ -49,6 +53,7 @@ jobs:
       contents: write
       pull-requests: write
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
     - id: app-token
       if: ${{ vars.RELEASE_PLEASE_APP_CLIENT_ID != '' }}
@@ -119,6 +124,7 @@ jobs:
     needs: github-release
     if: ${{ needs.github-release.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     outputs:
       artifact-id: ${{ steps.distributions.outputs.artifact-id }}
     steps:
@@ -155,6 +161,7 @@ jobs:
     needs: [github-release, pypi-build]
     if: ${{ needs.github-release.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     environment:
       name: pypi
       url: https://pypi.org/p/pytorch-bsf

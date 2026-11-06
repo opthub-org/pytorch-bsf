@@ -157,8 +157,18 @@ test('Action inputs and root outputs connect only created releases to publishing
   assert.equal(prJob.name, undefined);
   // The controller trusts the success on master's head only because runs start in push order and never overlap.
   // A job-level group would order jobs by when github-release finished, not by push.
-  assert.deepEqual(workflow.concurrency, {group: 'release', 'cancel-in-progress': false});
+  // The ref keeps dispatches on other branches out of master's group.
+  assert.deepEqual(workflow.concurrency, {group: 'release-${{ github.ref }}', 'cancel-in-progress': false});
   assert.equal(prJob.concurrency, undefined);
+  // A run holds the group, so it must end well within the controller's two-hour wait for release-pr. Jobs after
+  // github-release run in parallel, so the longest chain bounds the run.
+  const dockerJob = YAML.parse(read('.github/workflows/docker.yml')).jobs['build-and-push'];
+  const minutes = name => (name === 'docker' ? dockerJob : workflow.jobs[name])['timeout-minutes'];
+  const chain = name => minutes(name) + Math.max(0, ...[workflow.jobs[name].needs ?? []].flat().map(chain));
+  for (const name of Object.keys(workflow.jobs)) {
+    assert.ok(Number.isInteger(minutes(name)), `${name} has no timeout`);
+    assert.ok(chain(name) <= 60, `${name} can hold the release group for ${chain(name)} minutes`);
+  }
   assert.equal(prJob.needs, 'github-release');
   assert.equal(prJob.if, "${{ !cancelled() && github.ref == 'refs/heads/master' }}");
   assert.deepEqual(prJob.permissions, {contents: 'write', 'pull-requests': 'write'});
