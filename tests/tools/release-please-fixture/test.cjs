@@ -122,25 +122,11 @@ test('existing tags recover the release boundary without a GitHub Release', asyn
 });
 
 // Dependabot writes `fix(deps)` for distributed dependencies so that they are released, and `build(deps)` for the
-// rest so that they are not. tools/release_merge.py RELEASABLE mirrors which commit types make a release.
-for (const [message, expected] of [
-  ['fix(deps): bump torch from 2.0 to 2.1', '0.24.1'],
-  ['fix(deps-dev): bump sphinx from 8 to 9', '0.24.1'],
-  ['deps: bump numpy', '0.24.1'],
-  ['docs: explain an option', '0.24.1'],
-  ['perf: speed up fitting', '0.24.1'],
-  ['revert: undo a change', '0.24.1'],
-  ['ci!: drop Python 3.10', '0.25.0'],
-  ['chore: tidy\n\nBREAKING CHANGE: drops an option', '0.25.0'],
-  ['build(deps): bump actions/checkout from 4 to 5', null],
-  ['ci: tune the cache', null],
-  ['chore: tidy', null],
-  ['test: cover an edge', null],
-  ['refactor: split a module', null],
-]) {
-  test(`${message}: ${expected ? `releases ${expected}` : 'makes no release PR'}`, async () => {
-    const {pr} = await candidate(message, false, baseline, expected !== null);
-    if (expected) assert.equal(pr.version.toString(), expected);
+// rest so that they are not. tools/release_merge.py releasable() is checked against the same table.
+for (const {message, version} of JSON.parse(read('tests/tools/release-please-fixture/releasable.json')).cases) {
+  test(`${JSON.stringify(message)}: ${version ? `releases ${version}` : 'makes no release PR'}`, async () => {
+    const {pr} = await candidate(message, false, baseline, version !== null);
+    if (version) assert.equal(pr.version.toString(), version);
   });
 }
 

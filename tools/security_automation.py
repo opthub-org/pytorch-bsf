@@ -334,7 +334,8 @@ def ci_state(
 ) -> tuple[list[str], list[str], dict[str, Json]]:
     """Return the failed and unfinished checks and workflows of a head, and the latest run of each workflow file.
 
-    The listed `workflows` must succeed, and every expected check except `excluded_checks`.
+    The listed `workflows` must succeed, and every expected check except `excluded_checks`. Any reported check that
+    failed or has not finished counts too, excluded or not; `excluded_checks` only stops a check from being required.
     """
     checks = api.pages(f"commits/{sha}/check-runs?filter=latest", "check_runs")
     statuses = api.pages(f"commits/{sha}/statuses")

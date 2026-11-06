@@ -1,8 +1,8 @@
 """Merge release-please's release PR once its CI passes, so that merged fixes reach a release without a human.
 
-A release PR merges once it has gone a day without an update, or at once when the release contains a dependency or
-security fix. Like the Dependabot controller, each run re-evaluates the PR from GitHub's current state, and the PR's
-content is read as data only. See "Release automation" in SECURITY.md.
+A release PR merges a day after the newest releasable commit in the release, or at once when the release contains a
+dependency or security fix. Like the Dependabot controller, each run re-evaluates the PR from GitHub's current state,
+and the PR's content is read as data only. See "Release automation" in SECURITY.md.
 """
 
 import argparse
@@ -45,9 +45,12 @@ POST_MERGE = [RELEASE_WORKFLOW, *(workflow for workflow in security.POST_MERGE i
 QUIET = dt.timedelta(days=1)
 # A commit subject that makes the release urgent: a dependency update or fix, or a security remediation. Dependabot
 # writes `deps-dev` for dependencies it considers development ones.
-URGENT = re.compile(r"(?:fix|feat)\((?:deps|deps-dev|security)\)!?:")
-# A commit that release-please releases: a type it shows in the changelog (its python strategy), or a breaking change.
-RELEASABLE = re.compile(r"(?:(?:feat|fix|perf|revert|deps|docs)(?:\([^)]*\))?!?|\w+(?:\([^)]*\))?!):")
+URGENT = re.compile(r"(?:fix|feat)\((?:deps|deps-dev|security)\)!?:", re.IGNORECASE)
+# A commit that release-please releases: a conventional commit of a type its python strategy shows in the changelog,
+# or a conventional commit that breaks compatibility. Like release-please, types are read case-insensitively.
+# tests/tools/release-please-fixture/releasable.json pins this against the engine.
+CONVENTIONAL = re.compile(r"\w+(?:\([^)]*\))?!?:")
+RELEASABLE = re.compile(r"(?:(?:feat|fix|perf|revert|deps|docs)(?:\([^)]*\))?!?|\w+(?:\([^)]*\))?!):", re.IGNORECASE)
 BREAKING = re.compile(r"^BREAKING[ -]CHANGE:", re.MULTILINE)
 STATUS_MARKER = "<!-- release-merge:v1 -->"
 STOP_MARKER = "<!-- release-merge-stop:v1"
@@ -64,12 +67,13 @@ class Evidence:
     problem: str | None
     draft: bool
     head_committed: dt.datetime
-    # The newest releasable commit in the release. release-please rewrites the head daily for the date in the
-    # changelog, so the head's own time does not show whether the release is still changing.
+    # When the release last gained a releasable change on `master`. release-please rewrites the head daily for the
+    # date in the changelog, so the head's own time does not show whether the release is still changing.
     last_change: dt.datetime
-    # Releasable commits on `master` that the head lacks, and when the newest of them was committed.
+    # Releasable commits on `master` that the head lacks, and the newest time a commit missing from the head landed
+    # on `master`, or None when no releasable commit is missing.
     unreleased: list[str]
-    unreleased_since: dt.datetime | None
+    newest_unreleased: dt.datetime | None
     merge_state: str | None
     failed: list[str]
     pending: list[str]
@@ -185,11 +189,27 @@ def subject(row: Json) -> str:
 
 
 def releasable(row: Json) -> bool:
-    return RELEASABLE.match(subject(row)) is not None or BREAKING.search(row["commit"]["message"]) is not None
+    line = subject(row)
+    if RELEASABLE.match(line):
+        return True
+    return CONVENTIONAL.match(line) is not None and BREAKING.search(row["commit"]["message"]) is not None
 
 
 def committed(row: Json) -> dt.datetime:
     return merge.parse_time(row["commit"]["committer"]["date"])
+
+
+def is_merge(row: Json) -> bool:
+    return len(row.get("parents", [])) > 1
+
+
+def landed(rows: list[Json]) -> dt.datetime | None:
+    """Return the newest time a releasable change in `rows` landed on `master`.
+
+    A squash or rebase merge commits at landing time. A merge commit does too, but the branch commits it brings in keep
+    the times they were written, so its own time counts for them.
+    """
+    return max((committed(row) for row in rows if releasable(row) or is_merge(row)), default=None)
 
 
 def decide(evidence: Evidence, now: dt.datetime) -> Decision:
@@ -226,9 +246,9 @@ def decide(evidence: Evidence, now: dt.datetime) -> Decision:
 
 
 def _waiting(evidence: Evidence, now: dt.datetime) -> Decision | None:
-    if evidence.unreleased and evidence.unreleased_since is not None:
+    if evidence.newest_unreleased is not None:
         # The merge would ship these commits outside the release, and release-please lists only later commits.
-        update_deadline = evidence.unreleased_since + merge.CI_GRACE
+        update_deadline = evidence.newest_unreleased + merge.CI_GRACE
         reason = (
             f"`master` has releasable commits that this PR does not include yet: {merge.format_names(evidence.unreleased)}."
         )
@@ -243,7 +263,7 @@ def _waiting(evidence: Evidence, now: dt.datetime) -> Decision | None:
             "wait",
             "Waiting for release-please.",
             reason,
-            f"release-pr updates the PR by {merge.format_minute(update_deadline)}.",
+            f"The `release-pr` job updates the PR by {merge.format_minute(update_deadline)}.",
         )
     ci_deadline = evidence.head_committed + merge.CI_GRACE
     if evidence.pending:
@@ -364,6 +384,7 @@ def evaluate(
     head_committed = committed(head[0]) if head else merge.parse_time(pr["created_at"])
     last_change = head_committed
     unreleased: list[Json] = []
+    newest_unreleased: dt.datetime | None = None
     failed: list[str] = []
     pending: list[str] = []
     master_failed: list[str] = []
@@ -382,15 +403,19 @@ def evaluate(
             problem = f"The previous release tag `v{version}` does not exist."
         else:
             urgent = [subject(row) for row in in_release if URGENT.match(subject(row))]
-            last_change = max((committed(row) for row in in_release if releasable(row)), default=head_committed)
-            unreleased = [row for row in compare_commits(api, sha, "master") if releasable(row)]
+            last_change = landed(in_release) or head_committed
+            ahead = compare_commits(api, sha, "master")
+            unreleased = [row for row in ahead if releasable(row)]
+            if unreleased:
+                # Any commit ahead may be the one that landed them, such as a merge commit.
+                newest_unreleased = max(committed(row) for row in ahead)
     evidence = Evidence(
         problem,
         pr["draft"],
         head_committed,
         last_change,
         [subject(row) for row in unreleased],
-        max((committed(row) for row in unreleased), default=None),
+        newest_unreleased,
         pr.get("mergeable_state"),
         failed,
         pending,

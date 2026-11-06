@@ -303,22 +303,27 @@ The release PR merges once the checks of its exact head succeed and:
 - the release contains a commit whose subject starts with `fix` or `feat` and the scope
   `deps`, `deps-dev` (which Dependabot writes for what it considers development
   dependencies) or `security`, with or without `!`; such a release merges at once; or
-- a day has passed since the newest releasable commit in the release, which gathers a
-  series of changes into one release. The head's own time does not count, because
-  release-please rewrites the head each day for the date in the changelog.
+- a day has passed since the newest releasable commit in the release landed on `master`,
+  which gathers a series of changes into one release. The head's own time does not
+  count, because release-please rewrites the head each day for the date in the
+  changelog. A squash or rebase merge lands at its own time; commits brought in by a
+  merge commit land when the merge commit does.
 
-A commit is releasable when release-please releases its type (`feat`, `fix`, `perf`,
-`revert`, `deps` or `docs`) or it is a breaking change (`!` or a `BREAKING CHANGE:`
-footer). When `master` has releasable commits that the head lacks, the controller waits
-for release-please to add them, because a merge would ship them without a changelog
-entry, and release-please lists only commits after the release.
+A commit is releasable when it is a conventional commit and release-please releases its
+type (`feat`, `fix`, `perf`, `revert`, `deps` or `docs`, in any case), or it breaks
+compatibility (`!` or a `BREAKING CHANGE:` footer);
+`tests/tools/release-please-fixture/releasable.json` pins this against release-please.
+When `master` has releasable commits that the head lacks, the controller waits for
+release-please to add them, because a merge would ship them without a changelog entry,
+and release-please lists only commits after the release.
 
 The controller merges only release-please's own PR for `master`: opened by
 `github-actions[bot]` or the release App's bot from
 `release-please--branches--master--components--torch_bsf` with a release title and the
 `autorelease: pending` label, made of commits that one of those accounts wrote and that
-GitHub signed (as `web-flow`, or as the App's bot for the App's own commits), and changing only
-the version in `pyproject.toml` and `.release-please-manifest.json`, and `CHANGELOG.md`.
+GitHub signed (as `web-flow`, or as the App's bot for the App's own commits), and
+changing only the version in `pyproject.toml` and `.release-please-manifest.json`, and
+`CHANGELOG.md`.
 Anything else stops the merge. The release App, described [below](#release-app), opens
 and updates the PR so that its CI runs.
 
@@ -329,11 +334,11 @@ workflow on `master`, which creates the tag and the GitHub release and publishes
 and GHCR, and then the CI workflows. If starting them fails, a later run starts the
 missing ones.
 
-The release controller runs when Release starts or finishes on `master`, when a CI workflow starts
-or finishes on the release branch, and on the same schedule as the Dependabot
-controller, and it waits for `codecov/patch` in the same way. The PR keeps one status
-comment with the decision, the reason and what would make it mergeable. The controller
-stops the merge, and mentions the maintainer once for each stopped head, on:
+The release controller runs when Release starts or finishes on `master`, when a CI
+workflow starts or finishes on the release branch, and on the same schedule as the
+Dependabot controller, and it waits for `codecov/patch` in the same way. The PR keeps
+one status comment with the decision, the reason and what would make it mergeable. The
+controller stops the merge, and mentions the maintainer once for each stopped head, on:
 
 - CI on the release head that waits for approval, which means the release App is not
   set up;

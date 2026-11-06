@@ -950,10 +950,10 @@ completes, and a tag's YAML never changes. A tag whose pin differs from the
 template at that moment can therefore never publish. Before merging the Template
 PR, confirm that no tag build is in progress, and set `RELEASE_MERGE_ENABLED` to
 `false`, because release PRs merge automatically and merging one creates such a tag
-(see [Release automation](SECURITY.md#release-automation)). Marking an open Release
-Please PR as a draft is not enough, because a merged fix can open a new one. Once the
-Template PR has landed, do not tag a commit that predates the Workflow PR. Unset the
-variable once the Workflow PR has landed.
+(see [Release automation](SECURITY.md#release-automation)). Marking the Release
+Please PR as a draft is not enough, because release-please opens a new, non-draft PR
+whenever none is open. Once the Template PR has landed, do not tag a commit that
+predates the Workflow PR. Unset the variable once the Workflow PR has landed.
 
 Neither Dependabot nor the security remediation automation can edit the template,
 so their pin updates can only be the Workflow PR. Until the template lands, such a

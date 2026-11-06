@@ -787,6 +787,8 @@ class CheckEvidence(Protocol):
 
 
 class HasAction(Protocol):
+    """Either controller's decision; only its action is read."""
+
     @property
     def action(self) -> str: ...
 

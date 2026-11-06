@@ -1,6 +1,5 @@
 """Offline regressions for the release PR merge controller."""
 
-import contextlib
 import datetime as dt
 import json
 import os
@@ -80,8 +79,8 @@ def release_files():
     ]
 
 
-def commit_row(message, date="2026-11-06T11:00:00Z"):
-    return {"commit": {"message": message, "committer": {"date": date}}}
+def commit_row(message, date="2026-11-06T11:00:00Z", parents=1):
+    return {"commit": {"message": message, "committer": {"date": date}}, "parents": [{}] * parents}
 
 
 def subjects(*lines, date="2026-11-06T11:00:00Z"):
@@ -95,7 +94,7 @@ def evidence(**overrides):
         "head_committed": NOW - dt.timedelta(hours=1),
         "last_change": NOW - dt.timedelta(hours=1),
         "unreleased": [],
-        "unreleased_since": None,
+        "newest_unreleased": None,
         "merge_state": "clean",
         "failed": [],
         "pending": [],
@@ -128,13 +127,13 @@ class DecisionTests(unittest.TestCase):
 
     def test_releasable_commits_missing_from_the_head_wait_and_then_stop(self):
         since = NOW - dt.timedelta(minutes=10)
-        waiting = decide(urgent=["fix(deps): x"], unreleased=["fix(deps): y (#9)"], unreleased_since=since)
+        waiting = decide(urgent=["fix(deps): x"], unreleased=["fix(deps): y (#9)"], newest_unreleased=since)
         self.assertEqual(waiting.action, "wait")
         self.assertIn("`fix(deps): y (#9)`", waiting.reason)
         self.assertIn(merge.format_minute(since + merge.CI_GRACE), waiting.mergeable_when)
         deadline = since + merge.CI_GRACE
-        self.assertEqual(decide(now=deadline, unreleased=["feat: z"], unreleased_since=since).action, "wait")
-        late = decide(now=deadline + dt.timedelta(seconds=1), unreleased=["feat: z"], unreleased_since=since)
+        self.assertEqual(decide(now=deadline, unreleased=["feat: z"], newest_unreleased=since).action, "wait")
+        late = decide(now=deadline + dt.timedelta(seconds=1), unreleased=["feat: z"], newest_unreleased=since)
         self.assertEqual(late.action, "stop")
         self.assertIn("release-pr", late.mergeable_when)
 
@@ -269,38 +268,31 @@ class CommitTests(unittest.TestCase):
             "feat(security): add a check",
             "fix(security): remediate dependabot-99",
             "fix(deps-dev): bump sphinx",
+            "Fix(Deps): bump y, which release-please reads case-insensitively",
             "build(deps): bump actions/cache",
             "fix: unrelated",
             "docs: mention fix(deps): in prose",
             "fix(depsx): not a scope",
         ]
-        self.assertEqual([line for line in lines if release.URGENT.match(line)], lines[:5])
+        self.assertEqual([line for line in lines if release.URGENT.match(line)], lines[:6])
 
-    def test_releasable_commits_are_the_types_release_please_releases_and_breaking_changes(self):
-        for message in (
-            "feat: x",
-            "fix(deps): bump y",
-            "perf: faster",
-            "revert: undo",
-            "deps: bump z",
-            "docs(api): explain",
-            "ci!: drop Python 3.10",
-            "chore(build)!: rename",
-            "chore: tidy\n\nBREAKING CHANGE: drops x",
-            "refactor: y\n\nBREAKING-CHANGE: drops y",
-        ):
-            with self.subTest(message=message):
-                self.assertTrue(release.releasable(commit_row(message)))
-        for message in (
-            "build(deps): bump actions/cache",
-            "ci: x",
-            "chore(master): release 0.25.0",
-            "test: y",
-            "refactor: z\n\nmentions BREAKING CHANGE: in prose",
-            "Feature: not conventional",
-        ):
-            with self.subTest(message=message):
-                self.assertFalse(release.releasable(commit_row(message)))
+    def test_releasable_commits_match_the_release_please_engine(self):
+        # test.cjs runs the engine on the same cases, so the two cannot drift apart.
+        table = json.loads((ROOT / "tests/tools/release-please-fixture/releasable.json").read_text())
+        for case in table["cases"]:
+            with self.subTest(message=case["message"]):
+                self.assertEqual(release.releasable(commit_row(case["message"])), case["version"] is not None)
+        self.assertFalse(release.releasable(commit_row("chore(master): release 0.25.0")))
+
+    def test_a_change_lands_when_its_squash_or_merge_commit_does(self):
+        rows = [
+            commit_row("fix: written days ago on a branch", "2026-11-01T00:00:00Z"),
+            commit_row("Merge pull request #9 from x/y", "2026-11-06T10:00:00Z", parents=2),
+            commit_row("ci: later", "2026-11-06T11:00:00Z"),
+        ]
+        self.assertEqual(release.landed(rows), dt.datetime(2026, 11, 6, 10, tzinfo=dt.UTC))
+        self.assertEqual(release.landed(rows[:1]), dt.datetime(2026, 11, 1, tzinfo=dt.UTC))
+        self.assertIsNone(release.landed(rows[2:]))
 
     def test_every_page_of_a_long_comparison_is_read(self):
         api = Mock()
@@ -474,20 +466,50 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(self.writes("pulls/563/merge"), [])
         self.assertIn("No new releasable commit until 2026-11-07 11:00 UTC", self.status())
         # The head is new, because release-please rewrote it for today's date, but the release has not changed.
+        # The day counts from the newest releasable commit, not the oldest.
         self.compare = {
-            "total_commits": 3,
+            "total_commits": 4,
             "commits": [
-                commit_row("feat: x", "2026-11-05T11:59:00Z"),
+                commit_row("feat: x", "2026-11-05T10:00:00Z"),
+                commit_row("fix: y", "2026-11-05T13:00:00Z"),
                 commit_row("build(deps): bump actions/cache (#3)", "2026-11-06T10:00:00Z"),
                 commit_row("chore(master): release 0.25.0", "2026-11-06T11:00:00Z"),
             ],
         }
         self.api.write.reset_mock()
         self.assertEqual(self.run_once(), [])
+        self.assertIn("No new releasable commit until 2026-11-06 13:00 UTC", self.status())
+        # Once that commit is a day old, the head is new only because release-please rewrote it for today's date.
+        self.compare["commits"][1] = commit_row("fix: y", "2026-11-05T11:59:00Z")
+        self.api.write.reset_mock()
+        self.assertEqual(self.run_once(), [])
         self.assertEqual(len(self.writes("pulls/563/merge")), 1)
 
+    def test_a_merge_commit_dates_the_old_branch_commits_it_brings_in(self):
+        old_branch_commit = commit_row("docs(x): written on a branch days ago", "2026-11-01T00:00:00Z")
+        merge_commit = commit_row("Merge pull request #9 from x/y", "2026-11-06T11:30:00Z", parents=2)
+        # Before release-please adds the commit, the controller waits for it instead of stopping at once.
+        self.master_ahead = {"total_commits": 2, "commits": [old_branch_commit, merge_commit]}
+        self.assertEqual(self.run_once(), [])
+        self.assertIn("Waiting for release-please.", self.status())
+        self.assertIn("2026-11-06 13:30 UTC", self.status())
+        # After it is added, the quiet day counts from the merge, not from the branch commit.
+        self.master_ahead = subjects()
+        self.compare = {"total_commits": 2, "commits": [old_branch_commit, merge_commit]}
+        self.api.write.reset_mock()
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(self.writes("pulls/563/merge"), [])
+        self.assertIn("No new releasable commit until 2026-11-07 11:30 UTC", self.status())
+
     def test_a_head_behind_releasable_commits_on_master_waits_but_other_commits_do_not_hold_it(self):
-        self.master_ahead = subjects("ci: tweak (#7)", "fix(deps): bump z (#8)", date="2026-11-06T11:50:00Z")
+        self.master_ahead = {
+            "total_commits": 3,
+            "commits": [
+                commit_row("fix(deps): bump y (#6)", "2026-11-06T11:20:00Z"),
+                commit_row("ci: tweak (#7)", "2026-11-06T11:40:00Z"),
+                commit_row("fix(deps): bump z (#8)", "2026-11-06T11:50:00Z"),
+            ],
+        }
         self.assertEqual(self.run_once(), [])
         self.assertEqual(self.writes("pulls/563/merge"), [])
         self.assertIn("Waiting for release-please.", self.status())
@@ -724,19 +746,17 @@ class ReconcileTests(unittest.TestCase):
 
 
 class MainTests(unittest.TestCase):
-    def run_main(self, variable, errors, app_bot=APP_BOT, reconcile=None):
+    def run_main(self, variable, errors, app_bot=APP_BOT):
         environment = {
             "GITHUB_REPOSITORY": REPO,
             "GH_TOKEN": "x",
             "RELEASE_MERGE_ENABLED": variable,
             "RELEASE_PLEASE_BOT": app_bot,
         }
-        # A caller that patched reconcile itself keeps its mock, to inspect it after main() exits with an error.
-        patched = contextlib.nullcontext(reconcile) if reconcile else patch.object(release, "reconcile", return_value=errors)
         with (
             patch.dict(os.environ, environment),
             patch("sys.argv", ["release_merge", "--root", "/fixture"]),
-            patched as reconcile,
+            patch.object(release, "reconcile", return_value=errors) as reconcile,
         ):
             release.main()
         return reconcile
@@ -756,12 +776,18 @@ class MainTests(unittest.TestCase):
 
     def test_an_invalid_app_bot_variable_fails_the_job_after_reconciling(self):
         for value in ("pytorch-bsf-release", "my app[bot]"):
-            with self.subTest(value=value), patch.object(release, "reconcile", return_value=["PR #1: x"]) as reconcile:
-                with self.assertRaisesRegex(SystemExit, r"PR #1: x\nThe variable `RELEASE_PLEASE_BOT` must name"):
-                    self.run_main("", ["PR #1: x"], app_bot=value, reconcile=reconcile)
-                # The PRs GITHUB_TOKEN wrote are still reconciled, with the accounts the variable does not change.
-                reconcile.assert_called_once()
-                self.assertEqual(reconcile.call_args.args[4], frozenset({security.BOT}))
+            environment = {"GITHUB_REPOSITORY": REPO, "GH_TOKEN": "x", "RELEASE_PLEASE_BOT": value}
+            with (
+                self.subTest(value=value),
+                patch.dict(os.environ, environment),
+                patch("sys.argv", ["release_merge", "--root", "/fixture"]),
+                patch.object(release, "reconcile", return_value=["PR #1: x"]) as reconcile,
+                self.assertRaisesRegex(SystemExit, r"PR #1: x\nThe variable `RELEASE_PLEASE_BOT` must name"),
+            ):
+                release.main()
+            # The PRs GITHUB_TOKEN wrote are still reconciled, with the accounts the variable does not change.
+            reconcile.assert_called_once()
+            self.assertEqual(reconcile.call_args.args[4], frozenset({security.BOT}))
         for value in ("", "  ", f" {APP_BOT} "):
             with self.subTest(value=value):
                 reconcile = self.run_main("", [], app_bot=value)
