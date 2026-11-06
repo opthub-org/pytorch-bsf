@@ -52,6 +52,10 @@ PIP_COMPARABLE = re.compile(rf"v?\d+(?:(?:\.\d+)+{_VERSION_SUFFIX})?", re.IGNORE
 # A tag like `v3` moves: it can be any 3.x release, while GitHub compares it as 3.0.0 and misses advisories above that.
 ACTION_COMPARABLE = re.compile(rf"v?\d+(?:\.\d+){{2,}}{_VERSION_SUFFIX}", re.IGNORECASE | re.ASCII)
 PIP_NAME = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?(?:\[[^\]]*\])?")
+# npm names, with an optional `@scope/`. Old packages may have capital letters, which OSV matches exactly.
+NPM_NAME = re.compile(r"(?:@[A-Za-z0-9][A-Za-z0-9._~-]*/)?[A-Za-z0-9][A-Za-z0-9._~-]*", re.ASCII)
+# An exact SemVer version, with an optional prerelease and build. A range or tag asks about the whole package.
+NPM_COMPARABLE = re.compile(r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?", re.ASCII)
 ACTION_NAME = re.compile(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)+")
 # The only lines that may follow Dependabot's metadata, which ends every message it writes.
 METADATA_TRAILER = re.compile(r"(?:Signed-off-by|Co-authored-by): .*", re.IGNORECASE)
@@ -79,6 +83,8 @@ DEPENDENCY_FILES = {
     "docs/requirements.txt",
     ".pre-commit-config.yaml",
     "Dockerfile",
+    "tests/tools/release-please-fixture/package.json",
+    "tests/tools/release-please-fixture/package-lock.json",
 }
 WORKFLOW_PATH = re.compile(r"\.github/workflows/[^/]+\.ya?ml")
 # Stricter than security.ACTION_PIN, which runs on whole files: a line must not smuggle a second YAML line in its comment.
@@ -319,7 +325,12 @@ def _osv_query(body: Json) -> Json:
 def _pip_advisories(name: str, version: str | None) -> set[str]:
     """Ask OSV, which normalizes PyPI names; GitHub's API misses `PyYAML` advisories for Dependabot's `pyyaml`."""
     # Dependabot keeps extras in the name, and OSV knows of nothing for `pyyaml[extra]`.
-    body: Json = {"package": {"name": name.partition("[")[0], "ecosystem": "PyPI"}}
+    return _osv_advisories("PyPI", name.partition("[")[0], version)
+
+
+def _osv_advisories(ecosystem: str, name: str, version: str | None) -> set[str]:
+    """Return the live OSV advisories on one package, or on one version of it."""
+    body: Json = {"package": {"name": name, "ecosystem": ecosystem}}
     if version is not None:
         body["version"] = version
     found: set[str] = set()
@@ -385,6 +396,9 @@ class AdvisorySource:
 ADVISORY_SOURCES: dict[str, AdvisorySource | None] = {
     "pip": AdvisorySource(lambda _api, name, version: _pip_advisories(name, version), PIP_NAME, PIP_COMPARABLE),
     "github_actions": AdvisorySource(_action_advisories, ACTION_NAME, ACTION_COMPARABLE),
+    "npm_and_yarn": AdvisorySource(
+        lambda _api, name, version: _osv_advisories("npm", name, version), NPM_NAME, NPM_COMPARABLE
+    ),
     "docker": None,
     "pre_commit": None,
 }

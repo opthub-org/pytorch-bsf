@@ -193,17 +193,26 @@ skips yanked releases; this is not confirmed for the other ecosystems.
 
 The controller also looks up the version that each commit's Dependabot metadata names,
 on every evaluation of a PR that passes the provenance, change and metadata checks:
-pip packages in [OSV](https://osv.dev), and GitHub Actions in the GitHub Advisory
+pip and npm packages in [OSV](https://osv.dev), and GitHub Actions in the GitHub Advisory
 Database, including malware advisories in both. A known advisory stops the merge, and
 the triage comment names it unless a hold or an earlier stop reason takes precedence. A
 failed lookup merges nothing and fails the job. The triage comment says that the lookup
 failed, unless a hold, another stop reason, a conflict or a pause comes first; then only
-the failed job shows it. A pip or Actions commit whose metadata is missing or names a
+the failed job shows it. A pip, npm or Actions commit whose metadata is missing or names a
 dependency in an unexpected form stops the merge, as does an ecosystem with no
 classification here. When the metadata names a commit SHA, no version or anything else
 that cannot be compared, any advisory on the package stops the merge, and a maintainer
 must check its affected range. An action tag with fewer than three numbers, such as
-`v3`, counts as not comparable, because it can move to any 3.x release.
+`v3`, counts as not comparable, because it can move to any 3.x release. An npm version
+counts as comparable only when it is an exact SemVer version, such as `11.0.1`.
+
+The npm ecosystem covers only `tests/tools/release-please-fixture`, which the
+**Release configuration** check installs with `npm ci --ignore-scripts` and runs with a
+read-only token. It is not distributed, so its updates are `build(deps)` and release
+nothing. Dependabot ignores the `release-please` engine there, because the engine must
+match the pinned `googleapis/release-please-action`. The fixture asserts both, so a PR
+that moves only one of them fails that check and stops; see
+[Updating the Release Please engine](CONTRIBUTING.md#updating-the-release-please-engine).
 
 Neither the cooldown nor the advisory lookup catches:
 
@@ -213,7 +222,8 @@ Neither the cooldown nor the advisory lookup catches:
   withdraws the release or a maintainer holds the PR;
 - known advisories on pre-commit hooks and Docker images, which have no advisory source
   here;
-- transitive dependencies, or actions nested in a composite action;
+- transitive dependencies that the metadata does not name, such as other packages that
+  an npm lockfile update moves, or actions nested in a composite action;
 - other versions that a pip range allows, because only the named version is looked up;
 - unreviewed GitHub advisories for actions, which carry no package data;
 - a commit without Dependabot's metadata whose quoted text ends in a block of the same
@@ -221,9 +231,9 @@ Neither the cooldown nor the advisory lookup catches:
   names;
 - action advisories filed under a name other than `owner/repo[/path]`, such as a URL or
   an `@scope/name`;
-- an advisory published after the merge. Dependabot alerts report this for pip packages
-  only: GitHub creates no alerts for SHA-pinned actions, and none for pre-commit hooks
-  or Docker images, so nothing here reports it for those.
+- an advisory published after the merge. Dependabot alerts report this for pip and npm
+  packages only: GitHub creates no alerts for SHA-pinned actions, and none for pre-commit
+  hooks or Docker images, so nothing here reports it for those.
 
 The remaining exposure is accepted: action pins also update in privileged workflows,
 including this one, the security automation and PyPI publishing, and a malicious action
@@ -295,8 +305,8 @@ hold back the fixes behind it too. Anyone who needs the old behavior can pin the
 previous version.
 
 Pip and Docker updates are `fix(deps)` commits, which release-please releases.
-Pre-commit and GitHub Actions updates are `build(deps)` commits, which change nothing
-that is distributed, so they alone create no release PR.
+Pre-commit, GitHub Actions and npm updates are `build(deps)` commits, which change
+nothing that is distributed, so they alone create no release PR.
 
 The release PR merges once the checks of its exact head succeed and:
 

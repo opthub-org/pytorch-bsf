@@ -8,5 +8,10 @@
     "ajv": "8.20.0",
     "release-please": "17.6.0",
     "yaml": "2.9.1"
+  },
+  "overrides": {
+    "@google-automations/git-file-utils": {
+      "minimatch": "^11.0.1"
+    }
   }
 }

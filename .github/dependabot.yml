@@ -5,7 +5,7 @@
 
 # `cooldown` delays version updates so that a bad release can be withdrawn before auto-merge takes it;
 # see "Dependabot auto-merge" in SECURITY.md. `commit-message` makes pip and Docker updates `fix(deps)`, which
-# release-please releases (at once; see "Release automation" in SECURITY.md), and keeps pre-commit and Actions
+# release-please releases (at once; see "Release automation" in SECURITY.md), and keeps pre-commit, Actions and npm
 # updates `build(deps)`, which change nothing that is distributed and release nothing.
 version: 2
 updates:
@@ -51,3 +51,17 @@ updates:
     commit-message:
       prefix: "fix"
       include: "scope"
+  # The CI-only fixture that runs the real Release Please engine; nothing in it is distributed.
+  - package-ecosystem: "npm"
+    directory: "/tests/tools/release-please-fixture"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 3
+    commit-message:
+      prefix: "build"
+      include: "scope"
+    # The engine must match the one bundled in the pinned googleapis/release-please-action, so it moves only with
+    # that pin; see "Updating the Release Please engine" in CONTRIBUTING.md. Its own dependencies still update.
+    ignore:
+      - dependency-name: "release-please"
