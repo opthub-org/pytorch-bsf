@@ -515,7 +515,7 @@ class ReconcileTests(unittest.TestCase):
             ("run with no jobs yet", "in_progress", (), "Waiting for release-please."),
             ("job running", "in_progress", (running,), "Waiting for release-please."),
             ("only another job yet", "in_progress", (other,), "Waiting for release-please."),
-            ("run ended without the job", "completed", (other,), "ended `missing`"),
+            ("run ended without the job", "completed", (other,), "ended without its `release-pr` job"),
             ("failed", "completed", (failed,), "ended `failure`"),
             ("skipped", "completed", (skipped,), "ended `skipped`"),
         ]

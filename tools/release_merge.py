@@ -45,8 +45,8 @@ RELEASE_WORKFLOW = "release-please-action.yml"
 RELEASE_PR_JOB = "release-pr"
 POST_MERGE = [RELEASE_WORKFLOW, *(workflow for workflow in security.POST_MERGE if workflow != RELEASE_WORKFLOW)]
 QUIET = dt.timedelta(days=1)
-# How release-please reads a commit, approximately: it only sets when a release merges, never what it holds, which
-# the `release-pr` job decides. A conventional header is read from the subject and from each unindented body line,
+# An approximation of how release-please reads a commit. It only sets when a release merges; what the release holds
+# is decided by the `release-pr` job. A conventional header is read from the subject and from each unindented body line,
 # such as the PR title in a merge commit's body. tests/tools/release-please-fixture/releasable.json pins the cases.
 LINE_BREAK = re.compile(r"\r?\n")
 HEADER = re.compile(r"(?P<type>[\w-]+)(?:\((?P<scope>[^)]+)\))?(?P<breaking>!)?:")
@@ -75,9 +75,9 @@ class Evidence:
     # When the release last gained a releasable change on `master`. release-please rewrites the head daily for the
     # date in the changelog, so the head's own time does not show whether the release is still changing.
     last_change: dt.datetime
-    # How the `release-pr` job ended on `master`'s head: None when the PR's head already has every commit of `master`,
-    # "pending" while it has not finished, "missing" when its run ended without it, or the job's conclusion. Only its
-    # success shows that release-please has seen every commit of `master`, so that the PR's head is not stale.
+    # How the `release-pr` job ended on `master`'s head (see release_pr_state), or None when the PR's head already has
+    # every commit of `master`. Only its success shows that release-please has seen every commit of `master`, so that
+    # the PR's head is not stale; the job's runs are serialized, so an older run cannot push after it.
     release_pr_job: str | None
     # When `master`'s head landed, if the PR's head lacks commits of `master`.
     master_landed: dt.datetime | None
@@ -284,17 +284,25 @@ def _waiting(evidence: Evidence, now: dt.datetime) -> Decision | None:
     if evidence.release_pr_job not in {None, "success"}:
         # A stale head would ship `master`'s newer commits outside the release, and release-please lists only later
         # commits in the next one. Its own run decides what the release holds, so no commit is parsed here.
-        job = f"The `{RELEASE_PR_JOB}` job of the Release workflow"
+        job_text = f"The `{RELEASE_PR_JOB}` job of the Release workflow"
+        stale = "so this PR may lack commits of `master`."
+        if evidence.release_pr_job == "missing":
+            return Decision(
+                "stop",
+                "Not merging this head.",
+                f"The Release run on the head of `master` ended without its `{RELEASE_PR_JOB}` job, {stale}",
+                "Re-run the Release workflow on `master`, or merge the PR by hand.",
+            )
         if evidence.release_pr_job != "pending":
             return Decision(
                 "stop",
                 "Not merging this head.",
-                f"{job} ended `{evidence.release_pr_job}` on the head of `master`, so this PR may lack commits of `master`.",
+                f"{job_text} ended `{evidence.release_pr_job}` on the head of `master`, {stale}",
                 f"Fix the job ({APP_SETUP} if the App token failed) and re-run it, or merge the PR by hand.",
             )
         assert evidence.master_landed is not None  # evaluate() sets both when `master` is ahead.
         update_deadline = evidence.master_landed + merge.CI_GRACE
-        reason = f"{job} has not finished on the head of `master`, so this PR may lack commits of `master`."
+        reason = f"{job_text} has not finished on the head of `master`, {stale}"
         if now > update_deadline:
             return Decision(
                 "stop",
@@ -405,8 +413,10 @@ def master_ci(api: security.GitHub, root: Path, master_sha: str) -> tuple[list[s
 
 
 def release_pr_state(api: security.GitHub, runs: dict[str, Json]) -> str:
-    """Return "pending" until the `release-pr` job of the latest Release run on `master`'s head ends, then how.
+    """Return how the `release-pr` job of the latest Release run on `master`'s head ended.
 
+    That is "pending" while no run lists the job or it has not finished, "missing" when the run ended without it, and
+    otherwise the job's conclusion.
     The jobs API names a job by its key, because the job sets no `name:`; test.cjs pins that.
     """
     run = runs.get(RELEASE_WORKFLOW)
