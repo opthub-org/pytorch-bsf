@@ -15,6 +15,8 @@ MAX_FILES = 20_000
 MAX_SITE_BYTES = 245_000_000
 MAX_FILE_BYTES = 20_000_000
 MAX_MANIFEST_BYTES = 5_000_000
+# Must equal DOCS_VERSION_VARIABLE in docs/conf.py, which reads it.
+DOCS_VERSION_VARIABLE = "PYTORCH_BSF_DOCS_VERSION"
 
 
 def source_name(ref: str) -> str:
@@ -57,10 +59,11 @@ def freeze(ref: str, sha: str) -> None:
 def build_html(ref: str, build: Path) -> None:
     """Build only the triggering ref's HTML into its version root under ``build``.
 
-    ``docs/conf.py`` reads the version name for the version switcher and source links.
+    ``docs/conf.py`` reads the version name from ``DOCS_VERSION_VARIABLE`` for the
+    version switcher and source links.
     """
     name = source_name(ref)
-    environment = dict(os.environ, PYTORCH_BSF_DOCS_VERSION=name)
+    environment = dict(os.environ, **{DOCS_VERSION_VARIABLE: name})
     subprocess.run([sys.executable, "-m", "sphinx", "-b", "html", "docs", str(build / name)], check=True, env=environment)
 
 
@@ -120,10 +123,11 @@ def package(build: Path, output: Path, metadata: dict[str, object]) -> None:
 def main() -> None:
     """Read event provenance directly from the runner environment."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--freeze", action="store_true")
-    parser.add_argument("--html", action="store_true", help="build the triggering ref's HTML")
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--freeze", action="store_true", help="pin the triggering ref to the event commit")
+    mode.add_argument("--html", action="store_true", help="build the triggering ref's HTML")
+    mode.add_argument("--output", type=Path, help="package the built ref into this new directory")
     parser.add_argument("--build", type=Path, default=Path("docs/_build"))
-    parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     ref, sha = os.environ["GITHUB_REF"], os.environ["GITHUB_SHA"]
     if args.freeze:
@@ -131,8 +135,6 @@ def main() -> None:
     elif args.html:
         build_html(ref, args.build)
     else:
-        if args.output is None:
-            parser.error("--output is required when packaging")
         package(
             args.build,
             args.output,

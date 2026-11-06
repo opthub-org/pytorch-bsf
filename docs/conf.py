@@ -127,7 +127,10 @@ html_favicon = "_static/favicon.ico"
 # a branch such as ``master`` or a release tag such as ``v1.2.3``. The name is also
 # the ref's URL root on GitHub Pages. A local build leaves it unset, so its source
 # links document master and it shows no version switcher.
+# tools/pages_build.py sets it, and a test checks that both use this name.
 DOCS_VERSION_VARIABLE = "PYTORCH_BSF_DOCS_VERSION"
+# The release tags that the producer and publisher accept (tools/pages_build.py and
+# tools/pages_publish.py); a test checks that the three patterns agree.
 _RELEASE_TAG = re.compile(r"v(\d+)\.(\d+)\.(\d+)")
 
 # https://www.sphinx-doc.org/ja/master/usage/extensions/linkcode.html
@@ -164,7 +167,7 @@ def _version_switcher(current, tags):
     return {"current": current, "tags": tags, "branches": branches}
 
 
-def _configure_source_links(app, config):
+def _configure_documented_ref(app, config):
     global _source_ref, _source_root, _switcher
     current = os.environ.get(DOCS_VERSION_VARIABLE, "")
     _source_ref = current or "master"
@@ -256,5 +259,5 @@ def linkcode_resolve(domain, info):
 
 
 def setup(app):
-    app.connect("config-inited", _configure_source_links)
+    app.connect("config-inited", _configure_documented_ref)
     app.connect("html-page-context", _add_version_links)

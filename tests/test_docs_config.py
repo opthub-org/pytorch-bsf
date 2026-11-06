@@ -9,22 +9,20 @@ from typing import Any
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-VARIABLE = "PYTORCH_BSF_DOCS_VERSION"
 
 
 @pytest.fixture
 def configuration(monkeypatch):
     # Loading conf.py does not require Sphinx or optional integrations.
-    monkeypatch.delenv(VARIABLE, raising=False)
-    return runpy.run_path(str(ROOT / "docs" / "conf.py"))
+    configuration = runpy.run_path(str(ROOT / "docs" / "conf.py"))
+    monkeypatch.delenv(configuration["DOCS_VERSION_VARIABLE"], raising=False)
+    return configuration
 
 
 def _configure(configuration, monkeypatch, srcdir, ref):
     if ref:
-        monkeypatch.setenv(VARIABLE, ref)
-    else:
-        monkeypatch.delenv(VARIABLE, raising=False)
-    configuration["_configure_source_links"](SimpleNamespace(srcdir=srcdir), SimpleNamespace())
+        monkeypatch.setenv(configuration["DOCS_VERSION_VARIABLE"], ref)
+    configuration["_configure_documented_ref"](SimpleNamespace(srcdir=srcdir), SimpleNamespace())
 
 
 @pytest.mark.parametrize("ref", ["master", "v0.23.0", "docs/version-links"])
@@ -70,13 +68,15 @@ def test_setup_registers_source_and_version_hooks(configuration):
     app = SimpleNamespace(connect=lambda event, callback: events.append((event, callback)))
     configuration["setup"](app)
     assert events == [
-        ("config-inited", configuration["_configure_source_links"]),
+        ("config-inited", configuration["_configure_documented_ref"]),
         ("html-page-context", configuration["_add_version_links"]),
     ]
 
 
 def _git(root, *args):
-    subprocess.run(["git", "-C", str(root), *args], check=True, capture_output=True)
+    # Ignore the user's signing and hook settings, as other scratch-repository tests do.
+    isolation = ["-c", "commit.gpgsign=false", "-c", "tag.gpgSign=false", "-c", "core.hooksPath=/dev/null"]
+    subprocess.run(["git", "-C", str(root), *isolation, *args], check=True, capture_output=True)
 
 
 def test_release_tags_are_newest_first_by_version_number(configuration, tmp_path):
@@ -146,3 +146,31 @@ def test_version_links_are_added_to_each_page(configuration, monkeypatch):
     assert context["versions"]["branches"] == [
         {"name": "master", "url": "../master/faq.html", "fallback": "../master/index.html"}
     ]
+
+
+def _render_menu(context):
+    jinja2 = pytest.importorskip("jinja2")
+    environment = jinja2.Environment(loader=jinja2.FileSystemLoader(ROOT / "docs" / "_templates"), autoescape=False)
+    return environment.get_template("versions.html").render(**context)
+
+
+def test_menu_template_renders_each_link_with_its_fallback(configuration):
+    switcher = configuration["_version_switcher"]("fix/topic", ["v0.2.0"])
+    html = _render_menu(configuration["_version_links"](switcher, "advanced/x"))
+    assert "v: fix/topic" in html
+    for name in ["v0.2.0", "master", "fix/topic"]:
+        assert (
+            f'<dd><a href="../../../{name}/advanced/x.html" data-fallback="../../../{name}/index.html">{name}</a></dd>' in html
+        )
+    assert html.index("<dt>Tags</dt>") < html.index("v0.2.0") < html.index("<dt>Branches</dt>")
+
+
+def test_menu_template_escapes_ref_names(configuration):
+    html = _render_menu(configuration["_version_links"](configuration["_version_switcher"]('a"<b>', []), "index"))
+    assert "<b>" not in html
+    assert "v: a&#34;&lt;b&gt;" in html
+    assert 'href="../a%22%3Cb%3E/index.html"' in html
+
+
+def test_menu_template_renders_nothing_for_a_local_build():
+    assert _render_menu({}).strip() == ""
