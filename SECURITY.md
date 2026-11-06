@@ -324,8 +324,10 @@ a stale head would ship releasable commits without a changelog entry, and releas
 lists only commits after the release. That run, not the controller, decides which
 commits the release needs, so no commit message is parsed for this. Release runs on
 `master` never overlap and start in push order, so an older one cannot update the PR
-after it. Re-running an older run cancels a newer one that waits, so re-run the latest
-run instead.
+after it. Re-running an older run cancels a newer one that waits. The controllers start
+such a cancelled run again after their own merges (see below), and that run in turn
+cancels the re-run if it still waits, so re-run an older run only while no Release run
+waits.
 
 The controller merges only release-please's own PR for `master`: opened by
 `github-actions[bot]` or the release App's bot from
@@ -342,7 +344,15 @@ required there; the PyTest `docs` job still builds the documentation. A merge wi
 `GITHUB_TOKEN` starts no workflow, so after merging, the controller starts the Release
 workflow on `master`, which creates the tag and the GitHub release and publishes to PyPI
 and GHCR, and then the CI workflows. If starting them fails, a later run starts the
-missing ones.
+missing ones. The same recovery follows the Dependabot controller's merges. A later run
+also starts Release again when every Release run on the head of `master` was cancelled
+before any job ran, as the workflow's concurrency group cancels a waiting run that a
+newer run replaces. A run cancelled after a job started is left alone, because a person
+may have stopped it. A person who cancels a run that is still waiting cannot be told
+apart, so to stop a release, cancel the run after it starts or disable the workflow.
+Release is started again at most twice for one head (`MAX_REDISPATCHES` in
+`tools/dependabot_merge.py`); after that, the controller job fails until someone starts
+Release by hand or `master` moves.
 
 The release controller runs when Release starts or finishes on `master`, when a CI
 workflow starts or finishes on the release branch, and on the same schedule as the
