@@ -308,21 +308,41 @@ The release PR merges once the checks of its exact head succeed and:
   release.
 
 The controller merges only release-please's own PR for `master`: opened by
-`github-actions[bot]` from `release-please--branches--master--components--torch_bsf`
-with a release title and the `autorelease: pending` label, made of commits that
-`github-actions[bot]` wrote and GitHub signed, and changing only the version in
-`pyproject.toml` and `.release-please-manifest.json`, and `CHANGELOG.md`. Anything else
-stops the merge.
+`github-actions[bot]` or the release App's bot from
+`release-please--branches--master--components--torch_bsf` with a release title and the
+`autorelease: pending` label, made of commits that one of those accounts wrote and that
+GitHub signed (as `web-flow`, or as the App's bot for its own commits), and changing only
+the version in `pyproject.toml` and `.release-please-manifest.json`, and `CHANGELOG.md`.
+Anything else stops the merge.
 
-release-please pushes with `GITHUB_TOKEN`, so the head's own `pull_request` runs end as
-`action_required` without running anything. The controller therefore starts the CI
-workflows on the release branch itself, for each workflow that has no other run on the
-head. The GHPages build and publisher
-exclude release-please branches, so their checks are not required there; the PyTest
-`docs` job still builds the documentation. A merge with `GITHUB_TOKEN` starts no
-workflow either, so after merging, the controller starts the Release workflow on
-`master`, which creates the tag and the GitHub release and publishes to PyPI and GHCR,
-and then the CI workflows. If starting them fails, a later run starts the missing ones.
+### Release App
+
+A release PR that release-please updates with `GITHUB_TOKEN` gets `pull_request` runs
+that wait for approval (`action_required`). Runs started any other way, for example by
+hand, do not count as the PR's required checks, so GitHub blocks the merge. The Release
+workflow therefore opens and updates the release PR with a GitHub App's token, and
+creates releases with `GITHUB_TOKEN` as before, so that tag and release events start no
+second publication. Without the App, `GITHUB_TOKEN` still opens the PR, and the
+controller stops it, saying that CI waits for approval. To set the App up:
+
+1. Create a GitHub App owned by the organization, with no webhook, and repository
+   permissions **Contents: Read and write** and **Pull requests: Read and write**
+   (Metadata: Read-only is added automatically). Install it on this repository only.
+2. Generate a private key. Add the App's client ID as the repository Actions variable
+   **RELEASE_PLEASE_APP_CLIENT_ID** and the key as the secret
+   **RELEASE_PLEASE_APP_PRIVATE_KEY**.
+3. Add the App's bot account, `<app-slug>[bot]`, as the variable **RELEASE_PLEASE_BOT**,
+   so that the controller accepts the PRs and commits it writes.
+
+The key can push to any branch of this repository, including `master` unless the branch
+rules stop it, so keep it only in that secret, and rotate it if it leaks.
+
+The GHPages build and publisher exclude release-please branches, so their checks are not
+required there; the PyTest `docs` job still builds the documentation. A merge with
+`GITHUB_TOKEN` starts no workflow, so after merging, the controller starts the Release
+workflow on `master`, which creates the tag and the GitHub release and publishes to PyPI
+and GHCR, and then the CI workflows. If starting them fails, a later run starts the
+missing ones.
 
 The release controller runs when Release finishes on `master`, when a CI workflow starts
 or finishes on the release branch, and on the same schedule as the Dependabot
@@ -330,12 +350,13 @@ controller, and it waits for `codecov/patch` in the same way. The PR keeps one s
 comment with the decision, the reason and what would make it mergeable. The controller
 stops the merge, and mentions the maintainer once for each stopped head, on:
 
+- CI on the release head that waits for approval, as described above;
 - failed checks on the release head;
 - failed checks on the head of `master`. A merge also ships the `master` commits that
   release-please did not add to the release PR, such as `build(deps)` or `ci` commits,
   and those were tested only in their own PRs;
-- checks still unfinished two hours after CI last started on the head;
-- a merge state other than mergeable two hours after CI last started, or seven days
+- checks still unfinished two hours after the head's commit;
+- a merge state other than mergeable two hours after the head's commit, or seven days
   while GitHub has not computed it. A conflict usually clears when release-please
   rebases the PR for the next releasable change;
 - a missing tag for the previous release, or a PR outside the limits above.

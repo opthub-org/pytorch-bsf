@@ -333,9 +333,13 @@ update `.release-please-manifest.json`, `pyproject.toml` and `CHANGELOG.md` toge
 Do not clear the manifest or set a new bootstrap version during an Action update.
 
 Release PRs merge automatically, including breaking releases; see
-[Release automation](SECURITY.md#release-automation). Because the release workflow
-then runs from a dispatch on `master` rather than from the merge push, the `pypi`
-environment must keep allowing the `master` branch.
+[Release automation](SECURITY.md#release-automation). The Release workflow runs
+release-please twice: once with `GITHUB_TOKEN` to create releases
+(`skip-github-pull-request`), and once with the release App's token to open and update
+the release PR (`skip-github-release`), so that the PR's CI runs; see
+[Release App](SECURITY.md#release-app). Because the release workflow runs from a
+dispatch on `master` after an automatic merge rather than from the merge push, the
+`pypi` environment must keep allowing the `master` branch.
 
 The root component's `release_created` and `tag_name` outputs connect to the
 Docker and PyPI build jobs. Both build only when `release_created == 'true'`,

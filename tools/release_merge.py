@@ -46,6 +46,8 @@ QUIET = dt.timedelta(days=1)
 URGENT = re.compile(r"(?:fix|feat)\((?:deps|deps-dev|security)\)!?:")
 STATUS_MARKER = "<!-- release-merge:v1 -->"
 STOP_MARKER = "<!-- release-merge-stop:v1"
+# The GitHub App that opens and updates the release PR, named by the repository variable RELEASE_PLEASE_BOT.
+APP_BOT = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]*\[bot\]")
 
 
 @dataclass(frozen=True)
@@ -55,11 +57,11 @@ class Evidence:
     problem: str | None
     draft: bool
     head_committed: dt.datetime
-    # When CI last started on this head: the head's commit, or the latest dispatch of its CI.
-    ci_started: dt.datetime
     merge_state: str | None
     failed: list[str]
     pending: list[str]
+    # Workflows whose run on this head waits for approval, as runs started by a GITHUB_TOKEN push do.
+    awaiting_approval: list[str]
     master_failed: list[str]
     urgent: list[str]
     enabled: bool
@@ -73,10 +75,16 @@ class Decision:
     mergeable_when: str
 
 
-def release_problem(pr: Json, commits: list[Json], files: list[Json], repo: str) -> str | None:
+def release_authors(app_bot: str | None) -> frozenset[str]:
+    """Return the accounts release-please writes as: GITHUB_TOKEN's bot, and the release App's bot if it is valid."""
+    bot = (app_bot or "").strip()
+    return frozenset({security.BOT, bot}) if APP_BOT.fullmatch(bot) else frozenset({security.BOT})
+
+
+def release_problem(pr: Json, commits: list[Json], files: list[Json], repo: str, authors: frozenset[str]) -> str | None:
     """Accept only release-please's own PR, which edits the version and the changelog and nothing else."""
     if (
-        merge.author_login(pr) != security.BOT
+        merge.author_login(pr) not in authors
         or pr["head"]["repo"]["full_name"] != repo
         or pr["head"]["ref"] != RELEASE_BRANCH
         or pr["base"]["ref"] != "master"
@@ -86,16 +94,18 @@ def release_problem(pr: Json, commits: list[Json], files: list[Json], repo: str)
         return "The title is not a release-please release title."
     if RELEASE_LABEL not in {label["name"] for label in pr.get("labels", [])}:
         return f"The PR lacks the `{RELEASE_LABEL}` label, without which release-please creates no release."
-    return _commit_problem(commits) or _file_problem(files)
+    return _commit_problem(commits, authors) or _file_problem(files)
 
 
-def _commit_problem(commits: list[Json]) -> str | None:
+def _commit_problem(commits: list[Json], authors: frozenset[str]) -> str | None:
     if not commits:
         return "The PR has no commits to verify."
     for row in commits:
         author = (row.get("author") or {}).get("login")
         committer = (row.get("committer") or {}).get("login")
-        if author != security.BOT or committer != merge.COMMITTER or row["commit"]["verification"]["verified"] is not True:
+        # GitHub signs commits that an App writes through the API in the App's name, and other API commits as web-flow.
+        signers = {merge.COMMITTER, author}
+        if author not in authors or committer not in signers or row["commit"]["verification"]["verified"] is not True:
             return f"Commit `{row['sha'][: merge.SHORT_SHA_CHARS]}` was not written and signed through release-please."
     return None
 
@@ -144,6 +154,14 @@ def decide(evidence: Evidence, now: dt.datetime) -> Decision:
         return Decision("stop", "Not merging this PR.", evidence.problem, "Merge or close it by hand.")
     if evidence.draft:
         return Decision("hold", "Held.", "The PR is a draft.", "Mark it ready for review.")
+    if evidence.awaiting_approval:
+        return Decision(
+            "stop",
+            "Not merging this head.",
+            f"CI on this head waits for approval: {merge.format_names(evidence.awaiting_approval)}. release-please "
+            "updated the PR with GITHUB_TOKEN instead of the release App.",
+            "Set up the release App (see Release automation in SECURITY.md), or approve and run the workflows.",
+        )
     if evidence.failed:
         return Decision(
             "stop",
@@ -164,15 +182,15 @@ def decide(evidence: Evidence, now: dt.datetime) -> Decision:
 
 
 def _waiting(evidence: Evidence, now: dt.datetime) -> Decision | None:
-    ci_deadline = evidence.ci_started + merge.CI_GRACE
+    ci_deadline = evidence.head_committed + merge.CI_GRACE
     if evidence.pending:
         if now > ci_deadline:
             return Decision(
                 "stop",
                 "Not merging this head.",
-                f"CI is still incomplete {merge.format_hours(merge.CI_GRACE)} hours after it started: "
+                f"CI is still incomplete {merge.format_hours(merge.CI_GRACE)} hours after the head's commit: "
                 f"{merge.format_names(evidence.pending)}.",
-                "Run the missing workflows on the release branch, or re-run them.",
+                "Re-run the unfinished workflows on this PR.",
             )
         return Decision(
             "wait",
@@ -181,7 +199,7 @@ def _waiting(evidence: Evidence, now: dt.datetime) -> Decision | None:
             f"All checks succeed by {merge.format_minute(ci_deadline)}.",
         )
     if evidence.merge_state not in merge.MERGEABLE_STATES:
-        state_deadline = evidence.ci_started + merge.merge_state_limit(evidence.merge_state)
+        state_deadline = evidence.head_committed + merge.merge_state_limit(evidence.merge_state)
         reason = f"GitHub reports the merge state `{evidence.merge_state}`."
         if now > state_deadline:
             return Decision("stop", "Not merging this head.", reason, "Resolve what blocks the merge, or merge it by hand.")
@@ -248,20 +266,8 @@ def notify_stop(api: security.GitHub, pr: Json, comments: list[Json]) -> None:
         api.write(f"issues/{pr['number']}/comments", {"body": body})
 
 
-def ci_to_start(runs: dict[str, Json]) -> list[str]:
-    """Return the CI workflows with no usable run on the head.
-
-    release-please pushes with GITHUB_TOKEN, so the head's own `pull_request` runs end as `action_required` without
-    running anything, and a dispatched run replaces them as the latest run.
-    """
-    return [
-        workflow for workflow in WORKFLOWS if workflow not in runs or runs[workflow].get("conclusion") == "action_required"
-    ]
-
-
-def _ci_started(head_committed: dt.datetime, runs: dict[str, Json]) -> dt.datetime:
-    dispatched = [merge.parse_time(run["created_at"]) for run in runs.values() if run.get("event") == "workflow_dispatch"]
-    return max([head_committed, *dispatched])
+def awaiting_approval(runs: dict[str, Json]) -> list[str]:
+    return [workflow for workflow in WORKFLOWS if (runs.get(workflow) or {}).get("conclusion") == "action_required"]
 
 
 def evaluate(
@@ -269,17 +275,18 @@ def evaluate(
     number: int,
     root: Path,
     enabled: bool,
+    authors: frozenset[str],
     *,
     settling: frozenset[str] = frozenset(),
-) -> tuple[Json, list[Json], Evidence, list[str]]:
-    """Read the PR and its checks, and return the evidence and the CI workflows that still have to start."""
+) -> tuple[Json, list[Json], Evidence]:
+    """Read the PR, its checks and the checks of `master`'s head, and return what the decision needs."""
     pr = merge.read_pull(api, number, settling=settling)
     comments = api.pages(f"issues/{number}/comments")
     commits = api.pages(f"pulls/{number}/commits")
     files = api.pages(f"pulls/{number}/files")
     sha = pr["head"]["sha"]
     head = [row for row in commits if row["sha"] == sha]
-    problem = release_problem(pr, commits, files, api.repo) or (None if head else "The head commit is not listed.")
+    problem = release_problem(pr, commits, files, api.repo, authors) or (None if head else "The head commit is not listed.")
     committed = merge.parse_time(head[0]["commit"]["committer"]["date"]) if head else merge.parse_time(pr["created_at"])
     failed: list[str] = []
     pending: list[str] = []
@@ -301,15 +308,15 @@ def evaluate(
         problem,
         pr["draft"],
         committed,
-        _ci_started(committed, runs),
         pr.get("mergeable_state"),
         failed,
         pending,
+        awaiting_approval(runs),
         master_failed,
         urgent,
         enabled,
     )
-    return pr, comments, evidence, ci_to_start(runs) if problem is None else []
+    return pr, comments, evidence
 
 
 def _codecov_alone_stops(evidence: Evidence, now: dt.datetime) -> bool:
@@ -320,19 +327,14 @@ def _codecov_alone_stops(evidence: Evidence, now: dt.datetime) -> bool:
     return decide(replace(evidence, pending=[], merge_state=settled), now).action == "merge"
 
 
-def evaluate_and_start_ci(
-    api: security.GitHub, number: int, root: Path, enabled: bool, clock: merge.RunClock
+def evaluate_after_codecov(
+    api: security.GitHub, number: int, root: Path, enabled: bool, authors: frozenset[str], clock: merge.RunClock
 ) -> tuple[Json, list[Json], Evidence, Decision]:
-    """Evaluate the PR, start any CI it lacks, and when only codecov/patch keeps it from merging, wait for it.
+    """Evaluate the PR, and when only codecov/patch keeps it from merging, wait for it.
 
     After the wait every input of the decision may have changed, so the PR is evaluated again from scratch.
     """
-    pr, comments, evidence, to_start = evaluate(api, number, root, enabled)
-    # A draft is held, so CI waits until it is ready; a pause stops only merges, so CI still runs.
-    if to_start and not evidence.draft:
-        for workflow in to_start:
-            security.dispatch_workflow(api, workflow, RELEASE_BRANCH, number)
-        evidence = replace(evidence, ci_started=clock.now)
+    pr, comments, evidence = evaluate(api, number, root, enabled, authors)
     decision = decide(evidence, clock.now)
     # A PR already stopped, for example by the CI deadline, gains nothing from the wait.
     if (
@@ -348,7 +350,7 @@ def evaluate_and_start_ci(
         )
     ):
         clock.advance()
-        pr, comments, evidence, _ = evaluate(api, number, root, enabled, settling=frozenset({"unstable"}))
+        pr, comments, evidence = evaluate(api, number, root, enabled, authors, settling=frozenset({"unstable"}))
         decision = decide(evidence, clock.now)
     return pr, comments, evidence, decision
 
@@ -378,11 +380,9 @@ def merge_release(api: security.GitHub, pr: Json, comments: list[Json], decision
     return merged
 
 
-def is_release_pr(row: Json) -> bool:
-    return merge.author_login(row) == security.BOT and row["head"]["ref"] == RELEASE_BRANCH
-
-
-def reconcile(api: security.GitHub, root: Path, enabled: bool, now: dt.datetime) -> list[str]:
+def reconcile(
+    api: security.GitHub, root: Path, enabled: bool, now: dt.datetime, authors: frozenset[str] = frozenset({security.BOT})
+) -> list[str]:
     """Evaluate the open release PR, if any, and return the errors that should fail the job."""
     errors: list[str] = []
     owner = api.repo.split("/")[0]
@@ -392,7 +392,7 @@ def reconcile(api: security.GitHub, root: Path, enabled: bool, now: dt.datetime)
     for row in api.pages(f"pulls?state=open&base=master&head={owner}:{RELEASE_BRANCH}"):
         number = row["number"]
         try:
-            pr, comments, evidence, decision = evaluate_and_start_ci(api, number, root, enabled, clock)
+            pr, comments, evidence, decision = evaluate_after_codecov(api, number, root, enabled, authors, clock)
             # A PR closed or merged during the wait gets no comment, because no later run would correct it.
             if pr.get("state", "open") != "open":
                 continue
@@ -409,7 +409,11 @@ def reconcile(api: security.GitHub, root: Path, enabled: bool, now: dt.datetime)
     # Right after a merge, the dispatched runs are not listed yet, so recovery would start every workflow again.
     if not merged:
         try:
-            merge.ensure_post_merge(api, owned=is_release_pr, workflows=POST_MERGE)
+            merge.ensure_post_merge(
+                api,
+                owned=lambda row: merge.author_login(row) in authors and row["head"]["ref"] == RELEASE_BRANCH,
+                workflows=POST_MERGE,
+            )
         except merge.OPERATIONAL_ERRORS as error:
             errors.append(f"Post-merge workflows: {type(error).__name__}: {error}")
     return errors
@@ -420,7 +424,8 @@ def main() -> None:
     parser.add_argument("--root", type=Path, default=Path.cwd())
     args = parser.parse_args()
     enabled = merge.merging_enabled(os.environ.get("RELEASE_MERGE_ENABLED"))
-    errors = reconcile(security.GitHub(), args.root, enabled, dt.datetime.now(dt.UTC))
+    authors = release_authors(os.environ.get("RELEASE_PLEASE_BOT"))
+    errors = reconcile(security.GitHub(), args.root, enabled, dt.datetime.now(dt.UTC), authors)
     if errors:
         raise SystemExit("\n".join(errors))
 

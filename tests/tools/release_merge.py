@@ -21,6 +21,8 @@ FIXTURE_ROOT = Path("/fixture")
 COMPARE = f"compare/v0.24.0...{SHA}?per_page=100&page=1"
 LISTING = f"pulls?state=open&base=master&head=opthub-org:{release.RELEASE_BRANCH}"
 MASTER = "e" * 40
+APP_BOT = "pytorch-bsf-release[bot]"
+AUTHORS = frozenset({"github-actions[bot]", APP_BOT})
 CiState = tuple[list[str], list[str], dict[str, security.Json]]
 
 
@@ -86,10 +88,10 @@ def evidence(**overrides):
         "problem": None,
         "draft": False,
         "head_committed": NOW - dt.timedelta(hours=1),
-        "ci_started": NOW - dt.timedelta(hours=1),
         "merge_state": "clean",
         "failed": [],
         "pending": [],
+        "awaiting_approval": [],
         "master_failed": [],
         "urgent": [],
         "enabled": True,
@@ -116,7 +118,12 @@ class DecisionTests(unittest.TestCase):
 
     def test_stops_and_holds_come_before_any_merge(self):
         cases: dict[str, list[dict[str, object]]] = {
-            "stop": [{"problem": "no"}, {"failed": ["lint"]}],
+            "stop": [
+                {"problem": "no"},
+                {"failed": ["lint"]},
+                {"awaiting_approval": ["python-package.yml"]},
+                {"master_failed": ["lint"]},
+            ],
             "hold": [{"draft": True}],
         }
         for action, variants in cases.items():
@@ -132,12 +139,12 @@ class DecisionTests(unittest.TestCase):
         self.assertEqual(decide(now=deadline, pending=["lint"]).action, "wait")
         late = decide(now=deadline + dt.timedelta(seconds=1), pending=["lint"])
         self.assertEqual(late.action, "stop")
-        self.assertIn("still incomplete 2 hours after it started", late.reason)
+        self.assertIn("still incomplete 2 hours after the head's commit", late.reason)
 
     def test_an_unmergeable_state_or_a_pause_waits(self):
         for overrides, reason in (({"merge_state": "dirty"}, "`dirty`"), ({"enabled": False}, "RELEASE_MERGE_ENABLED")):
             with self.subTest(**overrides):
-                decision = decide(urgent=["fix(deps): x"], head_committed=NOW - release.QUIET, **overrides)
+                decision = decide(urgent=["fix(deps): x"], **overrides)
                 self.assertEqual(decision.action, "wait")
                 self.assertIn(reason, decision.reason)
 
@@ -145,10 +152,24 @@ class DecisionTests(unittest.TestCase):
 class ProblemTests(unittest.TestCase):
     def problem(self, pr=None, commits=None, files=None):
         commits = [release_commit()] if commits is None else commits
-        return release.release_problem(pr or release_pr(), commits, release_files() if files is None else files, REPO)
+        files = release_files() if files is None else files
+        return release.release_problem(pr or release_pr(), commits, files, REPO, AUTHORS)
 
     def test_release_pleases_own_pr_has_no_problem(self):
         self.assertIsNone(self.problem())
+
+    def test_the_release_app_may_write_the_pr_and_sign_its_commits(self):
+        self.assertIsNone(self.problem(release_pr(user={"login": APP_BOT})))
+        for committer in ("web-flow", APP_BOT):
+            with self.subTest(committer=committer):
+                self.assertIsNone(self.problem(commits=[release_commit(author=APP_BOT, committer=committer)]))
+        # Each account signs only its own commits: GITHUB_TOKEN's commits are not signed in the App's name.
+        mixed = release_commit(author="github-actions[bot]", committer=APP_BOT)
+        self.assertIn("was not written", self.problem(commits=[mixed]))
+        unconfigured = release.release_problem(
+            release_pr(user={"login": APP_BOT}), [release_commit()], release_files(), REPO, frozenset({security.BOT})
+        )
+        self.assertIn("not release-please's release PR", str(unconfigured))
 
     def test_another_pr_is_outside_the_boundary(self):
         for overrides in (
@@ -354,38 +375,24 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(self.run_once(), [])
         self.assertEqual(len(self.writes("pulls/563/merge")), 1)
 
-    def test_ci_that_never_ran_starts_on_the_release_branch_once(self):
-        # release-please's own pull_request runs end as action_required without running anything.
+    def test_ci_waiting_for_approval_stops_at_once_and_starts_nothing(self):
+        # Runs started by release-please's GITHUB_TOKEN pushes wait for approval and never count as required checks.
         runs = {w: run(event="pull_request", conclusion="action_required") for w in release.WORKFLOWS}
-        runs["python-package.yml"] = run(conclusion=None, status="in_progress")
-        del runs["release-config.yml"]
-        self.release_state = ([], ["lint"], runs)
-        self.assertEqual(self.run_once(), [])
-        started = self.dispatched(release.RELEASE_BRANCH)
-        self.assertEqual(started, [w for w in release.WORKFLOWS if w != "python-package.yml"])
-        self.assertNotIn("sphinx-pages-build.yml", started)
-        inputs = [call.args[1].get("inputs") for call in self.api.write.call_args_list if "/dispatches" in call.args[0]]
-        self.assertEqual(inputs.count({"pr_number": "563"}), 0)  # Only python-package.yml takes the PR number.
-        self.assertEqual(self.writes("pulls/563/merge"), [])
-        self.assertIn("All checks succeed by 2026-11-06 14:00 UTC", self.status())
-
-    def test_ci_started_late_gets_its_own_two_hours(self):
-        self.pages["pulls/563/commits"] = [release_commit(date="2026-11-05T20:00:00Z")]  # Seen 16 hours late.
-        self.release_state = ([], ["lint"], {})
-        self.assertEqual(self.run_once(), [])
-        self.assertEqual(self.dispatched(release.RELEASE_BRANCH), release.WORKFLOWS)
-        self.assertIn("Waiting for CI.", self.status())
-        self.assertIn("All checks succeed by 2026-11-06 14:00 UTC", self.status())
-
-    def test_ci_still_unfinished_two_hours_after_its_dispatch_stops_and_notifies_once_per_head(self):
-        started = {w: run(conclusion=None, status="in_progress", created="2026-11-06T09:59:00Z") for w in release.WORKFLOWS}
-        self.release_state = ([], ["lint"], started)
-        self.pages["pulls/563/commits"] = [release_commit(date="2026-11-06T09:00:00Z")]
+        self.release_state = ([], release.WORKFLOWS, runs)
         self.assertEqual(self.run_once(), [])
         self.assertEqual(self.dispatched(release.RELEASE_BRANCH), [])
+        self.assertEqual(self.writes("pulls/563/merge"), [])
+        self.assertIn("waits for approval", self.status())
+        self.assertIn("Set up the release App", self.status())
+        self.assertEqual(len(self.writes("issues/563/comments")), 2)  # The status and one mention.
+
+    def test_ci_still_unfinished_two_hours_after_the_commit_stops_and_notifies_once_per_head(self):
+        self.release_state = ([], ["lint"], {})
+        self.pages["pulls/563/commits"] = [release_commit(date="2026-11-06T09:59:00Z")]
+        self.assertEqual(self.run_once(), [])
         bodies = [call.args[1]["body"] for call in self.writes("issues/563/comments")]
         self.assertEqual(len(bodies), 2)
-        self.assertIn("2 hours after it started", bodies[0])
+        self.assertIn("2 hours after the head's commit", bodies[0])
         self.assertIn(f"@{merge.MAINTAINER}", bodies[1])
         self.comments.extend(
             {"id": i, "body": body, "user": {"login": security.BOT}} for i, body in enumerate(bodies, start=1)
@@ -440,20 +447,14 @@ class ReconcileTests(unittest.TestCase):
         self.ci_state.assert_not_called()
         self.assertIn("head commit is not listed", self.status())
 
-    def test_a_draft_merges_nothing_and_starts_no_ci(self):
+    def test_a_draft_merges_nothing(self):
         self.pr = release_pr(draft=True)
         self.release_state = ([], ["lint"], {})
         self.assertEqual(self.run_once(), [])
         self.assertEqual(self.writes("pulls/563/merge"), [])
-        self.assertEqual(self.dispatched(release.RELEASE_BRANCH), [])
         self.assertIn("The PR is a draft.", self.status())
 
-    def test_a_pause_merges_nothing_but_still_starts_ci(self):
-        self.release_state = ([], ["lint"], {})
-        self.assertEqual(self.run_once(enabled=False), [])
-        self.assertEqual(self.dispatched(release.RELEASE_BRANCH), release.WORKFLOWS)
-        self.release_state = GREEN
-        self.api.write.reset_mock()
+    def test_a_pause_merges_nothing(self):
         self.assertEqual(self.run_once(enabled=False), [])
         self.assertEqual(self.writes("pulls/563/merge"), [])
         self.assertIn("RELEASE_MERGE_ENABLED", self.status())
@@ -515,12 +516,11 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(self.writes("pulls/563/merge"), [])
 
     def test_a_head_already_stopped_does_not_wait_for_codecov(self):
-        late = {w: run(created="2026-11-06T09:59:00Z") for w in release.WORKFLOWS}
-        self.pages["pulls/563/commits"] = [release_commit(date="2026-11-06T09:00:00Z")]
-        self.release_state = ([], [security.CODECOV_PATCH], late)  # Past the CI deadline.
+        self.pages["pulls/563/commits"] = [release_commit(date="2026-11-06T09:59:00Z")]  # Past the CI deadline.
+        self.release_state = ([], [security.CODECOV_PATCH], GREEN[2])
         self.assertEqual(self.run_once(), [])
         self.sleep.assert_not_called()
-        self.assertIn("2 hours after it started", self.status())
+        self.assertIn("2 hours after the head's commit", self.status())
 
     def test_a_pr_closed_during_the_codecov_wait_gets_no_comment(self):
         readings = iter(range(0, 10_000, merge.CODECOV_POLL_SECONDS))
@@ -534,9 +534,8 @@ class ReconcileTests(unittest.TestCase):
         self.pr = release_pr(mergeable_state="blocked")
         self.assertEqual(self.run_once(), [])
         self.assertIn("Waiting for GitHub.", self.status())
-        self.assertIn("2026-11-06 13:05 UTC", self.status())
-        self.release_state = ([], [], {w: run(created="2026-11-06T09:59:00Z") for w in release.WORKFLOWS})
-        self.pages["pulls/563/commits"] = [release_commit(date="2026-11-06T09:00:00Z")]
+        self.assertIn("2026-11-06 13:00 UTC", self.status())
+        self.pages["pulls/563/commits"] = [release_commit(date="2026-11-06T09:59:00Z")]
         self.api.write.reset_mock()
         self.assertEqual(self.run_once(), [])
         self.assertIn("Resolve what blocks the merge", self.status())
@@ -556,6 +555,13 @@ class ReconcileTests(unittest.TestCase):
         self.api.get.side_effect = lambda path: (_ for _ in ()).throw(security.GitHubError("down", 502))
         self.assertEqual(self.run_once(), ["Post-merge workflows: GitHubError: down"])
 
+    def test_post_merge_recovery_covers_a_release_pr_the_app_opened(self):
+        self.pages[LISTING] = []
+        self.pr = {**self.pr, "merged_by": {"login": security.BOT}}
+        self.master_pulls.append({"number": 563, "user": {"login": APP_BOT}, "head": {"ref": release.RELEASE_BRANCH}})
+        self.assertEqual(release.reconcile(self.api, FIXTURE_ROOT, True, NOW, AUTHORS), [])
+        self.assertEqual(self.dispatched("master"), release.POST_MERGE)
+
     def test_post_merge_recovery_ignores_other_prs(self):
         self.pages[LISTING] = []
         self.pr = {**self.pr, "merged_by": {"login": security.BOT}}  # As the Dependabot controller merges.
@@ -568,7 +574,12 @@ class ReconcileTests(unittest.TestCase):
 
 class MainTests(unittest.TestCase):
     def run_main(self, variable, errors):
-        environment = {"GITHUB_REPOSITORY": REPO, "GH_TOKEN": "x", "RELEASE_MERGE_ENABLED": variable}
+        environment = {
+            "GITHUB_REPOSITORY": REPO,
+            "GH_TOKEN": "x",
+            "RELEASE_MERGE_ENABLED": variable,
+            "RELEASE_PLEASE_BOT": APP_BOT,
+        }
         with (
             patch.dict(os.environ, environment),
             patch("sys.argv", ["release_merge", "--root", "/fixture"]),
@@ -582,12 +593,21 @@ class MainTests(unittest.TestCase):
         self.assertEqual(args[1], FIXTURE_ROOT)
         self.assertIs(args[2], False)
         self.assertEqual(args[3].utcoffset(), dt.timedelta(0))
+        self.assertEqual(args[4], AUTHORS)
         with patch.dict(os.environ, {"DEPENDABOT_MERGE_ENABLED": "false"}):
             self.assertIs(self.run_main("", []).call_args.args[2], True)
 
     def test_main_fails_the_job_on_errors(self):
         with self.assertRaisesRegex(SystemExit, "PR #1: x\nPost-merge workflows: y"):
             self.run_main("", ["PR #1: x", "Post-merge workflows: y"])
+
+
+class AuthorTests(unittest.TestCase):
+    def test_only_a_well_formed_app_bot_is_trusted(self):
+        self.assertEqual(release.release_authors(f" {APP_BOT} "), AUTHORS)
+        for value in (None, "", "maintainer", "[bot]", "evil[bot] x", "a/b[bot]"):
+            with self.subTest(value=value):
+                self.assertEqual(release.release_authors(value), frozenset({security.BOT}))
 
 
 class ConfigurationTests(unittest.TestCase):
@@ -635,6 +655,7 @@ class ConfigurationTests(unittest.TestCase):
             r"      - name: Merge the release PR\n(?:        #.*\n)*        if: \$\{\{ !cancelled\(\) \}\}\n"
             r"        env:\n          GH_TOKEN: \$\{\{ github.token \}\}\n"
             r"          RELEASE_MERGE_ENABLED: \$\{\{ vars.RELEASE_MERGE_ENABLED \}\}\n"
+            r"          RELEASE_PLEASE_BOT: \$\{\{ vars.RELEASE_PLEASE_BOT \}\}\n"
             r"        run: python -m tools\.release_merge\n",
         )
 

@@ -139,7 +139,25 @@ test('Action inputs and root outputs connect only created releases to publishing
   assert.deepEqual(step.with, {
     'config-file': 'release-please-config.json',
     'manifest-file': '.release-please-manifest.json',
+    'skip-github-pull-request': true,
   });
+  // The release PR is opened with the release App's token, so that its CI runs; the release itself stays with
+  // GITHUB_TOKEN so that its tag and release events start no second publication.
+  const pr = release.steps.find(step => step.id === 'release-pr');
+  assert.equal(pr.uses, step.uses);
+  assert.deepEqual(pr.with, {
+    token: '${{ steps.app-token.outputs.token || github.token }}',
+    'config-file': 'release-please-config.json',
+    'manifest-file': '.release-please-manifest.json',
+    'skip-github-release': true,
+  });
+  const app = release.steps.find(step => step.id === 'app-token');
+  assert.ok(app.uses.startsWith('actions/create-github-app-token@'));
+  assert.deepEqual(
+    Object.keys(app.with).filter(key => key.startsWith('permission-')).sort(),
+    ['permission-contents', 'permission-pull-requests'],
+  );
+  assert.ok(release.steps.indexOf(step) < release.steps.indexOf(pr));
   assert.deepEqual(release.outputs, {
     release_created: '${{ steps.release-please.outputs.release_created }}',
     tag_name: '${{ steps.release-please.outputs.tag_name }}',

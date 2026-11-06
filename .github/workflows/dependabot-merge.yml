@@ -42,7 +42,7 @@ jobs:
   reconcile:
     # The ref check keeps a dispatch from running another branch's controller with these permissions.
     # The publisher always runs on master, but it reports the `GHPages publish` check of the PR head. Release runs on
-    # master and updates the release PR without starting its CI, which the release controller then starts.
+    # master and may update the release PR, whose new head the release controller then evaluates.
     if: >-
       github.repository == 'opthub-org/pytorch-bsf' &&
       github.ref == 'refs/heads/master' &&
@@ -83,4 +83,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_MERGE_ENABLED: ${{ vars.RELEASE_MERGE_ENABLED }}
+          RELEASE_PLEASE_BOT: ${{ vars.RELEASE_PLEASE_BOT }}
         run: python -m tools.release_merge
