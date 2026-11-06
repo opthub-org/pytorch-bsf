@@ -6,7 +6,7 @@ import os
 import re
 import unittest
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 from tools import dependabot_merge as merge
 from tools import pages_build
@@ -20,7 +20,15 @@ SHA = "c" * 40
 FIXTURE_ROOT = Path("/fixture")
 COMPARE = f"compare/v0.24.0...{SHA}?per_page=100&page=1"
 LISTING = f"pulls?state=open&base=master&head=opthub-org:{release.RELEASE_BRANCH}"
-GREEN: tuple[list[str], list[str], dict[str, security.Json]] = ([], [], {w: {} for w in release.WORKFLOWS})
+MASTER = "e" * 40
+CiState = tuple[list[str], list[str], dict[str, security.Json]]
+
+
+def run(event="workflow_dispatch", conclusion="success", status="completed", created="2026-11-06T11:05:00Z"):
+    return {"event": event, "status": status, "conclusion": conclusion, "created_at": created}
+
+
+GREEN: CiState = ([], [], {w: run() for w in release.WORKFLOWS})
 
 
 def release_pr(number=563, **overrides):
@@ -78,9 +86,11 @@ def evidence(**overrides):
         "problem": None,
         "draft": False,
         "head_committed": NOW - dt.timedelta(hours=1),
+        "ci_started": NOW - dt.timedelta(hours=1),
         "merge_state": "clean",
         "failed": [],
         "pending": [],
+        "master_failed": [],
         "urgent": [],
         "enabled": True,
     }
@@ -100,7 +110,7 @@ class DecisionTests(unittest.TestCase):
     def test_other_releases_wait_for_a_quiet_day(self):
         waiting = decide()
         self.assertEqual(waiting.action, "wait")
-        self.assertIn(merge._minute(NOW - dt.timedelta(hours=1) + release.QUIET), waiting.mergeable_when)
+        self.assertIn(merge.format_minute(NOW - dt.timedelta(hours=1) + release.QUIET), waiting.mergeable_when)
         self.assertEqual(decide(head_committed=NOW - release.QUIET).action, "merge")
         self.assertEqual(decide(head_committed=NOW - release.QUIET + dt.timedelta(seconds=1)).action, "wait")
 
@@ -118,11 +128,11 @@ class DecisionTests(unittest.TestCase):
         deadline = NOW - dt.timedelta(hours=1) + merge.CI_GRACE
         waiting = decide(pending=["lint"], urgent=["fix(deps): x"])
         self.assertEqual(waiting.action, "wait")
-        self.assertIn(merge._minute(deadline), waiting.mergeable_when)
+        self.assertIn(merge.format_minute(deadline), waiting.mergeable_when)
         self.assertEqual(decide(now=deadline, pending=["lint"]).action, "wait")
         late = decide(now=deadline + dt.timedelta(seconds=1), pending=["lint"])
         self.assertEqual(late.action, "stop")
-        self.assertIn("still incomplete after 2 hours", late.reason)
+        self.assertIn("still incomplete 2 hours after it started", late.reason)
 
     def test_an_unmergeable_state_or_a_pause_waits(self):
         for overrides, reason in (({"merge_state": "dirty"}, "`dirty`"), ({"enabled": False}, "RELEASE_MERGE_ENABLED")):
@@ -194,13 +204,14 @@ class UrgencyTests(unittest.TestCase):
             "fix(deps)!: require Python 3.11",
             "feat(security): add a check",
             "fix(security): remediate dependabot-99",
+            "fix(deps-dev): bump sphinx",
             "build(deps): bump actions/cache",
             "fix: unrelated",
             "docs: mention fix(deps): in prose",
             "fix(depsx): not a scope",
         ]
         api.get.return_value = subjects(*lines)
-        self.assertEqual(release.urgent_subjects(api, "0.24.0", SHA), lines[:4])
+        self.assertEqual(release.urgent_subjects(api, "0.24.0", SHA), lines[:5])
         api.get.assert_called_once_with(COMPARE)
 
     def test_every_page_of_a_long_release_is_read(self):
@@ -234,23 +245,32 @@ class ReconcileTests(unittest.TestCase):
             "issues/563/comments": self.comments,
             "pulls/563/commits": [release_commit()],
             "pulls/563/files": release_files(),
-            f"actions/runs?head_sha={'e' * 40}": self.master_runs,
+            f"actions/runs?head_sha={MASTER}": self.master_runs,
         }
         self.compare = subjects("feat: x", "fix(deps): bump y (#2)")
         self.api.pages.side_effect = lambda path, key=None: self.pages.get(path, [])
         self.api.get.side_effect = self.get
         self.api.write.side_effect = lambda path, data, method="POST": {"merged": True} if path.endswith("/merge") else {}
-        ci_state = patch.object(security, "ci_state", return_value=GREEN)
+        # The release head reads release_states in turn and then release_state; master's head reads master_state.
+        self.release_states: list[CiState] = []
+        self.release_state: CiState = GREEN
+        self.master_state: CiState = ([], [], {})
+        ci_state = patch.object(security, "ci_state", side_effect=self.read_ci_state)
         self.addCleanup(ci_state.stop)
         self.ci_state = ci_state.start()
         sleep = patch.object(merge.time, "sleep", side_effect=AssertionError("unexpected sleep"))
         self.addCleanup(sleep.stop)
         self.sleep = sleep.start()
 
+    def read_ci_state(self, api, sha, root, **options):
+        if sha != SHA:
+            return self.master_state
+        return self.release_states.pop(0) if self.release_states else self.release_state
+
     def get(self, path):
         if path == "commits/master":
-            return {"sha": "e" * 40}
-        if path == f"commits/{'e' * 40}/pulls":
+            return {"sha": MASTER}
+        if path == f"commits/{MASTER}/pulls":
             return self.master_pulls
         if path.startswith("compare/"):
             return self.compare
@@ -273,6 +293,13 @@ class ReconcileTests(unittest.TestCase):
         bodies = [call.args[1]["body"] for call in self.writes("issues/563/comments")]
         return next(body for body in bodies if body.startswith(release.STATUS_MARKER))
 
+    def release_reads(self):
+        return [call for call in self.ci_state.call_args_list if call.args[1] == SHA]
+
+    def merged_release_on_master(self):
+        self.pr = {**self.pr, "merged_by": {"login": security.BOT}}
+        self.master_pulls.append({"number": 563, "user": {"login": security.BOT}, "head": {"ref": release.RELEASE_BRANCH}})
+
     def test_an_urgent_release_merges_this_head_and_starts_the_release_first(self):
         self.assertEqual(self.run_once(), [])
         merges = self.writes("pulls/563/merge")
@@ -285,9 +312,37 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(self.dispatched("master")[0], "release-please-action.yml")
         self.assertIn("Merged this head.", self.status())
         self.assertIn("fix(deps): bump y (#2)", self.status())
-        self.ci_state.assert_called_with(
-            self.api, SHA, FIXTURE_ROOT, workflows=release.WORKFLOWS, excluded=release.DOCUMENTATION_CHECKS
-        )
+        expected = call(self.api, SHA, FIXTURE_ROOT, workflows=release.WORKFLOWS, excluded_checks=release.DOCUMENTATION_CHECKS)
+        self.assertEqual(self.release_reads(), [expected])
+
+    def test_a_merging_run_starts_each_post_merge_workflow_once(self):
+        # Master already shows the merge, but none of the dispatched runs are listed yet.
+        self.merged_release_on_master()
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(self.dispatched("master"), release.POST_MERGE)
+
+    def test_the_merge_is_recorded_even_if_starting_the_release_fails(self):
+        def write(path, data, method="POST"):
+            if path.endswith("/dispatches"):
+                raise security.GitHubError("down", 502)
+            return {"merged": True} if path.endswith("/merge") else {}
+
+        self.api.write.side_effect = write
+        self.assertEqual(len(self.run_once()), 1)
+        self.assertIn("Merged this head.", self.status())
+
+    def test_a_breaking_major_release_merges_like_any_other(self):
+        self.pr = release_pr(title="chore(master): release 1.0.0")
+        files = release_files()
+        files[1]["patch"] = "@@ -1 +1,3 @@\n+## 1.0.0\n+### ⚠ BREAKING CHANGES\n+* everything"
+        for row in files:
+            if row["filename"] != "CHANGELOG.md":
+                row["patch"] = row["patch"].replace("0.25.0", "1.0.0")
+        self.pages["pulls/563/files"] = files
+        self.compare = subjects("feat!: replace the API")
+        self.pages["pulls/563/commits"] = [release_commit(date="2026-11-05T12:00:00Z")]
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(len(self.writes("pulls/563/merge")), 1)
 
     def test_a_release_without_urgent_commits_waits_for_a_quiet_day(self):
         self.compare = subjects("feat: x", "build(deps): bump actions/cache (#3)")
@@ -299,28 +354,39 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(self.run_once(), [])
         self.assertEqual(len(self.writes("pulls/563/merge")), 1)
 
-    def test_missing_ci_starts_on_the_release_branch_once(self):
-        self.ci_state.return_value = ([], ["lint"], {"python-package.yml": {}})
+    def test_ci_that_never_ran_starts_on_the_release_branch_once(self):
+        # release-please's own pull_request runs end as action_required without running anything.
+        runs = {w: run(event="pull_request", conclusion="action_required") for w in release.WORKFLOWS}
+        runs["python-package.yml"] = run(conclusion=None, status="in_progress")
+        del runs["release-config.yml"]
+        self.release_state = ([], ["lint"], runs)
         self.assertEqual(self.run_once(), [])
         started = self.dispatched(release.RELEASE_BRANCH)
         self.assertEqual(started, [w for w in release.WORKFLOWS if w != "python-package.yml"])
         self.assertNotIn("sphinx-pages-build.yml", started)
-        inputs = [
-            call.args[1].get("inputs") for call in self.api.write.call_args_list if "python-package-conda" in call.args[0]
-        ]
-        self.assertEqual(inputs, [None])
+        inputs = [call.args[1].get("inputs") for call in self.api.write.call_args_list if "/dispatches" in call.args[0]]
+        self.assertEqual(inputs.count({"pr_number": "563"}), 0)  # Only python-package.yml takes the PR number.
         self.assertEqual(self.writes("pulls/563/merge"), [])
-        self.assertIn("Waiting for CI.", self.status())
+        self.assertIn("All checks succeed by 2026-11-06 14:00 UTC", self.status())
 
-    def test_ci_still_unfinished_after_two_hours_stops_and_notifies_once_per_head(self):
-        self.ci_state.return_value = ([], ["lint"], {})
-        self.pages["pulls/563/commits"] = [release_commit(date="2026-11-06T09:59:00Z")]
+    def test_ci_started_late_gets_its_own_two_hours(self):
+        self.pages["pulls/563/commits"] = [release_commit(date="2026-11-05T20:00:00Z")]  # Seen 16 hours late.
+        self.release_state = ([], ["lint"], {})
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(self.dispatched(release.RELEASE_BRANCH), release.WORKFLOWS)
+        self.assertIn("Waiting for CI.", self.status())
+        self.assertIn("All checks succeed by 2026-11-06 14:00 UTC", self.status())
+
+    def test_ci_still_unfinished_two_hours_after_its_dispatch_stops_and_notifies_once_per_head(self):
+        started = {w: run(conclusion=None, status="in_progress", created="2026-11-06T09:59:00Z") for w in release.WORKFLOWS}
+        self.release_state = ([], ["lint"], started)
+        self.pages["pulls/563/commits"] = [release_commit(date="2026-11-06T09:00:00Z")]
         self.assertEqual(self.run_once(), [])
         self.assertEqual(self.dispatched(release.RELEASE_BRANCH), [])
         bodies = [call.args[1]["body"] for call in self.writes("issues/563/comments")]
         self.assertEqual(len(bodies), 2)
-        notice = bodies[1]
-        self.assertIn(f"@{merge.MAINTAINER}", notice)
+        self.assertIn("2 hours after it started", bodies[0])
+        self.assertIn(f"@{merge.MAINTAINER}", bodies[1])
         self.comments.extend(
             {"id": i, "body": body, "user": {"login": security.BOT}} for i, body in enumerate(bodies, start=1)
         )
@@ -329,10 +395,37 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(self.api.write.call_args_list, [])
 
     def test_failed_checks_stop_the_merge(self):
-        self.ci_state.return_value = (["lint"], [], {})
+        self.release_state = (["lint"], [], GREEN[2])
         self.assertEqual(self.run_once(), [])
         self.assertEqual(self.writes("pulls/563/merge"), [])
         self.assertIn("Checks failed: `lint`.", self.status())
+
+    def test_a_failed_master_head_stops_the_merge(self):
+        self.master_state = (["build (3.13)"], [], {})
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(self.writes("pulls/563/merge"), [])
+        self.assertIn("Checks failed on the head of `master`: `build (3.13)`.", self.status())
+        self.assertEqual([call.args[1] for call in self.ci_state.call_args_list if call.args[1] != SHA], [MASTER])
+
+    def test_a_missing_previous_tag_stops_with_a_reason(self):
+        def get(path):
+            if path.startswith("compare/"):
+                raise security.GitHubError("missing", 404)
+            return self.get(path)
+
+        self.api.get.side_effect = get
+        self.assertEqual(self.run_once(), [])
+        self.assertIn("The previous release tag `v0.24.0` does not exist.", self.status())
+        self.assertEqual(self.dispatched(release.RELEASE_BRANCH), [])
+
+    def test_other_compare_errors_fail_the_job(self):
+        def get(path):
+            if path.startswith("compare/"):
+                raise security.GitHubError("down", 502)
+            return self.get(path)
+
+        self.api.get.side_effect = get
+        self.assertEqual(len(self.run_once()), 1)
 
     def test_a_pr_outside_the_boundary_is_never_checked_or_merged(self):
         self.pages["pulls/563/files"] = [*release_files(), {"filename": "setup.py", "status": "added", "patch": "+x"}]
@@ -347,16 +440,23 @@ class ReconcileTests(unittest.TestCase):
         self.ci_state.assert_not_called()
         self.assertIn("head commit is not listed", self.status())
 
-    def test_a_draft_or_a_pause_merges_nothing_and_starts_no_ci(self):
-        self.ci_state.return_value = ([], ["lint"], {})
-        for pr, enabled in ((release_pr(draft=True), True), (release_pr(), False)):
-            with self.subTest(draft=pr["draft"], enabled=enabled):
-                self.pr = pr
-                self.api.write.reset_mock()
-                self.ci_state.return_value = GREEN
-                self.assertEqual(self.run_once(enabled), [])
-                self.assertEqual(self.writes("pulls/563/merge"), [])
-                self.assertEqual(self.dispatched(release.RELEASE_BRANCH), [])
+    def test_a_draft_merges_nothing_and_starts_no_ci(self):
+        self.pr = release_pr(draft=True)
+        self.release_state = ([], ["lint"], {})
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(self.writes("pulls/563/merge"), [])
+        self.assertEqual(self.dispatched(release.RELEASE_BRANCH), [])
+        self.assertIn("The PR is a draft.", self.status())
+
+    def test_a_pause_merges_nothing_but_still_starts_ci(self):
+        self.release_state = ([], ["lint"], {})
+        self.assertEqual(self.run_once(enabled=False), [])
+        self.assertEqual(self.dispatched(release.RELEASE_BRANCH), release.WORKFLOWS)
+        self.release_state = GREEN
+        self.api.write.reset_mock()
+        self.assertEqual(self.run_once(enabled=False), [])
+        self.assertEqual(self.writes("pulls/563/merge"), [])
+        self.assertIn("RELEASE_MERGE_ENABLED", self.status())
 
     def test_a_declined_merge_waits_and_other_errors_fail_the_job(self):
         for code in (403, 405, 409, 422):
@@ -391,21 +491,22 @@ class ReconcileTests(unittest.TestCase):
         self.api.write.reset_mock()
         self.run_once()
         self.assertEqual(self.api.write.call_args_list, [])
-        self.ci_state.return_value = (["lint"], [], {})
+        self.release_state = (["lint"], [], GREEN[2])
         self.run_once()
         self.assertEqual(len(self.writes("issues/comments/9")), 1)
 
     def test_a_run_waits_for_codecov_only_when_it_alone_stops_an_urgent_release(self):
         readings = iter(range(0, 10_000, merge.CODECOV_POLL_SECONDS))
         self.sleep.side_effect = None
-        codecov: tuple[list[str], list[str], dict[str, security.Json]] = ([], [security.CODECOV_PATCH], {})
-        self.ci_state.side_effect = [codecov, GREEN, GREEN]
+        codecov: CiState = ([], [security.CODECOV_PATCH], GREEN[2])
+        self.release_states = [codecov, GREEN, GREEN]  # Evaluation, one poll, evaluation after the wait.
         with patch.object(merge.time, "monotonic", side_effect=lambda: next(readings)):
             self.assertEqual(self.run_once(), [])
         self.assertEqual(len(self.writes("pulls/563/merge")), 1)
         self.assertEqual(self.sleep.call_count, 1)
-        self.ci_state.side_effect = None
-        self.ci_state.return_value = codecov
+        expected = call(self.api, SHA, FIXTURE_ROOT, workflows=release.WORKFLOWS, excluded_checks=release.DOCUMENTATION_CHECKS)
+        self.assertEqual(self.release_reads(), [expected] * 3)
+        self.release_state = codecov
         self.compare = subjects("feat: x")
         self.sleep.reset_mock()
         self.api.write.reset_mock()
@@ -414,19 +515,31 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(self.writes("pulls/563/merge"), [])
 
     def test_a_head_already_stopped_does_not_wait_for_codecov(self):
-        self.pages["pulls/563/commits"] = [release_commit(date="2026-11-06T09:59:00Z")]  # Past the CI deadline.
-        self.ci_state.return_value = ([], [security.CODECOV_PATCH], {})
+        late = {w: run(created="2026-11-06T09:59:00Z") for w in release.WORKFLOWS}
+        self.pages["pulls/563/commits"] = [release_commit(date="2026-11-06T09:00:00Z")]
+        self.release_state = ([], [security.CODECOV_PATCH], late)  # Past the CI deadline.
         self.assertEqual(self.run_once(), [])
         self.sleep.assert_not_called()
-        self.assertIn("still incomplete after 2 hours", self.status())
+        self.assertIn("2 hours after it started", self.status())
 
     def test_a_pr_closed_during_the_codecov_wait_gets_no_comment(self):
         readings = iter(range(0, 10_000, merge.CODECOV_POLL_SECONDS))
         self.sleep.side_effect = lambda seconds: self.pr.update(state="closed", mergeable_state=None)
-        self.ci_state.side_effect = [([], [security.CODECOV_PATCH], {}), GREEN, GREEN]
+        self.release_states = [([], [security.CODECOV_PATCH], GREEN[2]), GREEN, GREEN]
         with patch.object(merge.time, "monotonic", side_effect=lambda: next(readings)):
             self.assertEqual(self.run_once(), [])
         self.assertEqual(self.api.write.call_args_list, [])
+
+    def test_a_merge_state_that_never_clears_stops_after_its_limit(self):
+        self.pr = release_pr(mergeable_state="blocked")
+        self.assertEqual(self.run_once(), [])
+        self.assertIn("Waiting for GitHub.", self.status())
+        self.assertIn("2026-11-06 13:05 UTC", self.status())
+        self.release_state = ([], [], {w: run(created="2026-11-06T09:59:00Z") for w in release.WORKFLOWS})
+        self.pages["pulls/563/commits"] = [release_commit(date="2026-11-06T09:00:00Z")]
+        self.api.write.reset_mock()
+        self.assertEqual(self.run_once(), [])
+        self.assertIn("Resolve what blocks the merge", self.status())
 
     def test_one_error_is_reported_and_post_merge_recovery_still_runs(self):
         self.api.pages.side_effect = lambda path, key=None: (
@@ -434,8 +547,7 @@ class ReconcileTests(unittest.TestCase):
             if path == "issues/563/comments"
             else self.pages.get(path, [])
         )
-        self.pr = {**self.pr, "merged_by": {"login": security.BOT}}
-        self.master_pulls.append({"number": 563, "user": {"login": security.BOT}, "head": {"ref": release.RELEASE_BRANCH}})
+        self.merged_release_on_master()
         self.assertEqual(len(self.run_once()), 1)
         self.assertEqual(self.dispatched("master"), release.POST_MERGE)
 
@@ -452,10 +564,6 @@ class ReconcileTests(unittest.TestCase):
                 self.master_pulls[:] = [{"number": 7, "user": {"login": user}, "head": {"ref": ref}}]
                 self.assertEqual(self.run_once(), [])
                 self.assertEqual(self.api.write.call_args_list, [])
-        self.master_pulls[0] = {"number": 563, "user": {"login": security.BOT}, "head": {"ref": release.RELEASE_BRANCH}}
-        self.master_runs.append({"path": ".github/workflows/release-please-action.yml"})
-        self.assertEqual(self.run_once(), [])
-        self.assertEqual(self.dispatched("master"), [w for w in release.POST_MERGE if w != "release-please-action.yml"])
 
 
 class MainTests(unittest.TestCase):
@@ -563,7 +671,7 @@ class CiStateTests(unittest.TestCase):
         api.pages.side_effect = lambda path, key=None: {"check_runs": checks, "workflow_runs": runs}.get(key or "", [])
         self.assertEqual(security.ci_state(api, SHA, ROOT)[:2], ([], ["GHPages publish", "build", "sphinx-pages-build.yml"]))
         failed, pending, _ = security.ci_state(
-            api, SHA, ROOT, workflows=release.WORKFLOWS, excluded=release.DOCUMENTATION_CHECKS
+            api, SHA, ROOT, workflows=release.WORKFLOWS, excluded_checks=release.DOCUMENTATION_CHECKS
         )
         self.assertEqual((failed, pending), ([], []))
 

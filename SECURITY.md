@@ -256,8 +256,9 @@ before an evaluation starts stops its merge. A malformed hold, such as one with 
 stops the merge for seven days.
 
 A run evaluates the PRs when a workflow that reports a required check starts or finishes
-on a Dependabot branch, when the GHPages publisher runs, and on a schedule. Runs of other
-workflows on `master` skip, and other branches start no run. Codecov reports
+on a Dependabot branch, when the GHPages publisher runs, and on a schedule; the
+[release controller](#release-automation) adds Release runs and the release branch. Runs
+of other workflows on `master` skip, and other branches start no run. Codecov reports
 `codecov/patch` without starting a run, so when only that check keeps a PR from merging,
 a run waits for it and then evaluates the PR again from scratch. The wait ends five
 minutes after the run started, a limit that all PRs of the run share. Each
@@ -299,9 +300,9 @@ that is distributed, so they alone create no release PR.
 
 The release PR merges once the checks of its exact head succeed and:
 
-- the release contains a commit whose subject starts with `fix(deps)`, `feat(deps)`,
-  `fix(security)` or `feat(security)`, with or without `!`; such a release merges at
-  once; or
+- the release contains a commit whose subject starts with `fix` or `feat` and the scope
+  `deps`, `deps-dev` (which Dependabot writes for what it considers development
+  dependencies) or `security`, with or without `!`; such a release merges at once; or
 - the head has gone a day without a new commit. release-please adds a commit whenever
   `master` gets a releasable change, so this gathers a series of changes into one
   release.
@@ -313,8 +314,10 @@ with a release title and the `autorelease: pending` label, made of commits that
 `pyproject.toml` and `.release-please-manifest.json`, and `CHANGELOG.md`. Anything else
 stops the merge.
 
-release-please pushes with `GITHUB_TOKEN`, which starts no workflow, so the controller
-starts the CI workflows on the release branch itself. The GHPages build and publisher
+release-please pushes with `GITHUB_TOKEN`, so the head's own `pull_request` runs end as
+`action_required` without running anything. The controller therefore starts the CI
+workflows on the release branch itself, for each workflow that has no other run on the
+head. The GHPages build and publisher
 exclude release-please branches, so their checks are not required there; the PyTest
 `docs` job still builds the documentation. A merge with `GITHUB_TOKEN` starts no
 workflow either, so after merging, the controller starts the Release workflow on
@@ -324,10 +327,18 @@ and then the CI workflows. If starting them fails, a later run starts the missin
 The release controller runs when Release finishes on `master`, when a CI workflow starts
 or finishes on the release branch, and on the same schedule as the Dependabot
 controller, and it waits for `codecov/patch` in the same way. The PR keeps one status
-comment with the decision, the reason and what would make it mergeable. Failed checks,
-checks still unfinished two hours after the head's commit, or a PR outside the limits
-above stop the merge, and the controller mentions the maintainer once for each stopped
-head. A conflict waits for release-please to rebase the PR.
+comment with the decision, the reason and what would make it mergeable. The controller
+stops the merge, and mentions the maintainer once for each stopped head, on:
+
+- failed checks on the release head;
+- failed checks on the head of `master`. A merge also ships the `master` commits that
+  release-please did not add to the release PR, such as `build(deps)` or `ci` commits,
+  and those were tested only in their own PRs;
+- checks still unfinished two hours after CI last started on the head;
+- a merge state other than mergeable two hours after CI last started, or seven days
+  while GitHub has not computed it. A conflict usually clears when release-please
+  rebases the PR for the next releasable change;
+- a missing tag for the previous release, or a PR outside the limits above.
 
 To keep a release from merging, mark its PR as a draft. Set the repository Actions
 variable **RELEASE_MERGE_ENABLED** to `false` to stop all release merges; as with

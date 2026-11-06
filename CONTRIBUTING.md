@@ -539,6 +539,8 @@ This project follows the [Conventional Commits](https://www.conventionalcommits.
 | `deps` | Add or update dependencies | None |
 | `perf` | Performance improvement | None |
 
+A dependency change that affects what is distributed, or a security remediation, uses `fix(deps)` or `fix(security)` instead of `deps`, so that it is released at once; see [Release automation](SECURITY.md#release-automation). `deps` and `build(deps)` are for changes that need no release.
+
 ### Breaking changes
 
 For changes that break backward compatibility, add `BREAKING CHANGE:` to the commit body or footer. Before 1.0 this triggers a minor version bump; after 1.0 it triggers a major version bump.
@@ -940,9 +942,12 @@ in step 2 if it does not respond.
 The publisher compares a tag's producer YAML with the template when the build
 completes, and a tag's YAML never changes. A tag whose pin differs from the
 template at that moment can therefore never publish. Before merging the Template
-PR, confirm that no tag build is in progress. Once it has landed, do not tag a
-commit that predates the Workflow PR, and do not merge a Release Please PR until
-the Workflow PR has landed, because merging one creates such a tag.
+PR, confirm that no tag build is in progress, and mark the open Release Please PR
+as a draft or set `RELEASE_MERGE_ENABLED` to `false`, because release PRs merge
+automatically and merging one creates such a tag (see
+[Release automation](SECURITY.md#release-automation)). Once the Template PR has
+landed, do not tag a commit that predates the Workflow PR. Undo the draft or the
+variable once the Workflow PR has landed.
 
 Neither Dependabot nor the security remediation automation can edit the template,
 so their pin updates can only be the Workflow PR. Until the template lands, such a

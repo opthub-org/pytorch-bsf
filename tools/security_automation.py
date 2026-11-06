@@ -330,12 +330,15 @@ def ci_state(
     root: Path,
     *,
     workflows: Sequence[str] = WORKFLOWS,
-    excluded: frozenset[str] = frozenset(),
+    excluded_checks: frozenset[str] = frozenset(),
 ) -> tuple[list[str], list[str], dict[str, Json]]:
-    """Return the failed and unfinished checks and workflows of a head, expecting `workflows` but not `excluded`."""
+    """Return the failed and unfinished checks and workflows of a head, and the latest run of each workflow file.
+
+    The listed `workflows` must succeed, and every expected check except `excluded_checks`.
+    """
     checks = api.pages(f"commits/{sha}/check-runs?filter=latest", "check_runs")
     statuses = api.pages(f"commits/{sha}/statuses")
-    failed, pending = check_evidence(checks, statuses, expected_checks(root) - excluded)
+    failed, pending = check_evidence(checks, statuses, expected_checks(root) - excluded_checks)
     runs = api.pages(f"actions/runs?head_sha={sha}", "workflow_runs")
     latest = {}
     for run in sorted(runs, key=lambda row: row["id"]):

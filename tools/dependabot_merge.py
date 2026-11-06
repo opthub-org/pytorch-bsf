@@ -144,14 +144,14 @@ def active_hold(comments: list[Json], has_write_access: Callable[[str], bool], n
         command = HOLD_COMMAND.fullmatch(first)
         if not released and command is None:
             continue
-        author = _login(comment)
+        author = author_login(comment)
         if author is None or not has_write_access(author):
             continue
         hold = None if command is None else _parse_hold(command[1], author, parse_time(comment["created_at"]))
     return hold if hold is not None and now <= hold.until else None
 
 
-def _login(row: Json) -> str | None:
+def author_login(row: Json) -> str | None:
     """Read the author's login; GitHub reports no user for a deleted account."""
     return (row.get("user") or {}).get("login")
 
@@ -221,11 +221,11 @@ def _only_updates_pins(patch: str | None) -> bool:
     if patch is None:
         return False
     # Split on newlines only: a line must stay whole for PIN_LINE to reject a control character in it.
-    runs = [list(run) for changed, run in itertools.groupby(patch.split("\n"), _is_change) if changed]
+    runs = [list(run) for changed, run in itertools.groupby(patch.split("\n"), is_change) if changed]
     return bool(runs) and all(_run_updates_pins(run) for run in runs)
 
 
-def _is_change(line: str) -> bool:
+def is_change(line: str) -> bool:
     return line.startswith(("+", "-"))
 
 
@@ -412,9 +412,9 @@ def review_state(reviews: list[Json], has_write_access: Callable[[str], bool]) -
     """
     latest = {}
     for review in reviews:
-        login = _login(review)
-        if login is not None and review["state"] != "COMMENTED":
-            latest[login] = review["state"]
+        reviewer = author_login(review)
+        if reviewer is not None and review["state"] != "COMMENTED":
+            latest[reviewer] = review["state"]
     approved = sorted(user for user, state in latest.items() if state == "APPROVED" and has_write_access(user))
     changes = sorted(user for user, state in latest.items() if state == "CHANGES_REQUESTED" and has_write_access(user))
     return approved, changes
@@ -449,7 +449,7 @@ def decide(evidence: Evidence, now: dt.datetime) -> Decision:
         return wait(
             "It merges a new head once the conflict is gone.",
             "The PR conflicts with `master`.",
-            f"{_minute(evidence.head_committed + REBASE_GRACE)}. A remaining conflict then stops the merge.",
+            f"{format_minute(evidence.head_committed + REBASE_GRACE)}. A remaining conflict then stops the merge.",
             "Dependabot normally rebases it by itself. If it does not, comment `@dependabot rebase`.",
         )
     if evidence.lookup_error is not None and evidence.enabled:
@@ -458,20 +458,20 @@ def decide(evidence: Evidence, now: dt.datetime) -> Decision:
         return wait(
             "It merges this head once the advisory lookup succeeds and every other gate passes.",
             "The advisory lookup failed, so the automation cannot tell whether a known advisory affects this PR.",
-            f"{_minute(evidence.head_committed + CI_GRACE)}. A lookup that still fails then stops the merge.",
+            f"{format_minute(evidence.head_committed + CI_GRACE)}. A lookup that still fails then stops the merge.",
         )
     if evidence.pending:
         return wait(
             "It merges this head once every check succeeds.",
-            f"Waiting for {_names(evidence.pending)}.",
-            f"{_minute(evidence.head_committed + CI_GRACE)}. Unfinished checks then stop the merge.",
+            f"Waiting for {format_names(evidence.pending)}.",
+            f"{format_minute(evidence.head_committed + CI_GRACE)}. Unfinished checks then stop the merge.",
         )
     if evidence.merge_state not in MERGEABLE_STATES:
-        limit = _merge_state_limit(evidence.merge_state)
+        limit = merge_state_limit(evidence.merge_state)
         return wait(
             "It merges this head once GitHub reports it as mergeable.",
             f"GitHub reports the merge state as `{evidence.merge_state}`.",
-            f"{_minute(evidence.head_committed + limit)}. This state then stops the merge.",
+            f"{format_minute(evidence.head_committed + limit)}. This state then stops the merge.",
         )
     if not evidence.enabled:
         return wait(
@@ -489,7 +489,7 @@ def decide(evidence: Evidence, now: dt.datetime) -> Decision:
     )
 
 
-def _merge_state_limit(state: str | None) -> dt.timedelta:
+def merge_state_limit(state: str | None) -> dt.timedelta:
     return DECISION_WINDOW if state in UNCOMPUTED_STATES else CI_GRACE
 
 
@@ -498,11 +498,13 @@ def _advisory_blocker(evidence: Evidence) -> tuple[str, str]:
     reasons = []
     remedy = "Wait for Dependabot to propose an unaffected version, or review the advisories and merge it by hand."
     if evidence.version_advisories:
-        reasons.append(f"Known advisories affect a version this PR names: {_names(evidence.version_advisories, limit=None)}.")
+        reasons.append(
+            f"Known advisories affect a version this PR names: {format_names(evidence.version_advisories, limit=None)}."
+        )
     if evidence.package_advisories:
         reasons.append(
             "A dependency in this PR has no comparable version, and advisories exist for that package: "
-            f"{_names(evidence.package_advisories, limit=None)}."
+            f"{format_names(evidence.package_advisories, limit=None)}."
         )
         # Waiting may not clear these: a SHA or a moving tag gets no query by version.
         remedy = "Check the affected ranges of these advisories and merge it by hand."
@@ -522,16 +524,16 @@ def _blocker(evidence: Evidence, now: dt.datetime) -> tuple[str, str] | None:
     if evidence.version_advisories or evidence.package_advisories:
         return _advisory_blocker(evidence)
     if evidence.failed:
-        return f"These checks failed: {_names(evidence.failed)}.", _failure_remedy(evidence.failed)
+        return f"These checks failed: {format_names(evidence.failed)}.", _failure_remedy(evidence.failed)
     if evidence.merge_state == "dirty" and age > REBASE_GRACE:
         return "The PR still conflicts with `master`.", "Comment `@dependabot rebase`, or close this PR."
     # A head that already conflicts starts no checks, so its pending checks wait for the rebase too.
     if evidence.pending and evidence.merge_state != "dirty" and age > CI_GRACE:
         return (
-            f"CI is still incomplete after {_hours(CI_GRACE)} hours: {_names(evidence.pending)}.",
+            f"CI is still incomplete after {format_hours(CI_GRACE)} hours: {format_names(evidence.pending)}.",
             "Comment `@dependabot rebase`. An old base may not run the current checks.",
         )
-    if evidence.merge_state not in MERGEABLE_STATES | {"dirty"} and age > _merge_state_limit(evidence.merge_state):
+    if evidence.merge_state not in MERGEABLE_STATES | {"dirty"} and age > merge_state_limit(evidence.merge_state):
         return (
             f"GitHub still reports the merge state as `{evidence.merge_state}`.",
             "Resolve what GitHub reports on the PR, or merge it by hand.",
@@ -540,7 +542,7 @@ def _blocker(evidence: Evidence, now: dt.datetime) -> tuple[str, str] | None:
     # or a pause already keeps the head from merging, so a passing outage there does not assign the maintainer.
     if evidence.lookup_error is not None and evidence.enabled and evidence.merge_state != "dirty" and age > CI_GRACE:
         return (
-            f"The advisory lookup failed, and this head is more than {_hours(CI_GRACE)} hours old.",
+            f"The advisory lookup failed, and this head is more than {format_hours(CI_GRACE)} hours old.",
             "A later successful lookup clears this. If it keeps failing, read the error in the failed workflow run and "
             "fix its cause, or review the advisories and merge it by hand.",
         )
@@ -575,7 +577,7 @@ def _mentions(users: list[str]) -> str:
     return ", ".join(f"@{user}" for user in users)
 
 
-def _names(names: list[str], limit: int | None = MAX_LISTED_CHECKS) -> str:
+def format_names(names: list[str], limit: int | None = MAX_LISTED_CHECKS) -> str:
     unique = sorted(set(names))
     listed = unique[:limit]
     shown = ", ".join(f"`{name}`" for name in listed)
@@ -583,7 +585,7 @@ def _names(names: list[str], limit: int | None = MAX_LISTED_CHECKS) -> str:
     return f"{shown} and {hidden} more" if hidden > 0 else shown
 
 
-def _hours(value: dt.timedelta) -> int:
+def format_hours(value: dt.timedelta) -> int:
     return int(value.total_seconds() // 3600)
 
 
@@ -591,7 +593,7 @@ def _day(value: dt.datetime) -> str:
     return value.strftime("%Y-%m-%d UTC")
 
 
-def _minute(value: dt.datetime) -> str:
+def format_minute(value: dt.datetime) -> str:
     return value.strftime("%Y-%m-%d %H:%M UTC")
 
 
@@ -611,15 +613,20 @@ def render(decision: Decision, sha: str) -> str:
     )
 
 
-def _own_comment(comments: list[Json], marker: str) -> Json | None:
+def own_comment(comments: list[Json], marker: str) -> Json | None:
     for comment in comments:
-        if _login(comment) == security.BOT and (comment["body"] or "").startswith(marker):
+        if author_login(comment) == security.BOT and (comment["body"] or "").startswith(marker):
             return comment
     return None
 
 
 def upsert_triage(api: security.GitHub, number: int, comments: list[Json], body: str) -> None:
-    comment = _own_comment(comments, TRIAGE_MARKER)
+    upsert_comment(api, number, comments, TRIAGE_MARKER, body)
+
+
+def upsert_comment(api: security.GitHub, number: int, comments: list[Json], marker: str, body: str) -> None:
+    """Keep one bot comment that starts with marker, and edit it only when its body changes."""
+    comment = own_comment(comments, marker)
     if comment is None:
         api.write(f"issues/{number}/comments", {"body": body})
     elif comment["body"] != body:
@@ -635,7 +642,7 @@ def escalate(api: security.GitHub, pr: Json, comments: list[Json], now: dt.datet
     if not pr.get("assignees"):
         api.write(f"issues/{number}/assignees", {"assignees": [MAINTAINER]})
     overdue = now > parse_time(pr["created_at"]) + DECISION_WINDOW
-    if overdue and _own_comment(comments, OVERDUE_MARKER) is None:
+    if overdue and own_comment(comments, OVERDUE_MARKER) is None:
         body = f"{OVERDUE_MARKER}\n@{MAINTAINER} The decision on this Dependabot PR is overdue. See the triage comment."
         api.write(f"issues/{number}/comments", {"body": body})
 
@@ -756,13 +763,13 @@ def evaluate(
     return pr, comments, evidence, decide(evidence, now)
 
 
-def _only_codecov_unfinished(failed: list[str], pending: list[str]) -> bool:
+def only_codecov_unfinished(failed: list[str], pending: list[str]) -> bool:
     return not failed and pending == [security.CODECOV_PATCH]
 
 
 def _codecov_alone_stops(evidence: Evidence, now: dt.datetime) -> bool:
     """Return whether the PR would merge once codecov/patch succeeds, which GitHub reports as `unstable` until then."""
-    if not _only_codecov_unfinished(evidence.failed, evidence.pending):
+    if not only_codecov_unfinished(evidence.failed, evidence.pending):
         return False
     settled = "clean" if evidence.merge_state == "unstable" else evidence.merge_state
     return decide(replace(evidence, pending=[], merge_state=settled), now).action == "merge"
@@ -775,7 +782,7 @@ def wait_for_codecov(
     deadline: float,
     *,
     workflows: Sequence[str] = security.WORKFLOWS,
-    excluded: frozenset[str] = frozenset(),
+    excluded_checks: frozenset[str] = frozenset(),
 ) -> bool:
     """Poll the checks until codecov/patch is no longer the only unfinished one, or until deadline on time.monotonic().
 
@@ -785,18 +792,19 @@ def wait_for_codecov(
     while time.monotonic() < deadline:
         time.sleep(CODECOV_POLL_SECONDS)
         slept = True
-        failed, pending, _ = security.ci_state(api, sha, root, workflows=workflows, excluded=excluded)
-        if not _only_codecov_unfinished(failed, pending):
+        failed, pending, _ = security.ci_state(api, sha, root, workflows=workflows, excluded_checks=excluded_checks)
+        if not only_codecov_unfinished(failed, pending):
             break
     return slept
 
 
 def _is_dependabot_pr(row: Json) -> bool:
-    return _login(row) == AUTHOR
+    return author_login(row) == AUTHOR
 
 
 def ensure_post_merge(
     api: security.GitHub,
+    *,
     owned: Callable[[Json], bool] = _is_dependabot_pr,
     workflows: Sequence[str] = security.POST_MERGE,
 ) -> None:
@@ -857,7 +865,7 @@ def reconcile(api: security.GitHub, root: Path, enabled: bool, now: dt.datetime)
     for row in api.pages("pulls?state=open&base=master"):
         number = row["number"]
         try:
-            if _login(row) != AUTHOR:
+            if author_login(row) != AUTHOR:
                 continue
             pr, comments, evidence, decision = evaluate_after_codecov(api, number, root, has_write_access, enabled, clock)
             # A PR closed or merged during the wait gets no comment, because no later run would correct it.
