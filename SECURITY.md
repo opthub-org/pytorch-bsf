@@ -350,7 +350,7 @@ before any job ran, as the workflow's concurrency group cancels a waiting run th
 newer run replaces. A run cancelled after a job started is left alone, because a person
 may have stopped it. A person who cancels a run that is still waiting cannot be told
 apart, so to stop a release, cancel the run after it starts or disable the workflow.
-Release is started again at most twice for one head (`MAX_REDISPATCHES` in
+Release is started again at most `MAX_REDISPATCHES` times for one head (see
 `tools/dependabot_merge.py`); after that, the controller job fails until someone starts
 Release by hand or `master` moves.
 

@@ -1687,12 +1687,12 @@ class PostMergeTests(unittest.TestCase):
         return [call.args[0].split("/")[2] for call in api.write.call_args_list]
 
     def others(self):
-        """Every post-merge workflow but the Release workflow, each with a run on master's head."""
+        """Return every post-merge workflow but the Release workflow."""
         return [workflow for workflow in security.POST_MERGE if workflow != RELEASE]
 
     def test_a_release_run_cancelled_before_any_job_is_dispatched_again(self):
-        # Listed newest first or not, the run ids decide; the cancelled run's jobs are read for every attempt.
-        for runs in ([workflow_run(9)], [workflow_run(8), workflow_run(9)], [workflow_run(9), workflow_run(8)]):
+        # One cancelled run, or a dispatch that was cancelled as well; the jobs of every attempt are read.
+        for runs in ([workflow_run(9)], [workflow_run(8), workflow_run(9)]):
             with self.subTest(runs=[row["id"] for row in runs]):
                 api = self.api_for(merge.AUTHOR, security.BOT, [*self.others(), *runs], {8: [], 9: []})
                 merge.ensure_post_merge(api)

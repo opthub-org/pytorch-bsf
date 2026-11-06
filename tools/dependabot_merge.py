@@ -90,7 +90,7 @@ RELEASE_COMMAND = re.compile(r"/dependabot-release", re.IGNORECASE)
 # Post-merge workflows with a workflow-level concurrency group, which cancels a waiting run when a newer run joins the
 # group, as a re-run of an older run does. tests/tools/dependabot_merge.py checks this against the workflow files.
 REDISPATCHED = frozenset({"release-please-action.yml"})
-# How often ensure_post_merge starts such a workflow again on one head of master.
+# At most how many times ensure_post_merge starts such a workflow again on one head of master; past that it raises.
 MAX_REDISPATCHES = 2
 
 
@@ -869,8 +869,8 @@ def ensure_post_merge(
             on_master = [row for row in own if row["head_branch"] == "master"]
             if not _cancelled_before_jobs(api, on_master):
                 continue
-            # The first run counts toward the cap too, so the dispatches stay bounded even if a run is not listed yet.
-            if len(on_master) > MAX_REDISPATCHES:
+            # The runs are the first one plus one per earlier dispatch, so the count needs no state of its own.
+            if len(on_master) - 1 >= MAX_REDISPATCHES:
                 exhausted.append(workflow)
                 continue
         security.dispatch_workflow(api, workflow, "master")
@@ -888,14 +888,9 @@ def _cancelled_before_jobs(api: security.GitHub, runs: list[Json]) -> bool:
     that has a job may have done part of its work, or a person cancelled it after it started, so it is not started again.
     The jobs of every attempt count, because a re-run attempt that the group cancelled hides the jobs of earlier ones.
     """
-    if not runs:
+    if not runs or any(run["status"] != "completed" or run["conclusion"] != "cancelled" for run in runs):
         return False
-    for run in sorted(runs, key=lambda row: row["id"], reverse=True):
-        if run["status"] != "completed" or run["conclusion"] != "cancelled":
-            return False
-        if api.pages(f"actions/runs/{run['id']}/jobs?filter=all", "jobs"):
-            return False
-    return True
+    return not any(api.pages(f"actions/runs/{run['id']}/jobs?filter=all", "jobs") for run in runs)
 
 
 @dataclass

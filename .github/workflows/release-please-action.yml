@@ -13,7 +13,7 @@ permissions: {}
 # `release-pr` success on `master`'s head because of this. Only the newest waiting run is kept; one that a newer run
 # replaces is for an older commit, and the newer run creates any release it would have created. The ref keeps a
 # dispatch on another branch, whose jobs all skip, out of the group. Re-running an older run while a newer one waits
-# cancels the newer one instead. If the controllers merged `master`'s head and every run on it was cancelled before any
+# cancels the newer one. If the controllers merged `master`'s head and every run on it was cancelled before any
 # job ran, they dispatch Release again, at most MAX_REDISPATCHES times (tools/dependabot_merge.py), and that run in turn
 # cancels the re-run if it still waits; so re-run an older run only while no run waits. Every job has a timeout, so that
 # a run holds the group for about an hour at most, well within the two hours the release controller waits for
