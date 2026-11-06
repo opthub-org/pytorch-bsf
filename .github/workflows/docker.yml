@@ -18,6 +18,8 @@ jobs:
       contents: read
       packages: write
     runs-on: ubuntu-latest
+    # Release runs wait for this job, and the release controller waits two hours for them; see release-please-action.yml.
+    timeout-minutes: 45
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:

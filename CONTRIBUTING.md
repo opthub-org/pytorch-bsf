@@ -32,7 +32,7 @@ pytorch-bsf is a library installed alongside other packages, so `[project].depen
 - **Lower bound**: the oldest version that passes the tests. The `lowest` job of `.github/workflows/python-package.yml` installs every lower bound on Python 3.11 (`uv pip install --resolution lowest-direct '.[lightning,mlflow,sparse,sklearn,plot]'`, so the bounds of every optional extra are checked too) and runs pytest, so a bound that does not work fails CI. Raise a lower bound only when the code needs a newer feature or a bug fix, and say why in the PR.
 - **Upper bound**: below the next major version (`<3`). Widen it after checking that the new major version works.
 - **Extras**: every package in `[project.optional-dependencies]` has the same kind of range. The `all` extra refers to the other extras (`pytorch-bsf[lightning,mlflow,...]`) instead of repeating their ranges.
-- **Dependabot** uses `versioning-strategy: increase-if-necessary` for pip: it leaves a range alone while it admits a new release and opens a PR when a release falls outside it. It also checks pre-commit hooks, GitHub Actions and the Docker base image weekly. As a deliberate exception to the two rules above, passing updates merge automatically, including lower-bound changes and new major versions, with no human review, once CI passes and, for pip and GitHub Actions, an advisory lookup finds nothing; see [Dependabot auto-merge](SECURITY.md#dependabot-auto-merge). Dependabot does not update `environment.yml`, so a merged range change leaves it behind until someone syncs it.
+- **Dependabot** uses `versioning-strategy: increase-if-necessary` for pip: it leaves a range alone while it admits a new release and opens a PR when a release falls outside it. It also checks pre-commit hooks, GitHub Actions and the Docker base image weekly. As a deliberate exception to the two rules above, passing updates merge automatically, including lower-bound changes and new major versions, with no human review, once CI passes and, for pip and GitHub Actions, an advisory lookup finds nothing; see [Dependabot auto-merge](SECURITY.md#dependabot-auto-merge). Pip and Docker updates are `fix(deps)` commits, so they reach a release at once; pre-commit and Actions updates are `build(deps)` and release nothing; see [Release automation](SECURITY.md#release-automation). Dependabot does not update `environment.yml`, so a merged range change leaves it behind until someone syncs it.
 - Declare only packages that `torch_bsf` imports. Do not pin transitive dependencies to work around a bug in another package; if one is unavoidable, add a comment with the upstream issue.
 - Keep `environment.yml` in sync with `pyproject.toml`, including the optional `scipy`, `scikit-learn` and `matplotlib` (as `matplotlib-base`), so that the Conda CI and the Docker image run their tests.
 
@@ -332,6 +332,15 @@ prefix. The manifest starts at the existing `v0.24.0` release; future release PR
 update `.release-please-manifest.json`, `pyproject.toml` and `CHANGELOG.md` together.
 Do not clear the manifest or set a new bootstrap version during an Action update.
 
+Release PRs merge automatically, including breaking releases; see
+[Release automation](SECURITY.md#release-automation). The Release workflow runs
+release-please twice: once with `GITHUB_TOKEN` to create releases
+(`skip-github-pull-request`), and once with the release App's token to open and update
+the release PR (`skip-github-release`), so that the PR's CI runs; see
+[Release App](SECURITY.md#release-app). Because the release workflow runs from a
+dispatch on `master` after an automatic merge rather than from the merge push, the
+`pypi` environment must keep allowing the `master` branch.
+
 The root component's `release_created` and `tag_name` outputs connect to the
 Docker and PyPI build jobs. Both build only when `release_created == 'true'`,
 and both build the reported release tag. The separate PyPI publishing job also
@@ -379,8 +388,9 @@ step 3 after the first verified release:
    **Deployment branches and tags**, choose **Selected branches and tags** and
    allow only the branch `master`. The workflow starts on a `master` push, so
    restricting this environment to release tags would block publication even
-   though the build checks out a release tag. Required reviewers are optional;
-   leave them unset to retain automatic releases.
+   though the build checks out a release tag. Leave required reviewers and wait
+   timers unset: a Release run waiting for approval holds the workflow's
+   concurrency group, so later release PRs stop after two hours.
 2. On the existing PyPI project's
    [Publishing settings](https://pypi.org/manage/project/pytorch-bsf/settings/publishing/),
    add a GitHub Trusted Publisher with these exact values:
@@ -525,14 +535,18 @@ This project follows the [Conventional Commits](https://www.conventionalcommits.
 |------|-------------|---------------|
 | `feat` | Add a new feature | Minor version bump |
 | `fix` | Fix a bug | Patch version bump |
-| `docs` | Documentation changes only | None |
+| `docs` | Documentation changes only | Patch version bump |
 | `style` | Changes that do not affect behavior (whitespace, formatting) | None |
 | `refactor` | Code change that is neither a fix nor a feature | None |
 | `test` | Add or update tests | None |
 | `chore` | Changes to the build process or auxiliary tools | None |
+| `build` | Changes to the build system or dependencies that are not distributed | None |
 | `ci` | Changes to CI configuration | None |
-| `deps` | Add or update dependencies | None |
-| `perf` | Performance improvement | None |
+| `deps` | Add or update dependencies | Patch version bump |
+| `perf` | Performance improvement | Patch version bump |
+| `revert` | Revert an earlier commit | Patch version bump |
+
+release-please releases `feat`, `fix`, `deps`, `docs`, `perf` and `revert` commits, and the release PR then merges automatically: at once for a `fix` or `feat` commit scoped `deps`, `deps-dev` or `security`, otherwise a day after the newest releasable commit in the release; see [Release automation](SECURITY.md#release-automation). So a dependency change that affects what is distributed, or a security remediation, uses `fix(deps)` or `fix(security)`. A change that needs no release uses one of the other types, such as `build(deps)` for a dependency that is not distributed.
 
 ### Breaking changes
 
@@ -935,9 +949,12 @@ in step 2 if it does not respond.
 The publisher compares a tag's producer YAML with the template when the build
 completes, and a tag's YAML never changes. A tag whose pin differs from the
 template at that moment can therefore never publish. Before merging the Template
-PR, confirm that no tag build is in progress. Once it has landed, do not tag a
-commit that predates the Workflow PR, and do not merge a Release Please PR until
-the Workflow PR has landed, because merging one creates such a tag.
+PR, confirm that no tag build is in progress, and set `RELEASE_MERGE_ENABLED` to
+`false`, because release PRs merge automatically and merging one creates such a tag
+(see [Release automation](SECURITY.md#release-automation)). Marking the Release
+Please PR as a draft is not enough, because release-please opens a new, non-draft PR
+whenever none is open. Once the Template PR has landed, do not tag a commit that
+predates the Workflow PR. Unset the variable once the Workflow PR has landed.
 
 Neither Dependabot nor the security remediation automation can edit the template,
 so their pin updates can only be the Workflow PR. Until the template lands, such a
@@ -1044,8 +1061,8 @@ pytorch-bsf/
 │   │   ├── sphinx-pages-publish.yml  # Trusted, serialized per-ref publication
 │   │   ├── sphinx-pages.yml          # Inert legacy identifier; keep manually disabled
 │   │   ├── codeql-analysis.yml       # Security scanning
-│   │   ├── security-policy.yml       # Security automation and Dependabot merge tests, zizmor, the GHPages producer check and the Betterleaks secret scan
-│   │   ├── dependabot-merge.yml      # Merges passing Dependabot PRs and writes their triage comments
+│   │   ├── security-policy.yml       # Security automation, Dependabot merge and release merge tests, zizmor, the GHPages producer check and the Betterleaks secret scan
+│   │   ├── dependabot-merge.yml      # Merges passing Dependabot PRs and the release PR, and writes their status comments
 │   │   └── python-package-conda.yml  # End-to-end tests in a Conda environment
 │   ├── ISSUE_TEMPLATE/
 │   │   ├── bug_report.yml            # Bug report form

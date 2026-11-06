@@ -58,11 +58,11 @@ function offlineRepository(message, tagsOnly = false, version = baseline) {
   });
 }
 
-async function candidate(message, tagsOnly = false, version = baseline) {
+async function candidate(message, tagsOnly = false, version = baseline, releasable = Boolean(message)) {
   const scm = offlineRepository(message, tagsOnly, version);
   const manifest = await Manifest.fromManifest(scm, 'master', undefined, undefined, {logger});
   const prs = await manifest.buildPullRequests();
-  assert.equal(prs.length, message ? 1 : 0);
+  assert.equal(prs.length, releasable ? 1 : 0);
   return {scm, manifest, pr: prs[0]};
 }
 
@@ -121,6 +121,15 @@ test('existing tags recover the release boundary without a GitHub Release', asyn
   assert.equal(pr.version.toString(), '0.24.1');
 });
 
+// Dependabot writes `fix(deps)` for distributed dependencies so that they are released, and `build(deps)` for the
+// rest so that they are not. tools/release_merge.py releasable() is checked against the same table.
+for (const {message, version} of JSON.parse(read('tests/tools/release-please-fixture/releasable.json')).cases) {
+  test(`${JSON.stringify(message)}: ${version ? `releases ${version}` : 'makes no release PR'}`, async () => {
+    const {pr} = await candidate(message, false, baseline, version !== null);
+    if (version) assert.equal(pr.version.toString(), version);
+  });
+}
+
 test('no new commits produce no release PR or publication side effects', async () => {
   await candidate(undefined);
 });
@@ -139,7 +148,55 @@ test('Action inputs and root outputs connect only created releases to publishing
   assert.deepEqual(step.with, {
     'config-file': 'release-please-config.json',
     'manifest-file': '.release-please-manifest.json',
+    'skip-github-pull-request': true,
   });
+  // The release PR is opened with the release App's token, so that its CI runs; the release itself stays with
+  // GITHUB_TOKEN so that its tag and release events start no second publication.
+  const prJob = workflow.jobs['release-pr'];
+  // tools/release_merge.py finds this job by the name the jobs API reports, which is its key while it sets no name.
+  assert.equal(prJob.name, undefined);
+  // The controller trusts the success on master's head only because runs start in push order and never overlap.
+  // A job-level group would order jobs by when github-release finished, not by push.
+  // The ref keeps dispatches on other branches out of master's group.
+  assert.deepEqual(workflow.concurrency, {group: 'release-${{ github.ref }}', 'cancel-in-progress': false});
+  assert.equal(prJob.concurrency, undefined);
+  // A run holds the group, so it must end well within the controller's two-hour wait for release-pr. Jobs after
+  // github-release run in parallel, so the longest chain bounds the run.
+  const dockerJob = YAML.parse(read('.github/workflows/docker.yml')).jobs['build-and-push'];
+  const minutes = name => (name === 'docker' ? dockerJob : workflow.jobs[name])['timeout-minutes'];
+  const chain = name => minutes(name) + Math.max(0, ...[workflow.jobs[name].needs ?? []].flat().map(chain));
+  for (const name of Object.keys(workflow.jobs)) {
+    assert.ok(Number.isInteger(minutes(name)), `${name} has no timeout`);
+    assert.ok(chain(name) <= 60, `${name} can hold the release group for ${chain(name)} minutes`);
+  }
+  assert.equal(prJob.needs, 'github-release');
+  assert.equal(prJob.if, "${{ !cancelled() && github.ref == 'refs/heads/master' }}");
+  assert.deepEqual(prJob.permissions, {contents: 'write', 'pull-requests': 'write'});
+  const [app, pr] = prJob.steps;
+  assert.equal(prJob.steps.length, 2);
+  assert.equal(app.id, 'app-token');
+  assert.ok(app.uses.startsWith('actions/create-github-app-token@'));
+  // Without the App, the step is skipped and the PR falls back to GITHUB_TOKEN.
+  assert.equal(app.if, "${{ vars.RELEASE_PLEASE_APP_CLIENT_ID != '' }}");
+  assert.deepEqual(app.with, {
+    'client-id': '${{ vars.RELEASE_PLEASE_APP_CLIENT_ID }}',
+    'private-key': '${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}',
+    'permission-contents': 'write',
+    'permission-pull-requests': 'write',
+  });
+  assert.equal(pr.id, 'release-pr');
+  assert.equal(pr.uses, step.uses);
+  assert.deepEqual(pr.with, {
+    token: '${{ steps.app-token.outputs.token || github.token }}',
+    'config-file': 'release-please-config.json',
+    'manifest-file': '.release-please-manifest.json',
+    'skip-github-release': true,
+  });
+  // A failure to update the PR, such as a revoked App key, must not keep a created release from being published.
+  assert.equal(release.steps.length, 1);
+  for (const [name, job] of Object.entries(workflow.jobs)) {
+    assert.ok(![job.needs ?? []].flat().includes('release-pr'), `${name} must not need release-pr`);
+  }
   assert.deepEqual(release.outputs, {
     release_created: '${{ steps.release-please.outputs.release_created }}',
     tag_name: '${{ steps.release-please.outputs.tag_name }}',

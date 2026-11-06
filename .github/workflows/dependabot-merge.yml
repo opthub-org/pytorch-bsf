@@ -10,10 +10,12 @@ on:
       - Release configuration
       - GHPages build
       - GHPages publisher
+      - Release
     types: [requested, completed]
-    # No run at all for other branches. master is listed for the GHPages publisher. codecov/patch and comments start
-    # no run: the controller waits for codecov/patch within a run, and reads hold commands before every merge.
-    branches: ['dependabot/**', master]
+    # No run at all for other branches. master is listed for the GHPages publisher and Release, which updates the
+    # release PR. codecov/patch and comments start no run: the controllers wait for codecov/patch within a run, and
+    # read hold commands before every merge.
+    branches: ['dependabot/**', 'release-please--**', master]
   schedule:
     # Moves past deadlines and recovers a dropped event. GitHub delays or drops these runs, often for hours, and most
     # at the start of an hour.
@@ -31,23 +33,29 @@ concurrency:
     github.ref == 'refs/heads/master' &&
     (github.event_name != 'workflow_run' ||
     github.event.workflow_run.name == 'GHPages publisher' ||
-    startsWith(github.event.workflow_run.head_branch, 'dependabot/'))) && 'dependabot-merge' || format('dependabot-merge-skipped-{0}', github.run_id) }}
+    github.event.workflow_run.name == 'Release' ||
+    startsWith(github.event.workflow_run.head_branch, 'dependabot/') ||
+    startsWith(github.event.workflow_run.head_branch, 'release-please--'))) && 'dependabot-merge' || format('dependabot-merge-skipped-{0}', github.run_id) }}
   cancel-in-progress: false
 
 jobs:
   reconcile:
     # The ref check keeps a dispatch from running another branch's controller with these permissions.
-    # The publisher always runs on master, but it reports the `GHPages publish` check of the PR head.
+    # The publisher always runs on master, but it reports the `GHPages publish` check of the PR head. Release runs on
+    # master and may update the release PR, whose new head the release controller then evaluates.
     if: >-
       github.repository == 'opthub-org/pytorch-bsf' &&
       github.ref == 'refs/heads/master' &&
       (github.event_name != 'workflow_run' ||
       github.event.workflow_run.name == 'GHPages publisher' ||
-      startsWith(github.event.workflow_run.head_branch, 'dependabot/'))
+      github.event.workflow_run.name == 'Release' ||
+      startsWith(github.event.workflow_run.head_branch, 'dependabot/') ||
+      startsWith(github.event.workflow_run.head_branch, 'release-please--'))
     runs-on: ubuntu-latest
-    # Sleeps alone can take CODECOV_WAIT_SECONDS plus one poll, and UNCOMPUTED_REREADS x UNCOMPUTED_DELAY_SECONDS for
-    # each evaluation, twice for a PR that waited (tools/dependabot_merge.py): about 5.5 minutes, plus 30 seconds a PR.
-    timeout-minutes: 20
+    # In each step, sleeps alone can take CODECOV_WAIT_SECONDS plus one poll, and UNCOMPUTED_REREADS x
+    # UNCOMPUTED_DELAY_SECONDS for each evaluation, twice for a PR that waited (tools/dependabot_merge.py): about 5.5
+    # minutes, plus 30 seconds a PR.
+    timeout-minutes: 30
     permissions:
       actions: write
       checks: read
@@ -69,3 +77,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           DEPENDABOT_MERGE_ENABLED: ${{ vars.DEPENDABOT_MERGE_ENABLED }}
         run: python -m tools.dependabot_merge
+      - name: Merge the release PR
+        # Runs even when the Dependabot step fails, so that one controller's error does not hold back the other.
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_MERGE_ENABLED: ${{ vars.RELEASE_MERGE_ENABLED }}
+          RELEASE_PLEASE_BOT: ${{ vars.RELEASE_PLEASE_BOT }}
+        run: python -m tools.release_merge

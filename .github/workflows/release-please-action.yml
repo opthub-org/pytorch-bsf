@@ -8,6 +8,18 @@ on:
 
 permissions: {}
 
+# Runs on `master` never overlap and start in the order of the pushes, and each reads `master` when it runs, so a run
+# for an older commit cannot update the release PR after the run for a newer one. The release controller trusts a
+# `release-pr` success on `master`'s head because of this. Only the newest waiting run is kept; one that a newer run
+# replaces is for an older commit, and the newer run creates any release it would have created. The ref keeps a
+# dispatch on another branch, whose jobs all skip, out of the group. Re-running an older run while a newer one waits
+# cancels the newer one, so re-run the latest run instead. Every job has a timeout, so that a run holds the group for
+# about an hour at most, well within the two hours the release controller waits for `release-pr` (RELEASE_PR_GRACE).
+# An approval wait on the `pypi` environment has no such limit, so that environment requires no reviewers.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   github-release:
     if: github.ref == 'refs/heads/master'
@@ -15,15 +27,50 @@ jobs:
       contents: write
       pull-requests: write
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       release_created: ${{ steps.release-please.outputs.release_created }}
       tag_name: ${{ steps.release-please.outputs.tag_name }}
     steps:
+    # GITHUB_TOKEN creates the release, so that its tag and release events start no second publication; the jobs
+    # below publish it.
     - id: release-please
       uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
       with:
         config-file: release-please-config.json
         manifest-file: .release-please-manifest.json
+        skip-github-pull-request: true
+
+  # A release PR that GITHUB_TOKEN updates gets CI runs that wait for approval and never count as its required checks,
+  # so the release App opens and updates it; see "Release App" in SECURITY.md. Without the App, GITHUB_TOKEN still
+  # opens the PR, and the release controller stops it with that reason. No publishing job needs this job, so a
+  # failure here, such as a revoked App key, cannot keep a created release from being published. It runs after the
+  # release is created, so that release-please sees the merged release PR as released. The release controller finds
+  # this job by its key (RELEASE_PR_JOB), so it sets no `name:`.
+  release-pr:
+    needs: github-release
+    if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+    - id: app-token
+      if: ${{ vars.RELEASE_PLEASE_APP_CLIENT_ID != '' }}
+      uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+      with:
+        client-id: ${{ vars.RELEASE_PLEASE_APP_CLIENT_ID }}
+        private-key: ${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}
+        permission-contents: write
+        permission-pull-requests: write
+    - id: release-pr
+      uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+      with:
+        token: ${{ steps.app-token.outputs.token || github.token }}
+        config-file: release-please-config.json
+        manifest-file: .release-please-manifest.json
+        skip-github-release: true
 
   docs:
     needs: github-release
@@ -78,6 +125,7 @@ jobs:
     needs: github-release
     if: ${{ needs.github-release.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     outputs:
       artifact-id: ${{ steps.distributions.outputs.artifact-id }}
     steps:
@@ -114,6 +162,7 @@ jobs:
     needs: [github-release, pypi-build]
     if: ${{ needs.github-release.outputs.release_created == 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     environment:
       name: pypi
       url: https://pypi.org/p/pytorch-bsf

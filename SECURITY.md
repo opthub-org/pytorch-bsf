@@ -256,8 +256,9 @@ before an evaluation starts stops its merge. A malformed hold, such as one with 
 stops the merge for seven days.
 
 A run evaluates the PRs when a workflow that reports a required check starts or finishes
-on a Dependabot branch, when the GHPages publisher runs, and on a schedule. Runs of other
-workflows on `master` skip, and other branches start no run. Codecov reports
+on a Dependabot branch, when the GHPages publisher runs, and on a schedule; the
+[release controller](#release-automation) adds Release runs and the release branch. Runs
+of other workflows on `master` skip, and other branches start no run. Codecov reports
 `codecov/patch` without starting a run, so when only that check keeps a PR from merging,
 a run waits for it and then evaluates the PR again from scratch. The wait ends five
 minutes after the run started, a limit that all PRs of the run share. Each
@@ -281,4 +282,120 @@ The controller tests run without API access:
 ```bash
 python -m unittest discover -s tests/tools -p security_automation.py -v
 python -m unittest discover -s tests/tools -p dependabot_merge.py -v
+python -m unittest discover -s tests/tools -p release_merge.py -v
 ```
+
+## Release automation
+
+A merged fix helps nobody until it is released, so release-please's release PR also
+merges without a human, in a second step of the **Dependabot merge** workflow
+(`tools/release_merge.py`). This includes releases with breaking changes: a release
+contains every change since the previous one, so holding back a breaking change would
+hold back the fixes behind it too. Anyone who needs the old behavior can pin the
+previous version.
+
+Pip and Docker updates are `fix(deps)` commits, which release-please releases.
+Pre-commit and GitHub Actions updates are `build(deps)` commits, which change nothing
+that is distributed, so they alone create no release PR.
+
+The release PR merges once the checks of its exact head succeed and:
+
+- the release contains a commit with a conventional header (see below) of type `fix` or
+  `feat` and the scope `deps`, `deps-dev` (which Dependabot writes for what it considers
+  development dependencies) or `security`, with or without `!`; such a release merges at
+  once; or
+- a day has passed since the newest releasable commit in the release landed on `master`,
+  which gathers a series of changes into one release. The head's own time does not
+  count, because release-please rewrites the head each day for the date in the
+  changelog. A squash or rebase merge lands at its own time; commits brought in by a
+  merge commit land when the merge commit does.
+
+A conventional header is read from the subject and from each unindented body line, such
+as the PR title in a merge commit's body. A commit is releasable when one of its headers
+has a type that release-please releases (`feat`, `fix`, `perf`, `revert`, `deps` or
+`docs`, in any case), or when its subject header breaks compatibility (`!` or a
+`BREAKING CHANGE` footer); `tests/tools/release-please-fixture/releasable.json` pins
+these cases against release-please. This reading only approximates release-please, so
+it sets when a release merges, never what it holds.
+
+When `master` has commits that the head lacks, the controller waits until the
+`release-pr` job of the Release workflow has succeeded on the head of `master`, because
+a stale head would ship releasable commits without a changelog entry, and release-please
+lists only commits after the release. That run, not the controller, decides which
+commits the release needs, so no commit message is parsed for this. Release runs on
+`master` never overlap and start in push order, so an older one cannot update the PR
+after it. Re-running an older run cancels a newer one that waits, so re-run the latest
+run instead.
+
+The controller merges only release-please's own PR for `master`: opened by
+`github-actions[bot]` or the release App's bot from
+`release-please--branches--master--components--torch_bsf` with a release title and the
+`autorelease: pending` label, made of commits that one of those accounts wrote and that
+GitHub signed (as `web-flow`, or as the App's bot for the App's own commits), and
+changing only the version in `pyproject.toml` and `.release-please-manifest.json`, and
+`CHANGELOG.md`.
+Anything else stops the merge. The release App, described [below](#release-app), opens
+and updates the PR so that its CI runs.
+
+The GHPages build and publisher exclude release-please branches, so their checks are not
+required there; the PyTest `docs` job still builds the documentation. A merge with
+`GITHUB_TOKEN` starts no workflow, so after merging, the controller starts the Release
+workflow on `master`, which creates the tag and the GitHub release and publishes to PyPI
+and GHCR, and then the CI workflows. If starting them fails, a later run starts the
+missing ones.
+
+The release controller runs when Release starts or finishes on `master`, when a CI
+workflow starts or finishes on the release branch, and on the same schedule as the
+Dependabot controller, and it waits for `codecov/patch` in the same way. The PR keeps
+one status comment with the decision, the reason and what would make it mergeable. The
+controller stops the merge, and mentions the maintainer once for each stopped head, on:
+
+- CI on the release head that waits for approval, which means the release App is not
+  set up;
+- failed checks on the release head;
+- failed CI on the head of `master`. A merge also ships the `master` commits that
+  release-please did not add to the release PR, such as `build(deps)` or `ci` commits,
+  and those were tested only in their own PRs. Only the CI workflows and their expected
+  checks count, not the documentation checks, `codecov/patch` or other checks on that
+  commit, such as GitHub's own Dependabot update jobs;
+- a `release-pr` job on the head of `master` that did not succeed, or that has not
+  finished two hours after that head landed, while the release head lacks commits of
+  `master`;
+- checks still unfinished two hours after the head's commit;
+- a merge state other than mergeable two hours after the head's commit, or seven days
+  while GitHub has not computed it. A conflict usually clears when release-please
+  rebases the PR for the next releasable change;
+- a missing tag for the previous release, or a PR outside the limits above;
+- a merge that GitHub refuses with HTTP status 403 or 422, or with 405 or 409 seven
+  days after the head's commit (until then the next run tries again), or that GitHub
+  answers without merging.
+
+To keep a release from merging, mark its PR as a draft. Set the repository Actions
+variable **RELEASE_MERGE_ENABLED** to `false` to stop all release merges; as with
+`DEPENDABOT_MERGE_ENABLED`, any value other than an empty one or `true` stops them.
+
+### Release App
+
+A release PR that release-please updates with `GITHUB_TOKEN` gets `pull_request` runs
+that wait for approval (`action_required`). Runs started any other way, for example by
+hand, do not count as the PR's required checks, so GitHub blocks the merge. The Release
+workflow therefore opens and updates the release PR with a GitHub App's token, and
+creates releases with `GITHUB_TOKEN` as before, so that tag and release events start no
+second publication. The PR update runs in its own job, `release-pr`, which no publishing
+job needs, so that a failure there, such as a revoked key, cannot keep a created release
+from being published. Without the App, `GITHUB_TOKEN` still opens the PR, and the
+controller stops it, saying that CI waits for approval. To set the App up:
+
+1. Create a GitHub App owned by the organization, with no webhook, and repository
+   permissions **Contents: Read and write** and **Pull requests: Read and write**
+   (Metadata: Read-only is added automatically). Install it on this repository only.
+2. Generate a private key. Add the App's client ID as the repository Actions variable
+   **RELEASE_PLEASE_APP_CLIENT_ID** and the key as the secret
+   **RELEASE_PLEASE_APP_PRIVATE_KEY**.
+3. Add the App's bot account, `<app-slug>[bot]`, as the variable **RELEASE_PLEASE_BOT**,
+   so that the controller accepts the PRs and commits it writes. A value of another form
+   fails the controller's job, and a PR by a bot that the variable does not name stops
+   with a reason that names the variable.
+
+The key can push to any branch of this repository, including `master` unless the branch
+rules stop it, so keep it only in that secret, and rotate it if it leaks.

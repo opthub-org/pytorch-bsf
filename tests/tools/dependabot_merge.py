@@ -100,16 +100,15 @@ class DecisionTests(unittest.TestCase):
         waiting = decide(lookup_error="ValueError: x")
         self.assertEqual(waiting.action, "wait")
         self.assertIn("advisory lookup failed", waiting.reason)
-        self.assertIn(merge._minute(CREATED + merge.CI_GRACE), waiting.deadline)
+        self.assertIn(merge.format_minute(CREATED + merge.CI_GRACE), waiting.deadline)
         self.assertEqual(decide(lookup_error="ValueError: x", now=CREATED + merge.CI_GRACE).action, "wait")
         late = decide(lookup_error="ValueError: x", now=CREATED + merge.CI_GRACE + dt.timedelta(seconds=1))
         self.assertEqual(late.action, "stop")
         self.assertIn("more than 2 hours old", late.reason)
         self.assertIn("failed workflow run", late.mergeable_when)
         rebased = CREATED + dt.timedelta(hours=1)
-        self.assertIn(
-            merge._minute(rebased + merge.CI_GRACE), decide(lookup_error="ValueError: x", head_committed=rebased).deadline
-        )
+        rebased_decision = decide(lookup_error="ValueError: x", head_committed=rebased)
+        self.assertIn(merge.format_minute(rebased + merge.CI_GRACE), rebased_decision.deadline)
 
     def test_first_failure_on_an_older_head_stops_only_where_the_lookup_is_what_remains(self):
         old = CREATED + merge.CI_GRACE + dt.timedelta(seconds=1)
@@ -1113,7 +1112,7 @@ class ReconcileTests(unittest.TestCase):
         self.pr["mergeable_state"] = "unstable"
         states = iter([([], ["codecov/patch"], {}), *after])
 
-        def ci_state(*_):
+        def ci_state(*_, **__):
             state = next(states)
             if not state[0] and not state[1]:
                 self.pr["mergeable_state"] = "clean"
@@ -1187,8 +1186,8 @@ class ReconcileTests(unittest.TestCase):
         self.codecov_then(([], [], {}), ([], [], {}))
         polls = self.ci_state.side_effect
 
-        def poll_then_close(*args):
-            state = polls(*args)
+        def poll_then_close(*args, **options):
+            state = polls(*args, **options)
             if self.ci_state.call_count > 1:  # The first poll, after the first evaluation.
                 self.pr.update(state="closed", mergeable_state=None)
             return state
@@ -1221,7 +1220,7 @@ class ReconcileTests(unittest.TestCase):
         self.pages["pulls/7/commits"] = [commit(date="2026-11-05T10:01:00Z")]
         self.stub_clock()
         self.ci_state.return_value = ([], ["codecov/patch"], {})
-        self.assert_blocked(f"CI is still incomplete after {merge._hours(merge.CI_GRACE)} hours")
+        self.assert_blocked(f"CI is still incomplete after {merge.format_hours(merge.CI_GRACE)} hours")
 
     def test_a_later_wait_moves_the_clock_only_by_its_own_length(self):
         self.add_second_pr()
@@ -1245,7 +1244,7 @@ class ReconcileTests(unittest.TestCase):
         self.pages["pulls/7/commits"] = [commit(date="2026-11-05T09:00:00Z")]  # Older than the CI deadline.
         sleep = self.stub_clock()
         self.ci_state.return_value = ([], ["codecov/patch"], {})
-        self.assert_blocked(f"CI is still incomplete after {merge._hours(merge.CI_GRACE)} hours")
+        self.assert_blocked(f"CI is still incomplete after {merge.format_hours(merge.CI_GRACE)} hours")
         sleep.assert_not_called()
 
     def test_the_overdue_notice_uses_the_clock_after_the_wait(self):
@@ -1257,6 +1256,16 @@ class ReconcileTests(unittest.TestCase):
         self.run_once()
         bodies = [call.args[1]["body"] for call in self.writes("issues/7/comments")]
         self.assertTrue(any(merge.OVERDUE_MARKER in body for body in bodies))
+
+    def test_the_codecov_wait_reads_the_checks_it_is_given(self):
+        sleep = patch.object(merge.time, "sleep")
+        self.addCleanup(sleep.stop)
+        sleep.start()
+        with patch.object(merge.time, "monotonic", side_effect=[0, 0]):
+            merge.wait_for_codecov(self.api, "c" * 40, FIXTURE_ROOT, 1, workflows=["a.yml"], excluded_checks=frozenset({"b"}))
+        self.ci_state.assert_called_once_with(
+            self.api, "c" * 40, FIXTURE_ROOT, workflows=["a.yml"], excluded_checks=frozenset({"b"})
+        )
 
     def test_the_codecov_wait_ends_at_its_deadline(self):
         polls = self.CODECOV_POLLS
@@ -1734,7 +1743,9 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_other_branches_start_no_run(self):
         self.assertRegex(
-            self.workflow, r"types: \[requested, completed\]\n(?:\s+#.*\n)*    branches: \['dependabot/\*\*', master\]\n"
+            self.workflow,
+            r"types: \[requested, completed\]\n(?:\s+#.*\n)*"
+            r"    branches: \['dependabot/\*\*', 'release-please--\*\*', master\]\n",
         )
 
     def test_a_skipped_run_cannot_replace_a_pending_evaluation(self):
