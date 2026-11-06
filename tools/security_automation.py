@@ -290,7 +290,7 @@ def expected_checks(root: Path) -> set[str]:
         "release-config",
         "Analyze",
         "CodeQL",
-        "codecov/patch",
+        CODECOV_PATCH,
         "coverage / coverage",
         "build-mlflow",
         "security-policy",
@@ -320,6 +320,9 @@ def check_evidence(checks: list[Json], statuses: list[Json], expected: set[str])
         name for name, state in states.items() if state not in {"success", "neutral", "skipped"} and name not in pending
     )
     return failed, pending
+
+
+CODECOV_PATCH = "codecov/patch"
 
 
 def ci_state(api: GitHub, sha: str, root: Path) -> tuple[list[str], list[str], dict[str, Json]]:

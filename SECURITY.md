@@ -251,15 +251,15 @@ body does not count:
 
 The hold ends after that date in UTC, at most 30 days ahead, or when someone comments
 `/dependabot-release`. Only a user with write access can use these commands. A comment
-starts no run, but every run reads the commands before it merges anything, so a hold
-takes effect before the next merge. A malformed hold, such as one with a past date,
+starts no run, but every run reads the commands while it evaluates a PR, so a hold posted
+before an evaluation starts stops its merge. A malformed hold, such as one with a past date,
 stops the merge for seven days.
 
 A run evaluates the PRs when a workflow that reports a required check starts or finishes
 on a Dependabot branch, when the GHPages publisher runs, and on a schedule. Runs of other
 workflows on `master` skip, and other branches start no run. Codecov reports
 `codecov/patch` without starting a run, so when only that check keeps a PR from merging,
-a run waits up to five minutes for it and then evaluates the PR again from scratch. Each
+a run waits about five minutes for it and then evaluates the PR again from scratch. Each
 run evaluates every open Dependabot PR, so a merge or triage comment usually follows CI
 within minutes.
 

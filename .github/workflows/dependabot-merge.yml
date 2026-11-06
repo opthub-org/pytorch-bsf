@@ -45,7 +45,8 @@ jobs:
       github.event.workflow_run.name == 'GHPages publisher' ||
       startsWith(github.event.workflow_run.head_branch, 'dependabot/'))
     runs-on: ubuntu-latest
-    # Sleeps alone can take 5 minutes for Codecov plus 15 seconds for each PR whose merge state GitHub is computing.
+    # Sleeps alone can take CODECOV_WAIT_SECONDS plus one poll, and UNCOMPUTED_REREADS x UNCOMPUTED_DELAY_SECONDS for
+    # each evaluation, twice for a PR that waited (tools/dependabot_merge.py): about 5.5 minutes, plus 30 seconds a PR.
     timeout-minutes: 20
     permissions:
       actions: write

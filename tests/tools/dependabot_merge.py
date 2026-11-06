@@ -1039,6 +1039,10 @@ class ReconcileTests(unittest.TestCase):
         ci = patch.object(security, "ci_state", return_value=([], [], {}))
         self.ci_state = ci.start()
         self.addCleanup(ci.stop)
+        # A test that reaches a wait must opt in to a clock, so that a mistake fails instead of sleeping for real.
+        no_sleep = patch.object(merge.time, "sleep", side_effect=AssertionError("unexpected sleep"))
+        no_sleep.start()
+        self.addCleanup(no_sleep.stop)
 
     def get(self, path):
         if path == "commits/master":
@@ -1158,6 +1162,76 @@ class ReconcileTests(unittest.TestCase):
             sleep = self.stub_clock()
             merge.reconcile(self.api, FIXTURE_ROOT, False, NOW)
             sleep.assert_not_called()
+        with self.subTest("conflict"):
+            self.pr["mergeable_state"] = "dirty"
+            sleep = self.stub_clock()
+            self.run_once()
+            sleep.assert_not_called()
+        with self.subTest("failed advisory lookup"):
+            self.pr["mergeable_state"] = "unstable"
+            self.fail_lookup()
+            sleep = self.stub_clock()
+            self.run_once()
+            sleep.assert_not_called()
+
+    def test_a_pr_closed_during_the_codecov_wait_gets_no_comment(self):
+        sleep = self.stub_clock()
+        self.codecov_then(([], [], {}), ([], [], {}))
+        polls = self.ci_state.side_effect
+
+        def poll_then_close(*args):
+            state = polls(*args)
+            if self.ci_state.call_count > 1:  # The first poll, after the first evaluation.
+                self.pr.update(state="closed", mergeable_state=None)
+            return state
+
+        self.ci_state.side_effect = poll_then_close
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(self.api.write.call_args_list, [])
+        # No rereads of the merge state, which a closed PR never gets.
+        self.assertEqual(sleep.call_count, 1)
+
+    def test_a_merge_state_still_unstable_after_codecov_is_read_again(self):
+        sleep = self.stub_clock()
+        self.pr["mergeable_state"] = "unstable"
+        self.ci_state.side_effect = [([], ["codecov/patch"], {}), ([], [], {}), ([], [], {})]
+        states = iter(["unstable", "unstable", "clean"])
+        get = self.get
+
+        def settle(path):
+            return {**self.pr, "mergeable_state": next(states)} if path == "pulls/7" else get(path)
+
+        self.api.get.side_effect = settle
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(len(self.writes("pulls/7/merge")), 1)
+        self.assertEqual(
+            [c.args[0] for c in sleep.call_args_list], [merge.CODECOV_POLL_SECONDS, merge.UNCOMPUTED_DELAY_SECONDS]
+        )
+
+    def test_the_clock_moves_forward_by_each_wait(self):
+        # Two hours less a minute before the run, so only the moved clock passes the CI deadline after a full wait.
+        self.pages["pulls/7/commits"] = [commit(date="2026-11-05T10:01:00Z")]
+        self.stub_clock()
+        self.ci_state.return_value = ([], ["codecov/patch"], {})
+        self.assert_blocked(f"CI is still incomplete after {merge._hours(merge.CI_GRACE)} hours")
+
+    def test_a_later_wait_moves_the_clock_only_by_its_own_length(self):
+        self.pages["pulls?state=open&base=master"] = [make_pr(number=7), make_pr(number=9)]
+        for path in ("commits", "files", "reviews"):
+            self.pages[f"pulls/9/{path}"] = self.pages[f"pulls/7/{path}"]
+        self.stub_clock()
+        codecov: tuple[list[str], list[str], dict[str, security.Json]] = ([], ["codecov/patch"], {})
+        done: tuple[list[str], list[str], dict[str, security.Json]] = ([], [], {})
+        polls = merge.CODECOV_WAIT_SECONDS // merge.CODECOV_POLL_SECONDS - 1
+        # PR 7 waits one poll and merges; PR 9 waits until the deadline.
+        self.ci_state.side_effect = [codecov, done, done, codecov, *[codecov] * polls, codecov]
+        with patch.object(merge, "decide", wraps=merge.decide) as decide:
+            self.assertEqual(self.run_once(), [])
+        seconds = [(call.args[1] - NOW).total_seconds() for call in decide.call_args_list if call.args[0].pending != []]
+        poll = merge.CODECOV_POLL_SECONDS
+        self.assertEqual(seconds[0], 0)
+        self.assertEqual(seconds[-1], merge.CODECOV_WAIT_SECONDS)
+        self.assertIn(poll, [(call.args[1] - NOW).total_seconds() for call in decide.call_args_list])
 
     def test_the_codecov_wait_ends_at_its_deadline(self):
         polls = -(-merge.CODECOV_WAIT_SECONDS // merge.CODECOV_POLL_SECONDS)
