@@ -826,6 +826,21 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(self.run_once(), [])
         self.assertEqual(self.dispatched("master"), release.POST_MERGE)
 
+    def test_post_merge_recovery_starts_a_release_that_its_concurrency_group_cancelled(self):
+        # As when a re-run of an older Release run replaces the waiting run of the release merge.
+        self.pages[LISTING] = []
+        self.merged_release_on_master()
+        self.master_runs.extend({"path": f".github/workflows/{name}"} for name in release.POST_MERGE[1:])
+        cancelled = {"id": 90, "path": f".github/workflows/{release.RELEASE_WORKFLOW}", "head_branch": "master"}
+        self.master_runs.append({**cancelled, "status": "completed", "conclusion": "cancelled"})
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(self.dispatched("master"), [release.RELEASE_WORKFLOW])
+        # Once a job ran, a cancel is a person's decision.
+        self.pages["actions/runs/90/jobs?filter=all"] = [{"name": "github-release", "status": "completed"}]
+        self.api.write.reset_mock()
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(self.dispatched("master"), [])
+
     def test_post_merge_recovery_ignores_other_prs(self):
         self.pages[LISTING] = []
         self.pr = {**self.pr, "merged_by": {"login": security.BOT}}  # As the Dependabot controller merges.

@@ -2,6 +2,7 @@
 
 import datetime as dt
 import http.client
+import itertools
 import json
 import math
 import os
@@ -1653,8 +1654,22 @@ class ReconcileTests(unittest.TestCase):
         self.assertIn("Post-merge workflows", self.run_once()[0])
 
 
+RELEASE = "release-please-action.yml"
+
+
+def workflow_run(run_id, status="completed", conclusion="cancelled", branch="master", workflow=RELEASE):
+    return {
+        "id": run_id,
+        "path": f".github/workflows/{workflow}",
+        "head_branch": branch,
+        "status": status,
+        "conclusion": conclusion,
+    }
+
+
 class PostMergeTests(unittest.TestCase):
-    def api_for(self, author, merged_by, runs=()):
+    def api_for(self, author, merged_by, runs=(), jobs=None):
+        """Return an API whose master head has `runs` (workflow names or run rows) and `jobs` by run id."""
         api = Mock()
         sha = "e" * 40
         responses = {
@@ -1663,8 +1678,89 @@ class PostMergeTests(unittest.TestCase):
             "pulls/3": {"merged_by": {"login": merged_by}},
         }
         api.get.side_effect = responses.__getitem__
-        api.pages.return_value = [{"path": f".github/workflows/{name}"} for name in runs]
+        rows = [{"path": f".github/workflows/{row}"} if isinstance(row, str) else row for row in runs]
+        pages = {f"actions/runs?head_sha={sha}": rows}
+        pages.update({f"actions/runs/{run_id}/jobs?filter=all": listed for run_id, listed in (jobs or {}).items()})
+        api.pages.side_effect = lambda path, key=None: pages[path]
         return api
+
+    def started(self, api):
+        return [call.args[0].split("/")[2] for call in api.write.call_args_list]
+
+    def others(self):
+        """Return every post-merge workflow but the Release workflow."""
+        return [workflow for workflow in security.POST_MERGE if workflow != RELEASE]
+
+    def test_a_release_run_cancelled_before_any_job_is_dispatched_again(self):
+        # One cancelled run, or a dispatch that was cancelled as well; the jobs of every attempt are read.
+        for runs in ([workflow_run(9)], [workflow_run(8), workflow_run(9)]):
+            with self.subTest(runs=[row["id"] for row in runs]):
+                api = self.api_for(merge.AUTHOR, security.BOT, [*self.others(), *runs], {8: [], 9: []})
+                merge.ensure_post_merge(api)
+                self.assertEqual(self.started(api), [RELEASE])
+                self.assertEqual(api.write.call_args.args[1], {"ref": "master"})
+
+    def test_a_release_run_with_a_job_is_not_dispatched_again(self):
+        # A person may have cancelled it after it started, or an earlier attempt of it ran.
+        job = {"name": "github-release", "status": "completed", "conclusion": "cancelled"}
+        api = self.api_for(merge.AUTHOR, security.BOT, [*self.others(), workflow_run(9)], {9: [job]})
+        merge.ensure_post_merge(api)
+        api.write.assert_not_called()
+
+    def test_any_release_run_that_did_not_end_cancelled_stops_the_dispatch(self):
+        # Whether that run is older or newer than the cancelled one does not matter.
+        states: list[tuple[str, str | None]] = [("pending", None), ("queued", None), ("in_progress", None)]
+        states += [("completed", conclusion) for conclusion in ("success", "failure", "skipped")]
+        for (status, conclusion), other_id in itertools.product(states, (8, 10)):
+            with self.subTest(status=status, conclusion=conclusion, other_id=other_id):
+                runs = [workflow_run(9), workflow_run(other_id, status, conclusion)]
+                api = self.api_for(merge.AUTHOR, security.BOT, [*self.others(), *runs], {8: [], 9: [], 10: []})
+                merge.ensure_post_merge(api)
+                api.write.assert_not_called()
+
+    def test_redispatches_stop_at_the_cap_and_fail_the_job(self):
+        runs = [workflow_run(run_id) for run_id in range(1, merge.MAX_REDISPATCHES + 1)]
+        jobs: dict[int, list[security.Json]] = {run_id: [] for run_id in range(1, merge.MAX_REDISPATCHES + 2)}
+        api = self.api_for(merge.AUTHOR, security.BOT, [*self.others(), *runs], jobs)
+        merge.ensure_post_merge(api)
+        self.assertEqual(self.started(api), [RELEASE])
+        # One more cancelled run means the last allowed dispatch was cancelled too.
+        runs.append(workflow_run(merge.MAX_REDISPATCHES + 1))
+        api = self.api_for(merge.AUTHOR, security.BOT, [*self.others()[1:], *runs], jobs)
+        with self.assertRaisesRegex(RuntimeError, rf"`{RELEASE}` on master's head `eeeeeeeeee` was cancelled") as raised:
+            merge.ensure_post_merge(api)
+        self.assertIn(f"starting it again {merge.MAX_REDISPATCHES} times", str(raised.exception))
+        # The other workflows still start before the error.
+        self.assertEqual(self.started(api), self.others()[:1])
+
+    def test_only_release_runs_on_master_count(self):
+        # A run on another branch skips every job: it neither counts toward the cap nor shows that the release ran.
+        elsewhere = [workflow_run(run_id, branch="feature") for run_id in range(10, 20)]
+        api = self.api_for(merge.AUTHOR, security.BOT, [*self.others(), *elsewhere, workflow_run(9)], {9: []})
+        merge.ensure_post_merge(api)
+        self.assertEqual(self.started(api), [RELEASE])
+        # Alone, such a run still counts as started, as before.
+        api = self.api_for(merge.AUTHOR, security.BOT, [*self.others(), *elsewhere], {})
+        merge.ensure_post_merge(api)
+        api.write.assert_not_called()
+
+    def test_other_workflows_are_not_dispatched_again(self):
+        # They have no concurrency group, so such a cancel came from a person.
+        runs = [workflow_run(index, workflow=workflow) for index, workflow in enumerate(self.others())]
+        runs.append(workflow_run(99, conclusion="success"))
+        api = self.api_for(merge.AUTHOR, security.BOT, runs, {index: [] for index in range(len(runs))})
+        merge.ensure_post_merge(api)
+        api.write.assert_not_called()
+
+    def test_redispatched_workflows_are_the_post_merge_workflows_with_a_concurrency_group(self):
+        workflows = ROOT / ".github" / "workflows"
+        grouped = {
+            name
+            for name in security.POST_MERGE
+            if re.search(r"^concurrency:", (workflows / name).read_text(encoding="utf-8"), re.MULTILINE)
+        }
+        self.assertEqual(grouped, merge.REDISPATCHED)
+        self.assertGreaterEqual(merge.MAX_REDISPATCHES, 1)
 
     def test_token_merge_dispatches_only_missing_workflows(self):
         present = security.POST_MERGE[0]
