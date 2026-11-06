@@ -1,0 +1,376 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>One certificate for a requested finite-degree relative accuracy &mdash; PyTorch-BSF 0.25.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=d8dd0411"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Tetrahedron vertex risk" href="skeleton_risk_vertex.html" />
+    <link rel="prev" title="Uniform errors for growing nonvertex faces" href="skeleton_risk_nonvertex_growing_faces.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_family.html">Uniform construction for codimension two</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three.html">Boundary transfer and a codimension-three edge bound</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_exact.html">Positive diagonal formulas for nonvertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q3_error.html">Finite-degree errors for every nonvertex q3 face</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_error.html">Finite-degree errors for every fixed nonvertex q4 face size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_refined.html">A logarithmic finite-degree remainder for nonvertex q4 risks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_general_error.html">Finite-degree errors at every fixed nonvertex codimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_growing_faces.html">Uniform errors for growing nonvertex faces</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">One certificate for a requested finite-degree relative accuracy</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#research-evaluator-and-refusal-contract">Research evaluator and refusal contract</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_mzv_dyadic.html">Dyadic enclosures for multiple zeta values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_leading_constant_mzv.html">Finite MZV constructions for leading constants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_leading_constant_height.html">Coefficient heights in the finite MZV construction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c5_closed_form.html">A classical closed form for the codimension-four constant</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c6_closed_form.html">A classical leading constant for seven vertices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c7_closed_form.html">A classical leading constant for eight vertices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_transform.html">A fast exact transform for codimension three</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension.html">The vertex leading constant at large vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension_refined.html">A sharper elementary large-vertex guarantee</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension_second_order.html">A first correction with a quadratic large-vertex remainder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_refined_asymptotics.html">Single-log vertex errors for every fixed M at least five</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth.html">A simultaneous vertex-count and degree regime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth_refined.html">A broader simultaneous vertex-count and degree regime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_composite_asymptotics.html">Computable vertex centers and a single-log growing domain</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html">An all-degree sufficient region for large vertex counts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_fixed_vertex_tail.html">An explicit winning degree tail at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_quadratic_degree_tail.html">A quadratic sufficient degree region, uniform in vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html">Five-vertex vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_comparison.html">Five-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_six_vertex_comparison.html">Six-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adaptive_curves.html">Adaptive parameterized curves</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">One certificate for a requested finite-degree relative accuracy</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/skeleton_risk_nonvertex_relative_certificate.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="one-certificate-for-a-requested-finite-degree-relative-accuracy">
+<h1>One certificate for a requested finite-degree relative accuracy<a class="headerlink" href="#one-certificate-for-a-requested-finite-degree-relative-accuracy" title="Link to this heading"></a></h1>
+<p>Keep the uniform-simplex design, evaluation distribution and noise
+assumptions of <a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a>. Write <span class="math notranslate nohighlight">\(s\geq2\)</span> for the
+number of vertices of the source face, <span class="math notranslate nohighlight">\(q\geq2\)</span> for its outside
+codimension, and <span class="math notranslate nohighlight">\(M=s+q\)</span>. The quantity being enclosed is the
+coefficient <span class="math notranslate nohighlight">\(a=a_{s-1}(s+q,D)\)</span> of sample-size-asymptotic risk.
+It is not a finite-sample risk.</p>
+<p>The general construction already gives the positive constant</p>
+<div class="math notranslate nohighlight">
+\[A_{s,q}=\frac{\binom{s+q}s^2(s)_q}{2^q(s-2)!(q+1)}c_{q+1},
+\qquad c_{q+1}\geq q+1.\]</div>
+<p>The constant index here is <span class="math notranslate nohighlight">\(q+1\)</span>, while q itself denotes the
+outside codimension. The lower bound follows from the positive diagonal
+mass <span class="math notranslate nohighlight">\(c_{q+1}/(q+1)=\sum_{j\geq0}d_j\geq d_0=1\)</span> in
+<a class="reference internal" href="skeleton_risk_nonvertex_general_error.html"><span class="doc">Finite-degree errors at every fixed nonvertex codimension</span></a>.</p>
+<div class="proof theorem admonition" id="thm-risk-nonvertex-relative-certificate">
+<p class="admonition-title"><span class="caption-number">Theorem 35 </span> (Relative-accuracy composition at a fixed degree)</p>
+<section class="theorem-content" id="proof-content">
+<p>Let <span class="math notranslate nohighlight">\(0&lt;\varepsilon&lt;1\)</span> be rational and <span class="math notranslate nohighlight">\(D\geq s\)</span>.
+Suppose the proved general finite-degree error evaluator supplies
+<span class="math notranslate nohighlight">\(0\leq r&lt;\varepsilon\)</span> such that</p>
+<div class="math notranslate nohighlight">
+\[\left|\frac a{A_{s,q}D^{s-q-2}}-1\right|\leq r.\]</div>
+<p>Given a rational constant enclosure
+<span class="math notranslate nohighlight">\(0&lt;A_L\leq A_{s,q}\leq A_U\)</span>, define</p>
+<div class="math notranslate nohighlight" id="equation-risk-nonvertex-relative-composition">
+<span class="eqno">(75)<a class="headerlink" href="#equation-risk-nonvertex-relative-composition" title="Link to this equation"></a></span>\[\begin{split}L&amp;=A_L(1-r)D^{s-q-2},\quad
+U=A_U(1+r)D^{s-q-2},\\
+\widehat a&amp;=\frac{2LU}{L+U},\quad
+\varepsilon_{\rm cert}=\frac{U-L}{U+L},\quad
+\delta_A=\frac{A_U-A_L}{A_U+A_L}.\end{split}\]</div>
+<p>Then <span class="math notranslate nohighlight">\(0&lt;L\leq a\leq U\)</span> and</p>
+<div class="math notranslate nohighlight">
+\[\left|\frac{\widehat a}a-1\right|
+\leq\varepsilon_{\rm cert}
+=\frac{\delta_A+r}{1+\delta_A r}.\]</div>
+<p>Put <span class="math notranslate nohighlight">\(\tau=(\varepsilon-r)/(1-\varepsilon r)&gt;0\)</span>.
+One dyadic enclosure of <span class="math notranslate nohighlight">\(c_{q+1}\)</span> with width at most
+<span class="math notranslate nohighlight">\(2(q+1)\tau\)</span> suffices for
+<span class="math notranslate nohighlight">\(\varepsilon_{\rm cert}\leq\varepsilon\)</span>, after intersecting
+its lower endpoint with the known bound <span class="math notranslate nohighlight">\(c_{q+1}\geq q+1\)</span>.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Positivity gives the interval for a. On <span class="math notranslate nohighlight">\([L,U]\)</span>,
+<span class="math notranslate nohighlight">\(\widehat a/a-1\)</span> decreases with a. Its values at the two
+endpoints are respectively <span class="math notranslate nohighlight">\((U-L)/(U+L)\)</span> and its negative.
+This proves the true-value-denominator relative error; the arithmetic
+midpoint would not give this bound. Substitution of L and U gives
+the formula in <span class="math notranslate nohighlight">\(\delta_A,r\)</span>. Since <span class="math notranslate nohighlight">\(r&lt;\varepsilon&lt;1\)</span>,
+elementary rearrangement shows that this formula is at most
+<span class="math notranslate nohighlight">\(\varepsilon\)</span> exactly when <span class="math notranslate nohighlight">\(\delta_A\leq\tau\)</span>.</p>
+<p>Let <span class="math notranslate nohighlight">\([c_L,c_U]\)</span> be the dyadic interval after the lower clamp.
+The positive scale defining A cancels in <span class="math notranslate nohighlight">\(\delta_A\)</span>, and
+<span class="math notranslate nohighlight">\(c_L+c_U\geq2(q+1)\)</span>. Its width at most <span class="math notranslate nohighlight">\(2(q+1)\tau\)</span>
+therefore implies <span class="math notranslate nohighlight">\(\delta_A\leq\tau\)</span>.
+<a class="reference internal" href="skeleton_risk_mzv_dyadic.html"><span class="doc">Dyadic enclosures for multiple zeta values</span></a> supplies width at most
+<span class="math notranslate nohighlight">\(2^{-b}\)</span> for every requested positive integer b. Choosing b
+once so that <span class="math notranslate nohighlight">\(2^{-b}\leq2(q+1)\tau\)</span> proves the assertion.</p>
+</div>
+<section id="research-evaluator-and-refusal-contract">
+<h2>Research evaluator and refusal contract<a class="headerlink" href="#research-evaluator-and-refusal-contract" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">tools.risk_research.nonvertex_relative_certificate</span></code> computes the
+analytic bound before constructing an MZV expression. It chooses b
+using integer bit lengths and at most one rational comparison, then
+charges symbolic construction, cutoff selection and numerical evaluation
+to one shared additive work counter. The separate analytic selected-input
+counter bounds accepted scalar inputs. Neither counter is a CPU-time,
+RSS or complete integer-bit-complexity bound.</p>
+<p>The CLI accepts <code class="docutils literal notranslate"><span class="pre">--face-size</span></code>, <code class="docutils literal notranslate"><span class="pre">--outside</span></code>, <code class="docutils literal notranslate"><span class="pre">--degree</span></code>,
+<code class="docutils literal notranslate"><span class="pre">--relative-target</span></code>, <code class="docutils literal notranslate"><span class="pre">--analytic-work-limit</span></code> and
+<code class="docutils literal notranslate"><span class="pre">--numeric-work-limit</span></code>. The target must lie strictly between zero and
+one. Both resource policies and input bit lengths are checked before
+diagonal or MZV construction. For an inactive face <span class="math notranslate nohighlight">\(D&lt;s\)</span>, the
+coefficient is exactly zero: its record has null relative-error fields,
+and performs no analytic or constant evaluation.</p>
+<p>If <span class="math notranslate nohighlight">\(r\geq\varepsilon\)</span>, the tool conservatively refuses: this
+bound cannot certify the requested target. It does not assert that the
+actual coefficient error is too large. This also refuses the equality
+case even if an exactly known constant could certify it. Work-limit
+refusals likewise do not refute the mathematical stopping theorem.
+No failure is serialized as a success certificate; the CLI exits
+nonzero, reports its reason on stderr and preserves any existing output.
+The first version handles one fixed degree and does not automatically
+choose among sharper codimension-specific methods or search an all-tail
+threshold.</p>
+<p>Success records use the new schema
+<code class="docutils literal notranslate"><span class="pre">skeleton-risk-nonvertex-relative-certificate-v1</span></code>. They include both
+budgets, actual additive work, selected precision and cutoff, constant
+and coefficient intervals, the analytic bound, harmonic-center
+approximation and certified relative error. Replay restores every saved
+option and compares the entire typed record. It uses the source union of
+the wrapper, proof, both evaluators and their recorded dependencies.
+Fingerprints normalize CRLF pairs to LF; raw-byte guards still detect
+line-ending changes during calculation. Sources, Git HEAD, tree and
+complete checkout status are checked across the composition and replay;
+the CLI also guards the raw saved input across verification. These guards
+detect changes but are not a sandbox or protection against transient
+changes restored between snapshots.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">checkout_harness.run_python</span></code> for an initially clean committed
+checkout and separately retained outputs. Its finally-block guards also
+cover failed commands and timeouts. A certificate does not encode the
+checkout commit or status, so replay from another unchanged clean commit
+with the same bound sources remains possible. Historical schemas and
+their evaluator sources are unchanged.</p>
+<p>For example, from the repository root, with output outside the checkout:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">tools</span><span class="o">.</span><span class="n">risk_research</span><span class="o">.</span><span class="n">nonvertex_relative_certificate</span> \
+  <span class="o">--</span><span class="n">face</span><span class="o">-</span><span class="n">size</span> <span class="mi">3</span> <span class="o">--</span><span class="n">outside</span> <span class="mi">4</span> <span class="o">--</span><span class="n">degree</span> <span class="mi">1208925819614629174706193</span> \
+  <span class="o">--</span><span class="n">relative</span><span class="o">-</span><span class="n">target</span> <span class="mi">1</span><span class="o">/</span><span class="mi">100</span> <span class="o">--</span><span class="n">analytic</span><span class="o">-</span><span class="n">work</span><span class="o">-</span><span class="n">limit</span> <span class="mi">190000</span> \
+  <span class="o">--</span><span class="n">numeric</span><span class="o">-</span><span class="n">work</span><span class="o">-</span><span class="n">limit</span> <span class="mi">180000</span> <span class="o">--</span><span class="n">output</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">nonvertex</span><span class="o">-</span><span class="n">relative</span><span class="o">.</span><span class="n">json</span>
+<span class="n">python</span> <span class="o">-</span><span class="n">m</span> <span class="n">tools</span><span class="o">.</span><span class="n">risk_research</span><span class="o">.</span><span class="n">nonvertex_relative_certificate</span> \
+  <span class="o">--</span><span class="n">verify</span> <span class="o">/</span><span class="n">tmp</span><span class="o">/</span><span class="n">nonvertex</span><span class="o">-</span><span class="n">relative</span><span class="o">.</span><span class="n">json</span>
+</pre></div>
+</div>
+<p>The evaluator requires only the Python standard library. Finite checks
+of its output validate implementation and bookkeeping; the composition
+proof and the two component theorems establish interval inclusion.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="skeleton_risk_nonvertex_growing_faces.html" class="btn btn-neutral float-left" title="Uniform errors for growing nonvertex faces" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="skeleton_risk_vertex.html" class="btn btn-neutral float-right" title="Tetrahedron vertex risk" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: ci/704-redispatch-cancelled-release
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../v0.0.1/index.html">v0.0.1</a></dd>
+            <dd><a href="../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../../v0.24.0/index.html">v0.24.0</a></dd>
+            <dd><a href="../../../v0.25.0/advanced/skeleton_risk_nonvertex_relative_certificate.html">v0.25.0</a></dd>
+            <dd><a href="../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../v0.9.0/index.html">v0.9.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="skeleton_risk_nonvertex_relative_certificate.html">ci/704-redispatch-cancelled-release</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
