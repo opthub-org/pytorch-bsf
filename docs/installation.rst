@@ -126,7 +126,9 @@ API **[source]** links follow the tag or branch being documented. A local
 ``sphinx-build`` links to ``master``; set ``PYTORCH_BSF_DOCS_VERSION`` to a
 branch or tag name to link to that ref instead. The variable also turns on the
 **Other Versions** menu, whose links work only in the GitHub Pages layout,
-where each ref is published in a sibling directory.
+where each ref is published in a sibling directory. Sphinx does not track the
+variable, so rebuild from scratch (``-E`` or a new output directory) after
+changing it.
 
 Apply the matching migration guide
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
