@@ -508,12 +508,12 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(self.run_once(), [])
         self.assertEqual(len(self.writes("pulls/563/merge")), 1)
 
-    def release_run_on_master(self, *jobs, status="completed", conclusion="success", run_id=77, branch="master"):
+    def release_run_at_master_head(self, *jobs, status="completed", conclusion="success", run_id=77, branch="master"):
         listed = {**run(conclusion, status), "id": run_id, "head_branch": branch}
         self.pages.setdefault(MASTER_RELEASE_RUNS, []).append(listed)
         self.pages[f"actions/runs/{run_id}/jobs"] = list(jobs)
 
-    def test_the_newest_release_run_on_master_counts(self):
+    def test_the_newest_release_run_at_master_head_counts(self):
         self.master_ahead = subjects("ci: tweak (#7)", date="2026-11-06T11:50:00Z")
         failed = {"name": "release-pr", "status": "completed", "conclusion": "failure"}
         succeeded = {"name": "release-pr", "status": "completed", "conclusion": "success"}
@@ -525,15 +525,15 @@ class ReconcileTests(unittest.TestCase):
                 # The run id decides, not where the run is listed.
                 listing = [(newer, 78), (older, 77)] if newest_first else [(older, 77), (newer, 78)]
                 for job, run_id in listing:
-                    self.release_run_on_master(job, run_id=run_id)
+                    self.release_run_at_master_head(job, run_id=run_id)
                 self.assertEqual(self.run_once(), [])
                 self.assertEqual(len(self.writes("pulls/563/merge")), merges)
 
     def test_a_release_run_on_another_branch_at_the_same_commit_does_not_count(self):
         self.master_ahead = subjects("ci: tweak (#7)", date="2026-11-06T11:50:00Z")
-        self.release_run_on_master({"name": "release-pr", "status": "completed", "conclusion": "success"})
+        self.release_run_at_master_head({"name": "release-pr", "status": "completed", "conclusion": "success"})
         skipped = {"name": "release-pr", "status": "completed", "conclusion": "skipped"}
-        self.release_run_on_master(skipped, run_id=78, branch="feature")
+        self.release_run_at_master_head(skipped, run_id=78, branch="feature")
         self.assertEqual(self.run_once(), [])
         self.assertEqual(len(self.writes("pulls/563/merge")), 1)
 
@@ -563,13 +563,13 @@ class ReconcileTests(unittest.TestCase):
                 self.api.write.reset_mock()
                 self.pages.pop(MASTER_RELEASE_RUNS, None)
                 if run_state is not None:
-                    self.release_run_on_master(*jobs, status=run_state[0], conclusion=run_state[1])
+                    self.release_run_at_master_head(*jobs, status=run_state[0], conclusion=run_state[1])
                 self.assertEqual(self.run_once(), [])
                 self.assertEqual(self.writes("pulls/563/merge"), [])
                 self.assertIn(text, self.status())
         self.api.write.reset_mock()
         self.pages.pop(MASTER_RELEASE_RUNS)
-        self.release_run_on_master(
+        self.release_run_at_master_head(
             {"name": "release-pr", "status": "completed", "conclusion": "failure"},
             {"name": "release-pr", "status": "completed", "conclusion": "success"},  # A re-run of the job.
         )
