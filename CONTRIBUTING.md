@@ -385,8 +385,9 @@ assigns it to the maintainer instead of merging it. To update both:
    version that `test.cjs` asserts to the engine in the upstream Action's
    `package-lock.json` at that commit. Also update the other places that name the
    Action or engine version: the `$schema` URL in `release-please-config.json`, the
-   header comment of `test.cjs`, the `_comment` of `releasable.json`, and this guide
-   (the Action link under "PR review and merge" and the paragraph before this section).
+   header comment of `test.cjs`, the `_comment` of `releasable.json`, and this guide:
+   the Action's release-tag and commit-tree links under "PR review and merge", the
+   paragraph before this section, and the `overrides` paragraph below.
 3. Refresh the lockfile with
    `npm install --prefix tests/tools/release-please-fixture --ignore-scripts --no-audit --no-fund`
    and check that the engine's dependencies match the upstream lockfile.

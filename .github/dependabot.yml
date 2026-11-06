@@ -62,6 +62,6 @@ updates:
       prefix: "build"
       include: "scope"
     # The engine must match the one bundled in the pinned googleapis/release-please-action, so it moves only with
-    # that pin; see "Release automation" in CONTRIBUTING.md. Its own dependencies still update.
+    # that pin; see "Updating the Release Please engine" in CONTRIBUTING.md. Its own dependencies still update.
     ignore:
       - dependency-name: "release-please"
