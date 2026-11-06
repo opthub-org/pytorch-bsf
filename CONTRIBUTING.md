@@ -833,7 +833,8 @@ replace the strict checks of the current PR. Published pages of other refs stay
 as they were built. The **Other Versions** menu lists master, the ref being
 built and the release tags known at that time, so an older page does not list
 later releases. A link opens the same page in the other ref, or that ref's home
-page if the page does not exist there. A local build shows no menu.
+page if the page does not exist there. A local build shows no menu unless
+`PYTORCH_BSF_DOCS_VERSION` is set, as described in `docs/installation.rst`.
 External link checking is not part of this PR gate.
 
 Documentation construction and publication run separately. **GHPages build**

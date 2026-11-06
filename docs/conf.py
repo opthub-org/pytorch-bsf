@@ -121,12 +121,12 @@ html_logo = "_static/logo-compact-white.svg"
 html_favicon = "_static/favicon.ico"
 
 
-# -- Version switcher and source links --------------------------------------
+# -- Version menu and source links ------------------------------------------
 
 # The GHPages producer builds only the pushed ref and names it in this variable:
 # a branch such as ``master`` or a release tag such as ``v1.2.3``. The name is also
 # the ref's URL root on GitHub Pages. A local build leaves it unset, so its source
-# links document master and it shows no version switcher.
+# links document master and it shows no version menu.
 # tools/pages_build.py sets it, and a test checks that both use this name.
 DOCS_VERSION_VARIABLE = "PYTORCH_BSF_DOCS_VERSION"
 # The release tags that the producer and publisher accept (tools/pages_build.py and
@@ -138,7 +138,7 @@ _RELEASE_TAG = re.compile(r"v(\d+)\.(\d+)\.(\d+)")
 # installed package's version.
 _source_ref = "master"
 _source_root = Path(__file__).resolve().parent.parent
-_switcher = None
+_menu = None
 
 
 def _release_tags(root):
@@ -149,53 +149,58 @@ def _release_tags(root):
         ).stdout.split()
     except (OSError, subprocess.CalledProcessError):
         return []
-    releases = [(tuple(map(int, match.groups())), tag) for tag in listed if (match := _RELEASE_TAG.fullmatch(tag))]
+    return _newest_first(listed)
+
+
+def _newest_first(tags):
+    releases = [(tuple(map(int, match.groups())), tag) for tag in set(tags) if (match := _RELEASE_TAG.fullmatch(tag))]
     return [tag for _, tag in sorted(releases, reverse=True)]
 
 
-def _version_switcher(current, tags):
+def _menu_refs(current, tags):
     """Return the refs listed under Other Versions, or ``None`` for a local build.
 
-    Tags are the release tags known when this ref is built. Branches are master and
-    the branch being built, because other branch previews come and go.
+    Tags are the release tags known when this ref is built, plus the ref itself if
+    it is one. Branches are master and the branch being built, because other branch
+    previews come and go.
     """
     if not current:
         return None
-    branches = ["master"]
-    if current != "master" and current not in tags:
-        branches.append(current)
+    if _RELEASE_TAG.fullmatch(current):
+        return {"current": current, "tags": _newest_first([*tags, current]), "branches": ["master"]}
+    branches = ["master"] if current == "master" else ["master", current]
     return {"current": current, "tags": tags, "branches": branches}
 
 
 def _configure_documented_ref(app, config):
-    global _source_ref, _source_root, _switcher
+    global _source_ref, _source_root, _menu
     current = os.environ.get(DOCS_VERSION_VARIABLE, "")
     _source_ref = current or "master"
     _source_root = Path(app.srcdir).resolve().parent
-    _switcher = _version_switcher(current, _release_tags(_source_root))
+    _menu = _menu_refs(current, _release_tags(_source_root))
 
 
-def _version_links(switcher, pagename):
+def _version_links(menu, pagename):
     """Link each listed ref to this page, and to its index for a page it lacks.
 
     Every ref is published under its own root, so a link climbs out of this page's
     directory and this ref's root before entering the other ref's root.
     """
-    up = "../" * (pagename.count("/") + len(PurePosixPath(switcher["current"]).parts))
+    up = "../" * (pagename.count("/") + len(PurePosixPath(menu["current"]).parts))
 
     def link(name):
         root = up + quote(name, safe="/")
         return {"name": name, "url": f"{root}/{quote(pagename, safe='/')}.html", "fallback": f"{root}/index.html"}
 
     return {
-        "current_version": {"name": switcher["current"]},
-        "versions": {kind: [link(name) for name in switcher[kind]] for kind in ("tags", "branches")},
+        "current_version": {"name": menu["current"]},
+        "versions": {kind: [link(name) for name in menu[kind]] for kind in ("tags", "branches")},
     }
 
 
 def _add_version_links(app, pagename, templatename, context, doctree):
-    if _switcher is not None:
-        context.update(_version_links(_switcher, pagename))
+    if _menu is not None:
+        context.update(_version_links(_menu, pagename))
 
 
 def _definition_lines(path, fullname):

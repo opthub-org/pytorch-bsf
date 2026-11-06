@@ -101,12 +101,19 @@ def test_release_tags_are_empty_without_git(configuration, tmp_path, monkeypatch
     [("master", ["master"]), ("v0.2.0", ["master"]), ("fix/topic", ["master", "fix/topic"])],
 )
 def test_version_menu_lists_master_and_the_built_branch(configuration, current, branches):
-    switcher = configuration["_version_switcher"](current, ["v0.2.0", "v0.1.0"])
-    assert switcher == {"current": current, "tags": ["v0.2.0", "v0.1.0"], "branches": branches}
+    menu = configuration["_menu_refs"](current, ["v0.2.0", "v0.1.0"])
+    assert menu == {"current": current, "tags": ["v0.2.0", "v0.1.0"], "branches": branches}
+
+
+@pytest.mark.parametrize("tags", [[], ["v0.1.0"], ["v0.3.0", "v0.1.0"]])
+def test_tag_build_lists_itself_as_a_tag_even_if_git_did_not(configuration, tags):
+    menu = configuration["_menu_refs"]("v0.2.0", tags)
+    assert menu["branches"] == ["master"]
+    assert menu["tags"] == sorted({*tags, "v0.2.0"}, reverse=True)
 
 
 def test_version_menu_is_absent_without_a_ref(configuration):
-    assert configuration["_version_switcher"]("", ["v0.1.0"]) is None
+    assert configuration["_menu_refs"]("", ["v0.1.0"]) is None
 
 
 @pytest.mark.parametrize(
@@ -119,11 +126,13 @@ def test_version_menu_is_absent_without_a_ref(configuration):
     ],
 )
 def test_version_links_open_the_same_page_or_the_index(configuration, current, pagename, up):
-    links = configuration["_version_links"](configuration["_version_switcher"](current, ["v0.1.0"]), pagename)
+    links = configuration["_version_links"](configuration["_menu_refs"](current, ["v0.1.0"]), pagename)
     assert links["current_version"] == {"name": current}
-    assert links["versions"]["tags"] == [
-        {"name": "v0.1.0", "url": f"{up}v0.1.0/{pagename}.html", "fallback": f"{up}v0.1.0/index.html"}
-    ]
+    assert links["versions"]["tags"][-1] == {
+        "name": "v0.1.0",
+        "url": f"{up}v0.1.0/{pagename}.html",
+        "fallback": f"{up}v0.1.0/index.html",
+    }
     assert links["versions"]["branches"][0] == {
         "name": "master",
         "url": f"{up}master/{pagename}.html",
@@ -132,7 +141,7 @@ def test_version_links_open_the_same_page_or_the_index(configuration, current, p
 
 
 def test_version_links_quote_unusual_ref_names(configuration):
-    links = configuration["_version_links"](configuration["_version_switcher"]("fix/a#b", []), "index")
+    links = configuration["_version_links"](configuration["_menu_refs"]("fix/a#b", []), "index")
     branch = links["versions"]["branches"][1]
     assert branch == {"name": "fix/a#b", "url": "../../fix/a%23b/index.html", "fallback": "../../fix/a%23b/index.html"}
 
@@ -155,8 +164,8 @@ def _render_menu(context):
 
 
 def test_menu_template_renders_each_link_with_its_fallback(configuration):
-    switcher = configuration["_version_switcher"]("fix/topic", ["v0.2.0"])
-    html = _render_menu(configuration["_version_links"](switcher, "advanced/x"))
+    menu = configuration["_menu_refs"]("fix/topic", ["v0.2.0"])
+    html = _render_menu(configuration["_version_links"](menu, "advanced/x"))
     assert "v: fix/topic" in html
     for name in ["v0.2.0", "master", "fix/topic"]:
         assert (
@@ -166,7 +175,7 @@ def test_menu_template_renders_each_link_with_its_fallback(configuration):
 
 
 def test_menu_template_escapes_ref_names(configuration):
-    html = _render_menu(configuration["_version_links"](configuration["_version_switcher"]('a"<b>', []), "index"))
+    html = _render_menu(configuration["_version_links"](configuration["_menu_refs"]('a"<b>', []), "index"))
     assert "<b>" not in html
     assert "v: a&#34;&lt;b&gt;" in html
     assert 'href="../a%22%3Cb%3E/index.html"' in html

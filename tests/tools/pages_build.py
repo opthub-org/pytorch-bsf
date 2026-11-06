@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import re
+import runpy
 import subprocess
 import sys
 from pathlib import Path
@@ -119,8 +120,6 @@ def test_html_build_rejects_an_unpublishable_ref_before_running_sphinx(tmp_path)
 
 
 def _docs_configuration():
-    import runpy
-
     return runpy.run_path(str(Path(__file__).resolve().parents[2] / "docs/conf.py"))
 
 

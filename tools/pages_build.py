@@ -60,7 +60,7 @@ def build_html(ref: str, build: Path) -> None:
     """Build only the triggering ref's HTML into its version root under ``build``.
 
     ``docs/conf.py`` reads the version name from ``DOCS_VERSION_VARIABLE`` for the
-    version switcher and source links.
+    version menu and source links.
     """
     name = source_name(ref)
     environment = dict(os.environ, **{DOCS_VERSION_VARIABLE: name})
@@ -127,7 +127,12 @@ def main() -> None:
     mode.add_argument("--freeze", action="store_true", help="pin the triggering ref to the event commit")
     mode.add_argument("--html", action="store_true", help="build the triggering ref's HTML")
     mode.add_argument("--output", type=Path, help="package the built ref into this new directory")
-    parser.add_argument("--build", type=Path, default=Path("docs/_build"))
+    parser.add_argument(
+        "--build",
+        type=Path,
+        default=Path("docs/_build"),
+        help="documentation build root: --html writes <build>/<ref name> and --output reads it",
+    )
     args = parser.parse_args()
     ref, sha = os.environ["GITHUB_REF"], os.environ["GITHUB_SHA"]
     if args.freeze:
