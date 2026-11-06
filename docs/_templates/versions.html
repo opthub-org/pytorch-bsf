@@ -2,7 +2,7 @@
 <div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
     <span class="rst-current-version" data-toggle="rst-current-version">
         <span class="fa fa-book"> Other Versions</span>
-        v: {{ current_version.name }}
+        v: {{ current_version.name|e }}
         <span class="fa fa-caret-down"></span>
     </span>
     <div class="rst-other-versions">
@@ -10,7 +10,7 @@
         <dl>
             <dt>Tags</dt>
             {%- for item in versions.tags %}
-            <dd><a href="{{ item.url }}">{{ item.name }}</a></dd>
+            <dd><a href="{{ item.url|e }}" data-fallback="{{ item.fallback|e }}">{{ item.name|e }}</a></dd>
             {%- endfor %}
         </dl>
         {%- endif %}
@@ -18,10 +18,29 @@
         <dl>
             <dt>Branches</dt>
             {%- for item in versions.branches %}
-            <dd><a href="{{ item.url }}">{{ item.name }}</a></dd>
+            <dd><a href="{{ item.url|e }}" data-fallback="{{ item.fallback|e }}">{{ item.name|e }}</a></dd>
             {%- endfor %}
         </dl>
         {%- endif %}
     </div>
 </div>
+<script>
+// Each ref is built on its own, so a listed ref may lack this page: open its index instead.
+document.querySelectorAll(".rst-other-versions a[data-fallback]").forEach(function (link) {
+    link.addEventListener("click", function (event) {
+        if (!window.fetch || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+            return;
+        }
+        event.preventDefault();
+        fetch(link.href, { method: "HEAD" }).then(
+            function (response) {
+                window.location.href = response.ok ? link.href : link.getAttribute("data-fallback");
+            },
+            function () {
+                window.location.href = link.href;
+            }
+        );
+    });
+});
+</script>
 {%- endif %}

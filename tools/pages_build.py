@@ -1,4 +1,4 @@
-"""Freeze the triggering ref and package only its multiversion documentation."""
+"""Freeze the triggering ref, build its documentation and package only that build."""
 
 import argparse
 import hashlib
@@ -8,6 +8,7 @@ import re
 import shutil
 import stat
 import subprocess
+import sys
 from pathlib import Path, PurePosixPath
 
 MAX_FILES = 20_000
@@ -51,6 +52,16 @@ def freeze(ref: str, sha: str) -> None:
     if head != sha:
         raise ValueError("Checkout does not match the triggering source SHA")
     subprocess.run(["git", "update-ref", ref, sha], check=True)
+
+
+def build_html(ref: str, build: Path) -> None:
+    """Build only the triggering ref's HTML into its version root under ``build``.
+
+    ``docs/conf.py`` reads the version name for the version switcher and source links.
+    """
+    name = source_name(ref)
+    environment = dict(os.environ, PYTORCH_BSF_DOCS_VERSION=name)
+    subprocess.run([sys.executable, "-m", "sphinx", "-b", "html", "docs", str(build / name)], check=True, env=environment)
 
 
 def inventory(source: Path) -> dict[str, dict[str, object]]:
@@ -110,12 +121,15 @@ def main() -> None:
     """Read event provenance directly from the runner environment."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--freeze", action="store_true")
+    parser.add_argument("--html", action="store_true", help="build the triggering ref's HTML")
     parser.add_argument("--build", type=Path, default=Path("docs/_build"))
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     ref, sha = os.environ["GITHUB_REF"], os.environ["GITHUB_SHA"]
     if args.freeze:
         freeze(ref, sha)
+    elif args.html:
+        build_html(ref, args.build)
     else:
         if args.output is None:
             parser.error("--output is required when packaging")

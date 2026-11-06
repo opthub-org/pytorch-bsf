@@ -827,16 +827,19 @@ Only executable doctest and `testcode` blocks are tested; a plain `code-block`
 is displayed without execution. Add assertions or expected output for examples
 whose behavior should be checked.
 
-The separate GitHub Pages workflow builds multiple tags and branches with
-`sphinx-multiversion`. Historical tags keep their documentation sources and
-release metadata, using the current build configuration. Their warnings do
-not replace the strict checks of the current PR.
+The separate GitHub Pages workflow builds only the pushed branch or release
+tag, with that ref's own sources and build configuration. Its warnings do not
+replace the strict checks of the current PR. Published pages of other refs stay
+as they were built. The **Other Versions** menu lists master, the ref being
+built and the release tags known at that time, so an older page does not list
+later releases. A link opens the same page in the other ref, or that ref's home
+page if the page does not exist there. A local build shows no menu.
 External link checking is not part of this PR gate.
 
 Documentation construction and publication run separately. **GHPages build**
-has read-only repository access and no secrets. It still runs the full
-`sphinx-multiversion` build with CPU PyTorch and fresh dependencies, but sends
-only the triggering ref's pages and byte digests to **GHPages publish**.
+has read-only repository access and no secrets. It builds the triggering ref
+with CPU PyTorch and fresh dependencies through `tools/pages_build.py --html`,
+and sends only that ref's pages and byte digests to **GHPages publish**.
 Only the trusted default-branch publisher holds the shared `gh-pages` lock;
 the dependency installation and construction of different refs can overlap.
 
@@ -1057,7 +1060,7 @@ pytorch-bsf/
 │   │   ├── python-package.yml        # pre-commit (Ruff, numpydoc-validation, lint-conventions), pytest, mypy, Sphinx; lowest and optional deps
 │   │   ├── release-please-action.yml # Automated releases (CHANGELOG + PyPI publish)
 │   │   ├── docker.yml                # Docker image published to ghcr.io on release
-│   │   ├── sphinx-pages-build.yml    # Read-only multiversion documentation build
+│   │   ├── sphinx-pages-build.yml    # Read-only documentation build of the pushed ref
 │   │   ├── sphinx-pages-publish.yml  # Trusted, serialized per-ref publication
 │   │   ├── sphinx-pages.yml          # Inert legacy identifier; keep manually disabled
 │   │   ├── codeql-analysis.yml       # Security scanning

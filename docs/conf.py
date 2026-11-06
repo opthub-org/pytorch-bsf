@@ -14,8 +14,10 @@ import ast
 import importlib.util
 import inspect
 import os
+import re
+import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from urllib.parse import quote
 
 import torch_bsf
@@ -49,7 +51,6 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx_design",
     "sphinx_rtd_theme",
-    "sphinx_multiversion",
     "sphinx_proof",
     "sphinxcontrib.bibtex",
 ]
@@ -120,23 +121,78 @@ html_logo = "_static/logo-compact-white.svg"
 html_favicon = "_static/favicon.ico"
 
 
-# -- Options for sphinx-multiversion -----------------------------------------
+# -- Version switcher and source links --------------------------------------
 
-smv_tag_whitelist = r"^v\d+\.\d+.\d+$"  # v1.2.3
-smv_branch_whitelist = r"^(?!gh-pages|release-please).+$"  # all branches except gh-pages and release-please
-
+# The GHPages producer builds only the pushed ref and names it in this variable:
+# a branch such as ``master`` or a release tag such as ``v1.2.3``. The name is also
+# the ref's URL root on GitHub Pages. A local build leaves it unset, so its source
+# links document master and it shows no version switcher.
+DOCS_VERSION_VARIABLE = "PYTORCH_BSF_DOCS_VERSION"
+_RELEASE_TAG = re.compile(r"v(\d+)\.(\d+)\.(\d+)")
 
 # https://www.sphinx-doc.org/ja/master/usage/extensions/linkcode.html
-# A normal single-version build documents master. Multiversion sets these
-# from its build context, independently of the installed package's version.
+# Source links follow the documented ref and tree, independently of the
+# installed package's version.
 _source_ref = "master"
 _source_root = Path(__file__).resolve().parent.parent
+_switcher = None
+
+
+def _release_tags(root):
+    """Return the release tags of ``root``, newest first, or none outside Git."""
+    try:
+        listed = subprocess.run(
+            ["git", "-C", str(root), "tag", "--list", "v*"], check=True, capture_output=True, text=True
+        ).stdout.split()
+    except (OSError, subprocess.CalledProcessError):
+        return []
+    releases = [(tuple(map(int, match.groups())), tag) for tag in listed if (match := _RELEASE_TAG.fullmatch(tag))]
+    return [tag for _, tag in sorted(releases, reverse=True)]
+
+
+def _version_switcher(current, tags):
+    """Return the refs listed under Other Versions, or ``None`` for a local build.
+
+    Tags are the release tags known when this ref is built. Branches are master and
+    the branch being built, because other branch previews come and go.
+    """
+    if not current:
+        return None
+    branches = ["master"]
+    if current != "master" and current not in tags:
+        branches.append(current)
+    return {"current": current, "tags": tags, "branches": branches}
 
 
 def _configure_source_links(app, config):
-    global _source_ref, _source_root
-    _source_ref = config.smv_current_version or "master"
+    global _source_ref, _source_root, _switcher
+    current = os.environ.get(DOCS_VERSION_VARIABLE, "")
+    _source_ref = current or "master"
     _source_root = Path(app.srcdir).resolve().parent
+    _switcher = _version_switcher(current, _release_tags(_source_root))
+
+
+def _version_links(switcher, pagename):
+    """Link each listed ref to this page, and to its index for a page it lacks.
+
+    Every ref is published under its own root, so a link climbs out of this page's
+    directory and this ref's root before entering the other ref's root.
+    """
+    up = "../" * (pagename.count("/") + len(PurePosixPath(switcher["current"]).parts))
+
+    def link(name):
+        root = up + quote(name, safe="/")
+        return {"name": name, "url": f"{root}/{quote(pagename, safe='/')}.html", "fallback": f"{root}/index.html"}
+
+    return {
+        "current_version": {"name": switcher["current"]},
+        "versions": {kind: [link(name) for name in switcher[kind]] for kind in ("tags", "branches")},
+    }
+
+
+def _add_version_links(app, pagename, templatename, context, doctree):
+    if _switcher is not None:
+        context.update(_version_links(_switcher, pagename))
 
 
 def _definition_lines(path, fullname):
@@ -201,3 +257,4 @@ def linkcode_resolve(domain, info):
 
 def setup(app):
     app.connect("config-inited", _configure_source_links)
+    app.connect("html-page-context", _add_version_links)

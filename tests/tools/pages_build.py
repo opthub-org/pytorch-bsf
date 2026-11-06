@@ -12,7 +12,7 @@ from unittest.mock import patch
 import pytest
 import yaml
 
-from tools.pages_build import freeze, package, source_name
+from tools.pages_build import build_html, freeze, package, source_name
 
 # Stricter than tools.security_automation.ACTION_PIN: at the trust boundary, the comment
 # must be a single ASCII version token, so that it cannot hide a YAML line break.
@@ -97,6 +97,35 @@ def test_freeze_uses_event_sha_and_does_not_update_a_different_checkout():
         with pytest.raises(ValueError, match="Checkout"):
             freeze("refs/heads/master", sha)
         run.assert_not_called()
+
+
+@pytest.mark.parametrize(("ref", "name"), [("refs/heads/fix/topic", "fix/topic"), ("refs/tags/v1.2.3", "v1.2.3")])
+def test_html_build_writes_only_the_triggering_ref_under_its_version_root(tmp_path, monkeypatch, ref, name):
+    monkeypatch.setenv("PYTORCH_BSF_DOCS_VERSION", "stale")
+    with patch("tools.pages_build.subprocess.run") as run:
+        build_html(ref, tmp_path)
+    run.assert_called_once()
+    (command,), options = run.call_args
+    assert command == [sys.executable, "-m", "sphinx", "-b", "html", "docs", str(tmp_path / name)]
+    assert options["check"] is True
+    assert options["env"]["PYTORCH_BSF_DOCS_VERSION"] == name
+
+
+def test_html_build_rejects_an_unpublishable_ref_before_running_sphinx(tmp_path):
+    with patch("tools.pages_build.subprocess.run") as run, pytest.raises(ValueError):
+        build_html("refs/heads/gh-pages", tmp_path)
+    run.assert_not_called()
+
+
+def test_cli_builds_html_for_the_event_ref(tmp_path, monkeypatch):
+    from tools import pages_build
+
+    monkeypatch.setenv("GITHUB_REF", "refs/tags/v1.2.3")
+    monkeypatch.setenv("GITHUB_SHA", "a" * 40)
+    monkeypatch.setattr(sys, "argv", ["pages_build.py", "--html", "--build", str(tmp_path)])
+    with patch("tools.pages_build.build_html") as build:
+        pages_build.main()
+    build.assert_called_once_with("refs/tags/v1.2.3", tmp_path)
 
 
 def _build(tmp_path):
@@ -249,7 +278,8 @@ def test_workflow_keeps_complete_build_readonly_and_outside_publish_lock(templat
     raw = (root / ".github/workflows/sphinx-pages-build.yml").read_bytes()
     _assert_fully_pinned_and_only_pins_differ(raw, template)
     workflow = raw.decode()
-    assert "sphinx-multiversion docs/ docs/_build" in workflow
+    assert "run: python tools/pages_build.py --html\n" in workflow
+    assert "multiversion" not in workflow
     assert "contents: read" in workflow
     assert "contents: write" not in workflow
     assert "concurrency:" not in workflow
