@@ -3,6 +3,7 @@
 import datetime as dt
 import http.client
 import json
+import math
 import os
 import re
 import unittest
@@ -1039,6 +1040,10 @@ class ReconcileTests(unittest.TestCase):
         ci = patch.object(security, "ci_state", return_value=([], [], {}))
         self.ci_state = ci.start()
         self.addCleanup(ci.stop)
+        # A test that reaches a wait must opt in to a clock, so that a mistake fails instead of sleeping for real.
+        no_sleep = patch.object(merge.time, "sleep", side_effect=AssertionError("unexpected sleep"))
+        no_sleep.start()
+        self.addCleanup(no_sleep.stop)
 
     def get(self, path):
         if path == "commits/master":
@@ -1062,6 +1067,215 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(self.run_once(), [])
         self.assertEqual(self.writes("pulls/7/merge"), [])
         self.assertIn(expected, self.triage())
+
+    def stub_merge_states_and_sleep(self, *states):
+        reads = iter(states)
+
+        def get(path):
+            return {**self.pr, "mergeable_state": next(reads)} if path == "pulls/7" else self.get(path)
+
+        self.api.get.side_effect = get
+        sleep = patch.object(merge.time, "sleep")
+        self.addCleanup(sleep.stop)
+        return sleep.start()
+
+    def test_an_uncomputed_merge_state_is_read_again_before_deciding(self):
+        sleep = self.stub_merge_states_and_sleep("unknown", None, "clean")
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(len(self.writes("pulls/7/merge")), 1)
+        self.assertEqual(sleep.call_count, 2)
+        sleep.assert_called_with(merge.UNCOMPUTED_DELAY_SECONDS)
+
+    def test_a_state_that_stays_uncomputed_waits_after_a_bounded_number_of_reads(self):
+        sleep = self.stub_merge_states_and_sleep(*["unknown"] * (merge.UNCOMPUTED_REREADS + 1))
+        self.assert_blocked("GitHub reports the merge state as `unknown`.")
+        self.assertEqual(sleep.call_count, merge.UNCOMPUTED_REREADS)
+
+    def stub_clock(self):
+        """Replace time with a clock that only sleep advances, and return the sleep mock."""
+        clock = [0.0]
+        sleep = patch.object(merge.time, "sleep", side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds))
+        monotonic = patch.object(merge.time, "monotonic", side_effect=lambda: clock[0])
+        self.addCleanup(sleep.stop)
+        self.addCleanup(monotonic.stop)
+        monotonic.start()
+        return sleep.start()
+
+    CODECOV_POLLS = math.ceil(merge.CODECOV_WAIT_SECONDS / merge.CODECOV_POLL_SECONDS)  # Polls in a full wait.
+
+    def add_second_pr(self):
+        self.pages["pulls?state=open&base=master"] = [make_pr(number=7), make_pr(number=9)]
+        for path in ("commits", "files", "reviews"):
+            self.pages[f"pulls/9/{path}"] = self.pages[f"pulls/7/{path}"]
+
+    def codecov_then(self, *after):
+        """Report codecov/patch as the only unfinished check, and GitHub's matching `unstable` state, then these states."""
+        self.pr["mergeable_state"] = "unstable"
+        states = iter([([], ["codecov/patch"], {}), *after])
+
+        def ci_state(*_):
+            state = next(states)
+            if not state[0] and not state[1]:
+                self.pr["mergeable_state"] = "clean"
+            return state
+
+        self.ci_state.side_effect = ci_state
+
+    def test_a_run_waits_for_codecov_and_merges_on_a_fresh_evaluation(self):
+        sleep = self.stub_clock()
+        self.codecov_then(([], [], {}), ([], [], {}))
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(len(self.writes("pulls/7/merge")), 1)
+        sleep.assert_called_once_with(merge.CODECOV_POLL_SECONDS)
+        self.assertEqual(self.ci_state.call_count, 3)
+
+    def test_a_hold_posted_during_the_codecov_wait_stops_the_merge(self):
+        self.stub_clock()
+        self.codecov_then(([], [], {}), ([], [], {}))
+        polls = self.ci_state.side_effect
+
+        def poll_after_a_hold(*args):
+            self.comments.append(comment("/dependabot-hold until=2026-11-07 breaks downstream"))
+            return polls(*args)
+
+        self.ci_state.side_effect = poll_after_a_hold
+        self.assert_blocked("breaks downstream")
+
+    def test_a_run_does_not_wait_for_codecov_while_anything_else_stops_the_merge(self):
+        cases: dict[str, tuple[list[str], list[str], dict[str, security.Json]]] = {
+            "other check unfinished": ([], ["codecov/patch", "lint"], {}),
+            "check failed": (["lint"], ["codecov/patch"], {}),
+        }
+        for name, state in cases.items():
+            with self.subTest(name):
+                self.api.write.reset_mock()
+                self.ci_state.reset_mock()
+                self.ci_state.return_value = state
+                sleep = self.stub_clock()
+                self.run_once()
+                self.assertEqual(self.writes("pulls/7/merge"), [])
+                self.assertEqual(self.ci_state.call_count, 1)
+                sleep.assert_not_called()
+        with self.subTest("hold"):
+            self.api.write.reset_mock()
+            self.ci_state.reset_mock()
+            self.ci_state.return_value = ([], ["codecov/patch"], {})
+            self.comments.append(comment("/dependabot-hold until=2026-11-07 r"))
+            sleep = self.stub_clock()
+            self.run_once()
+            sleep.assert_not_called()
+        with self.subTest("merging disabled"):
+            self.comments.clear()
+            self.ci_state.reset_mock()
+            sleep = self.stub_clock()
+            merge.reconcile(self.api, FIXTURE_ROOT, False, NOW)
+            sleep.assert_not_called()
+        with self.subTest("conflict"):
+            self.pr["mergeable_state"] = "dirty"
+            sleep = self.stub_clock()
+            self.run_once()
+            sleep.assert_not_called()
+        with self.subTest("failed advisory lookup"):
+            self.pr["mergeable_state"] = "unstable"
+            self.fail_lookup()
+            sleep = self.stub_clock()
+            self.run_once()
+            sleep.assert_not_called()
+
+    def test_a_pr_closed_during_the_codecov_wait_gets_no_comment(self):
+        sleep = self.stub_clock()
+        self.codecov_then(([], [], {}), ([], [], {}))
+        polls = self.ci_state.side_effect
+
+        def poll_then_close(*args):
+            state = polls(*args)
+            if self.ci_state.call_count > 1:  # The first poll, after the first evaluation.
+                self.pr.update(state="closed", mergeable_state=None)
+            return state
+
+        self.ci_state.side_effect = poll_then_close
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(self.api.write.call_args_list, [])
+        # No rereads of the merge state, which a closed PR never gets.
+        self.assertEqual(sleep.call_count, 1)
+
+    def test_a_merge_state_still_unstable_after_codecov_is_read_again(self):
+        sleep = self.stub_clock()
+        self.pr["mergeable_state"] = "unstable"
+        self.ci_state.side_effect = [([], ["codecov/patch"], {}), ([], [], {}), ([], [], {})]
+        states = iter(["unstable", "unstable", "clean"])
+        get = self.get
+
+        def settle(path):
+            return {**self.pr, "mergeable_state": next(states)} if path == "pulls/7" else get(path)
+
+        self.api.get.side_effect = settle
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(len(self.writes("pulls/7/merge")), 1)
+        self.assertEqual(
+            [c.args[0] for c in sleep.call_args_list], [merge.CODECOV_POLL_SECONDS, merge.UNCOMPUTED_DELAY_SECONDS]
+        )
+
+    def test_the_clock_moves_forward_by_each_wait(self):
+        # Two hours less a minute before the run, so only the moved clock passes the CI deadline after a full wait.
+        self.pages["pulls/7/commits"] = [commit(date="2026-11-05T10:01:00Z")]
+        self.stub_clock()
+        self.ci_state.return_value = ([], ["codecov/patch"], {})
+        self.assert_blocked(f"CI is still incomplete after {merge._hours(merge.CI_GRACE)} hours")
+
+    def test_a_later_wait_moves_the_clock_only_by_its_own_length(self):
+        self.add_second_pr()
+        self.stub_clock()
+        codecov: tuple[list[str], list[str], dict[str, security.Json]] = ([], ["codecov/patch"], {})
+        done: tuple[list[str], list[str], dict[str, security.Json]] = ([], [], {})
+        self.ci_state.side_effect = [
+            *(codecov, done, done),  # PR 7: evaluation, one poll, evaluation; it merges.
+            codecov,  # PR 9: evaluation, one poll into the run.
+            *[codecov] * (self.CODECOV_POLLS - 1),  # PR 9: polls until the shared deadline.
+            codecov,  # PR 9: evaluation after the wait.
+        ]
+        with patch.object(merge, "decide", wraps=merge.decide) as decide:
+            self.assertEqual(self.run_once(), [])
+        # Only decisions with codecov/patch unfinished: the wait gates' hypothetical decisions clear it, and so does
+        # PR 7's last evaluation.
+        seconds = [(call.args[1] - NOW).total_seconds() for call in decide.call_args_list if call.args[0].pending]
+        self.assertEqual(seconds, [0, merge.CODECOV_POLL_SECONDS, merge.CODECOV_WAIT_SECONDS])
+
+    def test_a_pr_already_stopped_does_not_wait(self):
+        self.pages["pulls/7/commits"] = [commit(date="2026-11-05T09:00:00Z")]  # Older than the CI deadline.
+        sleep = self.stub_clock()
+        self.ci_state.return_value = ([], ["codecov/patch"], {})
+        self.assert_blocked(f"CI is still incomplete after {merge._hours(merge.CI_GRACE)} hours")
+        sleep.assert_not_called()
+
+    def test_the_overdue_notice_uses_the_clock_after_the_wait(self):
+        # Seven days less a minute before the run, so only the moved clock makes the decision overdue.
+        self.pr["created_at"] = "2026-10-29T12:01:00Z"
+        self.pages["pulls/7/commits"] = [commit(date="2026-11-05T10:01:00Z")]
+        self.stub_clock()
+        self.ci_state.return_value = ([], ["codecov/patch"], {})
+        self.run_once()
+        bodies = [call.args[1]["body"] for call in self.writes("issues/7/comments")]
+        self.assertTrue(any(merge.OVERDUE_MARKER in body for body in bodies))
+
+    def test_the_codecov_wait_ends_at_its_deadline(self):
+        polls = self.CODECOV_POLLS
+        sleep = self.stub_clock()
+        self.ci_state.return_value = ([], ["codecov/patch"], {})
+        self.assert_blocked("`codecov/patch`")
+        self.assertEqual(sleep.call_count, polls)
+        self.assertEqual(self.ci_state.call_count, polls + 2)
+
+    def test_all_prs_of_a_run_share_one_codecov_wait(self):
+        self.add_second_pr()
+        polls = self.CODECOV_POLLS
+        sleep = self.stub_clock()
+        self.ci_state.return_value = ([], ["codecov/patch"], {})
+        self.assertEqual(self.run_once(), [])
+        # PR 7 uses up the wait and is evaluated twice. PR 9 is evaluated once, without a poll.
+        self.assertEqual(sleep.call_count, polls)
+        self.assertEqual(self.ci_state.call_count, polls + 2 + 1)
+        self.assertEqual(self.writes("pulls/9/merge"), [])
 
     def test_ready_pr_merges_exactly_the_evaluated_head_and_reports_it(self):
         self.assertEqual(self.run_once(), [])
@@ -1516,7 +1730,21 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_every_trigger_needed_for_immediate_and_recovered_runs_is_present(self):
         self.assertIn("types: [requested, completed]", self.workflow)
-        self.assertRegex(self.workflow, r"schedule:\n(?:\s+#.*\n)*\s+- cron: '\*/15 \* \* \* \*'")
+        self.assertRegex(self.workflow, r"schedule:\n(?:\s+#.*\n)*\s+- cron: '37 \* \* \* \*'")
+
+    def test_other_branches_start_no_run(self):
+        self.assertRegex(
+            self.workflow, r"types: \[requested, completed\]\n(?:\s+#.*\n)*    branches: \['dependabot/\*\*', master\]\n"
+        )
+
+    def test_a_skipped_run_cannot_replace_a_pending_evaluation(self):
+        # GitHub cancels a pending run that a newer run in its group replaces, even when the newer one skips its job.
+        group = re.search(r"concurrency:\n  group: >-\n((?:    .*\n)+)", self.workflow)
+        condition = re.search(r"    if: >-\n((?:      .*\n)+)", self.workflow)
+        assert group is not None and condition is not None
+        expected = " ".join(condition[1].split())
+        skipped = "format('dependabot-merge-skipped-{0}', github.run_id)"
+        self.assertEqual(" ".join(group[1].split()), "${{ (" + expected + ") && 'dependabot-merge' || " + skipped + " }}")
 
     def test_every_required_workflow_triggers_the_controller(self):
         listed = re.search(r"workflows:\n((?:\s+- .*\n)+)", self.workflow)
@@ -1540,7 +1768,6 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_job_settings_that_only_github_can_exercise_stay_in_place(self):
         for line in (
-            "group: dependabot-merge",
             "cancel-in-progress: false",
             "workflow_dispatch:",
             "github.repository == 'opthub-org/pytorch-bsf'",

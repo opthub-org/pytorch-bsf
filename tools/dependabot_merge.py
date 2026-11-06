@@ -11,9 +11,10 @@ import itertools
 import json
 import os
 import re
+import time
 import urllib.request
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Literal
 from urllib.parse import quote, urlencode
@@ -58,6 +59,13 @@ SHORT_SHA_CHARS = 10
 MERGEABLE_STATES = {"clean", "has_hooks"}
 # GitHub reports these while it recomputes mergeability, which a sibling merge can trigger.
 UNCOMPUTED_STATES = {"unknown", None}
+# GitHub computes the state within seconds, and no event reports it, so a wait could last until a scheduled run.
+UNCOMPUTED_REREADS = 3
+UNCOMPUTED_DELAY_SECONDS = 5
+# Codecov reports codecov/patch shortly after the coverage upload, and that report starts no run, so a run waits for it
+# when nothing else stops the merge. All PRs of a run share one wait, which fits in the job timeout.
+CODECOV_WAIT_SECONDS = 300
+CODECOV_POLL_SECONDS = 20
 WRITE_PERMISSIONS = {"admin", "write"}  # The endpoint reports the maintain role as write.
 # 403: not permitted. 422: invalid merge. Other errors may be transient and fail the job instead.
 MERGE_REFUSALS = {403, 422}
@@ -684,6 +692,21 @@ def write_access_checker(api: security.GitHub) -> Callable[[str], bool]:
     return has_write_access
 
 
+def read_pull(api: security.GitHub, number: int, *, settling: frozenset[str] = frozenset()) -> Json:
+    """Return the PR, read again a few times while GitHub has not computed its merge state.
+
+    States in settling are read again too, as `unstable` may still show a check that has just finished. A closed or
+    merged PR is not read again.
+    """
+    pr: Json = api.get(f"pulls/{number}")
+    for _ in range(UNCOMPUTED_REREADS):
+        if pr.get("state", "open") != "open" or pr.get("mergeable_state") not in UNCOMPUTED_STATES | settling:
+            break
+        time.sleep(UNCOMPUTED_DELAY_SECONDS)
+        pr = api.get(f"pulls/{number}")
+    return pr
+
+
 def evaluate(
     api: security.GitHub,
     number: int,
@@ -691,8 +714,10 @@ def evaluate(
     has_write_access: Callable[[str], bool],
     enabled: bool,
     now: dt.datetime,
+    *,
+    settling: frozenset[str] = frozenset(),
 ) -> tuple[Json, list[Json], Evidence, Decision]:
-    pr = api.get(f"pulls/{number}")
+    pr = read_pull(api, number, settling=settling)
     comments = api.pages(f"issues/{number}/comments")
     commits = api.pages(f"pulls/{number}/commits")
     files = api.pages(f"pulls/{number}/files")
@@ -731,6 +756,33 @@ def evaluate(
     return pr, comments, evidence, decide(evidence, now)
 
 
+def _only_codecov_unfinished(failed: list[str], pending: list[str]) -> bool:
+    return not failed and pending == [security.CODECOV_PATCH]
+
+
+def _codecov_alone_stops(evidence: Evidence, now: dt.datetime) -> bool:
+    """Return whether the PR would merge once codecov/patch succeeds, which GitHub reports as `unstable` until then."""
+    if not _only_codecov_unfinished(evidence.failed, evidence.pending):
+        return False
+    settled = "clean" if evidence.merge_state == "unstable" else evidence.merge_state
+    return decide(replace(evidence, pending=[], merge_state=settled), now).action == "merge"
+
+
+def wait_for_codecov(api: security.GitHub, sha: str, root: Path, deadline: float) -> bool:
+    """Poll the checks until codecov/patch is no longer the only unfinished one, or until deadline on time.monotonic().
+
+    Return whether it slept, in which case every other input of the decision is stale and must be read again.
+    """
+    slept = False
+    while time.monotonic() < deadline:
+        time.sleep(CODECOV_POLL_SECONDS)
+        slept = True
+        failed, pending, _ = security.ci_state(api, sha, root)
+        if not _only_codecov_unfinished(failed, pending):
+            break
+    return slept
+
+
 def ensure_post_merge(api: security.GitHub) -> None:
     """Start the master workflows that a GITHUB_TOKEN merge does not trigger, until each has a run."""
     sha = api.get("commits/master")["sha"]
@@ -747,21 +799,59 @@ def ensure_post_merge(api: security.GitHub) -> None:
             security.dispatch_workflow(api, workflow, "master")
 
 
+@dataclass
+class RunClock:
+    """The run's time: `now` corresponds to the monotonic reading `at`, and moves forward after each wait."""
+
+    now: dt.datetime
+    at: float
+    codecov_deadline: float
+
+    def advance(self) -> None:
+        reading = time.monotonic()
+        self.now += dt.timedelta(seconds=reading - self.at)
+        self.at = reading
+
+
+def evaluate_after_codecov(
+    api: security.GitHub, number: int, root: Path, has_write_access: Callable[[str], bool], enabled: bool, clock: RunClock
+) -> tuple[Json, list[Json], Evidence, Decision]:
+    """Evaluate the PR, and when only codecov/patch keeps it from merging, wait for Codecov and evaluate it again.
+
+    The second evaluation reads everything again, so that a hold, a review or a merge state that changed during the
+    wait counts.
+    """
+    result = evaluate(api, number, root, has_write_access, enabled, clock.now)
+    pr, _, evidence, decision = result
+    # A PR already stopped, for example by the CI deadline, gains nothing from the wait.
+    if decision.action == "wait" and _codecov_alone_stops(evidence, clock.now):
+        slept = wait_for_codecov(api, pr["head"]["sha"], root, clock.codecov_deadline)
+        if slept:
+            clock.advance()
+            result = evaluate(api, number, root, has_write_access, enabled, clock.now, settling=frozenset({"unstable"}))
+    return result
+
+
 def reconcile(api: security.GitHub, root: Path, enabled: bool, now: dt.datetime) -> list[str]:
     """Evaluate every open Dependabot PR; one PR's error never blocks another's decision."""
     errors = []
     has_write_access = write_access_checker(api)
+    started = time.monotonic()
+    clock = RunClock(now, started, started + CODECOV_WAIT_SECONDS)
     for row in api.pages("pulls?state=open&base=master"):
         number = row["number"]
         try:
             if _login(row) != AUTHOR:
                 continue
-            pr, comments, evidence, decision = evaluate(api, number, root, has_write_access, enabled, now)
+            pr, comments, evidence, decision = evaluate_after_codecov(api, number, root, has_write_access, enabled, clock)
+            # A PR closed or merged during the wait gets no comment, because no later run would correct it.
+            if pr.get("state", "open") != "open":
+                continue
             if decision.action == "merge":
-                decision = merge(api, pr, decision, evidence.head_committed, now)
+                decision = merge(api, pr, decision, evidence.head_committed, clock.now)
             upsert_triage(api, number, comments, render(decision, pr["head"]["sha"]))
             if decision.action == "stop":
-                escalate(api, pr, comments, now)
+                escalate(api, pr, comments, clock.now)
             if evidence.lookup_error is not None:
                 errors.append(f"PR #{number}: advisory lookup: {evidence.lookup_error}")
         except OPERATIONAL_ERRORS as error:

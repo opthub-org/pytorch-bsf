@@ -250,9 +250,27 @@ body does not count:
 ```
 
 The hold ends after that date in UTC, at most 30 days ahead, or when someone comments
-`/dependabot-release`. Only a user with write access can use these commands, and a run
-may take about 15 minutes to read them. A malformed hold, such as one with a past date,
+`/dependabot-release`. Only a user with write access can use these commands. A comment
+starts no run, but every run reads the commands while it evaluates a PR, so a hold posted
+before an evaluation starts stops its merge. A malformed hold, such as one with a past date,
 stops the merge for seven days.
+
+A run evaluates the PRs when a workflow that reports a required check starts or finishes
+on a Dependabot branch, when the GHPages publisher runs, and on a schedule. Runs of other
+workflows on `master` skip, and other branches start no run. Codecov reports
+`codecov/patch` without starting a run, so when only that check keeps a PR from merging,
+a run waits for it and then evaluates the PR again from scratch. The wait ends five
+minutes after the run started, a limit that all PRs of the run share. Each
+run evaluates every open Dependabot PR, so a merge or triage comment usually follows CI
+within minutes.
+
+Some changes take effect only at the next run: a deadline passing, a hold expiring or
+being released, a review, an advisory published while a PR waits, and a `codecov/patch`
+result that arrives after that wait. The schedule asks for a run every hour, but
+GitHub delays and drops scheduled runs. From 2026-11-01 to 2026-11-05, a workflow here
+scheduled every five minutes and once a day had only 25 scheduled runs, 2.5 to 7.3 hours
+apart. These changes can therefore take hours, and GitHub guarantees no upper bound. To
+apply them at once, run the workflow by hand.
 
 Set the repository Actions variable **DEPENDABOT_MERGE_ENABLED** to `false` to stop
 merging while triage continues. Any value other than an empty one or `true`, in any case,

@@ -22,6 +22,7 @@ Json = dict[str, Any]
 STATE_TITLE = "Security automation status"
 STATE_MARKER = "security-automation-state:v1"
 BRANCH_PREFIX = "automation/security/"
+CODECOV_PATCH = "codecov/patch"
 WORKFLOWS = [
     "python-package.yml",
     "python-package-conda.yml",
@@ -290,7 +291,7 @@ def expected_checks(root: Path) -> set[str]:
         "release-config",
         "Analyze",
         "CodeQL",
-        "codecov/patch",
+        CODECOV_PATCH,
         "coverage / coverage",
         "build-mlflow",
         "security-policy",
