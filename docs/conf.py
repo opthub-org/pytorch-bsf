@@ -138,6 +138,9 @@ _RELEASE_TAG = re.compile(r"v(\d+)\.(\d+)\.(\d+)")
 # installed package's version.
 _source_ref = "master"
 _source_root = Path(__file__).resolve().parent.parent
+
+# Refs listed in the Other Versions menu, set by _configure_documented_ref; ``None``
+# for a local build.
 _menu = None
 
 
@@ -153,6 +156,7 @@ def _release_tags(root):
 
 
 def _newest_first(tags):
+    """Return the distinct release tags among ``tags``, newest version first."""
     releases = [(tuple(map(int, match.groups())), tag) for tag in set(tags) if (match := _RELEASE_TAG.fullmatch(tag))]
     return [tag for _, tag in sorted(releases, reverse=True)]
 
