@@ -32,7 +32,7 @@ pytorch-bsf is a library installed alongside other packages, so `[project].depen
 - **Lower bound**: the oldest version that passes the tests. The `lowest` job of `.github/workflows/python-package.yml` installs every lower bound on Python 3.11 (`uv pip install --resolution lowest-direct '.[lightning,mlflow,sparse,sklearn,plot]'`, so the bounds of every optional extra are checked too) and runs pytest, so a bound that does not work fails CI. Raise a lower bound only when the code needs a newer feature or a bug fix, and say why in the PR.
 - **Upper bound**: below the next major version (`<3`). Widen it after checking that the new major version works.
 - **Extras**: every package in `[project.optional-dependencies]` has the same kind of range. The `all` extra refers to the other extras (`pytorch-bsf[lightning,mlflow,...]`) instead of repeating their ranges.
-- **Dependabot** uses `versioning-strategy: increase-if-necessary` for pip: it leaves a range alone while it admits a new release and opens a PR when a release falls outside it. It also checks pre-commit hooks, GitHub Actions and the Docker base image weekly. As a deliberate exception to the two rules above, passing updates merge automatically, including lower-bound changes and new major versions, with no human review, once CI passes and, for pip and GitHub Actions, an advisory lookup finds nothing; see [Dependabot auto-merge](SECURITY.md#dependabot-auto-merge). Pip and Docker updates are `fix(deps)` commits, so they reach a release at once; pre-commit and Actions updates are `build(deps)` and release nothing; see [Release automation](SECURITY.md#release-automation). Dependabot does not update `environment.yml`, so a merged range change leaves it behind until someone syncs it.
+- **Dependabot** uses `versioning-strategy: increase-if-necessary` for pip: it leaves a range alone while it admits a new release and opens a PR when a release falls outside it. It also checks pre-commit hooks, GitHub Actions, the Docker base image and the npm dependencies of the CI-only [Release Please fixture](#updating-the-release-please-engine) weekly. As a deliberate exception to the two rules above, passing updates merge automatically, including lower-bound changes and new major versions, with no human review, once CI passes and, for pip, npm and GitHub Actions, an advisory lookup finds nothing; see [Dependabot auto-merge](SECURITY.md#dependabot-auto-merge). Pip and Docker updates are `fix(deps)` commits, so they reach a release at once; pre-commit, Actions and npm updates are `build(deps)` and release nothing; see [Release automation](SECURITY.md#release-automation). Dependabot does not update `environment.yml`, so a merged range change leaves it behind until someone syncs it.
 - Declare only packages that `torch_bsf` imports. Do not pin transitive dependencies to work around a bug in another package; if one is unavoidable, add a comment with the upstream issue.
 - Keep `environment.yml` in sync with `pyproject.toml`, including the optional `scipy`, `scikit-learn` and `matplotlib` (as `matplotlib-base`), so that the Conda CI and the Docker image run their tests.
 
@@ -366,9 +366,37 @@ The legacy engine is no longer installed because it brings vulnerable dependenci
 From 0.24.0, breaking changes and features produce 0.25.0; fixes produce 0.24.1.
 It validates the schemas, release
 history boundary, Python/CHANGELOG/manifest updates and publication wiring with
-an in-memory repository that rejects writes. When changing the Action pin,
-update the fixture's engine dependency and lockfile to match the upstream
-Action's lockfile, then rerun the check.
+an in-memory repository that rejects writes.
+
+#### Updating the Release Please engine
+
+The fixture must run the engine that the pinned Action bundles, so the engine moves
+only together with the Action pin. Dependabot updates the fixture's other npm
+dependencies (`build(deps)`, merged automatically like other ecosystems) but ignores
+`release-please` in `.github/dependabot.yml`. `test.cjs` asserts both the Action's
+commit SHA and the engine version, so a Dependabot PR that moves only one of them
+fails the **Release configuration** check. The automation then stops that PR and
+assigns it to the maintainer instead of merging it. To update both:
+
+1. On a new branch, change the `googleapis/release-please-action` pin in both steps
+   of `.github/workflows/release-please-action.yml`, and the SHA that `test.cjs` expects.
+2. Set `release-please` in `tests/tools/release-please-fixture/package.json` and the
+   version that `test.cjs` asserts to the engine in the upstream Action's
+   `package-lock.json` at that commit, and update the versions named above.
+3. Refresh the lockfile with
+   `npm install --prefix tests/tools/release-please-fixture --ignore-scripts --no-audit --no-fund`
+   and check that the engine's dependencies match the upstream lockfile.
+4. Check whether each entry of `overrides` in `package.json` is still needed (see
+   below), rerun the fixture, and open the PR. Dependabot closes its own PR once the
+   pin on `master` is newer.
+
+`overrides` raises `minimatch` under `@google-automations/git-file-utils` to `^11.0.1`,
+for [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249), while
+engine 17.6.0 requires `^10.2.4`. That package calls only `new Minimatch(glob).match()`,
+which 11.x keeps, and the fixture's in-memory repository has no glob lookup, so
+minimatch never runs in the check. Remove the entry once the engine accepts a
+patched version itself (`npm ls minimatch --prefix tests/tools/release-please-fixture`).
+`glob@7` keeps its own `minimatch@3`, which the advisory does not affect.
 
 #### PyPI Trusted Publishing and provenance
 
@@ -1070,7 +1098,7 @@ pytorch-bsf/
 │   │   ├── documentation.yml         # Documentation form
 │   │   └── config.yml                # Disables blank issues
 │   ├── CODEOWNERS                    # Code ownership settings
-│   └── dependabot.yml                # Automated dependency updates (pip, pre-commit hooks, Actions and Docker)
+│   └── dependabot.yml                # Automated dependency updates (pip, pre-commit hooks, Actions, Docker and npm)
 ├── torch_bsf/                        # Main package
 │   ├── __init__.py                   # Public API exports (BezierSpace, BezierModel, fit, minimize, …)
 │   ├── __main__.py                   # CLI entry point (python -m torch_bsf)

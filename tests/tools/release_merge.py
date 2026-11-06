@@ -969,7 +969,9 @@ class ConfigurationTests(unittest.TestCase):
                 r'package-ecosystem: "([^"]+)".*?commit-message:\n\s+prefix: "([^"]+)"\n\s+include: "scope"', config, re.DOTALL
             )
         )
-        self.assertEqual(prefixes, {"pip": "fix", "docker": "fix", "pre-commit": "build", "github-actions": "build"})
+        self.assertEqual(
+            prefixes, {"pip": "fix", "docker": "fix", "pre-commit": "build", "github-actions": "build", "npm": "build"}
+        )
         for ecosystem, prefix in prefixes.items():
             with self.subTest(ecosystem=ecosystem):
                 row = commit_row(f"{prefix}(deps): bump x")

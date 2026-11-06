@@ -308,7 +308,14 @@ class ChangeTests(unittest.TestCase):
     def test_dependency_files_and_pin_updates_pass(self):
         files = [
             {"filename": name, "status": "modified", "patch": "+anything"}
-            for name in ("pyproject.toml", "uv.lock", "Dockerfile", ".pre-commit-config.yaml")
+            for name in (
+                "pyproject.toml",
+                "uv.lock",
+                "Dockerfile",
+                ".pre-commit-config.yaml",
+                "tests/tools/release-please-fixture/package.json",
+                "tests/tools/release-please-fixture/package-lock.json",
+            )
         ]
         files.append({"filename": "docs/requirements.txt", "status": "modified"})
         files.append(self.workflow(f"@@ -1 +1 @@\n{PIN_OLD}\n{PIN_NEW}"))
@@ -343,6 +350,12 @@ class ChangeTests(unittest.TestCase):
             "docs/Dockerfile",
             ".github/dependabot.yml",
             "a/pyproject.toml",
+            "package.json",
+            "package-lock.json",
+            "tests/tools/release-please-fixture/test.cjs",
+            "tests/tools/release-please-fixture/releasable.json",
+            "tests/tools/release-please-fixture/.npmrc",
+            "tests/tools/release-please-fixture/node_modules/x/package.json",
         ):
             with self.subTest(path=path):
                 self.assertIsNotNone(merge.change_problem([{"filename": path, "status": "modified", "patch": "+x"}]))
@@ -417,6 +430,7 @@ def branch_pr(segment):
 
 PIP = branch_pr("pip")
 ACTIONS = branch_pr("github_actions")
+NPM = branch_pr("npm_and_yarn")
 
 
 class GitHubAdvisoryFake:
@@ -596,6 +610,23 @@ class AdvisoryTests(unittest.TestCase):
             self.assertRaisesRegex(ValueError, "too many pages"),
         ):
             merge._pip_advisories("x", "1")
+
+    def test_npm_asks_osv_about_the_exact_name_and_version(self):
+        for name in ("minimatch", "@google-automations/git-file-utils", "JSONStream"):
+            for version in ("11.0.1", "1.0.0-rc.1", "2.0.0-beta.2+build.5"):
+                with self.subTest(name=name, version=version):
+                    fake = self.osv({(name.lower(), version): ["GHSA-a"]})
+                    found = merge.known_advisories(Mock(), NPM, [commit(message=metadata_block((name, version)))])
+                    self.assertEqual(found, (["GHSA-a"], []))
+                    self.assertEqual(fake.bodies, [{"package": {"name": name, "ecosystem": "npm"}, "version": version}])
+
+    def test_npm_versions_that_are_not_exact_ask_about_the_whole_package(self):
+        for version in (None, "^11.0.1", "~1.2.3", ">=1.0.0", "1.2", "11", "latest", "v1.2.3", "1.2.3 - 1.2.5", "١.٢.٣"):
+            with self.subTest(version=version):
+                fake = self.osv({("minimatch", None): ["GHSA-a"]})
+                found = merge.known_advisories(Mock(), NPM, [commit(message=metadata_block(("minimatch", version)))])
+                self.assertEqual(found, ([], ["GHSA-a"]))
+                self.assertEqual(fake.bodies, [{"package": {"name": "minimatch", "ecosystem": "npm"}}])
 
     def test_extras_are_not_part_of_the_package_name(self):
         fake = self.osv({("pyyaml", "5.3.1"): ["GHSA-a"]})
@@ -798,6 +829,10 @@ class AdvisoryTests(unittest.TestCase):
                 ),
             ),
             (ACTIONS, ("actions/download-artifact # c", "actions", "actiòns/cache", "/cache", "a/b" + "/" * 60 + "!", "a/b/")),
+            (
+                NPM,
+                ("minimatch # c", "minimatch@11.0.1", "@scope", "@/x", "@a/b/c", "a/b", "../x", "-x", "mïnimatch", "a b"),
+            ),
         ):
             for name in names:
                 with self.subTest(name=name):
@@ -814,6 +849,11 @@ class AdvisoryTests(unittest.TestCase):
             (ACTIONS, "actions/cache"),
             (ACTIONS, "github/codeql-action/init"),
             (ACTIONS, "a.b/c_d/e/f"),
+            (NPM, "minimatch"),
+            (NPM, "@google-automations/git-file-utils"),
+            (NPM, "JSONStream"),
+            (NPM, "lodash.merge"),
+            (NPM, "@types/node"),
         ):
             with self.subTest(name=name):
                 self.assertIsNone(merge.metadata_problem(pr, [commit(message=metadata_block((name, "1.0.0")))]))
@@ -827,7 +867,7 @@ class AdvisoryTests(unittest.TestCase):
                 self.assertIsNone(merge.metadata_problem(branch_pr(segment), [commit(message="bump")]))
 
     def test_unknown_ecosystem_stops_and_cannot_read_as_clean(self):
-        for segment in ("uv", "npm_and_yarn", "Pip", "group-all"):
+        for segment in ("uv", "npm", "yarn", "Pip", "group-all"):
             with self.subTest(segment=segment):
                 self.assertIn(f"`{segment}`", str(merge.metadata_problem(branch_pr(segment), [commit()])))
                 with self.assertRaisesRegex(KeyError, re.escape(segment)):
@@ -1351,6 +1391,25 @@ class ReconcileTests(unittest.TestCase):
     def test_commit_without_metadata_stops_with_triage(self):
         self.pages["pulls/7/commits"] = [commit(message="bump")]
         self.assert_blocked("does not name its dependencies")
+
+    def use_npm_pr(self):
+        self.pr["head"]["ref"] = "dependabot/npm_and_yarn/tests/tools/release-please-fixture/minimatch-11.0.5"
+        self.pages["pulls/7/commits"] = [commit(message=metadata_block(("minimatch", "11.0.5")))]
+        self.pages["pulls/7/files"] = [
+            {"filename": f"tests/tools/release-please-fixture/{name}", "status": "modified", "patch": "+x"}
+            for name in ("package.json", "package-lock.json")
+        ]
+
+    def test_npm_pr_merges_like_other_ecosystems(self):
+        self.use_npm_pr()
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(len(self.writes("pulls/7/merge")), 1)
+        self.osv_query.assert_called_once_with({"package": {"name": "minimatch", "ecosystem": "npm"}, "version": "11.0.5"})
+
+    def test_npm_advisory_is_wired_into_the_evaluation(self):
+        self.use_npm_pr()
+        self.osv_query.return_value = {"vulns": [{"id": "GHSA-g3hv-75wg-m249"}]}
+        self.assert_blocked("GHSA-g3hv-75wg-m249")
 
     def use_action_pr(self):
         # A real branch: its later parts can name another ecosystem.
@@ -1892,12 +1951,26 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_every_configured_ecosystem_is_classified_for_advisories(self):
         configured = set(re.findall(r'package-ecosystem: "([^"]+)"', (ROOT / ".github/dependabot.yml").read_text()))
-        self.assertEqual(configured, {"pip", "pre-commit", "github-actions", "docker"})
-        self.assertEqual(set(merge.ADVISORY_SOURCES), {"pip", "github_actions", "pre_commit", "docker"})
+        self.assertEqual(configured, {"pip", "pre-commit", "github-actions", "docker", "npm"})
+        self.assertEqual(set(merge.ADVISORY_SOURCES), {"pip", "github_actions", "pre_commit", "docker", "npm_and_yarn"})
         self.assertIsNotNone(merge.ADVISORY_SOURCES["pip"])
         self.assertIsNotNone(merge.ADVISORY_SOURCES["github_actions"])
+        self.assertIsNotNone(merge.ADVISORY_SOURCES["npm_and_yarn"])
         self.assertIsNone(merge.ADVISORY_SOURCES["pre_commit"])
         self.assertIsNone(merge.ADVISORY_SOURCES["docker"])
+
+    def test_npm_updates_the_fixture_but_never_its_engine(self):
+        # The engine must match the one bundled in the pinned Action, so it moves only with that pin.
+        config = (ROOT / ".github/dependabot.yml").read_text()
+        entry = re.search(r'  - package-ecosystem: "npm"\n((?:    .*\n|\s*#.*\n)+)', config)
+        assert entry is not None
+        self.assertIn('    directory: "/tests/tools/release-please-fixture"\n', entry[1])
+        self.assertIn('    ignore:\n      - dependency-name: "release-please"\n', entry[1])
+        directory = ROOT / "tests/tools/release-please-fixture"
+        for name in ("package.json", "package-lock.json"):
+            with self.subTest(name=name):
+                self.assertTrue((directory / name).is_file())
+                self.assertIn(f"tests/tools/release-please-fixture/{name}", merge.DEPENDENCY_FILES)
 
     def test_every_ecosystem_has_a_three_day_cooldown(self):
         config = (ROOT / ".github/dependabot.yml").read_text()
