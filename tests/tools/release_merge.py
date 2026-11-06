@@ -1,6 +1,7 @@
 """Offline regressions for the release PR merge controller."""
 
 import datetime as dt
+import itertools
 import json
 import os
 import re
@@ -30,6 +31,8 @@ def run(conclusion="success", status="completed"):
     return {"event": "pull_request", "status": status, "conclusion": conclusion}
 
 
+# The controller's query for the Release runs on master's head.
+MASTER_RELEASE_RUNS = f"actions/workflows/{release.RELEASE_WORKFLOW}/runs?branch=master&head_sha={MASTER}"
 GREEN: CiState = ([], [], {w: run() for w in release.WORKFLOWS})
 
 
@@ -130,8 +133,8 @@ class DecisionTests(unittest.TestCase):
         waiting = decide(urgent=["fix(deps): x"], release_pr_job="pending", master_landed=since)
         self.assertEqual(waiting.action, "wait")
         self.assertIn("has not finished", waiting.reason)
-        self.assertIn(merge.format_minute(since + merge.CI_GRACE), waiting.mergeable_when)
-        deadline = since + merge.CI_GRACE
+        self.assertIn(merge.format_minute(since + release.RELEASE_PR_GRACE), waiting.mergeable_when)
+        deadline = since + release.RELEASE_PR_GRACE
         self.assertEqual(decide(now=deadline, release_pr_job="pending", master_landed=since).action, "wait")
         late = decide(now=deadline + dt.timedelta(seconds=1), release_pr_job="pending", master_landed=since)
         self.assertEqual(late.action, "stop")
@@ -505,10 +508,26 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(self.run_once(), [])
         self.assertEqual(len(self.writes("pulls/563/merge")), 1)
 
-    def release_run_on_master(self, *jobs, status="completed", run_id=77, branch="master"):
-        path = f"actions/workflows/{release.RELEASE_WORKFLOW}/runs?branch=master&head_sha={MASTER}"
-        self.pages.setdefault(path, []).append({**run(status=status), "id": run_id, "head_branch": branch})
+    def release_run_on_master(self, *jobs, status="completed", conclusion="success", run_id=77, branch="master"):
+        listed = {**run(conclusion, status), "id": run_id, "head_branch": branch}
+        self.pages.setdefault(MASTER_RELEASE_RUNS, []).append(listed)
         self.pages[f"actions/runs/{run_id}/jobs"] = list(jobs)
+
+    def test_the_newest_release_run_on_master_counts(self):
+        self.master_ahead = subjects("ci: tweak (#7)", date="2026-11-06T11:50:00Z")
+        failed = {"name": "release-pr", "status": "completed", "conclusion": "failure"}
+        succeeded = {"name": "release-pr", "status": "completed", "conclusion": "success"}
+        cases = [("success after failure", failed, succeeded, 1), ("failure after success", succeeded, failed, 0)]
+        for (label, older, newer, merges), newest_first in itertools.product(cases, (True, False)):
+            with self.subTest(label, newest_first=newest_first):
+                self.api.write.reset_mock()
+                self.pages.pop(MASTER_RELEASE_RUNS, None)
+                # The run id decides, not where the run is listed.
+                listing = [(newer, 78), (older, 77)] if newest_first else [(older, 77), (newer, 78)]
+                for job, run_id in listing:
+                    self.release_run_on_master(job, run_id=run_id)
+                self.assertEqual(self.run_once(), [])
+                self.assertEqual(len(self.writes("pulls/563/merge")), merges)
 
     def test_a_release_run_on_another_branch_at_the_same_commit_does_not_count(self):
         self.master_ahead = subjects("ci: tweak (#7)", date="2026-11-06T11:50:00Z")
@@ -525,27 +544,31 @@ class ReconcileTests(unittest.TestCase):
         other = {"name": "github-release", "status": "completed", "conclusion": "success"}
         failed = {"name": "release-pr", "status": "completed", "conclusion": "failure"}
         skipped = {"name": "release-pr", "status": "completed", "conclusion": "skipped"}
-        # (label, the run's status or None for no run, its jobs, the expected status text)
+        # (label, the run's status and conclusion or None for no run, its jobs, the expected status text)
+        running_run, ended_run = ("in_progress", None), ("completed", "success")
         cases = [
             ("no run", None, (), "Waiting for release-please."),
-            ("run with no jobs yet", "in_progress", (), "Waiting for release-please."),
-            ("job running", "in_progress", (running,), "Waiting for release-please."),
-            ("only another job yet", "in_progress", (other,), "Waiting for release-please."),
-            ("run ended without the job", "completed", (other,), "ended without its `release-pr` job"),
-            ("failed", "completed", (failed,), "ended `failure`"),
-            ("skipped", "completed", (skipped,), "ended `skipped`"),
+            ("run with no jobs yet", running_run, (), "Waiting for release-please."),
+            ("job running", running_run, (running,), "Waiting for release-please."),
+            ("only another job yet", running_run, (other,), "Waiting for release-please."),
+            ("run ended without the job", ended_run, (other,), "ended without its `release-pr` job"),
+            ("run failed without jobs", ("completed", "failure"), (), "ended without its `release-pr` job"),
+            # A newer push cancels the waiting run of the head that was read; the next evaluation reads the newer head.
+            ("run cancelled while waiting", ("completed", "cancelled"), (), "Waiting for release-please."),
+            ("failed", ended_run, (failed,), "ended `failure`"),
+            ("skipped", ended_run, (skipped,), "ended `skipped`"),
         ]
-        for label, run_status, jobs, text in cases:
+        for label, run_state, jobs, text in cases:
             with self.subTest(label):
                 self.api.write.reset_mock()
-                self.pages.pop(f"actions/workflows/{release.RELEASE_WORKFLOW}/runs?branch=master&head_sha={MASTER}", None)
-                if run_status is not None:
-                    self.release_run_on_master(*jobs, status=run_status)
+                self.pages.pop(MASTER_RELEASE_RUNS, None)
+                if run_state is not None:
+                    self.release_run_on_master(*jobs, status=run_state[0], conclusion=run_state[1])
                 self.assertEqual(self.run_once(), [])
                 self.assertEqual(self.writes("pulls/563/merge"), [])
                 self.assertIn(text, self.status())
         self.api.write.reset_mock()
-        self.pages.pop(f"actions/workflows/{release.RELEASE_WORKFLOW}/runs?branch=master&head_sha={MASTER}")
+        self.pages.pop(MASTER_RELEASE_RUNS)
         self.release_run_on_master(
             {"name": "release-pr", "status": "completed", "conclusion": "failure"},
             {"name": "release-pr", "status": "completed", "conclusion": "success"},  # A re-run of the job.

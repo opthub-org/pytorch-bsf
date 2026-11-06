@@ -419,20 +419,23 @@ def master_failures(api: security.GitHub, root: Path, master_sha: str) -> list[s
 def release_pr_state(api: security.GitHub, master_sha: str) -> str:
     """Return how the `release-pr` job of the latest Release run on `master`'s head ended.
 
-    That is "pending" while no run lists the job or it has not finished, "missing" when the run ended without it, and
-    otherwise the job's conclusion.
+    That is "pending" while no run lists the job or it has not finished, "missing" when the run ended without it other
+    than by being cancelled, and otherwise the job's conclusion.
 
     Only runs on the `master` branch count: a dispatch on another branch at the same commit skips every job. The jobs
     API names a job by its key, because the job sets no `name:`; test.cjs pins that.
     """
     runs = api.pages(f"actions/workflows/{RELEASE_WORKFLOW}/runs?branch=master&head_sha={master_sha}", "workflow_runs")
+    # Checked again here, so that the decision does not rest on the API honoring the query's filter.
     on_master = [row for row in runs if row["head_branch"] == "master"]
     if not on_master:
         return "pending"
     run = max(on_master, key=lambda row: row["id"])
     jobs = [job for job in api.pages(f"actions/runs/{run['id']}/jobs", "jobs") if job["name"] == RELEASE_PR_JOB]
     if not jobs:
-        return "missing" if run["status"] == "completed" else "pending"
+        # The concurrency group cancels a waiting run, with no jobs, when a newer push lands after `master` was read;
+        # the next evaluation reads the newer head. RELEASE_PR_GRACE still bounds the wait.
+        return "missing" if run["status"] == "completed" and run["conclusion"] != "cancelled" else "pending"
     if jobs[-1]["status"] != "completed":
         return "pending"
     return str(jobs[-1]["conclusion"])
