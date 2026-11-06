@@ -3,7 +3,7 @@ Robust Portfolio Management
 
 In financial engineering and asset management, the most classical real-world application is Markowitz's mean-variance portfolio optimization :cite:p:`markowitz1952portfolio`. Investors and fund managers seek to simultaneously maximize expected returns and minimize risk (often modeled as the variance of returns). This framework is widely utilized by institutional pension funds (e.g., GPIF), treasury departments, and risk management teams to quantify trade-offs and build consensus on asset allocation decisions.
 
-However, in practice, estimating the covariance matrix from limited observations or highly collinear assets often leads to numerical instability. To resolve this, it is common to introduce a strongly convex regularization term, such as an :math:`L_2` norm penalty on the asset allocation weights or a turnover penalty to suppress excessive trading compared to a previous portfolio :math:`x^{\text{prev}}` :cite:p:`qi2026optimal`.
+However, in practice, estimating the covariance matrix from limited observations or highly collinear assets often leads to numerical instability. To resolve this, it is common to introduce a strongly convex regularization term, such as an :math:`L_2` norm penalty on the asset allocation weights or a turnover penalty to suppress excessive trading compared to a previous portfolio :math:`x^{\text{prev}}` :cite:p:`zhao2021optimal`.
 
 This formulation effectively creates a three-objective optimization problem over the allocation weights :math:`x \in \mathbb{R}^n`: 
 

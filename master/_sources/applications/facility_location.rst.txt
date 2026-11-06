@@ -15,7 +15,7 @@ the priority simplex maps onto a lower-dimensional or non-simplex hull.
 
 Related engineering problems can also produce quadratic reference models,
 but their curvature must be checked in the actual decision variables.
-Adaptive weighted-sum sampling :cite:p:`deweck2004adaptive` and
+Adaptive weighted-sum sampling :cite:p:`kim2006adaptive` and
 multi-objective Newton methods :cite:p:`fliege2009newton` offer ways to
 obtain reference solutions under their respective assumptions. The
 squared-distance example below has a closed form, making independent
