@@ -321,7 +321,8 @@ def test_workflow_keeps_documentation_build_readonly_and_outside_publish_lock(te
     raw = (root / ".github/workflows/sphinx-pages-build.yml").read_bytes()
     _assert_fully_pinned_and_only_pins_differ(raw, template)
     workflow = raw.decode()
-    assert "run: python tools/pages_build.py --html\n" in workflow
+    # Compare whole lines: CRLF checkouts on windows-latest end lines with "\r\n".
+    assert "run: python tools/pages_build.py --html" in [line.strip() for line in workflow.splitlines()]
     assert "multiversion" not in workflow
     assert "contents: read" in workflow
     assert "contents: write" not in workflow
