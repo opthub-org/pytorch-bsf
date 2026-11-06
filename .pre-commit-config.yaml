@@ -28,7 +28,7 @@ repos:
         language: python
         types: [python]
   - repo: https://github.com/crate-ci/typos
-    rev: v1.51.1
+    rev: v1.52.0
     hooks:
       # Find misspellings; false positives are suppressed in _typos.toml.
       # Local only for now: CI skips this hook (SKIP in .github/workflows/python-package.yml) while the rate of
