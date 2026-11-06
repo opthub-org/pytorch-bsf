@@ -232,8 +232,9 @@ Neither the cooldown nor the advisory lookup catches:
 - action advisories filed under a name other than `owner/repo[/path]`, such as a URL or
   an `@scope/name`;
 - an advisory published after the merge. Dependabot alerts report this for pip and npm
-  packages only: GitHub creates no alerts for SHA-pinned actions, and none for pre-commit
-  hooks or Docker images, so nothing here reports it for those.
+  packages, and the [action advisory check](#action-advisories-after-merge) for the
+  actions of `.github/workflows/`, because GitHub creates no alerts for SHA-pinned
+  actions. Nothing here reports it for pre-commit hooks or Docker images.
 
 The remaining exposure is accepted: action pins also update in privileged workflows,
 including this one, the security automation and PyPI publishing, and a malicious action
@@ -293,7 +294,53 @@ The controller tests run without API access:
 python -m unittest discover -s tests/tools -p security_automation.py -v
 python -m unittest discover -s tests/tools -p dependabot_merge.py -v
 python -m unittest discover -s tests/tools -p release_merge.py -v
+python -m unittest discover -s tests/tools -p action_advisories.py -v
 ```
+
+## Action advisories after merge
+
+GitHub creates no Dependabot alert for an action pinned to a commit SHA, and the
+Dependabot merge controller looks advisories up only before it merges. So the **Action
+advisories** workflow asks the GitHub Advisory Database about every external action that
+a workflow in `.github/workflows/` on `master` pins, with the controller's lookup,
+including malware advisories. It runs every hour, on every push to `master` that
+changes `.github/workflows/` or `tools/`, and on manual dispatch. Like any scheduled
+run, the hourly one can be delayed for hours (see
+[Dependabot auto-merge](#dependabot-auto-merge)); run the workflow by hand to check at
+once. It reads the workflow files as text, runs none of the actions it checks, and uses
+no AI.
+
+Each line with a `uses` key must be a local path (`./…`) or an `owner/repo[/path]`
+pinned to a 40-character SHA; trailing blanks are ignored. Any other common form, such
+as a tag, a quoted key or value, a flow mapping or a `docker://` image, fails the job,
+so that it cannot go unchecked. A line that only mentions `uses:`, such as a comment
+after a step name or a `run:` command, also fails the job. The other lines are still
+checked. YAML's rarer spellings of a key, such as `? uses` or an escaped quoted key, are
+not recognized.
+
+A pin is looked up by version when the first word of its comment is an exact version
+with at least three numbers, such as `# v7.0.1`, and that tag of the action's repository
+points to the pinned commit. Otherwise, as for a pin whose comment names no version
+(`openai/codex-action` is one) or a moving tag like `v4`, any advisory on the action
+counts, and the maintainer checks its affected versions against the pinned commit. A
+subpath like `github/codeql-action/init` finds the advisories filed on its repository as
+well as on itself, whatever the letter case of the name they are filed under.
+
+For each advisory that affects a pin, the workflow files one issue that names the
+advisory and the affected pins, assigns the maintainer and mentions them. A hidden
+marker in the issue records the advisory and each reported action and commit. The
+workflow files another issue for the same advisory only when it affects an action and
+commit that no issue has reported, open or closed, such as a pin added or updated later.
+Closing an issue is how the maintainer accepts the advisory for the pins it reports;
+keep the title and the marker when editing the issue, or the next run files the pins
+again. The workflow never closes or reopens an issue itself. A failed lookup or filing
+fails the job and never reads as no advisories; the advisories that the other lookups
+found are still filed, and a pin whose lookup failed is reported once a later lookup
+succeeds.
+
+It does not catch actions nested in a composite action or a remote reusable workflow,
+unreviewed advisories, which carry no package data, advisories filed under a name other
+than `owner/repo[/path]`, or pre-commit hooks and Docker images.
 
 ## Release automation
 
