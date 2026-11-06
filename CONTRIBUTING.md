@@ -32,7 +32,7 @@ pytorch-bsf is a library installed alongside other packages, so `[project].depen
 - **Lower bound**: the oldest version that passes the tests. The `lowest` job of `.github/workflows/python-package.yml` installs every lower bound on Python 3.11 (`uv pip install --resolution lowest-direct '.[lightning,mlflow,sparse,sklearn,plot]'`, so the bounds of every optional extra are checked too) and runs pytest, so a bound that does not work fails CI. Raise a lower bound only when the code needs a newer feature or a bug fix, and say why in the PR.
 - **Upper bound**: below the next major version (`<3`). Widen it after checking that the new major version works.
 - **Extras**: every package in `[project.optional-dependencies]` has the same kind of range. The `all` extra refers to the other extras (`pytorch-bsf[lightning,mlflow,...]`) instead of repeating their ranges.
-- **Dependabot** uses `versioning-strategy: increase-if-necessary` for pip: it leaves a range alone while it admits a new release and opens a PR when a release falls outside it. It also checks pre-commit hooks, GitHub Actions and the Docker base image weekly. As a deliberate exception to the two rules above, passing updates merge automatically, including lower-bound changes and new major versions, with no human review, once CI passes and, for pip and GitHub Actions, an advisory lookup finds nothing; see [Dependabot auto-merge](SECURITY.md#dependabot-auto-merge). Dependabot does not update `environment.yml`, so a merged range change leaves it behind until someone syncs it.
+- **Dependabot** uses `versioning-strategy: increase-if-necessary` for pip: it leaves a range alone while it admits a new release and opens a PR when a release falls outside it. It also checks pre-commit hooks, GitHub Actions and the Docker base image weekly. As a deliberate exception to the two rules above, passing updates merge automatically, including lower-bound changes and new major versions, with no human review, once CI passes and, for pip and GitHub Actions, an advisory lookup finds nothing; see [Dependabot auto-merge](SECURITY.md#dependabot-auto-merge). Pip and Docker updates are `fix(deps)` commits, so they reach a release at once; pre-commit and Actions updates are `build(deps)` and release nothing; see [Release automation](SECURITY.md#release-automation). Dependabot does not update `environment.yml`, so a merged range change leaves it behind until someone syncs it.
 - Declare only packages that `torch_bsf` imports. Do not pin transitive dependencies to work around a bug in another package; if one is unavoidable, add a comment with the upstream issue.
 - Keep `environment.yml` in sync with `pyproject.toml`, including the optional `scipy`, `scikit-learn` and `matplotlib` (as `matplotlib-base`), so that the Conda CI and the Docker image run their tests.
 
@@ -331,6 +331,11 @@ The root package keeps the release identifier `torch_bsf`, distribution name
 prefix. The manifest starts at the existing `v0.24.0` release; future release PRs
 update `.release-please-manifest.json`, `pyproject.toml` and `CHANGELOG.md` together.
 Do not clear the manifest or set a new bootstrap version during an Action update.
+
+Release PRs merge automatically, including breaking releases; see
+[Release automation](SECURITY.md#release-automation). Because the release workflow
+then runs from a dispatch on `master` rather than from the merge push, the `pypi`
+environment must keep allowing the `master` branch.
 
 The root component's `release_created` and `tag_name` outputs connect to the
 Docker and PyPI build jobs. Both build only when `release_created == 'true'`,

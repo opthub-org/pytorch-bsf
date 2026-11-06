@@ -1113,7 +1113,7 @@ class ReconcileTests(unittest.TestCase):
         self.pr["mergeable_state"] = "unstable"
         states = iter([([], ["codecov/patch"], {}), *after])
 
-        def ci_state(*_):
+        def ci_state(*_, **__):
             state = next(states)
             if not state[0] and not state[1]:
                 self.pr["mergeable_state"] = "clean"
@@ -1187,8 +1187,8 @@ class ReconcileTests(unittest.TestCase):
         self.codecov_then(([], [], {}), ([], [], {}))
         polls = self.ci_state.side_effect
 
-        def poll_then_close(*args):
-            state = polls(*args)
+        def poll_then_close(*args, **options):
+            state = polls(*args, **options)
             if self.ci_state.call_count > 1:  # The first poll, after the first evaluation.
                 self.pr.update(state="closed", mergeable_state=None)
             return state
@@ -1734,7 +1734,9 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_other_branches_start_no_run(self):
         self.assertRegex(
-            self.workflow, r"types: \[requested, completed\]\n(?:\s+#.*\n)*    branches: \['dependabot/\*\*', master\]\n"
+            self.workflow,
+            r"types: \[requested, completed\]\n(?:\s+#.*\n)*"
+            r"    branches: \['dependabot/\*\*', 'release-please--\*\*', master\]\n",
         )
 
     def test_a_skipped_run_cannot_replace_a_pending_evaluation(self):

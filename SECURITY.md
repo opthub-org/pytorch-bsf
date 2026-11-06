@@ -281,4 +281,54 @@ The controller tests run without API access:
 ```bash
 python -m unittest discover -s tests/tools -p security_automation.py -v
 python -m unittest discover -s tests/tools -p dependabot_merge.py -v
+python -m unittest discover -s tests/tools -p release_merge.py -v
 ```
+
+## Release automation
+
+A merged fix helps nobody until it is released, so release-please's release PR also
+merges without a human, in a second step of the **Dependabot merge** workflow
+(`tools/release_merge.py`). This includes releases with breaking changes: a release
+contains every change since the previous one, so holding back a breaking change would
+hold back the fixes behind it too. Anyone who needs the old behavior can pin the
+previous version.
+
+Pip and Docker updates are `fix(deps)` commits, which release-please releases.
+Pre-commit and GitHub Actions updates are `build(deps)` commits, which change nothing
+that is distributed, so they alone create no release PR.
+
+The release PR merges once the checks of its exact head succeed and:
+
+- the release contains a commit whose subject starts with `fix(deps)`, `feat(deps)`,
+  `fix(security)` or `feat(security)`, with or without `!`; such a release merges at
+  once; or
+- the head has gone a day without a new commit. release-please adds a commit whenever
+  `master` gets a releasable change, so this gathers a series of changes into one
+  release.
+
+The controller merges only release-please's own PR for `master`: opened by
+`github-actions[bot]` from `release-please--branches--master--components--torch_bsf`
+with a release title and the `autorelease: pending` label, made of commits that
+`github-actions[bot]` wrote and GitHub signed, and changing only the version in
+`pyproject.toml` and `.release-please-manifest.json`, and `CHANGELOG.md`. Anything else
+stops the merge.
+
+release-please pushes with `GITHUB_TOKEN`, which starts no workflow, so the controller
+starts the CI workflows on the release branch itself. The GHPages build and publisher
+exclude release-please branches, so their checks are not required there; the PyTest
+`docs` job still builds the documentation. A merge with `GITHUB_TOKEN` starts no
+workflow either, so after merging, the controller starts the Release workflow on
+`master`, which creates the tag and the GitHub release and publishes to PyPI and GHCR,
+and then the CI workflows. If starting them fails, a later run starts the missing ones.
+
+The release controller runs when Release finishes on `master`, when a CI workflow starts
+or finishes on the release branch, and on the same schedule as the Dependabot
+controller, and it waits for `codecov/patch` in the same way. The PR keeps one status
+comment with the decision, the reason and what would make it mergeable. Failed checks,
+checks still unfinished two hours after the head's commit, or a PR outside the limits
+above stop the merge, and the controller mentions the maintainer once for each stopped
+head. A conflict waits for release-please to rebase the PR.
+
+To keep a release from merging, mark its PR as a draft. Set the repository Actions
+variable **RELEASE_MERGE_ENABLED** to `false` to stop all release merges; as with
+`DEPENDABOT_MERGE_ENABLED`, any value other than an empty one or `true` stops them.

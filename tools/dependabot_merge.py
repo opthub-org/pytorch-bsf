@@ -13,7 +13,7 @@ import os
 import re
 import time
 import urllib.request
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Literal
@@ -768,7 +768,15 @@ def _codecov_alone_stops(evidence: Evidence, now: dt.datetime) -> bool:
     return decide(replace(evidence, pending=[], merge_state=settled), now).action == "merge"
 
 
-def wait_for_codecov(api: security.GitHub, sha: str, root: Path, deadline: float) -> bool:
+def wait_for_codecov(
+    api: security.GitHub,
+    sha: str,
+    root: Path,
+    deadline: float,
+    *,
+    workflows: Sequence[str] = security.WORKFLOWS,
+    excluded: frozenset[str] = frozenset(),
+) -> bool:
     """Poll the checks until codecov/patch is no longer the only unfinished one, or until deadline on time.monotonic().
 
     Return whether it slept, in which case every other input of the decision is stale and must be read again.
@@ -777,24 +785,32 @@ def wait_for_codecov(api: security.GitHub, sha: str, root: Path, deadline: float
     while time.monotonic() < deadline:
         time.sleep(CODECOV_POLL_SECONDS)
         slept = True
-        failed, pending, _ = security.ci_state(api, sha, root)
+        failed, pending, _ = security.ci_state(api, sha, root, workflows=workflows, excluded=excluded)
         if not _only_codecov_unfinished(failed, pending):
             break
     return slept
 
 
-def ensure_post_merge(api: security.GitHub) -> None:
-    """Start the master workflows that a GITHUB_TOKEN merge does not trigger, until each has a run."""
+def _is_dependabot_pr(row: Json) -> bool:
+    return _login(row) == AUTHOR
+
+
+def ensure_post_merge(
+    api: security.GitHub,
+    owned: Callable[[Json], bool] = _is_dependabot_pr,
+    workflows: Sequence[str] = security.POST_MERGE,
+) -> None:
+    """Start the master workflows that a GITHUB_TOKEN merge of an owned PR does not trigger, until each has a run."""
     sha = api.get("commits/master")["sha"]
     pulls = api.get(f"commits/{sha}/pulls")
-    if not any(_login(row) == AUTHOR for row in pulls):
+    if not any(owned(row) for row in pulls):
         return
     merged_by = [(api.get(f"pulls/{row['number']}").get("merged_by") or {}).get("login") for row in pulls]
     if security.BOT not in merged_by:
         return
     runs = api.pages(f"actions/runs?head_sha={sha}", "workflow_runs")
     started = {row["path"].split("/")[-1] for row in runs}
-    for workflow in security.POST_MERGE:
+    for workflow in workflows:
         if workflow not in started:
             security.dispatch_workflow(api, workflow, "master")
 

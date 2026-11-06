@@ -14,6 +14,7 @@ import tomllib
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -323,15 +324,23 @@ def check_evidence(checks: list[Json], statuses: list[Json], expected: set[str])
     return failed, pending
 
 
-def ci_state(api: GitHub, sha: str, root: Path) -> tuple[list[str], list[str], dict[str, Json]]:
+def ci_state(
+    api: GitHub,
+    sha: str,
+    root: Path,
+    *,
+    workflows: Sequence[str] = WORKFLOWS,
+    excluded: frozenset[str] = frozenset(),
+) -> tuple[list[str], list[str], dict[str, Json]]:
+    """Return the failed and unfinished checks and workflows of a head, expecting `workflows` but not `excluded`."""
     checks = api.pages(f"commits/{sha}/check-runs?filter=latest", "check_runs")
     statuses = api.pages(f"commits/{sha}/statuses")
-    failed, pending = check_evidence(checks, statuses, expected_checks(root))
+    failed, pending = check_evidence(checks, statuses, expected_checks(root) - excluded)
     runs = api.pages(f"actions/runs?head_sha={sha}", "workflow_runs")
     latest = {}
     for run in sorted(runs, key=lambda row: row["id"]):
         latest[run["path"].split("/")[-1]] = run
-    for workflow in WORKFLOWS:
+    for workflow in workflows:
         matching = latest.get(workflow)
         if matching is None or matching["status"] != "completed" or matching["conclusion"] != "success":
             pending.append(workflow)
