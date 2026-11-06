@@ -309,10 +309,12 @@ The release PR merges once the checks of its exact head succeed and:
   changelog. A squash or rebase merge lands at its own time; commits brought in by a
   merge commit land when the merge commit does.
 
-A commit is releasable when it is a conventional commit and release-please releases its
-type (`feat`, `fix`, `perf`, `revert`, `deps` or `docs`, in any case), or it breaks
-compatibility (`!` or a `BREAKING CHANGE:` footer);
-`tests/tools/release-please-fixture/releasable.json` pins this against release-please.
+A commit is releasable when its subject or an unindented body line, such as the PR title
+in a merge commit's body, is a conventional header of a type that release-please
+releases (`feat`, `fix`, `perf`, `revert`, `deps` or `docs`, in any case), or when its
+subject is a conventional header that breaks compatibility (`!` or a `BREAKING CHANGE:`
+footer); `tests/tools/release-please-fixture/releasable.json` pins this against
+release-please. The urgent scopes above are read from the same headers.
 When `master` has releasable commits that the head lacks, the controller waits for
 release-please to add them, because a merge would ship them without a changelog entry,
 and release-please lists only commits after the release.
@@ -349,7 +351,8 @@ controller stops the merge, and mentions the maintainer once for each stopped he
   checks count, not the documentation checks, `codecov/patch` or other checks on that
   commit, such as GitHub's own Dependabot update jobs;
 - releasable commits on `master` that the head still lacks two hours after the newest
-  of them, for example because the `release-pr` job failed;
+  of them landed (a merge commit lands the commits it brings in), for example because
+  the `release-pr` job failed;
 - checks still unfinished two hours after the head's commit;
 - a merge state other than mergeable two hours after the head's commit, or seven days
   while GitHub has not computed it. A conflict usually clears when release-please

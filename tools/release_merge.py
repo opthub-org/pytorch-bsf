@@ -43,15 +43,16 @@ MASTER_EXCLUDED_CHECKS = DOCUMENTATION_CHECKS | {security.CODECOV_PATCH}
 RELEASE_WORKFLOW = "release-please-action.yml"
 POST_MERGE = [RELEASE_WORKFLOW, *(workflow for workflow in security.POST_MERGE if workflow != RELEASE_WORKFLOW)]
 QUIET = dt.timedelta(days=1)
-# A commit subject that makes the release urgent: a dependency update or fix, or a security remediation. Dependabot
-# writes `deps-dev` for dependencies it considers development ones.
-URGENT = re.compile(r"(?:fix|feat)\((?:deps|deps-dev|security)\)!?:", re.IGNORECASE)
-# A commit that release-please releases: a conventional commit of a type its python strategy shows in the changelog,
-# or a conventional commit that breaks compatibility. Like release-please, types are read case-insensitively.
-# tests/tools/release-please-fixture/releasable.json pins this against the engine.
-CONVENTIONAL = re.compile(r"\w+(?:\([^)]*\))?!?:")
-RELEASABLE = re.compile(r"(?:(?:feat|fix|perf|revert|deps|docs)(?:\([^)]*\))?!?|\w+(?:\([^)]*\))?!):", re.IGNORECASE)
-BREAKING = re.compile(r"^BREAKING[ -]CHANGE:", re.MULTILINE)
+# A conventional commit header. release-please reads one from the subject and from each unindented body line, such
+# as the PR title in a merge commit's body. tests/tools/release-please-fixture/releasable.json pins how it reads them.
+HEADER = re.compile(r"(?P<type>[\w-]+)(?:\((?P<scope>[^)]+)\))?(?P<breaking>!)?:")
+# The types that release-please's python strategy shows in the changelog, and so releases; read case-insensitively.
+RELEASED_TYPES = frozenset({"feat", "fix", "perf", "revert", "deps", "docs"})
+BREAKING = re.compile(r"^BREAKING[ -]CHANGE(?::| #)", re.MULTILINE)
+# A dependency update or fix, or a security remediation, makes the release urgent. Dependabot writes `deps-dev` for
+# dependencies it considers development ones.
+URGENT_TYPES = frozenset({"fix", "feat"})
+URGENT_SCOPES = frozenset({"deps", "deps-dev", "security"})
 STATUS_MARKER = "<!-- release-merge:v1 -->"
 STOP_MARKER = "<!-- release-merge-stop:v1"
 # The GitHub App that opens and updates the release PR, named by the repository variable RELEASE_PLEASE_BOT.
@@ -188,11 +189,35 @@ def subject(row: Json) -> str:
     return str(row["commit"]["message"]).split("\n", 1)[0]
 
 
+def headers(row: Json) -> list[tuple[str, re.Match[str]]]:
+    """Return each conventional header that release-please reads in the commit: the subject's first, then the body's."""
+    lines = str(row["commit"]["message"]).splitlines() or [""]
+    # HEADER matches at the start of a line, so indented body lines, which release-please ignores, never match.
+    candidates = [lines[0].lstrip(), *lines[1:]]
+    return [(line, match) for line in candidates if (match := HEADER.match(line))]
+
+
 def releasable(row: Json) -> bool:
-    line = subject(row)
-    if RELEASABLE.match(line):
+    """Return whether release-please releases the commit.
+
+    It releases a header of a released type, and a subject header that breaks compatibility, with `!` or a footer.
+    """
+    found = headers(row)
+    if any(match["type"].lower() in RELEASED_TYPES for _, match in found):
         return True
-    return CONVENTIONAL.match(line) is not None and BREAKING.search(row["commit"]["message"]) is not None
+    subject_header = found[0][1] if found and found[0][0] == subject(row).lstrip() else None
+    return subject_header is not None and (
+        subject_header["breaking"] is not None or BREAKING.search(row["commit"]["message"]) is not None
+    )
+
+
+def urgent(row: Json) -> list[str]:
+    """Return the commit's headers that make the release urgent."""
+    return [
+        line
+        for line, match in headers(row)
+        if match["type"].lower() in URGENT_TYPES and (match["scope"] or "").lower() in URGENT_SCOPES
+    ]
 
 
 def committed(row: Json) -> dt.datetime:
@@ -207,7 +232,8 @@ def landed(rows: list[Json]) -> dt.datetime | None:
     """Return the newest time a releasable change in `rows` landed on `master`.
 
     A squash or rebase merge commits at landing time. A merge commit does too, but the branch commits it brings in keep
-    the times they were written, so its own time counts for them.
+    the times they were written, so its own time counts for them. Every merge commit counts, even one that brings in
+    nothing releasable: telling which would need each branch's own comparison, and counting it only waits longer.
     """
     return max((committed(row) for row in rows if releasable(row) or is_merge(row)), default=None)
 
@@ -389,7 +415,7 @@ def evaluate(
     pending: list[str] = []
     master_failed: list[str] = []
     runs: dict[str, Json] = {}
-    urgent: list[str] = []
+    urgent_headers: list[str] = []
     if problem is None:
         failed, pending, runs = security.ci_state(api, sha, root, workflows=WORKFLOWS, excluded_checks=DOCUMENTATION_CHECKS)
         master_failed = master_failures(api, root)
@@ -402,13 +428,11 @@ def evaluate(
                 raise
             problem = f"The previous release tag `v{version}` does not exist."
         else:
-            urgent = [subject(row) for row in in_release if URGENT.match(subject(row))]
+            urgent_headers = [line for row in in_release for line in urgent(row)]
             last_change = landed(in_release) or head_committed
             ahead = compare_commits(api, sha, "master")
             unreleased = [row for row in ahead if releasable(row)]
-            if unreleased:
-                # Any commit ahead may be the one that landed them, such as a merge commit.
-                newest_unreleased = max(committed(row) for row in ahead)
+            newest_unreleased = landed(ahead) if unreleased else None
     evidence = Evidence(
         problem,
         pr["draft"],
@@ -421,7 +445,7 @@ def evaluate(
         pending,
         awaiting_approval(runs),
         master_failed,
-        urgent,
+        urgent_headers,
         enabled,
     )
     return pr, comments, evidence

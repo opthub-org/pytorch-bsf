@@ -274,7 +274,10 @@ class CommitTests(unittest.TestCase):
             "docs: mention fix(deps): in prose",
             "fix(depsx): not a scope",
         ]
-        self.assertEqual([line for line in lines if release.URGENT.match(line)], lines[:6])
+        self.assertEqual([line for line in lines if release.urgent(commit_row(line))], lines[:6])
+        # A merge commit's body carries the PR title, which release-please reads too.
+        merged = commit_row("Merge pull request #9 from a/b\n\nfix(deps): bump x (#9)\n  fix(deps): indented")
+        self.assertEqual(release.urgent(merged), ["fix(deps): bump x (#9)"])
 
     def test_releasable_commits_match_the_release_please_engine(self):
         # test.cjs runs the engine on the same cases, so the two cannot drift apart.
@@ -484,6 +487,32 @@ class ReconcileTests(unittest.TestCase):
         self.api.write.reset_mock()
         self.assertEqual(self.run_once(), [])
         self.assertEqual(len(self.writes("pulls/563/merge")), 1)
+
+    def test_a_merge_commit_that_brings_in_nothing_releasable_does_not_hold_the_release(self):
+        self.master_ahead = {
+            "total_commits": 2,
+            "commits": [
+                commit_row("ci: tweak", "2026-11-06T11:00:00Z"),
+                commit_row("Merge pull request #9 from a/b\n\nci: tweak", "2026-11-06T11:50:00Z", parents=2),
+            ],
+        }
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(len(self.writes("pulls/563/merge")), 1)
+
+    def test_later_commits_that_release_nothing_do_not_postpone_the_stop(self):
+        # A broken release-pr job must still be reported while build(deps) and ci commits keep landing.
+        self.master_ahead = {
+            "total_commits": 3,
+            "commits": [
+                commit_row("fix(deps): bump y (#6)", "2026-11-06T09:00:00Z"),
+                commit_row("build(deps): bump actions/cache (#7)", "2026-11-06T10:30:00Z"),
+                commit_row("ci: tweak (#8)", "2026-11-06T11:50:00Z"),
+            ],
+        }
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(self.writes("pulls/563/merge"), [])
+        self.assertIn("Not merging this head.", self.status())
+        self.assertIn("`fix(deps): bump y (#6)`", self.status())
 
     def test_a_merge_commit_dates_the_old_branch_commits_it_brings_in(self):
         old_branch_commit = commit_row("docs(x): written on a branch days ago", "2026-11-01T00:00:00Z")
@@ -866,7 +895,9 @@ class ConfigurationTests(unittest.TestCase):
         self.assertEqual(prefixes, {"pip": "fix", "docker": "fix", "pre-commit": "build", "github-actions": "build"})
         for ecosystem, prefix in prefixes.items():
             with self.subTest(ecosystem=ecosystem):
-                self.assertEqual(bool(release.URGENT.match(f"{prefix}(deps): bump x")), prefix == "fix")
+                row = commit_row(f"{prefix}(deps): bump x")
+                self.assertEqual(bool(release.urgent(row)), prefix == "fix")
+                self.assertEqual(release.releasable(row), prefix == "fix")
 
     def test_repair_automation_cannot_edit_the_release_controller(self):
         for path in ("tools/release_merge.py", "tests/tools/release_merge.py"):

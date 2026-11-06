@@ -92,6 +92,62 @@
     {
       "message": "Improve CLI help text",
       "version": null
+    },
+    {
+      "message": "Merge pull request #9 from a/b\n\nfix: in the PR title",
+      "version": "0.24.1"
+    },
+    {
+      "message": "Improve docs\n\nfix: in the body",
+      "version": "0.24.1"
+    },
+    {
+      "message": "ci: x (#5)\n\nSome prose.\nfix: after prose",
+      "version": "0.24.1"
+    },
+    {
+      "message": "Update README (#10)\n\nfix(deps): bump x",
+      "version": "0.24.1"
+    },
+    {
+      "message": "chore: x\n\nfeat!: breaking in the body",
+      "version": "0.25.0"
+    },
+    {
+      "message": "chore: x\n\nFix: capital in the body",
+      "version": "0.24.1"
+    },
+    {
+      "message": "my-type!: hyphenated breaking type",
+      "version": "0.25.0"
+    },
+    {
+      "message": " fix: leading space",
+      "version": "0.24.1"
+    },
+    {
+      "message": "chore: x\n\nBREAKING CHANGE #1",
+      "version": "0.25.0"
+    },
+    {
+      "message": "ci: tweak\n\n* fix: in a bullet",
+      "version": null
+    },
+    {
+      "message": "ci: tweak\n\n  fix: indented",
+      "version": null
+    },
+    {
+      "message": "ci: tweak\n\nNote: fix: after prose on the line",
+      "version": null
+    },
+    {
+      "message": "Merge pull request #9 from a/b\n\nci!: breaking type outside the list in the body",
+      "version": null
+    },
+    {
+      "message": "fix(): empty scope",
+      "version": null
     }
   ]
 }
