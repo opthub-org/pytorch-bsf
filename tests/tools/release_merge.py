@@ -1,5 +1,6 @@
 """Offline regressions for the release PR merge controller."""
 
+import contextlib
 import datetime as dt
 import json
 import os
@@ -79,8 +80,12 @@ def release_files():
     ]
 
 
-def subjects(*lines):
-    return {"total_commits": len(lines), "commits": [{"commit": {"message": line + "\n\nbody"}} for line in lines]}
+def commit_row(message, date="2026-11-06T11:00:00Z"):
+    return {"commit": {"message": message, "committer": {"date": date}}}
+
+
+def subjects(*lines, date="2026-11-06T11:00:00Z"):
+    return {"total_commits": len(lines), "commits": [commit_row(line + "\n\nbody", date) for line in lines]}
 
 
 def evidence(**overrides):
@@ -88,6 +93,9 @@ def evidence(**overrides):
         "problem": None,
         "draft": False,
         "head_committed": NOW - dt.timedelta(hours=1),
+        "last_change": NOW - dt.timedelta(hours=1),
+        "unreleased": [],
+        "unreleased_since": None,
         "merge_state": "clean",
         "failed": [],
         "pending": [],
@@ -113,8 +121,22 @@ class DecisionTests(unittest.TestCase):
         waiting = decide()
         self.assertEqual(waiting.action, "wait")
         self.assertIn(merge.format_minute(NOW - dt.timedelta(hours=1) + release.QUIET), waiting.mergeable_when)
-        self.assertEqual(decide(head_committed=NOW - release.QUIET).action, "merge")
-        self.assertEqual(decide(head_committed=NOW - release.QUIET + dt.timedelta(seconds=1)).action, "wait")
+        self.assertEqual(decide(last_change=NOW - release.QUIET).action, "merge")
+        self.assertEqual(decide(last_change=NOW - release.QUIET + dt.timedelta(seconds=1)).action, "wait")
+        # release-please rewrites the head daily for the date in the changelog; that does not restart the day.
+        self.assertEqual(decide(last_change=NOW - release.QUIET, head_committed=NOW).action, "merge")
+
+    def test_releasable_commits_missing_from_the_head_wait_and_then_stop(self):
+        since = NOW - dt.timedelta(minutes=10)
+        waiting = decide(urgent=["fix(deps): x"], unreleased=["fix(deps): y (#9)"], unreleased_since=since)
+        self.assertEqual(waiting.action, "wait")
+        self.assertIn("`fix(deps): y (#9)`", waiting.reason)
+        self.assertIn(merge.format_minute(since + merge.CI_GRACE), waiting.mergeable_when)
+        deadline = since + merge.CI_GRACE
+        self.assertEqual(decide(now=deadline, unreleased=["feat: z"], unreleased_since=since).action, "wait")
+        late = decide(now=deadline + dt.timedelta(seconds=1), unreleased=["feat: z"], unreleased_since=since)
+        self.assertEqual(late.action, "stop")
+        self.assertIn("release-pr", late.mergeable_when)
 
     def test_stops_and_holds_come_before_any_merge(self):
         cases: dict[str, list[dict[str, object]]] = {
@@ -239,9 +261,8 @@ class ProblemTests(unittest.TestCase):
         self.assertEqual(release.previous_version(release_files()), "0.24.0")
 
 
-class UrgencyTests(unittest.TestCase):
+class CommitTests(unittest.TestCase):
     def test_only_dependency_and_security_fixes_are_urgent(self):
-        api = Mock()
         lines = [
             "fix(deps): bump x from 1 to 2 (#1)",
             "fix(deps)!: require Python 3.11",
@@ -253,16 +274,43 @@ class UrgencyTests(unittest.TestCase):
             "docs: mention fix(deps): in prose",
             "fix(depsx): not a scope",
         ]
-        api.get.return_value = subjects(*lines)
-        self.assertEqual(release.urgent_subjects(api, "0.24.0", SHA), lines[:5])
-        api.get.assert_called_once_with(COMPARE)
+        self.assertEqual([line for line in lines if release.URGENT.match(line)], lines[:5])
 
-    def test_every_page_of_a_long_release_is_read(self):
+    def test_releasable_commits_are_the_types_release_please_releases_and_breaking_changes(self):
+        for message in (
+            "feat: x",
+            "fix(deps): bump y",
+            "perf: faster",
+            "revert: undo",
+            "deps: bump z",
+            "docs(api): explain",
+            "ci!: drop Python 3.10",
+            "chore(build)!: rename",
+            "chore: tidy\n\nBREAKING CHANGE: drops x",
+            "refactor: y\n\nBREAKING-CHANGE: drops y",
+        ):
+            with self.subTest(message=message):
+                self.assertTrue(release.releasable(commit_row(message)))
+        for message in (
+            "build(deps): bump actions/cache",
+            "ci: x",
+            "chore(master): release 0.25.0",
+            "test: y",
+            "refactor: z\n\nmentions BREAKING CHANGE: in prose",
+            "Feature: not conventional",
+        ):
+            with self.subTest(message=message):
+                self.assertFalse(release.releasable(commit_row(message)))
+
+    def test_every_page_of_a_long_comparison_is_read(self):
         api = Mock()
         first = {"total_commits": 101, "commits": subjects(*["fix: x"] * 100)["commits"]}
         second = {"total_commits": 101, "commits": subjects("fix(deps): late")["commits"]}
         api.get.side_effect = [first, second]
-        self.assertEqual(release.urgent_subjects(api, "0.24.0", SHA), ["fix(deps): late"])
+        rows = release.compare_commits(api, "v0.24.0", SHA)
+        self.assertEqual([release.subject(row) for row in rows][-2:], ["fix: x", "fix(deps): late"])
+        self.assertEqual(len(rows), 101)
+        self.assertEqual(api.get.call_args_list[0].args[0], COMPARE)
         self.assertEqual(api.get.call_args_list[1].args[0], f"compare/v0.24.0...{SHA}?per_page=100&page=2")
 
     def test_an_empty_page_ends_the_listing(self):
@@ -271,7 +319,7 @@ class UrgencyTests(unittest.TestCase):
             {"total_commits": 5, "commits": subjects("fix: x")["commits"]},
             {"total_commits": 5, "commits": []},
         ]
-        self.assertEqual(release.urgent_subjects(api, "0.24.0", SHA), [])
+        self.assertEqual(len(release.compare_commits(api, "v0.24.0", SHA)), 1)
         self.assertEqual(api.get.call_count, 2)
 
 
@@ -291,6 +339,8 @@ class ReconcileTests(unittest.TestCase):
             f"actions/runs?head_sha={MASTER}": self.master_runs,
         }
         self.compare = subjects("feat: x", "fix(deps): bump y (#2)")
+        # Commits on master that the release head lacks.
+        self.master_ahead = subjects()
         self.api.pages.side_effect = lambda path, key=None: self.pages.get(path, [])
         self.api.get.side_effect = self.get
         self.api.write.side_effect = lambda path, data, method="POST": {"merged": True} if path.endswith("/merge") else {}
@@ -319,6 +369,8 @@ class ReconcileTests(unittest.TestCase):
             return {"sha": MASTER}
         if path == f"commits/{MASTER}/pulls":
             return self.master_pulls
+        if path.startswith(f"compare/{SHA}...master?"):
+            return self.master_ahead
         if path.startswith("compare/"):
             return self.compare
         return self.pr
@@ -412,8 +464,7 @@ class ReconcileTests(unittest.TestCase):
             if row["filename"] != "CHANGELOG.md":
                 row["patch"] = row["patch"].replace("0.25.0", "1.0.0")
         self.pages["pulls/563/files"] = files
-        self.compare = subjects("feat!: replace the API")
-        self.pages["pulls/563/commits"] = [release_commit(date="2026-11-05T12:00:00Z")]
+        self.compare = subjects("feat!: replace the API", date="2026-11-05T12:00:00Z")
         self.assertEqual(self.run_once(), [])
         self.assertEqual(len(self.writes("pulls/563/merge")), 1)
 
@@ -421,11 +472,34 @@ class ReconcileTests(unittest.TestCase):
         self.compare = subjects("feat: x", "build(deps): bump actions/cache (#3)")
         self.assertEqual(self.run_once(), [])
         self.assertEqual(self.writes("pulls/563/merge"), [])
-        self.assertIn("No update until 2026-11-07 11:00 UTC", self.status())
-        self.pages["pulls/563/commits"] = [release_commit(date="2026-11-05T12:00:00Z")]
+        self.assertIn("No new releasable commit until 2026-11-07 11:00 UTC", self.status())
+        # The head is new, because release-please rewrote it for today's date, but the release has not changed.
+        self.compare = {
+            "total_commits": 3,
+            "commits": [
+                commit_row("feat: x", "2026-11-05T11:59:00Z"),
+                commit_row("build(deps): bump actions/cache (#3)", "2026-11-06T10:00:00Z"),
+                commit_row("chore(master): release 0.25.0", "2026-11-06T11:00:00Z"),
+            ],
+        }
         self.api.write.reset_mock()
         self.assertEqual(self.run_once(), [])
         self.assertEqual(len(self.writes("pulls/563/merge")), 1)
+
+    def test_a_head_behind_releasable_commits_on_master_waits_but_other_commits_do_not_hold_it(self):
+        self.master_ahead = subjects("ci: tweak (#7)", "fix(deps): bump z (#8)", date="2026-11-06T11:50:00Z")
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(self.writes("pulls/563/merge"), [])
+        self.assertIn("Waiting for release-please.", self.status())
+        self.assertIn("`fix(deps): bump z (#8)`", self.status())
+        self.assertNotIn("ci: tweak", self.status())
+        self.assertIn("2026-11-06 13:50 UTC", self.status())
+        self.master_ahead = subjects("ci: tweak (#7)", "build(deps): bump x (#9)")
+        self.api.write.reset_mock()
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(len(self.writes("pulls/563/merge")), 1)
+        reads = [call.args[0] for call in self.api.get.call_args_list]
+        self.assertIn(f"compare/{SHA}...master?per_page=100&page=1", reads)
 
     def test_ci_waiting_for_approval_stops_at_once_and_starts_nothing(self):
         # Runs started by release-please's GITHUB_TOKEN pushes wait for approval and never count as required checks.
@@ -466,8 +540,7 @@ class ReconcileTests(unittest.TestCase):
         self.assertIn("Checks failed on the head of `master`: `build (3.13)`.", self.status())
         self.assertEqual([call.args[1] for call in self.ci_state.call_args_list if call.args[1] != SHA], [MASTER])
         master_read = next(call for call in self.ci_state.call_args_list if call.args[1] == MASTER)
-        self.assertEqual(master_read.kwargs["workflows"], release.WORKFLOWS)
-        self.assertEqual(master_read.kwargs["excluded_checks"], release.MASTER_EXCLUDED_CHECKS)
+        self.assertEqual(master_read.kwargs, {"workflows": release.WORKFLOWS})
 
     def test_checks_on_master_that_say_nothing_about_the_code_do_not_stop_a_release(self):
         # GitHub's Dependabot update jobs, the publisher and codecov/patch also report on master's head.
@@ -651,17 +724,19 @@ class ReconcileTests(unittest.TestCase):
 
 
 class MainTests(unittest.TestCase):
-    def run_main(self, variable, errors, app_bot=APP_BOT):
+    def run_main(self, variable, errors, app_bot=APP_BOT, reconcile=None):
         environment = {
             "GITHUB_REPOSITORY": REPO,
             "GH_TOKEN": "x",
             "RELEASE_MERGE_ENABLED": variable,
             "RELEASE_PLEASE_BOT": app_bot,
         }
+        # A caller that patched reconcile itself keeps its mock, to inspect it after main() exits with an error.
+        patched = contextlib.nullcontext(reconcile) if reconcile else patch.object(release, "reconcile", return_value=errors)
         with (
             patch.dict(os.environ, environment),
             patch("sys.argv", ["release_merge", "--root", "/fixture"]),
-            patch.object(release, "reconcile", return_value=errors) as reconcile,
+            patched as reconcile,
         ):
             release.main()
         return reconcile
@@ -681,8 +756,12 @@ class MainTests(unittest.TestCase):
 
     def test_an_invalid_app_bot_variable_fails_the_job_after_reconciling(self):
         for value in ("pytorch-bsf-release", "my app[bot]"):
-            with self.subTest(value=value), self.assertRaisesRegex(SystemExit, "`RELEASE_PLEASE_BOT` must name"):
-                self.run_main("", [], app_bot=value)
+            with self.subTest(value=value), patch.object(release, "reconcile", return_value=["PR #1: x"]) as reconcile:
+                with self.assertRaisesRegex(SystemExit, r"PR #1: x\nThe variable `RELEASE_PLEASE_BOT` must name"):
+                    self.run_main("", ["PR #1: x"], app_bot=value, reconcile=reconcile)
+                # The PRs GITHUB_TOKEN wrote are still reconciled, with the accounts the variable does not change.
+                reconcile.assert_called_once()
+                self.assertEqual(reconcile.call_args.args[4], frozenset({security.BOT}))
         for value in ("", "  ", f" {APP_BOT} "):
             with self.subTest(value=value):
                 reconcile = self.run_main("", [], app_bot=value)
@@ -691,10 +770,15 @@ class MainTests(unittest.TestCase):
 
 class AuthorTests(unittest.TestCase):
     def test_only_a_well_formed_app_bot_is_trusted(self):
-        self.assertEqual(release.release_authors(f" {APP_BOT} "), AUTHORS)
-        for value in (None, "", "maintainer", "[bot]", "evil[bot] x", "a/b[bot]"):
+        self.assertEqual(release.release_authors(f" {APP_BOT} "), (AUTHORS, None))
+        for value in (None, "", "  "):
             with self.subTest(value=value):
-                self.assertEqual(release.release_authors(value), frozenset({security.BOT}))
+                self.assertEqual(release.release_authors(value), (frozenset({security.BOT}), None))
+        for value in ("maintainer", "[bot]", "evil[bot] x", "a/b[bot]"):
+            with self.subTest(value=value):
+                authors, error = release.release_authors(value)
+                self.assertEqual(authors, frozenset({security.BOT}))
+                self.assertIn("`RELEASE_PLEASE_BOT` must name", str(error))
 
 
 class ConfigurationTests(unittest.TestCase):

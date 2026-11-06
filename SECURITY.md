@@ -303,9 +303,15 @@ The release PR merges once the checks of its exact head succeed and:
 - the release contains a commit whose subject starts with `fix` or `feat` and the scope
   `deps`, `deps-dev` (which Dependabot writes for what it considers development
   dependencies) or `security`, with or without `!`; such a release merges at once; or
-- the head has gone a day without a new commit. release-please adds a commit whenever
-  `master` gets a releasable change, so this gathers a series of changes into one
-  release.
+- a day has passed since the newest releasable commit in the release, which gathers a
+  series of changes into one release. The head's own time does not count, because
+  release-please rewrites the head each day for the date in the changelog.
+
+A commit is releasable when release-please releases its type (`feat`, `fix`, `perf`,
+`revert`, `deps` or `docs`) or it is a breaking change (`!` or a `BREAKING CHANGE:`
+footer). When `master` has releasable commits that the head lacks, the controller waits
+for release-please to add them, because a merge would ship them without a changelog
+entry, and release-please lists only commits after the release.
 
 The controller merges only release-please's own PR for `master`: opened by
 `github-actions[bot]` or the release App's bot from
@@ -323,7 +329,7 @@ workflow on `master`, which creates the tag and the GitHub release and publishes
 and GHCR, and then the CI workflows. If starting them fails, a later run starts the
 missing ones.
 
-The release controller runs when Release finishes on `master`, when a CI workflow starts
+The release controller runs when Release starts or finishes on `master`, when a CI workflow starts
 or finishes on the release branch, and on the same schedule as the Dependabot
 controller, and it waits for `codecov/patch` in the same way. The PR keeps one status
 comment with the decision, the reason and what would make it mergeable. The controller
@@ -337,6 +343,8 @@ stops the merge, and mentions the maintainer once for each stopped head, on:
   and those were tested only in their own PRs. Only the CI workflows and their expected
   checks count, not the documentation checks, `codecov/patch` or other checks on that
   commit, such as GitHub's own Dependabot update jobs;
+- releasable commits on `master` that the head still lacks two hours after the newest
+  of them, for example because the `release-pr` job failed;
 - checks still unfinished two hours after the head's commit;
 - a merge state other than mergeable two hours after the head's commit, or seven days
   while GitHub has not computed it. A conflict usually clears when release-please

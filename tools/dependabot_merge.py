@@ -647,13 +647,20 @@ def escalate(api: security.GitHub, pr: Json, comments: list[Json], now: dt.datet
         api.write(f"issues/{number}/comments", {"body": body})
 
 
+def refusal_action(error: security.GitHubError, head_committed: dt.datetime, now: dt.datetime) -> Literal["wait", "stop"]:
+    """Retry a transient merge refusal within the decision window and stop on any other; re-raise other errors."""
+    if error.code not in MERGE_REFUSALS | MERGE_RETRIES:
+        raise error
+    return "wait" if error.code in MERGE_RETRIES and now <= head_committed + DECISION_WINDOW else "stop"
+
+
 def merge(api: security.GitHub, pr: Json, decision: Decision, head_committed: dt.datetime, now: dt.datetime) -> Decision:
     """Merge exactly the evaluated head, and turn a refusal into a triage decision."""
     deadline = _decision_deadline(parse_time(pr["created_at"]))
     try:
         result = api.write(f"pulls/{pr['number']}/merge", {"sha": pr["head"]["sha"], "merge_method": "squash"}, "PUT")
     except security.GitHubError as error:
-        if error.code in MERGE_RETRIES and now <= head_committed + DECISION_WINDOW:
+        if refusal_action(error, head_committed, now) == "wait":
             return Decision(
                 "wait",
                 decision.review,
@@ -662,8 +669,6 @@ def merge(api: security.GitHub, pr: Json, decision: Decision, head_committed: dt
                 "No action is needed.",
                 deadline,
             )
-        if error.code not in MERGE_REFUSALS | MERGE_RETRIES:
-            raise
         reason = f"GitHub refused the merge with HTTP status {error.code}."
         remedy = (
             "Comment `@dependabot rebase`, or merge it by hand."
@@ -770,6 +775,7 @@ def only_codecov_unfinished(failed: list[str], pending: list[str]) -> bool:
 class CheckEvidence(Protocol):
     """Either controller's evidence: a dataclass with the head's check results and merge state."""
 
+    # Lets dataclasses.replace accept an EvidenceT, as typeshed's DataclassInstance does.
     __dataclass_fields__: ClassVar[dict[str, Any]]
 
     @property
@@ -780,10 +786,15 @@ class CheckEvidence(Protocol):
     def merge_state(self) -> str | None: ...
 
 
+class HasAction(Protocol):
+    @property
+    def action(self) -> str: ...
+
+
 EvidenceT = TypeVar("EvidenceT", bound=CheckEvidence)
 
 
-def codecov_alone_stops(evidence: EvidenceT, now: dt.datetime, decide: Callable[[EvidenceT, dt.datetime], Any]) -> bool:
+def codecov_alone_stops(evidence: EvidenceT, now: dt.datetime, decide: Callable[[EvidenceT, dt.datetime], HasAction]) -> bool:
     """Return whether `decide` would merge the PR once codecov/patch succeeds.
 
     GitHub reports the merge state as `unstable` until then. `evidence` is either controller's dataclass.
@@ -791,7 +802,7 @@ def codecov_alone_stops(evidence: EvidenceT, now: dt.datetime, decide: Callable[
     if not only_codecov_unfinished(evidence.failed, evidence.pending):
         return False
     settled = "clean" if evidence.merge_state == "unstable" else evidence.merge_state
-    return bool(decide(replace(evidence, pending=[], merge_state=settled), now).action == "merge")
+    return decide(replace(evidence, pending=[], merge_state=settled), now).action == "merge"
 
 
 def wait_for_codecov(

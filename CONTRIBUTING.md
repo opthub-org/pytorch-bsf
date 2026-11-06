@@ -539,11 +539,13 @@ This project follows the [Conventional Commits](https://www.conventionalcommits.
 | `refactor` | Code change that is neither a fix nor a feature | None |
 | `test` | Add or update tests | None |
 | `chore` | Changes to the build process or auxiliary tools | None |
+| `build` | Changes to the build system or dependencies that are not distributed | None |
 | `ci` | Changes to CI configuration | None |
 | `deps` | Add or update dependencies | Patch version bump |
 | `perf` | Performance improvement | Patch version bump |
+| `revert` | Revert an earlier commit | Patch version bump |
 
-release-please releases `feat`, `fix`, `deps`, `docs`, `perf` and `revert` commits, and the release PR then merges automatically: at once for a `fix` or `feat` commit scoped `deps`, `deps-dev` or `security`, otherwise after a day without a new releasable commit; see [Release automation](SECURITY.md#release-automation). So a dependency change that affects what is distributed, or a security remediation, uses `fix(deps)` or `fix(security)`. A change that needs no release uses one of the other types, such as `build(deps)` for a dependency that is not distributed.
+release-please releases `feat`, `fix`, `deps`, `docs`, `perf` and `revert` commits, and the release PR then merges automatically: at once for a `fix` or `feat` commit scoped `deps`, `deps-dev` or `security`, otherwise a day after the newest releasable commit in the release; see [Release automation](SECURITY.md#release-automation). So a dependency change that affects what is distributed, or a security remediation, uses `fix(deps)` or `fix(security)`. A change that needs no release uses one of the other types, such as `build(deps)` for a dependency that is not distributed.
 
 ### Breaking changes
 
@@ -946,11 +948,11 @@ in step 2 if it does not respond.
 The publisher compares a tag's producer YAML with the template when the build
 completes, and a tag's YAML never changes. A tag whose pin differs from the
 template at that moment can therefore never publish. Before merging the Template
-PR, confirm that no tag build is in progress, and mark the open Release Please PR
-as a draft or set `RELEASE_MERGE_ENABLED` to `false`, because release PRs merge
-automatically and merging one creates such a tag (see
-[Release automation](SECURITY.md#release-automation)). Once the Template PR has
-landed, do not tag a commit that predates the Workflow PR. Undo the draft or the
+PR, confirm that no tag build is in progress, and set `RELEASE_MERGE_ENABLED` to
+`false`, because release PRs merge automatically and merging one creates such a tag
+(see [Release automation](SECURITY.md#release-automation)). Marking an open Release
+Please PR as a draft is not enough, because a merged fix can open a new one. Once the
+Template PR has landed, do not tag a commit that predates the Workflow PR. Unset the
 variable once the Workflow PR has landed.
 
 Neither Dependabot nor the security remediation automation can edit the template,

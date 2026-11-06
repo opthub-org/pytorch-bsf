@@ -46,6 +46,9 @@ QUIET = dt.timedelta(days=1)
 # A commit subject that makes the release urgent: a dependency update or fix, or a security remediation. Dependabot
 # writes `deps-dev` for dependencies it considers development ones.
 URGENT = re.compile(r"(?:fix|feat)\((?:deps|deps-dev|security)\)!?:")
+# A commit that release-please releases: a type it shows in the changelog (its python strategy), or a breaking change.
+RELEASABLE = re.compile(r"(?:(?:feat|fix|perf|revert|deps|docs)(?:\([^)]*\))?!?|\w+(?:\([^)]*\))?!):")
+BREAKING = re.compile(r"^BREAKING[ -]CHANGE:", re.MULTILINE)
 STATUS_MARKER = "<!-- release-merge:v1 -->"
 STOP_MARKER = "<!-- release-merge-stop:v1"
 # The GitHub App that opens and updates the release PR, named by the repository variable RELEASE_PLEASE_BOT.
@@ -61,6 +64,12 @@ class Evidence:
     problem: str | None
     draft: bool
     head_committed: dt.datetime
+    # The newest releasable commit in the release. release-please rewrites the head daily for the date in the
+    # changelog, so the head's own time does not show whether the release is still changing.
+    last_change: dt.datetime
+    # Releasable commits on `master` that the head lacks, and when the newest of them was committed.
+    unreleased: list[str]
+    unreleased_since: dt.datetime | None
     merge_state: str | None
     failed: list[str]
     pending: list[str]
@@ -79,19 +88,25 @@ class Decision:
     mergeable_when: str
 
 
-def release_authors(app_bot: str | None) -> frozenset[str]:
-    """Return the accounts release-please writes as: GITHUB_TOKEN's bot, and the release App's bot if it is valid."""
+def release_authors(app_bot: str | None) -> tuple[frozenset[str], str | None]:
+    """Return the accounts release-please writes as, and an error if the App's bot variable is set but invalid.
+
+    The accounts are GITHUB_TOKEN's bot, and the release App's bot when the variable names one.
+    """
     bot = (app_bot or "").strip()
-    return frozenset({security.BOT, bot}) if APP_BOT.fullmatch(bot) else frozenset({security.BOT})
+    if APP_BOT.fullmatch(bot):
+        return frozenset({security.BOT, bot}), None
+    error = f"The variable `{APP_BOT_VARIABLE}` must name the release App's bot, like `<app-slug>[bot]`." if bot else None
+    return frozenset({security.BOT}), error
 
 
-def _unknown_bot(login: str | None, authors: frozenset[str]) -> str | None:
-    """Name the variable when a bot outside `authors` wrote the PR, which is likely the release App left unconfigured."""
+def _with_bot_hint(reason: str, login: str | None, authors: frozenset[str]) -> str:
+    """Name the variable when a bot outside `authors` wrote it, which is likely the release App left unconfigured."""
     if login is None or login in authors or not login.endswith("[bot]"):
-        return None
+        return reason
     return (
-        f"`{login}` is not an accepted release author. If it is the release App's bot, set the repository variable "
-        f"`{APP_BOT_VARIABLE}` to it ({APP_SETUP})."
+        f"{reason} `{login}` is not an accepted release author. If it is the release App's bot, set the repository "
+        f"variable `{APP_BOT_VARIABLE}` to it ({APP_SETUP})."
     )
 
 
@@ -105,8 +120,7 @@ def release_problem(pr: Json, commits: list[Json], files: list[Json], repo: str,
         or pr["base"]["ref"] != "master"
     ):
         reason = "This is not release-please's release PR for `master`."
-        unknown = _unknown_bot(author, authors) if pr["head"]["ref"] == RELEASE_BRANCH else None
-        return f"{reason} {unknown}" if unknown else reason
+        return _with_bot_hint(reason, author, authors) if pr["head"]["ref"] == RELEASE_BRANCH else reason
     if RELEASE_TITLE.fullmatch(pr["title"]) is None:
         return "The title is not a release-please release title."
     if RELEASE_LABEL not in {label["name"] for label in pr.get("labels", [])}:
@@ -124,8 +138,7 @@ def _commit_problem(commits: list[Json], authors: frozenset[str]) -> str | None:
         signers = {merge.COMMITTER} if author == security.BOT else {merge.COMMITTER, author}
         if author not in authors or committer not in signers or row["commit"]["verification"]["verified"] is not True:
             reason = f"Commit `{row['sha'][: merge.SHORT_SHA_CHARS]}` was not written and signed through release-please."
-            unknown = _unknown_bot(author, authors)
-            return f"{reason} {unknown}" if unknown else reason
+            return _with_bot_hint(reason, author, authors)
     return None
 
 
@@ -153,18 +166,30 @@ def previous_version(files: list[Json]) -> str | None:
     return None
 
 
-def urgent_subjects(api: security.GitHub, version: str, sha: str) -> list[str]:
-    """Return the subjects of the urgent commits between the previous release tag and the head."""
-    subjects: list[str] = []
+def compare_commits(api: security.GitHub, base: str, head: str) -> list[Json]:
+    """Return every commit reachable from `head` but not from `base`."""
+    commits: list[Json] = []
     total, page = None, 1
-    while total is None or len(subjects) < total:
-        comparison = api.get(f"compare/v{version}...{sha}?per_page=100&page={page}")
+    while total is None or len(commits) < total:
+        comparison = api.get(f"compare/{base}...{head}?per_page=100&page={page}")
         rows = comparison["commits"]
         if not rows:
             break
-        subjects.extend(row["commit"]["message"].split("\n", 1)[0] for row in rows)
+        commits.extend(rows)
         total, page = comparison["total_commits"], page + 1
-    return [subject for subject in subjects if URGENT.match(subject)]
+    return commits
+
+
+def subject(row: Json) -> str:
+    return str(row["commit"]["message"]).split("\n", 1)[0]
+
+
+def releasable(row: Json) -> bool:
+    return RELEASABLE.match(subject(row)) is not None or BREAKING.search(row["commit"]["message"]) is not None
+
+
+def committed(row: Json) -> dt.datetime:
+    return merge.parse_time(row["commit"]["committer"]["date"])
 
 
 def decide(evidence: Evidence, now: dt.datetime) -> Decision:
@@ -201,6 +226,25 @@ def decide(evidence: Evidence, now: dt.datetime) -> Decision:
 
 
 def _waiting(evidence: Evidence, now: dt.datetime) -> Decision | None:
+    if evidence.unreleased and evidence.unreleased_since is not None:
+        # The merge would ship these commits outside the release, and release-please lists only later commits.
+        update_deadline = evidence.unreleased_since + merge.CI_GRACE
+        reason = (
+            f"`master` has releasable commits that this PR does not include yet: {merge.format_names(evidence.unreleased)}."
+        )
+        if now > update_deadline:
+            return Decision(
+                "stop",
+                "Not merging this head.",
+                reason,
+                "Check the `release-pr` job of the Release workflow and re-run it, or merge the PR by hand.",
+            )
+        return Decision(
+            "wait",
+            "Waiting for release-please.",
+            reason,
+            f"release-pr updates the PR by {merge.format_minute(update_deadline)}.",
+        )
     ci_deadline = evidence.head_committed + merge.CI_GRACE
     if evidence.pending:
         if now > ci_deadline:
@@ -247,19 +291,19 @@ def _merging(evidence: Evidence, now: dt.datetime) -> Decision:
             f"The release contains a dependency or security fix: {merge.format_names(evidence.urgent)}.",
             "Already mergeable.",
         )
-    quiet_until = evidence.head_committed + QUIET
+    quiet_until = evidence.last_change + QUIET
     if now >= quiet_until:
         return Decision(
             "merge",
             "Merging now.",
-            f"The PR has had no update for {merge.format_hours(QUIET)} hours.",
+            f"The release has had no new releasable commit for {merge.format_hours(QUIET)} hours.",
             "Already mergeable.",
         )
     return Decision(
         "wait",
         "Waiting for more changes.",
-        "A release waits until its PR has had no update for a day, unless it contains a dependency or security fix.",
-        f"No update until {merge.format_minute(quiet_until)}.",
+        "A release waits a day after its newest releasable commit, unless it contains a dependency or security fix.",
+        f"No new releasable commit until {merge.format_minute(quiet_until)}.",
     )
 
 
@@ -290,9 +334,8 @@ def master_failures(api: security.GitHub, root: Path) -> list[str]:
 
     Other checks also land on that commit, such as GitHub's own Dependabot update jobs, and they do not count.
     """
-    failed = security.ci_state(
-        api, api.get("commits/master")["sha"], root, workflows=WORKFLOWS, excluded_checks=MASTER_EXCLUDED_CHECKS
-    )[0]
+    failed = security.ci_state(api, api.get("commits/master")["sha"], root, workflows=WORKFLOWS)[0]
+    # ci_state reports every failed check on the commit, whatever is expected, so the filter has to be here.
     counted = (security.expected_checks(root) - MASTER_EXCLUDED_CHECKS) | set(WORKFLOWS)
     return [name for name in failed if name in counted]
 
@@ -318,7 +361,9 @@ def evaluate(
     sha = pr["head"]["sha"]
     head = [row for row in commits if row["sha"] == sha]
     problem = release_problem(pr, commits, files, api.repo, authors) or (None if head else "The head commit is not listed.")
-    committed = merge.parse_time(head[0]["commit"]["committer"]["date"]) if head else merge.parse_time(pr["created_at"])
+    head_committed = committed(head[0]) if head else merge.parse_time(pr["created_at"])
+    last_change = head_committed
+    unreleased: list[Json] = []
     failed: list[str] = []
     pending: list[str] = []
     master_failed: list[str] = []
@@ -330,15 +375,22 @@ def evaluate(
         version = previous_version(files)
         assert version is not None  # release_problem rejects a PR without it.
         try:
-            urgent = urgent_subjects(api, version, sha)
+            in_release = compare_commits(api, f"v{version}", sha)
         except security.GitHubError as error:
             if error.code != 404:
                 raise
             problem = f"The previous release tag `v{version}` does not exist."
+        else:
+            urgent = [subject(row) for row in in_release if URGENT.match(subject(row))]
+            last_change = max((committed(row) for row in in_release if releasable(row)), default=head_committed)
+            unreleased = [row for row in compare_commits(api, sha, "master") if releasable(row)]
     evidence = Evidence(
         problem,
         pr["draft"],
-        committed,
+        head_committed,
+        last_change,
+        [subject(row) for row in unreleased],
+        max((committed(row) for row in unreleased), default=None),
         pr.get("mergeable_state"),
         failed,
         pending,
@@ -379,7 +431,7 @@ def evaluate_after_codecov(
 
 
 def merge_release(
-    api: security.GitHub, pr: Json, comments: list[Json], decision: Decision, evidence: Evidence, now: dt.datetime
+    api: security.GitHub, pr: Json, comments: list[Json], decision: Decision, head_committed: dt.datetime, now: dt.datetime
 ) -> Decision:
     """Merge exactly the evaluated head and record it, or turn a refusal into a decision.
 
@@ -391,10 +443,8 @@ def merge_release(
     try:
         result = api.write(f"pulls/{number}/merge", data, "PUT")
     except security.GitHubError as error:
-        if error.code not in merge.MERGE_REFUSALS | merge.MERGE_RETRIES:
-            raise
         reason = f"GitHub refused the merge with HTTP status {error.code}."
-        if error.code in merge.MERGE_RETRIES and now <= evidence.head_committed + merge.DECISION_WINDOW:
+        if merge.refusal_action(error, head_committed, now) == "wait":
             return Decision("wait", "The next run tries again.", reason, "GitHub accepts the merge.")
         return Decision(
             "stop", "GitHub refused the merge of this head.", reason, "Check the token's permissions, or merge it by hand."
@@ -428,7 +478,7 @@ def reconcile(api: security.GitHub, root: Path, enabled: bool, now: dt.datetime,
             if pr.get("state", "open") != "open":
                 continue
             if decision.action == "merge":
-                decision = merge_release(api, pr, comments, decision, evidence, clock.now)
+                decision = merge_release(api, pr, comments, decision, evidence.head_committed, clock.now)
                 if decision.action == "merged":
                     # Set before starting, so that a failed dispatch does not make recovery start the release again.
                     merged = True
@@ -457,11 +507,11 @@ def main() -> None:
     parser.add_argument("--root", type=Path, default=Path.cwd())
     args = parser.parse_args()
     enabled = merge.merging_enabled(os.environ.get("RELEASE_MERGE_ENABLED"))
-    app_bot = os.environ.get(APP_BOT_VARIABLE, "")
-    authors = release_authors(app_bot)
+    authors, variable_error = release_authors(os.environ.get(APP_BOT_VARIABLE))
+    # Reconcile first: PRs that GITHUB_TOKEN wrote still merge while the variable is wrong.
     errors = reconcile(security.GitHub(), args.root, enabled, dt.datetime.now(dt.UTC), authors)
-    if app_bot.strip() and APP_BOT.fullmatch(app_bot.strip()) is None:
-        errors.append(f"The variable `{APP_BOT_VARIABLE}` must name the release App's bot, like `<app-slug>[bot]`.")
+    if variable_error:
+        errors.append(variable_error)
     if errors:
         raise SystemExit("\n".join(errors))
 
