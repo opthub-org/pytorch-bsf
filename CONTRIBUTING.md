@@ -1095,7 +1095,8 @@ pytorch-bsf/
 │   │   ├── sphinx-pages-publish.yml  # Trusted, serialized per-ref publication
 │   │   ├── sphinx-pages.yml          # Inert legacy identifier; keep manually disabled
 │   │   ├── codeql-analysis.yml       # Security scanning
-│   │   ├── security-policy.yml       # Security automation, Dependabot merge and release merge tests, zizmor, the GHPages producer check and the Betterleaks secret scan
+│   │   ├── security-policy.yml       # Security automation, Dependabot merge, release merge and action advisory tests, zizmor, the GHPages producer check and the Betterleaks secret scan
+│   │   ├── security-action-advisories.yml # Files an issue for each advisory on an action pinned in a workflow
 │   │   ├── dependabot-merge.yml      # Merges passing Dependabot PRs and the release PR, and writes their status comments
 │   │   └── python-package-conda.yml  # End-to-end tests in a Conda environment
 │   ├── ISSUE_TEMPLATE/

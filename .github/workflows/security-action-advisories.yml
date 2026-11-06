@@ -1,0 +1,44 @@
+name: Action advisories
+
+on:
+  schedule:
+    # GitHub delays and drops scheduled runs (SECURITY.md), so ask often; a run makes about 100 API requests.
+    - cron: '41 * * * *'
+  # Checks a changed pin, or a changed check, as soon as it reaches master.
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/**'
+      - 'tools/**'
+  workflow_dispatch:
+
+permissions: {}
+
+# Each run reads all pins and filed issues again, so keeping only the newest pending run loses nothing, and one run at a
+# time cannot file the same advisory twice.
+concurrency:
+  group: action-advisories
+  cancel-in-progress: false
+
+jobs:
+  action-advisories:
+    # The ref check keeps a dispatch from running another branch's code with the issue permission.
+    if: github.repository == 'opthub-org/pytorch-bsf' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    # Each request times out after a minute; a job that hangs fails instead of reading as no advisories.
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - name: Look up advisories for the action pins and file an issue for each new one
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -m tools.action_advisories
