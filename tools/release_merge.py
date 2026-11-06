@@ -77,7 +77,8 @@ class Evidence:
     last_change: dt.datetime
     # How the `release-pr` job ended on `master`'s head (see release_pr_state), or None when the PR's head already has
     # every commit of `master`. Only its success shows that release-please has seen every commit of `master`, so that
-    # the PR's head is not stale; the job's runs are serialized, so an older run cannot push after it.
+    # the PR's head is not stale; Release runs never overlap and start in push order, so an older run cannot push
+    # after it.
     release_pr_job: str | None
     # When `master`'s head landed, if the PR's head lacks commits of `master`.
     master_landed: dt.datetime | None
@@ -277,45 +278,45 @@ def decide(evidence: Evidence, now: dt.datetime) -> Decision:
             f"Checks failed on the head of `master`: {merge.format_names(evidence.master_failed)}.",
             "Fix `master`, or re-run its failed workflows if the failure was transient.",
         )
-    return _waiting(evidence, now) or _merging(evidence, now)
+    return _stale_head(evidence, now) or _waiting(evidence, now) or _merging(evidence, now)
+
+
+def _stale_head(evidence: Evidence, now: dt.datetime) -> Decision | None:
+    # A stale head would ship `master`'s newer commits outside the release, and release-please lists only later
+    # commits in the next one. Its own run decides what the release holds, so no commit is parsed here.
+    if evidence.release_pr_job in {None, "success"}:
+        return None
+    job_text = f"The `{RELEASE_PR_JOB}` job of the Release workflow"
+    may_lack_commits = "so this PR may lack commits of `master`."
+    rerun = "Re-run the Release workflow on `master`, or merge the PR by hand."
+    if evidence.release_pr_job == "missing":
+        return Decision(
+            "stop",
+            "Not merging this head.",
+            f"The Release run on the head of `master` ended without its `{RELEASE_PR_JOB}` job, {may_lack_commits}",
+            rerun,
+        )
+    if evidence.release_pr_job != "pending":
+        return Decision(
+            "stop",
+            "Not merging this head.",
+            f"{job_text} ended `{evidence.release_pr_job}` on the head of `master`, {may_lack_commits}",
+            f"Fix the job ({APP_SETUP} if the App token failed) and re-run it, or merge the PR by hand.",
+        )
+    assert evidence.master_landed is not None  # evaluate() sets both when `master` is ahead.
+    update_deadline = evidence.master_landed + merge.CI_GRACE
+    reason = f"{job_text} has not finished on the head of `master`, {may_lack_commits}"
+    if now > update_deadline:
+        return Decision("stop", "Not merging this head.", reason, rerun)
+    return Decision(
+        "wait",
+        "Waiting for release-please.",
+        reason,
+        f"The `{RELEASE_PR_JOB}` job succeeds on the head of `master` by {merge.format_minute(update_deadline)}.",
+    )
 
 
 def _waiting(evidence: Evidence, now: dt.datetime) -> Decision | None:
-    if evidence.release_pr_job not in {None, "success"}:
-        # A stale head would ship `master`'s newer commits outside the release, and release-please lists only later
-        # commits in the next one. Its own run decides what the release holds, so no commit is parsed here.
-        job_text = f"The `{RELEASE_PR_JOB}` job of the Release workflow"
-        stale = "so this PR may lack commits of `master`."
-        if evidence.release_pr_job == "missing":
-            return Decision(
-                "stop",
-                "Not merging this head.",
-                f"The Release run on the head of `master` ended without its `{RELEASE_PR_JOB}` job, {stale}",
-                "Re-run the Release workflow on `master`, or merge the PR by hand.",
-            )
-        if evidence.release_pr_job != "pending":
-            return Decision(
-                "stop",
-                "Not merging this head.",
-                f"{job_text} ended `{evidence.release_pr_job}` on the head of `master`, {stale}",
-                f"Fix the job ({APP_SETUP} if the App token failed) and re-run it, or merge the PR by hand.",
-            )
-        assert evidence.master_landed is not None  # evaluate() sets both when `master` is ahead.
-        update_deadline = evidence.master_landed + merge.CI_GRACE
-        reason = f"{job_text} has not finished on the head of `master`, {stale}"
-        if now > update_deadline:
-            return Decision(
-                "stop",
-                "Not merging this head.",
-                reason,
-                "Re-run the Release workflow on `master`, or merge the PR by hand.",
-            )
-        return Decision(
-            "wait",
-            "Waiting for release-please.",
-            reason,
-            f"The `{RELEASE_PR_JOB}` job succeeds on the head of `master` by {merge.format_minute(update_deadline)}.",
-        )
     ci_deadline = evidence.head_committed + merge.CI_GRACE
     if evidence.pending:
         if now > ci_deadline:
@@ -417,6 +418,7 @@ def release_pr_state(api: security.GitHub, runs: dict[str, Json]) -> str:
 
     That is "pending" while no run lists the job or it has not finished, "missing" when the run ended without it, and
     otherwise the job's conclusion.
+
     The jobs API names a job by its key, because the job sets no `name:`; test.cjs pins that.
     """
     run = runs.get(RELEASE_WORKFLOW)

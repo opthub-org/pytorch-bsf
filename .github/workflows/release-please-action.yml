@@ -8,6 +8,14 @@ on:
 
 permissions: {}
 
+# Runs never overlap and start in the order of the pushes, and each reads `master` when it runs, so a run for an older
+# commit cannot update the release PR after the run for a newer one. The release controller trusts a `release-pr`
+# success on `master`'s head because of this. Only the newest waiting run is kept; one that a newer run replaces is
+# always for an older commit, and the newer run creates any release it would have created.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   github-release:
     if: github.ref == 'refs/heads/master'
@@ -33,14 +41,9 @@ jobs:
   # opens the PR, and the release controller stops it with that reason. No publishing job needs this job, so a
   # failure here, such as a revoked App key, cannot keep a created release from being published. It runs after the
   # release is created, so that release-please sees the merged release PR as released. The release controller finds
-  # this job by its key (RELEASE_PR_JOB), so it sets no `name:`. Its runs are serialized, so that a run for an older
-  # `master` commit cannot push the release branch after a newer one: the controller trusts the success on `master`'s
-  # head to mean that the release branch has every commit of `master`. Only the newest waiting run is kept.
+  # this job by its key (RELEASE_PR_JOB), so it sets no `name:`.
   release-pr:
     needs: github-release
-    concurrency:
-      group: release-pr
-      cancel-in-progress: false
     if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
     permissions:
       contents: write

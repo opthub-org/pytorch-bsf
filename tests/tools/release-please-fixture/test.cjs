@@ -155,8 +155,10 @@ test('Action inputs and root outputs connect only created releases to publishing
   const prJob = workflow.jobs['release-pr'];
   // tools/release_merge.py finds this job by the name the jobs API reports, which is its key while it sets no name.
   assert.equal(prJob.name, undefined);
-  // The controller trusts the success on master's head only because an older run cannot push after it.
-  assert.deepEqual(prJob.concurrency, {group: 'release-pr', 'cancel-in-progress': false});
+  // The controller trusts the success on master's head only because runs start in push order and never overlap.
+  // A job-level group would order jobs by when github-release finished, not by push.
+  assert.deepEqual(workflow.concurrency, {group: 'release', 'cancel-in-progress': false});
+  assert.equal(prJob.concurrency, undefined);
   assert.equal(prJob.needs, 'github-release');
   assert.equal(prJob.if, "${{ !cancelled() && github.ref == 'refs/heads/master' }}");
   assert.deepEqual(prJob.permissions, {contents: 'write', 'pull-requests': 'write'});

@@ -319,11 +319,11 @@ these cases against release-please. This reading only approximates release-pleas
 it sets when a release merges, never what it holds.
 
 When `master` has commits that the head lacks, the controller waits until the
-`release-pr` job of the Release workflow has succeeded on the head of `master` (its runs
-are serialized, so an older one cannot update the PR after it), because a stale head
-would ship releasable commits without a changelog entry, and release-please lists only
-commits after the release. That run, not the controller, decides which commits the
-release needs, so no commit message is parsed for this.
+`release-pr` job of the Release workflow has succeeded on the head of `master` (Release
+runs never overlap and start in push order, so an older one cannot update the PR after
+it), because a stale head would ship releasable commits without a changelog entry, and
+release-please lists only commits after the release. That run, not the controller,
+decides which commits the release needs, so no commit message is parsed for this.
 
 The controller merges only release-please's own PR for `master`: opened by
 `github-actions[bot]` or the release App's bot from
