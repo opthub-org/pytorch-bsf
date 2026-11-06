@@ -388,8 +388,9 @@ step 3 after the first verified release:
    **Deployment branches and tags**, choose **Selected branches and tags** and
    allow only the branch `master`. The workflow starts on a `master` push, so
    restricting this environment to release tags would block publication even
-   though the build checks out a release tag. Required reviewers are optional;
-   leave them unset to retain automatic releases.
+   though the build checks out a release tag. Leave required reviewers and wait
+   timers unset: a Release run waiting for approval holds the workflow's
+   concurrency group, so later release PRs stop after two hours.
 2. On the existing PyPI project's
    [Publishing settings](https://pypi.org/manage/project/pytorch-bsf/settings/publishing/),
    add a GitHub Trusted Publisher with these exact values:

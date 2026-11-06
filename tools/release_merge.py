@@ -43,6 +43,10 @@ MASTER_EXCLUDED_CHECKS = DOCUMENTATION_CHECKS | {security.CODECOV_PATCH}
 RELEASE_WORKFLOW = "release-please-action.yml"
 # The job of RELEASE_WORKFLOW that opens and updates the release PR.
 RELEASE_PR_JOB = "release-pr"
+# How long after `master`'s head landed the controller waits for that job to succeed on it. It must exceed how long the
+# Release run before it can hold the workflow's concurrency group (an hour, which test.cjs bounds) plus that run's own
+# path to the job (github-release and release-pr, 20 minutes); tests/tools/release_merge.py checks this.
+RELEASE_PR_GRACE = dt.timedelta(hours=2)
 POST_MERGE = [RELEASE_WORKFLOW, *(workflow for workflow in security.POST_MERGE if workflow != RELEASE_WORKFLOW)]
 QUIET = dt.timedelta(days=1)
 # An approximation of how release-please reads a commit. It only sets when a release merges; what the release holds
@@ -304,7 +308,7 @@ def _stale_head(evidence: Evidence, now: dt.datetime) -> Decision | None:
             f"Fix the job ({APP_SETUP} if the App token failed) and re-run it, or merge the PR by hand.",
         )
     assert evidence.master_landed is not None  # evaluate() sets both when `master` is ahead.
-    update_deadline = evidence.master_landed + merge.CI_GRACE
+    update_deadline = evidence.master_landed + RELEASE_PR_GRACE
     reason = f"{job_text} has not finished on the head of `master`, {may_lack_commits}"
     if now > update_deadline:
         return Decision("stop", "Not merging this head.", reason, rerun)
@@ -401,29 +405,31 @@ def notify_stop(api: security.GitHub, pr: Json, comments: list[Json]) -> None:
         api.write(f"issues/{pr['number']}/comments", {"body": body})
 
 
-def master_ci(api: security.GitHub, root: Path, master_sha: str) -> tuple[list[str], dict[str, Json]]:
-    """Return the failed CI of `master`'s head and the latest run of each workflow file on it.
+def master_failures(api: security.GitHub, root: Path, master_sha: str) -> list[str]:
+    """Return the failed CI of `master`'s head, ignoring checks that say nothing about the code a release ships.
 
-    Failures ignore checks that say nothing about the code a release ships. Other checks also land on that commit,
-    such as GitHub's own Dependabot update jobs, and they do not count.
+    Other checks also land on that commit, such as GitHub's own Dependabot update jobs, and they do not count.
     """
-    failed, _, runs = security.ci_state(api, master_sha, root, workflows=WORKFLOWS)
+    failed = security.ci_state(api, master_sha, root, workflows=WORKFLOWS)[0]
     # ci_state reports every failed check on the commit, whatever is expected, so the filter has to be here.
     counted = (security.expected_checks(root) - MASTER_EXCLUDED_CHECKS) | set(WORKFLOWS)
-    return [name for name in failed if name in counted], runs
+    return [name for name in failed if name in counted]
 
 
-def release_pr_state(api: security.GitHub, runs: dict[str, Json]) -> str:
+def release_pr_state(api: security.GitHub, master_sha: str) -> str:
     """Return how the `release-pr` job of the latest Release run on `master`'s head ended.
 
     That is "pending" while no run lists the job or it has not finished, "missing" when the run ended without it, and
     otherwise the job's conclusion.
 
-    The jobs API names a job by its key, because the job sets no `name:`; test.cjs pins that.
+    Only runs on the `master` branch count: a dispatch on another branch at the same commit skips every job. The jobs
+    API names a job by its key, because the job sets no `name:`; test.cjs pins that.
     """
-    run = runs.get(RELEASE_WORKFLOW)
-    if run is None:
+    runs = api.pages(f"actions/workflows/{RELEASE_WORKFLOW}/runs?branch=master&head_sha={master_sha}", "workflow_runs")
+    on_master = [row for row in runs if row["head_branch"] == "master"]
+    if not on_master:
         return "pending"
+    run = max(on_master, key=lambda row: row["id"])
     jobs = [job for job in api.pages(f"actions/runs/{run['id']}/jobs", "jobs") if job["name"] == RELEASE_PR_JOB]
     if not jobs:
         return "missing" if run["status"] == "completed" else "pending"
@@ -466,7 +472,7 @@ def evaluate(
         failed, pending, runs = security.ci_state(api, sha, root, workflows=WORKFLOWS, excluded_checks=DOCUMENTATION_CHECKS)
         # One read of `master`, so that its CI, its Release run and the commits ahead all describe the same commit.
         master_sha = api.get("commits/master")["sha"]
-        master_failed, master_runs = master_ci(api, root, master_sha)
+        master_failed = master_failures(api, root, master_sha)
         version = previous_version(files)
         assert version is not None  # release_problem rejects a PR without it.
         try:
@@ -480,7 +486,7 @@ def evaluate(
             last_change = landed(in_release) or head_committed
             ahead = compare_commits(api, sha, master_sha)
             if ahead:
-                release_pr_job = release_pr_state(api, master_runs)
+                release_pr_job = release_pr_state(api, master_sha)
                 # The head of `master` commits at landing time, after every commit it brings in.
                 master_landed = max(committed(row) for row in ahead)
     evidence = Evidence(

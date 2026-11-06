@@ -137,6 +137,13 @@ class DecisionTests(unittest.TestCase):
         self.assertEqual(late.action, "stop")
         self.assertIn("Re-run the Release workflow", late.mergeable_when)
 
+    def test_the_release_pr_wait_outlasts_the_release_run_before_it(self):
+        # test.cjs bounds how long a Release run holds the concurrency group at 60 minutes; the next run then needs its
+        # own github-release and release-pr jobs (10 minutes each) before release-pr can succeed.
+        source = (ROOT / ".github/workflows/release-please-action.yml").read_text()
+        self.assertEqual(re.findall(r"timeout-minutes: (\d+)", source.split("\n  docs:")[0]), ["10", "10"])
+        self.assertGreater(release.RELEASE_PR_GRACE, dt.timedelta(minutes=60 + 10 + 10))
+
     def test_a_failed_release_pr_job_stops_at_once_and_its_success_lets_the_release_merge(self):
         since = NOW - dt.timedelta(minutes=10)
         failed = decide(urgent=["fix(deps): x"], release_pr_job="failure", master_landed=since)
@@ -498,9 +505,18 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(self.run_once(), [])
         self.assertEqual(len(self.writes("pulls/563/merge")), 1)
 
-    def release_run_on_master(self, *jobs, status="completed"):
-        self.master_state = ([], [], {release.RELEASE_WORKFLOW: {**run(status=status), "id": 77}})
-        self.pages["actions/runs/77/jobs"] = list(jobs)
+    def release_run_on_master(self, *jobs, status="completed", run_id=77, branch="master"):
+        path = f"actions/workflows/{release.RELEASE_WORKFLOW}/runs?branch=master&head_sha={MASTER}"
+        self.pages.setdefault(path, []).append({**run(status=status), "id": run_id, "head_branch": branch})
+        self.pages[f"actions/runs/{run_id}/jobs"] = list(jobs)
+
+    def test_a_release_run_on_another_branch_at_the_same_commit_does_not_count(self):
+        self.master_ahead = subjects("ci: tweak (#7)", date="2026-11-06T11:50:00Z")
+        self.release_run_on_master({"name": "release-pr", "status": "completed", "conclusion": "success"})
+        skipped = {"name": "release-pr", "status": "completed", "conclusion": "skipped"}
+        self.release_run_on_master(skipped, run_id=78, branch="feature")
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(len(self.writes("pulls/563/merge")), 1)
 
     def test_a_head_behind_master_merges_only_after_the_release_pr_job_succeeds_on_master(self):
         # Whatever the commits ahead say, only release-please's own run on master's head shows the head is current.
@@ -522,13 +538,14 @@ class ReconcileTests(unittest.TestCase):
         for label, run_status, jobs, text in cases:
             with self.subTest(label):
                 self.api.write.reset_mock()
-                self.master_state = ([], [], {})
+                self.pages.pop(f"actions/workflows/{release.RELEASE_WORKFLOW}/runs?branch=master&head_sha={MASTER}", None)
                 if run_status is not None:
                     self.release_run_on_master(*jobs, status=run_status)
                 self.assertEqual(self.run_once(), [])
                 self.assertEqual(self.writes("pulls/563/merge"), [])
                 self.assertIn(text, self.status())
         self.api.write.reset_mock()
+        self.pages.pop(f"actions/workflows/{release.RELEASE_WORKFLOW}/runs?branch=master&head_sha={MASTER}")
         self.release_run_on_master(
             {"name": "release-pr", "status": "completed", "conclusion": "failure"},
             {"name": "release-pr", "status": "completed", "conclusion": "success"},  # A re-run of the job.
