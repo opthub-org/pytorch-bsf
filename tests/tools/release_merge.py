@@ -93,7 +93,7 @@ def evidence(**overrides):
         "draft": False,
         "head_committed": NOW - dt.timedelta(hours=1),
         "last_change": NOW - dt.timedelta(hours=1),
-        "release_pr": None,
+        "release_pr_job": None,
         "master_landed": None,
         "merge_state": "clean",
         "failed": [],
@@ -127,23 +127,23 @@ class DecisionTests(unittest.TestCase):
 
     def test_a_head_behind_master_waits_for_the_release_pr_job_and_then_stops(self):
         since = NOW - dt.timedelta(minutes=10)
-        waiting = decide(urgent=["fix(deps): x"], release_pr="pending", master_landed=since)
+        waiting = decide(urgent=["fix(deps): x"], release_pr_job="pending", master_landed=since)
         self.assertEqual(waiting.action, "wait")
         self.assertIn("has not finished", waiting.reason)
         self.assertIn(merge.format_minute(since + merge.CI_GRACE), waiting.mergeable_when)
         deadline = since + merge.CI_GRACE
-        self.assertEqual(decide(now=deadline, release_pr="pending", master_landed=since).action, "wait")
-        late = decide(now=deadline + dt.timedelta(seconds=1), release_pr="pending", master_landed=since)
+        self.assertEqual(decide(now=deadline, release_pr_job="pending", master_landed=since).action, "wait")
+        late = decide(now=deadline + dt.timedelta(seconds=1), release_pr_job="pending", master_landed=since)
         self.assertEqual(late.action, "stop")
         self.assertIn("Re-run the Release workflow", late.mergeable_when)
 
     def test_a_failed_release_pr_job_stops_at_once_and_its_success_lets_the_release_merge(self):
         since = NOW - dt.timedelta(minutes=10)
-        failed = decide(urgent=["fix(deps): x"], release_pr="failure", master_landed=since)
+        failed = decide(urgent=["fix(deps): x"], release_pr_job="failure", master_landed=since)
         self.assertEqual(failed.action, "stop")
         self.assertIn("ended `failure`", failed.reason)
         self.assertIn(release.APP_SETUP, failed.mergeable_when)
-        self.assertEqual(decide(urgent=["fix(deps): x"], release_pr="success", master_landed=since).action, "merge")
+        self.assertEqual(decide(urgent=["fix(deps): x"], release_pr_job="success", master_landed=since).action, "merge")
 
     def test_stops_and_holds_come_before_any_merge(self):
         cases: dict[str, list[dict[str, object]]] = {
@@ -374,7 +374,7 @@ class ReconcileTests(unittest.TestCase):
             return {"sha": MASTER}
         if path == f"commits/{MASTER}/pulls":
             return self.master_pulls
-        if path.startswith(f"compare/{SHA}...master?"):
+        if path.startswith(f"compare/{SHA}...{MASTER}?"):
             return self.master_ahead
         if path.startswith("compare/"):
             return self.compare
@@ -505,23 +505,26 @@ class ReconcileTests(unittest.TestCase):
     def test_a_head_behind_master_merges_only_after_the_release_pr_job_succeeds_on_master(self):
         # Whatever the commits ahead say, only release-please's own run on master's head shows the head is current.
         self.master_ahead = subjects("ci: tweak (#7)", date="2026-11-06T11:50:00Z")
+        running = {"name": "release-pr", "status": "in_progress", "conclusion": None}
+        other = {"name": "github-release", "status": "completed", "conclusion": "success"}
+        failed = {"name": "release-pr", "status": "completed", "conclusion": "failure"}
+        skipped = {"name": "release-pr", "status": "completed", "conclusion": "skipped"}
+        # (label, the run's status or None for no run, its jobs, the expected status text)
         cases = [
-            ("no run", None, "Waiting for release-please."),
-            ("running", ("in_progress",), "Waiting for release-please."),
-            ("no job", (), "Waiting for release-please."),
-            ("job running", ({"name": "release-pr", "status": "in_progress", "conclusion": None},), "Waiting"),
-            ("other job", ({"name": "github-release", "status": "completed", "conclusion": "success"},), "Waiting"),
-            ("failed", ({"name": "release-pr", "status": "completed", "conclusion": "failure"},), "ended `failure`"),
-            ("skipped", ({"name": "release-pr", "status": "completed", "conclusion": "skipped"},), "ended `skipped`"),
+            ("no run", None, (), "Waiting for release-please."),
+            ("run with no jobs yet", "in_progress", (), "Waiting for release-please."),
+            ("job running", "in_progress", (running,), "Waiting for release-please."),
+            ("only another job yet", "in_progress", (other,), "Waiting for release-please."),
+            ("run ended without the job", "completed", (other,), "ended `missing`"),
+            ("failed", "completed", (failed,), "ended `failure`"),
+            ("skipped", "completed", (skipped,), "ended `skipped`"),
         ]
-        for label, jobs, text in cases:
+        for label, run_status, jobs, text in cases:
             with self.subTest(label):
                 self.api.write.reset_mock()
                 self.master_state = ([], [], {})
-                if jobs == ("in_progress",):
-                    self.release_run_on_master(status="in_progress")
-                elif jobs is not None:
-                    self.release_run_on_master(*jobs)
+                if run_status is not None:
+                    self.release_run_on_master(*jobs, status=run_status)
                 self.assertEqual(self.run_once(), [])
                 self.assertEqual(self.writes("pulls/563/merge"), [])
                 self.assertIn(text, self.status())
@@ -566,7 +569,9 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(self.run_once(), [])
         self.assertEqual(len(self.writes("pulls/563/merge")), 1)
         reads = [call.args[0] for call in self.api.get.call_args_list]
-        self.assertIn(f"compare/{SHA}...master?per_page=100&page=1", reads)
+        # The commits ahead are those of the master commit whose CI and Release run were read, not of a later one.
+        self.assertIn(f"compare/{SHA}...{MASTER}?per_page=100&page=1", reads)
+        self.assertNotIn("master?", "".join(path for path in reads if path.startswith("compare/")))
         self.assertFalse([call for call in self.api.pages.call_args_list if call.args[0].endswith("/jobs")])
 
     def test_ci_waiting_for_approval_stops_at_once_and_starts_nothing(self):

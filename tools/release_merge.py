@@ -76,9 +76,10 @@ class Evidence:
     # date in the changelog, so the head's own time does not show whether the release is still changing.
     last_change: dt.datetime
     # How the `release-pr` job ended on `master`'s head: None when the PR's head already has every commit of `master`,
-    # "pending" while it has not finished, or the job's conclusion. Only its success shows that release-please has
-    # seen every commit of `master`, so that the PR's head is not stale. When `master`'s head landed, if it is ahead.
-    release_pr: str | None
+    # "pending" while it has not finished, "missing" when its run ended without it, or the job's conclusion. Only its
+    # success shows that release-please has seen every commit of `master`, so that the PR's head is not stale.
+    release_pr_job: str | None
+    # When `master`'s head landed, if the PR's head lacks commits of `master`.
     master_landed: dt.datetime | None
     merge_state: str | None
     failed: list[str]
@@ -280,23 +281,20 @@ def decide(evidence: Evidence, now: dt.datetime) -> Decision:
 
 
 def _waiting(evidence: Evidence, now: dt.datetime) -> Decision | None:
-    if evidence.release_pr not in {None, "success"}:
+    if evidence.release_pr_job not in {None, "success"}:
         # A stale head would ship `master`'s newer commits outside the release, and release-please lists only later
         # commits in the next one. Its own run decides what the release holds, so no commit is parsed here.
-        assert evidence.master_landed is not None  # evaluate() sets both when `master` is ahead.
-        update_deadline = evidence.master_landed + merge.CI_GRACE
-        if evidence.release_pr != "pending":
+        job = f"The `{RELEASE_PR_JOB}` job of the Release workflow"
+        if evidence.release_pr_job != "pending":
             return Decision(
                 "stop",
                 "Not merging this head.",
-                f"The `release-pr` job of the Release workflow ended `{evidence.release_pr}` on the head of `master`, "
-                "so this PR may lack commits of `master`.",
+                f"{job} ended `{evidence.release_pr_job}` on the head of `master`, so this PR may lack commits of `master`.",
                 f"Fix the job ({APP_SETUP} if the App token failed) and re-run it, or merge the PR by hand.",
             )
-        reason = (
-            "The `release-pr` job of the Release workflow has not finished on the head of `master`, so this PR may lack "
-            "commits of `master`."
-        )
+        assert evidence.master_landed is not None  # evaluate() sets both when `master` is ahead.
+        update_deadline = evidence.master_landed + merge.CI_GRACE
+        reason = f"{job} has not finished on the head of `master`, so this PR may lack commits of `master`."
         if now > update_deadline:
             return Decision(
                 "stop",
@@ -308,7 +306,7 @@ def _waiting(evidence: Evidence, now: dt.datetime) -> Decision | None:
             "wait",
             "Waiting for release-please.",
             reason,
-            f"The `release-pr` job finishes by {merge.format_minute(update_deadline)}.",
+            f"The `{RELEASE_PR_JOB}` job succeeds on the head of `master` by {merge.format_minute(update_deadline)}.",
         )
     ci_deadline = evidence.head_committed + merge.CI_GRACE
     if evidence.pending:
@@ -394,25 +392,30 @@ def notify_stop(api: security.GitHub, pr: Json, comments: list[Json]) -> None:
         api.write(f"issues/{pr['number']}/comments", {"body": body})
 
 
-def master_failures(api: security.GitHub, root: Path) -> tuple[list[str], dict[str, Json]]:
-    """Return the failed CI of `master`'s head, ignoring checks that say nothing about the code a release ships, and
-    the latest run of each workflow file on it.
+def master_ci(api: security.GitHub, root: Path, master_sha: str) -> tuple[list[str], dict[str, Json]]:
+    """Return the failed CI of `master`'s head and the latest run of each workflow file on it.
 
-    Other checks also land on that commit, such as GitHub's own Dependabot update jobs, and they do not count.
+    Failures ignore checks that say nothing about the code a release ships. Other checks also land on that commit,
+    such as GitHub's own Dependabot update jobs, and they do not count.
     """
-    failed, _, runs = security.ci_state(api, api.get("commits/master")["sha"], root, workflows=WORKFLOWS)
+    failed, _, runs = security.ci_state(api, master_sha, root, workflows=WORKFLOWS)
     # ci_state reports every failed check on the commit, whatever is expected, so the filter has to be here.
     counted = (security.expected_checks(root) - MASTER_EXCLUDED_CHECKS) | set(WORKFLOWS)
     return [name for name in failed if name in counted], runs
 
 
 def release_pr_state(api: security.GitHub, runs: dict[str, Json]) -> str:
-    """Return "pending" until the `release-pr` job of the latest Release run on `master`'s head ends, then how."""
+    """Return "pending" until the `release-pr` job of the latest Release run on `master`'s head ends, then how.
+
+    The jobs API names a job by its key, because the job sets no `name:`; test.cjs pins that.
+    """
     run = runs.get(RELEASE_WORKFLOW)
     if run is None:
         return "pending"
     jobs = [job for job in api.pages(f"actions/runs/{run['id']}/jobs", "jobs") if job["name"] == RELEASE_PR_JOB]
-    if not jobs or jobs[-1]["status"] != "completed":
+    if not jobs:
+        return "missing" if run["status"] == "completed" else "pending"
+    if jobs[-1]["status"] != "completed":
         return "pending"
     return str(jobs[-1]["conclusion"])
 
@@ -440,7 +443,7 @@ def evaluate(
     problem = release_problem(pr, commits, files, api.repo, authors) or (None if head else "The head commit is not listed.")
     head_committed = committed(head[0]) if head else merge.parse_time(pr["created_at"])
     last_change = head_committed
-    release_pr: str | None = None
+    release_pr_job: str | None = None
     master_landed: dt.datetime | None = None
     failed: list[str] = []
     pending: list[str] = []
@@ -449,7 +452,9 @@ def evaluate(
     urgent_headers: list[str] = []
     if problem is None:
         failed, pending, runs = security.ci_state(api, sha, root, workflows=WORKFLOWS, excluded_checks=DOCUMENTATION_CHECKS)
-        master_failed, master_runs = master_failures(api, root)
+        # One read of `master`, so that its CI, its Release run and the commits ahead all describe the same commit.
+        master_sha = api.get("commits/master")["sha"]
+        master_failed, master_runs = master_ci(api, root, master_sha)
         version = previous_version(files)
         assert version is not None  # release_problem rejects a PR without it.
         try:
@@ -461,9 +466,9 @@ def evaluate(
         else:
             urgent_headers = [line for row in in_release for line in urgent(row)]
             last_change = landed(in_release) or head_committed
-            ahead = compare_commits(api, sha, "master")
+            ahead = compare_commits(api, sha, master_sha)
             if ahead:
-                release_pr = release_pr_state(api, master_runs)
+                release_pr_job = release_pr_state(api, master_runs)
                 # The head of `master` commits at landing time, after every commit it brings in.
                 master_landed = max(committed(row) for row in ahead)
     evidence = Evidence(
@@ -471,7 +476,7 @@ def evaluate(
         pr["draft"],
         head_committed,
         last_change,
-        release_pr,
+        release_pr_job,
         master_landed,
         pr.get("mergeable_state"),
         failed,

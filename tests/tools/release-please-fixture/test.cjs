@@ -153,6 +153,8 @@ test('Action inputs and root outputs connect only created releases to publishing
   // The release PR is opened with the release App's token, so that its CI runs; the release itself stays with
   // GITHUB_TOKEN so that its tag and release events start no second publication.
   const prJob = workflow.jobs['release-pr'];
+  // tools/release_merge.py finds this job by the name the jobs API reports, which is its key while it sets no name.
+  assert.equal(prJob.name, undefined);
   assert.equal(prJob.needs, 'github-release');
   assert.equal(prJob.if, "${{ !cancelled() && github.ref == 'refs/heads/master' }}");
   assert.deepEqual(prJob.permissions, {contents: 'write', 'pull-requests': 'write'});
