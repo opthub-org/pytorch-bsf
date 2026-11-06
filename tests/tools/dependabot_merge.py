@@ -2,6 +2,7 @@
 
 import datetime as dt
 import http.client
+import itertools
 import json
 import math
 import os
@@ -1706,19 +1707,14 @@ class PostMergeTests(unittest.TestCase):
         merge.ensure_post_merge(api)
         api.write.assert_not_called()
 
-    def test_a_release_run_that_ran_before_a_cancelled_one_stops_the_dispatch(self):
-        for status, conclusion in (("completed", "success"), ("completed", "failure"), ("in_progress", None)):
-            with self.subTest(status=status, conclusion=conclusion):
-                runs = [workflow_run(8, status, conclusion), workflow_run(9)]
-                api = self.api_for(merge.AUTHOR, security.BOT, [*self.others(), *runs], {8: [{"name": "x"}], 9: []})
-                merge.ensure_post_merge(api)
-                api.write.assert_not_called()
-
-    def test_a_newest_release_run_that_has_not_ended_or_did_not_cancel_is_left_alone(self):
-        for status, conclusion in (("pending", None), ("queued", None), ("completed", "failure"), ("completed", "skipped")):
-            with self.subTest(status=status, conclusion=conclusion):
-                runs = [workflow_run(8), workflow_run(9, status, conclusion)]
-                api = self.api_for(merge.AUTHOR, security.BOT, [*self.others(), *runs], {8: [], 9: []})
+    def test_any_release_run_that_did_not_end_cancelled_stops_the_dispatch(self):
+        # Whether that run is older or newer than the cancelled one does not matter.
+        states: list[tuple[str, str | None]] = [("pending", None), ("queued", None), ("in_progress", None)]
+        states += [("completed", conclusion) for conclusion in ("success", "failure", "skipped")]
+        for (status, conclusion), other_id in itertools.product(states, (8, 10)):
+            with self.subTest(status=status, conclusion=conclusion, other_id=other_id):
+                runs = [workflow_run(9), workflow_run(other_id, status, conclusion)]
+                api = self.api_for(merge.AUTHOR, security.BOT, [*self.others(), *runs], {8: [], 9: [], 10: []})
                 merge.ensure_post_merge(api)
                 api.write.assert_not_called()
 
@@ -1731,9 +1727,9 @@ class PostMergeTests(unittest.TestCase):
         # One more cancelled run means the last allowed dispatch was cancelled too.
         runs.append(workflow_run(merge.MAX_REDISPATCHES + 1))
         api = self.api_for(merge.AUTHOR, security.BOT, [*self.others()[1:], *runs], jobs)
-        with self.assertRaisesRegex(RuntimeError, rf"`{RELEASE}` on master's head eeeeeeeeee was cancelled") as raised:
+        with self.assertRaisesRegex(RuntimeError, rf"`{RELEASE}` on master's head `eeeeeeeeee` was cancelled") as raised:
             merge.ensure_post_merge(api)
-        self.assertIn(f"{merge.MAX_REDISPATCHES} dispatches", str(raised.exception))
+        self.assertIn(f"starting it again {merge.MAX_REDISPATCHES} times", str(raised.exception))
         # The other workflows still start before the error.
         self.assertEqual(self.started(api), self.others()[:1])
 

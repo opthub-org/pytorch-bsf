@@ -349,10 +349,10 @@ also starts Release again when every Release run on the head of `master` was can
 before any job ran, as the workflow's concurrency group cancels a waiting run that a
 newer run replaces. A run cancelled after a job started is left alone, because a person
 may have stopped it. A person who cancels a run that is still waiting cannot be told
-apart, so to stop a release, cancel the run after it starts or disable the workflow.
-Release is started again at most `MAX_REDISPATCHES` times for one head (see
-`tools/dependabot_merge.py`); after that, the controller job fails until someone starts
-Release by hand or `master` moves.
+apart, so to stop a release, cancel the run after one of its jobs starts, or disable
+the workflow. Release is started again at most `MAX_REDISPATCHES` times for one head
+(see `tools/dependabot_merge.py`); after that, the controller job fails until someone
+starts Release by hand or `master` moves.
 
 The release controller runs when Release starts or finishes on `master`, when a CI
 workflow starts or finishes on the release branch, and on the same schedule as the

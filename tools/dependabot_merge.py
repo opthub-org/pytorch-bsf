@@ -847,9 +847,9 @@ def ensure_post_merge(
 ) -> None:
     """Start the master workflows that a GITHUB_TOKEN merge of an owned PR does not trigger, until each has a run.
 
-    A workflow in REDISPATCHED is started again while every run of it on master's head was cancelled before any job
-    ran, at most MAX_REDISPATCHES times; past that, this raises RuntimeError, so that the job fails and a person starts
-    it.
+    A workflow in REDISPATCHED is started again while it has runs on master's head and every one of them was cancelled
+    before any job ran, at most MAX_REDISPATCHES times. Past that, the other workflows are still started, and then this
+    raises RuntimeError, so that the job fails and a person starts it.
     """
     sha = api.get("commits/master")["sha"]
     pulls = api.get(f"commits/{sha}/pulls")
@@ -876,8 +876,9 @@ def ensure_post_merge(
         security.dispatch_workflow(api, workflow, "master")
     if exhausted:
         raise RuntimeError(
-            f"Every run of {format_names(exhausted)} on master's head {sha[:SHORT_SHA_CHARS]} was cancelled before any "
-            f"job ran, also after {MAX_REDISPATCHES} dispatches; start it by hand once its concurrency group is free."
+            f"Every run of {format_names(exhausted)} on master's head `{sha[:SHORT_SHA_CHARS]}` was cancelled before any "
+            f"job ran, also after starting it again {MAX_REDISPATCHES} times; start it by hand once its concurrency "
+            "group is free."
         )
 
 
