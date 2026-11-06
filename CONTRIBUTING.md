@@ -534,16 +534,16 @@ This project follows the [Conventional Commits](https://www.conventionalcommits.
 |------|-------------|---------------|
 | `feat` | Add a new feature | Minor version bump |
 | `fix` | Fix a bug | Patch version bump |
-| `docs` | Documentation changes only | None |
+| `docs` | Documentation changes only | Patch version bump |
 | `style` | Changes that do not affect behavior (whitespace, formatting) | None |
 | `refactor` | Code change that is neither a fix nor a feature | None |
 | `test` | Add or update tests | None |
 | `chore` | Changes to the build process or auxiliary tools | None |
 | `ci` | Changes to CI configuration | None |
-| `deps` | Add or update dependencies | None |
-| `perf` | Performance improvement | None |
+| `deps` | Add or update dependencies | Patch version bump |
+| `perf` | Performance improvement | Patch version bump |
 
-A dependency change that affects what is distributed, or a security remediation, uses `fix(deps)` or `fix(security)` instead of `deps`, so that it is released at once; see [Release automation](SECURITY.md#release-automation). `deps` and `build(deps)` are for changes that need no release.
+release-please releases `feat`, `fix`, `deps`, `docs`, `perf` and `revert` commits, and the release PR then merges automatically: at once for a `fix` or `feat` commit scoped `deps`, `deps-dev` or `security`, otherwise after a day without a new releasable commit; see [Release automation](SECURITY.md#release-automation). So a dependency change that affects what is distributed, or a security remediation, uses `fix(deps)` or `fix(security)`. A change that needs no release uses one of the other types, such as `build(deps)` for a dependency that is not distributed.
 
 ### Breaking changes
 
@@ -1058,8 +1058,8 @@ pytorch-bsf/
 │   │   ├── sphinx-pages-publish.yml  # Trusted, serialized per-ref publication
 │   │   ├── sphinx-pages.yml          # Inert legacy identifier; keep manually disabled
 │   │   ├── codeql-analysis.yml       # Security scanning
-│   │   ├── security-policy.yml       # Security automation and Dependabot merge tests, zizmor, the GHPages producer check and the Betterleaks secret scan
-│   │   ├── dependabot-merge.yml      # Merges passing Dependabot PRs and writes their triage comments
+│   │   ├── security-policy.yml       # Security automation, Dependabot merge and release merge tests, zizmor, the GHPages producer check and the Betterleaks secret scan
+│   │   ├── dependabot-merge.yml      # Merges passing Dependabot PRs and the release PR, and writes their status comments
 │   │   └── python-package-conda.yml  # End-to-end tests in a Conda environment
 │   ├── ISSUE_TEMPLATE/
 │   │   ├── bug_report.yml            # Bug report form

@@ -16,7 +16,7 @@ import urllib.request
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Literal
+from typing import Any, ClassVar, Literal, Protocol, TypeVar
 from urllib.parse import quote, urlencode
 
 from tools import security_automation as security
@@ -767,12 +767,31 @@ def only_codecov_unfinished(failed: list[str], pending: list[str]) -> bool:
     return not failed and pending == [security.CODECOV_PATCH]
 
 
-def _codecov_alone_stops(evidence: Evidence, now: dt.datetime) -> bool:
-    """Return whether the PR would merge once codecov/patch succeeds, which GitHub reports as `unstable` until then."""
+class CheckEvidence(Protocol):
+    """Either controller's evidence: a dataclass with the head's check results and merge state."""
+
+    __dataclass_fields__: ClassVar[dict[str, Any]]
+
+    @property
+    def failed(self) -> list[str]: ...
+    @property
+    def pending(self) -> list[str]: ...
+    @property
+    def merge_state(self) -> str | None: ...
+
+
+EvidenceT = TypeVar("EvidenceT", bound=CheckEvidence)
+
+
+def codecov_alone_stops(evidence: EvidenceT, now: dt.datetime, decide: Callable[[EvidenceT, dt.datetime], Any]) -> bool:
+    """Return whether `decide` would merge the PR once codecov/patch succeeds.
+
+    GitHub reports the merge state as `unstable` until then. `evidence` is either controller's dataclass.
+    """
     if not only_codecov_unfinished(evidence.failed, evidence.pending):
         return False
     settled = "clean" if evidence.merge_state == "unstable" else evidence.merge_state
-    return decide(replace(evidence, pending=[], merge_state=settled), now).action == "merge"
+    return bool(decide(replace(evidence, pending=[], merge_state=settled), now).action == "merge")
 
 
 def wait_for_codecov(
@@ -848,7 +867,7 @@ def evaluate_after_codecov(
     result = evaluate(api, number, root, has_write_access, enabled, clock.now)
     pr, _, evidence, decision = result
     # A PR already stopped, for example by the CI deadline, gains nothing from the wait.
-    if decision.action == "wait" and _codecov_alone_stops(evidence, clock.now):
+    if decision.action == "wait" and codecov_alone_stops(evidence, clock.now, decide):
         slept = wait_for_codecov(api, pr["head"]["sha"], root, clock.codecov_deadline)
         if slept:
             clock.advance()

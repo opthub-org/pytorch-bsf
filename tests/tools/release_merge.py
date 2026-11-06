@@ -26,8 +26,8 @@ AUTHORS = frozenset({"github-actions[bot]", APP_BOT})
 CiState = tuple[list[str], list[str], dict[str, security.Json]]
 
 
-def run(event="workflow_dispatch", conclusion="success", status="completed", created="2026-11-06T11:05:00Z"):
-    return {"event": event, "status": status, "conclusion": conclusion, "created_at": created}
+def run(conclusion="success", status="completed"):
+    return {"event": "pull_request", "status": status, "conclusion": conclusion}
 
 
 GREEN: CiState = ([], [], {w: run() for w in release.WORKFLOWS})
@@ -163,13 +163,35 @@ class ProblemTests(unittest.TestCase):
         for committer in ("web-flow", APP_BOT):
             with self.subTest(committer=committer):
                 self.assertIsNone(self.problem(commits=[release_commit(author=APP_BOT, committer=committer)]))
-        # Each account signs only its own commits: GITHUB_TOKEN's commits are not signed in the App's name.
-        mixed = release_commit(author="github-actions[bot]", committer=APP_BOT)
-        self.assertIn("was not written", self.problem(commits=[mixed]))
-        unconfigured = release.release_problem(
-            release_pr(user={"login": APP_BOT}), [release_commit()], release_files(), REPO, frozenset({security.BOT})
-        )
-        self.assertIn("not release-please's release PR", str(unconfigured))
+        # Only the App signs its own commits; GITHUB_TOKEN's API commits are always signed as web-flow.
+        for committer in (APP_BOT, "github-actions[bot]"):
+            with self.subTest(committer=committer):
+                commit = release_commit(author="github-actions[bot]", committer=committer)
+                self.assertEqual(
+                    self.problem(commits=[commit]), f"Commit `{SHA[:10]}` was not written and signed through release-please."
+                )
+
+    def test_an_unaccepted_bot_names_the_variable_that_accepts_it(self):
+        def problem(pr=None, commits=None):
+            commits = [release_commit()] if commits is None else commits
+            return str(release.release_problem(pr or release_pr(), commits, release_files(), REPO, frozenset({security.BOT})))
+
+        unconfigured = problem(release_pr(user={"login": APP_BOT}))
+        self.assertIn("not release-please's release PR", unconfigured)
+        self.assertIn(f"`{APP_BOT}` is not an accepted release author", unconfigured)
+        self.assertIn("`RELEASE_PLEASE_BOT`", unconfigured)
+        self.assertIn("`RELEASE_PLEASE_BOT`", problem(commits=[release_commit(author=APP_BOT, committer=APP_BOT)]))
+        # Accounts that are not bots, and bots on another branch, get only the plain reason.
+        for pr in (
+            release_pr(user={"login": "maintainer"}),
+            release_pr(
+                user={"login": "dependabot[bot]"}, head={"repo": {"full_name": REPO}, "ref": "dependabot/x", "sha": SHA}
+            ),
+        ):
+            with self.subTest(pr=pr["user"]):
+                self.assertEqual(problem(pr), "This is not release-please's release PR for `master`.")
+        self.assertNotIn("RELEASE_PLEASE_BOT", problem(commits=[release_commit(author="maintainer")]))
+        self.assertNotIn("RELEASE_PLEASE_BOT", problem(commits=[{**release_commit(), "author": None}]))
 
     def test_another_pr_is_outside_the_boundary(self):
         for overrides in (
@@ -279,6 +301,10 @@ class ReconcileTests(unittest.TestCase):
         ci_state = patch.object(security, "ci_state", side_effect=self.read_ci_state)
         self.addCleanup(ci_state.stop)
         self.ci_state = ci_state.start()
+        # The fixture root has no workflows; master's failures are filtered by the repository's own expected checks.
+        expected = patch.object(security, "expected_checks", return_value=security.expected_checks(ROOT))
+        self.addCleanup(expected.stop)
+        expected.start()
         sleep = patch.object(merge.time, "sleep", side_effect=AssertionError("unexpected sleep"))
         self.addCleanup(sleep.stop)
         self.sleep = sleep.start()
@@ -297,8 +323,8 @@ class ReconcileTests(unittest.TestCase):
             return self.compare
         return self.pr
 
-    def run_once(self, enabled=True):
-        return release.reconcile(self.api, FIXTURE_ROOT, enabled, NOW)
+    def run_once(self, enabled=True, authors=AUTHORS):
+        return release.reconcile(self.api, FIXTURE_ROOT, enabled, NOW, authors)
 
     def writes(self, path):
         return [call for call in self.api.write.call_args_list if call.args[0] == path]
@@ -352,6 +378,32 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(len(self.run_once()), 1)
         self.assertIn("Merged this head.", self.status())
 
+    def test_a_failed_dispatch_does_not_start_the_release_twice(self):
+        self.merged_release_on_master()  # Recovery would see the merge already.
+        attempts = []
+
+        def write(path, data, method="POST"):
+            if path.endswith("/dispatches"):
+                attempts.append(path.split("/")[2])
+                if len(attempts) == 2:
+                    raise security.GitHubError("down", 502)
+            return {"merged": True} if path.endswith("/merge") else {}
+
+        self.api.write.side_effect = write
+        self.assertEqual(len(self.run_once()), 1)
+        self.assertEqual(attempts, release.POST_MERGE[:2])
+
+    def test_a_release_pr_the_app_wrote_merges_only_when_its_bot_is_accepted(self):
+        self.pr = release_pr(user={"login": APP_BOT})
+        self.pages["pulls/563/commits"] = [release_commit(author=APP_BOT, committer=APP_BOT)]
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(len(self.writes("pulls/563/merge")), 1)
+        self.api.write.reset_mock()
+        self.assertEqual(self.run_once(authors=frozenset({security.BOT})), [])
+        self.assertEqual(self.writes("pulls/563/merge"), [])
+        self.assertIn(f"`{APP_BOT}` is not an accepted release author", self.status())
+        self.assertIn("`RELEASE_PLEASE_BOT`", self.status())
+
     def test_a_breaking_major_release_merges_like_any_other(self):
         self.pr = release_pr(title="chore(master): release 1.0.0")
         files = release_files()
@@ -377,7 +429,7 @@ class ReconcileTests(unittest.TestCase):
 
     def test_ci_waiting_for_approval_stops_at_once_and_starts_nothing(self):
         # Runs started by release-please's GITHUB_TOKEN pushes wait for approval and never count as required checks.
-        runs = {w: run(event="pull_request", conclusion="action_required") for w in release.WORKFLOWS}
+        runs = {w: run(conclusion="action_required") for w in release.WORKFLOWS}
         self.release_state = ([], release.WORKFLOWS, runs)
         self.assertEqual(self.run_once(), [])
         self.assertEqual(self.dispatched(release.RELEASE_BRANCH), [])
@@ -413,6 +465,19 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(self.writes("pulls/563/merge"), [])
         self.assertIn("Checks failed on the head of `master`: `build (3.13)`.", self.status())
         self.assertEqual([call.args[1] for call in self.ci_state.call_args_list if call.args[1] != SHA], [MASTER])
+        master_read = next(call for call in self.ci_state.call_args_list if call.args[1] == MASTER)
+        self.assertEqual(master_read.kwargs["workflows"], release.WORKFLOWS)
+        self.assertEqual(master_read.kwargs["excluded_checks"], release.MASTER_EXCLUDED_CHECKS)
+
+    def test_checks_on_master_that_say_nothing_about_the_code_do_not_stop_a_release(self):
+        # GitHub's Dependabot update jobs, the publisher and codecov/patch also report on master's head.
+        self.master_state = (["Dependabot", "publish", "GHPages publish", "build", security.CODECOV_PATCH], [], {})
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(len(self.writes("pulls/563/merge")), 1)
+        self.master_state = (["python-package.yml"], [], {})
+        self.api.write.reset_mock()
+        self.assertEqual(self.run_once(), [])
+        self.assertIn("`python-package.yml`", self.status())
 
     def test_a_missing_previous_tag_stops_with_a_reason(self):
         def get(path):
@@ -459,13 +524,26 @@ class ReconcileTests(unittest.TestCase):
         self.assertEqual(self.writes("pulls/563/merge"), [])
         self.assertIn("RELEASE_MERGE_ENABLED", self.status())
 
-    def test_a_declined_merge_waits_and_other_errors_fail_the_job(self):
-        for code in (403, 405, 409, 422):
-            with self.subTest(code=code):
+    def test_a_transient_refusal_waits_within_the_window_and_others_stop(self):
+        old = "2026-10-30T11:59:00Z"  # Just over seven days before NOW.
+        for code, date, outcome in (
+            (405, "2026-11-06T11:00:00Z", "The next run tries again."),
+            (409, "2026-10-30T12:00:00Z", "The next run tries again."),
+            (405, old, "GitHub refused the merge of this head."),
+            (409, old, "GitHub refused the merge of this head."),
+            (403, "2026-11-06T11:00:00Z", "GitHub refused the merge of this head."),
+            (422, "2026-11-06T11:00:00Z", "GitHub refused the merge of this head."),
+        ):
+            with self.subTest(code=code, date=date):
                 self.api.write.reset_mock()
+                self.comments.clear()
+                self.pages["pulls/563/commits"] = [release_commit(date=date)]
                 self.api.write.side_effect = self.refuse(code)
                 self.assertEqual(self.run_once(), [])
                 self.assertIn(f"HTTP status {code}", self.status())
+                self.assertIn(outcome, self.status())
+                mentions = len(self.writes("issues/563/comments")) - 1
+                self.assertEqual(mentions, 0 if outcome.startswith("The next") else 1)
                 self.assertEqual(self.dispatched("master"), [])
         self.api.write.side_effect = self.refuse(500)
         self.assertEqual(len(self.run_once()), 1)
@@ -559,7 +637,7 @@ class ReconcileTests(unittest.TestCase):
         self.pages[LISTING] = []
         self.pr = {**self.pr, "merged_by": {"login": security.BOT}}
         self.master_pulls.append({"number": 563, "user": {"login": APP_BOT}, "head": {"ref": release.RELEASE_BRANCH}})
-        self.assertEqual(release.reconcile(self.api, FIXTURE_ROOT, True, NOW, AUTHORS), [])
+        self.assertEqual(self.run_once(), [])
         self.assertEqual(self.dispatched("master"), release.POST_MERGE)
 
     def test_post_merge_recovery_ignores_other_prs(self):
@@ -573,12 +651,12 @@ class ReconcileTests(unittest.TestCase):
 
 
 class MainTests(unittest.TestCase):
-    def run_main(self, variable, errors):
+    def run_main(self, variable, errors, app_bot=APP_BOT):
         environment = {
             "GITHUB_REPOSITORY": REPO,
             "GH_TOKEN": "x",
             "RELEASE_MERGE_ENABLED": variable,
-            "RELEASE_PLEASE_BOT": APP_BOT,
+            "RELEASE_PLEASE_BOT": app_bot,
         }
         with (
             patch.dict(os.environ, environment),
@@ -600,6 +678,15 @@ class MainTests(unittest.TestCase):
     def test_main_fails_the_job_on_errors(self):
         with self.assertRaisesRegex(SystemExit, "PR #1: x\nPost-merge workflows: y"):
             self.run_main("", ["PR #1: x", "Post-merge workflows: y"])
+
+    def test_an_invalid_app_bot_variable_fails_the_job_after_reconciling(self):
+        for value in ("pytorch-bsf-release", "my app[bot]"):
+            with self.subTest(value=value), self.assertRaisesRegex(SystemExit, "`RELEASE_PLEASE_BOT` must name"):
+                self.run_main("", [], app_bot=value)
+        for value in ("", "  ", f" {APP_BOT} "):
+            with self.subTest(value=value):
+                reconcile = self.run_main("", [], app_bot=value)
+                reconcile.assert_called_once()
 
 
 class AuthorTests(unittest.TestCase):

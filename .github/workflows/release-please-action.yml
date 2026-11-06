@@ -27,9 +27,20 @@ jobs:
         config-file: release-please-config.json
         manifest-file: .release-please-manifest.json
         skip-github-pull-request: true
-    # A release PR that GITHUB_TOKEN updates gets CI runs that wait for approval and never count as its required
-    # checks, so the release App opens and updates it; see "Release automation" in SECURITY.md. Without the App,
-    # GITHUB_TOKEN still opens the PR, and the release controller stops it with that reason.
+
+  # A release PR that GITHUB_TOKEN updates gets CI runs that wait for approval and never count as its required checks,
+  # so the release App opens and updates it; see "Release App" in SECURITY.md. Without the App, GITHUB_TOKEN still
+  # opens the PR, and the release controller stops it with that reason. No publishing job needs this job, so a
+  # failure here, such as a revoked App key, cannot keep a created release from being published. It runs after the
+  # release is created, so that release-please sees the merged release PR as released.
+  release-pr:
+    needs: github-release
+    if: ${{ !cancelled() && github.ref == 'refs/heads/master' }}
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
     - id: app-token
       if: ${{ vars.RELEASE_PLEASE_APP_CLIENT_ID != '' }}
       uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0

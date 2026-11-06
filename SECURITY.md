@@ -311,31 +311,10 @@ The controller merges only release-please's own PR for `master`: opened by
 `github-actions[bot]` or the release App's bot from
 `release-please--branches--master--components--torch_bsf` with a release title and the
 `autorelease: pending` label, made of commits that one of those accounts wrote and that
-GitHub signed (as `web-flow`, or as the App's bot for its own commits), and changing only
+GitHub signed (as `web-flow`, or as the App's bot for the App's own commits), and changing only
 the version in `pyproject.toml` and `.release-please-manifest.json`, and `CHANGELOG.md`.
-Anything else stops the merge.
-
-### Release App
-
-A release PR that release-please updates with `GITHUB_TOKEN` gets `pull_request` runs
-that wait for approval (`action_required`). Runs started any other way, for example by
-hand, do not count as the PR's required checks, so GitHub blocks the merge. The Release
-workflow therefore opens and updates the release PR with a GitHub App's token, and
-creates releases with `GITHUB_TOKEN` as before, so that tag and release events start no
-second publication. Without the App, `GITHUB_TOKEN` still opens the PR, and the
-controller stops it, saying that CI waits for approval. To set the App up:
-
-1. Create a GitHub App owned by the organization, with no webhook, and repository
-   permissions **Contents: Read and write** and **Pull requests: Read and write**
-   (Metadata: Read-only is added automatically). Install it on this repository only.
-2. Generate a private key. Add the App's client ID as the repository Actions variable
-   **RELEASE_PLEASE_APP_CLIENT_ID** and the key as the secret
-   **RELEASE_PLEASE_APP_PRIVATE_KEY**.
-3. Add the App's bot account, `<app-slug>[bot]`, as the variable **RELEASE_PLEASE_BOT**,
-   so that the controller accepts the PRs and commits it writes.
-
-The key can push to any branch of this repository, including `master` unless the branch
-rules stop it, so keep it only in that secret, and rotate it if it leaks.
+Anything else stops the merge. The release App, described [below](#release-app), opens
+and updates the PR so that its CI runs.
 
 The GHPages build and publisher exclude release-please branches, so their checks are not
 required there; the PyTest `docs` job still builds the documentation. A merge with
@@ -350,17 +329,49 @@ controller, and it waits for `codecov/patch` in the same way. The PR keeps one s
 comment with the decision, the reason and what would make it mergeable. The controller
 stops the merge, and mentions the maintainer once for each stopped head, on:
 
-- CI on the release head that waits for approval, as described above;
+- CI on the release head that waits for approval, which means the release App is not
+  set up;
 - failed checks on the release head;
-- failed checks on the head of `master`. A merge also ships the `master` commits that
+- failed CI on the head of `master`. A merge also ships the `master` commits that
   release-please did not add to the release PR, such as `build(deps)` or `ci` commits,
-  and those were tested only in their own PRs;
+  and those were tested only in their own PRs. Only the CI workflows and their expected
+  checks count, not the documentation checks, `codecov/patch` or other checks on that
+  commit, such as GitHub's own Dependabot update jobs;
 - checks still unfinished two hours after the head's commit;
 - a merge state other than mergeable two hours after the head's commit, or seven days
   while GitHub has not computed it. A conflict usually clears when release-please
   rebases the PR for the next releasable change;
-- a missing tag for the previous release, or a PR outside the limits above.
+- a missing tag for the previous release, or a PR outside the limits above;
+- a merge that GitHub refuses with HTTP status 403 or 422, or with 405 or 409 seven
+  days after the head's commit (until then the next run tries again), or that GitHub
+  answers without merging.
 
 To keep a release from merging, mark its PR as a draft. Set the repository Actions
 variable **RELEASE_MERGE_ENABLED** to `false` to stop all release merges; as with
 `DEPENDABOT_MERGE_ENABLED`, any value other than an empty one or `true` stops them.
+
+### Release App
+
+A release PR that release-please updates with `GITHUB_TOKEN` gets `pull_request` runs
+that wait for approval (`action_required`). Runs started any other way, for example by
+hand, do not count as the PR's required checks, so GitHub blocks the merge. The Release
+workflow therefore opens and updates the release PR with a GitHub App's token, and
+creates releases with `GITHUB_TOKEN` as before, so that tag and release events start no
+second publication. The PR update runs in its own job, `release-pr`, which no publishing
+job needs, so that a failure there, such as a revoked key, cannot keep a created release
+from being published. Without the App, `GITHUB_TOKEN` still opens the PR, and the
+controller stops it, saying that CI waits for approval. To set the App up:
+
+1. Create a GitHub App owned by the organization, with no webhook, and repository
+   permissions **Contents: Read and write** and **Pull requests: Read and write**
+   (Metadata: Read-only is added automatically). Install it on this repository only.
+2. Generate a private key. Add the App's client ID as the repository Actions variable
+   **RELEASE_PLEASE_APP_CLIENT_ID** and the key as the secret
+   **RELEASE_PLEASE_APP_PRIVATE_KEY**.
+3. Add the App's bot account, `<app-slug>[bot]`, as the variable **RELEASE_PLEASE_BOT**,
+   so that the controller accepts the PRs and commits it writes. A value of another form
+   fails the controller's job, and a PR by a bot that the variable does not name stops
+   with a reason that names the variable.
+
+The key can push to any branch of this repository, including `master` unless the branch
+rules stop it, so keep it only in that secret, and rotate it if it leaks.

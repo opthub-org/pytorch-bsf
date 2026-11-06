@@ -143,7 +143,23 @@ test('Action inputs and root outputs connect only created releases to publishing
   });
   // The release PR is opened with the release App's token, so that its CI runs; the release itself stays with
   // GITHUB_TOKEN so that its tag and release events start no second publication.
-  const pr = release.steps.find(step => step.id === 'release-pr');
+  const prJob = workflow.jobs['release-pr'];
+  assert.equal(prJob.needs, 'github-release');
+  assert.equal(prJob.if, "${{ !cancelled() && github.ref == 'refs/heads/master' }}");
+  assert.deepEqual(prJob.permissions, {contents: 'write', 'pull-requests': 'write'});
+  const [app, pr] = prJob.steps;
+  assert.equal(prJob.steps.length, 2);
+  assert.equal(app.id, 'app-token');
+  assert.ok(app.uses.startsWith('actions/create-github-app-token@'));
+  // Without the App, the step is skipped and the PR falls back to GITHUB_TOKEN.
+  assert.equal(app.if, "${{ vars.RELEASE_PLEASE_APP_CLIENT_ID != '' }}");
+  assert.deepEqual(app.with, {
+    'client-id': '${{ vars.RELEASE_PLEASE_APP_CLIENT_ID }}',
+    'private-key': '${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}',
+    'permission-contents': 'write',
+    'permission-pull-requests': 'write',
+  });
+  assert.equal(pr.id, 'release-pr');
   assert.equal(pr.uses, step.uses);
   assert.deepEqual(pr.with, {
     token: '${{ steps.app-token.outputs.token || github.token }}',
@@ -151,13 +167,11 @@ test('Action inputs and root outputs connect only created releases to publishing
     'manifest-file': '.release-please-manifest.json',
     'skip-github-release': true,
   });
-  const app = release.steps.find(step => step.id === 'app-token');
-  assert.ok(app.uses.startsWith('actions/create-github-app-token@'));
-  assert.deepEqual(
-    Object.keys(app.with).filter(key => key.startsWith('permission-')).sort(),
-    ['permission-contents', 'permission-pull-requests'],
-  );
-  assert.ok(release.steps.indexOf(step) < release.steps.indexOf(pr));
+  // A failure to update the PR, such as a revoked App key, must not keep a created release from being published.
+  assert.equal(release.steps.length, 1);
+  for (const [name, job] of Object.entries(workflow.jobs)) {
+    assert.ok(![job.needs ?? []].flat().includes('release-pr'), `${name} must not need release-pr`);
+  }
   assert.deepEqual(release.outputs, {
     release_created: '${{ steps.release-please.outputs.release_created }}',
     tag_name: '${{ steps.release-please.outputs.tag_name }}',
