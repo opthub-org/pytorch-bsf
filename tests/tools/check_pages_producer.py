@@ -93,6 +93,16 @@ def test_a_missing_file_is_an_error_not_a_pass(root: Path, missing: str, revisio
     assert any(argument == f"{without}:{missing}" for argument in error.value.cmd)
 
 
+@pytest.mark.parametrize("empty", ["base", "head"])
+def test_an_empty_revision_is_an_error_not_the_index(root: Path, empty: str) -> None:
+    # git would read ":path" from the index, which may hold anything.
+    revision = commit(root, OLD, OLD)
+    base, head = ("", revision) if empty == "base" else (revision, "")
+
+    with pytest.raises(ValueError, match="must not be empty"):
+        producer_is_untrusted(root, base, head)
+
+
 def run_script(root: Path, base: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run([sys.executable, str(SCRIPT), base], cwd=root, capture_output=True, text=True, check=False)
 
@@ -119,3 +129,16 @@ def test_script_reports_an_unreadable_base_apart_from_a_rejection(root: Path) ->
 
     assert result.returncode == 2
     assert result.stdout.startswith("::error::Cannot read the GHPages producer or template: fatal:")
+
+
+def test_script_reports_an_empty_base_apart_from_a_rejection(root: Path) -> None:
+    # The index holds another producer, so reading it as the base would pass HEAD without checking master.
+    commit(root, OLD, OLD)
+    (root / PRODUCER).write_bytes(NEW)
+    git(root, "add", PRODUCER)
+
+    result = run_script(root, "")
+
+    assert result.returncode == 2
+    assert result.stdout.startswith("::error::Cannot read the GHPages producer or template: ")
+    assert "must not be empty" in result.stdout

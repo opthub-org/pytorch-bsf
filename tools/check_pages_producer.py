@@ -27,8 +27,11 @@ def producer_is_untrusted(root: Path, base: str, head: str = "HEAD") -> bool:
     every unrelated pull request would fail between a Template PR and its Workflow PR. A head
     that moves the producer must match the template both before and after the merge.
 
-    A file missing from either revision raises ``subprocess.CalledProcessError``.
+    A file missing from either revision raises ``subprocess.CalledProcessError``. An empty
+    revision raises ``ValueError``, because git would read ``:path`` from the index instead.
     """
+    if not base or not head:
+        raise ValueError("The base and head revisions must not be empty")
     producer = blob_id(root, head, PRODUCER)
     head_template = blob_id(root, head, TEMPLATE)
     base_producer = blob_id(root, base, PRODUCER)
@@ -44,6 +47,9 @@ def main() -> int:
         untrusted = producer_is_untrusted(Path.cwd(), arguments.base)
     except subprocess.CalledProcessError as error:
         print(f"::error::Cannot read the GHPages producer or template: {error.stderr.strip()}")
+        return 2
+    except ValueError as error:
+        print(f"::error::Cannot read the GHPages producer or template: {error}")
         return 2
     if not untrusted:
         return 0
