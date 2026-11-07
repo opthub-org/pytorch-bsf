@@ -122,9 +122,13 @@ sidebar. For example, version ``0.23.0`` corresponds to ``v0.23.0``. The
 in the latest release. The README links to the documentation home for version
 selection; its migration link explicitly targets the development guide.
 
-API **[source]** links follow the tag or branch being documented. A normal
-single-version local ``sphinx-build`` uses ``master`` as its source-link
-fallback; use ``sphinx-multiversion`` to generate links for another ref.
+API **[source]** links follow the tag or branch being documented. A local
+``sphinx-build`` links to ``master``; set ``PYTORCH_BSF_DOCS_VERSION`` to a
+branch or tag name to link to that ref instead. The variable also turns on the
+**Other Versions** menu, whose links work only in the GitHub Pages layout,
+where each ref is published in a sibling directory. Sphinx does not track the
+variable, so rebuild from scratch (``-E`` or a new output directory) after
+changing it.
 
 Apply the matching migration guide
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
