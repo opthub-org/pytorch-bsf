@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import re
+import runpy
 import subprocess
 import sys
 from pathlib import Path
@@ -12,7 +13,8 @@ from unittest.mock import patch
 import pytest
 import yaml
 
-from tools.pages_build import freeze, package, source_name
+from tools.pages_build import DOCS_VERSION_VARIABLE, build_html, freeze, package, source_name
+from tools.pages_publish import TAG
 
 # Stricter than tools.security_automation.ACTION_PIN: at the trust boundary, the comment
 # must be a single ASCII version token, so that it cannot hide a YAML line break.
@@ -97,6 +99,76 @@ def test_freeze_uses_event_sha_and_does_not_update_a_different_checkout():
         with pytest.raises(ValueError, match="Checkout"):
             freeze("refs/heads/master", sha)
         run.assert_not_called()
+
+
+@pytest.mark.parametrize(("ref", "name"), [("refs/heads/fix/topic", "fix/topic"), ("refs/tags/v1.2.3", "v1.2.3")])
+def test_html_build_writes_only_the_triggering_ref_under_its_version_root(tmp_path, monkeypatch, ref, name):
+    monkeypatch.setenv(DOCS_VERSION_VARIABLE, "stale")
+    with patch("tools.pages_build.subprocess.run") as run:
+        build_html(ref, tmp_path)
+    run.assert_called_once()
+    (command,), options = run.call_args
+    assert command == [sys.executable, "-m", "sphinx", "-b", "html", "docs", str(tmp_path / name)]
+    assert options["check"] is True
+    assert options["env"][DOCS_VERSION_VARIABLE] == name
+
+
+def test_html_build_rejects_an_unpublishable_ref_before_running_sphinx(tmp_path):
+    with patch("tools.pages_build.subprocess.run") as run, pytest.raises(ValueError, match="Excluded documentation branch"):
+        build_html("refs/heads/gh-pages", tmp_path)
+    run.assert_not_called()
+
+
+def _docs_configuration():
+    return runpy.run_path(str(Path(__file__).resolve().parents[2] / "docs/conf.py"))
+
+
+def test_producer_sets_the_variable_that_docs_configuration_reads():
+    assert _docs_configuration()["DOCS_VERSION_VARIABLE"] == DOCS_VERSION_VARIABLE
+
+
+@pytest.mark.parametrize("name", ["v1.2.3", "v0.10.0", "v1.2", "v1.2.3-rc.1", "1.2.3", "v1.2.3.4", "va.b.c", "v1x2x3"])
+def test_menu_lists_exactly_the_tags_that_are_published(name):
+    listed = _docs_configuration()["_RELEASE_TAG"].fullmatch(name) is not None
+    assert (TAG.fullmatch(name) is not None) == listed
+    try:
+        source_name(f"refs/tags/{name}")
+    except ValueError:
+        built = False
+    else:
+        built = True
+    assert built == listed
+
+
+@pytest.mark.parametrize(
+    "arguments", [["--freeze", "--html"], ["--html", "--output", "out"], ["--freeze", "--output", "out"], []]
+)
+def test_cli_requires_exactly_one_mode(monkeypatch, arguments):
+    from tools import pages_build
+
+    monkeypatch.setattr(sys, "argv", ["pages_build.py", *arguments])
+    with (
+        patch("tools.pages_build.freeze") as freeze_ref,
+        patch("tools.pages_build.build_html") as build,
+        patch("tools.pages_build.package") as pack,
+        pytest.raises(SystemExit) as raised,
+    ):
+        pages_build.main()
+    assert raised.value.code == 2
+    freeze_ref.assert_not_called()
+    build.assert_not_called()
+    pack.assert_not_called()
+
+
+def test_cli_builds_html_for_the_event_ref(tmp_path, monkeypatch):
+    from tools import pages_build
+
+    monkeypatch.setenv("GITHUB_REF", "refs/tags/v1.2.3")
+    monkeypatch.setenv("GITHUB_SHA", "a" * 40)
+    monkeypatch.setattr(sys, "argv", ["pages_build.py", "--html", "--build", str(tmp_path)])
+    with patch("tools.pages_build.build_html") as build:
+        pages_build.main()
+    build.assert_called_once_with("refs/tags/v1.2.3", tmp_path)
 
 
 def _build(tmp_path):
@@ -244,12 +316,14 @@ def test_cli_records_event_provenance_and_preserves_existing_output(tmp_path):
     assert (output / "manifest.json").read_bytes() == saved
 
 
-def test_workflow_keeps_complete_build_readonly_and_outside_publish_lock(template):
+def test_workflow_keeps_documentation_build_readonly_and_outside_publish_lock(template):
     root = Path(__file__).resolve().parents[2]
     raw = (root / ".github/workflows/sphinx-pages-build.yml").read_bytes()
     _assert_fully_pinned_and_only_pins_differ(raw, template)
     workflow = raw.decode()
-    assert "sphinx-multiversion docs/ docs/_build" in workflow
+    # Compare whole lines: CRLF checkouts on windows-latest end lines with "\r\n".
+    assert "run: python tools/pages_build.py --html" in [line.strip() for line in workflow.splitlines()]
+    assert "multiversion" not in workflow
     assert "contents: read" in workflow
     assert "contents: write" not in workflow
     assert "concurrency:" not in workflow

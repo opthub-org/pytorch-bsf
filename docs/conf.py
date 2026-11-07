@@ -14,8 +14,10 @@ import ast
 import importlib.util
 import inspect
 import os
+import re
+import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from urllib.parse import quote
 
 import torch_bsf
@@ -49,7 +51,6 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx_design",
     "sphinx_rtd_theme",
-    "sphinx_multiversion",
     "sphinx_proof",
     "sphinxcontrib.bibtex",
 ]
@@ -120,23 +121,90 @@ html_logo = "_static/logo-compact-white.svg"
 html_favicon = "_static/favicon.ico"
 
 
-# -- Options for sphinx-multiversion -----------------------------------------
+# -- Version menu and source links ------------------------------------------
 
-smv_tag_whitelist = r"^v\d+\.\d+.\d+$"  # v1.2.3
-smv_branch_whitelist = r"^(?!gh-pages|release-please).+$"  # all branches except gh-pages and release-please
-
+# The GHPages producer builds only the pushed ref and names it in this variable:
+# a branch such as ``master`` or a release tag such as ``v1.2.3``. The name is also
+# the ref's URL root on GitHub Pages. A local build leaves it unset, so its source
+# links document master and it shows no version menu.
+# tools/pages_build.py sets it, and a test checks that both use this name.
+DOCS_VERSION_VARIABLE = "PYTORCH_BSF_DOCS_VERSION"
+# The release tags that the producer and publisher accept (tools/pages_build.py and
+# tools/pages_publish.py); a test checks that the three patterns agree.
+_RELEASE_TAG = re.compile(r"v(\d+)\.(\d+)\.(\d+)")
 
 # https://www.sphinx-doc.org/ja/master/usage/extensions/linkcode.html
-# A normal single-version build documents master. Multiversion sets these
-# from its build context, independently of the installed package's version.
+# Source links follow the documented ref and tree, independently of the
+# installed package's version.
 _source_ref = "master"
 _source_root = Path(__file__).resolve().parent.parent
 
+# Refs listed in the Other Versions menu, set by _configure_documented_ref; ``None``
+# for a local build.
+_menu = None
 
-def _configure_source_links(app, config):
-    global _source_ref, _source_root
-    _source_ref = config.smv_current_version or "master"
+
+def _release_tags(root):
+    """Return the release tags of ``root``, newest first, or none outside Git."""
+    try:
+        listed = subprocess.run(
+            ["git", "-C", str(root), "tag", "--list", "v*"], check=True, capture_output=True, text=True
+        ).stdout.split()
+    except (OSError, subprocess.CalledProcessError):
+        return []
+    return _newest_first(listed)
+
+
+def _newest_first(tags):
+    """Return the distinct release tags among ``tags``, newest version first."""
+    releases = [(tuple(map(int, match.groups())), tag) for tag in set(tags) if (match := _RELEASE_TAG.fullmatch(tag))]
+    return [tag for _, tag in sorted(releases, reverse=True)]
+
+
+def _menu_refs(current, tags):
+    """Return the refs listed under Other Versions, or ``None`` for a local build.
+
+    Tags are the release tags known when this ref is built, plus the ref itself if
+    it is one. Branches are master and the branch being built, because other branch
+    previews come and go.
+    """
+    if not current:
+        return None
+    if _RELEASE_TAG.fullmatch(current):
+        return {"current": current, "tags": _newest_first([*tags, current]), "branches": ["master"]}
+    branches = ["master"] if current == "master" else ["master", current]
+    return {"current": current, "tags": tags, "branches": branches}
+
+
+def _configure_documented_ref(app, config):
+    global _source_ref, _source_root, _menu
+    current = os.environ.get(DOCS_VERSION_VARIABLE, "")
+    _source_ref = current or "master"
     _source_root = Path(app.srcdir).resolve().parent
+    _menu = _menu_refs(current, _release_tags(_source_root))
+
+
+def _version_links(menu, pagename):
+    """Link each listed ref to this page, and to its index for a page it lacks.
+
+    Every ref is published under its own root, so a link climbs out of this page's
+    directory and this ref's root before entering the other ref's root.
+    """
+    up = "../" * (pagename.count("/") + len(PurePosixPath(menu["current"]).parts))
+
+    def link(name):
+        root = up + quote(name, safe="/")
+        return {"name": name, "url": f"{root}/{quote(pagename, safe='/')}.html", "fallback": f"{root}/index.html"}
+
+    return {
+        "current_version": {"name": menu["current"]},
+        "versions": {kind: [link(name) for name in menu[kind]] for kind in ("tags", "branches")},
+    }
+
+
+def _add_version_links(app, pagename, templatename, context, doctree):
+    if _menu is not None:
+        context.update(_version_links(_menu, pagename))
 
 
 def _definition_lines(path, fullname):
@@ -200,4 +268,5 @@ def linkcode_resolve(domain, info):
 
 
 def setup(app):
-    app.connect("config-inited", _configure_source_links)
+    app.connect("config-inited", _configure_documented_ref)
+    app.connect("html-page-context", _add_version_links)

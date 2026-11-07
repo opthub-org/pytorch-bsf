@@ -11,7 +11,7 @@ on:
 
 permissions: {}
 
-# Dependencies and the complete multiversion build do not hold the publish lock.
+# Dependencies and the documentation build do not hold the publish lock.
 jobs:
   build:
     permissions:
@@ -36,8 +36,8 @@ jobs:
           python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
           python -m pip install -r docs/requirements.txt
           python -c "import torch; assert torch.version.cuda is None, torch.__version__; print(torch.__version__)"
-      - name: Build documentation with sphinx-multiversion
-        run: sphinx-multiversion docs/ docs/_build
+      - name: Build documentation of the triggering ref only
+        run: python tools/pages_build.py --html
       - name: Package only the triggering ref as inert publication data
         run: python tools/pages_build.py --output "$RUNNER_TEMP/pages-artifact"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
