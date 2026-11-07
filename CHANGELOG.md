@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.25.1](https://github.com/opthub-org/pytorch-bsf/compare/v0.25.0...v0.25.1) (2026-11-07)
+
+
+### Documentation
+
+* correct bibliographic data in refs.bib ([#716](https://github.com/opthub-org/pytorch-bsf/issues/716)) ([90473b0](https://github.com/opthub-org/pytorch-bsf/commit/90473b0e97564eb45b1e5127749c459c33a131af))
+
 ## [0.25.0](https://github.com/opthub-org/pytorch-bsf/compare/v0.24.0...v0.25.0) (2026-11-06)
 
 
