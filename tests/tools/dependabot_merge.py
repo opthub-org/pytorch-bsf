@@ -2,6 +2,7 @@
 
 import datetime as dt
 import http.client
+import itertools
 import json
 import math
 import os
@@ -307,7 +308,14 @@ class ChangeTests(unittest.TestCase):
     def test_dependency_files_and_pin_updates_pass(self):
         files = [
             {"filename": name, "status": "modified", "patch": "+anything"}
-            for name in ("pyproject.toml", "uv.lock", "Dockerfile", ".pre-commit-config.yaml")
+            for name in (
+                "pyproject.toml",
+                "uv.lock",
+                "Dockerfile",
+                ".pre-commit-config.yaml",
+                "tests/tools/release-please-fixture/package.json",
+                "tests/tools/release-please-fixture/package-lock.json",
+            )
         ]
         files.append({"filename": "docs/requirements.txt", "status": "modified"})
         files.append(self.workflow(f"@@ -1 +1 @@\n{PIN_OLD}\n{PIN_NEW}"))
@@ -342,6 +350,12 @@ class ChangeTests(unittest.TestCase):
             "docs/Dockerfile",
             ".github/dependabot.yml",
             "a/pyproject.toml",
+            "package.json",
+            "package-lock.json",
+            "tests/tools/release-please-fixture/test.cjs",
+            "tests/tools/release-please-fixture/releasable.json",
+            "tests/tools/release-please-fixture/.npmrc",
+            "tests/tools/release-please-fixture/node_modules/x/package.json",
         ):
             with self.subTest(path=path):
                 self.assertIsNotNone(merge.change_problem([{"filename": path, "status": "modified", "patch": "+x"}]))
@@ -416,6 +430,7 @@ def branch_pr(segment):
 
 PIP = branch_pr("pip")
 ACTIONS = branch_pr("github_actions")
+NPM = branch_pr("npm_and_yarn")
 
 
 class GitHubAdvisoryFake:
@@ -595,6 +610,23 @@ class AdvisoryTests(unittest.TestCase):
             self.assertRaisesRegex(ValueError, "too many pages"),
         ):
             merge._pip_advisories("x", "1")
+
+    def test_npm_asks_osv_about_the_exact_name_and_version(self):
+        for name in ("minimatch", "@google-automations/git-file-utils", "JSONStream"):
+            for version in ("11.0.1", "1.0.0-rc.1", "2.0.0-beta.2+build.5"):
+                with self.subTest(name=name, version=version):
+                    fake = self.osv({(name.lower(), version): ["GHSA-a"]})
+                    found = merge.known_advisories(Mock(), NPM, [commit(message=metadata_block((name, version)))])
+                    self.assertEqual(found, (["GHSA-a"], []))
+                    self.assertEqual(fake.bodies, [{"package": {"name": name, "ecosystem": "npm"}, "version": version}])
+
+    def test_npm_versions_that_are_not_exact_ask_about_the_whole_package(self):
+        for version in (None, "^11.0.1", "~1.2.3", ">=1.0.0", "1.2", "11", "latest", "v1.2.3", "1.2.3 - 1.2.5", "١.٢.٣"):
+            with self.subTest(version=version):
+                fake = self.osv({("minimatch", None): ["GHSA-a"]})
+                found = merge.known_advisories(Mock(), NPM, [commit(message=metadata_block(("minimatch", version)))])
+                self.assertEqual(found, ([], ["GHSA-a"]))
+                self.assertEqual(fake.bodies, [{"package": {"name": "minimatch", "ecosystem": "npm"}}])
 
     def test_extras_are_not_part_of_the_package_name(self):
         fake = self.osv({("pyyaml", "5.3.1"): ["GHSA-a"]})
@@ -797,6 +829,10 @@ class AdvisoryTests(unittest.TestCase):
                 ),
             ),
             (ACTIONS, ("actions/download-artifact # c", "actions", "actiòns/cache", "/cache", "a/b" + "/" * 60 + "!", "a/b/")),
+            (
+                NPM,
+                ("minimatch # c", "minimatch@11.0.1", "@scope", "@/x", "@a/b/c", "a/b", "../x", "-x", "mïnimatch", "a b"),
+            ),
         ):
             for name in names:
                 with self.subTest(name=name):
@@ -813,6 +849,11 @@ class AdvisoryTests(unittest.TestCase):
             (ACTIONS, "actions/cache"),
             (ACTIONS, "github/codeql-action/init"),
             (ACTIONS, "a.b/c_d/e/f"),
+            (NPM, "minimatch"),
+            (NPM, "@google-automations/git-file-utils"),
+            (NPM, "JSONStream"),
+            (NPM, "lodash.merge"),
+            (NPM, "@types/node"),
         ):
             with self.subTest(name=name):
                 self.assertIsNone(merge.metadata_problem(pr, [commit(message=metadata_block((name, "1.0.0")))]))
@@ -826,7 +867,7 @@ class AdvisoryTests(unittest.TestCase):
                 self.assertIsNone(merge.metadata_problem(branch_pr(segment), [commit(message="bump")]))
 
     def test_unknown_ecosystem_stops_and_cannot_read_as_clean(self):
-        for segment in ("uv", "npm_and_yarn", "Pip", "group-all"):
+        for segment in ("uv", "npm", "yarn", "Pip", "group-all"):
             with self.subTest(segment=segment):
                 self.assertIn(f"`{segment}`", str(merge.metadata_problem(branch_pr(segment), [commit()])))
                 with self.assertRaisesRegex(KeyError, re.escape(segment)):
@@ -1351,6 +1392,25 @@ class ReconcileTests(unittest.TestCase):
         self.pages["pulls/7/commits"] = [commit(message="bump")]
         self.assert_blocked("does not name its dependencies")
 
+    def use_npm_pr(self):
+        self.pr["head"]["ref"] = "dependabot/npm_and_yarn/tests/tools/release-please-fixture/minimatch-11.0.5"
+        self.pages["pulls/7/commits"] = [commit(message=metadata_block(("minimatch", "11.0.5")))]
+        self.pages["pulls/7/files"] = [
+            {"filename": f"tests/tools/release-please-fixture/{name}", "status": "modified", "patch": "+x"}
+            for name in ("package.json", "package-lock.json")
+        ]
+
+    def test_npm_pr_merges_like_other_ecosystems(self):
+        self.use_npm_pr()
+        self.assertEqual(self.run_once(), [])
+        self.assertEqual(len(self.writes("pulls/7/merge")), 1)
+        self.osv_query.assert_called_once_with({"package": {"name": "minimatch", "ecosystem": "npm"}, "version": "11.0.5"})
+
+    def test_npm_advisory_is_wired_into_the_evaluation(self):
+        self.use_npm_pr()
+        self.osv_query.return_value = {"vulns": [{"id": "GHSA-g3hv-75wg-m249"}]}
+        self.assert_blocked("GHSA-g3hv-75wg-m249")
+
     def use_action_pr(self):
         # A real branch: its later parts can name another ecosystem.
         self.pr["head"]["ref"] = "dependabot/github_actions/docker/build-push-action-6.0.0"
@@ -1653,8 +1713,22 @@ class ReconcileTests(unittest.TestCase):
         self.assertIn("Post-merge workflows", self.run_once()[0])
 
 
+RELEASE = "release-please-action.yml"
+
+
+def workflow_run(run_id, status="completed", conclusion="cancelled", branch="master", workflow=RELEASE):
+    return {
+        "id": run_id,
+        "path": f".github/workflows/{workflow}",
+        "head_branch": branch,
+        "status": status,
+        "conclusion": conclusion,
+    }
+
+
 class PostMergeTests(unittest.TestCase):
-    def api_for(self, author, merged_by, runs=()):
+    def api_for(self, author, merged_by, runs=(), jobs=None):
+        """Return an API whose master head has `runs` (workflow names or run rows) and `jobs` by run id."""
         api = Mock()
         sha = "e" * 40
         responses = {
@@ -1663,8 +1737,89 @@ class PostMergeTests(unittest.TestCase):
             "pulls/3": {"merged_by": {"login": merged_by}},
         }
         api.get.side_effect = responses.__getitem__
-        api.pages.return_value = [{"path": f".github/workflows/{name}"} for name in runs]
+        rows = [{"path": f".github/workflows/{row}"} if isinstance(row, str) else row for row in runs]
+        pages = {f"actions/runs?head_sha={sha}": rows}
+        pages.update({f"actions/runs/{run_id}/jobs?filter=all": listed for run_id, listed in (jobs or {}).items()})
+        api.pages.side_effect = lambda path, key=None: pages[path]
         return api
+
+    def started(self, api):
+        return [call.args[0].split("/")[2] for call in api.write.call_args_list]
+
+    def others(self):
+        """Return every post-merge workflow but the Release workflow."""
+        return [workflow for workflow in security.POST_MERGE if workflow != RELEASE]
+
+    def test_a_release_run_cancelled_before_any_job_is_dispatched_again(self):
+        # One cancelled run, or a dispatch that was cancelled as well; the jobs of every attempt are read.
+        for runs in ([workflow_run(9)], [workflow_run(8), workflow_run(9)]):
+            with self.subTest(runs=[row["id"] for row in runs]):
+                api = self.api_for(merge.AUTHOR, security.BOT, [*self.others(), *runs], {8: [], 9: []})
+                merge.ensure_post_merge(api)
+                self.assertEqual(self.started(api), [RELEASE])
+                self.assertEqual(api.write.call_args.args[1], {"ref": "master"})
+
+    def test_a_release_run_with_a_job_is_not_dispatched_again(self):
+        # A person may have cancelled it after it started, or an earlier attempt of it ran.
+        job = {"name": "github-release", "status": "completed", "conclusion": "cancelled"}
+        api = self.api_for(merge.AUTHOR, security.BOT, [*self.others(), workflow_run(9)], {9: [job]})
+        merge.ensure_post_merge(api)
+        api.write.assert_not_called()
+
+    def test_any_release_run_that_did_not_end_cancelled_stops_the_dispatch(self):
+        # Whether that run is older or newer than the cancelled one does not matter.
+        states: list[tuple[str, str | None]] = [("pending", None), ("queued", None), ("in_progress", None)]
+        states += [("completed", conclusion) for conclusion in ("success", "failure", "skipped")]
+        for (status, conclusion), other_id in itertools.product(states, (8, 10)):
+            with self.subTest(status=status, conclusion=conclusion, other_id=other_id):
+                runs = [workflow_run(9), workflow_run(other_id, status, conclusion)]
+                api = self.api_for(merge.AUTHOR, security.BOT, [*self.others(), *runs], {8: [], 9: [], 10: []})
+                merge.ensure_post_merge(api)
+                api.write.assert_not_called()
+
+    def test_redispatches_stop_at_the_cap_and_fail_the_job(self):
+        runs = [workflow_run(run_id) for run_id in range(1, merge.MAX_REDISPATCHES + 1)]
+        jobs: dict[int, list[security.Json]] = {run_id: [] for run_id in range(1, merge.MAX_REDISPATCHES + 2)}
+        api = self.api_for(merge.AUTHOR, security.BOT, [*self.others(), *runs], jobs)
+        merge.ensure_post_merge(api)
+        self.assertEqual(self.started(api), [RELEASE])
+        # One more cancelled run means the last allowed dispatch was cancelled too.
+        runs.append(workflow_run(merge.MAX_REDISPATCHES + 1))
+        api = self.api_for(merge.AUTHOR, security.BOT, [*self.others()[1:], *runs], jobs)
+        with self.assertRaisesRegex(RuntimeError, rf"`{RELEASE}` on master's head `eeeeeeeeee` was cancelled") as raised:
+            merge.ensure_post_merge(api)
+        self.assertIn(f"starting it again {merge.MAX_REDISPATCHES} times", str(raised.exception))
+        # The other workflows still start before the error.
+        self.assertEqual(self.started(api), self.others()[:1])
+
+    def test_only_release_runs_on_master_count(self):
+        # A run on another branch skips every job: it neither counts toward the cap nor shows that the release ran.
+        elsewhere = [workflow_run(run_id, branch="feature") for run_id in range(10, 20)]
+        api = self.api_for(merge.AUTHOR, security.BOT, [*self.others(), *elsewhere, workflow_run(9)], {9: []})
+        merge.ensure_post_merge(api)
+        self.assertEqual(self.started(api), [RELEASE])
+        # Alone, such a run still counts as started, as before.
+        api = self.api_for(merge.AUTHOR, security.BOT, [*self.others(), *elsewhere], {})
+        merge.ensure_post_merge(api)
+        api.write.assert_not_called()
+
+    def test_other_workflows_are_not_dispatched_again(self):
+        # They have no concurrency group, so such a cancel came from a person.
+        runs = [workflow_run(index, workflow=workflow) for index, workflow in enumerate(self.others())]
+        runs.append(workflow_run(99, conclusion="success"))
+        api = self.api_for(merge.AUTHOR, security.BOT, runs, {index: [] for index in range(len(runs))})
+        merge.ensure_post_merge(api)
+        api.write.assert_not_called()
+
+    def test_redispatched_workflows_are_the_post_merge_workflows_with_a_concurrency_group(self):
+        workflows = ROOT / ".github" / "workflows"
+        grouped = {
+            name
+            for name in security.POST_MERGE
+            if re.search(r"^concurrency:", (workflows / name).read_text(encoding="utf-8"), re.MULTILINE)
+        }
+        self.assertEqual(grouped, merge.REDISPATCHED)
+        self.assertGreaterEqual(merge.MAX_REDISPATCHES, 1)
 
     def test_token_merge_dispatches_only_missing_workflows(self):
         present = security.POST_MERGE[0]
@@ -1796,12 +1951,26 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_every_configured_ecosystem_is_classified_for_advisories(self):
         configured = set(re.findall(r'package-ecosystem: "([^"]+)"', (ROOT / ".github/dependabot.yml").read_text()))
-        self.assertEqual(configured, {"pip", "pre-commit", "github-actions", "docker"})
-        self.assertEqual(set(merge.ADVISORY_SOURCES), {"pip", "github_actions", "pre_commit", "docker"})
+        self.assertEqual(configured, {"pip", "pre-commit", "github-actions", "docker", "npm"})
+        self.assertEqual(set(merge.ADVISORY_SOURCES), {"pip", "github_actions", "pre_commit", "docker", "npm_and_yarn"})
         self.assertIsNotNone(merge.ADVISORY_SOURCES["pip"])
         self.assertIsNotNone(merge.ADVISORY_SOURCES["github_actions"])
+        self.assertIsNotNone(merge.ADVISORY_SOURCES["npm_and_yarn"])
         self.assertIsNone(merge.ADVISORY_SOURCES["pre_commit"])
         self.assertIsNone(merge.ADVISORY_SOURCES["docker"])
+
+    def test_npm_updates_the_fixture_but_never_its_engine(self):
+        # The engine must match the one bundled in the pinned Action, so it moves only with that pin.
+        config = (ROOT / ".github/dependabot.yml").read_text()
+        entry = re.search(r'  - package-ecosystem: "npm"\n((?:    .*\n|\s*#.*\n)+)', config)
+        assert entry is not None
+        self.assertIn('    directory: "/tests/tools/release-please-fixture"\n', entry[1])
+        self.assertIn('    ignore:\n      - dependency-name: "release-please"\n', entry[1])
+        directory = ROOT / "tests/tools/release-please-fixture"
+        for name in ("package.json", "package-lock.json"):
+            with self.subTest(name=name):
+                self.assertTrue((directory / name).is_file())
+                self.assertIn(f"tests/tools/release-please-fixture/{name}", merge.DEPENDENCY_FILES)
 
     def test_every_ecosystem_has_a_three_day_cooldown(self):
         config = (ROOT / ".github/dependabot.yml").read_text()

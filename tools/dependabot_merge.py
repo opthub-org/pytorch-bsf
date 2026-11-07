@@ -52,6 +52,10 @@ PIP_COMPARABLE = re.compile(rf"v?\d+(?:(?:\.\d+)+{_VERSION_SUFFIX})?", re.IGNORE
 # A tag like `v3` moves: it can be any 3.x release, while GitHub compares it as 3.0.0 and misses advisories above that.
 ACTION_COMPARABLE = re.compile(rf"v?\d+(?:\.\d+){{2,}}{_VERSION_SUFFIX}", re.IGNORECASE | re.ASCII)
 PIP_NAME = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?(?:\[[^\]]*\])?")
+# npm names, with an optional `@scope/`. Old packages may have capital letters, which OSV matches exactly.
+NPM_NAME = re.compile(r"(?:@[A-Za-z0-9][A-Za-z0-9._~-]*/)?[A-Za-z0-9][A-Za-z0-9._~-]*", re.ASCII)
+# An exact SemVer version, with an optional prerelease and build. A range or tag asks about the whole package.
+NPM_COMPARABLE = re.compile(r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?", re.ASCII)
 ACTION_NAME = re.compile(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)+")
 # The only lines that may follow Dependabot's metadata, which ends every message it writes.
 METADATA_TRAILER = re.compile(r"(?:Signed-off-by|Co-authored-by): .*", re.IGNORECASE)
@@ -79,6 +83,8 @@ DEPENDENCY_FILES = {
     "docs/requirements.txt",
     ".pre-commit-config.yaml",
     "Dockerfile",
+    "tests/tools/release-please-fixture/package.json",
+    "tests/tools/release-please-fixture/package-lock.json",
 }
 WORKFLOW_PATH = re.compile(r"\.github/workflows/[^/]+\.ya?ml")
 # Stricter than security.ACTION_PIN, which runs on whole files: a line must not smuggle a second YAML line in its comment.
@@ -87,6 +93,11 @@ PIN_LINE = re.compile(r"([ \t]*(?:- )?uses:[ \t]+\w[\w./-]*@)[0-9a-f]{40}(?:[ \t
 HOLD_COMMAND = re.compile(r"/dependabot[-_ ]?hold\b:?(.*)", re.IGNORECASE)
 HOLD_ARGUMENTS = re.compile(r"until=(\d{4}-\d{2}-\d{2})\s+(\S.*)")
 RELEASE_COMMAND = re.compile(r"/dependabot-release", re.IGNORECASE)
+# Post-merge workflows with a workflow-level concurrency group, which cancels a waiting run when a newer run joins the
+# group, as a re-run of an older run does. tests/tools/dependabot_merge.py checks this against the workflow files.
+REDISPATCHED = frozenset({"release-please-action.yml"})
+# At most how many times ensure_post_merge starts such a workflow again on one head of master; past that it raises.
+MAX_REDISPATCHES = 2
 
 
 @dataclass(frozen=True)
@@ -314,7 +325,12 @@ def _osv_query(body: Json) -> Json:
 def _pip_advisories(name: str, version: str | None) -> set[str]:
     """Ask OSV, which normalizes PyPI names; GitHub's API misses `PyYAML` advisories for Dependabot's `pyyaml`."""
     # Dependabot keeps extras in the name, and OSV knows of nothing for `pyyaml[extra]`.
-    body: Json = {"package": {"name": name.partition("[")[0], "ecosystem": "PyPI"}}
+    return _osv_advisories("PyPI", name.partition("[")[0], version)
+
+
+def _osv_advisories(ecosystem: str, name: str, version: str | None) -> set[str]:
+    """Return the live OSV advisories on one package, or on one version of it."""
+    body: Json = {"package": {"name": name, "ecosystem": ecosystem}}
     if version is not None:
         body["version"] = version
     found: set[str] = set()
@@ -380,6 +396,9 @@ class AdvisorySource:
 ADVISORY_SOURCES: dict[str, AdvisorySource | None] = {
     "pip": AdvisorySource(lambda _api, name, version: _pip_advisories(name, version), PIP_NAME, PIP_COMPARABLE),
     "github_actions": AdvisorySource(_action_advisories, ACTION_NAME, ACTION_COMPARABLE),
+    "npm_and_yarn": AdvisorySource(
+        lambda _api, name, version: _osv_advisories("npm", name, version), NPM_NAME, NPM_COMPARABLE
+    ),
     "docker": None,
     "pre_commit": None,
 }
@@ -840,7 +859,12 @@ def ensure_post_merge(
     owned: Callable[[Json], bool] = _is_dependabot_pr,
     workflows: Sequence[str] = security.POST_MERGE,
 ) -> None:
-    """Start the master workflows that a GITHUB_TOKEN merge of an owned PR does not trigger, until each has a run."""
+    """Start the master workflows that a GITHUB_TOKEN merge of an owned PR does not trigger, until each has a run.
+
+    A workflow in REDISPATCHED is started again while it has runs on master's head and every one of them was cancelled
+    before any job ran, at most MAX_REDISPATCHES times. Past that, the other workflows are still started, and then this
+    raises RuntimeError, so that the job fails and a person starts it.
+    """
     sha = api.get("commits/master")["sha"]
     pulls = api.get(f"commits/{sha}/pulls")
     if not any(owned(row) for row in pulls):
@@ -849,10 +873,39 @@ def ensure_post_merge(
     if security.BOT not in merged_by:
         return
     runs = api.pages(f"actions/runs?head_sha={sha}", "workflow_runs")
-    started = {row["path"].split("/")[-1] for row in runs}
+    exhausted = []
     for workflow in workflows:
-        if workflow not in started:
-            security.dispatch_workflow(api, workflow, "master")
+        own = [row for row in runs if row["path"].split("/")[-1] == workflow]
+        if own:
+            if workflow not in REDISPATCHED:
+                continue
+            # A run on another branch skips every job and is in another concurrency group, so only runs on master count.
+            on_master = [row for row in own if row["head_branch"] == "master"]
+            if not _cancelled_before_jobs(api, on_master):
+                continue
+            # The runs are the first one plus one per earlier dispatch, so the count needs no state of its own.
+            if len(on_master) - 1 >= MAX_REDISPATCHES:
+                exhausted.append(workflow)
+                continue
+        security.dispatch_workflow(api, workflow, "master")
+    if exhausted:
+        raise RuntimeError(
+            f"Every run of {format_names(exhausted)} on master's head `{sha[:SHORT_SHA_CHARS]}` was cancelled before any "
+            f"job ran, also after starting it again {MAX_REDISPATCHES} times; start it by hand once its concurrency "
+            "group is free."
+        )
+
+
+def _cancelled_before_jobs(api: security.GitHub, runs: list[Json]) -> bool:
+    """Tell whether there are runs and every one of them was cancelled before any job ran.
+
+    The workflow's concurrency group cancels a waiting run, which has no jobs yet, when a newer run replaces it. A run
+    that has a job may have done part of its work, or a person cancelled it after it started, so it is not started again.
+    The jobs of every attempt count, because a re-run attempt that the group cancelled hides the jobs of earlier ones.
+    """
+    if not runs or any(run["status"] != "completed" or run["conclusion"] != "cancelled" for run in runs):
+        return False
+    return not any(api.pages(f"actions/runs/{run['id']}/jobs?filter=all", "jobs") for run in runs)
 
 
 @dataclass

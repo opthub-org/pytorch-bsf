@@ -193,17 +193,26 @@ skips yanked releases; this is not confirmed for the other ecosystems.
 
 The controller also looks up the version that each commit's Dependabot metadata names,
 on every evaluation of a PR that passes the provenance, change and metadata checks:
-pip packages in [OSV](https://osv.dev), and GitHub Actions in the GitHub Advisory
+pip and npm packages in [OSV](https://osv.dev), and GitHub Actions in the GitHub Advisory
 Database, including malware advisories in both. A known advisory stops the merge, and
 the triage comment names it unless a hold or an earlier stop reason takes precedence. A
 failed lookup merges nothing and fails the job. The triage comment says that the lookup
 failed, unless a hold, another stop reason, a conflict or a pause comes first; then only
-the failed job shows it. A pip or Actions commit whose metadata is missing or names a
+the failed job shows it. A pip, npm or Actions commit whose metadata is missing or names a
 dependency in an unexpected form stops the merge, as does an ecosystem with no
 classification here. When the metadata names a commit SHA, no version or anything else
 that cannot be compared, any advisory on the package stops the merge, and a maintainer
 must check its affected range. An action tag with fewer than three numbers, such as
-`v3`, counts as not comparable, because it can move to any 3.x release.
+`v3`, counts as not comparable, because it can move to any 3.x release. An npm version
+counts as comparable only when it is an exact SemVer version, such as `11.0.1`.
+
+The npm ecosystem covers only `tests/tools/release-please-fixture`, which the
+**Release configuration** check installs with `npm ci --ignore-scripts` and runs with a
+read-only token. It is not distributed, so its updates are `build(deps)` and release
+nothing. Dependabot ignores the `release-please` engine there, because the engine must
+match the pinned `googleapis/release-please-action`. The fixture asserts both, so a PR
+that moves only one of them fails that check and stops; see
+[Updating the Release Please engine](CONTRIBUTING.md#updating-the-release-please-engine).
 
 Neither the cooldown nor the advisory lookup catches:
 
@@ -213,7 +222,8 @@ Neither the cooldown nor the advisory lookup catches:
   withdraws the release or a maintainer holds the PR;
 - known advisories on pre-commit hooks and Docker images, which have no advisory source
   here;
-- transitive dependencies, or actions nested in a composite action;
+- transitive dependencies that the metadata does not name, such as other packages that
+  an npm lockfile update moves, or actions nested in a composite action;
 - other versions that a pip range allows, because only the named version is looked up;
 - unreviewed GitHub advisories for actions, which carry no package data;
 - a commit without Dependabot's metadata whose quoted text ends in a block of the same
@@ -221,9 +231,10 @@ Neither the cooldown nor the advisory lookup catches:
   names;
 - action advisories filed under a name other than `owner/repo[/path]`, such as a URL or
   an `@scope/name`;
-- an advisory published after the merge. Dependabot alerts report this for pip packages
-  only: GitHub creates no alerts for SHA-pinned actions, and none for pre-commit hooks
-  or Docker images, so nothing here reports it for those.
+- an advisory published after the merge. Dependabot alerts report this for pip and npm
+  packages, and the [action advisory check](#action-advisories-after-merge) for the
+  actions of `.github/workflows/`, because GitHub creates no alerts for SHA-pinned
+  actions. Nothing here reports it for pre-commit hooks or Docker images.
 
 The remaining exposure is accepted: action pins also update in privileged workflows,
 including this one, the security automation and PyPI publishing, and a malicious action
@@ -283,7 +294,53 @@ The controller tests run without API access:
 python -m unittest discover -s tests/tools -p security_automation.py -v
 python -m unittest discover -s tests/tools -p dependabot_merge.py -v
 python -m unittest discover -s tests/tools -p release_merge.py -v
+python -m unittest discover -s tests/tools -p action_advisories.py -v
 ```
+
+## Action advisories after merge
+
+GitHub creates no Dependabot alert for an action pinned to a commit SHA, and the
+Dependabot merge controller looks advisories up only before it merges. So the **Action
+advisories** workflow asks the GitHub Advisory Database about every external action that
+a workflow in `.github/workflows/` on `master` pins, with the controller's lookup,
+including malware advisories. It runs every hour, on every push to `master` that
+changes `.github/workflows/` or `tools/`, and on manual dispatch. Like any scheduled
+run, the hourly one can be delayed for hours (see
+[Dependabot auto-merge](#dependabot-auto-merge)); run the workflow by hand to check at
+once. It reads the workflow files as text, runs none of the actions it checks, and uses
+no AI.
+
+Each line with a `uses` key must be a local path (`./…`) or an `owner/repo[/path]`
+pinned to a 40-character SHA; trailing blanks are ignored. Any other common form, such
+as a tag, a quoted key or value, a flow mapping or a `docker://` image, fails the job,
+so that it cannot go unchecked. A line that only mentions `uses:`, such as a comment
+after a step name or a `run:` command, also fails the job. The other lines are still
+checked. YAML's rarer spellings of a key, such as `? uses` or an escaped quoted key, are
+not recognized.
+
+A pin is looked up by version when the first word of its comment is an exact version
+with at least three numbers, such as `# v7.0.1`, and that tag of the action's repository
+points to the pinned commit. Otherwise, as for a pin whose comment names no version
+(`openai/codex-action` is one) or a moving tag like `v4`, any advisory on the action
+counts, and the maintainer checks its affected versions against the pinned commit. A
+subpath like `github/codeql-action/init` finds the advisories filed on its repository as
+well as on itself, whatever the letter case of the name they are filed under.
+
+For each advisory that affects a pin, the workflow files one issue that names the
+advisory and the affected pins, assigns the maintainer and mentions them. A hidden
+marker in the issue records the advisory and each reported action and commit. The
+workflow files another issue for the same advisory only when it affects an action and
+commit that no issue has reported, open or closed, such as a pin added or updated later.
+Closing an issue is how the maintainer accepts the advisory for the pins it reports;
+keep the title and the marker when editing the issue, or the next run files the pins
+again. The workflow never closes or reopens an issue itself. A failed lookup or filing
+fails the job and never reads as no advisories; the advisories that the other lookups
+found are still filed, and a pin whose lookup failed is reported once a later lookup
+succeeds.
+
+It does not catch actions nested in a composite action or a remote reusable workflow,
+unreviewed advisories, which carry no package data, advisories filed under a name other
+than `owner/repo[/path]`, or pre-commit hooks and Docker images.
 
 ## Release automation
 
@@ -295,8 +352,8 @@ hold back the fixes behind it too. Anyone who needs the old behavior can pin the
 previous version.
 
 Pip and Docker updates are `fix(deps)` commits, which release-please releases.
-Pre-commit and GitHub Actions updates are `build(deps)` commits, which change nothing
-that is distributed, so they alone create no release PR.
+Pre-commit, GitHub Actions and npm updates are `build(deps)` commits, which change
+nothing that is distributed, so they alone create no release PR.
 
 The release PR merges once the checks of its exact head succeed and:
 
@@ -324,8 +381,10 @@ a stale head would ship releasable commits without a changelog entry, and releas
 lists only commits after the release. That run, not the controller, decides which
 commits the release needs, so no commit message is parsed for this. Release runs on
 `master` never overlap and start in push order, so an older one cannot update the PR
-after it. Re-running an older run cancels a newer one that waits, so re-run the latest
-run instead.
+after it. Re-running an older run cancels a newer one that waits. The controllers start
+such a cancelled run again after their own merges (see below), and that run in turn
+cancels the re-run if it still waits, so re-run an older run only while no Release run
+waits.
 
 The controller merges only release-please's own PR for `master`: opened by
 `github-actions[bot]` or the release App's bot from
@@ -342,7 +401,15 @@ required there; the PyTest `docs` job still builds the documentation. A merge wi
 `GITHUB_TOKEN` starts no workflow, so after merging, the controller starts the Release
 workflow on `master`, which creates the tag and the GitHub release and publishes to PyPI
 and GHCR, and then the CI workflows. If starting them fails, a later run starts the
-missing ones.
+missing ones. The same recovery follows the Dependabot controller's merges. A later run
+also starts Release again when every Release run on the head of `master` was cancelled
+before any job ran, as the workflow's concurrency group cancels a waiting run that a
+newer run replaces. A run cancelled after a job started is left alone, because a person
+may have stopped it. A person who cancels a run that is still waiting cannot be told
+apart, so to stop a release, cancel the run after one of its jobs starts, or disable
+the workflow. Release is started again at most `MAX_REDISPATCHES` times for one head
+(see `tools/dependabot_merge.py`); after that, the controller job fails until someone
+starts Release by hand or `master` moves.
 
 The release controller runs when Release starts or finishes on `master`, when a CI
 workflow starts or finishes on the release branch, and on the same schedule as the
