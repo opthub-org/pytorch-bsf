@@ -71,3 +71,42 @@ jobs:
             README.md
             CONTRIBUTING.md
             docs/installation.rst
+
+  # Dependabot changes the ranges of pyproject.toml but not environment.yml, and the lint job only warns on its PRs, so
+  # that they merge on their own; this job then proposes the same ranges for environment.yml. See "Dependency versions"
+  # in CONTRIBUTING.md.
+  environment-ranges:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.x'
+      - name: Test the synchronizer
+        run: python -m unittest discover -s tests/tools -p sync_environment.py -v
+      - name: Copy the ranges of pyproject.toml into environment.yml
+        # Fails, and opens no PR, on drift that needs a person, such as a package missing from environment.yml.
+        run: python tools/sync_environment.py --write
+      - name: Create or update the environment ranges PR
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          # App/PAT enables automatic PR CI; built-in-token CI instructions are in the PR body.
+          token: ${{ secrets.DEPENDENCY_UPDATE_TOKEN || github.token }}
+          branch: automation/environment-ranges
+          base: master
+          delete-branch: true
+          title: 'chore(conda): sync the ranges of environment.yml with pyproject.toml'
+          commit-message: 'chore(conda): sync the ranges of environment.yml with pyproject.toml'
+          body: |
+            Copy the dependency ranges of `pyproject.toml` into `environment.yml` with `python tools/sync_environment.py --write`, after Dependabot changed them. The Conda workflow of this PR tests the new ranges with conda-forge's packages.
+
+            If checks have not started after this bot creates or updates the PR, close and reopen it from your GitHub account to trigger the existing `reopened` CI workflows. Repeat after subsequent bot updates if needed. If GitHub shows pending workflow approval, select **Approve workflows to run**. Configure `DEPENDENCY_UPDATE_TOKEN` for automatic PR CI.
+          add-paths: |
+            environment.yml
