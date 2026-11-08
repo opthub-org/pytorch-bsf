@@ -207,12 +207,27 @@ jobs:
           if [ -s "$RUNNER_TEMP/repair/repair.patch" ]; then
             git -C candidate -c core.hooksPath=/dev/null apply --index "$RUNNER_TEMP/repair/repair.patch"
           fi
+      # The token only downloads the release that .pre-commit-config.yaml of master pins and checks GitHub's attestation.
+      - name: Fetch and verify the pinned secret scanner
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Both steps do nothing unless the outcome is "changed", the only one that publish uploads.
+        run: >-
+          python control/tools/security_automation.py fetch-scanner --output "$RUNNER_TEMP/scanner"
+          --result "$RUNNER_TEMP/repair/result.json"
+      # No token: Betterleaks reads the patch as data, and publish accepts only the tree this step records.
+      - name: Scan the patch for secrets before any ref, commit or PR exists
+        run: >-
+          python control/tools/security_automation.py scan --root candidate --task "$RUNNER_TEMP/task/task.json"
+          --result "$RUNNER_TEMP/repair/result.json" --scanner "$RUNNER_TEMP/scanner/betterleaks"
+          --output "$RUNNER_TEMP/scanned-tree"
       - name: Validate paths and publish through the GitHub API
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
           python control/tools/security_automation.py publish --root candidate
           --task "$RUNNER_TEMP/task/task.json" --result "$RUNNER_TEMP/repair/result.json"
+          --scanned "$RUNNER_TEMP/scanned-tree"
 
   review:
     needs: plan
