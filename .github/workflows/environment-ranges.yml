@@ -1,0 +1,54 @@
+name: Environment ranges
+
+# Dependabot changes the ranges of pyproject.toml but not environment.yml, and the lint job only warns about that drift,
+# so that its PRs merge on their own. This workflow then proposes the same ranges for environment.yml. It runs on a
+# schedule, because dependabot-merge.yml merges Dependabot's PRs with the built-in token, which starts no push run. The sync is
+# `fix(deps)`, so that a release rebuilds the Docker image, which installs environment.yml. See "Syncing environment.yml"
+# in CONTRIBUTING.md.
+on:
+  schedule:
+    - cron: '41 5 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: environment-ranges
+  cancel-in-progress: false
+
+jobs:
+  environment-ranges:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.x'
+      - name: Test the synchronizer
+        run: python -m unittest discover -s tests/tools -p sync_environment.py -v
+      - name: Copy the ranges of pyproject.toml into environment.yml
+        # Fails, and opens no PR, on drift that needs a person, such as a package missing from environment.yml.
+        run: python tools/sync_environment.py --write
+      - name: Create or update the environment ranges PR
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          # App/PAT enables automatic PR CI; otherwise start it as the PR body says.
+          token: ${{ secrets.DEPENDENCY_UPDATE_TOKEN || github.token }}
+          branch: automation/environment-ranges
+          base: master
+          delete-branch: true
+          title: 'fix(deps): sync the ranges of environment.yml with pyproject.toml'
+          commit-message: 'fix(deps): sync the ranges of environment.yml with pyproject.toml'
+          body: |
+            Copy the dependency ranges of `pyproject.toml` into `environment.yml` with `python tools/sync_environment.py --write`. The Conda workflow of this PR tests the new ranges with conda-forge's packages.
+
+            If no checks start, see [Python lifecycle updates](https://github.com/opthub-org/pytorch-bsf/blob/master/CONTRIBUTING.md#python-lifecycle-updates) for how to start them.
+          add-paths: |
+            environment.yml

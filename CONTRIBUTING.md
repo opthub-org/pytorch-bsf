@@ -32,9 +32,24 @@ pytorch-bsf is a library installed alongside other packages, so `[project].depen
 - **Lower bound**: the oldest version that passes the tests. The `lowest` job of `.github/workflows/python-package.yml` installs every lower bound on Python 3.11 (`uv pip install --resolution lowest-direct '.[lightning,mlflow,sparse,sklearn,plot]'`, so the bounds of every optional extra are checked too) and runs pytest, so a bound that does not work fails CI. Raise a lower bound only when the code needs a newer feature or a bug fix, and say why in the PR.
 - **Upper bound**: below the next major version (`<3`). Widen it after checking that the new major version works.
 - **Extras**: every package in `[project.optional-dependencies]` has the same kind of range. The `all` extra refers to the other extras (`pytorch-bsf[lightning,mlflow,...]`) instead of repeating their ranges.
-- **Dependabot** uses `versioning-strategy: increase-if-necessary` for pip: it leaves a range alone while it admits a new release and opens a PR when a release falls outside it. It also checks pre-commit hooks, GitHub Actions, the Docker base image and the npm dependencies of the CI-only [Release Please fixture](#updating-the-release-please-engine) weekly. As a deliberate exception to the two rules above, passing updates merge automatically, including lower-bound changes and new major versions, with no human review, once CI passes and, for pip, npm and GitHub Actions, an advisory lookup finds nothing; see [Dependabot auto-merge](SECURITY.md#dependabot-auto-merge). Pip and Docker updates are `fix(deps)` commits, so they reach a release at once; pre-commit, Actions and npm updates are `build(deps)` and release nothing; see [Release automation](SECURITY.md#release-automation). Dependabot does not update `environment.yml`, so a merged range change leaves it behind until someone syncs it.
+- **Dependabot** uses `versioning-strategy: increase-if-necessary` for pip: it leaves a range alone while it admits a new release and opens a PR when a release falls outside it. It also checks pre-commit hooks, GitHub Actions, the Docker base image and the npm dependencies of the CI-only [Release Please fixture](#updating-the-release-please-engine) weekly. As a deliberate exception to the two rules above, passing updates merge automatically, including lower-bound changes and new major versions, with no human review, once CI passes and, for pip, npm and GitHub Actions, an advisory lookup finds nothing; see [Dependabot auto-merge](SECURITY.md#dependabot-auto-merge). Pip and Docker updates are `fix(deps)` commits, so they reach a release at once; pre-commit, Actions and npm updates are `build(deps)` and release nothing; see [Release automation](SECURITY.md#release-automation). Dependabot does not update `environment.yml`; see [Syncing environment.yml](#syncing-environmentyml).
 - Declare only packages that `torch_bsf` imports. Do not pin transitive dependencies to work around a bug in another package; if one is unavoidable, add a comment with the upstream issue.
-- Keep `environment.yml` in sync with `pyproject.toml`, including the optional `scipy`, `scikit-learn` and `matplotlib` (as `matplotlib-base`), so that the Conda CI and the Docker image run their tests.
+- Keep `environment.yml` in sync with `pyproject.toml`, so that the Conda CI tests the optional integrations and the Docker image installs them; see [Syncing environment.yml](#syncing-environmentyml).
+
+### Syncing environment.yml
+
+`environment.yml` declares the same ranges as `pyproject.toml`: every requirement of `[project].dependencies` and of the extras except `develop`, under its conda-forge name (`torch` is `pytorch`, `matplotlib` is `matplotlib-base`; `CONDA_NAMES` in `tools/sync_environment.py` lists them), with the same clauses in any order. Only `python` and `pip` may appear in `environment.yml` alone. Check and fix it with:
+
+```bash
+python tools/sync_environment.py          # exit 1 on drift
+python tools/sync_environment.py --write  # copy the ranges of pyproject.toml into environment.yml
+```
+
+`--write` changes only the ranges of existing lines. A package missing from `environment.yml`, one that `pyproject.toml` does not declare, or one whose extras declare different ranges needs a person: edit the lines by hand. A requirement that conda cannot read (an environment marker, extras, `~=`) or an `environment.yml` entry that is not a plain name and range (a channel prefix, a build string, a mapping other than `pip:`) is an error, except for `python` and `pip`, which may use conda's own syntax.
+
+The `lint` job of `.github/workflows/python-package.yml` runs the check with `--base HEAD^` on every PR except Dependabot's (below): such a PR fails only on the drift that it adds, and drift already on `master` is a warning, so that it does not fail unrelated PRs, such as the release PR. A PR that changes a range in `pyproject.toml` must change `environment.yml` too; run `--write` and commit the result.
+
+On a Dependabot PR, drift is only a warning (`--allow-drift`), so that its [auto-merge](SECURITY.md#dependabot-auto-merge) goes on, including security updates. The runs on `master` and dispatched runs only warn as well, because the release controller does not merge while a check of `master` fails. The **Environment ranges** workflow then runs `--write` on `master` every day, or at once with **Run workflow**, and opens or updates a PR on `automation/environment-ranges`, whose Conda CI tests the new ranges with conda-forge's packages. Start its CI and merge it as described in [Python lifecycle updates](#python-lifecycle-updates). If the workflow fails, the drift needs a person: GitHub emails the failure of a scheduled run to the maintainer, who fixes it by hand as above. Until it merges, the Conda CI keeps the old ranges, while the PyTest workflow tests the new ones. The PR is a `fix(deps)` commit, so the release it starts rebuilds the Docker image with the new ranges.
 
 ### Python lifecycle updates
 
@@ -1102,6 +1117,7 @@ pytorch-bsf/
 │   │   ├── security-policy.yml       # Security automation, Dependabot merge, release merge and action advisory tests, zizmor, the GHPages producer check and the Betterleaks secret scan
 │   │   ├── security-action-advisories.yml # Files an issue for each advisory on an action pinned in a workflow
 │   │   ├── dependabot-merge.yml      # Merges passing Dependabot PRs and the release PR, and writes their status comments
+│   │   ├── environment-ranges.yml    # Daily PR that copies the ranges of pyproject.toml into environment.yml
 │   │   └── python-package-conda.yml  # End-to-end tests in a Conda environment
 │   ├── ISSUE_TEMPLATE/
 │   │   ├── bug_report.yml            # Bug report form
@@ -1178,6 +1194,7 @@ pytorch-bsf/
 │   ├── tools/                        # All tests for the scripts in tools/
 │   │   ├── __init__.py
 │   │   ├── lint_conventions.py        # AST convention checker regressions
+│   │   ├── sync_environment.py        # environment.yml range comparison tests (pytest or standalone unittest)
 │   │   └── update_python_support.py   # Lifecycle tests (pytest or standalone unittest)
 │   └── data/                         # Test data files
 ├── docs/                             # Sphinx documentation
@@ -1194,6 +1211,7 @@ pytorch-bsf/
 ├── tools/                            # Development scripts
 │   ├── check_distribution.py         # Builds and checks the distributions (the distribution CI job)
 │   ├── lint_conventions.py           # Checks the conventions that Ruff cannot check (a pre-commit hook)
+│   ├── sync_environment.py           # Checks and syncs the ranges of environment.yml with pyproject.toml
 │   └── update_python_support.py      # Synchronizes supported Python versions with the release lifecycle
 ├── .git-blame-ignore-revs            # Bulk formatting commits skipped by git blame
 ├── .gitattributes                    # Git LFS settings for binary files
