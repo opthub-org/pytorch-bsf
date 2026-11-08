@@ -204,6 +204,7 @@ class PatchBoundaryTests(GitFixture):
             ".github/workflows/security-policy.yml",
             ".github/workflows/codeql-analysis.yml",
             ".github/workflows/sphinx-pages-publish.yml",
+            ".github/workflows/sphinx-pages-sweep.yml",
             ".github/pages-build-template.yml",
             ".github/pages-legacy-owners.json",
             "nested/AGENTS.md",
