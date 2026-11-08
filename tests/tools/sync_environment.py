@@ -4,6 +4,7 @@ import contextlib
 import importlib.util
 import io
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -17,7 +18,7 @@ assert SPEC is not None and SPEC.loader is not None
 sync = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(sync)
 
-PROJECT = """\
+PROJECT_TEXT = """\
 [project]
 name = "pytorch-bsf"
 dependencies = [
@@ -33,7 +34,7 @@ all = ["pytorch-bsf[adaptive,plot]"]
 develop = ["pytest", "mypy>=1"]
 """
 
-ENVIRONMENT = """\
+ENVIRONMENT_TEXT = """\
 name: pytorch-bsf
 channels:
 - conda-forge
@@ -61,9 +62,9 @@ class DriftTests(unittest.TestCase):
         self.assertIn("pytorch", sync.environment_entries(environment))
 
     def test_fixture_agrees_with_renamed_packages_and_any_clause_order(self):
-        self.assertEqual(sync.drift(PROJECT, ENVIRONMENT), [])
-        reordered = ENVIRONMENT.replace('"pytorch>=2.3,<3"', '"pytorch <3,>=2.3"')
-        self.assertEqual(sync.drift(PROJECT, reordered), [])
+        self.assertEqual(sync.drift(PROJECT_TEXT, ENVIRONMENT_TEXT), [])
+        reordered = ENVIRONMENT_TEXT.replace('"pytorch>=2.3,<3"', '"pytorch <3,>=2.3"')
+        self.assertEqual(sync.drift(PROJECT_TEXT, reordered), [])
 
     def test_range_change_of_a_renamed_package_is_drift(self):
         for name, conda, old, new in (
@@ -72,31 +73,31 @@ class DriftTests(unittest.TestCase):
             ("PyYAML", "pyyaml", ">=6,<7", ">=6.0.1,<7"),
         ):
             with self.subTest(name=name):
-                project = PROJECT.replace(f'"{name}{old}"', f'"{name}{new}"')
+                project = PROJECT_TEXT.replace(f'"{name}{old}"', f'"{name}{new}"')
                 self.assertEqual(
-                    sync.drift(project, ENVIRONMENT),
+                    sync.drift(project, ENVIRONMENT_TEXT),
                     [f"environment.yml has `{conda}` {old}, but pyproject.toml has {new}"],
                 )
 
     def test_every_extra_but_develop_counts(self):
-        project = PROJECT.replace('adaptive = ["scipy>=1.9.2,<2"]', 'adaptive = ["scipy>=1.9.2,<2", "sympy>=1.12,<2"]')
-        self.assertEqual(sync.drift(project, ENVIRONMENT), ["environment.yml lacks `sympy>=1.12,<2` of pyproject.toml"])
+        project = PROJECT_TEXT.replace('adaptive = ["scipy>=1.9.2,<2"]', 'adaptive = ["scipy>=1.9.2,<2", "sympy>=1.12,<2"]')
+        self.assertEqual(sync.drift(project, ENVIRONMENT_TEXT), ["environment.yml lacks `sympy>=1.12,<2` of pyproject.toml"])
 
     def test_undeclared_conda_package_is_drift(self):
-        environment = ENVIRONMENT.replace("- pip\n", '- pip\n- "pytest>=8"\n')
+        environment = ENVIRONMENT_TEXT.replace("- pip\n", '- pip\n- "pytest>=8"\n')
         self.assertEqual(
-            sync.drift(PROJECT, environment), ["environment.yml has `pytest`, which pyproject.toml does not declare"]
+            sync.drift(PROJECT_TEXT, environment), ["environment.yml has `pytest`, which pyproject.toml does not declare"]
         )
 
     def test_missing_range_is_drift(self):
-        environment = ENVIRONMENT.replace('"scipy>=1.9.2,<2"', "scipy")
+        environment = ENVIRONMENT_TEXT.replace('"scipy>=1.9.2,<2"', "scipy")
         self.assertEqual(
-            sync.drift(PROJECT, environment), ["environment.yml has `scipy` no range, but pyproject.toml has >=1.9.2,<2"]
+            sync.drift(PROJECT_TEXT, environment), ["environment.yml has `scipy` no range, but pyproject.toml has >=1.9.2,<2"]
         )
 
     def test_entries_of_the_pip_section_and_other_keys_are_ignored(self):
-        environment = ENVIRONMENT.replace("  - -e .\n", "  - -e .\n  - unrelated>=1\nvariables:\n  - not-a-dependency\n")
-        self.assertEqual(sync.drift(PROJECT, environment), [])
+        environment = ENVIRONMENT_TEXT.replace("  - -e .\n", "  - -e .\n  - unrelated>=1\nvariables:\n  - not-a-dependency\n")
+        self.assertEqual(sync.drift(PROJECT_TEXT, environment), [])
 
     def test_unwritable_requirements_are_errors(self):
         for requirement, message in (
@@ -106,63 +107,95 @@ class DriftTests(unittest.TestCase):
             ('"numpy @ https://example.com/numpy.whl"', "cannot read"),
         ):
             with self.subTest(requirement=requirement):
-                project = PROJECT.replace('"numpy>=1.23.2,<3"', requirement)
+                project = PROJECT_TEXT.replace('"numpy>=1.23.2,<3"', requirement)
                 with self.assertRaisesRegex(ValueError, message):
-                    sync.drift(project, ENVIRONMENT)
+                    sync.drift(project, ENVIRONMENT_TEXT)
 
-    def test_extras_with_different_ranges_are_drift(self):
-        project = PROJECT.replace(
-            'plot = ["matplotlib>=3.6,<4", "scipy>=1.9.2,<2"]', 'plot = ["matplotlib>=3.6,<4", "scipy>=1.9.2,<3"]'
+    def test_extras_with_different_ranges_are_drift_and_nothing_else(self):
+        project = (
+            PROJECT_TEXT.replace('adaptive = ["scipy>=1.9.2,<2"]', 'adaptive = ["scipy>=1.9.2,<3"]')
+            .replace('"scipy>=1.9.2,<2"]', '"scipy>=1.10,<2"]')
+            .replace("all = ", 'sparse = ["scipy>=1.11,<2"]\nall = ')
         )
-        self.assertEqual(
-            sync.drift(project, ENVIRONMENT), ["pyproject.toml has different ranges of `scipy` in different extras"]
-        )
+        # Three ranges, none of them the one in environment.yml: only the conflict is reported, once.
+        environment = ENVIRONMENT_TEXT.replace('"scipy>=1.9.2,<2"', '"scipy>=1.9,<2"')
+        self.assertEqual(sync.drift(project, environment), ["pyproject.toml has different ranges of `scipy`"])
+
+    def test_unexpected_project_structures_are_errors(self):
+        for project, message in (
+            ("", "no `\\[project\\]` table"),
+            ('[project]\ndependencies = ["numpy"]\n', "no `\\[project\\]` table"),
+            ('[project]\nname = "x"\ndependencies = "numpy"\n', "`dependencies` is not a list of strings"),
+            ('[project]\nname = "x"\noptional-dependencies = 1\n', "`optional-dependencies` is not a table"),
+            ('[project]\nname = "x"\n[project.optional-dependencies]\nplot = [1]\n', "`optional-dependencies.plot` is not"),
+        ):
+            with self.subTest(project=project), self.assertRaisesRegex(ValueError, message):
+                sync.drift(project, ENVIRONMENT_TEXT)
+
+    def test_indented_lists_are_read(self):
+        environment = re.sub(r"^(- |  - )", r"  \1", ENVIRONMENT_TEXT, flags=re.MULTILINE)
+        self.assertIn('  - "pytorch>=2.3,<3"\n', environment)
+        self.assertIn("    - -e .\n", environment)
+        self.assertEqual(sync.drift(PROJECT_TEXT, environment), [])
+        project = PROJECT_TEXT.replace('"torch>=2.3,<3"', '"torch>=2.3,<4"')
+        synchronized = sync.synchronize(project, environment)
+        self.assertEqual(synchronized, environment.replace('"pytorch>=2.3,<3"', '"pytorch>=2.3,<4"'))
+
+    def test_trailing_blanks_are_kept(self):
+        environment = ENVIRONMENT_TEXT.replace('"scipy>=1.9.2,<2"\n', '"scipy>=1.9.2,<2"  \n')
+        self.assertEqual(sync.drift(PROJECT_TEXT, environment), [])
+        project = PROJECT_TEXT.replace('"scipy>=1.9.2,<2"', '"scipy>=1.10,<2"')
+        self.assertEqual(sync.synchronize(project, environment), environment.replace("1.9.2", "1.10"))
 
     def test_unreadable_environments_are_errors(self):
-        for environment, message in (
-            ("name: x\n", "no top-level `dependencies:`"),
-            (ENVIRONMENT.replace("- pip\n", "- pip\n- numpy>=1\n"), "listed twice"),
-            (ENVIRONMENT.replace("- pip\n", "- pip\n-numpy\n"), "cannot read"),
-            (ENVIRONMENT.replace("- pip\n", "- pip\n- numpy[version='>=1']\n"), "cannot read"),
-            (ENVIRONMENT.replace('"scipy>=1.9.2,<2"', '"conda-forge::scipy>=1.9.2,<2"'), "cannot read"),
-            (ENVIRONMENT.replace('"scipy>=1.9.2,<2"', '"scipy 1.9.2 py_0"'), "cannot read"),
+        for case, environment, message in (
+            ("no dependencies", "name: x\n", "no top-level `dependencies:`"),
+            ("twice", ENVIRONMENT_TEXT.replace("- pip\n", "- pip\n- numpy>=1\n"), "listed twice"),
+            ("no blank", ENVIRONMENT_TEXT.replace("- pip\n", "- pip\n-numpy\n"), "cannot read"),
+            ("brackets", ENVIRONMENT_TEXT.replace("- pip\n", "- pip\n- numpy[version='>=1']\n"), "cannot read"),
+            ("channel", ENVIRONMENT_TEXT.replace('"scipy>=1.9.2,<2"', '"conda-forge::scipy>=1.9.2,<2"'), "cannot read"),
+            ("build after blank", ENVIRONMENT_TEXT.replace('"scipy>=1.9.2,<2"', '"scipy 1.9.2 py_0"'), "cannot read"),
+            ("build after =", ENVIRONMENT_TEXT.replace('"scipy>=1.9.2,<2"', '"scipy=1.9.2=py_0"'), "cannot read"),
+            ("build after range", ENVIRONMENT_TEXT.replace('"scipy>=1.9.2,<2"', '"scipy>=1.9.2,<2=*_0"'), "cannot read"),
+            ("comment without blank", ENVIRONMENT_TEXT.replace('"scipy>=1.9.2,<2"', "scipy>=1.9.2,<2#c"), "cannot read"),
+            ("less indented", ENVIRONMENT_TEXT.replace("- python=3.14\n", "  - python=3.14\n"), "cannot read"),
         ):
-            with self.subTest(message=message), self.assertRaisesRegex(ValueError, message):
-                sync.drift(PROJECT, environment)
+            with self.subTest(case=case), self.assertRaisesRegex(ValueError, message):
+                sync.drift(PROJECT_TEXT, environment)
 
 
 class SynchronizeTests(unittest.TestCase):
     def test_rewrites_only_the_drifted_ranges_and_keeps_quotes_and_comments(self):
         project = (
-            PROJECT.replace('"numpy>=1.23.2,<3"', '"numpy>=1.23.2,<4"')
+            PROJECT_TEXT.replace('"numpy>=1.23.2,<3"', '"numpy>=1.23.2,<4"')
             .replace('"PyYAML>=6,<7"', '"PyYAML>=6,<8"')
             .replace('"matplotlib>=3.6,<4"', '"matplotlib>=3.6,<5"')
         )
         expected = (
-            ENVIRONMENT.replace("- numpy>=1.23.2,<3  # unquoted", '- "numpy>=1.23.2,<4"  # unquoted')
+            ENVIRONMENT_TEXT.replace("- numpy>=1.23.2,<3  # unquoted", '- "numpy>=1.23.2,<4"  # unquoted')
             .replace("'pyyaml>=6,<7'", "'pyyaml>=6,<8'")
             .replace('"matplotlib-base>=3.6,<4"', '"matplotlib-base>=3.6,<5"')
         )
-        synchronized = sync.synchronize(project, ENVIRONMENT)
+        synchronized = sync.synchronize(project, ENVIRONMENT_TEXT)
         self.assertEqual(synchronized, expected)
         self.assertEqual(sync.drift(project, synchronized), [])
 
     def test_keeps_agreeing_ranges_as_written(self):
-        reordered = ENVIRONMENT.replace('"pytorch>=2.3,<3"', '"pytorch <3,>=2.3"')
-        self.assertEqual(sync.synchronize(PROJECT, reordered), reordered)
+        reordered = ENVIRONMENT_TEXT.replace('"pytorch>=2.3,<3"', '"pytorch <3,>=2.3"')
+        self.assertEqual(sync.synchronize(PROJECT_TEXT, reordered), reordered)
 
     def test_keeps_line_endings(self):
-        project = PROJECT.replace('"scipy>=1.9.2,<2"', '"scipy>=1.10,<2"')
-        crlf = ENVIRONMENT.replace("\n", "\r\n")
+        project = PROJECT_TEXT.replace('"scipy>=1.9.2,<2"', '"scipy>=1.10,<2"')
+        crlf = ENVIRONMENT_TEXT.replace("\n", "\r\n")
         self.assertEqual(sync.synchronize(project, crlf), crlf.replace('"scipy>=1.9.2,<2"', '"scipy>=1.10,<2"'))
 
     def test_leaves_packages_whose_extras_disagree_to_a_person(self):
-        project = PROJECT.replace('adaptive = ["scipy>=1.9.2,<2"]', 'adaptive = ["scipy>=1.9.2,<3"]')
-        self.assertEqual(sync.synchronize(project, ENVIRONMENT), ENVIRONMENT)
+        project = PROJECT_TEXT.replace('adaptive = ["scipy>=1.9.2,<2"]', 'adaptive = ["scipy>=1.9.2,<3"]')
+        self.assertEqual(sync.synchronize(project, ENVIRONMENT_TEXT), ENVIRONMENT_TEXT)
 
     def test_leaves_missing_and_undeclared_packages_to_a_person(self):
-        project = PROJECT.replace('"PyYAML>=6,<7",', '"PyYAML>=6,<7",\n  "sympy>=1.12,<2",')
-        environment = ENVIRONMENT.replace("- pip\n", '- pip\n- "pytest>=8"\n')
+        project = PROJECT_TEXT.replace('"PyYAML>=6,<7",', '"PyYAML>=6,<7",\n  "sympy>=1.12,<2",')
+        environment = ENVIRONMENT_TEXT.replace("- pip\n", '- pip\n- "pytest>=8"\n')
         self.assertEqual(sync.synchronize(project, environment), environment)
 
 
@@ -171,7 +204,7 @@ class CommandTests(unittest.TestCase):
         scratch = tempfile.TemporaryDirectory()
         self.addCleanup(scratch.cleanup)
         self.root = Path(scratch.name)
-        self.write(PROJECT, ENVIRONMENT)
+        self.write(PROJECT_TEXT, ENVIRONMENT_TEXT)
 
     def write(self, project, environment):
         (self.root / "pyproject.toml").write_text(project, encoding="utf-8")
@@ -213,7 +246,7 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(self.run_main(), (0, "environment.yml has the ranges of pyproject.toml\n"))
 
     def test_fails_on_drift_with_an_annotation(self):
-        self.write(PROJECT.replace('"numpy>=1.23.2,<3"', '"numpy>=1.23.2,<4"'), ENVIRONMENT)
+        self.write(PROJECT_TEXT.replace('"numpy>=1.23.2,<3"', '"numpy>=1.23.2,<4"'), ENVIRONMENT_TEXT)
         code, output = self.run_main(github=True)
         self.assertEqual(code, 1)
         self.assertIn(
@@ -229,41 +262,41 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(output.getvalue(), "::warning file=environment.yml::100%25 a%0Ab%0Dc\n")
 
     def test_allow_drift_warns(self):
-        self.write(PROJECT.replace('"numpy>=1.23.2,<3"', '"numpy>=1.23.2,<4"'), ENVIRONMENT)
+        self.write(PROJECT_TEXT.replace('"numpy>=1.23.2,<3"', '"numpy>=1.23.2,<4"'), ENVIRONMENT_TEXT)
         code, output = self.run_main("--allow-drift")
         self.assertEqual(code, 0)
         self.assertEqual(output, "warning: environment.yml has `numpy` >=1.23.2,<3, but pyproject.toml has >=1.23.2,<4\n")
 
     def test_errors_fail_even_when_drift_is_allowed(self):
-        self.write(PROJECT.replace('"numpy>=1.23.2,<3"', '"numpy~=1.23"'), ENVIRONMENT)
+        self.write(PROJECT_TEXT.replace('"numpy>=1.23.2,<3"', '"numpy~=1.23"'), ENVIRONMENT_TEXT)
         code, output = self.run_main("--allow-drift")
         self.assertEqual(code, 1)
         self.assertIn("error: pyproject.toml: conda cannot read the range of `numpy~=1.23`", output)
 
     def test_write_fixes_ranges(self):
-        project = PROJECT.replace('"torch>=2.3,<3"', '"torch>=2.3,<4"')
-        self.write(project, ENVIRONMENT)
+        project = PROJECT_TEXT.replace('"torch>=2.3,<3"', '"torch>=2.3,<4"')
+        self.write(project, ENVIRONMENT_TEXT)
         code, output = self.run_main("--write")
         self.assertEqual(code, 0)
         self.assertEqual(output, "Updated the ranges in environment.yml\nenvironment.yml has the ranges of pyproject.toml\n")
         environment = (self.root / "environment.yml").read_text(encoding="utf-8")
-        self.assertEqual(environment, ENVIRONMENT.replace('"pytorch>=2.3,<3"', '"pytorch>=2.3,<4"'))
+        self.assertEqual(environment, ENVIRONMENT_TEXT.replace('"pytorch>=2.3,<3"', '"pytorch>=2.3,<4"'))
 
     def test_write_fails_on_drift_it_cannot_fix(self):
-        self.write(PROJECT, ENVIRONMENT.replace("- pip\n", '- pip\n- "pytest>=8"\n'))
+        self.write(PROJECT_TEXT, ENVIRONMENT_TEXT.replace("- pip\n", '- pip\n- "pytest>=8"\n'))
         code, output = self.run_main("--write")
         self.assertEqual(code, 1)
         self.assertIn("error: environment.yml has `pytest`, which pyproject.toml does not declare", output)
 
     def test_base_tolerates_only_the_drift_it_already_had(self):
-        drifted = PROJECT.replace('"numpy>=1.23.2,<3"', '"numpy>=1.23.2,<4"')
-        self.write(drifted, ENVIRONMENT)
+        drifted = PROJECT_TEXT.replace('"numpy>=1.23.2,<3"', '"numpy>=1.23.2,<4"')
+        self.write(drifted, ENVIRONMENT_TEXT)
         self.commit()
         code, output = self.run_main("--base", "HEAD")
         self.assertEqual(code, 0)
         self.assertTrue(output.startswith("warning: environment.yml has `numpy`"))
 
-        self.write(drifted.replace('"torch>=2.3,<3"', '"torch>=2.3,<4"'), ENVIRONMENT)
+        self.write(drifted.replace('"torch>=2.3,<3"', '"torch>=2.3,<4"'), ENVIRONMENT_TEXT)
         code, output = self.run_main("--base", "HEAD")
         self.assertEqual(code, 1)
         self.assertIn("warning: environment.yml has `numpy`", output)
@@ -271,23 +304,23 @@ class CommandTests(unittest.TestCase):
 
     def test_base_that_cannot_be_read_tolerates_nothing(self):
         self.commit()
-        self.write(PROJECT.replace('"numpy>=1.23.2,<3"', '"numpy>=1.23.2,<4"'), ENVIRONMENT)
+        self.write(PROJECT_TEXT.replace('"numpy>=1.23.2,<3"', '"numpy>=1.23.2,<4"'), ENVIRONMENT_TEXT)
         code, output = self.run_main("--base", "no-such-revision")
         self.assertEqual(code, 1)
         self.assertIn("warning: cannot read the drift of no-such-revision, so all drift fails", output)
         self.assertIn("error: environment.yml has `numpy`", output)
 
     def test_base_with_unreadable_files_tolerates_nothing(self):
-        self.write(PROJECT.replace('"numpy>=1.23.2,<3"', '"numpy~=1.23"'), ENVIRONMENT)
+        self.write(PROJECT_TEXT.replace('"numpy>=1.23.2,<3"', '"numpy~=1.23"'), ENVIRONMENT_TEXT)
         self.commit()
-        self.write(PROJECT.replace('"numpy>=1.23.2,<3"', '"numpy>=1.23.2,<4"'), ENVIRONMENT)
+        self.write(PROJECT_TEXT.replace('"numpy>=1.23.2,<3"', '"numpy>=1.23.2,<4"'), ENVIRONMENT_TEXT)
         code, output = self.run_main("--base", "HEAD")
         self.assertEqual(code, 1)
         self.assertIn("warning: cannot read the drift of HEAD, so all drift fails: pyproject.toml: conda cannot read", output)
         self.assertIn("error: environment.yml has `numpy`", output)
 
     def test_base_without_git_tolerates_nothing(self):
-        self.write(PROJECT.replace('"numpy>=1.23.2,<3"', '"numpy>=1.23.2,<4"'), ENVIRONMENT)
+        self.write(PROJECT_TEXT.replace('"numpy>=1.23.2,<3"', '"numpy>=1.23.2,<4"'), ENVIRONMENT_TEXT)
         with patch.object(sync.subprocess, "run", side_effect=FileNotFoundError("no git")):
             code, output = self.run_main("--base", "HEAD")
         self.assertEqual(code, 1)

@@ -47,9 +47,9 @@ python tools/sync_environment.py --write  # copy the ranges of pyproject.toml in
 
 `--write` changes only the ranges of existing lines. A package missing from `environment.yml`, one that `pyproject.toml` does not declare, or one whose extras declare different ranges needs a person: edit the lines by hand. A requirement that conda cannot read (an environment marker, extras, `~=`) or an `environment.yml` entry that is not a plain name and range (a channel prefix, a build string) is an error.
 
-The `lint` job of `.github/workflows/python-package.yml` runs the check on every PR with `--base HEAD^`: a PR fails only on the drift that it adds, and drift already on `master` is a warning, so that it does not fail unrelated PRs, such as the release PR. A PR that changes a range in `pyproject.toml` must change `environment.yml` too; run `--write` and commit the result.
+The `lint` job of `.github/workflows/python-package.yml` runs the check with `--base HEAD^` on every PR except Dependabot's (below): such a PR fails only on the drift that it adds, and drift already on `master` is a warning, so that it does not fail unrelated PRs, such as the release PR. A PR that changes a range in `pyproject.toml` must change `environment.yml` too; run `--write` and commit the result.
 
-On a Dependabot PR, drift is only a warning (`--allow-drift`), so that its [auto-merge](SECURITY.md#dependabot-auto-merge) goes on, including security updates. The runs on `master` and dispatched runs only warn as well, because the release controller does not merge while a check of `master` fails. The **Environment ranges** workflow then runs `--write` on `master` every day, or at once with **Run workflow**, and opens or updates a PR on `automation/environment-ranges`, whose Conda CI tests the new ranges with conda-forge's packages. Start its CI and merge it as described in [Python lifecycle updates](#python-lifecycle-updates). If the workflow fails, the drift needs a person: fix it by hand as above. Until then, the Conda CI and the Docker image keep the old ranges, while the PyTest workflow tests the new ones.
+On a Dependabot PR, drift is only a warning (`--allow-drift`), so that its [auto-merge](SECURITY.md#dependabot-auto-merge) goes on, including security updates. The runs on `master` and dispatched runs only warn as well, because the release controller does not merge while a check of `master` fails. The **Environment ranges** workflow then runs `--write` on `master` every day, or at once with **Run workflow**, and opens or updates a PR on `automation/environment-ranges`, whose Conda CI tests the new ranges with conda-forge's packages. Start its CI and merge it as described in [Python lifecycle updates](#python-lifecycle-updates). If the workflow fails, the drift needs a person: fix it by hand as above. Until it merges, the Conda CI keeps the old ranges, while the PyTest workflow tests the new ones. The PR is a `fix(deps)` commit, so the release it starts rebuilds the Docker image with the new ranges.
 
 ### Python lifecycle updates
 
@@ -1117,6 +1117,7 @@ pytorch-bsf/
 │   │   ├── security-policy.yml       # Security automation, Dependabot merge, release merge and action advisory tests, zizmor, the GHPages producer check and the Betterleaks secret scan
 │   │   ├── security-action-advisories.yml # Files an issue for each advisory on an action pinned in a workflow
 │   │   ├── dependabot-merge.yml      # Merges passing Dependabot PRs and the release PR, and writes their status comments
+│   │   ├── environment-ranges.yml    # Daily PR that copies the ranges of pyproject.toml into environment.yml
 │   │   └── python-package-conda.yml  # End-to-end tests in a Conda environment
 │   ├── ISSUE_TEMPLATE/
 │   │   ├── bug_report.yml            # Bug report form

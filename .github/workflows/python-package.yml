@@ -71,10 +71,10 @@ jobs:
         python -m unittest discover -s tests/tools -p update_python_support.py -v
         python -m unittest discover -s tests/tools -p sync_environment.py -v
     - name: Check that environment.yml has the ranges of pyproject.toml
-      # A PR fails on the drift that it adds; drift already on its base is a warning. A Dependabot PR only warns, so that
-      # its auto-merge goes on, and so do the runs on master and dispatches: the merged drift must not hold the release
-      # PR, which reads master's checks, and the Environment ranges workflow syncs master. See "Syncing environment.yml"
-      # in CONTRIBUTING.md.
+      # A PR not by Dependabot fails on the drift that it adds (--base HEAD^); drift already on its base is a warning.
+      # A Dependabot PR only warns, so that its auto-merge goes on. Runs on master and dispatches only warn, because the
+      # release controller does not merge while a check of master fails; the Environment ranges workflow syncs master.
+      # See "Syncing environment.yml" in CONTRIBUTING.md.
       env:
         EVENT: ${{ github.event_name }}
         PR_AUTHOR: ${{ github.event.pull_request.user.login }}

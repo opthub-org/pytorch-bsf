@@ -1,9 +1,10 @@
 name: Environment ranges
 
 # Dependabot changes the ranges of pyproject.toml but not environment.yml, and the lint job only warns about that drift,
-# so that its PRs merge on their own. This workflow then proposes the same ranges for environment.yml. Its merges use
-# the built-in token, which starts no push run, so a schedule picks them up. See "Syncing environment.yml" in
-# CONTRIBUTING.md.
+# so that its PRs merge on their own. This workflow then proposes the same ranges for environment.yml. It runs on a
+# schedule, because dependabot-merge.yml merges those PRs with the built-in token, which starts no push run. The sync is
+# `fix(deps)`, so that a release rebuilds the Docker image, which installs environment.yml. See "Syncing environment.yml"
+# in CONTRIBUTING.md.
 on:
   schedule:
     - cron: '41 5 * * *'
@@ -43,8 +44,8 @@ jobs:
           branch: automation/environment-ranges
           base: master
           delete-branch: true
-          title: 'chore(conda): sync the ranges of environment.yml with pyproject.toml'
-          commit-message: 'chore(conda): sync the ranges of environment.yml with pyproject.toml'
+          title: 'fix(deps): sync the ranges of environment.yml with pyproject.toml'
+          commit-message: 'fix(deps): sync the ranges of environment.yml with pyproject.toml'
           body: |
             Copy the dependency ranges of `pyproject.toml` into `environment.yml` with `python tools/sync_environment.py --write`. The Conda workflow of this PR tests the new ranges with conda-forge's packages.
 

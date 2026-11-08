@@ -36,10 +36,11 @@ REQUIREMENT = re.compile(rf"\s*(?P<name>{NAME})\s*(?P<extras>\[[^\]]*\])?\s*(?P<
 # The PEP 440 operators that a conda match spec reads the same way; `~=` and `===` are not among them.
 CLAUSE = re.compile(r"(?:==|!=|<=|>=|<|>)[A-Za-z0-9.*+!-]+")
 DEPENDENCIES = re.compile(r"dependencies:[ \t]*(?:#.*)?")
-# One entry of a block sequence: indentation, then a quoted or plain scalar, then an optional comment.
-ENTRY = re.compile(r"""(?P<indent>[ \t]*)- (?P<quote>["']?)(?P<value>.*?)(?P=quote)(?P<comment>[ \t]+#.*)?""")
+# One entry of a block sequence: indentation, then a quoted or plain scalar, then an optional comment or trailing blanks.
+ENTRY = re.compile(r"""(?P<indent>[ \t]*)- (?P<quote>["']?)(?P<value>.*?)(?P=quote)(?P<comment>[ \t]+#.*|[ \t]*)""")
 # A conda match spec of a name and an optional range, such as `numpy>=1.23.2,<3` or `python=3.14`. A channel
-# (`conda-forge::numpy`), a build string after a blank, or brackets do not match.
+# (`conda-forge::numpy`), a build string after a blank, or brackets do not match; environment_entries() rejects a build
+# string after `=` and other clauses that are not a range.
 MATCH_SPEC = re.compile(rf"\s*(?P<name>{NAME})\s*(?P<specifier>[^\[\]\s:]*)\s*")
 
 
@@ -66,14 +67,10 @@ def project_ranges(text: str) -> tuple[dict[str, list[str]], list[str]]:
     Raises
     ------
     ValueError
-        If a requirement cannot be written in environment.yml.
+        If pyproject.toml has no `[project]` of the expected types, or a requirement cannot be written in
+        environment.yml.
     """
-    project = tomllib.loads(text)["project"]
-    own = normalize(project["name"])
-    requirements = list(project.get("dependencies", []))
-    for extra, values in project.get("optional-dependencies", {}).items():
-        if extra not in EXCLUDED_EXTRAS:
-            requirements.extend(values)
+    own, requirements = _project_requirements(text)
     ranges: dict[str, list[str]] = {}
     conflicts: list[str] = []
     for requirement in requirements:
@@ -96,6 +93,24 @@ def project_ranges(text: str) -> tuple[dict[str, list[str]], list[str]]:
     return ranges, conflicts
 
 
+def _project_requirements(text: str) -> tuple[str, list[str]]:
+    """Return the normalized project name and the requirements of its dependencies and checked extras."""
+    project = tomllib.loads(text).get("project")
+    if not isinstance(project, dict) or not isinstance(project.get("name"), str):
+        raise ValueError(f"{PROJECT}: no `[project]` table with a `name`")
+    groups = {"dependencies": project.get("dependencies", [])}
+    extras = project.get("optional-dependencies", {})
+    if not isinstance(extras, dict):
+        raise ValueError(f"{PROJECT}: `optional-dependencies` is not a table")
+    groups.update((f"optional-dependencies.{name}", values) for name, values in extras.items() if name not in EXCLUDED_EXTRAS)
+    requirements: list[str] = []
+    for key, values in groups.items():
+        if not isinstance(values, list) or not all(isinstance(value, str) for value in values):
+            raise ValueError(f"{PROJECT}: `{key}` is not a list of strings")
+        requirements.extend(values)
+    return normalize(project["name"]), requirements
+
+
 def environment_entries(text: str) -> dict[str, tuple[int, list[str]]]:
     """Return the line index and clauses of every top-level conda dependency, by normalized name.
 
@@ -112,9 +127,14 @@ def environment_entries(text: str) -> dict[str, tuple[int, list[str]]]:
         if match is None:
             raise ValueError(f"{ENVIRONMENT}:{index + 1}: cannot read `{value}`; write a name and a version range")
         name = normalize(match["name"])
+        declared = clauses(match["specifier"])
+        # Only the conda-only packages may use conda's own syntax, such as `python=3.14`; the others must be ranges
+        # that --write can replace without dropping anything, such as a build string after a second `=`.
+        if name not in CONDA_ONLY and not all(CLAUSE.fullmatch(clause) for clause in declared):
+            raise ValueError(f"{ENVIRONMENT}:{index + 1}: cannot read `{value}`; use ==, !=, <, <=, > or >=")
         if name in entries:
             raise ValueError(f"{ENVIRONMENT}:{index + 1}: `{match['name']}` is listed twice")
-        entries[name] = (index, clauses(match["specifier"]))
+        entries[name] = (index, declared)
     return entries
 
 
@@ -145,7 +165,7 @@ def drift(project: str, environment: str) -> list[str]:
     """Describe every difference between the ranges of pyproject.toml and environment.yml, in a stable order."""
     ranges, conflicts = project_ranges(project)
     entries = environment_entries(environment)
-    problems = [f"{PROJECT} has different ranges of `{name}` in different extras" for name in sorted(conflicts)]
+    problems = [f"{PROJECT} has different ranges of `{name}`" for name in sorted(conflicts)]
     for name, required in sorted(ranges.items()):
         if name in conflicts:
             continue
@@ -153,7 +173,7 @@ def drift(project: str, environment: str) -> list[str]:
             problems.append(f"{ENVIRONMENT} lacks `{name}{','.join(required)}` of {PROJECT}")
         elif not same_range(entries[name][1], required):
             declared = ",".join(entries[name][1]) or "no range"
-            problems.append(f"{ENVIRONMENT} has `{name}` {declared}, but {PROJECT} has {','.join(required)}")
+            problems.append(f"{ENVIRONMENT} has `{name}` {declared}, but {PROJECT} has {','.join(required) or 'no range'}")
     for name in sorted(entries.keys() - ranges.keys() - CONDA_ONLY):
         problems.append(f"{ENVIRONMENT} has `{name}`, which {PROJECT} does not declare")
     return problems
@@ -193,7 +213,7 @@ def known_drift(root: Path, revision: str) -> set[str]:
     """Return the drift of a git revision; a revision whose files cannot be read has none to tolerate."""
     try:
         return set(drift(read_revision(root, revision, PROJECT), read_revision(root, revision, ENVIRONMENT)))
-    except (OSError, subprocess.CalledProcessError, UnicodeDecodeError, ValueError) as error:
+    except (OSError, subprocess.CalledProcessError, ValueError) as error:
         report([f"cannot read the drift of {revision}, so all drift fails: {error}"], "warning")
         return set()
 
@@ -217,10 +237,10 @@ def main(argv: list[str] | None = None) -> int:
     group.add_argument("--allow-drift", action="store_true", help="report drift as warnings and exit 0")
     args = parser.parse_args(argv)
     path = args.root / ENVIRONMENT
-    # Bytes keep the line endings, which --write must not change.
-    project = (args.root / PROJECT).read_bytes().decode("utf-8")
-    environment = path.read_bytes().decode("utf-8")
     try:
+        # Bytes keep the line endings, which --write must not change.
+        project = (args.root / PROJECT).read_bytes().decode("utf-8")
+        environment = path.read_bytes().decode("utf-8")
         if args.write:
             synchronized = synchronize(project, environment)
             if synchronized != environment:
@@ -228,7 +248,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"Updated the ranges in {ENVIRONMENT}")
             environment = synchronized
         problems = drift(project, environment)
-    except ValueError as error:
+    except (OSError, ValueError) as error:  # UnicodeDecodeError and TOMLDecodeError are ValueErrors.
         report([str(error)], "error")
         return 1
     known = known_drift(args.root, args.base) if args.base is not None and problems else set()
