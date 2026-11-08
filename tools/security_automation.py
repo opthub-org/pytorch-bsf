@@ -337,18 +337,18 @@ def added_text(root: Path, base: str, tree: str, paths: list[str]) -> bytes:
     options = ["--no-ext-diff", "--no-textconv", "--no-renames", "--no-color", "--text", "--unified=0"]
     diff = git(root, "-c", "core.quotePath=false", "diff", *options, base, tree)
     added, in_hunk = [], False
-    for line in diff.splitlines(keepends=True):
+    for line in diff.split(b"\n"):  # git ends diff lines only with LF; a CR stays inside the line
         if line.startswith(b"diff --git "):
             in_hunk = False
         elif line.startswith(b"@@"):
             in_hunk = True
         elif in_hunk and line.startswith(b"+"):
-            added.append(line[1:] if line.endswith(b"\n") else line[1:] + b"\n")
+            added.append(line[1:] + b"\n")
     return "".join(f"{path}\n" for path in paths).encode() + b"".join(added)
 
 
-def scan_secrets(root: Path, base: str, scanner: Path, control: Path = CONTROL) -> str:
-    """Scan the paths and added lines of the patch with the pinned Betterleaks, as data; return the scanned tree.
+def scan_secrets(root: Path, base: str, scanner: Path, control: Path = CONTROL, summary: str = "") -> str:
+    """Scan the paths and added lines of the patch, and the summary for the PR body, as data; return the scanned tree.
 
     The scanner reads them from stdin, without a token, in an empty directory with the built-in rules. So no
     configuration, ignore or attributes file applies, and no rule skips a file by its path, such as an SVG or a
@@ -375,7 +375,7 @@ def scan_secrets(root: Path, base: str, scanner: Path, control: Path = CONTROL) 
             "--no-banner",
             "--no-color",
         ]
-        text = added_text(root, base, tree, paths)
+        text = added_text(root, base, tree, paths) + (summary + "\n" if summary else "").encode()
         if subprocess.run(scan, input=text, cwd=empty, env=env, timeout=SCANNER_TIMEOUT, check=False).returncode:
             raise ValueError("Betterleaks found a secret in the patch or could not scan it; nothing was published")
     return tree
@@ -1128,7 +1128,9 @@ def run_task_command(args: argparse.Namespace, task: Json) -> None:
         _, patch = validate_changes(args.root, task["base"])
         args.output.write_bytes(patch)
     elif args.command == "scan":
-        args.output.write_text(scan_secrets(args.root, task["base"], args.scanner) + "\n")
+        # publish puts the summary of the same result file into the PR body
+        summary = str(json.loads(args.result.read_text())["summary"]) if args.result.is_file() else ""
+        args.output.write_text(scan_secrets(args.root, task["base"], args.scanner, summary=summary) + "\n")
     elif args.command == "publish":
         publish(GitHub(), task, args.root, json.loads(args.result.read_text()), args.scanned)
     elif args.command == "merge":

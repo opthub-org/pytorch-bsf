@@ -427,6 +427,30 @@ class SecretScanTests(GitFixture):
                     scan.assert_not_called()
                     self.assertFalse((self.root / "out").exists())
 
+    def test_published_or_unknown_outcomes_run_the_scanner_commands(self):
+        result, output = self.root / "result.json", self.root / "out"
+        result.write_text(json.dumps({"status": "changed", "summary": "Tested repair"}))
+        task = self.root / "task.json"
+        task.write_text(json.dumps({"base": self.base}))
+        # security-policy.yml fetches without --result, so a missing file must not skip the fetch.
+        for arguments in (["--result", str(result)], ["--result", str(self.root / "missing.json")]):
+            with (
+                self.subTest(arguments=arguments),
+                patch.object(sys, "argv", ["security_automation.py", "fetch-scanner", "--output", str(output), *arguments]),
+                patch.object(security, "fetch_scanner") as fetch,
+            ):
+                security.main()
+            fetch.assert_called_once_with(output)
+        scan = ["scan", "--root", str(self.root), "--task", str(task), "--result", str(result)]
+        with (
+            patch.object(sys, "argv", ["security_automation.py", *scan, "--scanner", "bl", "--output", str(output)]),
+            patch.dict(os.environ, {"SECURITY_TASK_SHA256": hashlib.sha256(task.read_bytes()).hexdigest()}),
+            patch.object(security, "scan_secrets", return_value="tree") as scanned,
+        ):
+            security.main()
+        scanned.assert_called_once_with(self.root, self.base, Path("bl"), summary="Tested repair")
+        self.assertEqual(output.read_text(), "tree\n")
+
     def test_scan_commands_require_their_paths(self):
         for arguments in (["fetch-scanner"], ["scan", "--output", "tree"], ["scan", "--scanner", "betterleaks"]):
             with (
@@ -448,7 +472,7 @@ class SecretScanTests(GitFixture):
                 self.scan()
         with self.fake_scanner(hang=True), self.assertRaises(subprocess.TimeoutExpired):
             self.scan()
-        self.assertEqual(self.scanner_calls[-1][1]["timeout"], security.SCANNER_TIMEOUT)
+        self.assertEqual([call[1]["timeout"] for call in self.scanner_calls[-2:]], [security.SCANNER_TIMEOUT] * 2)
         with self.assertRaises(OSError):
             self.scan(str(self.root / "missing-scanner"))
 
@@ -475,16 +499,18 @@ class SecretScanTests(GitFixture):
     def test_scan_record_reaches_publish_through_the_cli(self):
         (self.root / "source.py").write_text("value = 2\n", newline="\n")
         record = Path(self.temp.name) / ".git" / "scanned-tree"
+        result = Path(self.temp.name) / ".git" / "result.json"
+        result.write_text(json.dumps({"status": "changed", "summary": "Tested repair"}))
         task: security.Json = {"base": self.base}
-        scan = argparse.Namespace(command="scan", root=self.root, scanner=Path("betterleaks"), output=record)
+        scan = argparse.Namespace(command="scan", root=self.root, scanner=Path("betterleaks"), output=record, result=result)
         with self.fake_scanner(returncode=1), self.assertRaisesRegex(ValueError, "found a secret"):
             security.run_task_command(scan, task)
         self.assertFalse(record.exists())
         with self.fake_scanner():
             security.run_task_command(scan, task)
         self.assertEqual(record.read_text(), security.candidate_tree(self.root, self.base, ["source.py"]) + "\n")
-        result = Path(self.temp.name) / ".git" / "result.json"
-        result.write_text(json.dumps({"status": "changed", "summary": "Tested repair"}))
+        # The summary goes into the PR body, so it is scanned with the patch.
+        self.assertEqual(self.scanner_calls[-1][1]["input"], b"source.py\nvalue = 2\nTested repair\n")
         publish = argparse.Namespace(command="publish", root=self.root, result=result, scanned=record)
         with patch.object(security, "publish") as published, patch.object(security, "GitHub"):
             security.run_task_command(publish, task)
@@ -617,6 +643,20 @@ class SecretScanTests(GitFixture):
                     self.real_scan()
                 self.run_git("rm", "-q", "--cached", name)
                 target.unlink()
+
+    def test_real_scanner_rejects_a_secret_in_the_pr_summary(self):
+        if REAL_SCANNER is None:
+            self.skipTest("BETTERLEAKS names no scanner binary")
+        (self.root / "source.py").write_text("value = 2\n", newline="\n")
+        with self.assertRaisesRegex(ValueError, "found a secret"):
+            security.scan_secrets(self.root, self.base, Path(REAL_SCANNER), summary=f"Rotated {FAKE_TOKEN}")
+
+    def test_real_scanner_rejects_a_secret_after_a_carriage_return(self):
+        (self.root / "source.py").write_bytes(f'value = 2\rtoken = "{FAKE_TOKEN}"\r\n'.encode())
+        text = security.added_text(self.root, self.base, security.candidate_tree(self.root, self.base, ["source.py"]), [])
+        self.assertIn(FAKE_TOKEN.encode(), text)
+        with self.assertRaisesRegex(ValueError, "found a secret"):
+            self.real_scan()
 
     def test_real_scanner_rejects_a_secret_in_a_file_name(self):
         name = f'token = "{FAKE_TOKEN}".txt'
@@ -1441,6 +1481,8 @@ class PublicationIntegrationTests(GitFixture):
     def test_unscanned_or_changed_patch_is_not_published(self):
         with self.assertRaisesRegex(ValueError, "not scanned"):
             self.publish(scanned=False)
+        with self.assertRaisesRegex(ValueError, "not scanned"):
+            security.publish(self.api, self.task, self.root, {"status": "changed", "summary": "Tested repair"}, None)
         self.assertEqual(self.writes, [])
         with (
             patch.object(security, "candidate_tree", side_effect=["scanned", "changed after the scan"]),

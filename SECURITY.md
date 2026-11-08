@@ -155,8 +155,9 @@ runs only after the push, and the repository is public. It downloads the Betterl
 release that the `rev` of `.pre-commit-config.yaml` on `master` pins, and
 `gh release verify-asset` checks that GitHub's attestation of that immutable release
 lists the file. The scan then runs in a step without a token and reads the patch as
-data on standard input; nothing in the patch runs. It scans the changed paths and the
-lines that the patch adds, with the built-in rules. The `betterleaks:allow` and
+data on standard input; nothing in the patch runs. It scans the changed paths, the
+lines that the patch adds and the AI's summary that the PR body quotes, with the
+built-in rules. The `betterleaks:allow` and
 `gitleaks:allow` comments, the `.betterleaksignore` and `.betterleaks.toml` files,
 `.gitattributes` and the Gitleaks names of these files do not apply, whether the patch
 or `master` contains them. Unlike `secret-scan`, it also scans files that the built-in
