@@ -46,7 +46,7 @@ jobs:
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
-        fetch-depth: 2  # HEAD^ is the base of a PR's merge commit, or the previous commit of a push
+        fetch-depth: 2  # On a PR, HEAD^ is the base of its merge commit, for the environment.yml check below
         persist-credentials: false
     - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
       with:
@@ -71,16 +71,18 @@ jobs:
         python -m unittest discover -s tests/tools -p update_python_support.py -v
         python -m unittest discover -s tests/tools -p sync_environment.py -v
     - name: Check that environment.yml has the ranges of pyproject.toml
-      # Fails on the drift that a change adds; drift already on the base is a warning. A Dependabot PR only warns, so
-      # that its auto-merge goes on, and the Dependency lifecycle workflow syncs master later. See "Dependency versions"
+      # A PR fails on the drift that it adds; drift already on its base is a warning. A Dependabot PR only warns, so that
+      # its auto-merge goes on, and so do the runs on master and dispatches: the merged drift must not hold the release
+      # PR, which reads master's checks, and the Environment ranges workflow syncs master. See "Syncing environment.yml"
       # in CONTRIBUTING.md.
       env:
+        EVENT: ${{ github.event_name }}
         PR_AUTHOR: ${{ github.event.pull_request.user.login }}
       run: |
-        if [ "$PR_AUTHOR" = 'dependabot[bot]' ]; then
-          python tools/sync_environment.py --allow-drift
-        else
+        if [ "$EVENT" = pull_request ] && [ "$PR_AUTHOR" != 'dependabot[bot]' ]; then
           python tools/sync_environment.py --base HEAD^
+        else
+          python tools/sync_environment.py --allow-drift
         fi
 
   lowest:

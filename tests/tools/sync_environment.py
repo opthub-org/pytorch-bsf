@@ -3,6 +3,7 @@
 import contextlib
 import importlib.util
 import io
+import os
 import shutil
 import subprocess
 import tempfile
@@ -51,10 +52,13 @@ dependencies:
 
 
 class DriftTests(unittest.TestCase):
-    def test_repository_files_agree(self):
+    def test_repository_files_can_be_read(self):
+        # Only readable, not free of drift: Dependabot PRs and master may have drift that CI tolerates.
         project = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
         environment = (ROOT / "environment.yml").read_text(encoding="utf-8")
-        self.assertEqual(sync.drift(project, environment), [])
+        ranges, _ = sync.project_ranges(project)
+        self.assertIn("matplotlib-base", ranges)
+        self.assertIn("pytorch", sync.environment_entries(environment))
 
     def test_fixture_agrees_with_renamed_packages_and_any_clause_order(self):
         self.assertEqual(sync.drift(PROJECT, ENVIRONMENT), [])
@@ -106,12 +110,13 @@ class DriftTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, message):
                     sync.drift(project, ENVIRONMENT)
 
-    def test_extras_with_different_ranges_are_an_error(self):
+    def test_extras_with_different_ranges_are_drift(self):
         project = PROJECT.replace(
             'plot = ["matplotlib>=3.6,<4", "scipy>=1.9.2,<2"]', 'plot = ["matplotlib>=3.6,<4", "scipy>=1.9.2,<3"]'
         )
-        with self.assertRaisesRegex(ValueError, "`scipy` has different ranges"):
-            sync.drift(project, ENVIRONMENT)
+        self.assertEqual(
+            sync.drift(project, ENVIRONMENT), ["pyproject.toml has different ranges of `scipy` in different extras"]
+        )
 
     def test_unreadable_environments_are_errors(self):
         for environment, message in (
@@ -119,6 +124,8 @@ class DriftTests(unittest.TestCase):
             (ENVIRONMENT.replace("- pip\n", "- pip\n- numpy>=1\n"), "listed twice"),
             (ENVIRONMENT.replace("- pip\n", "- pip\n-numpy\n"), "cannot read"),
             (ENVIRONMENT.replace("- pip\n", "- pip\n- numpy[version='>=1']\n"), "cannot read"),
+            (ENVIRONMENT.replace('"scipy>=1.9.2,<2"', '"conda-forge::scipy>=1.9.2,<2"'), "cannot read"),
+            (ENVIRONMENT.replace('"scipy>=1.9.2,<2"', '"scipy 1.9.2 py_0"'), "cannot read"),
         ):
             with self.subTest(message=message), self.assertRaisesRegex(ValueError, message):
                 sync.drift(PROJECT, environment)
@@ -149,6 +156,10 @@ class SynchronizeTests(unittest.TestCase):
         crlf = ENVIRONMENT.replace("\n", "\r\n")
         self.assertEqual(sync.synchronize(project, crlf), crlf.replace('"scipy>=1.9.2,<2"', '"scipy>=1.10,<2"'))
 
+    def test_leaves_packages_whose_extras_disagree_to_a_person(self):
+        project = PROJECT.replace('adaptive = ["scipy>=1.9.2,<2"]', 'adaptive = ["scipy>=1.9.2,<3"]')
+        self.assertEqual(sync.synchronize(project, ENVIRONMENT), ENVIRONMENT)
+
     def test_leaves_missing_and_undeclared_packages_to_a_person(self):
         project = PROJECT.replace('"PyYAML>=6,<7",', '"PyYAML>=6,<7",\n  "sympy>=1.12,<2",')
         environment = ENVIRONMENT.replace("- pip\n", '- pip\n- "pytest>=8"\n')
@@ -168,8 +179,10 @@ class CommandTests(unittest.TestCase):
 
     def run_main(self, *args, github=False):
         output = io.StringIO()
-        environ = {"GITHUB_ACTIONS": "true"} if github else {}
-        with contextlib.redirect_stdout(output), patch.dict("os.environ", environ, clear=True):
+        # Keep PATH and the rest, which git needs; patch.dict restores GITHUB_ACTIONS afterwards.
+        with contextlib.redirect_stdout(output), patch.dict("os.environ", {"GITHUB_ACTIONS": "true"}):
+            if not github:
+                del os.environ["GITHUB_ACTIONS"]
             code = sync.main(["--root", str(self.root), *args])
         return code, output.getvalue()
 
@@ -263,6 +276,22 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("warning: cannot read the drift of no-such-revision, so all drift fails", output)
         self.assertIn("error: environment.yml has `numpy`", output)
+
+    def test_base_with_unreadable_files_tolerates_nothing(self):
+        self.write(PROJECT.replace('"numpy>=1.23.2,<3"', '"numpy~=1.23"'), ENVIRONMENT)
+        self.commit()
+        self.write(PROJECT.replace('"numpy>=1.23.2,<3"', '"numpy>=1.23.2,<4"'), ENVIRONMENT)
+        code, output = self.run_main("--base", "HEAD")
+        self.assertEqual(code, 1)
+        self.assertIn("warning: cannot read the drift of HEAD, so all drift fails: pyproject.toml: conda cannot read", output)
+        self.assertIn("error: environment.yml has `numpy`", output)
+
+    def test_base_without_git_tolerates_nothing(self):
+        self.write(PROJECT.replace('"numpy>=1.23.2,<3"', '"numpy>=1.23.2,<4"'), ENVIRONMENT)
+        with patch.object(sync.subprocess, "run", side_effect=FileNotFoundError("no git")):
+            code, output = self.run_main("--base", "HEAD")
+        self.assertEqual(code, 1)
+        self.assertIn("warning: cannot read the drift of HEAD, so all drift fails: no git", output)
 
 
 if __name__ == "__main__":

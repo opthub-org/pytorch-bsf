@@ -2,8 +2,9 @@
 
 Every requirement of ``[project].dependencies`` and of the extras, except ``develop``, needs a conda dependency of the
 same name (``CONDA_NAMES`` maps the names that differ on conda-forge) and the same clauses, in any order. Conda
-dependencies that pyproject.toml does not declare are drift too, except ``CONDA_ONLY``. Requirements with markers or
-extras, or clauses that conda cannot read, are errors, as is a package whose extras declare different ranges.
+dependencies that pyproject.toml does not declare are drift too, except ``CONDA_ONLY``, and so is a package whose extras
+declare different ranges. Requirements with markers or extras, clauses that conda cannot read, and environment.yml
+entries that are not a plain name and range are errors, which no option tolerates.
 
 With ``--base REV``, only drift that REV did not have fails; the rest is reported as a warning, so drift that is already
 on master does not fail unrelated PRs. ``--allow-drift`` reports every drift as a warning. GitHub Actions annotates the
@@ -28,14 +29,18 @@ EXCLUDED_EXTRAS = frozenset({"develop"})
 CONDA_NAMES = {"torch": "pytorch", "matplotlib": "matplotlib-base"}
 # Conda dependencies that pyproject.toml has no requirement for.
 CONDA_ONLY = frozenset({"python", "pip"})
-REQUIREMENT = re.compile(r"\s*([A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)\s*(\[[^\]]*\])?\s*(.*?)\s*")
+# A distribution name, as PEP 508 allows it.
+NAME = r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?"
+# A PEP 508 requirement of a name, optional extras and a specifier; markers and URLs are rejected separately.
+REQUIREMENT = re.compile(rf"\s*(?P<name>{NAME})\s*(?P<extras>\[[^\]]*\])?\s*(?P<specifier>.*?)\s*")
 # The PEP 440 operators that a conda match spec reads the same way; `~=` and `===` are not among them.
 CLAUSE = re.compile(r"(?:==|!=|<=|>=|<|>)[A-Za-z0-9.*+!-]+")
 DEPENDENCIES = re.compile(r"dependencies:[ \t]*(?:#.*)?")
 # One entry of a block sequence: indentation, then a quoted or plain scalar, then an optional comment.
 ENTRY = re.compile(r"""(?P<indent>[ \t]*)- (?P<quote>["']?)(?P<value>.*?)(?P=quote)(?P<comment>[ \t]+#.*)?""")
-# A conda match spec of a name and an optional range, such as `numpy>=1.23.2,<3` or `python=3.14`.
-MATCH_SPEC = re.compile(r"\s*([A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)\s*([^\[\]\s]*)\s*")
+# A conda match spec of a name and an optional range, such as `numpy>=1.23.2,<3` or `python=3.14`. A channel
+# (`conda-forge::numpy`), a build string after a blank, or brackets do not match.
+MATCH_SPEC = re.compile(rf"\s*(?P<name>{NAME})\s*(?P<specifier>[^\[\]\s:]*)\s*")
 
 
 def normalize(name: str) -> str:
@@ -48,13 +53,20 @@ def clauses(specifier: str) -> list[str]:
     return [clause for clause in re.sub(r"\s+", "", specifier).split(",") if clause]
 
 
-def project_ranges(text: str) -> dict[str, list[str]]:
+def same_range(first: list[str], second: list[str]) -> bool:
+    """Return whether two lists of clauses are the same range: the same clauses, in any order."""
+    return sorted(first) == sorted(second)
+
+
+def project_ranges(text: str) -> tuple[dict[str, list[str]], list[str]]:
     """Return the clauses of every requirement that environment.yml must declare, by conda name.
+
+    The second item lists the conda names whose extras declare different ranges; their first range is returned.
 
     Raises
     ------
     ValueError
-        If a requirement cannot be written in environment.yml, or extras declare different ranges of one package.
+        If a requirement cannot be written in environment.yml.
     """
     project = tomllib.loads(text)["project"]
     own = normalize(project["name"])
@@ -63,23 +75,25 @@ def project_ranges(text: str) -> dict[str, list[str]]:
         if extra not in EXCLUDED_EXTRAS:
             requirements.extend(values)
     ranges: dict[str, list[str]] = {}
+    conflicts: list[str] = []
     for requirement in requirements:
         match = REQUIREMENT.fullmatch(requirement)
         if match is None or ";" in requirement or "@" in requirement:
             raise ValueError(f"{PROJECT}: cannot read `{requirement}`; write a name and a version range")
-        name = normalize(match[1])
+        name = normalize(match["name"])
         if name == own:
             continue  # The `all` extra refers to the other extras.
-        if match[2]:
+        if match["extras"]:
             raise ValueError(f"{PROJECT}: `{requirement}` has extras, which environment.yml cannot install")
-        required = clauses(match[3])
+        required = clauses(match["specifier"])
         if not all(CLAUSE.fullmatch(clause) for clause in required):
             raise ValueError(f"{PROJECT}: conda cannot read the range of `{requirement}`; use ==, !=, <, <=, > or >=")
         conda = CONDA_NAMES.get(name, name)
-        if conda in ranges and sorted(ranges[conda]) != sorted(required):
-            raise ValueError(f"{PROJECT}: `{match[1]}` has different ranges in different extras")
-        ranges[conda] = required
-    return ranges
+        if conda not in ranges:
+            ranges[conda] = required
+        elif not same_range(ranges[conda], required) and conda not in conflicts:
+            conflicts.append(conda)
+    return ranges, conflicts
 
 
 def environment_entries(text: str) -> dict[str, tuple[int, list[str]]]:
@@ -96,11 +110,11 @@ def environment_entries(text: str) -> dict[str, tuple[int, list[str]]]:
     for index, value in _dependency_values(text.splitlines()):
         match = MATCH_SPEC.fullmatch(value)
         if match is None:
-            raise ValueError(f"{ENVIRONMENT}:{index + 1}: cannot read `{value}`")
-        name = normalize(match[1])
+            raise ValueError(f"{ENVIRONMENT}:{index + 1}: cannot read `{value}`; write a name and a version range")
+        name = normalize(match["name"])
         if name in entries:
-            raise ValueError(f"{ENVIRONMENT}:{index + 1}: `{match[1]}` is listed twice")
-        entries[name] = (index, clauses(match[2]))
+            raise ValueError(f"{ENVIRONMENT}:{index + 1}: `{match['name']}` is listed twice")
+        entries[name] = (index, clauses(match["specifier"]))
     return entries
 
 
@@ -129,13 +143,15 @@ def _dependency_values(lines: list[str]) -> Iterator[tuple[int, str]]:
 
 def drift(project: str, environment: str) -> list[str]:
     """Describe every difference between the ranges of pyproject.toml and environment.yml, in a stable order."""
-    ranges = project_ranges(project)
+    ranges, conflicts = project_ranges(project)
     entries = environment_entries(environment)
-    problems = []
+    problems = [f"{PROJECT} has different ranges of `{name}` in different extras" for name in sorted(conflicts)]
     for name, required in sorted(ranges.items()):
+        if name in conflicts:
+            continue
         if name not in entries:
             problems.append(f"{ENVIRONMENT} lacks `{name}{','.join(required)}` of {PROJECT}")
-        elif sorted(entries[name][1]) != sorted(required):
+        elif not same_range(entries[name][1], required):
             declared = ",".join(entries[name][1]) or "no range"
             problems.append(f"{ENVIRONMENT} has `{name}` {declared}, but {PROJECT} has {','.join(required)}")
     for name in sorted(entries.keys() - ranges.keys() - CONDA_ONLY):
@@ -146,14 +162,14 @@ def drift(project: str, environment: str) -> list[str]:
 def synchronize(project: str, environment: str) -> str:
     """Return environment.yml with the ranges of pyproject.toml on its existing lines.
 
-    Missing and undeclared packages are left alone: where they belong, and whether they belong, needs a person.
+    Missing and undeclared packages, and packages whose extras disagree, are left alone: they need a person.
     """
-    ranges = project_ranges(project)
+    ranges, conflicts = project_ranges(project)
     entries = environment_entries(environment)
     lines = environment.splitlines(keepends=True)
     for name, (index, declared) in entries.items():
         required = ranges.get(name)
-        if required is None or sorted(declared) == sorted(required):
+        if required is None or name in conflicts or same_range(declared, required):
             continue
         line = lines[index]
         entry = ENTRY.fullmatch(line.rstrip("\r\n"))
@@ -162,7 +178,8 @@ def synchronize(project: str, environment: str) -> str:
         assert match is not None
         quote = entry["quote"] or '"'  # Quoted, because a plain scalar must not start with `>` or contain ` #`.
         newline = line[len(line.rstrip("\r\n")) :]
-        lines[index] = f"{entry['indent']}- {quote}{match[1]}{','.join(required)}{quote}{entry['comment'] or ''}{newline}"
+        spec = f"{match['name']}{','.join(required)}"
+        lines[index] = f"{entry['indent']}- {quote}{spec}{quote}{entry['comment'] or ''}{newline}"
     return "".join(lines)
 
 
@@ -176,7 +193,7 @@ def known_drift(root: Path, revision: str) -> set[str]:
     """Return the drift of a git revision; a revision whose files cannot be read has none to tolerate."""
     try:
         return set(drift(read_revision(root, revision, PROJECT), read_revision(root, revision, ENVIRONMENT)))
-    except (subprocess.CalledProcessError, UnicodeDecodeError, ValueError) as error:
+    except (OSError, subprocess.CalledProcessError, UnicodeDecodeError, ValueError) as error:
         report([f"cannot read the drift of {revision}, so all drift fails: {error}"], "warning")
         return set()
 
@@ -193,7 +210,7 @@ def report(problems: list[str], level: str) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--root", type=Path, default=ROOT)
+    parser.add_argument("--root", type=Path, default=ROOT, help="the directory of pyproject.toml and environment.yml")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--write", action="store_true", help="copy the ranges of pyproject.toml into environment.yml")
     group.add_argument("--base", metavar="REV", help="fail only on drift that this git revision does not have")
@@ -220,7 +237,10 @@ def main(argv: list[str] | None = None) -> int:
     report(tolerated, "warning")
     report(failed, "error")
     if failed:
-        print(f"Run `python tools/sync_environment.py --write`, or edit {ENVIRONMENT} by hand; see CONTRIBUTING.md.")
+        print(
+            f"Run `python tools/sync_environment.py --write`, or edit {ENVIRONMENT} by hand;"
+            ' see "Syncing environment.yml" in CONTRIBUTING.md.'
+        )
     elif not problems:
         print(f"{ENVIRONMENT} has the ranges of {PROJECT}")
     return 1 if failed else 0
