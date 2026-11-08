@@ -450,6 +450,17 @@ class SecretScanTests(GitFixture):
             security.main()
         scanned.assert_called_once_with(self.root, self.base, Path("bl"), summary="Tested repair")
         self.assertEqual(output.read_text(), "tree\n")
+        output.unlink()
+        scan[-1] = str(self.root / "missing.json")
+        with (
+            patch.object(sys, "argv", ["security_automation.py", *scan, "--scanner", "bl", "--output", str(output)]),
+            patch.dict(os.environ, {"SECURITY_TASK_SHA256": hashlib.sha256(task.read_bytes()).hexdigest()}),
+            patch.object(security, "scan_secrets", return_value="tree") as scanned,
+            self.assertRaises(OSError),
+        ):
+            security.main()
+        scanned.assert_not_called()
+        self.assertFalse(output.exists())
 
     def test_scan_commands_require_their_paths(self):
         for arguments in (["fetch-scanner"], ["scan", "--output", "tree"], ["scan", "--scanner", "betterleaks"]):
@@ -1483,6 +1494,9 @@ class PublicationIntegrationTests(GitFixture):
             self.publish(scanned=False)
         with self.assertRaisesRegex(ValueError, "not scanned"):
             security.publish(self.api, self.task, self.root, {"status": "changed", "summary": "Tested repair"}, None)
+        # An outcome that skips the scan reaches the public status issue only as one of the schema's values.
+        with self.assertRaisesRegex(ValueError, "Unknown repair outcome"):
+            security.publish(self.api, self.task, self.root, {"status": f"leak {FAKE_TOKEN}", "summary": ""}, None)
         self.assertEqual(self.writes, [])
         with (
             patch.object(security, "candidate_tree", side_effect=["scanned", "changed after the scan"]),

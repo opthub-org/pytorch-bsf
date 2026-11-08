@@ -888,8 +888,17 @@ def update_task(api: GitHub, task: Json, result: Json) -> None:
     save_state(api, issue, state, f"{task['signal']['key']}: {result.get('result', 'updated')}.")
 
 
+def require_scanned(root: Path, base: str, paths: list[str], scanned: Path | None) -> None:
+    """Reject the patch unless scanned records the tree that the files to publish make."""
+    if scanned is None or not scanned.is_file() or scanned.read_text().strip() != candidate_tree(root, base, paths):
+        raise ValueError("The patch was not scanned for secrets as published; nothing was published")
+
+
 def publish(api: GitHub, task: Json, root: Path, outcome: Json, scanned: Path | None = None) -> None:
     """Publish the validated patch; scanned holds the tree that scan_secrets passed, and nothing else is published."""
+    # Only a "changed" outcome is scanned; the others go into the public status issue, so allow only fixed values
+    if outcome["status"] not in {"changed", "no_change", "blocked"}:
+        raise ValueError("Unknown repair outcome")
     if outcome["status"] != "changed":
         result = outcome["status"]
         if result == "no_change" and task["signal"]["key"] != "audit":
@@ -906,8 +915,7 @@ def publish(api: GitHub, task: Json, root: Path, outcome: Json, scanned: Path | 
     paths, patch = validate_changes(root, task["base"])
     if not patch:
         raise ValueError("AI reported a repair without any changes")
-    if scanned is None or not scanned.is_file() or scanned.read_text().strip() != candidate_tree(root, task["base"], paths):
-        raise ValueError("The patch was not scanned for secrets as published; nothing was published")
+    require_scanned(root, task["base"], paths, scanned)
     if task.get("pr") and api.get(f"pulls/{task['pr']}")["head"]["sha"] != task["head"]:
         raise ValueError("PR head changed while the repair was generated")
     if base_sha(api) != task["base"]:
@@ -1128,8 +1136,8 @@ def run_task_command(args: argparse.Namespace, task: Json) -> None:
         _, patch = validate_changes(args.root, task["base"])
         args.output.write_bytes(patch)
     elif args.command == "scan":
-        # publish puts the summary of the same result file into the PR body
-        summary = str(json.loads(args.result.read_text())["summary"]) if args.result.is_file() else ""
+        # publish puts the summary of the same result file into the PR body; without the file nothing is published
+        summary = str(json.loads(args.result.read_text())["summary"])
         args.output.write_text(scan_secrets(args.root, task["base"], args.scanner, summary=summary) + "\n")
     elif args.command == "publish":
         publish(GitHub(), task, args.root, json.loads(args.result.read_text()), args.scanned)
