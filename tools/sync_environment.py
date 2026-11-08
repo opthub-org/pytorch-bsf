@@ -4,7 +4,8 @@ Every requirement of ``[project].dependencies`` and of the extras, except ``deve
 same name (``CONDA_NAMES`` maps the names that differ on conda-forge) and the same clauses, in any order. Conda
 dependencies that pyproject.toml does not declare are drift too, except ``CONDA_ONLY``, and so is a package whose extras
 declare different ranges. Requirements with markers or extras, clauses that conda cannot read, and environment.yml
-entries that are not a plain name and range are errors, which no option tolerates.
+entries that are not a plain name and range (except ``CONDA_ONLY``, which may use conda's own syntax) are errors, which
+no option tolerates.
 
 With ``--base REV``, only drift that REV did not have fails; the rest is reported as a warning, so drift that is already
 on master does not fail unrelated PRs. ``--allow-drift`` reports every drift as a warning. GitHub Actions annotates the
@@ -35,12 +36,13 @@ NAME = r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?"
 REQUIREMENT = re.compile(rf"\s*(?P<name>{NAME})\s*(?P<extras>\[[^\]]*\])?\s*(?P<specifier>.*?)\s*")
 # The PEP 440 operators that a conda match spec reads the same way; `~=` and `===` are not among them.
 CLAUSE = re.compile(r"(?:==|!=|<=|>=|<|>)[A-Za-z0-9.*+!-]+")
+CLAUSE_HINT = "use ==, !=, <, <=, > or >="
 DEPENDENCIES = re.compile(r"dependencies:[ \t]*(?:#.*)?")
 # One entry of a block sequence: indentation, then a quoted or plain scalar, then an optional comment or trailing blanks.
 ENTRY = re.compile(r"""(?P<indent>[ \t]*)- (?P<quote>["']?)(?P<value>.*?)(?P=quote)(?P<comment>[ \t]+#.*|[ \t]*)""")
 # A conda match spec of a name and an optional range, such as `numpy>=1.23.2,<3` or `python=3.14`. A channel
-# (`conda-forge::numpy`), a build string after a blank, or brackets do not match; environment_entries() rejects a build
-# string after `=` and other clauses that are not a range.
+# (`conda-forge::numpy`), a build string after a blank, or brackets do not match. Except for CONDA_ONLY,
+# environment_entries() also rejects a build string after `=` and other clauses that are not a range.
 MATCH_SPEC = re.compile(rf"\s*(?P<name>{NAME})\s*(?P<specifier>[^\[\]\s:]*)\s*")
 
 
@@ -57,6 +59,11 @@ def clauses(specifier: str) -> list[str]:
 def same_range(first: list[str], second: list[str]) -> bool:
     """Return whether two lists of clauses are the same range: the same clauses, in any order."""
     return sorted(first) == sorted(second)
+
+
+def describe(range_: list[str]) -> str:
+    """Return a range as written in messages."""
+    return ",".join(range_) or "no range"
 
 
 def project_ranges(text: str) -> tuple[dict[str, list[str]], list[str]]:
@@ -84,7 +91,7 @@ def project_ranges(text: str) -> tuple[dict[str, list[str]], list[str]]:
             raise ValueError(f"{PROJECT}: `{requirement}` has extras, which environment.yml cannot install")
         required = clauses(match["specifier"])
         if not all(CLAUSE.fullmatch(clause) for clause in required):
-            raise ValueError(f"{PROJECT}: conda cannot read the range of `{requirement}`; use ==, !=, <, <=, > or >=")
+            raise ValueError(f"{PROJECT}: conda cannot read the range of `{requirement}`; {CLAUSE_HINT}")
         conda = CONDA_NAMES.get(name, name)
         if conda not in ranges:
             ranges[conda] = required
@@ -95,14 +102,19 @@ def project_ranges(text: str) -> tuple[dict[str, list[str]], list[str]]:
 
 def _project_requirements(text: str) -> tuple[str, list[str]]:
     """Return the normalized project name and the requirements of its dependencies and checked extras."""
-    project = tomllib.loads(text).get("project")
+    try:
+        project = tomllib.loads(text).get("project")
+    except tomllib.TOMLDecodeError as error:
+        raise ValueError(f"{PROJECT}: {error}") from error
     if not isinstance(project, dict) or not isinstance(project.get("name"), str):
         raise ValueError(f"{PROJECT}: no `[project]` table with a `name`")
     groups = {"dependencies": project.get("dependencies", [])}
     extras = project.get("optional-dependencies", {})
     if not isinstance(extras, dict):
         raise ValueError(f"{PROJECT}: `optional-dependencies` is not a table")
-    groups.update((f"optional-dependencies.{name}", values) for name, values in extras.items() if name not in EXCLUDED_EXTRAS)
+    groups.update(
+        (f"optional-dependencies.{name}", values) for name, values in extras.items() if normalize(name) not in EXCLUDED_EXTRAS
+    )
     requirements: list[str] = []
     for key, values in groups.items():
         if not isinstance(values, list) or not all(isinstance(value, str) for value in values):
@@ -131,7 +143,7 @@ def environment_entries(text: str) -> dict[str, tuple[int, list[str]]]:
         # Only the conda-only packages may use conda's own syntax, such as `python=3.14`; the others must be ranges
         # that --write can replace without dropping anything, such as a build string after a second `=`.
         if name not in CONDA_ONLY and not all(CLAUSE.fullmatch(clause) for clause in declared):
-            raise ValueError(f"{ENVIRONMENT}:{index + 1}: cannot read `{value}`; use ==, !=, <, <=, > or >=")
+            raise ValueError(f"{ENVIRONMENT}:{index + 1}: cannot read `{value}`; {CLAUSE_HINT}")
         if name in entries:
             raise ValueError(f"{ENVIRONMENT}:{index + 1}: `{match['name']}` is listed twice")
         entries[name] = (index, declared)
@@ -157,23 +169,24 @@ def _dependency_values(lines: list[str]) -> Iterator[tuple[int, str]]:
         if entry is None or (indent is not None and depth != indent):
             raise ValueError(f"{ENVIRONMENT}:{index + 1}: cannot read `{line.strip()}`")
         indent = depth
-        if not entry["value"].rstrip().endswith(":"):  # `- pip:` opens the pip section.
+        if entry["quote"] or not entry["value"].rstrip().endswith(":"):
             yield index, entry["value"]
+        elif entry["value"].rstrip() != "pip:":  # `- pip:` opens the pip section; no other mapping is expected.
+            raise ValueError(f"{ENVIRONMENT}:{index + 1}: cannot read `{line.strip()}`")
 
 
 def drift(project: str, environment: str) -> list[str]:
     """Describe every difference between the ranges of pyproject.toml and environment.yml, in a stable order."""
     ranges, conflicts = project_ranges(project)
     entries = environment_entries(environment)
-    problems = [f"{PROJECT} has different ranges of `{name}`" for name in sorted(conflicts)]
+    problems = [f"{PROJECT} has different ranges for conda's `{name}`" for name in sorted(conflicts)]
     for name, required in sorted(ranges.items()):
         if name in conflicts:
             continue
         if name not in entries:
             problems.append(f"{ENVIRONMENT} lacks `{name}{','.join(required)}` of {PROJECT}")
         elif not same_range(entries[name][1], required):
-            declared = ",".join(entries[name][1]) or "no range"
-            problems.append(f"{ENVIRONMENT} has `{name}` {declared}, but {PROJECT} has {','.join(required) or 'no range'}")
+            problems.append(f"{ENVIRONMENT} has `{name}` {describe(entries[name][1])}, but {PROJECT} has {describe(required)}")
     for name in sorted(entries.keys() - ranges.keys() - CONDA_ONLY):
         problems.append(f"{ENVIRONMENT} has `{name}`, which {PROJECT} does not declare")
     return problems
@@ -206,7 +219,15 @@ def synchronize(project: str, environment: str) -> str:
 def read_revision(root: Path, revision: str, name: str) -> str:
     """Return a file as it is in a git revision."""
     result = subprocess.run(["git", "show", f"{revision}:{name}"], cwd=root, check=True, capture_output=True)
-    return result.stdout.decode("utf-8")
+    return decode(result.stdout, name)
+
+
+def decode(data: bytes, name: str) -> str:
+    """Decode a file as UTF-8, naming the file on failure."""
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise ValueError(f"{name}: {error}") from error
 
 
 def known_drift(root: Path, revision: str) -> set[str]:
@@ -219,11 +240,12 @@ def known_drift(root: Path, revision: str) -> set[str]:
 
 
 def report(problems: list[str], level: str) -> None:
-    """Print problems, as GitHub annotations when running in GitHub Actions."""
+    """Print problems, as GitHub annotations on the file they start with when running in GitHub Actions."""
     for problem in problems:
         if os.environ.get("GITHUB_ACTIONS") == "true":
             escaped = problem.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
-            print(f"::{level} file={ENVIRONMENT}::{escaped}")
+            file = PROJECT if problem.startswith(PROJECT) else ENVIRONMENT
+            print(f"::{level} file={file}::{escaped}")
         else:
             print(f"{level}: {problem}")
 
@@ -239,8 +261,8 @@ def main(argv: list[str] | None = None) -> int:
     path = args.root / ENVIRONMENT
     try:
         # Bytes keep the line endings, which --write must not change.
-        project = (args.root / PROJECT).read_bytes().decode("utf-8")
-        environment = path.read_bytes().decode("utf-8")
+        project = decode((args.root / PROJECT).read_bytes(), PROJECT)
+        environment = decode(path.read_bytes(), ENVIRONMENT)
         if args.write:
             synchronized = synchronize(project, environment)
             if synchronized != environment:
@@ -248,7 +270,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"Updated the ranges in {ENVIRONMENT}")
             environment = synchronized
         problems = drift(project, environment)
-    except (OSError, ValueError) as error:  # UnicodeDecodeError and TOMLDecodeError are ValueErrors.
+    except (OSError, ValueError) as error:
         report([str(error)], "error")
         return 1
     known = known_drift(args.root, args.base) if args.base is not None and problems else set()

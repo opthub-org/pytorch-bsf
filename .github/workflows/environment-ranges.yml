@@ -2,7 +2,7 @@ name: Environment ranges
 
 # Dependabot changes the ranges of pyproject.toml but not environment.yml, and the lint job only warns about that drift,
 # so that its PRs merge on their own. This workflow then proposes the same ranges for environment.yml. It runs on a
-# schedule, because dependabot-merge.yml merges those PRs with the built-in token, which starts no push run. The sync is
+# schedule, because dependabot-merge.yml merges Dependabot's PRs with the built-in token, which starts no push run. The sync is
 # `fix(deps)`, so that a release rebuilds the Docker image, which installs environment.yml. See "Syncing environment.yml"
 # in CONTRIBUTING.md.
 on:

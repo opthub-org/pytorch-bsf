@@ -94,6 +94,15 @@ class DriftTests(unittest.TestCase):
         self.assertEqual(
             sync.drift(PROJECT_TEXT, environment), ["environment.yml has `scipy` no range, but pyproject.toml has >=1.9.2,<2"]
         )
+        project = PROJECT_TEXT.replace('"scipy>=1.9.2,<2"', '"scipy"')
+        self.assertEqual(
+            sync.drift(project, ENVIRONMENT_TEXT), ["environment.yml has `scipy` >=1.9.2,<2, but pyproject.toml has no range"]
+        )
+        self.assertIn('- "scipy"\n', sync.synchronize(project, ENVIRONMENT_TEXT))
+
+    def test_extras_are_compared_by_normalized_name(self):
+        project = PROJECT_TEXT.replace("develop = ", "Develop = ").replace('"mypy>=1"', '"mypy~=1"')
+        self.assertEqual(sync.drift(project, ENVIRONMENT_TEXT), [])
 
     def test_entries_of_the_pip_section_and_other_keys_are_ignored(self):
         environment = ENVIRONMENT_TEXT.replace("  - -e .\n", "  - -e .\n  - unrelated>=1\nvariables:\n  - not-a-dependency\n")
@@ -119,7 +128,7 @@ class DriftTests(unittest.TestCase):
         )
         # Three ranges, none of them the one in environment.yml: only the conflict is reported, once.
         environment = ENVIRONMENT_TEXT.replace('"scipy>=1.9.2,<2"', '"scipy>=1.9,<2"')
-        self.assertEqual(sync.drift(project, environment), ["pyproject.toml has different ranges of `scipy`"])
+        self.assertEqual(sync.drift(project, environment), ["pyproject.toml has different ranges for conda's `scipy`"])
 
     def test_unexpected_project_structures_are_errors(self):
         for project, message in (
@@ -158,6 +167,8 @@ class DriftTests(unittest.TestCase):
             ("build after =", ENVIRONMENT_TEXT.replace('"scipy>=1.9.2,<2"', '"scipy=1.9.2=py_0"'), "cannot read"),
             ("build after range", ENVIRONMENT_TEXT.replace('"scipy>=1.9.2,<2"', '"scipy>=1.9.2,<2=*_0"'), "cannot read"),
             ("comment without blank", ENVIRONMENT_TEXT.replace('"scipy>=1.9.2,<2"', "scipy>=1.9.2,<2#c"), "cannot read"),
+            ("mapping", ENVIRONMENT_TEXT.replace('"scipy>=1.9.2,<2"', "scipy:"), "cannot read"),
+            ("quoted colon", ENVIRONMENT_TEXT.replace('"scipy>=1.9.2,<2"', '"scipy:"'), "cannot read"),
             ("less indented", ENVIRONMENT_TEXT.replace("- python=3.14\n", "  - python=3.14\n"), "cannot read"),
         ):
             with self.subTest(case=case), self.assertRaisesRegex(ValueError, message):
@@ -260,6 +271,25 @@ class CommandTests(unittest.TestCase):
         with contextlib.redirect_stdout(output), patch.dict("os.environ", {"GITHUB_ACTIONS": "true"}):
             sync.report(["100% a\nb\rc"], "warning")
         self.assertEqual(output.getvalue(), "::warning file=environment.yml::100%25 a%0Ab%0Dc\n")
+
+    def test_annotations_name_the_file_to_edit(self):
+        self.write(PROJECT_TEXT.replace('"numpy>=1.23.2,<3"', '"numpy~=1.23"'), ENVIRONMENT_TEXT)
+        code, output = self.run_main(github=True)
+        self.assertEqual(code, 1)
+        self.assertTrue(output.startswith("::error file=pyproject.toml::pyproject.toml: conda cannot read"))
+
+    def test_files_that_cannot_be_read_are_reported(self):
+        for case, write, message in (
+            ("missing", lambda: (self.root / "environment.yml").unlink(), "error: "),
+            ("not UTF-8", lambda: (self.root / "environment.yml").write_bytes(b"\xff"), "error: environment.yml: "),
+            ("bad TOML", lambda: (self.root / "pyproject.toml").write_text("[project\n"), "error: pyproject.toml: "),
+        ):
+            with self.subTest(case=case):
+                self.write(PROJECT_TEXT, ENVIRONMENT_TEXT)
+                write()
+                code, output = self.run_main()
+                self.assertEqual(code, 1)
+                self.assertTrue(output.startswith(message), output)
 
     def test_allow_drift_warns(self):
         self.write(PROJECT_TEXT.replace('"numpy>=1.23.2,<3"', '"numpy>=1.23.2,<4"'), ENVIRONMENT_TEXT)
