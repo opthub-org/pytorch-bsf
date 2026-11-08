@@ -10,6 +10,8 @@ import os
 import re
 import subprocess
 import sys
+import tarfile
+import tempfile
 import tomllib
 import urllib.error
 import urllib.parse
@@ -80,6 +82,11 @@ VALIDATION_NAMES = {
     ".gitleaksignore",
 }
 CREDENTIAL_NAMES = {".netrc", ".npmrc", ".pypirc", "credentials.json", "service-account.json", "id_rsa", "id_ed25519"}
+# The publish job scans the patch with the Betterleaks release that the trusted checkout's .pre-commit-config.yaml pins
+CONTROL = Path(__file__).resolve().parents[1]
+SCANNER_REPO = "betterleaks/betterleaks"
+SCANNER_HOOK = re.compile(r"^  - repo: https://github\.com/betterleaks/betterleaks\n    rev: v(\d+\.\d+\.\d+)\n", re.MULTILINE)
+SCANNER_TIMEOUT = 300  # seconds, within the 10 minutes of the publish job
 
 
 class GitHub:
@@ -184,8 +191,9 @@ class GitHubError(RuntimeError):
         self.code = code
 
 
-def git(root: Path, *args: str) -> bytes:
-    return subprocess.check_output(["git", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", *args], cwd=root)
+def git(root: Path, *args: str, env: dict[str, str] | None = None, stdin: bytes | None = None) -> bytes:
+    command = ["git", "-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", *args]
+    return subprocess.check_output(command, cwd=root, env=env, input=stdin)
 
 
 def trusted_pr(pr: Json, repo: str) -> bool:
@@ -272,6 +280,105 @@ def validate_changes(root: Path, base: str, head: str | None = None) -> tuple[li
     for path in paths:
         validate_file(root, base, path, head)
     return paths, patch
+
+
+def file_mode(target: Path) -> str:
+    return "100755" if target.stat().st_mode & 0o111 else "100644"
+
+
+def candidate_tree(root: Path, base: str, paths: list[str]) -> str:
+    """Return the tree that publish uploads: the unfiltered working-tree bytes of paths on top of base."""
+    with tempfile.TemporaryDirectory() as temp:
+        env = dict(os.environ, GIT_INDEX_FILE=str(Path(temp) / "index"))
+        git(root, "read-tree", base, env=env)
+        entries = []
+        for path in paths:
+            target = Path(root) / path
+            if target.exists():
+                blob = git(root, "hash-object", "-w", "--no-filters", "--stdin", stdin=target.read_bytes()).decode().strip()
+                entries.append(f"{file_mode(target)} {blob}\t{path}\0")
+            else:
+                entries.append(f"0 {'0' * 40}\t{path}\0")  # mode 0 removes the path
+        git(root, "update-index", "-z", "--index-info", env=env, stdin="".join(entries).encode())
+        return git(root, "write-tree", env=env).decode().strip()
+
+
+def scanner_version(control: Path = CONTROL) -> str:
+    """Return the Betterleaks version that .pre-commit-config.yaml pins, which the secret-scan job also runs."""
+    versions = SCANNER_HOOK.findall((Path(control) / ".pre-commit-config.yaml").read_text())
+    if len(versions) != 1:
+        raise ValueError("Cannot read the Betterleaks version from .pre-commit-config.yaml")
+    return str(versions[0])
+
+
+def fetch_scanner(output: Path, control: Path = CONTROL) -> Path:
+    """Download the pinned Betterleaks release for Linux x64 and check GitHub's attestation of it."""
+    version = scanner_version(control)
+    tag, archive = f"v{version}", output / f"betterleaks_{version}_linux_x64.tar.gz"
+    output.mkdir(parents=True, exist_ok=True)
+    download = ["gh", "release", "download", tag, "--repo", SCANNER_REPO, "--pattern", archive.name, "--dir", str(output)]
+    subprocess.run(download, check=True)
+    # Fails unless the release is immutable and its GitHub-signed attestation lists this file's digest
+    subprocess.run(["gh", "release", "verify-asset", tag, str(archive), "--repo", SCANNER_REPO], check=True)
+    with tarfile.open(archive, "r:gz") as bundle:
+        member = next((row for row in bundle.getmembers() if row.name == "betterleaks" and row.isfile()), None)
+        stream = None if member is None else bundle.extractfile(member)
+        if stream is None:
+            raise ValueError("The Betterleaks archive has no scanner binary")
+        binary = output / "betterleaks"
+        binary.write_bytes(stream.read())
+    binary.chmod(0o755)
+    return binary
+
+
+def added_text(root: Path, base: str, tree: str, paths: list[str]) -> bytes:
+    """Return the changed paths and the lines that tree adds to base, without diff headers or other lines."""
+    # --text and --no-textconv show every file's own bytes, whatever .gitattributes says
+    options = ["--no-ext-diff", "--no-textconv", "--no-renames", "--no-color", "--text", "--unified=0"]
+    diff = git(root, "-c", "core.quotePath=false", "diff", *options, base, tree)
+    added, in_hunk = [], False
+    for line in diff.split(b"\n"):  # git ends diff lines only with LF; a CR stays inside the line
+        if line.startswith(b"diff --git "):
+            in_hunk = False
+        elif line.startswith(b"@@"):
+            in_hunk = True
+        elif in_hunk and line.startswith(b"+"):
+            added.append(line[1:] + b"\n")
+    return "".join(f"{path}\n" for path in paths).encode() + b"".join(added)
+
+
+def scan_secrets(root: Path, base: str, scanner: Path, control: Path = CONTROL, summary: str = "") -> str:
+    """Scan the paths and added lines of the patch, and the summary for the PR body, as data; return the scanned tree.
+
+    The scanner reads them from stdin, without a token, in an empty directory with the built-in rules. So no
+    configuration, ignore or attributes file applies, and no rule skips a file by its path, such as an SVG or a
+    lock file. Allow comments do not suppress a finding, and a failed or missing scanner rejects the patch.
+    """
+    paths, _ = validate_changes(root, base)  # rejects links, binaries and scanner configuration before scanning
+    tree = candidate_tree(root, base, paths)
+    expected = scanner_version(control)
+    with tempfile.TemporaryDirectory() as empty:
+        env = {"PATH": os.environ.get("PATH", os.defpath), "HOME": empty}
+        version = subprocess.run(
+            [str(scanner), "version"], cwd=empty, env=env, capture_output=True, text=True, timeout=SCANNER_TIMEOUT, check=False
+        )
+        if version.returncode or version.stdout.strip() != expected:
+            raise ValueError(f"The secret scanner is not Betterleaks {expected}; nothing was published")
+        scan = [
+            str(scanner),
+            "stdin",
+            "--ignore-gitleaks-allow",
+            f"--gitleaks-ignore-path={empty}",
+            "--exit-code=1",
+            "--redact",
+            "--verbose",
+            "--no-banner",
+            "--no-color",
+        ]
+        text = added_text(root, base, tree, paths) + (summary + "\n" if summary else "").encode()
+        if subprocess.run(scan, input=text, cwd=empty, env=env, timeout=SCANNER_TIMEOUT, check=False).returncode:
+            raise ValueError("Betterleaks found a secret in the patch or could not scan it; nothing was published")
+    return tree
 
 
 def expected_checks(root: Path) -> set[str]:
@@ -781,7 +888,17 @@ def update_task(api: GitHub, task: Json, result: Json) -> None:
     save_state(api, issue, state, f"{task['signal']['key']}: {result.get('result', 'updated')}.")
 
 
-def publish(api: GitHub, task: Json, root: Path, outcome: Json) -> None:
+def require_scanned(root: Path, base: str, paths: list[str], scanned: Path | None) -> None:
+    """Reject the patch unless scanned records the tree that the files to publish make."""
+    if scanned is None or not scanned.is_file() or scanned.read_text().strip() != candidate_tree(root, base, paths):
+        raise ValueError("The patch was not scanned for secrets as published; nothing was published")
+
+
+def publish(api: GitHub, task: Json, root: Path, outcome: Json, scanned: Path | None = None) -> None:
+    """Publish the validated patch; scanned holds the tree that scan_secrets passed, and nothing else is published."""
+    # Only a "changed" outcome is scanned; the others go into the public status issue, so allow only fixed values
+    if outcome["status"] not in {"changed", "no_change", "blocked"}:
+        raise ValueError("Unknown repair outcome")
     if outcome["status"] != "changed":
         result = outcome["status"]
         if result == "no_change" and task["signal"]["key"] != "audit":
@@ -798,17 +915,17 @@ def publish(api: GitHub, task: Json, root: Path, outcome: Json) -> None:
     paths, patch = validate_changes(root, task["base"])
     if not patch:
         raise ValueError("AI reported a repair without any changes")
+    require_scanned(root, task["base"], paths, scanned)
     if task.get("pr") and api.get(f"pulls/{task['pr']}")["head"]["sha"] != task["head"]:
         raise ValueError("PR head changed while the repair was generated")
     if base_sha(api) != task["base"]:
         raise ValueError("Master changed while the repair was generated; retry against the new base")
     tree = []
-    for path in paths:
+    for path in paths:  # the same bytes, modes and deletions as candidate_tree, which the scan binds to
         target = Path(root) / path
         if target.exists():
             blob = api.write("git/blobs", {"content": base64.b64encode(target.read_bytes()).decode(), "encoding": "base64"})
-            mode = "100755" if target.stat().st_mode & 0o111 else "100644"
-            tree.append({"path": path, "mode": mode, "type": "blob", "sha": blob["sha"]})
+            tree.append({"path": path, "mode": file_mode(target), "type": "blob", "sha": blob["sha"]})
         else:
             tree.append({"path": path, "mode": "100644", "type": "blob", "sha": None})
     parent = task["head"] if task.get("pr") else task["base"]
@@ -970,18 +1087,32 @@ def prepare(task: Json, root: Path, output: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["observe", "plan", "prepare", "export", "publish", "merge", "report"])
+    parser.add_argument(
+        "command", choices=["observe", "plan", "prepare", "export", "fetch-scanner", "scan", "publish", "merge", "report"]
+    )
     parser.add_argument("--phase", default="automation")
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--task", type=Path, default=Path("task.json"))
     parser.add_argument("--result", type=Path, default=Path("result.json"))
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--scanner", type=Path)
+    parser.add_argument("--scanned", type=Path)
     parser.add_argument("--signals", type=Path, default=Path("signals.json"))
     parser.add_argument("--task-digest", default=os.environ.get("SECURITY_TASK_SHA256"))
     parser.add_argument("--audit", action="store_true")
     args = parser.parse_args()
+    if args.command in {"fetch-scanner", "scan"}:
+        if args.output is None or (args.command == "scan" and args.scanner is None):
+            parser.error(f"{args.command} requires --output" + (" and --scanner" if args.command == "scan" else ""))
+        # publish uploads only a "changed" outcome; any other one is recorded without a scan, as before
+        if args.result.is_file() and json.loads(args.result.read_text())["status"] != "changed":
+            print(f"Security automation: no {args.command} for an outcome that is not published")
+            return
     if args.command == "observe":
         args.signals.write_text(json.dumps(signals(GitHub(), args.audit or audit_due())))
+        return
+    if args.command == "fetch-scanner":
+        fetch_scanner(args.output)
         return
     if args.command == "plan":
         task = plan(GitHub(), args.root, json.loads(args.signals.read_text()))
@@ -1004,8 +1135,12 @@ def run_task_command(args: argparse.Namespace, task: Json) -> None:
     elif args.command == "export":
         _, patch = validate_changes(args.root, task["base"])
         args.output.write_bytes(patch)
+    elif args.command == "scan":
+        # publish puts the summary of the same result file into the PR body; without the file nothing is published
+        summary = str(json.loads(args.result.read_text())["summary"])
+        args.output.write_text(scan_secrets(args.root, task["base"], args.scanner, summary=summary) + "\n")
     elif args.command == "publish":
-        publish(GitHub(), task, args.root, json.loads(args.result.read_text()))
+        publish(GitHub(), task, args.root, json.loads(args.result.read_text()), args.scanned)
     elif args.command == "merge":
         merge(GitHub(), task, args.root, json.loads(args.result.read_text()))
     elif args.command == "report":

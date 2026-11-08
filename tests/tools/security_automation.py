@@ -1,13 +1,17 @@
 """Offline regressions for security repairs, privileged publication, and merge gates."""
 
+import argparse
 import base64
 import copy
 import datetime as dt
+import hashlib
+import io
 import json
 import os
 import re
 import subprocess
 import sys
+import tarfile
 import tempfile
 import textwrap
 import tomllib
@@ -336,6 +340,369 @@ class PatchBoundaryTests(GitFixture):
         with self.assertRaisesRegex(ValueError, "API key") as error:
             security.validate_changes(self.root, self.base)
         self.assertNotIn("sk-proj", str(error.exception))
+
+
+# Built at run time so that no secret-shaped literal is committed; the hex digits give it a realistic entropy.
+FAKE_TOKEN = "gh" + "p_" + hashlib.sha256(b"pytorch-bsf security fixture").hexdigest()[:36]
+# The real scanner, which the security-policy job fetches with fetch_scanner; other runs skip its regressions.
+REAL_SCANNER = os.environ.get("BETTERLEAKS")
+
+
+class SecretScanTests(GitFixture):
+    """The publish job scans the patch before it creates a ref, commit or PR."""
+
+    def setUp(self):
+        super().setUp()
+        self.scanner_calls: list[tuple[list[str], security.Json]] = []
+        self.version = security.scanner_version()
+
+    def fake_scanner(self, version=None, returncode=0, version_returncode=0, hang=False):
+        """Patch the scanner runs with a fake; git keeps running for real."""
+        real_run = subprocess.run
+
+        def run(command, *args, **kwargs):
+            if command[0] == "git":
+                return real_run(command, *args, **kwargs)
+            self.scanner_calls.append((list(command), kwargs))
+            if command[1:] == ["version"]:
+                return subprocess.CompletedProcess(command, version_returncode, (version or self.version) + "\n", "")
+            if hang:
+                raise subprocess.TimeoutExpired(command, kwargs["timeout"])
+            return subprocess.CompletedProcess(command, returncode)
+
+        return patch.object(security.subprocess, "run", side_effect=run)
+
+    def scan(self, scanner="betterleaks"):
+        return security.scan_secrets(self.root, self.base, Path(scanner))
+
+    def test_scanner_reads_only_the_added_lines_without_a_token_or_candidate_files(self):
+        (self.root / "source.py").write_text("value = 2\n", newline="\n")
+        with patch.dict(os.environ, {"GH_TOKEN": "write-token", "GITHUB_TOKEN": "write-token"}), self.fake_scanner():
+            tree = self.scan()
+        self.assertEqual(tree, security.candidate_tree(self.root, self.base, ["source.py"]))
+        (version, version_options), (command, options) = self.scanner_calls
+        self.assertEqual(version, ["betterleaks", "version"])
+        for kwargs in (version_options, options):
+            self.assertEqual(set(kwargs["env"]), {"PATH", "HOME"})
+            self.assertFalse(Path(kwargs["cwd"]).is_relative_to(self.root))
+        # stdin has no directory and no path, so no candidate file or path-based skip applies.
+        self.assertEqual(command[:2], ["betterleaks", "stdin"])
+        self.assertEqual(options["input"], b"source.py\nvalue = 2\n")
+        self.assertIn("--ignore-gitleaks-allow", command)
+        self.assertIn("--redact", command)
+        self.assertIn(f"--gitleaks-ignore-path={options['cwd']}", command)
+        self.assertNotIn(str(self.root), command)
+        self.assertNotIn("--validation", command)
+
+    def test_scanned_text_has_every_added_line_and_path_but_nothing_else(self):
+        (self.root / "source.py").write_text("value = 2\n++ looks like a diff header\n--- and this\n", newline="\n")
+        (self.root / "docs").mkdir()
+        (self.root / "docs/new file.svg").write_bytes(b"<svg/>")  # no final newline
+        (self.root / ".github/workflows/test.yml").unlink()
+        (self.root / ".gitattributes").write_text("*.svg -diff\n*.py binary\n", newline="\n")  # untracked
+        self.run_git("add", "docs/new file.svg")
+        paths = ["docs/new file.svg", "source.py", ".github/workflows/test.yml"]
+        tree = security.candidate_tree(self.root, self.base, paths)
+        self.assertEqual(
+            security.added_text(self.root, self.base, tree, paths),
+            b"docs/new file.svg\nsource.py\n.github/workflows/test.yml\n"
+            b"<svg/>\nvalue = 2\n++ looks like a diff header\n--- and this\n",
+        )
+
+    def test_outcomes_that_are_not_published_skip_the_scanner(self):
+        result = self.root / "result.json"
+        for status in ("no_change", "blocked", "failed"):
+            result.write_text(json.dumps({"status": status}))
+            for command in ("fetch-scanner", "scan"):
+                with self.subTest(status=status, command=command):
+                    arguments = [command, "--result", str(result), "--output", str(self.root / "out")]
+                    with (
+                        patch.object(sys, "argv", ["security_automation.py", *arguments, "--scanner", "missing"]),
+                        patch.object(security, "fetch_scanner") as fetch,
+                        patch.object(security, "scan_secrets") as scan,
+                        patch("sys.stdout"),
+                    ):
+                        security.main()
+                    fetch.assert_not_called()
+                    scan.assert_not_called()
+                    self.assertFalse((self.root / "out").exists())
+
+    def test_published_or_unknown_outcomes_run_the_scanner_commands(self):
+        result, output = self.root / "result.json", self.root / "out"
+        result.write_text(json.dumps({"status": "changed", "summary": "Tested repair"}))
+        task = self.root / "task.json"
+        task.write_text(json.dumps({"base": self.base}))
+        # security-policy.yml fetches without --result, so a missing file must not skip the fetch.
+        for arguments in (["--result", str(result)], ["--result", str(self.root / "missing.json")]):
+            with (
+                self.subTest(arguments=arguments),
+                patch.object(sys, "argv", ["security_automation.py", "fetch-scanner", "--output", str(output), *arguments]),
+                patch.object(security, "fetch_scanner") as fetch,
+            ):
+                security.main()
+            fetch.assert_called_once_with(output)
+        scan = ["scan", "--root", str(self.root), "--task", str(task), "--result", str(result)]
+        with (
+            patch.object(sys, "argv", ["security_automation.py", *scan, "--scanner", "bl", "--output", str(output)]),
+            patch.dict(os.environ, {"SECURITY_TASK_SHA256": hashlib.sha256(task.read_bytes()).hexdigest()}),
+            patch.object(security, "scan_secrets", return_value="tree") as scanned,
+        ):
+            security.main()
+        scanned.assert_called_once_with(self.root, self.base, Path("bl"), summary="Tested repair")
+        self.assertEqual(output.read_text(), "tree\n")
+        output.unlink()
+        scan[-1] = str(self.root / "missing.json")
+        with (
+            patch.object(sys, "argv", ["security_automation.py", *scan, "--scanner", "bl", "--output", str(output)]),
+            patch.dict(os.environ, {"SECURITY_TASK_SHA256": hashlib.sha256(task.read_bytes()).hexdigest()}),
+            patch.object(security, "scan_secrets", return_value="tree") as scanned,
+            self.assertRaises(OSError),
+        ):
+            security.main()
+        scanned.assert_not_called()
+        self.assertFalse(output.exists())
+
+    def test_scan_commands_require_their_paths(self):
+        for arguments in (["fetch-scanner"], ["scan", "--output", "tree"], ["scan", "--scanner", "betterleaks"]):
+            with (
+                self.subTest(arguments=arguments),
+                patch.object(sys, "argv", ["security_automation.py", *arguments]),
+                patch("sys.stderr"),
+                self.assertRaises(SystemExit),
+            ):
+                security.main()
+
+    def test_scanner_failure_or_wrong_version_fails_closed(self):
+        (self.root / "source.py").write_text("value = 2\n", newline="\n")
+        for version, returncode, version_returncode in ((None, 1, 0), (None, 2, 0), ("0.0.1", 0, 0), (None, 0, 1)):
+            with (
+                self.subTest(version=version, returncode=returncode, version_returncode=version_returncode),
+                self.fake_scanner(version, returncode, version_returncode),
+                self.assertRaisesRegex(ValueError, "nothing was published"),
+            ):
+                self.scan()
+        with self.fake_scanner(hang=True), self.assertRaises(subprocess.TimeoutExpired):
+            self.scan()
+        self.assertEqual([call[1]["timeout"] for call in self.scanner_calls[-2:]], [security.SCANNER_TIMEOUT] * 2)
+        with self.assertRaises(OSError):
+            self.scan(str(self.root / "missing-scanner"))
+
+    def test_scanned_tree_is_the_raw_bytes_modes_and_deletions_that_publish_uploads(self):
+        (self.root / ".gitattributes").write_text("*.py eol=crlf ident\n", newline="\n")
+        self.run_git("add", ".gitattributes")
+        self.run_git("commit", "-qm", "attributes that filter on add")
+        self.base = self.run_git("rev-parse", "HEAD").strip()
+        source = self.root / "source.py"
+        source.write_bytes(b"value = 2  # $Id$\n")
+        tree = security.candidate_tree(self.root, self.base, ["source.py"])
+        self.assertNotEqual(tree, self.run_git("rev-parse", f"{self.base}^{{tree}}").strip())
+        self.assertEqual(self.run_git("show", f"{tree}:source.py").encode(), source.read_bytes())
+        changes = [lambda: source.write_bytes(b"value = 3  # $Id$\n"), lambda: source.unlink()]
+        if sys.platform != "win32":  # Windows chmod does not expose POSIX execute bits
+            changes.insert(1, lambda: source.chmod(0o755))
+        for change in changes:
+            change()
+            changed = security.candidate_tree(self.root, self.base, ["source.py"])
+            self.assertNotEqual(changed, tree)
+            tree = changed
+        self.assertNotIn("source.py", self.run_git("ls-tree", "--name-only", tree))
+
+    def test_scan_record_reaches_publish_through_the_cli(self):
+        (self.root / "source.py").write_text("value = 2\n", newline="\n")
+        record = Path(self.temp.name) / ".git" / "scanned-tree"
+        result = Path(self.temp.name) / ".git" / "result.json"
+        result.write_text(json.dumps({"status": "changed", "summary": "Tested repair"}))
+        task: security.Json = {"base": self.base}
+        scan = argparse.Namespace(command="scan", root=self.root, scanner=Path("betterleaks"), output=record, result=result)
+        with self.fake_scanner(returncode=1), self.assertRaisesRegex(ValueError, "found a secret"):
+            security.run_task_command(scan, task)
+        self.assertFalse(record.exists())
+        with self.fake_scanner():
+            security.run_task_command(scan, task)
+        self.assertEqual(record.read_text(), security.candidate_tree(self.root, self.base, ["source.py"]) + "\n")
+        # The summary goes into the PR body, so it is scanned with the patch.
+        self.assertEqual(self.scanner_calls[-1][1]["input"], b"source.py\nvalue = 2\nTested repair\n")
+        publish = argparse.Namespace(command="publish", root=self.root, result=result, scanned=record)
+        with patch.object(security, "publish") as published, patch.object(security, "GitHub"):
+            security.run_task_command(publish, task)
+        outcome = {"status": "changed", "summary": "Tested repair"}
+        self.assertEqual(published.call_args.args[1:], (task, self.root, outcome, record))
+
+    def test_scanner_configuration_changes_are_rejected_before_scanning(self):
+        for name in (".betterleaks.toml", ".betterleaksignore", ".gitleaks.toml", ".gitleaksignore", ".gitattributes"):
+            with self.subTest(name=name):
+                target = self.root / "nested" / name
+                target.parent.mkdir(exist_ok=True)
+                target.write_text("allow everything\n", newline="\n")
+                self.run_git("add", str(target))
+                with self.fake_scanner(), self.assertRaisesRegex(ValueError, "Validation policy"):
+                    self.scan()
+                self.run_git("rm", "-q", "--cached", str(target))
+                target.unlink()
+        self.assertEqual(self.scanner_calls, [])
+
+    def test_scanner_version_is_the_pre_commit_rev(self):
+        config = (ROOT / ".pre-commit-config.yaml").read_text()
+        rev = re.search(r"repo: https://github\.com/betterleaks/betterleaks\n\s+rev: v(\S+)\n", config)
+        assert rev is not None
+        self.assertEqual(security.scanner_version(ROOT), rev[1])
+        for text in ("repos: []\n", config + config):
+            (self.root / ".pre-commit-config.yaml").write_text(text)
+            with self.subTest(text=text[:20]), self.assertRaisesRegex(ValueError, "Betterleaks version"):
+                security.scanner_version(self.root)
+
+    def fake_release(self, member="betterleaks", verified=True, kind=tarfile.REGTYPE):
+        """Patch gh with a fake that downloads an archive holding member."""
+        calls = []
+
+        def run(command, *args, **kwargs):
+            calls.append(command)
+            if command[2] == "download":
+                archive = Path(command[command.index("--dir") + 1]) / command[command.index("--pattern") + 1]
+                with tarfile.open(archive, "w:gz") as bundle:
+                    data = b"#!/bin/sh\n" if kind == tarfile.REGTYPE else b""
+                    info = tarfile.TarInfo(member)
+                    info.type, info.size, info.linkname = kind, len(data), "" if kind == tarfile.REGTYPE else "/bin/sh"
+                    bundle.addfile(info, io.BytesIO(data))
+            elif not verified:
+                raise subprocess.CalledProcessError(1, command)
+            return subprocess.CompletedProcess(command, 0)
+
+        return calls, patch.object(security.subprocess, "run", side_effect=run)
+
+    def test_fetched_scanner_is_the_pinned_release_and_verified_before_use(self):
+        output = self.root / "scanner"
+        calls, fake = self.fake_release()
+        with fake:
+            binary = security.fetch_scanner(output)
+        archive = f"betterleaks_{self.version}_linux_x64.tar.gz"
+        tag, repo = f"v{self.version}", security.SCANNER_REPO
+        self.assertEqual(
+            calls,
+            [
+                ["gh", "release", "download", tag, "--repo", repo, "--pattern", archive, "--dir", str(output)],
+                ["gh", "release", "verify-asset", tag, str(output / archive), "--repo", repo],
+            ],
+        )
+        self.assertEqual(binary, output / "betterleaks")
+        self.assertEqual(binary.read_bytes(), b"#!/bin/sh\n")
+
+    def test_unverified_release_yields_no_scanner(self):
+        output = self.root / "scanner"
+        calls, fake = self.fake_release(verified=False)
+        with fake, self.assertRaises(subprocess.CalledProcessError):
+            security.fetch_scanner(output)
+        self.assertEqual([call[2] for call in calls], ["download", "verify-asset"])
+        self.assertFalse((output / "betterleaks").exists())
+
+    def test_release_without_a_regular_scanner_file_yields_no_scanner(self):
+        for member, kind in (("other", tarfile.REGTYPE), ("betterleaks", tarfile.SYMTYPE), ("betterleaks", tarfile.DIRTYPE)):
+            output = self.root / f"scanner-{member}-{kind!r}"
+            _, fake = self.fake_release(member, kind=kind)
+            with self.subTest(member=member, kind=kind), fake, self.assertRaisesRegex(ValueError, "no scanner binary"):
+                security.fetch_scanner(output)
+            self.assertFalse((output / "betterleaks").exists())
+
+    def test_publish_job_scans_before_any_github_write_and_without_a_token(self):
+        workflow = (ROOT / ".github/workflows/security-remediation.yml").read_text()
+        steps = workflow_job(workflow, "publish").split("\n      - ")
+        names = [next((line for line in step.splitlines() if "name:" in line), "") for step in steps]
+        fetch, scan, publish = (
+            next(index for index, name in enumerate(names) if text in name)
+            for text in ("Fetch and verify the pinned secret scanner", "Scan the patch", "publish through the GitHub API")
+        )
+        apply = next(index for index, name in enumerate(names) if "Apply data" in name)
+        self.assertLess(apply, fetch)
+        self.assertLess(fetch, scan)
+        self.assertLess(scan, publish)
+        self.assertIn("security_automation.py fetch-scanner", steps[fetch])
+        self.assertIn("security_automation.py scan --root candidate", steps[scan])
+        self.assertNotIn("env:", steps[scan])
+        self.assertNotIn("token", steps[scan])
+        self.assertIn('--scanned "$RUNNER_TEMP/scanned-tree"', steps[publish])
+        self.assertIn('--output "$RUNNER_TEMP/scanned-tree"', steps[scan])
+        for step in (fetch, scan, publish):
+            self.assertNotIn("continue-on-error", steps[step])
+
+    def test_security_policy_job_runs_the_real_scanner_regressions(self):
+        job = workflow_job((ROOT / ".github/workflows/security-policy.yml").read_text(), "security-policy")
+        fetch = job.index("python tools/security_automation.py fetch-scanner")
+        self.assertLess(fetch, job.index("BETTERLEAKS: ${{ runner.temp }}/scanner/betterleaks"))
+        self.assertLess(fetch, job.index("-p security_automation.py"))
+
+    def real_scan(self):
+        if REAL_SCANNER is None:
+            self.skipTest("BETTERLEAKS names no scanner binary")
+        return security.scan_secrets(self.root, self.base, Path(REAL_SCANNER))
+
+    def test_real_scanner_rejects_a_secret_despite_allow_comments(self):
+        for comment in ("# betterleaks:allow", "// gitleaks:allow", "<!-- betterleaks:allow -->", ""):
+            with self.subTest(comment=comment):
+                (self.root / "source.py").write_text(f'token = "{FAKE_TOKEN}"  {comment}\n', newline="\n")
+                with self.assertRaisesRegex(ValueError, "found a secret"):
+                    self.real_scan()
+
+    def test_real_scanner_rejects_a_secret_in_paths_that_its_rules_skip(self):
+        # The built-in configuration skips images, lock files and vendored code by path in git and directory scans.
+        for name in ("docs/logo.svg", "package-lock.json", "poetry.lock", "go.sum", "node_modules/a/index.js"):
+            with self.subTest(name=name):
+                target = self.root / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(f'token = "{FAKE_TOKEN}"\n', newline="\n")
+                self.run_git("add", name)
+                with self.assertRaisesRegex(ValueError, "found a secret"):
+                    self.real_scan()
+                self.run_git("rm", "-q", "--cached", name)
+                target.unlink()
+
+    def test_real_scanner_rejects_a_secret_in_the_pr_summary(self):
+        if REAL_SCANNER is None:
+            self.skipTest("BETTERLEAKS names no scanner binary")
+        (self.root / "source.py").write_text("value = 2\n", newline="\n")
+        with self.assertRaisesRegex(ValueError, "found a secret"):
+            security.scan_secrets(self.root, self.base, Path(REAL_SCANNER), summary=f"Rotated {FAKE_TOKEN}")
+
+    def test_real_scanner_rejects_a_secret_after_a_carriage_return(self):
+        (self.root / "source.py").write_bytes(f'value = 2\rtoken = "{FAKE_TOKEN}"\r\n'.encode())
+        text = security.added_text(self.root, self.base, security.candidate_tree(self.root, self.base, ["source.py"]), [])
+        self.assertIn(FAKE_TOKEN.encode(), text)
+        with self.assertRaisesRegex(ValueError, "found a secret"):
+            self.real_scan()
+
+    def test_real_scanner_rejects_a_secret_in_a_file_name(self):
+        name = f'token = "{FAKE_TOKEN}".txt'
+        if sys.platform == "win32":
+            self.skipTest("Windows file names cannot contain quotes")
+        (self.root / name).write_text("harmless\n", newline="\n")
+        self.run_git("add", name)
+        with self.assertRaisesRegex(ValueError, "found a secret"):
+            self.real_scan()
+
+    def test_real_scanner_ignores_trusted_configuration_of_the_base(self):
+        # Each file below would hide the secret if the scanner read the candidate's work tree.
+        allow_all = "[extend]\nuseDefault = true\n\n[allowlist]\npaths = ['''.*''']\n"
+        for name in (".betterleaks.toml", ".gitleaks.toml"):
+            (self.root / name).write_text(allow_all, newline="\n")
+        for name in (".betterleaksignore", ".gitleaksignore"):
+            (self.root / name).write_text("notes.txt:github-pat:1\n", newline="\n")
+        (self.root / ".gitattributes").write_text("*.txt -diff\n", newline="\n")
+        self.run_git("add", ".")
+        self.run_git("commit", "-qm", "permissive configuration")
+        self.base = self.run_git("rev-parse", "HEAD").strip()
+        (self.root / "notes.txt").write_text(f"{FAKE_TOKEN}\n", newline="\n")
+        self.run_git("add", "notes.txt")
+        with self.assertRaisesRegex(ValueError, "found a secret"):
+            self.real_scan()
+
+    def test_real_scanner_passes_a_clean_patch_beside_allowed_base_lines(self):
+        (self.root / "legacy.py").write_text(f'token = "{FAKE_TOKEN}"  # betterleaks:allow\n', newline="\n")
+        self.run_git("add", "legacy.py")
+        self.run_git("commit", "-qm", "allowed false positive")
+        self.base = self.run_git("rev-parse", "HEAD").strip()
+        (self.root / "source.py").write_text("value = 2\n", newline="\n")
+        (self.root / "new_test.py").write_text("assert True\n", newline="\n")
+        self.run_git("add", "new_test.py")
+        self.assertEqual(self.real_scan(), security.candidate_tree(self.root, self.base, ["new_test.py", "source.py"]))
 
 
 class PlanningTests(unittest.TestCase):
@@ -1110,12 +1477,33 @@ class PublicationIntegrationTests(GitFixture):
         }
         return replies.get(path, {})
 
-    def publish(self):
+    def publish(self, scanned=True):
+        """Publish, by default after the scan step passed the current patch."""
+        record = Path(self.temp.name) / ".git" / "scanned-tree"
+        if scanned:
+            paths, _ = security.validate_changes(self.root, self.base)
+            record.write_text(security.candidate_tree(self.root, self.base, paths) + "\n")
         with (
             patch.object(security, "load_state", side_effect=lambda api: (12, self.state)),
             patch.object(security, "save_state", return_value=12),
         ):
-            security.publish(self.api, self.task, self.root, {"status": "changed", "summary": "Tested repair"})
+            security.publish(self.api, self.task, self.root, {"status": "changed", "summary": "Tested repair"}, record)
+
+    def test_unscanned_or_changed_patch_is_not_published(self):
+        with self.assertRaisesRegex(ValueError, "not scanned"):
+            self.publish(scanned=False)
+        with self.assertRaisesRegex(ValueError, "not scanned"):
+            security.publish(self.api, self.task, self.root, {"status": "changed", "summary": "Tested repair"}, None)
+        # An outcome that skips the scan reaches the public status issue only as one of the schema's values.
+        with self.assertRaisesRegex(ValueError, "Unknown repair outcome"):
+            security.publish(self.api, self.task, self.root, {"status": f"leak {FAKE_TOKEN}", "summary": ""}, None)
+        self.assertEqual(self.writes, [])
+        with (
+            patch.object(security, "candidate_tree", side_effect=["scanned", "changed after the scan"]),
+            self.assertRaisesRegex(ValueError, "not scanned"),
+        ):
+            self.publish()
+        self.assertEqual(self.writes, [])
 
     def test_initial_repair_publishes_correct_tree_parent_ref_and_ci(self):
         self.publish()

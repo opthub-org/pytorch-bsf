@@ -32,8 +32,11 @@ budget. The automation:
    isolated by the official Action's `drop-sudo` strategy and API proxy. Package
    updates can reach the registries listed in `.github/security/config.toml`.
 3. Passes the patch as untrusted data to a fresh runner. That runner executes
-   only trusted controller code, validates the changed files, and uses the GitHub
-   API to create or update a PR on `automation/security/*`. Interrupted branch/PR
+   only trusted controller code and the attested secret scanner, validates the
+   changed files, scans them for secrets (see
+   [Scanning automatic repairs before publication](#scanning-automatic-repairs-before-publication)),
+   and uses the GitHub API to
+   create or update a PR on `automation/security/*`. Interrupted branch/PR
    publication is resumed without spending another AI attempt.
 4. Explicitly dispatches PyTest, Conda, release-configuration, CodeQL, and security
    policy validation. This avoids relying on PR CI triggered by `GITHUB_TOKEN`,
@@ -89,8 +92,8 @@ configuration/helpers (including the trusted `tools/` and `tests/tools/` trees),
 the CodeQL scanner workflow,
 root modules that shadow Python's standard library or startup hooks,
 common credential paths and key-file extensions, symlinks,
-binaries, and patches larger than 750 KB. File-content checks recognize OpenAI
-key patterns; they are not a complete secret scanner. Root `pyproject.toml` changes
+binaries, and patches larger than 750 KB. File contents with OpenAI key patterns,
+and any secret that Betterleaks finds in the patch, also stop publication. Root `pyproject.toml` changes
 are limited to dependency and Python support declarations; nested manifests require
 maintainer review. Other workflow changes are limited to existing immutable
 action SHA pins. Publishing workflow-file changes
@@ -143,6 +146,31 @@ squash merge gives the commit a new SHA, and a line that a pull request's merge 
 changes is reported under that merge's SHA, which changes whenever the merge is
 recreated. The security automation cannot change `.betterleaksignore` or the scanner's
 configuration files.
+
+### Scanning automatic repairs before publication
+
+The `publish` job of the **Security remediation** workflow also scans each AI patch
+that it would publish before it creates a branch, commit or PR, because `secret-scan`
+runs only after the push, and the repository is public. It downloads the Betterleaks
+release that the `rev` of `.pre-commit-config.yaml` on `master` pins, and
+`gh release verify-asset` checks that GitHub's attestation of that immutable release
+lists the file. The scan then runs in a step without a token and reads the patch as
+data on standard input; nothing in the patch runs. It scans the changed paths, the
+lines that the patch adds and the AI's summary that the PR body quotes, with the
+built-in rules. The `betterleaks:allow` and
+`gitleaks:allow` comments, the `.betterleaksignore` and `.betterleaks.toml` files,
+`.gitattributes` and the Gitleaks names of these files do not apply, whether the patch
+or `master` contains them. Unlike `secret-scan`, it also scans files that the built-in
+rules skip by path, such as SVG images and lock files. The publisher accepts only the
+exact files that the scan passed.
+
+A finding, a download or verification failure, a scanner of another version, or a
+scanner that does not run or times out stops the job before anything is published, and
+the status issue records the failure. The log redacts the secret as `secret-scan` does. A
+false positive needs a maintainer: the automation retries only within its attempt
+budget. The **Security policy** workflow fetches the same release to run the scan's
+regression tests, so a Dependabot update of the `rev` to a release that cannot be
+verified fails there first.
 
 ## Operation and limits
 
