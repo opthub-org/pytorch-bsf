@@ -1,0 +1,552 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Finite MZV constructions for leading constants &mdash; PyTorch-BSF 0.25.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=7ca58008"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Coefficient heights in the finite MZV construction" href="skeleton_risk_leading_constant_height.html" />
+    <link rel="prev" title="Dyadic enclosures for multiple zeta values" href="skeleton_risk_mzv_dyadic.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_family.html">Uniform construction for codimension two</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three.html">Boundary transfer and a codimension-three edge bound</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_exact.html">Positive diagonal formulas for nonvertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q3_error.html">Finite-degree errors for every nonvertex q3 face</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_error.html">Finite-degree errors for every fixed nonvertex q4 face size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_refined.html">A logarithmic finite-degree remainder for nonvertex q4 risks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_general_error.html">Finite-degree errors at every fixed nonvertex codimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_growing_faces.html">Uniform errors for growing nonvertex faces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_relative_certificate.html">One certificate for a requested finite-degree relative accuracy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_mzv_dyadic.html">Dyadic enclosures for multiple zeta values</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Finite MZV constructions for leading constants</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#rational-enclosures-and-symbolic-work-limits">Rational enclosures and symbolic work limits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#expression-size-arithmetic-count-and-integer-bits">Expression size, arithmetic count and integer bits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#records-and-verification-scope">Records and verification scope</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_leading_constant_height.html">Coefficient heights in the finite MZV construction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c5_closed_form.html">A classical closed form for the codimension-four constant</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c6_closed_form.html">A classical leading constant for seven vertices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c7_closed_form.html">A classical leading constant for eight vertices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_transform.html">A fast exact transform for codimension three</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension.html">The vertex leading constant at large vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension_refined.html">A sharper elementary large-vertex guarantee</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension_second_order.html">A first correction with a quadratic large-vertex remainder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_refined_asymptotics.html">Single-log vertex errors for every fixed M at least five</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth.html">A simultaneous vertex-count and degree regime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth_refined.html">A broader simultaneous vertex-count and degree regime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_composite_asymptotics.html">Computable vertex centers and a single-log growing domain</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html">An all-degree sufficient region for large vertex counts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_fixed_vertex_tail.html">An explicit winning degree tail at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_quadratic_degree_tail.html">A quadratic sufficient degree region, uniform in vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html">Five-vertex vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_comparison.html">Five-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_six_vertex_comparison.html">Six-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adaptive_curves.html">Adaptive parameterized curves</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">Finite MZV constructions for leading constants</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/skeleton_risk_leading_constant_mzv.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="finite-mzv-constructions-for-leading-constants">
+<h1>Finite MZV constructions for leading constants<a class="headerlink" href="#finite-mzv-constructions-for-leading-constants" title="Link to this heading"></a></h1>
+<p>This chapter constructs a finite expression for every fixed-index constant
+in <a class="reference internal" href="skeleton_risk_vertex_general.html"><span class="doc">Vertex coefficients at every fixed vertex count</span></a>. The index convention matters:
+<span class="math notranslate nohighlight">\(q=M-1\)</span> at a vertex. It is not an input face codimension. The
+sampling, evaluation and noise assumptions of the existing asymptotic
+risk theory are retained.</p>
+<div class="proof theorem admonition" id="thm-risk-leading-constant-finite-mzv">
+<p class="admonition-title"><span class="caption-number">Theorem 42 </span> (A terminating finite convergent-MZV construction)</p>
+<section class="theorem-content" id="proof-content">
+<p>For every fixed integer <span class="math notranslate nohighlight">\(q\geq3\)</span>, the constant</p>
+<div class="math notranslate nohighlight">
+\[c_q=q\sum_{j=0}^{\infty}e_{q-1}(j)\]</div>
+<p>has an effectively constructible finite expression over the rationals
+in the unit <span class="math notranslate nohighlight">\(1\)</span> and convergent multiple zeta values</p>
+<div class="math notranslate nohighlight">
+\[\zeta(2,w_1,\ldots,w_d),\qquad
+w_i\in\{1,2\},\quad 2+\sum_iw_i\leq q-1.\]</div>
+<p>Here the indices use strict descending summation:</p>
+<div class="math notranslate nohighlight">
+\[\zeta(s_1,\ldots,s_k)
+ =\sum_{n_1&gt;\cdots&gt;n_k\geq1}
+   n_1^{-s_1}\cdots n_k^{-s_k}.\]</div>
+<p>The algorithm terminates by decreasing harmonic-word depth and does
+not require assigning a value to a divergent sum. Consequently, for
+each fixed <span class="math notranslate nohighlight">\(M=q+1\geq4\)</span>, the vertex leading constant is</p>
+<div class="math notranslate nohighlight">
+\[C_M=\frac{M^2q!}{2^{q-2}}c_q.\]</div>
+<p>The theorem does not assert a minimal MZV basis, linear independence,
+a classical-zeta reduction at arbitrary weight, or a bound uniform in
+growing <span class="math notranslate nohighlight">\(M,D\)</span>. The rational unit is allowed in the construction;
+its cancellation at every index is not needed or asserted.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. <strong>Finite harmonic words.</strong> Set <span class="math notranslate nohighlight">\(H_N(\varnothing)=1\)</span>, and, for
+a nonempty word <span class="math notranslate nohighlight">\(w=(s,v)\)</span>, set</p>
+<div class="math notranslate nohighlight">
+\[H_N(w)=\sum_{N\geq n_1&gt;\cdots&gt;n_k\geq1}
+              n_1^{-w_1}\cdots n_k^{-w_k},\qquad
+H_n(s,v)-H_{n-1}(s,v)=n^{-s}H_{n-1}(v).\]</div>
+<p>In particular <span class="math notranslate nohighlight">\(H_0(w)=0\)</span> for nonempty <span class="math notranslate nohighlight">\(w\)</span>.
+Write <span class="math notranslate nohighlight">\(E_i\)</span> for an elementary symmetric polynomial and use
+<span class="math notranslate nohighlight">\((n)_a=n(n+1)\cdots(n+a-1)\)</span>. The proved formula
+<a class="reference internal" href="skeleton_risk_vertex_general.html#equation-risk-general-phi-elementary">(83)</a> gives, for <span class="math notranslate nohighlight">\(n\geq1\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[\phi_a(n-1)=\frac{a!(a-1)!}{(n)_a}
+  \sum_{l=0}^{a-1}(-1)^l
+    E_{a-1-l}\left(1,\frac12,\ldots,\frac1{a-1}\right)
+    H_{n-1}(\underbrace{1,\ldots,1}_{l}).\]</div>
+<p>This follows by separating the positive fixed entries from the
+negative reciprocal entries in that elementary polynomial.</p>
+<p>The product <span class="math notranslate nohighlight">\(H_N(1^l)H_N(1^k)\)</span> has an exact finite expansion
+into words of ones and twos. For each <span class="math notranslate nohighlight">\(0\leq t\leq\min(l,k)\)</span>,
+every word with <span class="math notranslate nohighlight">\(t\)</span> twos and <span class="math notranslate nohighlight">\(l+k-2t\)</span> ones has coefficient
+<span class="math notranslate nohighlight">\(\binom{l+k-2t}{l-t}\)</span>. Indeed, <span class="math notranslate nohighlight">\(t\)</span> coincident indices
+occur in both strict chains, and the remaining ones choose which
+chain they belong to. This partitions the finite product without
+taking any limit.</p>
+<p>Taking <span class="math notranslate nohighlight">\(a+b=q-1\)</span> in the definition of <span class="math notranslate nohighlight">\(e_{q-1}\)</span> therefore
+expresses <span class="math notranslate nohighlight">\(c_q\)</span> as a finite rational combination of sums</p>
+<div class="math notranslate nohighlight">
+\[S(f,w)=\sum_{n\geq1} f(n)H_{n-1}(w),\]</div>
+<p>where the word entries are in <span class="math notranslate nohighlight">\(\{1,2\}\)</span>, its weight is at most
+<span class="math notranslate nohighlight">\(q-3\)</span>, and <span class="math notranslate nohighlight">\(f\)</span> is a proper rational function whose poles
+are nonpositive integers, each of order at most two. Initially its
+denominator is <span class="math notranslate nohighlight">\((n)_a(n)_b\)</span>, so <span class="math notranslate nohighlight">\(f=O(n^{-2})\)</span>.</p>
+<p><strong>Rational telescoping.</strong> Write its exact partial fractions as</p>
+<div class="math notranslate nohighlight">
+\[f(n)=\sum_{t\geq0}\sum_{p=1}^{2}
+           \frac{c_{t,p}}{(n+t)^p}.\]</div>
+<p>Only finitely many coefficients occur. The decay <span class="math notranslate nohighlight">\(O(n^{-2})\)</span>
+implies <span class="math notranslate nohighlight">\(\sum_tc_{t,1}=0\)</span>. Define</p>
+<div class="math notranslate nohighlight">
+\[A=\sum_tc_{t,2},\qquad
+G(n)=\sum_{t,p}c_{t,p}\sum_{u=0}^{t-1}(n+u)^{-p}.\]</div>
+<p>Empty inner sums are zero. Telescoping the inner sums proves the
+finite rational identity</p>
+<div class="math notranslate nohighlight">
+\[f(n)=G(n+1)-G(n)+\frac{A}{n^2}.\]</div>
+<p>All its coefficients are rational. For a kernel
+<span class="math notranslate nohighlight">\(\prod_t(n+t)^{-m_t}\)</span>, <span class="math notranslate nohighlight">\(m_t\in\{1,2\}\)</span>, its highest
+pole coefficient at <span class="math notranslate nohighlight">\(-t\)</span> is
+<span class="math notranslate nohighlight">\(B_t=\prod_{u\ne t}(u-t)^{-m_u}\)</span>. If <span class="math notranslate nohighlight">\(m_t=2\)</span>, its
+simple-pole coefficient is
+<span class="math notranslate nohighlight">\(-B_t\sum_{u\ne t}m_u/(u-t)\)</span>. For <span class="math notranslate nohighlight">\(m_t=1\)</span>, it is
+just <span class="math notranslate nohighlight">\(B_t\)</span>. These formulas follow by evaluating the analytic
+factor and its derivative at <span class="math notranslate nohighlight">\(-t\)</span>; matching principal parts
+determines the proper rational function. No symbolic-algebra package
+or numerical coefficient fit is necessary.</p>
+<p><strong>Decrease the word depth.</strong> Put
+<span class="math notranslate nohighlight">\(S_N(f,w)=\sum_{n=1}^Nf(n)H_{n-1}(w)\)</span>. Finite summation by
+parts gives, for nonempty <span class="math notranslate nohighlight">\(w=(s,v)\)</span>,</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}S_N(f,w)={}&amp;A H_N(2,w)+G(N+1)H_N(w)-G(1)H_0(w)\\
+           &amp;+S_N(h,v),\qquad
+h(n)=-\frac{G(n+1)}{n^s}.\end{split}\]</div>
+<p>For the empty word the last sum is absent and the boundary at one
+is <span class="math notranslate nohighlight">\(-G(1)\)</span>. Since <span class="math notranslate nohighlight">\(G(n)=O(n^{-1})\)</span> and <span class="math notranslate nohighlight">\(s\geq1\)</span>,
+<span class="math notranslate nohighlight">\(h=O(n^{-2})\)</span>. Its poles again have order at most two: those
+from <span class="math notranslate nohighlight">\(G(n+1)\)</span> have shifts at least one, while <span class="math notranslate nohighlight">\(n^{-s}\)</span>
+has shift zero and <span class="math notranslate nohighlight">\(s\in\{1,2\}\)</span>. The rational class is thus
+invariant and the remaining word is strictly shorter.</p>
+<p>For any such word of depth <span class="math notranslate nohighlight">\(d\)</span>, positivity and comparison with
+all-one words show</p>
+<div class="math notranslate nohighlight">
+\[0\leq H_N(w)\leq\frac{(1+\log N)^d}{d!}\quad(N\geq1).\]</div>
+<p>Every sum <span class="math notranslate nohighlight">\(S(f,w)\)</span> is absolutely convergent, and all upper
+boundary terms tend to zero, bounded by a constant times
+<span class="math notranslate nohighlight">\((1+\log N)^d/N\)</span>. Taking limits in the finite identity yields
+<span class="math notranslate nohighlight">\(A\zeta(2,w)\)</span>, a rational lower boundary when appropriate,
+and a strictly shorter instance of the same problem. After at most
+the original depth plus one instances the recursion stops. Each
+output MZV is convergent and has weight at most <span class="math notranslate nohighlight">\(q-1\)</span>.</p>
+<p>Finally the original positive integral identifies this expression
+with the positive constant <span class="math notranslate nohighlight">\(c_q\)</span>; the stated normalization
+of <span class="math notranslate nohighlight">\(C_M\)</span> is the existing fixed-vertex normalization.</p>
+</div>
+<section id="rational-enclosures-and-symbolic-work-limits">
+<h2>Rational enclosures and symbolic work limits<a class="headerlink" href="#rational-enclosures-and-symbolic-work-limits" title="Link to this heading"></a></h2>
+<p>The standard-library tool <code class="docutils literal notranslate"><span class="pre">tools.risk_research.leading_constant_mzv</span></code>
+implements these finite algebraic steps using <code class="docutils literal notranslate"><span class="pre">Fraction</span></code>. For example,</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">fractions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Fraction</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">tools.risk_research.leading_constant_mzv</span><span class="w"> </span><span class="kn">import</span> <span class="n">leading_constant_expression</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">leading_constant_expression</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">==</span> <span class="p">{(</span><span class="mi">2</span><span class="p">,):</span> <span class="n">Fraction</span><span class="p">(</span><span class="mi">6</span><span class="p">)}</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">leading_constant_expression</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="o">==</span> <span class="p">{(</span><span class="mi">2</span><span class="p">,):</span> <span class="n">Fraction</span><span class="p">(</span><span class="mi">48</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span> <span class="n">Fraction</span><span class="p">(</span><span class="o">-</span><span class="mi">48</span><span class="p">)}</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<p>At indices five and six the resulting expressions agree with the
+corresponding finite harmonic telescopes. Using the established
+low-weight identities, the fifth-index expression gives
+<span class="math notranslate nohighlight">\(900\zeta(4)-600\zeta(3)-120\zeta(2)\)</span>. These low-index
+checks are calibration, not a proof for arbitrary index.</p>
+<p>For a convergent word <span class="math notranslate nohighlight">\((a,w)\)</span> with <span class="math notranslate nohighlight">\(a\geq2\)</span> and
+<span class="math notranslate nohighlight">\(d=\operatorname{depth}(w)\)</span>, a direct numerical enclosure is</p>
+<div class="math notranslate nohighlight">
+\[H_T(a,w)\leq\zeta(a,w)\leq H_T(a,w)
+ +\frac1{T^{a-1}}\sum_{k=0}^{d}
+    \frac{(2+\log T)^k}{k!(a-1)^{d-k+1}},\qquad T\geq1.\]</div>
+<p>To prove the tail, bound the inner word by
+<span class="math notranslate nohighlight">\((1+\log n)^d/d!\)</span> and integrate on <span class="math notranslate nohighlight">\([n-1,n]\)</span>.
+There <span class="math notranslate nohighlight">\(n^{-a}\leq x^{-a}\)</span> and
+<span class="math notranslate nohighlight">\(1+\log n\leq2+\log x\)</span>. Repeated integration by parts gives
+the displayed expression. Replacing <span class="math notranslate nohighlight">\(2+\log T\)</span> with
+<span class="math notranslate nohighlight">\(2+\operatorname{bit\_length}(T)\)</span> makes it rational.
+Signed coefficients choose the appropriate interval endpoints.
+Positivity from the original integral permits intersecting the final
+interval with the nonnegative half-line.</p>
+<p>The enclosure can be very broad because this representation can have
+large cancellations and its generic MZV tails decay slowly. No numerical
+speed or accuracy advantage over the original defining series is claimed.
+The finite symbolic expression, its numerical truncation uncertainty,
+and the original independent evaluation are distinct objects.</p>
+</section>
+<section id="expression-size-arithmetic-count-and-integer-bits">
+<h2>Expression size, arithmetic count and integer bits<a class="headerlink" href="#expression-size-arithmetic-count-and-integer-bits" title="Link to this heading"></a></h2>
+<p>These are three separate costs. The following bounds concern the
+symbolic coefficient construction, before numerical MZV truncation,
+and disregard the implementation’s operational cutoff.</p>
+<p><strong>Expression size.</strong> Let <span class="math notranslate nohighlight">\(F_0=0\)</span>, <span class="math notranslate nohighlight">\(F_1=1\)</span> and
+<span class="math notranslate nohighlight">\(F_{j+2}=F_{j+1}+F_j\)</span>. There are <span class="math notranslate nohighlight">\(F_{m+1}\)</span> words over
+<span class="math notranslate nohighlight">\(\{1,2\}\)</span> of weight <span class="math notranslate nohighlight">\(m\)</span>, including the empty word at weight
+zero. Hence there are</p>
+<div class="math notranslate nohighlight">
+\[\sum_{m=0}^{q-3}F_{m+1}=F_q-1\]</div>
+<p>possible nonconstant terms <span class="math notranslate nohighlight">\(\zeta(2,w)\)</span>, and at most <span class="math notranslate nohighlight">\(F_q\)</span>
+terms after allowing the rational unit. Every index tuple has length
+at most <span class="math notranslate nohighlight">\(q-2\)</span>. This bounds the number and lengths of the stored
+words, not their linear independence or the bits needed for coefficients.</p>
+<p><strong>Arithmetic operations.</strong> Put <span class="math notranslate nohighlight">\(Q=q+1\)</span>. Count an integer or
+rational addition, subtraction, multiplication or division as one
+operation, including negation, and evaluate factorials, binomial
+coefficients and nonnegative integer powers by elementary products and
+divisions. Loop control, work-counter bookkeeping, dictionary operations,
+tuple construction, sorting and GCD normalization are outside this
+arithmetic model. A deliberately
+loose bound for the symbolic construction is</p>
+<div class="math notranslate nohighlight">
+\[A_q=128Q^8 2^q.\]</div>
+<p>Here is a loop count that also accounts for recomputation in the current
+implementation. <code class="docutils literal notranslate"><span class="pre">_initial</span></code> has at most <span class="math notranslate nohighlight">\(Q^3\)</span> choices of
+<code class="docutils literal notranslate"><span class="pre">left</span></code>, <code class="docutils literal notranslate"><span class="pre">a</span></code> and <code class="docutils literal notranslate"><span class="pre">b</span></code>. Each <code class="docutils literal notranslate"><span class="pre">_ones_product</span></code> enumerates at most
+<span class="math notranslate nohighlight">\(2^q\)</span> words, and each initial kernel has at most <span class="math notranslate nohighlight">\(2Q\)</span>
+partial-fraction entries. <code class="docutils literal notranslate"><span class="pre">_phi_polynomial</span></code> uses at most <span class="math notranslate nohighlight">\(Q^2\)</span>
+inner iterations and is recomputed for each <code class="docutils literal notranslate"><span class="pre">a</span></code> on the right side.
+Together these cost at most <span class="math notranslate nohighlight">\(64Q^6 2^q\)</span> arithmetic operations.
+Throughout <code class="docutils literal notranslate"><span class="pre">_transform</span></code>, pole shifts remain below <span class="math notranslate nohighlight">\(q\)</span> and pole
+orders remain at most two. Thus kernels and antiderivatives each have
+at most <span class="math notranslate nohighlight">\(2Q\)</span> entries. There is one child per recursive call,
+at most <span class="math notranslate nohighlight">\(Q\)</span> levels per initial word, and at most <span class="math notranslate nohighlight">\(Q\)</span> terms
+to merge per level. Telescoping and division by the next harmonic index,
+including the two-factor partial fractions, therefore cost at most
+<span class="math notranslate nohighlight">\(64Q^5 2^q\)</span> for all initial words and the final accumulation.
+The sum is below <span class="math notranslate nohighlight">\(A_q\)</span>. This is a unit-cost algebraic bound,
+not a count of Python instructions, GCD steps or elapsed seconds.</p>
+<p><strong>Integer bits.</strong> A separate bound follows by tracking numerator and
+denominator lengths. All integer inputs to the coefficient arithmetic,
+including the factorial and binomial values, fit within
+<span class="math notranslate nohighlight">\(B_0=4Q^2\)</span> bits. For example, <span class="math notranslate nohighlight">\(q!\leq q^q\)</span> and
+<span class="math notranslate nohighlight">\(\binom{q}{j}\leq2^q\)</span>. If both rational operands have numerator
+and denominator lengths at most <span class="math notranslate nohighlight">\(B\)</span>, unreduced addition or
+subtraction has lengths at most <span class="math notranslate nohighlight">\(2B+1\)</span>; multiplication and
+division need at most <span class="math notranslate nohighlight">\(2B\)</span>. Reduction cannot increase these
+lengths. Iterating <span class="math notranslate nohighlight">\(B\mapsto2B+1\)</span> therefore gives the explicit
+coarse bound</p>
+<div class="math notranslate nohighlight">
+\[B_q=(4Q^2+1)2^{A_q}-1\]</div>
+<p>for coefficient numerators and denominators, including intermediate
+rational results in this model. It is intentionally enormous. It is
+an existence bound, not a polynomial bit-complexity claim or a bound on
+Python’s internal temporary buffers, CPU time or peak resident memory.
+The term-count bound alone gives no such bit or memory guarantee.</p>
+<p>Small-index observations can be reproduced independently of these
+coarse all-index bounds:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">11</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">expression</span> <span class="o">=</span> <span class="n">leading_constant_expression</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">q</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">expression</span><span class="p">),</span>
+<span class="gp">... </span>                 <span class="nb">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">numerator</span><span class="p">)</span><span class="o">.</span><span class="n">bit_length</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">expression</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
+<span class="gp">... </span>                 <span class="nb">max</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">denominator</span><span class="o">.</span><span class="n">bit_length</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">expression</span><span class="o">.</span><span class="n">values</span><span class="p">())))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rows</span>
+<span class="go">[(3, 1, 3, 1), (4, 2, 6, 1), (5, 4, 10, 1), (6, 7, 14, 1), (7, 12, 19, 1), (8, 20, 24, 2), (9, 33, 29, 3), (10, 54, 34, 4)]</span>
+</pre></div>
+</div>
+<p>Each row reports <code class="docutils literal notranslate"><span class="pre">(q,</span> <span class="pre">terms,</span> <span class="pre">maximum</span> <span class="pre">numerator</span> <span class="pre">bits,</span> <span class="pre">maximum</span> <span class="pre">denominator</span>
+<span class="pre">bits)</span></code> for the final nonzero coefficients. These finite observations
+do not bound intermediate coefficients or establish a growth law.</p>
+<p>Numerical truncation is an additional cost. With prefix length
+<span class="math notranslate nohighlight">\(K\)</span>, <code class="docutils literal notranslate"><span class="pre">_harmonic_values</span></code> collects at most <span class="math notranslate nohighlight">\(QF_q\)</span> distinct
+suffixes and performs one division and one addition for each nonempty
+suffix at each of <span class="math notranslate nohighlight">\(K\)</span> steps. The powers in these constructed words
+are at most two. This gives at most <span class="math notranslate nohighlight">\(3KQF_q\)</span> arithmetic operations
+for that update loop when the possible squaring is included. Tail
+formation and interval accumulation add further operations. The bound
+<span class="math notranslate nohighlight">\(B_q\)</span> above covers symbolic coefficients only; numerical prefix
+denominators and their arithmetic also depend on <span class="math notranslate nohighlight">\(K\)</span>.</p>
+<p>Selected symbolic and numerical steps consume <code class="docutils literal notranslate"><span class="pre">_Budget</span></code> work units,
+with a default limit of 200,000 and an operational maximum of 1,000,000.
+This counter charges selected loops and some word lengths; it omits
+other arithmetic, factorial/binomial internals, GCD work and integer
+bit costs. It is neither <span class="math notranslate nohighlight">\(A_q\)</span> nor an elapsed-time or memory
+budget. Exceeding the work limit raises a controlled error without
+returning a partial expression. The mathematical theorem is not
+restricted to the indices that fit that operational budget, and the
+tool makes no efficiency or minimal-basis claim.</p>
+</section>
+<section id="records-and-verification-scope">
+<h2>Records and verification scope<a class="headerlink" href="#records-and-verification-scope" title="Link to this heading"></a></h2>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m tools.risk_research.leading_constant_mzv --constant-index 6 --terms 37 --work-limit 180000 --output .research/skeleton-risk/mzv.json</span>
+<span class="go">python -m tools.risk_research.leading_constant_mzv --verify .research/skeleton-risk/mzv.json</span>
+</pre></div>
+</div>
+<p>The new record stores all generation options, ordered exact coefficients,
+the index convention, signed intervals, normalization and normalized
+source hashes. Verification restores nondefault parameters and compares
+the entire typed record. It does not change the existing three schemas
+handled by <code class="docutils literal notranslate"><span class="pre">saved_records</span></code>. Duplicate keys, extra fields, changed types,
+changed coefficients or sources are rejected.</p>
+<p>The output directory is managed by the caller. The writer fixes the
+canonical parent and original leaf and protects evaluator/proof sources;
+it does not provide a sandbox against replacement of the canonical
+directory inode by another process.</p>
+<p>After freezing the algebra and runtime, unused indices and finite
+prefixes are checked against the original elementary-symmetric series
+and positive integral, with source, environment and input preservation.
+Finite checks verify implementation and normalization; they do not
+replace the all-index termination and convergence proof above. The
+result concerns leading constants as the degree tends to infinity with
+vertex count fixed, not a finite-sample risk or a finite-degree remainder.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="skeleton_risk_mzv_dyadic.html" class="btn btn-neutral float-left" title="Dyadic enclosures for multiple zeta values" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="skeleton_risk_leading_constant_height.html" class="btn btn-neutral float-right" title="Coefficient heights in the finite MZV construction" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: dependabot/github_actions/github/codeql-action/init-4.39.3
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../../../../../v0.25.1/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.25.1/index.html">v0.25.1</a></dd>
+            <dd><a href="../../../../../../v0.25.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.25.0/index.html">v0.25.0</a></dd>
+            <dd><a href="../../../../../../v0.24.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.24.0/index.html">v0.24.0</a></dd>
+            <dd><a href="../../../../../../v0.23.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../../../../../v0.22.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../../../../../v0.21.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../../../../../v0.20.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../../../../../v0.19.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../../../../../v0.18.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../../../../../v0.17.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../../../../../v0.16.1/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../../../../../v0.16.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../../../../../v0.15.1/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../../../../../v0.15.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../../../../../v0.14.3/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../../../../../v0.14.2/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../../../../../v0.14.1/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../../../../../v0.14.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../../../../../v0.13.4/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../../../../../v0.13.3/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../../../../../v0.13.2/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../../../../../v0.13.1/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../../../../../v0.13.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../../../../../v0.12.1/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../../../../../v0.12.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../../../../../v0.11.3/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../../../../../v0.11.2/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../../../../../v0.11.1/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../../../../../v0.11.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../../../../../v0.10.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../../../../../v0.9.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.9.0/index.html">v0.9.0</a></dd>
+            <dd><a href="../../../../../../v0.8.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../../../../../v0.7.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../../../../../v0.6.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../../../../../v0.5.1/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../../../../../v0.5.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../../../../../v0.4.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../../../../../v0.3.1/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../../../../../v0.3.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../../../../../v0.2.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../../../../../v0.1.0/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../../../../../v0.0.2/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../../../../../v0.0.1/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../v0.0.1/index.html">v0.0.1</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="../../../../../../master/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../master/index.html">master</a></dd>
+            <dd><a href="../../../../../../dependabot/github_actions/github/codeql-action/init-4.39.3/advanced/skeleton_risk_leading_constant_mzv.html" data-fallback="../../../../../../dependabot/github_actions/github/codeql-action/init-4.39.3/index.html">dependabot/github_actions/github/codeql-action/init-4.39.3</a></dd>
+        </dl>
+    </div>
+</div>
+<script>
+// Each ref is built on its own, so a listed ref may lack this page: open its index instead.
+document.querySelectorAll(".rst-other-versions a[data-fallback]").forEach(function (link) {
+    link.addEventListener("click", function (event) {
+        if (!window.fetch || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+            return;
+        }
+        event.preventDefault();
+        fetch(link.href, { method: "HEAD" }).then(
+            function (response) {
+                window.location.href = response.ok ? link.href : link.getAttribute("data-fallback");
+            },
+            function () {
+                window.location.href = link.href;
+            }
+        );
+    });
+});
+</script><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
