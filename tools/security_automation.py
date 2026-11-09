@@ -52,6 +52,7 @@ PROTECTED = (
     ".github/dependabot.yml",
     ".github/workflows/sphinx-pages.yml",
     ".github/workflows/sphinx-pages-publish.yml",
+    ".github/workflows/sphinx-pages-sweep.yml",
     ".github/pages-build-template.yml",
     ".github/pages-legacy-owners.json",
 )
@@ -525,7 +526,7 @@ def validate_publication(api: GitHub, pr: Json) -> None:
     if api.repo != pages.REPOSITORY or pages.SHA.fullmatch(sha) is None:
         raise ValueError("Invalid documentation publication source")
     ledger = _publication_ledger(api, ref, sha, pages)
-    external_id = f"pages-{ledger['run_id']}-{ledger['run_attempt']}"
+    external_id = pages.attempt_id(ledger["run_id"], ledger["run_attempt"])
     checks = api.pages(f"commits/{sha}/check-runs?filter=all", "check_runs")
     matching = [row for row in checks if row["name"] == pages.CHECK_NAME and row.get("external_id") == external_id]
     if not matching:

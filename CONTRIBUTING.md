@@ -962,6 +962,27 @@ that producer for a newly created stable tag because `GITHUB_TOKEN`-created
 tags do not start push workflows. Ordinary user-created stable tag pushes use
 the producer's push trigger. Do not re-enable the legacy writer.
 
+GitHub starts no `workflow_run` for a producer run that `GITHUB_TOKEN`
+dispatched, so the **GHPages publisher** never sees the release tag builds that
+Release Please dispatches, nor the `master` and automation-branch builds that the
+controllers dispatch. The trusted **GHPages publisher sweep**
+(`sphinx-pages-sweep.yml`, `tools/pages_publish.py --sweep`) runs from `master`
+every 30 minutes and shares the `gh-pages` lock. It takes the newest successful
+producer run of each ref from the last six days, one day inside the artifacts'
+seven-day lifetime, if `github-actions[bot]` dispatched it. It
+publishes that run with the same checks as the publisher while the ref still
+points at the run's commit and no **GHPages publish** check carries that run
+attempt's external ID. A failed publication is therefore not retried
+automatically, and a run that fails authentication, such as a tag whose producer
+YAML differs from the template on `master`, is skipped without a check. To
+publish a run that no sweep has handled yet, for example after a sweep job failed
+on an API error, start the sweep by hand with
+`gh workflow run sphinx-pages-sweep.yml --ref master`. For a failed or expired
+run, dispatch a new build as a user with
+`gh workflow run sphinx-pages-build.yml --ref <tag-or-branch>`, whose completion
+starts the publisher. A tag whose producer YAML differs from the template on
+`master` cannot be published either way.
+
 #### Updating GHPages action pins
 
 Update one action pin in the producer at a time, with two PRs in this order.
@@ -1042,7 +1063,7 @@ in step 1 below must print the same ID twice for `origin/master`. The PR changes
 identically, plus only the changes to `tools/pages_build.py`,
 `tests/tools/pages_build.py` or documentation that the producer change needs. Some
 changes do need a test edit, because those tests name exact lines such as the
-timeout. Publisher code, its tests, the publisher workflow and
+timeout. Publisher code, its tests, the publisher and sweep workflows and
 `.github/pages-legacy-owners.json` go in a separate PR.
 
 | Check on that PR | Requirement |
@@ -1112,6 +1133,7 @@ pytorch-bsf/
 │   │   ├── docker.yml                # Docker image published to ghcr.io on release
 │   │   ├── sphinx-pages-build.yml    # Read-only documentation build of the pushed ref
 │   │   ├── sphinx-pages-publish.yml  # Trusted, serialized per-ref publication
+│   │   ├── sphinx-pages-sweep.yml    # Scheduled publication of GHPages builds that GITHUB_TOKEN dispatched
 │   │   ├── sphinx-pages.yml          # Inert legacy identifier; keep manually disabled
 │   │   ├── codeql-analysis.yml       # Security scanning
 │   │   ├── security-policy.yml       # Security automation, Dependabot merge, release merge and action advisory tests, zizmor, the GHPages producer check and the Betterleaks secret scan

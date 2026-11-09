@@ -1,13 +1,18 @@
-"""Publish one authenticated documentation subtree without executing build artifacts.
+"""Publish authenticated documentation subtrees without executing build artifacts.
 
-The trusted workflow runs this module from its default-branch commit. Artifacts
+The trusted workflows run this module from their default-branch commit. Artifacts
 are bounded ZIP data; Git's bare object/index plumbing never checks them out.
 Source-ref checks and the gh-pages fast-forward are separate operations: a ref
 moving in that final network window fails the post-push check, not an atomic
 cross-ref transaction. A per-ref generation ledger prevents older publications.
+
+GitHub starts no `workflow_run` for a producer run that `GITHUB_TOKEN` dispatched,
+so the separate trusted sweep (`--sweep`) publishes such runs on a schedule.
 """
 
+import argparse
 import base64
+import datetime as dt
 import hashlib
 import io
 import json
@@ -15,6 +20,7 @@ import os
 import re
 import stat
 import subprocess
+import sys
 import tempfile
 import urllib.error
 import urllib.parse
@@ -28,6 +34,7 @@ Json = dict[str, Any]
 
 REPOSITORY = "opthub-org/pytorch-bsf"
 WORKFLOW_PATH = ".github/workflows/sphinx-pages-build.yml"
+WORKFLOW_FILE = WORKFLOW_PATH.rsplit("/", 1)[1]
 WORKFLOW_NAME = "GHPages build"
 CHECK_NAME = "GHPages publish"
 LEDGER = ".pages-publish"
@@ -39,6 +46,12 @@ MAX_MANIFEST_BYTES = 5_000_000
 SHA = re.compile(r"[0-9a-f]{40}")
 DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 TAG = re.compile(r"v\d+\.\d+\.\d+")
+# GitHub starts no workflow run from an event that GITHUB_TOKEN causes, except a dispatch. A producer run that the
+# token dispatched therefore runs, but its completion starts no publisher; the sweep publishes such runs instead.
+BOT = "github-actions[bot]"
+# One day less than the producer's `retention-days: 7`, so that a listed run's artifact has not expired by the time
+# the sweep publishes it.
+SWEEP_WINDOW = dt.timedelta(days=6)
 RESERVED = {".git", ".gitattributes", ".gitmodules", LEDGER, ".nojekyll", "readme.md", "index.html", "cname"}
 
 
@@ -107,6 +120,11 @@ def positive_int(value: Any) -> int:
     if type(value) is not int or value <= 0:
         raise ValueError("Expected a positive integer identifier")
     return value
+
+
+def attempt_id(run_id: Any, attempt: Any) -> str:
+    """Name a producer run attempt: its artifact, and the external ID of its publication check."""
+    return f"pages-{positive_int(run_id)}-{positive_int(attempt)}"
 
 
 def safe_path(value: Any) -> str:
@@ -213,7 +231,7 @@ def authenticate_run(api: Any, event: Json) -> tuple[Json, Json]:
     canonical = api.request(f"actions/runs/{ident}/attempts/{attempt}")
     latest = api.request(f"actions/runs/{ident}")
     repo = api.request("")
-    workflow = api.request("actions/workflows/" + WORKFLOW_PATH.rsplit("/", 1)[1])
+    workflow = api.request("actions/workflows/" + WORKFLOW_FILE)
     if repo["full_name"] != REPOSITORY or repo["default_branch"] != "master":
         raise ValueError("Unexpected repository policy")
     for record in (run, canonical, latest):
@@ -252,7 +270,7 @@ def authenticate_run(api: Any, event: Json) -> tuple[Json, Json]:
 
 def load_artifact(api: Any, run: Json, repo: Json) -> tuple[Json, dict[str, bytes], Json]:
     """Download one immutable attempt-named artifact and validate its ZIP data."""
-    name = f"pages-{run['id']}-{run['run_attempt']}"
+    name = attempt_id(run["id"], run["run_attempt"])
     artifacts = [a for a in api.pages(f"actions/runs/{run['id']}/artifacts", "artifacts") if a["name"] == name]
     if len(artifacts) != 1:
         raise ValueError("Expected exactly one producer artifact")
@@ -395,15 +413,20 @@ def peel_commit(api: Any, value: Json) -> str:
     raise ValueError("Source ref is not a commit or bounded annotated tag")
 
 
+def all_refs(api: Any) -> list[Json]:
+    """List every branch and tag."""
+    # This endpoint returns a complete array; page/per_page are ignored.
+    # https://docs.github.com/en/rest/git/refs#list-matching-references
+    return list(api.request("git/matching-refs/heads/") + api.request("git/matching-refs/tags/"))
+
+
 def live_refs(api: Any, manifest: Json) -> None:
     """Authenticate the full ref kind and check all live URL namespaces."""
     ref, sha = manifest["source_ref"], manifest["source_sha"]
     name = destination(ref)
     if not isinstance(sha, str) or SHA.fullmatch(sha) is None:
         raise ValueError("Invalid source SHA")
-    # This endpoint returns a complete array; page/per_page are ignored.
-    # https://docs.github.com/en/rest/git/refs#list-matching-references
-    refs = api.request("git/matching-refs/heads/") + api.request("git/matching-refs/tags/")
+    refs = all_refs(api)
     selected = [row for row in refs if row["ref"] == ref]
     if len(selected) != 1:
         raise ValueError("Source ref was deleted or is ambiguous")
@@ -553,7 +576,7 @@ def publish(api: Any, event: Json, pages_factory: Callable[[], Any]) -> Json:
             "name": CHECK_NAME,
             "head_sha": run["head_sha"],
             "status": "in_progress",
-            "external_id": f"pages-{run['id']}-{run['run_attempt']}",
+            "external_id": attempt_id(run["id"], run["run_attempt"]),
             "details_url": os.environ.get("GITHUB_SERVER_URL", "https://github.com")
             + f"/{REPOSITORY}/actions/runs/{os.environ.get('GITHUB_RUN_ID', run['id'])}",
         },
@@ -610,11 +633,111 @@ def publish(api: Any, event: Json, pages_factory: Callable[[], Any]) -> Json:
     return record
 
 
-def main() -> None:
-    if os.environ.get("GITHUB_REPOSITORY") != REPOSITORY or os.environ.get("GITHUB_EVENT_NAME") != "workflow_run":
+def newest_bot_runs(api: Any, now: dt.datetime) -> list[Json]:
+    """Return the newest successful producer run of each ref, if `github-actions[bot]` dispatched it.
+
+    A newer run that a user pushed or dispatched started the publisher itself, which also rejects the older generation.
+    """
+    since = (now - SWEEP_WINDOW).strftime("%Y-%m-%dT%H:%M:%SZ")
+    query = urllib.parse.urlencode({"status": "success", "created": ">=" + since})
+    newest: dict[str, Json] = {}
+    for run in api.pages(f"actions/workflows/{WORKFLOW_FILE}/runs?{query}", "workflow_runs"):
+        # The query filters are a hint; check each field before relying on the run.
+        try:
+            if (
+                run["event"] not in {"push", "workflow_dispatch"}
+                or run["status"] != "completed"
+                or run["conclusion"] != "success"
+                or not isinstance(run["head_branch"], str)
+            ):
+                continue
+            positive_int(run["id"])
+            positive_int(run["run_attempt"])
+            number = positive_int(run["run_number"])
+        except (KeyError, TypeError, ValueError):
+            print(f"Skipping a malformed producer run record: {run.get('id')!r}", file=sys.stderr)
+            continue
+        current = newest.get(run["head_branch"])
+        if current is None or number > current["run_number"]:
+            newest[run["head_branch"]] = run
+    return [
+        run
+        for _, run in sorted(newest.items())
+        if run["event"] == "workflow_dispatch" and (run.get("triggering_actor") or {}).get("login") == BOT
+    ]
+
+
+def unhandled(api: Any, run: Json, refs: list[Json]) -> bool:
+    """Tell whether the run's ref still points at its commit and no check carries its attempt's external ID.
+
+    A newer build of a moved ref publishes it instead. This filter is advisory; publish() checks the ref again. A check
+    with the external ID marks the run as handled whatever its conclusion, so a failed publication is not retried.
+    """
+    name = run["head_branch"]
+    matches = [row for row in refs if row["ref"] in {f"refs/heads/{name}", f"refs/tags/{name}"}]
+    if len(matches) != 1 or peel_commit(api, matches[0]["object"]) != run["head_sha"]:
+        return False
+    query = urllib.parse.urlencode({"check_name": CHECK_NAME, "filter": "all"})
+    checks = api.pages(f"commits/{run['head_sha']}/check-runs?{query}", "check_runs")
+    return not any(check.get("external_id") == attempt_id(run["id"], run["run_attempt"]) for check in checks)
+
+
+def sweep(api: Any, now: dt.datetime, pages_factory: Callable[[], Any]) -> list[Json]:
+    """Publish every unhandled bot-dispatched producer run; fail after trying all of them if any failed.
+
+    A run whose ref or authentication is invalid, such as a tag built by a producer that differs from the trusted
+    template, is skipped without a check: it would fail the same way every time. An API or network error before the
+    publication check is a failure that a later sweep retries; a failure after the check is final.
+    """
+    candidates = newest_bot_runs(api, now)
+    if not candidates:
+        return []
+    refs = all_refs(api)
+    records, failed = [], 0
+    for run in candidates:
+        event = {"workflow_run": run}
+        try:
+            if not unhandled(api, run, refs):
+                continue
+            # Sort failures into "skip" and "retry" before publish() posts a check; publish() authenticates again.
+            authenticate_run(api, event)
+        except (KeyError, TypeError, ValueError) as error:
+            print(f"Skipping producer run {run['id']}, which cannot be published: {error}", file=sys.stderr)
+            continue
+        except (GitHubError, OSError) as error:
+            failed += 1
+            print(f"Producer run {run['id']} could not be checked: {type(error).__name__}: {error}", file=sys.stderr)
+            continue
+        try:
+            records.append(publish(api, event, pages_factory))
+        except Exception as error:  # One bad run must not block the others; the job still fails below.
+            failed += 1
+            print(f"Publication of producer run {run['id']} failed: {type(error).__name__}: {error}", file=sys.stderr)
+    if failed:
+        raise RuntimeError(f"{failed} documentation publication(s) failed")
+    return records
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--sweep", action="store_true", help="publish producer runs that GITHUB_TOKEN dispatched")
+    arguments = parser.parse_args(argv)
+    if os.environ.get("GITHUB_REPOSITORY") != REPOSITORY:
+        raise ValueError("Publisher requires its trusted repository")
+    api = GitHub(os.environ["GH_TOKEN"])
+    if arguments.sweep:
+        if (
+            os.environ.get("GITHUB_EVENT_NAME") not in {"schedule", "workflow_dispatch"}
+            or os.environ.get("GITHUB_REF") != "refs/heads/master"
+        ):
+            raise ValueError("Sweep requires its trusted default-branch schedule or dispatch context")
+        with tempfile.TemporaryDirectory(prefix="pages-sweep-") as parent:
+            # Each publication starts from the latest gh-pages in its own bare repository.
+            sweep(api, dt.datetime.now(dt.UTC), lambda: GitPages(Path(tempfile.mkdtemp(dir=parent)), api.token))
+        return
+    if os.environ.get("GITHUB_EVENT_NAME") != "workflow_run":
         raise ValueError("Publisher requires its trusted workflow_run context")
     event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
-    api = GitHub(os.environ["GH_TOKEN"])
     with tempfile.TemporaryDirectory(prefix="pages-bare-") as directory:
         publish(api, event, lambda: GitPages(Path(directory), api.token))
 

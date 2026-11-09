@@ -1,0 +1,39 @@
+name: GHPages publisher sweep
+
+# GitHub starts no workflow_run for a GHPages build that GITHUB_TOKEN dispatched, such as the Release workflow's
+# release tag build or a controller's master build, so the GHPages publisher never sees it. This trusted
+# default-branch control publishes such runs instead. It is a separate workflow so that its frequent runs do not start
+# the Dependabot merge controller, which listens to the GHPages publisher.
+on:
+  schedule:
+    # Every 30 minutes, off the hour.
+    - cron: '23,53 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+# Shares the publisher's lock, so that the two never update gh-pages at the same time.
+concurrency:
+  group: gh-pages
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  sweep:
+    if: github.repository == 'opthub-org/pytorch-bsf' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: write
+      checks: write
+    steps:
+      # The default-branch commit, never a producer head.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Publish bot-dispatched producer runs without running candidate code
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -I tools/pages_publish.py --sweep

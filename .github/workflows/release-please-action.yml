@@ -86,7 +86,8 @@ jobs:
     permissions:
       actions: write
     steps:
-    # GITHUB_TOKEN-created tags do not trigger push workflows; dispatch does.
+    # GITHUB_TOKEN-created tags do not trigger push workflows; dispatch does. The completion of a run that this
+    # token dispatched starts no GHPages publisher, so the GHPages publisher sweep publishes the tag.
     # No checkout or release code runs with this dispatch-only token.
     - name: Dispatch documentation for the stable release tag
       env:
