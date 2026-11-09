@@ -54,7 +54,7 @@ jobs:
           fi
           cat "$RUNNER_TEMP/python-support.md" >> "$GITHUB_STEP_SUMMARY"
       - name: Create or update the Python support PR
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        uses: peter-evans/create-pull-request@15733dbdfeedb4f7fdb73d13c6f5ac83b710fab8 # v8.1.2
         with:
           # App/PAT enables automatic PR CI; built-in-token CI instructions are in the PR body.
           token: ${{ secrets.DEPENDENCY_UPDATE_TOKEN || github.token }}
