@@ -36,7 +36,7 @@ repos:
       - id: typos
         args: [--force-exclude]
   - repo: https://github.com/betterleaks/betterleaks
-    rev: v1.9.0
+    rev: v1.10.0
     # The publish job of .github/workflows/security-remediation.yml downloads the release of this rev (see SECURITY.md)
     hooks:
       # Block a commit whose staged changes contain a secret. It sees only the index, so `--all-files` does not widen it
