@@ -1,0 +1,414 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>A classical leading constant for seven vertices &mdash; PyTorch-BSF 0.25.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/proof.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+    <link rel="shortcut icon" href="../_static/favicon.ico"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=7ca58008"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="A classical leading constant for eight vertices" href="skeleton_risk_c7_closed_form.html" />
+    <link rel="prev" title="A classical closed form for the codimension-four constant" href="skeleton_risk_c5_closed_form.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PyTorch-BSF
+              <img src="../_static/logo-compact-white.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../whatis.html">What is Bézier simplex fitting?</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">User guide</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../cli.html">Command-line reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../advanced.html">Advanced Topics</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../advanced.html#choose-a-guide-by-the-question-you-need-to-answer">Choose a guide by the question you need to answer</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../advanced.html#guide-chapters">Guide chapters</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="normalization.html">Output scaling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sampling.html">Sampling and grids</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_sampling.html">Optimal skeleton sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_theory.html">Theory of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_extensions.html">Further evaluations of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_states.html">Quadratic codimension-two multiplicities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="codimension_two_family.html">Uniform construction for codimension two</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three.html">Boundary transfer and a codimension-three edge bound</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_exact.html">Positive diagonal formulas for nonvertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q3_error.html">Finite-degree errors for every nonvertex q3 face</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_error.html">Finite-degree errors for every fixed nonvertex q4 face size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_q4_refined.html">A logarithmic finite-degree remainder for nonvertex q4 risks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_general_error.html">Finite-degree errors at every fixed nonvertex codimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_growing_faces.html">Uniform errors for growing nonvertex faces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_nonvertex_relative_certificate.html">One certificate for a requested finite-degree relative accuracy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex.html">Tetrahedron vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general.html">Vertex coefficients at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_mzv_dyadic.html">Dyadic enclosures for multiple zeta values</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_leading_constant_mzv.html">Finite MZV constructions for leading constants</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_leading_constant_height.html">Coefficient heights in the finite MZV construction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c5_closed_form.html">A classical closed form for the codimension-four constant</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">A classical leading constant for seven vertices</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#rational-evaluation-and-saved-records">Rational evaluation and saved records</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_c7_closed_form.html">A classical leading constant for eight vertices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_codimension_three_transform.html">A fast exact transform for codimension three</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension.html">The vertex leading constant at large vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension_refined.html">A sharper elementary large-vertex guarantee</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_large_dimension_second_order.html">A first correction with a quadratic large-vertex remainder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_general_asymptotics.html">Explicit vertex errors at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_refined_asymptotics.html">Single-log vertex errors for every fixed M at least five</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_recurrence.html">Tetrahedron vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth.html">A simultaneous vertex-count and degree regime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_joint_growth_refined.html">A broader simultaneous vertex-count and degree regime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_composite_asymptotics.html">Computable vertex centers and a single-log growing domain</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_vertex_asymptotics.html">Quantitative tetrahedron vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_comparisons.html">Fixed-degree risk comparisons in every dimension</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_uniform_dimension_tail.html">An all-degree sufficient region for large vertex counts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_fixed_vertex_tail.html">An explicit winning degree tail at every fixed vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_quadratic_degree_tail.html">A quadratic sufficient degree region, uniform in vertex count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_tetrahedron_comparison.html">Tetrahedron risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex.html">Five-vertex vertex risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_recurrence.html">Five-vertex vertex degree recurrence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_asymptotics.html">Quantitative five-vertex vertex asymptotics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_five_vertex_comparison.html">Five-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_six_vertex_comparison.html">Six-vertex risk comparison at every degree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_risk.html">Risk on an assembled simploidal set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="skeleton_risk_verification.html">Exact verification of the skeleton risk</a></li>
+<li class="toctree-l3"><a class="reference internal" href="point_cloud.html">Fitting from values alone</a></li>
+<li class="toctree-l3"><a class="reference internal" href="visualization.html">Visualization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="grid_sampling.html">Grid sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="model_selection.html">Cross-validation and degree search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="regularization.html">Regularization and numerical evidence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fixed_controls.html">Fixed controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="active_learning.html">Explicit ensembles and active learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="adaptive_curves.html">Adaptive parameterized curves</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal.html">Single and assembled domains</a></li>
+<li class="toctree-l3"><a class="reference internal" href="interpolation.html">Shape-preserving interpolation on simplicial meshes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="splitting.html">Exact local subdivision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="simploidal_category.html">The Category of Simploidal Sets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="initial_models.html">Explicit initial models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="objective_minimization.html">Objective minimization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sklearn.html">Scikit-learn integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="solvers_and_execution.html">Solvers, performance and optional execution</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../applications.html">Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">Frequently asked questions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">Python API reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../migration.html">Migrating to the unified v0 API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">References</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PyTorch-BSF</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../advanced.html">Advanced Topics</a></li>
+      <li class="breadcrumb-item active">A classical leading constant for seven vertices</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/advanced/skeleton_risk_c6_closed_form.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="a-classical-leading-constant-for-seven-vertices">
+<h1>A classical leading constant for seven vertices<a class="headerlink" href="#a-classical-leading-constant-for-seven-vertices" title="Link to this heading"></a></h1>
+<p>Keep the uniform-simplex assumptions of <a class="reference internal" href="skeleton_risk_theory.html"><span class="doc">Theory of the skeleton risk</span></a>.
+This chapter evaluates the next constant from
+<a class="reference internal" href="skeleton_risk_vertex_general.html"><span class="doc">Vertex coefficients at every fixed vertex count</span></a>. It extends the finite harmonic
+telescope of <a class="reference internal" href="skeleton_risk_c5_closed_form.html"><span class="doc">A classical closed form for the codimension-four constant</span></a> to weight five.</p>
+<div class="proof theorem admonition" id="thm-risk-c6-closed-form">
+<p class="admonition-title"><span class="caption-number">Theorem 45 </span> (The sixth constant)</p>
+<section class="theorem-content" id="proof-content">
+<div class="math notranslate nohighlight">
+\[c_6=600\zeta(2)+2520\zeta(3)+13980\zeta(4)
+      -4320\zeta(2)\zeta(3)-10080\zeta(5)&gt;0.\]</div>
+<p>Consequently, for the fixed seven-vertex simplex,</p>
+<div class="math notranslate nohighlight">
+\[a_0(7,D)\sim\frac{C_7}{D^8},\qquad C_7=2205c_6.\]</div>
+<p>This is a leading constant as the degree tends to infinity. It is
+neither a finite-degree error estimate nor an all-degree comparison.</p>
+</section>
+</div><div class="proof admonition" id="proof">
+<p>Proof. Put <span class="math notranslate nohighlight">\(H=H_{n-1}\)</span>, <span class="math notranslate nohighlight">\(G=H_{n-1}^{(2)}\)</span> and
+<span class="math notranslate nohighlight">\(J=H_{n-1}^{(3)}\)</span>, with all three zero at <span class="math notranslate nohighlight">\(n=1\)</span>.
+The existing elementary-symmetric coefficient formula gives</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\phi_1(n-1)&amp;=\frac1n,\\
+\phi_2(n-1)&amp;=\frac{2(1-H)}{n(n+1)},\\
+\phi_3(n-1)&amp;=\frac{6(H^2-G-3H+1)}{n(n+1)(n+2)},\\
+\phi_4(n-1)&amp;=\frac{12P(H,G,J)}{n(n+1)(n+2)(n+3)},\\
+P(H,G,J)&amp;=-2H^3+6HG-4J+11H^2-11G-12H+2.\end{split}\]</div>
+<p>Thus <span class="math notranslate nohighlight">\(e_5(n-1)=10\phi_1\phi_4+20\phi_2\phi_3\)</span>, and
+<span class="math notranslate nohighlight">\(t_n=e_5(n-1)/120\)</span> is</p>
+<div class="math notranslate nohighlight">
+\[t_n=\frac{P(H,G,J)}{n^2(n+1)(n+2)(n+3)}
+    +\frac{2(1-H)(H^2-G-3H+1)}{n^2(n+1)^2(n+2)}.\]</div>
+<p>Define <span class="math notranslate nohighlight">\(U(n,H,G,J)=V(n,H,G,J)/(36n^2(n+1)(n+2))\)</span>, where</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}V={}&amp;-(120n^3+420n^2+440n+144)H^3\\
+    &amp;+(144n^3+504n^2+528n+144)HG
+       -(24n^3+84n^2+88n)J\\
+    &amp;+(-78n^3-183n^2+54n+144)H^2\\
+    &amp;+(42n^3+111n^2+18n)G
+       -(30n^3+84n^2+72n)H.\end{split}\]</div>
+<p>Direct rational simplification proves the finite identity</p>
+<div class="math notranslate nohighlight" id="equation-risk-c6-finite-telescope">
+<span class="eqno">(89)<a class="headerlink" href="#equation-risk-c6-finite-telescope" title="Link to this equation"></a></span>\[\begin{split}t_n={}&amp;U(n+1,H+1/n,G+1/n^2,J+1/n^3)-U(n,H,G,J)\\
+       &amp;+\frac{-20H^3+24HG-4J+47H^2-17G+21H+5}{6n^2}.\end{split}\]</div>
+<p>This is an identity in the independent variables <span class="math notranslate nohighlight">\(n,H,G,J\)</span>:
+after multiplying by <span class="math notranslate nohighlight">\(36n^3(n+1)^2(n+2)(n+3)\)</span>, its numerator
+has every polynomial coefficient zero. Hence it holds at every
+positive integer n; it is not inferred from sampled harmonic values.</p>
+<p>The first boundary is <span class="math notranslate nohighlight">\(U(1,0,0,0)=0\)</span>. The other boundary tends
+to zero, because <span class="math notranslate nohighlight">\(H_{n-1}\leq1+\log n\)</span>,
+<span class="math notranslate nohighlight">\(G,J\leq2\)</span> and <span class="math notranslate nohighlight">\(U=O((1+\log n)^3/n)\)</span>.
+The displayed residual series converges absolutely by comparison
+with <span class="math notranslate nohighlight">\((1+\log n)^3/n^2\)</span>. The original e5 series is absolutely
+convergent by the general coefficient bound. Summing the finite
+identity and only then taking its limit is therefore justified.
+No divergent harmonic series is assigned a value.</p>
+<p>Use descending indices
+<span class="math notranslate nohighlight">\(\zeta(k_1,\ldots,k_r)=\sum_{n_1&gt;\cdots&gt;n_r\geq1}
+n_1^{-k_1}\cdots n_r^{-k_r}\)</span>. All values below have
+<span class="math notranslate nohighlight">\(k_1=2\)</span>, hence converge. Finite ordered-index decompositions give</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\sum_{n\geq1}\frac{H^3}{n^2}
+   &amp;=6\zeta(2,1,1,1)+3\zeta(2,1,2)
+        +3\zeta(2,2,1)+\zeta(2,3),\\
+\sum_{n\geq1}\frac{HG}{n^2}
+   &amp;=\zeta(2,1,2)+\zeta(2,2,1)+\zeta(2,3),\\
+\sum_{n\geq1}\frac{J}{n^2}&amp;=\zeta(2,3),\\
+\sum_{n\geq1}\frac{H^2}{n^2}
+   &amp;=2\zeta(2,1,1)+\zeta(2,2),\\
+\sum_{n\geq1}\frac{G}{n^2}&amp;=\zeta(2,2),\qquad
+\sum_{n\geq1}\frac{H}{n^2}=\zeta(2,1).\end{split}\]</div>
+<p>Since <span class="math notranslate nohighlight">\(c_6=6\sum e_5(j)=720\sum t_n\)</span>, this proves the finite
+convergent MZV expression</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}c_6=120\bigl(&amp;-120\zeta(2,1,1,1)-36\zeta(2,1,2)
+              -36\zeta(2,2,1)\\
+            &amp;+94\zeta(2,1,1)+30\zeta(2,2)
+              +21\zeta(2,1)+5\zeta(2)\bigr).\end{split}\]</div>
+<p>The iterated-integral duality proved in
+<a class="reference internal" href="skeleton_risk_c5_closed_form.html"><span class="doc">A classical closed form for the codimension-four constant</span></a> reverses the binary word and
+interchanges 0 and 1. Here it sends 01111 to 00001, 01101 to
+01001, and 01011 to 00101, proving respectively</p>
+<div class="math notranslate nohighlight">
+\[\zeta(2,1,1,1)=\zeta(5),\quad
+\zeta(2,1,2)=\zeta(2,3),\quad
+\zeta(2,2,1)=\zeta(3,2).\]</div>
+<p>Splitting the absolutely convergent product into the cases where
+its two summation indices are greater, smaller or equal gives
+<span class="math notranslate nohighlight">\(\zeta(2,3)+\zeta(3,2)=\zeta(2)\zeta(3)-\zeta(5)\)</span>.
+The same earlier chapter proves
+<span class="math notranslate nohighlight">\(\zeta(2,1,1)=\zeta(4)\)</span>,
+<span class="math notranslate nohighlight">\(\zeta(2,1)=\zeta(3)\)</span> and
+<span class="math notranslate nohighlight">\(\zeta(2,2)=3\zeta(4)/4\)</span>. Substitution proves the displayed
+classical formula. These are finite identities among convergent
+sums and integrals; no numerical integer-relation fit is used.</p>
+<p>The original positive integral proves <span class="math notranslate nohighlight">\(c_6&gt;0\)</span>, independently
+of cancellation in the final expression. Substituting q=6 in the
+existing normalization gives
+<span class="math notranslate nohighlight">\(C_7=7^2\,6!\,2^{-4}c_6=2205c_6\)</span>, proving the consequence.</p>
+</div>
+<section id="rational-evaluation-and-saved-records">
+<h2>Rational evaluation and saved records<a class="headerlink" href="#rational-evaluation-and-saved-records" title="Link to this heading"></a></h2>
+<p>The evaluator reuses the positive Euler-transformed ordinary zeta
+intervals proved in <a class="reference internal" href="skeleton_risk_c5_closed_form.html"><span class="doc">A classical closed form for the codimension-four constant</span></a>. Their tail after
+N terms is at most <span class="math notranslate nohighlight">\(2^{-N}/(1-2^{1-k})\)</span> for order k. All orders
+needed here are fixed between 2 and 5. The rational-operation count is
+linear in N, while the integer bit lengths grow.</p>
+<p>For positive intervals <span class="math notranslate nohighlight">\(l_i\leq\zeta(i)\leq u_i\)</span>, the product is
+between <span class="math notranslate nohighlight">\(l_2l_3\)</span> and <span class="math notranslate nohighlight">\(u_2u_3\)</span>. The coefficient -4320
+therefore reverses those endpoints, as does the coefficient -10080
+of zeta(5). The linear positive terms use their ordinary endpoints.
+The old positive-integral theorem permits clamping the lower c6
+endpoint to zero. No floating-point approximation is required.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>tools.risk_research.c6_closed_form<span class="w"> </span>--terms<span class="w"> </span><span class="m">64</span><span class="w"> </span>--output<span class="w"> </span>.research/skeleton-risk/c6.json
+<span class="gp">$ </span>.venv/bin/python<span class="w"> </span>-m<span class="w"> </span>tools.risk_research.c6_closed_form<span class="w"> </span>--verify<span class="w"> </span>.research/skeleton-risk/c6.json
+</pre></div>
+</div>
+<p>The new record contains exact rational c6/C7 intervals, the finite
+classical and descending-index MZV coefficients, saved terms and source
+hashes. Verification restores nondefault terms and compares the complete
+strictly typed record. Source hashes normalize CRLF to LF; raw bytes
+still guard against concurrent source changes. Failed generation or
+verification preserves existing output. Protected evaluator/proof paths
+cannot be overwritten. Output uses a checked canonical parent and
+original leaf in a directory controlled by the caller, not a sandbox
+against another process replacing that directory inode.</p>
+<p>The finite identity and source-independent elementary-symmetric rows
+are checked exactly. After freezing the theorem, independent finite
+checks compare the original general-vertex rational series and original
+positive Arb integral with this new expression. These checks validate
+implementation and normalization; the finite telescope and convergent
+identities above supply the proof. This chapter does not assert an
+arbitrary-q classical reduction, an optimal MZV basis, or M7’s
+all-degree comparison classification.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="skeleton_risk_c5_closed_form.html" class="btn btn-neutral float-left" title="A classical closed form for the codimension-four constant" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="skeleton_risk_c7_closed_form.html" class="btn btn-neutral float-right" title="A classical leading constant for eight vertices" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2021, OptHub Inc. and FUJITSU LIMITED.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+        <span class="fa fa-book"> Other Versions</span>
+        v: v0.25.1
+        <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Tags</dt>
+            <dd><a href="../../v0.25.1/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.25.1/index.html">v0.25.1</a></dd>
+            <dd><a href="../../v0.25.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.25.0/index.html">v0.25.0</a></dd>
+            <dd><a href="../../v0.24.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.24.0/index.html">v0.24.0</a></dd>
+            <dd><a href="../../v0.23.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.23.0/index.html">v0.23.0</a></dd>
+            <dd><a href="../../v0.22.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.22.0/index.html">v0.22.0</a></dd>
+            <dd><a href="../../v0.21.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.21.0/index.html">v0.21.0</a></dd>
+            <dd><a href="../../v0.20.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.20.0/index.html">v0.20.0</a></dd>
+            <dd><a href="../../v0.19.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.19.0/index.html">v0.19.0</a></dd>
+            <dd><a href="../../v0.18.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.18.0/index.html">v0.18.0</a></dd>
+            <dd><a href="../../v0.17.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.17.0/index.html">v0.17.0</a></dd>
+            <dd><a href="../../v0.16.1/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.16.1/index.html">v0.16.1</a></dd>
+            <dd><a href="../../v0.16.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.16.0/index.html">v0.16.0</a></dd>
+            <dd><a href="../../v0.15.1/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.15.1/index.html">v0.15.1</a></dd>
+            <dd><a href="../../v0.15.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.15.0/index.html">v0.15.0</a></dd>
+            <dd><a href="../../v0.14.3/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.14.3/index.html">v0.14.3</a></dd>
+            <dd><a href="../../v0.14.2/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.14.2/index.html">v0.14.2</a></dd>
+            <dd><a href="../../v0.14.1/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.14.1/index.html">v0.14.1</a></dd>
+            <dd><a href="../../v0.14.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.14.0/index.html">v0.14.0</a></dd>
+            <dd><a href="../../v0.13.4/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.13.4/index.html">v0.13.4</a></dd>
+            <dd><a href="../../v0.13.3/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.13.3/index.html">v0.13.3</a></dd>
+            <dd><a href="../../v0.13.2/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.13.2/index.html">v0.13.2</a></dd>
+            <dd><a href="../../v0.13.1/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.13.1/index.html">v0.13.1</a></dd>
+            <dd><a href="../../v0.13.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.13.0/index.html">v0.13.0</a></dd>
+            <dd><a href="../../v0.12.1/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.12.1/index.html">v0.12.1</a></dd>
+            <dd><a href="../../v0.12.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.12.0/index.html">v0.12.0</a></dd>
+            <dd><a href="../../v0.11.3/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.11.3/index.html">v0.11.3</a></dd>
+            <dd><a href="../../v0.11.2/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.11.2/index.html">v0.11.2</a></dd>
+            <dd><a href="../../v0.11.1/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.11.1/index.html">v0.11.1</a></dd>
+            <dd><a href="../../v0.11.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.11.0/index.html">v0.11.0</a></dd>
+            <dd><a href="../../v0.10.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.10.0/index.html">v0.10.0</a></dd>
+            <dd><a href="../../v0.9.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.9.0/index.html">v0.9.0</a></dd>
+            <dd><a href="../../v0.8.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.8.0/index.html">v0.8.0</a></dd>
+            <dd><a href="../../v0.7.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.7.0/index.html">v0.7.0</a></dd>
+            <dd><a href="../../v0.6.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.6.0/index.html">v0.6.0</a></dd>
+            <dd><a href="../../v0.5.1/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.5.1/index.html">v0.5.1</a></dd>
+            <dd><a href="../../v0.5.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.5.0/index.html">v0.5.0</a></dd>
+            <dd><a href="../../v0.4.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.4.0/index.html">v0.4.0</a></dd>
+            <dd><a href="../../v0.3.1/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.3.1/index.html">v0.3.1</a></dd>
+            <dd><a href="../../v0.3.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.3.0/index.html">v0.3.0</a></dd>
+            <dd><a href="../../v0.2.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.2.0/index.html">v0.2.0</a></dd>
+            <dd><a href="../../v0.1.0/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.1.0/index.html">v0.1.0</a></dd>
+            <dd><a href="../../v0.0.2/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.0.2/index.html">v0.0.2</a></dd>
+            <dd><a href="../../v0.0.1/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../v0.0.1/index.html">v0.0.1</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="../../master/advanced/skeleton_risk_c6_closed_form.html" data-fallback="../../master/index.html">master</a></dd>
+        </dl>
+    </div>
+</div>
+<script>
+// Each ref is built on its own, so a listed ref may lack this page: open its index instead.
+document.querySelectorAll(".rst-other-versions a[data-fallback]").forEach(function (link) {
+    link.addEventListener("click", function (event) {
+        if (!window.fetch || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+            return;
+        }
+        event.preventDefault();
+        fetch(link.href, { method: "HEAD" }).then(
+            function (response) {
+                window.location.href = response.ok ? link.href : link.getAttribute("data-fallback");
+            },
+            function () {
+                window.location.href = link.href;
+            }
+        );
+    });
+});
+</script><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
