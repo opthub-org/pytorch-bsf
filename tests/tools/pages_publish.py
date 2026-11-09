@@ -1,6 +1,7 @@
 """Offline trust-boundary, ordering and bare-Git regressions for Pages publishing."""
 
 import base64
+import contextlib
 import copy
 import datetime as dt
 import hashlib
@@ -10,6 +11,7 @@ import stat
 import subprocess
 import tempfile
 import unittest
+import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
@@ -681,13 +683,13 @@ class SweepTests(unittest.TestCase):
             [(c["name"], c["head_sha"], c["external_id"]) for c in checks], [(pages.CHECK_NAME, SHA, "pages-100-1")]
         )
 
-    def test_listing_is_bounded_to_successful_dispatches_within_the_artifact_lifetime(self):
+    def test_listing_is_bounded_to_successful_runs_within_the_artifact_lifetime(self):
         api = SweepAPI()
         self.sweep(api)
         listing = urllib.parse.urlsplit(api.listed[0])
         self.assertEqual(listing.path, "actions/workflows/sphinx-pages-build.yml/runs")
         query = urllib.parse.parse_qs(listing.query)
-        self.assertEqual(query, {"event": ["workflow_dispatch"], "status": ["success"], "created": [">=2026-11-02T12:00:00Z"]})
+        self.assertEqual(query, {"status": ["success"], "created": [">=2026-11-02T12:00:00Z"]})
         checks = urllib.parse.parse_qs(urllib.parse.urlsplit(api.listed[1]).query)
         self.assertEqual(checks, {"check_name": [pages.CHECK_NAME], "filter": ["all"]})
 
@@ -707,7 +709,25 @@ class SweepTests(unittest.TestCase):
                 api = SweepAPI()
                 api.run.update(change)
                 self.assertEqual(self.sweep(api), [])
-                self.assertFalse(any(method == "POST" for _, method, _ in api.calls))
+                # The listing filter rejects the run before any authentication.
+                self.assertFalse(any(path.startswith(("actions/runs/", "git/")) for path, _, _ in api.calls))
+
+    def test_newer_run_that_did_not_succeed_does_not_hide_the_older_success(self):
+        for change in ({"conclusion": "failure"}, {"status": "in_progress"}, {"event": "schedule"}):
+            with self.subTest(change=change):
+                api = SweepAPI()
+                newer = copy.deepcopy(api.run)
+                newer.update(id=110, run_number=4, **change)
+                api.runs.append(newer)
+                self.assertEqual([r["run_id"] for r in self.sweep(api)], [100])
+
+    def test_newer_push_run_of_the_same_commit_supersedes_the_bot_run(self):
+        api = SweepAPI()
+        newer = copy.deepcopy(api.run)
+        newer.update(id=110, run_number=4, event="push", triggering_actor={"login": "NaokiHamada"})
+        api.runs.append(newer)
+        self.assertEqual(self.sweep(api), [])
+        self.assertFalse(any(path.startswith(("actions/runs/", "git/")) for path, _, _ in api.calls))
 
     def test_handled_attempt_is_never_published_again_even_after_a_failure(self):
         for conclusion in ("success", "failure"):
@@ -766,9 +786,9 @@ class SweepTests(unittest.TestCase):
         api = SweepAPI()
         second = copy.deepcopy(api.run)
         second.update(id=101, head_branch="fix")
-        api.runs.insert(0, second)
+        api.runs.append(second)
         api.refs.append({"ref": "refs/heads/fix", "object": {"type": "commit", "sha": SHA}})
-        # The first ref in name order, "fix", fails: its artifact belongs to master's run.
+        # "fix" comes first in name order and fails: its artifact belongs to master's run.
         published = []
 
         def factory():
@@ -788,13 +808,52 @@ class SweepTests(unittest.TestCase):
         del broken["run_number"]
         broken.update(id=101, head_branch="fix")
         api.runs.insert(0, broken)
-        self.assertEqual([r["run_id"] for r in self.sweep(api)], [100])
+        with contextlib.redirect_stderr(io.StringIO()) as log:
+            self.assertEqual([r["run_id"] for r in self.sweep(api)], [100])
+        self.assertIn("Skipping a malformed producer run record: 101", log.getvalue())
+
+    def test_bad_ref_of_one_run_does_not_stop_the_others(self):
+        api = SweepAPI()
+        other = copy.deepcopy(api.run)
+        other.update(id=101, head_branch="aaa")
+        api.runs.append(other)
+        api.refs.append({"ref": "refs/heads/aaa", "object": {"type": "tree", "sha": SHA}})
+        with contextlib.redirect_stderr(io.StringIO()) as log:
+            self.assertEqual([r["run_id"] for r in self.sweep(api)], [100])
+        self.assertIn("Skipping producer run 101", log.getvalue())
+
+    def test_network_error_for_one_run_is_a_failure_that_does_not_stop_the_others(self):
+        api = SweepAPI()
+        other = copy.deepcopy(api.run)
+        other.update(id=101, head_branch="aaa")
+        api.runs.append(other)
+        api.refs.append({"ref": "refs/heads/aaa", "object": {"type": "commit", "sha": SHA}})
+        original = api.request
+
+        def request(path, method="GET", data=None, **kwargs):
+            if path.startswith("actions/runs/101/"):
+                raise urllib.error.URLError("timeout")
+            return original(path, method, data, **kwargs)
+
+        api.request = request  # type: ignore[method-assign]
+        published = []
+
+        def factory():
+            target = MemoryPages()
+            published.append(target)
+            return target
+
+        with self.assertRaisesRegex(RuntimeError, "1 documentation publication"):
+            self.sweep(api, factory)
+        self.assertEqual([target.pushed for target in published], [True])
 
     def test_run_that_fails_authentication_is_skipped_without_a_check_or_a_failure(self):
         api = SweepAPI()
         api.definition = b"older producer\n"
         for _ in range(2):
-            self.assertEqual(self.sweep(api), [])
+            with contextlib.redirect_stderr(io.StringIO()) as log:
+                self.assertEqual(self.sweep(api), [])
+            self.assertIn("Skipping producer run 100", log.getvalue())
         self.assertFalse(any(method in {"POST", "PATCH"} for _, method, _ in api.calls))
 
     def test_api_error_during_authentication_fails_the_sweep_for_a_retry(self):

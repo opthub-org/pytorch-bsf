@@ -968,8 +968,8 @@ Release Please dispatches, nor the `master` and automation-branch builds that th
 controllers dispatch. The trusted **GHPages publisher sweep**
 (`sphinx-pages-sweep.yml`, `tools/pages_publish.py --sweep`) runs from `master`
 every 30 minutes and shares the `gh-pages` lock. It takes the newest successful
-dispatched producer run of each ref from the last six days, one day inside the
-artifacts' seven-day lifetime, if `github-actions[bot]` dispatched it. It
+producer run of each ref from the last six days, one day inside the artifacts'
+seven-day lifetime, if `github-actions[bot]` dispatched it. It
 publishes that run with the same checks as the publisher while the ref still
 points at the run's commit and no **GHPages publish** check carries that run
 attempt's external ID. A failed publication is therefore not retried

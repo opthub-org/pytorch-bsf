@@ -1,6 +1,6 @@
-"""Publish one authenticated documentation subtree without executing build artifacts.
+"""Publish authenticated documentation subtrees without executing build artifacts.
 
-The trusted workflow runs this module from its default-branch commit. Artifacts
+The trusted workflows run this module from their default-branch commit. Artifacts
 are bounded ZIP data; Git's bare object/index plumbing never checks them out.
 Source-ref checks and the gh-pages fast-forward are separate operations: a ref
 moving in that final network window fails the post-push check, not an atomic
@@ -633,22 +633,26 @@ def publish(api: Any, event: Json, pages_factory: Callable[[], Any]) -> Json:
     return record
 
 
-def newest_dispatched_runs(api: Any, now: dt.datetime) -> list[Json]:
-    """Return the newest successful dispatched producer run of each ref, if `github-actions[bot]` dispatched it."""
+def newest_bot_runs(api: Any, now: dt.datetime) -> list[Json]:
+    """Return the newest successful producer run of each ref, if `github-actions[bot]` dispatched it.
+
+    A newer run that a user pushed or dispatched started the publisher itself, which also rejects the older generation.
+    """
     since = (now - SWEEP_WINDOW).strftime("%Y-%m-%dT%H:%M:%SZ")
-    query = urllib.parse.urlencode({"event": "workflow_dispatch", "status": "success", "created": ">=" + since})
+    query = urllib.parse.urlencode({"status": "success", "created": ">=" + since})
     newest: dict[str, Json] = {}
     for run in api.pages(f"actions/workflows/{WORKFLOW_FILE}/runs?{query}", "workflow_runs"):
         # The query filters are a hint; check each field before relying on the run.
         try:
             if (
-                run["event"] != "workflow_dispatch"
+                run["event"] not in {"push", "workflow_dispatch"}
                 or run["status"] != "completed"
                 or run["conclusion"] != "success"
                 or not isinstance(run["head_branch"], str)
             ):
                 continue
-            attempt_id(run["id"], run["run_attempt"])
+            positive_int(run["id"])
+            positive_int(run["run_attempt"])
             number = positive_int(run["run_number"])
         except (KeyError, TypeError, ValueError):
             print(f"Skipping a malformed producer run record: {run.get('id')!r}", file=sys.stderr)
@@ -656,52 +660,53 @@ def newest_dispatched_runs(api: Any, now: dt.datetime) -> list[Json]:
         current = newest.get(run["head_branch"])
         if current is None or number > current["run_number"]:
             newest[run["head_branch"]] = run
-    # A newer run that a user dispatched started the publisher itself, which also rejects the older generation.
-    return [run for _, run in sorted(newest.items()) if (run.get("triggering_actor") or {}).get("login") == BOT]
+    return [
+        run
+        for _, run in sorted(newest.items())
+        if run["event"] == "workflow_dispatch" and (run.get("triggering_actor") or {}).get("login") == BOT
+    ]
 
 
-def unpublished_runs(api: Any, now: dt.datetime) -> list[Json]:
-    """List the producer runs that `github-actions[bot]` dispatched and no publisher has handled.
+def unhandled(api: Any, run: Json, refs: list[Json]) -> bool:
+    """Tell whether the run's ref still points at its commit and no check carries its attempt's external ID.
 
-    Only the newest dispatched run of a ref is considered, only if the bot dispatched it, and only while the ref still
-    points at its commit: a newer build of a moved ref publishes it instead. This filter is advisory; publish() checks
-    the ref again. A run counts as handled once a check with its attempt's external ID exists on its commit, whatever
-    the conclusion, so a failed publication is never retried automatically.
+    A newer build of a moved ref publishes it instead. This filter is advisory; publish() checks the ref again. A check
+    with the external ID marks the run as handled whatever its conclusion, so a failed publication is not retried.
     """
-    candidates = newest_dispatched_runs(api, now)
-    if not candidates:
-        return []
-    refs = all_refs(api)
-    selected = []
-    for run in candidates:
-        name = run["head_branch"]
-        matches = [row for row in refs if row["ref"] in {f"refs/heads/{name}", f"refs/tags/{name}"}]
-        if len(matches) != 1 or peel_commit(api, matches[0]["object"]) != run["head_sha"]:
-            continue
-        query = urllib.parse.urlencode({"check_name": CHECK_NAME, "filter": "all"})
-        checks = api.pages(f"commits/{run['head_sha']}/check-runs?{query}", "check_runs")
-        if not any(check.get("external_id") == attempt_id(run["id"], run["run_attempt"]) for check in checks):
-            selected.append(run)
-    return selected
+    name = run["head_branch"]
+    matches = [row for row in refs if row["ref"] in {f"refs/heads/{name}", f"refs/tags/{name}"}]
+    if len(matches) != 1 or peel_commit(api, matches[0]["object"]) != run["head_sha"]:
+        return False
+    query = urllib.parse.urlencode({"check_name": CHECK_NAME, "filter": "all"})
+    checks = api.pages(f"commits/{run['head_sha']}/check-runs?{query}", "check_runs")
+    return not any(check.get("external_id") == attempt_id(run["id"], run["run_attempt"]) for check in checks)
 
 
 def sweep(api: Any, now: dt.datetime, pages_factory: Callable[[], Any]) -> list[Json]:
     """Publish every unhandled bot-dispatched producer run; fail after trying all of them if any failed.
 
-    A run that fails authentication, such as a tag built by a producer that differs from the trusted template, is
-    skipped without a check: it would fail the same way every time. API errors stay failures, so a later sweep retries.
+    A run whose ref or authentication is invalid, such as a tag built by a producer that differs from the trusted
+    template, is skipped without a check: it would fail the same way every time. An API or network error before the
+    publication check is a failure that a later sweep retries; a failure after the check is final.
     """
+    candidates = newest_bot_runs(api, now)
+    if not candidates:
+        return []
+    refs = all_refs(api)
     records, failed = [], 0
-    for run in unpublished_runs(api, now):
+    for run in candidates:
         event = {"workflow_run": run}
         try:
+            if not unhandled(api, run, refs):
+                continue
+            # Sort failures into "skip" and "retry" before publish() posts a check; publish() authenticates again.
             authenticate_run(api, event)
         except (KeyError, TypeError, ValueError) as error:
             print(f"Skipping producer run {run['id']}, which cannot be published: {error}", file=sys.stderr)
             continue
-        except GitHubError as error:
+        except (GitHubError, OSError) as error:
             failed += 1
-            print(f"Producer run {run['id']} could not be authenticated: {error}", file=sys.stderr)
+            print(f"Producer run {run['id']} could not be checked: {type(error).__name__}: {error}", file=sys.stderr)
             continue
         try:
             records.append(publish(api, event, pages_factory))
