@@ -1,0 +1,527 @@
+Shape-preserving interpolation on simplicial meshes
+===================================================
+
+When to interpolate instead of fitting
+--------------------------------------
+
+``fit`` estimates one global polynomial (or one per glued cell) by least
+squares. When the response is piecewise smooth, with kinks where an active
+set or a regime changes, a global polynomial of moderate degree oscillates
+between design points and can overshoot the data. If the response is
+optimized afterwards, an overshoot becomes a spurious optimum that the data
+never showed.
+
+:func:`~torch_bsf.interpolation.hermite_interpolant` builds a local
+alternative from data at the vertices of a simplicial mesh: a continuous
+piecewise cubic Bézier model that passes through every datum and, with the
+default ``clamp=True``, never leaves the range of the data at the vertices of
+the simplex it is evaluated in. On a chain of intervals it is a C0 piecewise
+cubic Hermite interpolant whose endpoint slopes are limited independently
+on each interval. The limiter satisfies the square part of the
+Fritsch–Carlson monotonicity conditions :cite:p:`fritsch1980monotone`, but
+the default gradients do not give the usual C1 PCHIP interpolant. Supplying
+PCHIP slopes as ``gradients`` recovers PCHIP up to float64 roundoff: its
+interior slopes use the Fritsch–Butland weighted harmonic mean
+:cite:p:`fritsch1984method` and its endpoints use a one-sided rule. We call
+the construction on simplicial meshes *simplicial PCHIP* in reference to
+its shape preservation.
+
+Use it when evaluations are exact (or nearly so) and the design points are
+given, for example a grid or the points chosen by an adaptive loop. With
+noisy observations prefer a regularized fit: interpolation reproduces the
+noise.
+
+Interpolate on a mesh
+---------------------
+
+A :class:`~torch_bsf.interpolation.SimplicialMesh` takes vertex coordinates
+of shape ``(n_vertices, d)`` and simplices of shape ``(n_simplices, d + 1)``
+given by vertex numbers. The simplices must not be degenerate and must meet
+face to face (the mesh must be *conforming*); ``SimplicialMesh`` checks this
+and raises ``ValueError`` otherwise (see `Conforming meshes`_). The example
+triangulates a jittered grid of the unit square and interpolates a function
+with a kink along a diagonal.
+
+.. testcode:: interpolation
+
+    import torch
+    from torch_bsf.interpolation import SimplicialMesh, hermite_interpolant
+
+    n = 6
+    i, j = torch.meshgrid(torch.arange(n + 1), torch.arange(n + 1), indexing="ij")
+    vertices = torch.stack([i.flatten(), j.flatten()], dim=1).double() / n
+    number = lambda a, b: a * (n + 1) + b
+    simplices = []
+    for a in range(n):
+        for b in range(n):
+            simplices.append([number(a, b), number(a + 1, b), number(a + 1, b + 1)])
+            simplices.append([number(a, b), number(a, b + 1), number(a + 1, b + 1)])
+    mesh = SimplicialMesh(vertices, simplices)
+
+    def response(x):
+        return torch.stack([(x[:, 0] - x[:, 1]).abs() + x[:, 0] ** 2, x.sum(1)], dim=1)
+
+    model = hermite_interpolant(mesh, response(vertices))
+    x = torch.rand(1000, 2, dtype=torch.float64)
+    points = mesh.locate(x)
+    prediction = model(points)
+    assert torch.allclose(model(mesh.locate(vertices)), response(vertices), atol=1e-12)
+    assert prediction.shape == (1000, 2)
+
+``mesh.locate`` returns :class:`~torch_bsf.core.Points`: the cell ID of the
+simplex containing each point and its barycentric coordinates there.
+``model`` is an ordinary :class:`~torch_bsf.core.BezierModel` on
+``mesh.space``, a :class:`~torch_bsf.core.BezierSpace` of degree three
+compiled from the mesh. Everything that accepts a model, such as
+differentiation with respect to the points or
+:func:`~torch_bsf.splitting.subdivide`, accepts this one.
+
+The barycentric coordinates of cell ``mesh.cell_ids[k]`` refer to the
+vertices ``mesh.simplices[k]``, which lists the vertex numbers of simplex
+``k`` in ascending order (the order you passed is not kept). A point on a
+face shared by several simplices is assigned to one of them; the prediction
+does not depend on the choice because the interpolant is continuous. Points
+outside the mesh by more than ``tol`` raise ``ValueError``, while points
+within ``tol`` of its boundary are projected onto it. Point location tests
+every simplex, which is simple and exact but costs
+``O(n_points * n_simplices)``.
+
+For very different edge lengths, solving for barycentric coordinates can
+amplify roundoff enough to reject even a mesh's own vertex. ``barycentric``
+estimates factorization error from conditioning and edge scaling, and
+cancellation using absolute matrix products. It recomputes the
+affected point/simplex pairs with exact rational arithmetic on the input
+floats, rounding the resulting coordinates once to float64. Ordinary pairs
+keep the vectorized float64 path. The fallback is slower and caches one
+exact inverse per affected simplex; its integer sizes depend on the input
+exponents. For differentiable inputs the fallback uses cached SymPy
+expressions to differentiate the exact affine map, including the dependence
+on vertices. Each derivative order is evaluated with exact rational inputs
+before rounding, so overflowing terms that cancel cannot spoil finite
+derivatives. Points are handled independently, including when another point
+has a non-finite upstream gradient. SymPy is declared directly (PyTorch also
+requires it) and is imported lazily for these queries. Symbolic work and
+retained autograd state grow with dimension and derivative order, so this
+path is slower than ordinary tensor differentiation. Forward-mode queries
+(``torch.autograd.forward_ad`` or ``torch.func.jvp``) with any affected pair
+evaluate the whole query using these expressions, preserving point and vertex
+tangents without exposing dual tensor storage to Python.
+``torch.func.jacrev`` and ``torch.func.jacfwd`` batch the exact evaluations
+independently, retaining their individual rational bindings.
+PyTorch 2.3's lazy compiler initialization can fail when first triggered
+inside a transform. Importing ``torch_bsf`` initializes that compiler
+before transforms automatically on PyTorch 2.3. Later versions retain
+their usual lazy initialization.
+``locate(batch_size=...)`` bounds temporary float64 storage by
+``O(batch_size * n_simplices * (d + 1))``, in addition to that cache.
+
+This corrects loss of precision in the solve, rather than changing the
+meaning of rounded input. For example, when a midpoint's long-edge
+coordinates have already rounded away its short-edge contribution, the
+supplied position cannot identify the intended midpoint. Use coordinates
+that resolve the feature of interest; increasing ``tol`` does not recover
+the missing information.
+
+The mesh keeps independent snapshots of the input vertices and simplices,
+including CPU float64 tensors and NumPy arrays. Changing those original
+inputs later does not change coordinates, point location, volumes or
+interpolation. Treat ``mesh.vertices`` and ``mesh.simplices`` as read-only:
+direct in-place edits are unsupported because cached geometry and the
+compiled space would become inconsistent. Construct a new mesh to change
+its geometry or topology. Copying tensor vertices preserves their autograd
+connection.
+
+How the cubic pieces are built
+------------------------------
+
+On each simplex the model is a cubic Bézier simplex. Its controls are set
+from the data :math:`f_i` and gradients :math:`g_i` at the vertices
+:math:`x_i`, like the Bézier form of a cubic Hermite segment:
+
+* at vertex :math:`i`, the control is :math:`f_i`;
+* on edge :math:`i \to j`, next to vertex :math:`i`, it is
+  :math:`f_i + g_i \cdot (x_j - x_i) / 3`;
+* at the centre of the triangle face :math:`(i, j, l)`, it is the sum of the
+  six edge controls of that face divided by four, minus
+  :math:`(f_i + f_j + f_l) / 6`.
+
+A cubic simplex has no other controls. The face formula is the degree
+elevation of the quadratic Bézier triangle whose edge midpoint controls
+match the cubic edge controls :cite:p:`farin2002curves`, so the interpolant
+reproduces every quadratic polynomial when the gradients are exact.
+
+Each control depends only on the data of the edge or face that carries it.
+``SimplicialMesh`` glues simplices that share a face so that the face's
+controls are the same coefficient rows from both sides, which makes the
+interpolant continuous (C0). It is not C1 in general: gradients across a
+shared face can jump. This also happens at an interior vertex of a chain
+of intervals: clamping acts separately on the two incident intervals.
+For C1 interpolation in two dimensions, use
+:func:`~torch_bsf.interpolation.macro_interpolant` with
+``split=CloughTocher(), continuity=C1()`` (see `Smooth interpolation in two dimensions`_).
+
+On an interval with secant slope :math:`\Delta`, clipping its two edge
+controls replaces each endpoint slope :math:`g` by
+:math:`\operatorname{median}(0, g, 3\Delta)`. For :math:`\Delta \ne 0`,
+the normalized slopes :math:`\alpha,\beta` therefore lie in
+:math:`[0,3]^2`, a sufficient square within the Fritsch–Carlson monotonicity
+region :cite:p:`fritsch1980monotone`. If :math:`\Delta=0`, both limited
+slopes are zero. A shared vertex can have different limited slopes on its
+left and right, so the result is generally C0 rather than C1. For example,
+with ``x = (0, 1, 2)``, ``f = (0, 1, 1.1)`` and supplied slopes ``g = 2``,
+the left derivative at ``x = 1`` is ``2`` and the right derivative is
+``0.3``; with the default estimates they are ``0.55`` and ``0.3``.
+
+PCHIP's slopes already satisfy these bounds on every interval. To recover
+SciPy's ``scipy.interpolate.PchipInterpolator`` on a one-dimensional
+chain, pass ``pchip.derivative()(x)[:, None, :]`` as ``gradients`` for
+multi-output data (or ``pchip.derivative()(x)[:, None, None]`` for scalar
+data). The Fritsch–Butland rule :cite:p:`fritsch1984method` uses zero at
+an interior vertex next to a flat interval or a sign change, and a
+weighted harmonic mean of the adjacent secant slopes otherwise. Include
+PCHIP's one-sided endpoint slopes as well. The limiter then leaves the
+cubic Hermite segments unchanged, up to float64 roundoff.
+
+When ``gradients`` is omitted,
+:func:`~torch_bsf.interpolation.estimate_gradients` fits a quadratic by
+weighted least squares (weights :math:`1/|x_w - x_v|^2`) to the data on the
+smallest :math:`k`-ring of mesh neighbours, :math:`k \ge 2`, that has two
+points more than the quadratic has unknowns, and falls back to a linear fit
+on the one-ring. Pass your own ``gradients`` of shape
+``(n_vertices, d, n_outputs)`` if you know them.
+
+.. testcode:: interpolation
+
+    from torch_bsf.interpolation import estimate_gradients
+
+    quadratic = 1 + vertices[:, :1] - vertices[:, 1:] ** 2 + vertices[:, :1] * vertices[:, 1:]
+    exact = hermite_interpolant(mesh, quadratic, clamp=False)
+    truth = 1 + x[:, :1] - x[:, 1:] ** 2 + x[:, :1] * x[:, 1:]
+    assert torch.allclose(exact(points), truth, atol=1e-10)
+    assert estimate_gradients(mesh, quadratic).shape == (mesh.n_vertices, 2, 1)
+
+Range limiting and its error guarantee
+--------------------------------------
+
+With ``clamp=True`` (the default) each edge control is clipped, output by
+output, into the range of the data at the two vertices of its edge, and each
+face control into the range of the data at the three vertices of its face.
+Clipping uses only the data of that edge or face, so shared controls are
+still shared and continuity is kept. Vertex data are unchanged.
+
+Bernstein polynomials are nonnegative and sum to one, so a Bézier simplex
+takes values in the convex hull of its controls. Every control of a simplex
+:math:`T` is now within the range of its vertex data, hence for every output
+
+.. math::
+
+   \min_{v \in T} f(v) \le p(x) \le \max_{v \in T} f(v), \qquad x \in T.
+
+If the data come from a function :math:`f`, then for :math:`x \in T`,
+
+.. math::
+
+   |p(x) - f(x)| \le \max_{v \in T} |f(v) - f(x)| \le \omega_f(h),
+
+where :math:`h` is the longest edge of the mesh and
+:math:`\omega_f(\delta) = \sup\{|f(y) - f(z)| : |y - z| \le \delta\}` is
+the modulus of continuity of :math:`f`. The bound holds for any gradients,
+including poorly estimated ones, and for kinked or discontinuous-derivative
+responses; refining the mesh therefore converges uniformly for any
+continuous :math:`f` on the meshed domain. In particular, the interpolant
+never predicts a value outside the observed range of a cell, so its minimum
+over the domain equals the smallest datum and is attained at a design point:
+minimizing the interpolant cannot produce a spurious optimum.
+
+.. testcode:: interpolation
+
+    y = response(vertices)
+    corners = y[mesh.simplices]
+    cell_of = {c: k for k, c in enumerate(mesh.cell_ids.tolist())}
+    rows = torch.tensor([cell_of[c] for c in points.cell_ids.tolist()])
+    assert (prediction >= corners.amin(dim=1)[rows] - 1e-12).all()
+    assert (prediction <= corners.amax(dim=1)[rows] + 1e-12).all()
+
+In one dimension, clipping keeps the slope ratios
+:math:`\alpha = g_i h / \Delta` and :math:`\beta = g_{i+1} h / \Delta` of
+each interval in :math:`[0, 3]`, where :math:`\Delta` is the change of the
+data over the interval. This is the box condition of Fritsch and Carlson,
+which makes the cubic monotone on every interval where the data are
+monotone. Without clipping, a step in the data overshoots:
+
+.. testcode:: interpolation
+
+    line = torch.arange(8, dtype=torch.float64)[:, None]
+    chain = SimplicialMesh(line, [[k, k + 1] for k in range(7)])
+    step = torch.tensor([0., 0., 0., 0., 1., 1., 1., 1.], dtype=torch.float64)
+    t = chain.locate(torch.linspace(0, 7, 701, dtype=torch.float64)[:, None])
+    loose = hermite_interpolant(chain, step, clamp=False)(t)
+    tight = hermite_interpolant(chain, step)(t)
+    print(f"unclamped: [{loose.min():.3f}, {loose.max():.3f}]")
+    print(f"clamped:   [{tight.min():.3f}, {tight.max():.3f}]")
+    assert (tight.diff(dim=0) >= -1e-12).all()
+
+.. testoutput:: interpolation
+
+    unclamped: [-0.047, 1.047]
+    clamped:   [0.000, 1.000]
+
+Clipping trades accuracy for safety. Near a local extremum of the response,
+the true function leaves the range of the vertex data of a cell, and the
+clamped interpolant cannot follow it, so quadratic data are no longer
+reproduced exactly in such cells. Use ``clamp=False`` when the response is
+smooth and exact quadratic reproduction matters more than the range
+guarantee.
+
+Smooth interpolation in two dimensions
+--------------------------------------
+
+The interpolant above is continuous, but its gradient jumps across the faces
+of the mesh. On a triangle mesh, :func:`~torch_bsf.interpolation.macro_interpolant`
+also builds a continuously differentiable (C1) interpolant that keeps the same
+range guarantee. ``split`` says how each simplex is divided into pieces and
+``continuity`` how smoothly neighbouring pieces join:
+
+.. list-table::
+   :header-rows: 1
+
+   * - ``split``
+     - ``continuity``
+     - Dimensions
+     - Interpolant
+   * - :class:`~torch_bsf.interpolation.NoSplit` (default)
+     - :class:`~torch_bsf.interpolation.C0` (default)
+     - any
+     - :func:`~torch_bsf.interpolation.hermite_interpolant`
+   * - :class:`~torch_bsf.interpolation.CloughTocher`
+     - :class:`~torch_bsf.interpolation.C1`
+     - 2
+     - Clough–Tocher macro-element
+
+Other combinations raise ``ValueError``. The Clough–Tocher macro-element
+:cite:p:`clough1965finite,farin2002curves` splits every triangle at an
+interior point into three cubic pieces. The vertex values and gradients fix
+the controls next to the vertices, and one control per side of each edge
+remains free. That control is chosen so that the derivative across the edge
+varies linearly along it, which reproduces quadratic data. Then the controls
+on both sides of the edge are moved together to the nearest pair that joins
+them with a continuous gradient.
+
+The split point is the incenter, measured after dividing each axis by a power
+of two near the longest side of the mesh along it, so that the split does not
+depend on the units of the axes. The segment joining the incenters of two
+triangles sharing an edge crosses that edge strictly inside it, and an affine
+map of the domain keeps it so. Hence, once
+the controls next to the vertices lie in the data range of every triangle
+containing them, the free controls on both sides of an edge can be kept in
+range without breaking C1. With ``clamp=True``, every vertex gradient is first
+projected onto the gradients that satisfy this, which keeps the controls next
+to the vertex consistent with one gradient, and hence C1. The projection
+minimizes the change of those controls, which does not depend on the
+coordinate system. Every other control is a convex combination, so the
+prediction on each triangle stays within the range of its vertex data, as in
+`Range limiting and its error guarantee`_.
+
+.. testcode:: interpolation
+
+    from torch_bsf.interpolation import C1, CloughTocher, macro_interpolant
+
+    smooth = macro_interpolant(mesh, response(vertices), split=CloughTocher(), continuity=C1())
+    y = smooth(x)
+    piece_of = {c: k for k, c in enumerate(smooth.pieces.cell_ids.tolist())}
+    rows = smooth.parent[[piece_of[c] for c in smooth.locate(x).cell_ids.tolist()]]
+    corners = response(vertices)[mesh.simplices[rows]]
+    assert (y >= corners.amin(dim=1) - 1e-12).all() and (y <= corners.amax(dim=1) + 1e-12).all()
+
+The result is a :class:`~torch_bsf.interpolation.MacroInterpolant`. Call it at
+points, or evaluate its ``model``, a
+:class:`~torch_bsf.core.BezierModel` on ``smooth.pieces.space``, at
+``smooth.locate(x)``. ``smooth.pieces`` is the
+:class:`~torch_bsf.interpolation.SimplicialMesh` of the pieces, and
+``smooth.parent[k]`` is the triangle containing piece ``k``. Pass the same
+``split`` and ``continuity`` to
+:func:`~torch_bsf.interpolation.refinement_indicator` to score triangles by
+this interpolant.
+
+Choose where to add design points
+---------------------------------
+
+:func:`~torch_bsf.interpolation.refinement_indicator` scores each simplex by
+its volume times the difference between the cubic interpolant and linear
+interpolation at its centroid. A large score means the data bend within a
+large cell. Evaluating the response near the midpoint of the longest edge of
+the top-scoring cell and remeshing is a simple adaptive design. The example
+refines a one-dimensional kink, where remeshing is just sorting.
+
+The score applies the volume before rounding reductions near the float64
+limits. It therefore keeps finite scores when a vertex mean or an intermediate
+correction would overflow, or when a small mean would underflow before being
+multiplied by a large volume. These rare rows use exact rational arithmetic
+on the finite centroid predictions and vertex data; ordinary rows retain
+vectorized floating-point reductions. A true score beyond float64 is positive
+infinity. A non-finite centroid prediction raises ``ValueError``.
+
+.. testcode:: interpolation
+
+    from torch_bsf.interpolation import refinement_indicator
+
+    def kink(s):
+        return (s - 0.37).abs()
+
+    def chain_mesh(s):
+        s = s.sort().values
+        return s, SimplicialMesh(s[:, None], [[k, k + 1] for k in range(len(s) - 1)])
+
+    test = torch.linspace(0, 1, 1001, dtype=torch.float64)
+    design, chain = chain_mesh(torch.linspace(0, 1, 5, dtype=torch.float64))
+    first = (hermite_interpolant(chain, kink(design))(chain.locate(test[:, None]))[:, 0] - kink(test)).abs().max()
+    for _ in range(6):
+        worst = int(refinement_indicator(chain, kink(design)).argmax())
+        a, b = chain.simplices[worst].tolist()
+        design, chain = chain_mesh(torch.cat([design, (design[a:a + 1] + design[b:b + 1]) / 2]))
+    last = (hermite_interpolant(chain, kink(design))(chain.locate(test[:, None]))[:, 0] - kink(test)).abs().max()
+    assert last < first / 4
+
+In higher dimensions, :func:`~torch_bsf.interpolation.refine` bisects the
+selected simplices at the midpoint of an edge and returns a new mesh. The new
+vertices are appended after the old ones, so the data already observed keep
+their rows; evaluate the response only at the new vertices. The example
+starts from the lattice mesh of the triangle described below and uses
+newest-vertex bisection, the rule suited to lattice meshes (see below).
+
+.. testcode:: interpolation
+
+    from torch_bsf.interpolation import lattice_mesh, refine
+
+    adaptive = lattice_mesh(2, 2)
+    observed = response(adaptive.vertices)
+    while adaptive.n_vertices < 20:
+        worst = int(refinement_indicator(adaptive, observed).argmax())
+        old = adaptive.n_vertices
+        adaptive = refine(adaptive, [worst], rule="newest_vertex")
+        observed = torch.cat([observed, response(adaptive.vertices[old:])])
+    assert adaptive.unmatched_faces == 0
+    model = hermite_interpolant(adaptive, observed)
+
+Conforming meshes
+-----------------
+
+Two simplices of a conforming mesh meet in a common face or not at all. The
+interpolant is continuous only on such meshes, because a control on a face is
+shared only by simplices that both have that whole face. ``SimplicialMesh``
+counts the faces that break this rule, those shared by more than two
+simplices and those across which the mesh continues without a matching face
+(a hanging vertex, or two cells splitting a common square along different
+diagonals), in ``unmatched_faces``. It raises ``ValueError`` if there are any,
+or warns with ``strict=False``. Faces on the boundary of the meshed domain
+are fine.
+
+With the optional SciPy dependency (the ``sparse`` extra), a Delaunay
+triangulation of points in general position can be passed directly:
+
+.. testcode:: interpolation
+    :skipif: __import__("importlib.util").util.find_spec("scipy") is None
+
+    from scipy.spatial import Delaunay
+
+    scattered = torch.cat([torch.tensor([[0., 0.], [1., 0.], [0., 1.], [1., 1.]]), torch.rand(30, 2)]).double()
+    delaunay = SimplicialMesh(scattered, Delaunay(scattered.numpy()).simplices)
+    smooth = hermite_interpolant(delaunay, response(scattered))
+    score = refinement_indicator(delaunay, response(scattered))
+    assert score.shape == (delaunay.n_simplices,)
+
+Points of a lattice, such as a grid of mixture weights, are co-spherical, so
+their Delaunay triangulation is not unique. Qhull then returns flat
+simplices, which ``SimplicialMesh`` rejects as degenerate, and removing them
+leaves cells that split a flat polygon in different ways on its two sides:
+the mesh is not conforming. For the degree-``k`` lattice of a simplex, use
+:func:`~torch_bsf.interpolation.lattice_mesh` instead. It returns the Kuhn
+(Freudenthal) triangulation :cite:p:`kuhn1960combinatorial`: ``k ** d``
+simplices of equal volume (not congruent for ``d >= 3``) whose vertices are
+the lattice points, in the order of
+:func:`~torch_bsf.sampling.grid` with ``resolution=k``, given by their first
+``d`` barycentric coordinates.
+
+.. testcode:: interpolation
+
+    mixtures = lattice_mesh(3, 4)
+    print(mixtures.n_vertices, mixtures.n_simplices, mixtures.unmatched_faces)
+
+.. testoutput:: interpolation
+
+    35 64 0
+
+Refinement by :func:`~torch_bsf.interpolation.refine` keeps a mesh
+conforming. Every simplex has a refinement edge, which ``rule`` selects. A
+simplex is cut at the midpoint of its refinement edge; the edge is bisected
+in every simplex containing it, and before that each of those simplices
+whose refinement edge is another one is refined, recursively. Refining one
+simplex can therefore add more than one vertex. By default
+(``rule="longest_edge"``) the refinement edge is the longest edge, which is
+the longest-edge bisection of Rivara :cite:p:`rivara1984algorithms`; ties
+between edges of equal length, common on lattices, are broken by vertex
+numbers in the same way everywhere. Starting from a lattice mesh, with either
+rule, every new vertex is a lattice point of a finer lattice (degree ``2k``,
+then ``4k``, and so on).
+
+Longest-edge bisection does not respect the cubes of a lattice mesh,
+however: the longest edge of a Kuhn simplex in these coordinates is not the
+diagonal of its cube, so refining every simplex of ``lattice_mesh(3, 3)``
+three times gives 186 vertices instead of the 84 of the degree-6 lattice, and
+adaptive refinement spends part of its vertices on closure. With
+``rule="newest_vertex"``, :func:`~torch_bsf.interpolation.refine` uses the
+newest-vertex bisection of Maubach :cite:p:`maubach1995local` instead: the
+simplices of a lattice mesh are ordered along their Kuhn paths, each is cut
+across the diagonal of its cube, and the refined mesh keeps the order and the
+tags of its simplices for the next call. Then ``d`` rounds of refining every
+simplex double the lattice degree, the simplices take finitely many shapes,
+and an adaptive mesh is locally a finer lattice mesh.
+
+.. testcode:: interpolation
+
+    for rule in ("newest_vertex", "longest_edge"):
+        uniform = lattice_mesh(3, 3)
+        for _ in range(3):
+            uniform = refine(uniform, range(uniform.n_simplices), rule=rule)
+        print(rule, uniform.n_vertices, uniform.n_simplices, uniform.unmatched_faces)
+
+.. testoutput:: interpolation
+
+    newest_vertex 84 216 0
+    longest_edge 186 634 0
+
+The newest-vertex rule needs this state, so it applies to meshes from
+:func:`~torch_bsf.interpolation.lattice_mesh` and their newest-vertex
+refinements; other meshes raise ``ValueError``.
+
+Limitations
+-----------
+
+* Meshes of arbitrary point sets are not generated here; only lattice meshes
+  and their refinements are. The simplices must be full-dimensional,
+  non-degenerate and conforming. The conformity check does not detect
+  simplices that overlap without sharing a face.
+* The interpolant is cubic. It is C1 only on triangle meshes, with the
+  Clough–Tocher split. C1 interpolants in three or more dimensions, other
+  splits (such as Powell–Sabin) and non-simplicial cells such as prisms are
+  not provided.
+* The clamped C1 interpolant need not depend continuously on the vertex
+  coordinates. Its gradient limiter projects onto a set that can shrink
+  abruptly, for example when two edges through a vertex stop being exactly
+  parallel. Each result is still C1 and in range.
+* The Clough–Tocher split raises ``ValueError`` on a triangle whose split
+  point rounds onto one of its sides, for example a triangle far thinner
+  across than its distance from the origin.
+* Quadratic reproduction requires enough neighbours around each vertex for
+  the gradient estimate; near a sparse boundary only linear data are
+  reproduced unless you pass gradients.
+* Computation is in float64 on the CPU.
+  :func:`~torch_bsf.interpolation.estimate_gradients` returns signed infinity
+  without a warning for gradient components beyond the float64 range, even
+  when the vertex data are finite (for example, on very short edges).
+  :func:`~torch_bsf.interpolation.hermite_interpolant`,
+  :func:`~torch_bsf.interpolation.macro_interpolant` and
+  :func:`~torch_bsf.interpolation.refinement_indicator` raise ``ValueError``
+  identifying overflow in the interpolant when its controls are non-finite.
+  Clamping can clip infinite controls into the vertex data range, but cannot
+  repair NaN controls. Rescale the vertex data or coordinates if this occurs.
