@@ -1,0 +1,761 @@
+{
+  "schema_version": 1,
+  "runs": [
+    {
+      "backend": "dense",
+      "maximal_cells": 16,
+      "addressable_cells": 33,
+      "observations": 320,
+      "controls": 49,
+      "outputs": 2,
+      "system_shape": [
+        417,
+        49
+      ],
+      "nnz": 1329,
+      "dtype": "float64",
+      "device": "cpu",
+      "threads": 1,
+      "seconds": 0.010458900011144578,
+      "process_peak_rss_bytes": 193970176,
+      "before_fit_peak_rss_bytes": 190238720,
+      "success": true,
+      "objective": 0.0045303058252045385,
+      "iterations": [],
+      "stop_codes": [],
+      "penalty": {
+        "ridge": 0.0001,
+        "smoothness": 0.001
+      },
+      "versions": {
+        "python": "3.12.6",
+        "torch": "2.4.1",
+        "numpy": "2.1.1",
+        "scipy": "1.14.1"
+      },
+      "machine": {
+        "platform": "Windows-11-10.0.26300-SP0",
+        "processor": "Intel64 Family 6 Model 191 Stepping 2, GenuineIntel",
+        "logical_cpus": 16
+      },
+      "trial": 0
+    },
+    {
+      "backend": "dense",
+      "maximal_cells": 16,
+      "addressable_cells": 33,
+      "observations": 320,
+      "controls": 49,
+      "outputs": 2,
+      "system_shape": [
+        417,
+        49
+      ],
+      "nnz": 1329,
+      "dtype": "float64",
+      "device": "cpu",
+      "threads": 1,
+      "seconds": 0.011544000008143485,
+      "process_peak_rss_bytes": 191148032,
+      "before_fit_peak_rss_bytes": 187404288,
+      "success": true,
+      "objective": 0.0045303058252045385,
+      "iterations": [],
+      "stop_codes": [],
+      "penalty": {
+        "ridge": 0.0001,
+        "smoothness": 0.001
+      },
+      "versions": {
+        "python": "3.12.6",
+        "torch": "2.4.1",
+        "numpy": "2.1.1",
+        "scipy": "1.14.1"
+      },
+      "machine": {
+        "platform": "Windows-11-10.0.26300-SP0",
+        "processor": "Intel64 Family 6 Model 191 Stepping 2, GenuineIntel",
+        "logical_cpus": 16
+      },
+      "trial": 1
+    },
+    {
+      "backend": "dense",
+      "maximal_cells": 16,
+      "addressable_cells": 33,
+      "observations": 320,
+      "controls": 49,
+      "outputs": 2,
+      "system_shape": [
+        417,
+        49
+      ],
+      "nnz": 1329,
+      "dtype": "float64",
+      "device": "cpu",
+      "threads": 1,
+      "seconds": 0.012109500006772578,
+      "process_peak_rss_bytes": 190877696,
+      "before_fit_peak_rss_bytes": 187129856,
+      "success": true,
+      "objective": 0.0045303058252045385,
+      "iterations": [],
+      "stop_codes": [],
+      "penalty": {
+        "ridge": 0.0001,
+        "smoothness": 0.001
+      },
+      "versions": {
+        "python": "3.12.6",
+        "torch": "2.4.1",
+        "numpy": "2.1.1",
+        "scipy": "1.14.1"
+      },
+      "machine": {
+        "platform": "Windows-11-10.0.26300-SP0",
+        "processor": "Intel64 Family 6 Model 191 Stepping 2, GenuineIntel",
+        "logical_cpus": 16
+      },
+      "trial": 2
+    },
+    {
+      "backend": "sparse",
+      "maximal_cells": 16,
+      "addressable_cells": 33,
+      "observations": 320,
+      "controls": 49,
+      "outputs": 2,
+      "system_shape": [
+        417,
+        49
+      ],
+      "nnz": 1329,
+      "dtype": "float64",
+      "device": "cpu",
+      "threads": 1,
+      "seconds": 0.3642346000415273,
+      "process_peak_rss_bytes": 202706944,
+      "before_fit_peak_rss_bytes": 186654720,
+      "success": true,
+      "objective": 0.0045303058252045385,
+      "iterations": [
+        22,
+        23
+      ],
+      "stop_codes": [
+        2,
+        2
+      ],
+      "penalty": {
+        "ridge": 0.0001,
+        "smoothness": 0.001
+      },
+      "versions": {
+        "python": "3.12.6",
+        "torch": "2.4.1",
+        "numpy": "2.1.1",
+        "scipy": "1.14.1"
+      },
+      "machine": {
+        "platform": "Windows-11-10.0.26300-SP0",
+        "processor": "Intel64 Family 6 Model 191 Stepping 2, GenuineIntel",
+        "logical_cpus": 16
+      },
+      "trial": 0
+    },
+    {
+      "backend": "sparse",
+      "maximal_cells": 16,
+      "addressable_cells": 33,
+      "observations": 320,
+      "controls": 49,
+      "outputs": 2,
+      "system_shape": [
+        417,
+        49
+      ],
+      "nnz": 1329,
+      "dtype": "float64",
+      "device": "cpu",
+      "threads": 1,
+      "seconds": 0.2626615999615751,
+      "process_peak_rss_bytes": 203026432,
+      "before_fit_peak_rss_bytes": 187207680,
+      "success": true,
+      "objective": 0.0045303058252045385,
+      "iterations": [
+        22,
+        23
+      ],
+      "stop_codes": [
+        2,
+        2
+      ],
+      "penalty": {
+        "ridge": 0.0001,
+        "smoothness": 0.001
+      },
+      "versions": {
+        "python": "3.12.6",
+        "torch": "2.4.1",
+        "numpy": "2.1.1",
+        "scipy": "1.14.1"
+      },
+      "machine": {
+        "platform": "Windows-11-10.0.26300-SP0",
+        "processor": "Intel64 Family 6 Model 191 Stepping 2, GenuineIntel",
+        "logical_cpus": 16
+      },
+      "trial": 1
+    },
+    {
+      "backend": "sparse",
+      "maximal_cells": 16,
+      "addressable_cells": 33,
+      "observations": 320,
+      "controls": 49,
+      "outputs": 2,
+      "system_shape": [
+        417,
+        49
+      ],
+      "nnz": 1329,
+      "dtype": "float64",
+      "device": "cpu",
+      "threads": 1,
+      "seconds": 0.700127899996005,
+      "process_peak_rss_bytes": 202620928,
+      "before_fit_peak_rss_bytes": 186638336,
+      "success": true,
+      "objective": 0.0045303058252045385,
+      "iterations": [
+        22,
+        23
+      ],
+      "stop_codes": [
+        2,
+        2
+      ],
+      "penalty": {
+        "ridge": 0.0001,
+        "smoothness": 0.001
+      },
+      "versions": {
+        "python": "3.12.6",
+        "torch": "2.4.1",
+        "numpy": "2.1.1",
+        "scipy": "1.14.1"
+      },
+      "machine": {
+        "platform": "Windows-11-10.0.26300-SP0",
+        "processor": "Intel64 Family 6 Model 191 Stepping 2, GenuineIntel",
+        "logical_cpus": 16
+      },
+      "trial": 2
+    },
+    {
+      "backend": "dense",
+      "maximal_cells": 64,
+      "addressable_cells": 129,
+      "observations": 1280,
+      "controls": 193,
+      "outputs": 2,
+      "system_shape": [
+        1665,
+        193
+      ],
+      "nnz": 5313,
+      "dtype": "float64",
+      "device": "cpu",
+      "threads": 1,
+      "seconds": 0.03271810000296682,
+      "process_peak_rss_bytes": 202899456,
+      "before_fit_peak_rss_bytes": 187461632,
+      "success": true,
+      "objective": 0.016208458372702298,
+      "iterations": [],
+      "stop_codes": [],
+      "penalty": {
+        "ridge": 0.0001,
+        "smoothness": 0.001
+      },
+      "versions": {
+        "python": "3.12.6",
+        "torch": "2.4.1",
+        "numpy": "2.1.1",
+        "scipy": "1.14.1"
+      },
+      "machine": {
+        "platform": "Windows-11-10.0.26300-SP0",
+        "processor": "Intel64 Family 6 Model 191 Stepping 2, GenuineIntel",
+        "logical_cpus": 16
+      },
+      "trial": 0
+    },
+    {
+      "backend": "dense",
+      "maximal_cells": 64,
+      "addressable_cells": 129,
+      "observations": 1280,
+      "controls": 193,
+      "outputs": 2,
+      "system_shape": [
+        1665,
+        193
+      ],
+      "nnz": 5313,
+      "dtype": "float64",
+      "device": "cpu",
+      "threads": 1,
+      "seconds": 0.049038700002711266,
+      "process_peak_rss_bytes": 202305536,
+      "before_fit_peak_rss_bytes": 186912768,
+      "success": true,
+      "objective": 0.016208458372702298,
+      "iterations": [],
+      "stop_codes": [],
+      "penalty": {
+        "ridge": 0.0001,
+        "smoothness": 0.001
+      },
+      "versions": {
+        "python": "3.12.6",
+        "torch": "2.4.1",
+        "numpy": "2.1.1",
+        "scipy": "1.14.1"
+      },
+      "machine": {
+        "platform": "Windows-11-10.0.26300-SP0",
+        "processor": "Intel64 Family 6 Model 191 Stepping 2, GenuineIntel",
+        "logical_cpus": 16
+      },
+      "trial": 1
+    },
+    {
+      "backend": "dense",
+      "maximal_cells": 64,
+      "addressable_cells": 129,
+      "observations": 1280,
+      "controls": 193,
+      "outputs": 2,
+      "system_shape": [
+        1665,
+        193
+      ],
+      "nnz": 5313,
+      "dtype": "float64",
+      "device": "cpu",
+      "threads": 1,
+      "seconds": 0.040298799984157085,
+      "process_peak_rss_bytes": 202919936,
+      "before_fit_peak_rss_bytes": 187580416,
+      "success": true,
+      "objective": 0.016208458372702298,
+      "iterations": [],
+      "stop_codes": [],
+      "penalty": {
+        "ridge": 0.0001,
+        "smoothness": 0.001
+      },
+      "versions": {
+        "python": "3.12.6",
+        "torch": "2.4.1",
+        "numpy": "2.1.1",
+        "scipy": "1.14.1"
+      },
+      "machine": {
+        "platform": "Windows-11-10.0.26300-SP0",
+        "processor": "Intel64 Family 6 Model 191 Stepping 2, GenuineIntel",
+        "logical_cpus": 16
+      },
+      "trial": 2
+    },
+    {
+      "backend": "sparse",
+      "maximal_cells": 64,
+      "addressable_cells": 129,
+      "observations": 1280,
+      "controls": 193,
+      "outputs": 2,
+      "system_shape": [
+        1665,
+        193
+      ],
+      "nnz": 5313,
+      "dtype": "float64",
+      "device": "cpu",
+      "threads": 1,
+      "seconds": 0.35289799998281524,
+      "process_peak_rss_bytes": 204840960,
+      "before_fit_peak_rss_bytes": 187736064,
+      "success": true,
+      "objective": 0.016208458372702295,
+      "iterations": [
+        11,
+        12
+      ],
+      "stop_codes": [
+        2,
+        2
+      ],
+      "penalty": {
+        "ridge": 0.0001,
+        "smoothness": 0.001
+      },
+      "versions": {
+        "python": "3.12.6",
+        "torch": "2.4.1",
+        "numpy": "2.1.1",
+        "scipy": "1.14.1"
+      },
+      "machine": {
+        "platform": "Windows-11-10.0.26300-SP0",
+        "processor": "Intel64 Family 6 Model 191 Stepping 2, GenuineIntel",
+        "logical_cpus": 16
+      },
+      "trial": 0
+    },
+    {
+      "backend": "sparse",
+      "maximal_cells": 64,
+      "addressable_cells": 129,
+      "observations": 1280,
+      "controls": 193,
+      "outputs": 2,
+      "system_shape": [
+        1665,
+        193
+      ],
+      "nnz": 5313,
+      "dtype": "float64",
+      "device": "cpu",
+      "threads": 1,
+      "seconds": 0.2615720999892801,
+      "process_peak_rss_bytes": 204140544,
+      "before_fit_peak_rss_bytes": 187346944,
+      "success": true,
+      "objective": 0.016208458372702295,
+      "iterations": [
+        11,
+        12
+      ],
+      "stop_codes": [
+        2,
+        2
+      ],
+      "penalty": {
+        "ridge": 0.0001,
+        "smoothness": 0.001
+      },
+      "versions": {
+        "python": "3.12.6",
+        "torch": "2.4.1",
+        "numpy": "2.1.1",
+        "scipy": "1.14.1"
+      },
+      "machine": {
+        "platform": "Windows-11-10.0.26300-SP0",
+        "processor": "Intel64 Family 6 Model 191 Stepping 2, GenuineIntel",
+        "logical_cpus": 16
+      },
+      "trial": 1
+    },
+    {
+      "backend": "sparse",
+      "maximal_cells": 64,
+      "addressable_cells": 129,
+      "observations": 1280,
+      "controls": 193,
+      "outputs": 2,
+      "system_shape": [
+        1665,
+        193
+      ],
+      "nnz": 5313,
+      "dtype": "float64",
+      "device": "cpu",
+      "threads": 1,
+      "seconds": 0.2923527000239119,
+      "process_peak_rss_bytes": 204251136,
+      "before_fit_peak_rss_bytes": 187211776,
+      "success": true,
+      "objective": 0.016208458372702295,
+      "iterations": [
+        11,
+        12
+      ],
+      "stop_codes": [
+        2,
+        2
+      ],
+      "penalty": {
+        "ridge": 0.0001,
+        "smoothness": 0.001
+      },
+      "versions": {
+        "python": "3.12.6",
+        "torch": "2.4.1",
+        "numpy": "2.1.1",
+        "scipy": "1.14.1"
+      },
+      "machine": {
+        "platform": "Windows-11-10.0.26300-SP0",
+        "processor": "Intel64 Family 6 Model 191 Stepping 2, GenuineIntel",
+        "logical_cpus": 16
+      },
+      "trial": 2
+    },
+    {
+      "backend": "dense",
+      "maximal_cells": 256,
+      "addressable_cells": 513,
+      "observations": 5120,
+      "controls": 769,
+      "outputs": 2,
+      "system_shape": [
+        6657,
+        769
+      ],
+      "nnz": 21249,
+      "dtype": "float64",
+      "device": "cpu",
+      "threads": 1,
+      "seconds": 1.7462476999498904,
+      "process_peak_rss_bytes": 316030976,
+      "before_fit_peak_rss_bytes": 188297216,
+      "success": true,
+      "objective": 0.060823531588889174,
+      "iterations": [],
+      "stop_codes": [],
+      "penalty": {
+        "ridge": 0.0001,
+        "smoothness": 0.001
+      },
+      "versions": {
+        "python": "3.12.6",
+        "torch": "2.4.1",
+        "numpy": "2.1.1",
+        "scipy": "1.14.1"
+      },
+      "machine": {
+        "platform": "Windows-11-10.0.26300-SP0",
+        "processor": "Intel64 Family 6 Model 191 Stepping 2, GenuineIntel",
+        "logical_cpus": 16
+      },
+      "trial": 0
+    },
+    {
+      "backend": "dense",
+      "maximal_cells": 256,
+      "addressable_cells": 513,
+      "observations": 5120,
+      "controls": 769,
+      "outputs": 2,
+      "system_shape": [
+        6657,
+        769
+      ],
+      "nnz": 21249,
+      "dtype": "float64",
+      "device": "cpu",
+      "threads": 1,
+      "seconds": 1.9518439999665134,
+      "process_peak_rss_bytes": 316231680,
+      "before_fit_peak_rss_bytes": 188633088,
+      "success": true,
+      "objective": 0.060823531588889174,
+      "iterations": [],
+      "stop_codes": [],
+      "penalty": {
+        "ridge": 0.0001,
+        "smoothness": 0.001
+      },
+      "versions": {
+        "python": "3.12.6",
+        "torch": "2.4.1",
+        "numpy": "2.1.1",
+        "scipy": "1.14.1"
+      },
+      "machine": {
+        "platform": "Windows-11-10.0.26300-SP0",
+        "processor": "Intel64 Family 6 Model 191 Stepping 2, GenuineIntel",
+        "logical_cpus": 16
+      },
+      "trial": 1
+    },
+    {
+      "backend": "dense",
+      "maximal_cells": 256,
+      "addressable_cells": 513,
+      "observations": 5120,
+      "controls": 769,
+      "outputs": 2,
+      "system_shape": [
+        6657,
+        769
+      ],
+      "nnz": 21249,
+      "dtype": "float64",
+      "device": "cpu",
+      "threads": 1,
+      "seconds": 1.5627484999713488,
+      "process_peak_rss_bytes": 315871232,
+      "before_fit_peak_rss_bytes": 188231680,
+      "success": true,
+      "objective": 0.060823531588889174,
+      "iterations": [],
+      "stop_codes": [],
+      "penalty": {
+        "ridge": 0.0001,
+        "smoothness": 0.001
+      },
+      "versions": {
+        "python": "3.12.6",
+        "torch": "2.4.1",
+        "numpy": "2.1.1",
+        "scipy": "1.14.1"
+      },
+      "machine": {
+        "platform": "Windows-11-10.0.26300-SP0",
+        "processor": "Intel64 Family 6 Model 191 Stepping 2, GenuineIntel",
+        "logical_cpus": 16
+      },
+      "trial": 2
+    },
+    {
+      "backend": "sparse",
+      "maximal_cells": 256,
+      "addressable_cells": 513,
+      "observations": 5120,
+      "controls": 769,
+      "outputs": 2,
+      "system_shape": [
+        6657,
+        769
+      ],
+      "nnz": 21249,
+      "dtype": "float64",
+      "device": "cpu",
+      "threads": 1,
+      "seconds": 0.3827327000326477,
+      "process_peak_rss_bytes": 209473536,
+      "before_fit_peak_rss_bytes": 188370944,
+      "success": true,
+      "objective": 0.060823531588889174,
+      "iterations": [
+        17,
+        18
+      ],
+      "stop_codes": [
+        2,
+        2
+      ],
+      "penalty": {
+        "ridge": 0.0001,
+        "smoothness": 0.001
+      },
+      "versions": {
+        "python": "3.12.6",
+        "torch": "2.4.1",
+        "numpy": "2.1.1",
+        "scipy": "1.14.1"
+      },
+      "machine": {
+        "platform": "Windows-11-10.0.26300-SP0",
+        "processor": "Intel64 Family 6 Model 191 Stepping 2, GenuineIntel",
+        "logical_cpus": 16
+      },
+      "trial": 0
+    },
+    {
+      "backend": "sparse",
+      "maximal_cells": 256,
+      "addressable_cells": 513,
+      "observations": 5120,
+      "controls": 769,
+      "outputs": 2,
+      "system_shape": [
+        6657,
+        769
+      ],
+      "nnz": 21249,
+      "dtype": "float64",
+      "device": "cpu",
+      "threads": 1,
+      "seconds": 0.28252700000302866,
+      "process_peak_rss_bytes": 209080320,
+      "before_fit_peak_rss_bytes": 188497920,
+      "success": true,
+      "objective": 0.060823531588889174,
+      "iterations": [
+        17,
+        18
+      ],
+      "stop_codes": [
+        2,
+        2
+      ],
+      "penalty": {
+        "ridge": 0.0001,
+        "smoothness": 0.001
+      },
+      "versions": {
+        "python": "3.12.6",
+        "torch": "2.4.1",
+        "numpy": "2.1.1",
+        "scipy": "1.14.1"
+      },
+      "machine": {
+        "platform": "Windows-11-10.0.26300-SP0",
+        "processor": "Intel64 Family 6 Model 191 Stepping 2, GenuineIntel",
+        "logical_cpus": 16
+      },
+      "trial": 1
+    },
+    {
+      "backend": "sparse",
+      "maximal_cells": 256,
+      "addressable_cells": 513,
+      "observations": 5120,
+      "controls": 769,
+      "outputs": 2,
+      "system_shape": [
+        6657,
+        769
+      ],
+      "nnz": 21249,
+      "dtype": "float64",
+      "device": "cpu",
+      "threads": 1,
+      "seconds": 0.47651649999897927,
+      "process_peak_rss_bytes": 209125376,
+      "before_fit_peak_rss_bytes": 188211200,
+      "success": true,
+      "objective": 0.060823531588889174,
+      "iterations": [
+        17,
+        18
+      ],
+      "stop_codes": [
+        2,
+        2
+      ],
+      "penalty": {
+        "ridge": 0.0001,
+        "smoothness": 0.001
+      },
+      "versions": {
+        "python": "3.12.6",
+        "torch": "2.4.1",
+        "numpy": "2.1.1",
+        "scipy": "1.14.1"
+      },
+      "machine": {
+        "platform": "Windows-11-10.0.26300-SP0",
+        "processor": "Intel64 Family 6 Model 191 Stepping 2, GenuineIntel",
+        "logical_cpus": 16
+      },
+      "trial": 2
+    }
+  ]
+}
