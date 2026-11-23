@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">PyTorch-BSF</title>
+  <desc id="desc">Two curved quadrilateral Bézier cells, separated by an S-shaped boundary, represent product-of-simplices domains and smooth fitting.</desc>
+  <rect width="128" height="128" rx="28" fill="#18243B"/><g transform="translate(4 4) scale(.9375)"><path fill="#929DFF" d="M16 44 64 12 112 40 112 60C76 80 52 28 16 52Z"/><path fill="#49D5BE" d="M16 68C52 48 76 100 112 76L112 84 64 116 16 88Z"/></g>
+</svg>
